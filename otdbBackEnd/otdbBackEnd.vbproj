@@ -1,0 +1,270 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{1D7701A8-4D3F-4FCB-875E-9FEAAEB05732}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <RootNamespace>
+    </RootNamespace>
+    <AssemblyName>otdbBackEnd</AssemblyName>
+    <FileAlignment>512</FileAlignment>
+    <MyType>Windows</MyType>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <TargetFrameworkProfile>Client</TargetFrameworkProfile>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <DefineDebug>true</DefineDebug>
+    <DefineTrace>true</DefineTrace>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DocumentationFile>otdbBackEnd.xml</DocumentationFile>
+    <NoWarn>42016,41999,42017,42018,42019,42032,42036,42020,42021,42022</NoWarn>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <DefineDebug>false</DefineDebug>
+    <DefineTrace>true</DefineTrace>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DocumentationFile>otdbBackEnd.xml</DocumentationFile>
+    <NoWarn>42016,41999,42017,42018,42019,42032,42036,42020,42021,42022</NoWarn>
+  </PropertyGroup>
+  <PropertyGroup>
+    <OptionExplicit>On</OptionExplicit>
+  </PropertyGroup>
+  <PropertyGroup>
+    <OptionCompare>Text</OptionCompare>
+  </PropertyGroup>
+  <PropertyGroup>
+    <OptionStrict>Off</OptionStrict>
+  </PropertyGroup>
+  <PropertyGroup>
+    <OptionInfer>On</OptionInfer>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="adodb, Version=7.0.3300.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+      <EmbedInteropTypes>True</EmbedInteropTypes>
+    </Reference>
+    <Reference Include="Microsoft.SqlServer.ConnectionInfo, Version=11.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Microsoft.SqlServer.ConnectionInfoExtended, Version=11.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Microsoft.SqlServer.Management.Sdk.Sfc, Version=11.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Microsoft.SqlServer.Smo, Version=11.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Microsoft.SqlServer.SmoExtended, Version=11.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Microsoft.SqlServer.SqlEnum, Version=11.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Data.Linq" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Drawing.Design" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+  </ItemGroup>
+  <ItemGroup>
+    <Import Include="Microsoft.VisualBasic" />
+    <Import Include="System" />
+    <Import Include="System.Collections" />
+    <Import Include="System.Collections.Generic" />
+    <Import Include="System.Data" />
+    <Import Include="System.Data.Common" />
+    <Import Include="System.Data.OleDb" />
+    <Import Include="System.Data.Sql" />
+    <Import Include="System.Data.SqlClient" />
+    <Import Include="System.Data.SqlTypes" />
+    <Import Include="System.Diagnostics" />
+    <Import Include="System.Linq" />
+    <Import Include="System.Xml.Linq" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Cache.vb" />
+    <None Include="clsADODB.vb" />
+    <Compile Include="clsADOMSSQL.vb" />
+    <Compile Include="clsADONET.vb" />
+    <Compile Include="clsADOOLEDB.vb" />
+    <Compile Include="clsBOM.vb" />
+    <Compile Include="clsCalenderEntry.vb" />
+    <Compile Include="clsCartypes.vb" />
+    <Compile Include="clsConfigurable.vb" />
+    <Compile Include="clsCore.vb" />
+    <Compile Include="clsCoreDef.vb" />
+    <Compile Include="clsCoreORM.vb" />
+    <Compile Include="clsCoreUI.vb" />
+    <Compile Include="clsDefCore.vb" />
+    <Compile Include="clsDeliverable.vb" />
+    <Compile Include="clsDependency.vb" />
+    <Compile Include="clsInterfaces.vb" />
+    <Compile Include="clsMQF.vb" />
+    <Compile Include="clsPart.vb" />
+    <Compile Include="clsSchedules.vb" />
+    <Compile Include="clsStatistics.vb" />
+    <Compile Include="clsTimeInterval.vb" />
+    <Compile Include="clsTracking.vb" />
+    <Compile Include="UIWinFormLogin.Designer.vb">
+      <DependentUpon>UIWinFormLogin.vb</DependentUpon>
+    </Compile>
+    <Compile Include="UIWinFormLogin.vb">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="UIWinFormMessageBox.vb" />
+    <Compile Include="clsXChange.vb" />
+    <Compile Include="CORE.vb" />
+    <Compile Include="createDatabase.vb" />
+    <Compile Include="Dependency.vb" />
+    <Compile Include="modHelperString.vb" />
+    <Compile Include="modHelperVBA.vb" />
+    <Compile Include="modHostData.vb" />
+    <Compile Include="modXChangeManager.vb" />
+    <Compile Include="My Project\AssemblyInfo.vb" />
+    <Compile Include="My Project\Application.Designer.vb">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Application.myapp</DependentUpon>
+    </Compile>
+    <Compile Include="My Project\Resources.Designer.vb">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <Compile Include="My Project\Settings.Designer.vb">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="UIWinFormLogin.resx">
+      <DependentUpon>UIWinFormLogin.vb</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="My Project\Resources.resx">
+      <Generator>VbMyResourcesResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.vb</LastGenOutput>
+      <CustomToolNamespace>My.Resources</CustomToolNamespace>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="app.config" />
+    <None Include="My Project\Application.myapp">
+      <Generator>MyApplicationCodeGenerator</Generator>
+      <LastGenOutput>Application.Designer.vb</LastGenOutput>
+    </None>
+    <None Include="My Project\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <CustomToolNamespace>My</CustomToolNamespace>
+      <LastGenOutput>Settings.Designer.vb</LastGenOutput>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <COMReference Include="ADOX">
+      <Guid>{00000600-0000-0010-8000-00AA006D2EA4}</Guid>
+      <VersionMajor>2</VersionMajor>
+      <VersionMinor>8</VersionMinor>
+      <Lcid>0</Lcid>
+      <WrapperTool>tlbimp</WrapperTool>
+      <Isolated>False</Isolated>
+      <EmbedInteropTypes>True</EmbedInteropTypes>
+    </COMReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\OnTrackLarge.jpg" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\OnTrackLarge.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Resources\Actions-appointment-new-icon.png" />
+    <Content Include="Resources\Actions-bookmark-new-icon.png" />
+    <Content Include="Resources\Actions-configure-toolbars-icon.png" />
+    <Content Include="Resources\Actions-games-solve-icon.png" />
+    <Content Include="Resources\Actions-system-run-icon-64x64.jpg" />
+    <Content Include="Resources\Actions-system-run-icon.png" />
+    <Content Include="Resources\Actions-system-run-icon32x32.png" />
+    <Content Include="Resources\Actions-system-run-icon64x64.png" />
+    <Content Include="Resources\Actions-view-calendar-tasks-icon.png" />
+    <Content Include="Resources\Actions-view-list-details-icon.png" />
+    <Content Include="Resources\Actions-view-list-tree-icon.png" />
+    <Content Include="Resources\add.png" />
+    <Content Include="Resources\app.png" />
+    <Content Include="Resources\applications.png" />
+    <Content Include="Resources\ball_blue.png" />
+    <Content Include="Resources\ball_green.png" />
+    <Content Include="Resources\ball_red.png" />
+    <Content Include="Resources\box.png" />
+    <Content Include="Resources\bt_add.png" />
+    <Content Include="Resources\bt_apply.png" />
+    <Content Include="Resources\bt_backward.png" />
+    <Content Include="Resources\bt_delete.png" />
+    <Content Include="Resources\bt_eject.png" />
+    <Content Include="Resources\bt_forward.png" />
+    <Content Include="Resources\bt_pause.png" />
+    <Content Include="Resources\bt_play.png" />
+    <Content Include="Resources\bt_skip_backward.png" />
+    <Content Include="Resources\bt_skip_forward.png" />
+    <Content Include="Resources\bt_stop.png" />
+    <Content Include="Resources\calculator.png" />
+    <Content Include="Resources\calendar.png" />
+    <Content Include="Resources\chart.png" />
+    <Content Include="Resources\computer.png" />
+    <Content Include="Resources\computer_group.png" />
+    <Content Include="Resources\connect-icon.png" />
+    <Content Include="Resources\contact.png" />
+    <Content Include="Resources\copy.png" />
+    <Content Include="Resources\cut.png" />
+    <Content Include="Resources\data.png" />
+    <Content Include="Resources\diagnostic.png" />
+    <Content Include="Resources\disconnect-icon.png" />
+    <Content Include="Resources\edit.png" />
+    <Content Include="Resources\fasttrack.png" />
+    <Content Include="Resources\favorits.png" />
+    <Content Include="Resources\files.png" />
+    <Content Include="Resources\find.png" />
+    <Content Include="Resources\folder.png" />
+    <Content Include="Resources\format_painter.png" />
+    <Content Include="Resources\go-next.png" />
+    <Content Include="Resources\go-previous.png" />
+    <Content Include="Resources\help.png" />
+    <Content Include="Resources\home.png" />
+    <Content Include="Resources\image.png" />
+    <Content Include="Resources\mail.png" />
+    <Content Include="Resources\notes.png" />
+    <Content Include="Resources\options.png" />
+    <Content Include="Resources\paste.png" />
+    <Content Include="Resources\personal.png" />
+    <Content Include="Resources\picture.png" />
+    <Content Include="Resources\print.png" />
+    <Content Include="Resources\quit.png" />
+    <Content Include="Resources\race-track-icon.png" />
+    <Content Include="Resources\redo.png" />
+    <Content Include="Resources\save.png" />
+    <Content Include="Resources\settings.png" />
+    <Content Include="Resources\setting_config.jpg" />
+    <Content Include="Resources\time.png" />
+    <Content Include="Resources\undo.png" />
+    <Content Include="Resources\user.png" />
+    <Content Include="Resources\video.png" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.VisualBasic.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

@@ -12,7 +12,7 @@ Imports OnTrack.Deliverables
 Imports OnTrack.Parts
 Imports OnTrack.Configurables
 Imports OnTrack.XChange
-Imports System.Drawing
+
 
 Namespace OnTrack.Database
 

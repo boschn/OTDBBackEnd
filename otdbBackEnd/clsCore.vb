@@ -118,8 +118,10 @@ Namespace OnTrack
             End If
         End Sub
 
-        '***
-        '***
+        ''' <summary>
+        ''' Finalize
+        ''' </summary>
+        ''' <remarks></remarks>
         Public Sub Finalize()
             _primaryDBDriver = Nothing
             _primaryConnection = Nothing
@@ -511,7 +513,7 @@ Namespace OnTrack
             If _DomainObjectsDir.ContainsKey(key:=_CurrentDomainID) Then
                 _DomainObjectsDir.Item(key:=_CurrentDomainID).OnObjectDefinitionChanged(sender, e)
             End If
-                    End Sub
+        End Sub
         ''' <summary>
         ''' Returns a List of Higher Access Rights then the one selected
         ''' </summary>
@@ -962,7 +964,7 @@ Namespace OnTrack
             _errorLog.clear()
             Return True
         End Function
-       
+
         ''' <summary>
         ''' sets the current Domain
         ''' </summary>
@@ -1019,7 +1021,7 @@ Namespace OnTrack
             '***
             If newDomain IsNot Nothing Then
                 '* change event
-              
+
                 If newDomain.hasSetting(id:=ConstCPDependencySynchroMinOverlap) Then
                     _DependencySynchroMinOverlap = newDomain.GetSetting(id:=ConstCPDependencySynchroMinOverlap).value
                 Else

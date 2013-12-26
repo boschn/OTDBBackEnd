@@ -2,6 +2,7 @@
 REM *********** ON TRACK DATABASE BACKEND LIBRARY
 REM ***********
 REM *********** Driver Wrapper Classes for ADO.CLASSIC On Track Database Backend Library
+REM *********** - not in use -
 REM ***********
 REM *********** Version: X.YY
 REM *********** Created: 2013-08-08

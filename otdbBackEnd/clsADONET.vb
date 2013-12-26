@@ -33,7 +33,7 @@ Namespace OnTrack.Database
     '*****
 
     Public MustInherit Class clsADONETDBDriver
-        Inherits ormDBDriver
+        Inherits ormDatabaseDriver
         Implements iormDBDriver
 
         'Protected Friend Shadows WithEvents _primaryConnection As iOTDBConnection '-> in clsOTDBDriver
@@ -1084,8 +1084,8 @@ Namespace OnTrack.Database
                     _OTDBDatabaseDriver.SetDBParameter("lastLogin_user", OTDBUsername)
                     _OTDBDatabaseDriver.SetDBParameter("lastLogin_timestamp", Date.Now.ToString)
 
-                    _OTDBUser = New User
-                    If Not _OTDBUser.LoadBy(username:=OTDBUsername) Then
+                    _OTDBUser = User.Retrieve(username:=Username)
+                    If _OTDBUser Is Nothing Then
                         Call CoreMessageHandler(message:="User Definition could not be loaded from the database", _
                                               subname:="clsADONETConnection.connect", arg1:=OTDBUsername, _
                                               messagetype:=otCoreMessageType.InternalError)

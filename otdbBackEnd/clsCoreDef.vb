@@ -1027,7 +1027,7 @@ Namespace OnTrack.Database
         ''' <param name="pkarray">primary key array</param>
         ''' <returns>the new cloned object or nothing</returns>
         ''' <remarks></remarks>
-        Function Clone(Of T As {iormPersistable, iormInfusable, New})(newpkarray() As Object) As T
+        Function Clone(Of T As {iormPersistable, iormInfusable, Class, New})(newpkarray() As Object) As T
     End Interface
 
     ''' <summary>

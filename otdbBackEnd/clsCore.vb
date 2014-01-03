@@ -72,7 +72,7 @@ Namespace OnTrack
         Private _UILogin As UI.clsCoreUILogin
         Private _AccessLevel As otAccessRight    ' access
 
-        Private _DomainObjectsDir As New Dictionary(Of String, ObjectStore)
+        Private _DomainObjectsDir As New Dictionary(Of String, ObjectRepository)
         'shadow Reference for Events
         ' our Events
         Public Event OnDomainChanging As EventHandler(Of SessionEventArgs)
@@ -141,7 +141,7 @@ Namespace OnTrack
             End Get
             Set(value As String)
 
-                Call SetDomain(value)
+                Call switchToDomain(value)
             End Set
         End Property
         ''' <summary>
@@ -174,7 +174,7 @@ Namespace OnTrack
         ''' Gets or sets the Objects.
         ''' </summary>
         ''' <value>The Objects.</value>
-        Public ReadOnly Property Objects() As ObjectStore
+        Public ReadOnly Property Objects() As ObjectRepository
             Get
                 If _DomainObjectsDir.ContainsKey(key:=_CurrentDomainID) Then
                     Return _DomainObjectsDir.Item(key:=_CurrentDomainID)
@@ -426,7 +426,7 @@ Namespace OnTrack
                 _primaryConnection = _primaryDBDriver.CurrentConnection
 
                 '** create ObjectStore
-                Dim aStore As New ObjectStore(Me)
+                Dim aStore As New ObjectRepository(Me)
 
                 _DomainObjectsDir.Clear()
                 _DomainObjectsDir.Add(key:=ConstGlobalDomain, value:=aStore)
@@ -639,7 +639,7 @@ Namespace OnTrack
                             _UseConfigSetName = UILogin.Configset
                         End If
                         If Me.CurrentDomainID <> Me.UILogin.Domain Then
-                            SetDomain(Me.UILogin.Domain)
+                            switchToDomain(Me.UILogin.Domain)
                         End If
                         '* validate
                         userValidation = _primaryDBDriver.GetUserValidation(username)
@@ -732,7 +732,7 @@ Namespace OnTrack
                                                 message:="User change verified successfully on domain '" & domainID & "'", _
                                                 arg1:=username, noOtdbAvailable:=True, messagetype:=otCoreMessageType.ApplicationInfo)
                         If Me.CurrentDomainID <> Me.UILogin.Domain Then
-                            SetDomain(Me.UILogin.Domain)
+                            switchToDomain(Me.UILogin.Domain)
                         End If
 
                         '* set the new access level
@@ -793,10 +793,10 @@ Namespace OnTrack
                     username = UILogin.Username
                     password = UILogin.Password
                     If Me.CurrentDomainID <> Me.UILogin.Domain Then
-                        SetDomain(Me.UILogin.Domain)
+                        switchToDomain(Me.UILogin.Domain)
                     End If
                     If Me.CurrentDomainID <> Me.UILogin.Domain Then
-                        SetDomain(Me.UILogin.Domain)
+                        switchToDomain(Me.UILogin.Domain)
                     End If
                     userValidation = _primaryDBDriver.GetUserValidation(username)
                     '* check password
@@ -971,7 +971,7 @@ Namespace OnTrack
         ''' <param name="newDomainID"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Private Function SetDomain(newDomainID As String) As Boolean
+        Private Function switchToDomain(newDomainID As String) As Boolean
             Dim newDomain As Domain
 
             '* return if not running -> me.running might be false but connection is there since
@@ -997,7 +997,7 @@ Namespace OnTrack
                 End If
                 newDomain.RegisterSession(Me)
                 If Not _DomainObjectsDir.ContainsKey(key:=newDomainID) Then
-                    Dim aStore = New ObjectStore(Me)
+                    Dim aStore = New ObjectRepository(Me)
                     _DomainObjectsDir.Add(key:=newDomainID, value:=aStore)
                 End If
                 RaiseEvent OnDomainChanging(Me, New SessionEventArgs(Me, newDomain))
@@ -1075,15 +1075,15 @@ Namespace OnTrack
         ''' <param name="FORCE"></param>
         ''' <returns>true if successful</returns>
         ''' <remarks></remarks>
-        Private Function StartUpSessionEnviorment(Optional ByVal FORCE As Boolean = False, Optional domainID As String = "") As Boolean
-            Dim aVAlue As Object
+        Private Function StartUpSessionEnviorment(Optional ByVal force As Boolean = False, Optional domainID As String = "") As Boolean
+            Dim aValue As Object
 
             If Not IsRunning Or FORCE Then
 
                 '** start the Agent
                 If Not _logagent Is Nothing Then
-                    aVAlue = ot.GetConfigProperty(constCPNUseLogAgent)
-                    If CBool(aVAlue) Then
+                    aValue = ot.GetConfigProperty(constCPNUseLogAgent)
+                    If CBool(aValue) Then
                         _logagent.Start()
                         '***
                         Call CoreMessageHandler(showmsgbox:=False, message:=" LogAgent for Session started ", arg1:=_SessionID, _
@@ -1118,15 +1118,15 @@ Namespace OnTrack
                 If domainID = "" Then domainID = Me.CurrentDomainID
                 '* set it here that we are really loading in SetDomain and not only 
                 '* assigning _DomainID (if no connection is available)
-                If setDomain(newDomainID:=domainID) Then
+                If switchToDomain(newDomainID:=domainID) Then
                     Call CoreMessageHandler(message:=" Session Domain set to " & domainID, _
                                             messagetype:=otCoreMessageType.InternalInfo, _
                                             subname:="Session.startupSesssionEnviorment")
                 End If
 
                 '*** Object to load initially
-                aVAlue = _primaryDBDriver.GetDBParameter(ConstPNObjectsLoad, silent:=True)
-                If aVAlue Is Nothing OrElse aVAlue = "" Then
+                aValue = _primaryDBDriver.GetDBParameter(ConstPNObjectsLoad, silent:=True)
+                If aValue Is Nothing OrElse aValue = "" Then
                     Call _primaryDBDriver.SetDBParameter(ConstPNObjectsLoad, _
                                                          User.ConstTableID & "," & _
                                                          Scheduling.Schedule.ConstTableID & ", " & _
@@ -1227,7 +1227,7 @@ Namespace OnTrack
         ''' Gets the error.
         ''' </summary>
         ''' <value>The error.</value>
-        Public ReadOnly Property objectname() As String
+        Public ReadOnly Property Objectname() As String
             Get
                 Return _objectname
             End Get
@@ -1319,7 +1319,7 @@ Namespace OnTrack
     End Class
 
     ''' <summary>
-    ''' 
+    '''  Session Agent Class
     ''' </summary>
     ''' <remarks></remarks>
 
@@ -1412,53 +1412,42 @@ Namespace OnTrack
         <ormSchemaTableAttribute(Version:=4)> Public Const ConstTableID = "tblSessionErrorlog"
 
         '*** Schema Field Definitions
-        <ormSchemaColumnAttribute( _
-        typeid:=otFieldDataType.Text, size:=100, _
-        title:="session", Description:="sessiontag", _
-        primaryKeyordinal:=1)> _
-        Public Const ConstFNTag As String = "tag"
-        <ormSchemaColumnAttribute( _
-        typeid:=otFieldDataType.Long, _
-        title:="no", Description:="number of entry", _
-        primaryKeyordinal:=2)> _
-        Public Const ConstFNno As String = "no"
-        <ormSchemaColumnAttribute( _
-        typeid:=otFieldDataType.Text, size:=100, isnullable:=True, _
-        title:="message id", Description:="id of the message")> _
-        Public Const ConstFNID As String = "id"
+        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=100, _
+        title:="session", Description:="sessiontag", primaryKeyordinal:=1)> Public Const ConstFNTag As String = "tag"
 
-        <ormSchemaColumnAttribute( _
-        typeid:=otFieldDataType.Memo, isnullable:=True, _
-        title:="message", Description:="message text")> _
-        Public Const ConstFNmessage As String = "message"
-        <ormSchemaColumnAttribute( _
-        typeid:=otFieldDataType.Text, size:=100, isnullable:=True, _
-        title:="routine", Description:="routine name")> _
-        Public Const ConstFNsubname As String = "subname"
-        <ormSchemaColumnAttribute( _
-        typeid:=otFieldDataType.Timestamp, isnullable:=True, _
-        title:="timestamp", Description:="timestamp of entry")> _
-        Public Const ConstFNtimestamp As String = "timestamp"
-        <ormSchemaColumnAttribute( _
-        typeid:=otFieldDataType.Text, size:=100, isnullable:=True, _
-        title:="tablename", Description:="tablename")> _
-        Public Const ConstFNtablename As String = "tablename"
-        <ormSchemaColumnAttribute( _
-        typeid:=otFieldDataType.Text, size:=100, isnullable:=True, _
-        title:="fieldname", Description:="fieldname")> _
-        Public Const ConstFNfieldname As String = "fieldname"
-        <ormSchemaColumnAttribute( _
-        typeid:=otFieldDataType.Text, size:=255, isnullable:=True, _
-        title:="argument", Description:="argument of the message")> _
-        Public Const ConstFNarg As String = "arg"
-        <ormSchemaColumnAttribute( _
-        typeid:=otFieldDataType.Long, isnullable:=True, _
-        title:="message type id", Description:="id of the message type")> _
-        Public Const ConstFNtype As String = "typeid"
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Text, size:=50, isnullable:=True, title:="Username of the session", Description:="name of the user for this session")> _
+        <ormSchemaColumn(typeid:=otFieldDataType.Long, _
+            title:="no", Description:="number of entry", primaryKeyordinal:=2)> Public Const ConstFNno As String = "no"
+
+        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=100, isnullable:=True, _
+        title:="message id", Description:="id of the message")> Public Const ConstFNID As String = "id"
+
+        <ormSchemaColumn(typeid:=otFieldDataType.Memo, isnullable:=True, _
+        title:="message", Description:="message text")> Public Const ConstFNmessage As String = "message"
+
+        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=100, isnullable:=True, _
+        title:="routine", Description:="routine name")> Public Const ConstFNsubname As String = "subname"
+
+        <ormSchemaColumn(typeid:=otFieldDataType.Timestamp, isnullable:=True, _
+        title:="timestamp", Description:="timestamp of entry")> Public Const ConstFNtimestamp As String = "timestamp"
+
+        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=100, isnullable:=True, _
+        title:="tablename", Description:="tablename")> Public Const ConstFNtablename As String = "tablename"
+
+        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=100, isnullable:=True, _
+        title:="fieldname", Description:="fieldname")> Public Const ConstFNfieldname As String = "fieldname"
+
+        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=255, isnullable:=True, _
+        title:="argument", Description:="argument of the message")> Public Const ConstFNarg As String = "arg"
+
+        <ormSchemaColumn(typeid:=otFieldDataType.Long, isnullable:=True, _
+        title:="message type id", Description:="id of the message type")> Public Const ConstFNtype As String = "typeid"
+
+        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=50, isnullable:=True, title:="Username of the session", Description:="name of the user for this session")> _
         Public Const ConstFNUsername As String = "username"
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Memo, isnullable:=True, title:="stack trace", Description:="caller stack trace")> _
+
+        <ormSchemaColumn(typeid:=otFieldDataType.Memo, isnullable:=True, title:="stack trace", Description:="caller stack trace")> _
         Public Const ConstFNStack As String = "stack"
+
         ' fields
         <ormColumnMappingAttribute(fieldname:=ConstFNTag)> Private _tag As String = ""
         <ormColumnMappingAttribute(fieldname:=ConstFNID)> Private _id As String = ""
@@ -1727,7 +1716,11 @@ Namespace OnTrack
         End Function
 
 #End Region
-
+        ''' <summary>
+        ''' clone the error
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
         Function Clone() As Object Implements System.ICloneable.Clone
             Dim aClone As New CoreError
             With aClone
@@ -1748,7 +1741,11 @@ Namespace OnTrack
         End Function
     End Class
 
-    Public Class otErrorEventArgs
+    ''' <summary>
+    ''' Event arguments for Ontrack error Events
+    ''' </summary>
+    ''' <remarks></remarks>
+    Public Class OTErrorEventArgs
         Inherits EventArgs
 
         Private _error As CoreError
@@ -1950,12 +1947,11 @@ Namespace OnTrack
 
     End Class
 
-
-
-    '************************************************************************************
-    '***** CLASS XMapordinal represents the ordinal for the map
-
-    Public Enum otordinalType
+    ''' <summary>
+    ''' OrdinalType identifies the data type of the ordinal
+    ''' </summary>
+    ''' <remarks></remarks>
+    Public Enum OrdinalType
         longType
         stringType
 
@@ -1973,24 +1969,24 @@ Namespace OnTrack
         Implements IComparer(Of Ordinal)
 
         Private _ordinalvalue As Object
-        Private _ordinalType As otordinalType
+        Private _ordinalType As ordinalType
 
         Public Sub New(ByVal value As Object)
             ' return depending on the type
 
             If TypeOf value Is Long Or TypeOf value Is Integer Or TypeOf value Is UShort _
             Or TypeOf value Is Short Or TypeOf value Is UInteger Or TypeOf value Is ULong Then
-                _ordinalType = otordinalType.longType
+                _ordinalType = ordinalType.longType
                 _ordinalvalue = CLng(value)
             ElseIf IsNumeric(value) Then
-                _ordinalType = otordinalType.longType
+                _ordinalType = ordinalType.longType
                 _ordinalvalue = CLng(value)
             ElseIf TypeOf value Is Ordinal Then
                 _ordinalType = CType(value, Ordinal).Type
                 _ordinalvalue = CType(value, Ordinal).Value
 
             ElseIf value.ToString Then
-                _ordinalType = otordinalType.stringType
+                _ordinalType = ordinalType.stringType
                 _ordinalvalue = String.Copy(value.ToString)
             Else
                 Throw New Exception("value is not casteable to a XMAPordinalType")
@@ -1998,11 +1994,11 @@ Namespace OnTrack
             End If
 
         End Sub
-        Public Sub New(ByVal value As Object, ByVal type As otordinalType)
+        Public Sub New(ByVal value As Object, ByVal type As ordinalType)
             _ordinalType = type
             Me.Value = value
         End Sub
-        Public Sub New(ByVal type As otordinalType)
+        Public Sub New(ByVal type As ordinalType)
             _ordinalType = type
             _ordinalvalue = Nothing
         End Sub
@@ -2018,9 +2014,9 @@ Namespace OnTrack
         ''' <returns></returns>
         Public Function [Equals](x As Ordinal, y As Ordinal) As Boolean Implements IEqualityComparer(Of Ordinal).[Equals]
             Select Case x._ordinalType
-                Case otordinalType.longType
+                Case ordinalType.longType
                     Return x.Value.Equals(y.Value)
-                Case otordinalType.stringType
+                Case ordinalType.stringType
                     If String.Compare(x.Value, y.Value, False) = 0 Then
                         Return True
                     Else
@@ -2051,7 +2047,7 @@ Namespace OnTrack
 
             '** depend on the type
             Select Case x.Type
-                Case otordinalType.longType
+                Case ordinalType.longType
                     ' try to compare numeric
                     If IsNumeric(y.Value) Then
                         If Me.Value > CLng(y.Value) Then
@@ -2065,7 +2061,7 @@ Namespace OnTrack
                     Else
                         Return -1
                     End If
-                Case otordinalType.stringType
+                Case ordinalType.stringType
                     Return String.Compare(y.Value, y.Value.ToString)
 
             End Select
@@ -2097,18 +2093,18 @@ Namespace OnTrack
         Public Property Value As Object
             Get
                 Select Case Me.Type
-                    Case otordinalType.longType
+                    Case ordinalType.longType
                         Return CLng(_ordinalvalue)
-                    Case otordinalType.stringType
+                    Case ordinalType.stringType
                         Return CStr(_ordinalvalue)
                 End Select
                 Return Nothing
             End Get
             Set(value As Object)
                 Select Case Me.Type
-                    Case otordinalType.longType
+                    Case ordinalType.longType
                         _ordinalvalue = CLng(value)
-                    Case otordinalType.stringType
+                    Case ordinalType.stringType
                         _ordinalvalue = CStr(value)
                 End Select
 
@@ -2122,7 +2118,7 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        ReadOnly Property Type As otordinalType
+        ReadOnly Property Type As ordinalType
             Get
                 Return _ordinalType
             End Get
@@ -2133,9 +2129,9 @@ Namespace OnTrack
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function GetTypeCode() As TypeCode Implements IConvertible.GetTypeCode
-            If _ordinalType = otordinalType.longType Then
+            If _ordinalType = ordinalType.longType Then
                 Return TypeCode.UInt64
-            ElseIf _ordinalType = otordinalType.stringType Then
+            ElseIf _ordinalType = ordinalType.stringType Then
                 Return TypeCode.String
             Else
                 Return TypeCode.Object
@@ -2244,12 +2240,12 @@ Namespace OnTrack
     '*****
     '*****
     ''' <summary>
-    ''' store for all the meto OTDB object information - loaded on connecting with the 
+    ''' store for all the  OTDB object information - loaded on connecting with the 
     ''' session
     ''' </summary>
     ''' <remarks></remarks>
 
-    Public Class ObjectStore
+    Public Class ObjectRepository
 
         Private _IsInitialized As Boolean = False
 
@@ -2274,7 +2270,7 @@ Namespace OnTrack
         ''' </summary>
         ''' <param name="connection"></param>
         ''' <remarks></remarks>
-      
+
         Sub New(ByRef Session As Session)
             _Session = Session
 
@@ -2300,9 +2296,9 @@ Namespace OnTrack
         Public Sub OnObjectDefinitionChanged(sender As Object, ent As OnTrack.ObjectDefintionEventArgs)
             Dim anObjectDef As ObjectDefinition = New ObjectDefinition
 
-            If anObjectDef.LoadBy(ent.objectname, domainID:=_DomainID) Then
+            If anObjectDef.LoadBy(ent.Objectname, domainID:=_DomainID) Then
                 If LoadObjectDefinition(anObjectDef) Then
-                    CoreMessageHandler(message:="object definition of " & ent.objectname & " was reloaded in the Objects store", messagetype:=otCoreMessageType.InternalInfo)
+                    CoreMessageHandler(message:="object definition of " & ent.Objectname & " was reloaded in the Objects store", messagetype:=otCoreMessageType.InternalInfo)
                 End If
             End If
         End Sub
@@ -2327,7 +2323,7 @@ Namespace OnTrack
 
         Private Sub OnDomainReset(sender As Object, e As DomainEventArgs) Handles _Domain.OnReset
 
-           End Sub
+        End Sub
         ''' <summary>
         ''' initialize on Connection Event
         ''' </summary>
@@ -2535,7 +2531,7 @@ Namespace OnTrack
                                         messagetype:=otCoreMessageType.InternalWarning, tablename:=[object].Name, subname:="ObjectStore.LoadObjectDefintion")
                 End If
             End If
-            
+
 
             If _objectDirectory.ContainsKey([object].Name) Then
                 _objectDirectory.Remove([object].Name)
@@ -2784,6 +2780,7 @@ Namespace OnTrack
         Private _domainBehavior As Boolean = False
         Private _SpareFieldsFlagBehavior As Boolean = False
         Private _Version As Long = 0
+        Private _parameter As String = ""
 
         Public Event ObjectDefinitionChanged As EventHandler(Of ObjectDefintionEventArgs)
 
@@ -2821,6 +2818,19 @@ Namespace OnTrack
             End Get
 
         End Property
+        ''' <summary>
+        ''' Gets or sets the parameters.
+        ''' </summary>
+        ''' <value>The parameters.</value>
+        Public Property Parameters() As String
+            Get
+                Return Me._parameter
+            End Get
+            Set(value As String)
+                Me._parameter = Value
+            End Set
+        End Property
+
         ''' <summary>
         ''' use Cache on this object
         ''' </summary>
@@ -3101,7 +3111,7 @@ Namespace OnTrack
                 For Each anEntry In entrycoll
                     '*** delete flags
 
-                    If anEntry.Name <> "" And anEntry.Typeid = otSchemaDefTableEntryType.Field Then
+                    If anEntry.Name <> "" And anEntry.Typeid = otObjectEntryDefinitiontype.Field Then
                         process = True ' default
                         '*** check some behavior and rules
                         If (anEntry.Name = ormDataObject.ConstFNDeletedOn Or anEntry.Name = ConstFNIsDeleted) _
@@ -3383,7 +3393,7 @@ Namespace OnTrack
             _entries.Clear()
             _entriesordinalPos.Clear()
             anEntry = New ObjectEntryDefinition
-            If Not anEntry.Create(objectname:=Me.Name, entryname:="", typeid:=otSchemaDefTableEntryType.Table) Then
+            If Not anEntry.Create(objectname:=Me.Name, entryname:="", typeid:=otObjectEntryDefinitiontype.Table) Then
                 Call anEntry.LoadBy(objectname:=Me.Name, entryname:="")
                 anEntry.Name = ""
             End If
@@ -3544,7 +3554,7 @@ Namespace OnTrack
                     aCommand.AddParameter(New ormSqlCommandParameter(ID:="@deleted", fieldname:=ConstFNIsDeleted, tablename:=ConstTableID, datatype:=otFieldDataType.Bool))
                     aCommand.Prepare()
                 End If
-                
+
                 aCommand.SetParameterValue("@tablename", LCase(objectname))
                 aCommand.SetParameterValue(ID:="@domainID", value:=domainID)
                 aCommand.SetParameterValue(ID:="@globalID", value:=ConstGlobalDomain)
@@ -3589,6 +3599,7 @@ Namespace OnTrack
                             _SpareFieldsFlagBehavior = anEntry.SpareFieldsBehavior
                             _domainBehavior = anEntry.DomainBehavior
                             _domainID = anEntry.DomainID
+                            _parameter = anEntry.Parameter
                         End If
                         If Not Me.AddEntry(anEntry) Then
                         End If
@@ -3700,7 +3711,7 @@ Namespace OnTrack
                 headentry.domainBehavior = _domainBehavior
             End If
 
-            headentry.Typeid = otSchemaDefTableEntryType.Table
+            headentry.Typeid = otObjectEntryDefinitiontype.Table
             Persist = headentry.Persist(timestamp)
 
             '** raise my change
@@ -3750,7 +3761,7 @@ errorhandle:
 
             ' abort create if containsKey
             If Not anEntry.Create(objectname:=LCase(tablename), _
-                                  typeid:=otSchemaDefTableEntryType.Table, _
+                                  typeid:=otObjectEntryDefinitiontype.Table, _
                                   checkunique:=checkunique, _
                                   runtimeOnly:=runTimeOnly) Then
                 Create = False
@@ -3789,6 +3800,7 @@ errorhandle:
     Public Class ObjectEntryDefinition
         Inherits ormDataObject
         Implements iormPersistable
+        Implements iormInfusable
 
 
         '*** CONST Schema
@@ -3853,13 +3865,10 @@ errorhandle:
                                   title:="Size", Description:="max Length of the Column")> _
         Public Const ConstFNSize As String = "size"
 
-        <ormSchemaColumnAttribute( _
-        typeid:=otFieldDataType.Text, isarray:=True, _
-        title:="Relation", Description:="relation information")> _
+        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Text, isarray:=True, title:="Relation", Description:="relation information")> _
         Public Const ConstFNRelation As String = "relation"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Text, size:=50, defaultvalue:="", _
-                                  title:="Index", Description:="index name")> _
+        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Text, size:=50, defaultvalue:="", title:="Index", Description:="index name")> _
         Public Const ConstFNIndex As String = "index"
 
         <ormSchemaColumnAttribute(typeid:=otFieldDataType.[Long], defaultvalue:="0", _
@@ -3881,18 +3890,13 @@ errorhandle:
                                   title:="Is Array", Description:="set if the entry value is an array of values")> _
         Public Const ConstFNIsArray As String = "isarray"
 
-        <ormSchemaColumnAttribute( _
-        typeid:=otFieldDataType.Bool, _
-        title:="use cache", defaultvalue:="", Description:="set if the entry is cached")> _
+        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Bool, title:="use cache", defaultvalue:="", Description:="set if the entry is cached")> _
         Public Const ConstFNUseCache As String = "cache"
 
-        <ormSchemaColumnAttribute( _
-        typeid:=otFieldDataType.Memo, _
-        title:="Cache", defaultvalue:="", Description:="selection what to cache")> _
+        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Memo, title:="Cache", defaultvalue:="", Description:="selection what to cache")> _
         Public Const ConstFNCacheSelection As String = "cacheselect"
 
-        <ormSchemaColumnAttribute( _
-        typeid:=otFieldDataType.Text, defaultvalue:="", size:=50, _
+        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Text, defaultvalue:="", size:=50, _
         title:="Compound Table", Description:="name of the compound table")> _
         Public Const ConstFNCompoundTable As String = "ctblname"
 
@@ -3944,7 +3948,7 @@ errorhandle:
         <ormColumnMapping(fieldname:=ConstFNDomainFlag)> Private _domainFlagBehavior As Boolean = False
         <ormColumnMapping(fieldname:=ConstFNSpareFieldTag)> Private _SpareFieldTag As Boolean = False
         '<otColumnMapping(fieldname:=ConstFNType)> exclude from mapping since Type conversion must be handled
-        Private _typeid As otSchemaDefTableEntryType
+        Private _typeid As otObjectEntryDefinitiontype
 
         <ormColumnMappingAttribute(fieldname:=ConstFNIndex)> Private _indexname As String = ""
         <ormColumnMappingAttribute(fieldname:=ConstFNIndexPosition)> Private _posin As Long
@@ -3962,6 +3966,12 @@ errorhandle:
 
         ' further internals
         Private _runTimeOnly As Boolean = False
+        Private _hasListofValues As Boolean = False ' has defined list of values
+        Private _listOfValues As List(Of Object) = New List(Of Object)
+        Private _hasLowerRangeValue As Boolean = False
+        Private _lowerRangeValue As Object = Nothing
+        Private _hasUpperRangeValue As Boolean = False
+        Private _upperRangeValue As Object = Nothing
 
         ''' <summary>
         ''' constructor of a SchemaDefTableEntry
@@ -3973,7 +3983,72 @@ errorhandle:
         End Sub
 
 #Region "Properties"
-
+        ''' <summary>
+        ''' True if ObjectEntry has a defined lower value
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property HasLowerRangeValue As Boolean
+            Get
+                Return _hasLowerRangeValue
+            End Get
+        End Property
+        ''' <summary>
+        ''' gets the lower range Value
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property LowerRangeValue As Object
+            Get
+                Return New Object
+            End Get
+        End Property
+        ''' <summary>
+        ''' True if ObjectEntry has a defined upper value
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property HasUpperRangeValue As Boolean
+            Get
+                Return _hasUpperRangeValue
+            End Get
+        End Property
+        ''' <summary>
+        ''' gets the upper range Value
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property UpperRangeValue As Object
+            Get
+                Return New Object
+            End Get
+        End Property
+        ''' <summary>
+        ''' gets the list of possible values
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property HasPossibleValues As Boolean
+            Get
+                Return _hasListofValues
+            End Get
+        End Property
+        ''' <summary>
+        ''' gets the list of possible values
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property PossibleValues As List(Of Object)
+            Get
+                Return _listOfValues
+            End Get
+        End Property
         ''' <summary>
         ''' Gets or sets the position.
         ''' </summary>
@@ -4188,12 +4263,12 @@ errorhandle:
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property Typeid() As otSchemaDefTableEntryType
+        Public Property Typeid() As otObjectEntryDefinitiontype
             Get
                 Typeid = Me._typeid
 
             End Get
-            Set(value As otSchemaDefTableEntryType)
+            Set(value As otObjectEntryDefinitiontype)
                 If _typeid <> value Then
                     _typeid = value
                     IsChanged = True
@@ -4247,7 +4322,7 @@ errorhandle:
         ''' <remarks></remarks>
         ReadOnly Property IsField() As Boolean
             Get
-                If _typeid = otSchemaDefTableEntryType.Field Then IsField = True
+                If _typeid = otObjectEntryDefinitiontype.Field Then IsField = True
             End Get
         End Property
         ''' <summary>
@@ -4258,7 +4333,7 @@ errorhandle:
         ''' <remarks></remarks>
         ReadOnly Property IsCompound() As Boolean
             Get
-                If _typeid = otSchemaDefTableEntryType.Compound Then IsCompound = True
+                If _typeid = otObjectEntryDefinitiontype.Compound Then IsCompound = True
             End Get
         End Property
         ''' <summary>
@@ -4269,7 +4344,7 @@ errorhandle:
         ''' <remarks></remarks>
         ReadOnly Property IsTable() As Boolean
             Get
-                If _typeid = otSchemaDefTableEntryType.Table Then IsTable = True
+                If _typeid = otObjectEntryDefinitiontype.Table Then IsTable = True
             End Get
         End Property
         ''' <summary>
@@ -4329,28 +4404,12 @@ errorhandle:
         ''' <remarks></remarks>
         Public Property Aliases() As String()
             Get
-                Aliases = SplitMultbyChar(text:=UCase(_aliases), DelimChar:=ConstDelimiter)
-                If Not IsArrayInitialized(Aliases) Then
-                    Aliases = New String() {}
-                End If
+                Return Converter.String2Array(UCase(_aliases))
             End Get
             Set(avalue As String())
-                Dim i As Integer
-                If IsArrayInitialized(avalue) Then
-                    Dim aStrValue As String
-                    For i = LBound(avalue) To UBound(avalue)
-                        If i = LBound(avalue) Then
-                            aStrValue = ConstDelimiter & UCase(avalue(i)) & ConstDelimiter
-                        Else
-                            aStrValue = aStrValue & UCase(avalue(i)) & ConstDelimiter
-                        End If
-                    Next i
-                    _aliases = aStrValue
+                If Not Array.Equals(avalue, _aliases) Then
+                    _aliases = Converter.Array2String(avalue)
                     IsChanged = True
-                    'ElseIf Not IsNothing(Trim(avalue)) And Trim(avalue) <> "" And Not isNull(avalue) Then
-                    's_aliases = ConstDelimiter & UCase(Trim(avalue)) & ConstDelimiter
-                Else
-                    _aliases = ""
                 End If
             End Set
         End Property
@@ -4653,7 +4712,7 @@ errorhandle:
             Me.Datatype = fielddesc.Datatype
             Me.Objectname = fielddesc.Tablename
             Me.Size = fielddesc.Size
-            Me.Typeid = otSchemaDefTableEntryType.Field
+            Me.Typeid = otObjectEntryDefinitiontype.Field
             Me.Relation = fielddesc.Relation
             Me.Aliases = fielddesc.Aliases
             Me.IsNullable = fielddesc.IsNullable
@@ -4681,7 +4740,7 @@ errorhandle:
             End If
 
             If Me.SetByFieldDesc(compounddesc) Then
-                Me.Typeid = otSchemaDefTableEntryType.Compound
+                Me.Typeid = otObjectEntryDefinitiontype.Compound
                 Me.CompoundIDFieldname = compounddesc.compound_IDFieldname
                 Me.CompoundTablename = compounddesc.compound_Tablename
                 Me.CompoundValueFieldname = compounddesc.compound_ValueFieldname
@@ -4764,17 +4823,17 @@ errorhandle:
             End If
 
             Try
-                '*** infuse all and then specail handling
+                '*** infuse all and then special handling
                 If MyBase.Infuse(record) Then
 
                     aVAlue = CStr(record.GetValue("typeid"))
                     Select Case LCase(aVAlue)
                         Case "field"
-                            _typeid = otSchemaDefTableEntryType.Field
+                            _typeid = otObjectEntryDefinitiontype.Field
                         Case "compound"
-                            _typeid = otSchemaDefTableEntryType.Compound
+                            _typeid = otObjectEntryDefinitiontype.Compound
                         Case "table"
-                            _typeid = otSchemaDefTableEntryType.Table
+                            _typeid = otObjectEntryDefinitiontype.Table
                         Case Else
                             Call CoreMessageHandler(arg1:=aVAlue, subname:="clsOTDBSchemaDefTableEntry.infuse", _
                                                     entryname:="typeid", tablename:=ConstTableID, message:=" type id has a unknown value")
@@ -4843,6 +4902,13 @@ error_handler:
 
         '**** loadByID
         '****
+        ''' <summary>
+        ''' load data from datastore
+        ''' </summary>
+        ''' <param name="ID"></param>
+        ''' <param name="objectname"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
         Public Function LoadByID(ByVal ID As String, Optional ByVal objectname As String = "") As Boolean
             Dim aCollection As New Collection
             Dim aRecordCollection As List(Of ormRecord)
@@ -4935,7 +5001,7 @@ error_handler:
             End If
 
             'On Error GoTo errorhandle
-            If _typeid = otSchemaDefTableEntryType.Table Then
+            If _typeid = otObjectEntryDefinitiontype.Table Then
                 _entryname = ""
                 _xid = ""
                 _aliases = ""
@@ -4950,11 +5016,11 @@ error_handler:
                 If ormDataObject.FeedRecord(Me, Record) Then
 
                     Select Case _typeid
-                        Case otSchemaDefTableEntryType.Field
+                        Case otObjectEntryDefinitiontype.Field
                             aVAlue = "FIELD"
-                        Case otSchemaDefTableEntryType.Compound
+                        Case otObjectEntryDefinitiontype.Compound
                             aVAlue = "COMPOUND"
-                        Case otSchemaDefTableEntryType.Table
+                        Case otObjectEntryDefinitiontype.Table
                             aVAlue = "TABLE"
                         Case Else
                             Call CoreMessageHandler(arg1:=aVAlue, subname:="clsOTDBSchemaDefTableEntry.persist", _
@@ -4985,7 +5051,7 @@ error_handler:
         Public Overloads Function Create(ByVal objectname As String, _
         Optional ByVal entryname As String = "", _
         Optional ByVal domainID As String = "", _
-        Optional ByVal typeid As otSchemaDefTableEntryType = Nothing, _
+        Optional ByVal typeid As otObjectEntryDefinitiontype = Nothing, _
         Optional ByVal runtimeOnly As Boolean = False, _
         Optional ByVal checkunique As Boolean = True) As Boolean
             If domainID = "" Then domainID = CurrentSession.CurrentDomainID
@@ -5007,13 +5073,13 @@ error_handler:
         End Function
 
         '***  checkOnFieldList
-        Public Function CheckonFieldList(Value As Object, Optional MSGLOG As clsOTDBMessagelog = Nothing) As Boolean
+        Public Function CheckonFieldList(Value As Object, Optional MSGLOG As ObjectLog = Nothing) As Boolean
             ' TODO:
             Throw New NotImplementedException
         End Function
         '***  checkOnFieldType checks the field values on Integrity
 
-        Public Function CheckOnFieldType(Value As Object, Optional MSGLOG As clsOTDBMessagelog = Nothing) As Boolean
+        Public Function CheckOnFieldType(Value As Object, Optional MSGLOG As ObjectLog = Nothing) As Boolean
 
             ' default
             CheckOnFieldType = True
@@ -5075,22 +5141,25 @@ error_handler:
     '************************************************************************************
     '***** CLASS clsOTDBMessageLog is a representation class for a Log as Messages
     '*****
+    ''' <summary>
+    ''' ObjectLog for Messages for Business Objects 
+    ''' </summary>
+    ''' <remarks></remarks>
+    Public Class ObjectLog
+        Inherits ormDataObject
+        Implements otLoggable
+        Implements iormInfusable
+        Implements iormPersistable
 
-    Public Class clsOTDBMessagelog
-    Inherits ormDataObject
-    Implements otLoggable
-    Implements iormInfusable
-    Implements iormPersistable
 
-
-        Const _tableID As String = "tblMessageLogs"
+        Public Const ConstTableID As String = ObjectLogMessage.ConstTableID
 
         ' Data
         Private s_tag As String = ""
         Private s_members As New Collection
 
-        Private s_DefaultFCLCstatus As New clsOTDBDefStatusItem
-        Private s_DefaultProcessStatus As New clsOTDBDefStatusItem
+        Private s_DefaultFCLCstatus As New StatusItem
+        Private s_DefaultProcessStatus As New StatusItem
 
         '** for ERROR MSG
         Private s_ContextIdentifier As Object
@@ -5099,7 +5168,7 @@ error_handler:
 
         '** initialize
         Public Sub New()
-            Call MyBase.New(_tableID)
+            Call MyBase.New(ConstTableID)
         End Sub
 
         ReadOnly Property TAG()
@@ -5143,8 +5212,8 @@ error_handler:
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function Delete() As Boolean
-            Dim anEntry As New clsOTDBMessageLogMember
-            Dim initialEntry As New clsOTDBMessageLogMember
+            Dim anEntry As New ObjectLogMessage
+            Dim initialEntry As New ObjectLogMessage
             Dim m As Object
 
             If Not Me.IsCreated And Not _IsLoaded Then
@@ -5189,17 +5258,17 @@ error_handler:
         ParamArray Args() As Object) As Boolean
 
             Dim i As Integer
-            Dim aMSGDef As New clsOTDBDefLogMessage()
+            Dim aMSGDef As New ObjectLogMessageDef()
             Dim messagetext As String
             Dim fclcStatusCode As String
             Dim ProcessStatusCode As String
             Dim weight As Single
             Dim areaString As String
-            Dim newFCLCStatus As New clsOTDBDefStatusItem
-            Dim newProcessStatus As New clsOTDBDefStatusItem
+            Dim newFCLCStatus As New StatusItem
+            Dim newProcessStatus As New StatusItem
             Dim Value As Object
             Dim messagetype As Integer
-            Dim aMember As New clsOTDBMessageLogMember
+            Dim aMember As New ObjectLogMessage
 
             ' get the Table
             If Not aMSGDef.LoadBy(ID:=msgid) Then
@@ -5271,7 +5340,7 @@ error_handler:
             Dim m As Object
             Dim i As Integer
             Dim msgs() As String
-            Dim aMember As clsOTDBMessageLogMember
+            Dim aMember As ObjectLogMessage
 
             For i = 1 To s_members.Count
                 ReDim Preserve msgs(i)
@@ -5287,8 +5356,8 @@ error_handler:
         ''' <param name="i"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetMsgDef(i) As clsOTDBDefLogMessage
-            Dim aMember As clsOTDBMessageLogMember
+        Public Function GetMsgDef(i) As ObjectLogMessageDef
+            Dim aMember As ObjectLogMessage
             If i <= Me.Size And i > 0 Then
                 aMember = s_members.Item(i)
                 GetMsgDef = aMember.Msgdef
@@ -5298,7 +5367,7 @@ error_handler:
             GetMsgDef = Nothing
         End Function
         Public Function GetMessage(i) As String
-            Dim aMember As clsOTDBMessageLogMember
+            Dim aMember As ObjectLogMessage
             If i <= Me.Size And i > 0 Then
                 aMember = s_members.Item(i)
                 GetMessage = aMember.Message
@@ -5308,7 +5377,7 @@ error_handler:
             GetMessage = ""
         End Function
         Public Function GetMSGID(i) As String
-            Dim aMember As clsOTDBMessageLogMember
+            Dim aMember As ObjectLogMessage
             If i <= Me.Size And i > 0 Then
                 aMember = s_members.Item(i)
                 GetMSGID = aMember.Msgid
@@ -5317,8 +5386,8 @@ error_handler:
 
             GetMSGID = ""
         End Function
-        Public Function GetMember(i) As clsOTDBMessageLogMember
-            Dim aMember As clsOTDBMessageLogMember
+        Public Function GetMember(i) As ObjectLogMessage
+            Dim aMember As ObjectLogMessage
             If i <= Me.Size And i > 0 Then
                 aMember = s_members.Item(i)
                 GetMember = aMember
@@ -5328,7 +5397,7 @@ error_handler:
             GetMember = Nothing
         End Function
         Public Function GetTypeID(i As Integer) As otAppLogMessageType
-            Dim aMember As clsOTDBMessageLogMember
+            Dim aMember As ObjectLogMessage
 
             If i <= Me.Size And i > 0 Then
                 aMember = Me.GetMember(i)
@@ -5338,7 +5407,7 @@ error_handler:
             End If
         End Function
         Public Function GetWeight(i As Integer) As Single
-            Dim aMember As clsOTDBMessageLogMember
+            Dim aMember As ObjectLogMessage
 
             If i <= Size And i > 0 Then
                 aMember = Me.GetMember(i)
@@ -5349,7 +5418,7 @@ error_handler:
             End If
         End Function
         Public Function GetEntitityID(i As Integer) As Object
-            Dim aMember As clsOTDBMessageLogMember
+            Dim aMember As ObjectLogMessage
 
             If i <= Size And i > 0 Then
                 aMember = Me.GetMember(i)
@@ -5359,7 +5428,7 @@ error_handler:
             End If
         End Function
         Public Function GetContextID(i As Integer) As Object
-            Dim aMember As clsOTDBMessageLogMember
+            Dim aMember As ObjectLogMessage
 
             If i <= Size And i > 0 Then
                 aMember = Me.GetMember(i)
@@ -5369,7 +5438,7 @@ error_handler:
             End If
         End Function
         Public Function GetTupleID(i As Integer) As Object
-            Dim aMember As clsOTDBMessageLogMember
+            Dim aMember As ObjectLogMessage
 
             If i <= Size And i > 0 Then
                 aMember = Me.GetMember(i)
@@ -5379,7 +5448,7 @@ error_handler:
             End If
         End Function
         Public Function GetArea(i As Integer) As String
-            Dim aMember As clsOTDBMessageLogMember
+            Dim aMember As ObjectLogMessage
 
             If i <= Size And i > 0 Then
                 aMember = Me.GetMember(i)
@@ -5396,12 +5465,12 @@ error_handler:
         Public Function GetStatus(Optional ByVal TYPEID As Object = Nothing, Optional ByVal i As Integer = 0) As Object
             Dim max As Integer
             Dim curweight As Single
-            Dim aMember As clsOTDBMessageLogMember
-            Dim aDefMSG As New clsOTDBDefLogMessage
+            Dim aMember As ObjectLogMessage
+            Dim aDefMSG As New ObjectLogMessageDef
             Dim code As String
-            Dim aStatus As New clsOTDBDefStatusItem
+            Dim aStatus As New StatusItem
 
-            Dim newStatus As New clsOTDBDefStatusItem
+            Dim newStatus As New StatusItem
 
             ' specific of an entry
             If Not IsNothing(i) And i > 0 Then
@@ -5419,9 +5488,9 @@ error_handler:
                     Else
                         Dim code1, code2, code3 As String
                         Dim weight1, weight2, weight3 As Integer
-                        Dim status1 As New clsOTDBDefStatusItem
-                        Dim status2 As New clsOTDBDefStatusItem
-                        Dim status3 As New clsOTDBDefStatusItem
+                        Dim status1 As New StatusItem
+                        Dim status2 As New StatusItem
+                        Dim status3 As New StatusItem
 
                         If status1.LoadBy(aDefMSG.Statustype1, aDefMSG.Statuscode1) Then
                             weight1 = status1.Weight
@@ -5475,7 +5544,7 @@ error_handler:
                     aMember = Me.GetMember(i)
                     aDefMSG = aMember.Msgdef
                     code = aDefMSG.GetStatusCodeOf(TYPEID)
-                    aStatus = New clsOTDBDefStatusItem
+                    aStatus = New StatusItem
                     If aStatus.LoadBy(TYPEID, code) Then
                         GetStatus = aStatus
                     Else
@@ -5538,7 +5607,7 @@ error_handler:
             Dim cmid As String
             Dim posno As Long
             Dim qty As Double
-            Dim anEntry As New clsOTDBMessageLogMember
+            Dim anEntry As New ObjectLogMessage
 
             Dim pkarry(1) As Object
 
@@ -5584,7 +5653,7 @@ error_handler:
                 For Each aRecord In aRecordCollection
 
                     ' add the Entry as Component
-                    anEntry = New clsOTDBMessageLogMember
+                    anEntry = New ObjectLogMessage
                     If anEntry.Infuse(aRecord) Then
 
                     End If
@@ -5598,7 +5667,7 @@ error_handler:
             'End If
 
 
-            error_handler:
+error_handler:
             _IsLoaded = False
             LoadBy = True
             Exit Function
@@ -5633,7 +5702,7 @@ error_handler:
 
             'persist = me.record.persist
 
-            Dim anEntry As clsOTDBMessageLogMember
+            Dim anEntry As ObjectLogMessage
             Dim aTimestamp As Date
 
             ' set Timestamp
@@ -5648,7 +5717,7 @@ error_handler:
             Return True
             Exit Function
 
-            errorhandle:
+errorhandle:
 
             Persist = False
 
@@ -5705,13 +5774,13 @@ error_handler:
         '***** raiseMessage informs the Receiver about the Message-Event
         '*****
         Public Function raiseMessage(ByVal index As Long, _
-        ByRef MSGLOG As clsOTDBMessagelog) As Boolean Implements otLoggable.raiseMessage
+        ByRef MSGLOG As ObjectLog) As Boolean Implements otLoggable.raiseMessage
 
         End Function
 
         '***** hands over the msglog object to the receiver
         '*****
-        Public Function attachMessageLog(ByRef MSGLOG As clsOTDBMessagelog) As Boolean Implements otLoggable.attachMessageLog
+        Public Function attachMessageLog(ByRef MSGLOG As ObjectLog) As Boolean Implements otLoggable.attachMessageLog
 
         End Function
 
@@ -5755,48 +5824,71 @@ error_handler:
     '***** CLASS lsOTDBMessageLogMember is a helper for the FieldDesc Attributes
     '*****
     '*****
-
-    Public Class clsOTDBMessageLogMember
+    ''' <summary>
+    ''' Message Entries of a Object Log 
+    ''' </summary>
+    ''' <remarks></remarks>
+    Public Class ObjectLogMessage
     Inherits ormDataObject
     Implements iormInfusable
     Implements iormPersistable
 
+        '* schema
+        <ormSchemaTable(version:=1, addsparefields:=True)> Public Const ConstTableID As String = "tblObjectMessages"
 
-        Const _TableID As String = "tblMessageLogs"
+        '* primary keys
+        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=100, PrimarykeyOrdinal:=1, _
+            ID:="olog1", title:="Tag", description:="tag to the object message log")> Public Shadows Const ConstFNTag = "msglogtag"
+        <ormSchemaColumn(typeid:=otFieldDataType.Long, PrimarykeyOrdinal:=2, _
+           ID:="olog2", title:="Number", description:="number of the object message")> Public Const ConstFNNo = "idno"
+        '* fields
+        <ormSchemaColumn(referenceObjectEntry:=ObjectLogMessageDef.ConstTableID & "." & ObjectLogMessageDef.ConstFNMessageID, _
+            ID:="olog3")> Public Const ConstFNMessageID = ObjectLogMessageDef.ConstFNMessageID
 
-        Private s_tag As String = ""
-        Private s_id As Long
-        Private s_msgid As String = ""
+        <ormSchemaColumn(typeid:=otFieldDataType.Memo, _
+            ID:="olog4", title:="Message", description:="the object message")> Public Const ConstFNMessage = "msgtxt"
+        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=100, _
+           ID:="olog5", title:="ContextID", description:="context of the object message")> Public Const ConstFNContextID = "contextid"
+        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=100, _
+           ID:="olog6", title:="TupleID", description:="tuple of the object message")> Public Const ConstFNTupleID = "tupleid"
+        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=100, _
+          ID:="olog7", title:="EntityID", description:="entity of the object message")> Public Const ConstFNEntityID = "entityid"
 
-        Private s_message As String = ""
-        Private s_msgdef As New clsOTDBDefLogMessage
-        Private s_ContextID As String = ""
-        Private s_TupleID As String = ""
-        Private s_EntitityID As String = ""
+        '* mapping
+        <ormColumnMapping (fieldname:=constFNTag)> Private _tag As String = ""
+        <ormColumnMapping(fieldname:=ConstFNNo)> Private _id As Long
+        <ormColumnMapping(fieldname:=ConstFNMessageID)> Private _msgid As String = ""
+        <ormColumnMapping(fieldname:=ConstFNMessage)> Private _message As String = ""
 
+        <ormColumnMapping(fieldname:=ConstFNContextID)> Private _ContextID As String = ""
+        <ormColumnMapping(fieldname:=ConstFNTupleID)> Private _TupleID As String = ""
+        <ormColumnMapping(fieldname:=ConstFNEntityID)> Private _EntitityID As String = ""
+
+        '* dynamic
+        Private s_msgdef As New ObjectLogMessageDef
         ''' <summary>
         ''' constructor of a message log member
         ''' </summary>
         ''' <remarks></remarks>
         Public Sub New()
-            Call MyBase.New(_TableID)
+            Call MyBase.New(ConstTableID)
         End Sub
 
-        #Region "properties"
+#Region "properties"
 
         ReadOnly Property TAG() As String
             Get
-                TAG = s_tag
+                TAG = _tag
             End Get
         End Property
 
         Public Property ID() As Long
             Get
-                ID = s_id
+                ID = _id
             End Get
             Set(value As Long)
-                If value <> s_id Then
-                    s_id = value
+                If value <> _id Then
+                    _id = value
                     IsChanged = True
                 End If
             End Set
@@ -5804,11 +5896,11 @@ error_handler:
 
         Public Property Msgid() As String
             Get
-                Msgid = s_msgid
+                Msgid = _msgid
             End Get
             Set(avalue As String)
-                If LCase(s_msgid) <> LCase(avalue) Then
-                    s_msgid = avalue
+                If LCase(_msgid) <> LCase(avalue) Then
+                    _msgid = avalue
                     IsChanged = True
                 End If
             End Set
@@ -5816,22 +5908,22 @@ error_handler:
 
         Public Property Message() As String
             Get
-                Message = s_message
+                Message = _message
             End Get
             Set(value As String)
                 If LCase(Message) <> LCase(value) Then
-                    s_message = value
+                    _message = value
                     IsChanged = True
                 End If
             End Set
         End Property
 
-        Public Property Msgdef() As clsOTDBDefLogMessage
+        Public Property Msgdef() As ObjectLogMessageDef
             Get
                 Msgdef = s_msgdef
 
             End Get
-            Set(avalue As clsOTDBDefLogMessage)
+            Set(avalue As ObjectLogMessageDef)
                 If s_msgdef.ID <> avalue.ID Then
                     s_msgdef = avalue
                     Me.Msgid = avalue.ID
@@ -5841,11 +5933,11 @@ error_handler:
         End Property
         Public Property ContextIdentifier() As Object
             Get
-                ContextIdentifier = s_ContextID
+                ContextIdentifier = _ContextID
             End Get
             Set(value As Object)
-                If LCase(s_ContextID) <> LCase(value) Then
-                    s_ContextID = value
+                If LCase(_ContextID) <> LCase(value) Then
+                    _ContextID = value
                     IsChanged = True
                 End If
             End Set
@@ -5853,11 +5945,11 @@ error_handler:
 
         Public Property TupleIdentifier() As Object
             Get
-                TupleIdentifier = s_TupleID
+                TupleIdentifier = _TupleID
             End Get
             Set(avalue As Object)
-                If LCase(s_TupleID) <> LCase(avalue) Then
-                    s_TupleID = avalue
+                If LCase(_TupleID) <> LCase(avalue) Then
+                    _TupleID = avalue
                     IsChanged = True
                 End If
             End Set
@@ -5865,17 +5957,17 @@ error_handler:
 
         Public Property EntitityIdentifier() As Object
             Get
-                EntitityIdentifier = s_EntitityID
+                EntitityIdentifier = _EntitityID
 
             End Get
             Set(value As Object)
-                If LCase(s_EntitityID) <> LCase(value) Then
-                    s_EntitityID = value
+                If LCase(_EntitityID) <> LCase(value) Then
+                    _EntitityID = value
                     IsChanged = True
                 End If
             End Set
         End Property
-        #End Region
+#End Region
 
 
         ''' <summary>
@@ -5884,36 +5976,19 @@ error_handler:
         ''' <param name="aRecord"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overrides Function Infuse(ByRef record As ormRecord) As Boolean Implements iormInfusable.Infuse
-
-            '* init
-            If Not IsInitialized Then
-                If Not Me.Initialize() Then
-                    Infuse = False
-                    Exit Function
-                End If
-            End If
+        Private Function OnInfused(sender As Object, e As ormDataObjectEventArgs) As Boolean Handles MyBase.OnInfused
 
             Try
-                s_tag = CStr(record.GetValue("tag"))
-                s_id = CLng(record.GetValue("idno"))
+                s_msgdef = ObjectLogMessageDef.Retrieve(ID:=_msgid)
+                If s_msgdef Is Nothing Then
+                    Call CoreMessageHandler(arg1:=_msgid, message:="message id not defined - valid object message id ?", _
+                                            tablename:=ConstTableID, entryname:=ConstFNMessageID, messagetype:=otCoreMessageType.ApplicationError, subname:="ObjectLogMessage.onInfused")
 
-                s_message = CStr(record.GetValue("msgtxt"))
-                s_msgid = CStr(record.GetValue("msgid"))
-                s_ContextID = CStr(record.GetValue("contextid"))
-                s_TupleID = CStr(record.GetValue("Tupleid"))
-                s_EntitityID = CStr(record.GetValue("entitityid"))
-                s_msgdef = New clsOTDBDefLogMessage
-                If s_msgid <> "" Then
-                    If Not s_msgdef.LoadBy(s_msgid) Then
-                        Call CoreMessageHandler(arg1:=s_msgid, message:="msgid not found in tblDefLogMessages", _
-                                                subname:="clsOTDBMessageLogMember.infuse")
-                    End If
                 End If
 
-                Return MyBase.Infuse(record)
+                Return MyBase.Infuse(Record)
             Catch ex As Exception
-                Call CoreMessageHandler(exception:=ex, subname:="clsOTDBMessageLogMember.Infuse")
+                Call CoreMessageHandler(exception:=ex, subname:="ObjectLogMessage.onInfused")
                 Return False
             End Try
 
@@ -5939,133 +6014,108 @@ error_handler:
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function CreateSchema(Optional silent As Boolean = True) As Boolean
+            Return ormDataObject.CreateSchema(Of ObjectLogMessage)(silent:=silent)
 
-            Dim aFieldDesc As New ormFieldDescription
-            Dim PrimaryColumnNames As New Collection
-            Dim aTable As New ObjectDefinition
+            'Dim aFieldDesc As New ormFieldDescription
+            'Dim PrimaryColumnNames As New Collection
+            'Dim aTable As New ObjectDefinition
 
 
-            aFieldDesc.ID = ""
-            aFieldDesc.Parameter = ""
-            aFieldDesc.Tablename = _TableID
+            'aFieldDesc.ID = ""
+            'aFieldDesc.Parameter = ""
+            'aFieldDesc.Tablename = ConstTableID
 
-            With aTable
-                .Create(_TableID)
-                .Delete()
+            'With aTable
+            '    .Create(ConstTableID)
+            '    .Delete()
 
-                '***
-                '*** Fields
-                '****
+            '    '***
+            '    '*** Fields
+            '    '****
 
-                'Type
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "msglogtag"
-                aFieldDesc.ID = "log1"
-                aFieldDesc.ColumnName = "tag"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
-                'index pos
-                aFieldDesc.Datatype = otFieldDataType.[Long]
-                aFieldDesc.Title = "posno in index (primary key)"
-                aFieldDesc.ColumnName = "idno"
-                aFieldDesc.ID = "log2"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
+            '    'Type
+            '    aFieldDesc.Datatype = otFieldDataType.Text
+            '    aFieldDesc.Title = "msglogtag"
+            '    aFieldDesc.ID = "log1"
+            '    aFieldDesc.ColumnName = "tag"
+            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '    PrimaryColumnNames.Add(aFieldDesc.ColumnName)
+            '    'index pos
+            '    aFieldDesc.Datatype = otFieldDataType.[Long]
+            '    aFieldDesc.Title = "posno in index (primary key)"
+            '    aFieldDesc.ColumnName = "idno"
+            '    aFieldDesc.ID = "log2"
+            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '    PrimaryColumnNames.Add(aFieldDesc.ColumnName)
 
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "message text"
-                aFieldDesc.ColumnName = "msgtxt"
-                aFieldDesc.ID = "log3"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '    aFieldDesc.Datatype = otFieldDataType.Text
+            '    aFieldDesc.Title = "message text"
+            '    aFieldDesc.ColumnName = "msgtxt"
+            '    aFieldDesc.ID = "log3"
+            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                ' msgid
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "message id"
-                aFieldDesc.ColumnName = "msgid"
-                aFieldDesc.ID = "log4"
-                aFieldDesc.Relation = New String() {"lm1"}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '    ' msgid
+            '    aFieldDesc.Datatype = otFieldDataType.Text
+            '    aFieldDesc.Title = "message id"
+            '    aFieldDesc.ColumnName = "msgid"
+            '    aFieldDesc.ID = "log4"
+            '    aFieldDesc.Relation = New String() {"lm1"}
+            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                ' id
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "context Identifier"
-                aFieldDesc.ColumnName = "contextid"
-                aFieldDesc.ID = "log5"
-                aFieldDesc.Relation = New String() {}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '    ' id
+            '    aFieldDesc.Datatype = otFieldDataType.Text
+            '    aFieldDesc.Title = "context Identifier"
+            '    aFieldDesc.ColumnName = "contextid"
+            '    aFieldDesc.ID = "log5"
+            '    aFieldDesc.Relation = New String() {}
+            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                ' id
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "Tuple Identifier"
-                aFieldDesc.ColumnName = "Tupleid"
-                aFieldDesc.ID = "log6"
-                aFieldDesc.Relation = New String() {}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '    ' id
+            '    aFieldDesc.Datatype = otFieldDataType.Text
+            '    aFieldDesc.Title = "Tuple Identifier"
+            '    aFieldDesc.ColumnName = "Tupleid"
+            '    aFieldDesc.ID = "log6"
+            '    aFieldDesc.Relation = New String() {}
+            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                ' id
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "Member Identifier"
-                aFieldDesc.ColumnName = "entitityid"
-                aFieldDesc.ID = "log7"
-                aFieldDesc.Relation = New String() {"xid"}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '    ' id
+            '    aFieldDesc.Datatype = otFieldDataType.Text
+            '    aFieldDesc.Title = "Member Identifier"
+            '    aFieldDesc.ColumnName = "entitityid"
+            '    aFieldDesc.ID = "log7"
+            '    aFieldDesc.Relation = New String() {"xid"}
+            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                aFieldDesc.Relation = New String() {}
-                '***
-                '*** TIMESTAMP
-                '****
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "last Update"
-                aFieldDesc.ColumnName = ConstFNUpdatedOn
-                aFieldDesc.ID = ""
-                aFieldDesc.Relation = New String() {}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '    aFieldDesc.Relation = New String() {}
+            '    '***
+            '    '*** TIMESTAMP
+            '    '****
+            '    aFieldDesc.Datatype = otFieldDataType.Timestamp
+            '    aFieldDesc.Title = "last Update"
+            '    aFieldDesc.ColumnName = ConstFNUpdatedOn
+            '    aFieldDesc.ID = ""
+            '    aFieldDesc.Relation = New String() {}
+            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "creation Date"
-                aFieldDesc.ColumnName = ConstFNCreatedOn
-                aFieldDesc.ID = ""
-                aFieldDesc.Relation = New String() {}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' Index
-                Call .AddIndex("PrimaryKey", PrimaryColumnNames, isprimarykey:=True)
-                ' persist
-                .Persist()
-                ' change the database
-                .AlterSchema()
-            End With
+            '    aFieldDesc.Datatype = otFieldDataType.Timestamp
+            '    aFieldDesc.Title = "creation Date"
+            '    aFieldDesc.ColumnName = ConstFNCreatedOn
+            '    aFieldDesc.ID = ""
+            '    aFieldDesc.Relation = New String() {}
+            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '    ' Index
+            '    Call .AddIndex("PrimaryKey", PrimaryColumnNames, isprimarykey:=True)
+            '    ' persist
+            '    .Persist()
+            '    ' change the database
+            '    .AlterSchema()
+            'End With
 
-            CreateSchema = True
-            Exit Function
+            'CreateSchema = True
+            'Exit Function
         End Function
 
-        ''' <summary>
-        ''' Persist the message log member
-        ''' </summary>
-        ''' <param name="timestamp"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Overloads Function Persist(Optional timestamp As Date = ot.ConstNullDate) As Boolean
-
-            Try
-                'On Error GoTo errorhandle
-                Call Me.Record.SetValue("tag", s_tag)
-                Call Me.Record.SetValue("id", s_id)
-                Call Me.Record.SetValue("msgtxt", s_message)
-                Call Me.Record.SetValue("msgid", s_msgid)
-
-                Call Me.Record.SetValue("contextid", s_ContextID)
-                Call Me.Record.SetValue("Tupleid", s_TupleID)
-                Call Me.Record.SetValue("entitityid", s_EntitityID)
-
-                Return MyBase.Persist(timestamp)
-
-            Catch ex As Exception
-                Call CoreMessageHandler(exception:=ex, subname:="clsOTDBMessageLogMember.Persist")
-                Return False
-            End Try
-
-        End Function
+        
         ''' <summary>
         ''' Create a persistable Message Log Member by primary key
         ''' </summary>
@@ -6077,8 +6127,8 @@ error_handler:
             Dim primarykey() As Object = {LCase(msglogtag), ID}
             If MyBase.Create(primarykey, checkUnique:=False) Then
                 ' set the primaryKey
-                s_tag = LCase(msglogtag)
-                s_id = ID
+                _tag = LCase(msglogtag)
+                _id = ID
 
                 Return Me.IsCreated
             Else

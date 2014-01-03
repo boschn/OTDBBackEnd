@@ -18,9 +18,261 @@ Imports System.Diagnostics.Debug
 
 Imports OnTrack
 Imports OnTrack.Database
+Imports System.Text.RegularExpressions
 
 Namespace OnTrack
 
+
+    ''' <summary>
+    ''' Value Entry Class for List of Values
+    ''' </summary>
+    ''' <remarks></remarks>
+    Public Class ValueEntry
+        Inherits ormDataObject
+        Implements iormInfusable
+        Implements iormPersistable
+
+        '** const
+        <ormSchemaTableAttribute(adddeletefieldbehavior:=True, adddomainID:=True, addsparefields:=True, Version:=1)> Public Const ConstTableID As String = "tblDefValueEntries"
+
+        <ormSchemaColumnAttribute(id:="VE1", _
+            typeid:=otFieldDataType.Text, size:=50, _
+            title:="domain", Description:="domain identifier", _
+            primaryKeyordinal:=3)> _
+        Const ConstFNDomainID As String = Domain.ConstFNDomainID
+
+        <ormSchemaColumnAttribute(ID:="VE2", _
+           typeid:=otFieldDataType.Text, size:=100, primaryKeyordinal:=1, _
+           title:="List", description:="ID of the list of values")> _
+        Const ConstFNListID = "id"
+
+        <ormSchemaColumnAttribute(ID:="VE3", _
+            typeid:=otFieldDataType.Text, size:=100, primaryKeyordinal:=2, _
+            title:="Value", description:="value entry")> _
+        Const ConstFNValue = "value"
+
+        <ormSchemaColumnAttribute(ID:="VE4", _
+           typeid:=otFieldDataType.Text, size:=255, _
+           title:="selector", description:="")> _
+        Const ConstFNSelector = "selector"
+
+        <ormSchemaColumnAttribute(ID:="VE5", _
+          typeid:=otFieldDataType.Long, _
+          title:="datatype", description:="datatype of the  value")> _
+        Const ConstFNDatatype = "datatype"
+
+        ' fields
+        <ormColumnMappingAttribute(fieldname:=ConstFNDomainID)> Private _DomainID As String = ""
+        <ormColumnMappingAttribute(fieldname:=ConstFNListID)> Private _ID As String = ""
+        <ormColumnMappingAttribute(fieldname:=ConstFNSelector)> Private _selector As String = ""
+        <ormColumnMappingAttribute(fieldname:=ConstFNValue)> Private _valuestring As String = ""
+        <ormColumnMappingAttribute(fieldname:=ConstFNDatatype)> Private _datatype As otFieldDataType = 0
+        ''' <summary>
+        ''' constructor of a clsOTDBDefWorkspace
+        ''' </summary>
+        ''' <remarks></remarks>
+        Public Sub New()
+            Call MyBase.New(ConstTableID)
+        End Sub
+
+#Region "Properties"
+        ''' <summary>
+        ''' gets the ID of the Domain
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        ReadOnly Property DomainID() As String
+            Get
+                DomainID = _DomainID
+            End Get
+
+        End Property
+        ''' <summary>
+        ''' gets the ID of the Setting
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        ReadOnly Property ListID() As String
+            Get
+                ListID = _ID
+            End Get
+
+        End Property
+        ''' <summary>
+        ''' Description of the setting
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Property Selector() As String
+            Get
+                Selector = _selector
+            End Get
+            Set(value As String)
+                _selector = value
+                Me.IsChanged = True
+            End Set
+        End Property
+        ''' <summary>
+        ''' returns the datatype 
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Property Datatype As otFieldDataType
+            Set(value As otFieldDataType)
+                _datatype = value
+            End Set
+            Get
+                Return _datatype
+            End Get
+        End Property
+        ''' <summary>
+        ''' gets or sets the value of the domain setting
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Property Value As Object
+            Set(value As Object)
+                If value Is Nothing Then
+                    _valuestring = ""
+                Else
+                    _valuestring = value.ToString
+                End If
+            End Set
+            Get
+                Try
+                    Select Case _datatype
+                        Case otFieldDataType.Binary
+                            Return CBool(_valuestring)
+                        Case otFieldDataType.Date, otFieldDataType.Time, otFieldDataType.Timestamp
+                            If _valuestring Is Nothing Then Return ConstNullDate
+                            If IsDate(_valuestring) Then Return CDate(_valuestring)
+                            If _valuestring = ConstNullDate.ToString OrElse _valuestring = ConstNullTime.ToString Then Return ConstNullDate
+                            If _valuestring = "" Then Return ConstNullDate
+                        Case otFieldDataType.List, otFieldDataType.Memo, otFieldDataType.Text
+                            If _valuestring Is Nothing Then Return ""
+                            Return CStr(_valuestring)
+                        Case otFieldDataType.Numeric
+                            If IsNumeric(_valuestring) Then
+                                Return CDbl(_valuestring)
+                            Else
+                                Return CDbl(0)
+                            End If
+                        Case otFieldDataType.Long
+                            If IsNumeric(_valuestring) Then
+                                Return CDbl(_valuestring)
+                            Else
+                                Return CDbl(0)
+                            End If
+                            Return CLng(_valuestring)
+                        Case Else
+                            CoreMessageHandler(message:="data type not covered: " & _datatype, arg1:=_valuestring, subname:="ValueEntry.value", _
+                                               messagetype:=otCoreMessageType.ApplicationError)
+                            Return Nothing
+
+                    End Select
+                Catch ex As Exception
+                    CoreMessageHandler(exception:=ex, message:="could not convert value to data type " & _datatype, _
+                                       arg1:=_valuestring, subname:="ValueEntry.value", messagetype:=otCoreMessageType.ApplicationError)
+                    Return Nothing
+                End Try
+
+            End Get
+        End Property
+#End Region
+
+        ''' <summary>
+        ''' initialize the object
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Overrides Function Initialize() As Boolean Implements iormPersistable.Initialize
+            Me.TableStore.SetProperty(ConstTPNCacheProperty, True)
+            Return MyBase.Initialize
+        End Function
+
+        ''' <summary>
+        ''' Retrieve the workspaceID Cache Object
+        ''' </summary>
+        ''' <param name="id"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Overloads Shared Function Retrieve(ByVal listID As String, ByVal value As Object, Optional ByVal domainID As String = "", Optional forcereload As Boolean = False) As ValueEntry
+            If domainID = "" Then domainID = CurrentSession.CurrentDomainID
+            Dim pkarray() As Object = {UCase(listID), value.ToString, UCase(domainID)}
+            Dim anEntry As ValueEntry = Retrieve(Of ValueEntry)(pkArray:=pkarray, forceReload:=forcereload)
+            '* try global domain
+            If anEntry Is Nothing Then
+                Dim pkglobalarray() As Object = {UCase(listID), value.ToString, UCase(ConstGlobalDomain)}
+                Return Retrieve(Of ValueEntry)(pkArray:=pkglobalarray, forceReload:=forcereload)
+            End If
+
+        End Function
+        ''' <summary>
+        ''' Retrieve all value entries by list id in the domain
+        ''' </summary>
+        ''' <param name="id"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Overloads Shared Function RetrieveByListID(ByVal listID As String, Optional ByVal domainID As String = "", Optional forcereload As Boolean = False) As List(Of ValueEntry)
+            Dim aParameterslist As New List(Of ormSqlCommandParameter)
+            aParameterslist.Add(New ormSqlCommandParameter(ID:="@id", fieldname:=ConstFNDomainID, tablename:=ConstTableID, value:=domainID))
+
+            Dim aList As List(Of ValueEntry) = ormDataObject.All(Of ValueEntry)(ID:="allbyListID", _
+                                                                                      where:="[" & ConstFNDomainID & "] = @id", _
+                                                                                      parameters:=aParameterslist)
+            Return aList
+        End Function
+        ''' <summary>
+        ''' load and infuse the current value entry object
+        ''' </summary>
+        ''' <param name="workspaceID"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Overloads Function LoadBy(ByVal listid As String, ByVal value As Object, Optional ByVal domainID As String = "") As Boolean
+            If domainID = "" Then domainID = CurrentSession.CurrentDomainID
+            Dim primarykey() As Object = {UCase(listid), value.ToString, UCase(domainID)}
+            If MyBase.LoadBy(primarykey) Then
+                Return True
+            Else
+                Dim pkgloba() As Object = {UCase(listid), value.ToString, UCase(ConstGlobalDomain)}
+                Return MyBase.LoadBy(pkgloba)
+            End If
+        End Function
+        ''' <summary>
+        ''' create the objects persistence schema
+        ''' </summary>
+        ''' <param name="silent"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Shared Function CreateSchema(Optional silent As Boolean = True) As Boolean
+            Return ormDataObject.CreateSchema(Of ValueEntry)(silent:=silent)
+        End Function
+
+        ''' <summary>
+        ''' creates a new value entry for listid and value in the domain
+        ''' </summary>
+        ''' <param name="workspaceID"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function Create(ByVal listid As String, ByVal value As Object, Optional ByVal domainID As String = "") As Boolean
+            If domainID = "" Then domainID = CurrentSession.CurrentDomainID
+            Dim primarykey() As Object = {UCase(listid), value.ToString, UCase(domainID)}
+            If MyBase.Create(primarykey, checkUnique:=True) Then
+                _DomainID = UCase(domainID)
+                _ID = UCase(listid)
+                _valuestring = value.ToString
+                Return True
+            Else
+                Return False
+            End If
+        End Function
+
+    End Class
 
     ''' <summary>
     ''' Domain Setting Definition Class
@@ -339,7 +591,7 @@ Namespace OnTrack
         ''' </summary>
         ''' <remarks></remarks>
         Public Sub New()
-            MyBase.New(constTableID)
+            MyBase.New(ConstTableID)
         End Sub
 
 #Region "Properties"
@@ -488,7 +740,7 @@ Namespace OnTrack
             Dim aSqlString As String = String.Format("INSERT INTO {0} ", ConstTableID)
             aSqlString &= "( [username], person, [password], [desc], [group], defws, isanon, alterschema, readdata, updatedata, noright, UpdatedOn, CreatedOn)"
             aSqlString &= String.Format("VALUES ('{0}','{1}', '{2}', '{3}', '{4}', '{5}', 0, 1,1,1,0, '{6}','{7}' )", _
-                                        Username, person, password, desc, group, defaultworkspace, Date.Now.ToString("yyyyMMdd hh:mm:ss"), Date.Now.ToString("yyyyMMdd hh:mm:ss"))
+                                        username, person, password, desc, group, defaultworkspace, Date.Now.ToString("yyyyMMdd hh:mm:ss"), Date.Now.ToString("yyyyMMdd hh:mm:ss"))
             Return aSqlString
 
         End Function
@@ -716,10 +968,7 @@ Namespace OnTrack
         '** const
         <ormSchemaTableAttribute(adddeletefieldbehavior:=True, Version:=1)> Public Const ConstTableID As String = "tblDefUserSettings"
 
-        <ormSchemaColumnAttribute(id:="US1", _
-            typeid:=otFieldDataType.Text, size:=50, _
-            title:="Username", Description:="name of the OnTrack user", _
-            primaryKeyordinal:=1)> _
+        <ormSchemaColumnAttribute(id:="US1", referenceObjectEntry:=User.ConstTableID & "." & User.ConstFNUsername, primaryKeyordinal:=1)> _
         Const ConstFNUsername As String = User.ConstFNUsername
 
         <ormSchemaColumnAttribute(ID:="US2", _
@@ -943,20 +1192,64 @@ Namespace OnTrack
     '************************************************************************************
     '***** CLASS clsOTDBDefPerson describes additional database schema information
     '*****
-
-    Public Class clsOTDBDefPerson
+    ''' <summary>
+    ''' the person definition class
+    ''' </summary>
+    ''' <remarks></remarks>
+    Public Class Person
         Inherits ormDataObject
         Implements iormInfusable
         Implements iormPersistable
 
-        Public Const constTableID As String = "tblDefPersons"
+        '** Schema
+        <ormSchemaTable(version:=2, adddomainID:=True, addsparefields:=True, adddeletefieldbehavior:=True)> Public Const constTableID As String = "tblDefPersons"
 
-        ' fields
-        Private s_name As String = ""
-        Private s_description As String = ""
-        Private s_managername As String = ""
-        Private s_orgunitID As String = ""
-        Private s_emailaddy As String = ""
+        '** primary keys
+        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=100, primarykeyordinal:=1, _
+            id:="P1", title:="ID", description:="ID of the person")> Public Const constFNID = "id"
+        <ormSchemaColumn(referenceObjectEntry:=Domain.ConstTableID & "." & Domain.ConstFNDomainID, primarykeyordinal:=2 _
+          )> Public Shadows Const ConstFNDomainID = Domain.ConstFNDomainID
+
+        '** fields
+        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=100, _
+          id:="P2", title:="First Name", description:="first name of the person")> Public Const constFNFirstName = "firstname"
+        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=255, isarray:=True, _
+         id:="P3", title:="Middle Names", description:="mid names of the person")> Public Const constFNMidNames = "midnames"
+        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=100, _
+         id:="P4", title:="Sir Name", description:="sir name of the person")> Public Const constFNSirName = "sirname"
+        <ormSchemaColumn(typeid:=otFieldDataType.Memo, _
+           id:="P5", title:="Description", description:="description of the person")> Public Const constFNDescription = "desc"
+        <ormSchemaColumn(typeid:=otFieldDataType.Bool, _
+           id:="P6", title:="Role", description:="set if the person is a role")> Public Const ConstFNIsRole = "isrole"
+        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=100, _
+        id:="P13", title:="Company Name", description:="name of the persons company")> Public Const constFNCompany = "company"
+        <ormSchemaColumn(referenceObjectEntry:=constFNID, ID:="P7", Title:="superior ID", description:="ID of the superior manager")> _
+        Public Const ConstFNManager = "superid"
+        <ormSchemaColumn(referenceObjectEntry:=OrgUnit.ConstTableID & "." & OrgUnit.ConstFNID, _
+            ID:="P8")> Public Const ConstFNOrgUnit = "orgunit"
+        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=255, _
+          id:="P9", title:="eMail", description:="eMail Address of the person")> Public Const constFNeMail = "email"
+        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=100, _
+         id:="P10", title:="phone", description:="phone of the person")> Public Const constFNPhone = "phone"
+        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=100, _
+         id:="P11", title:="phone", description:="mobile of the person")> Public Const constFNMobile = "mobile"
+        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=100, _
+         id:="P12", title:="phone", description:="fax of the person")> Public Const constFNFax = "fax"
+
+        ' field mapping
+        <ormColumnMapping(fieldname:=constFNID)> Private _id As String = ""
+        <ormColumnMapping(fieldname:=constFNFirstName)> Private _firstname As String = ""
+        <ormColumnMapping(fieldname:=constFNMidNames)> Private _midnames As String = ""
+        <ormColumnMapping(fieldname:=constFNSirName)> Private _sirname As String = ""
+        <ormColumnMapping(fieldname:=ConstFNIsRole)> Private _isrole As Boolean = False
+        <ormColumnMapping(fieldname:=constFNDescription)> Private _description As String = ""
+        <ormColumnMapping(fieldname:=ConstFNManager)> Private _managerid As String = ""
+        <ormColumnMapping(fieldname:=ConstFNOrgUnit)> Private _orgunitID As String = ""
+        <ormColumnMapping(fieldname:=constFNCompany)> Private _companyID As String = ""
+        <ormColumnMapping(fieldname:=constFNeMail)> Private _emailaddy As String = ""
+        <ormColumnMapping(fieldname:=constFNPhone)> Private _phone As String = ""
+        <ormColumnMapping(fieldname:=constFNMobile)> Private _mobile As String = ""
+        <ormColumnMapping(fieldname:=constFNFax)> Private _fax As String = ""
 
         ''' <summary>
         ''' constructor
@@ -967,88 +1260,231 @@ Namespace OnTrack
         End Sub
 
 #Region "Properties"
-
-        ReadOnly Property Name() As String
+        ''' <summary>
+        ''' returns the ID of the Person
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        ReadOnly Property ID() As String
             Get
-                Name = s_name
+                ID = _id
             End Get
-
         End Property
-
+        ''' <summary>
+        ''' Gets or sets the firstname.
+        ''' </summary>
+        ''' <value>The firstname.</value>
+        Public Property Firstname() As String
+            Get
+                Return Me._firstname
+            End Get
+            Set(value As String)
+                If LCase(_firstname) <> LCase(value) Then
+                    Dim pattern As String = "\b(\w|['-])+\b"
+                    ' With lambda support:
+                    Dim result As String = Regex.Replace(LCase(value), pattern, _
+                        Function(m) m.Value(0).ToString().ToUpper() & m.Value.Substring(1))
+                    Me._firstname = result
+                    IsChanged = True
+                End If
+            End Set
+        End Property
+        ''' <summary>
+        ''' sets or gets the midnames
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Property Midnames() As String()
+            Get
+                Return Converter.String2Array(_midnames)
+            End Get
+            Set(avalue As String())
+                If Not Array.Equals(avalue, _midnames) Then
+                    Dim pattern As String = "\b(\w|['-])+\b"
+                    ' With lambda support:
+                    Dim result As String = Regex.Replace(LCase(Converter.Array2String(avalue)), pattern, _
+                        Function(m) m.Value(0).ToString().ToUpper() & m.Value.Substring(1))
+                    _midnames = result
+                    IsChanged = True
+                End If
+            End Set
+        End Property
+        ''' <summary>
+        ''' Gets or sets the Sirname.
+        ''' </summary>
+        ''' <value>The sirname.</value>
+        Public Property Sirname() As String
+            Get
+                Return Me._sirname
+            End Get
+            Set(value As String)
+                If LCase(_sirname) <> LCase(value) Then
+                    Dim pattern As String = "\b(\w|['-])+\b"
+                    ' With lambda support:
+                    Dim result As String = Regex.Replace(LCase(value), pattern, _
+                        Function(m) m.Value(0).ToString().ToUpper() & m.Value.Substring(1))
+                    _sirname = result
+                    IsChanged = True
+                End If
+            End Set
+        End Property
+        ''' <summary>
+        ''' returns the description of the person
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
         Public Property Description() As String
             Get
-                Description = s_description
+                Description = _description
             End Get
             Set(value As String)
-                s_description = value
+                _description = value
                 IsChanged = True
             End Set
         End Property
-
-
-        Public Property ManagerName() As String
+        ''' <summary>
+        ''' Gets or sets the role flag
+        ''' </summary>
+        ''' <value></value>
+        Public Property IsRole() As Boolean
             Get
-                ManagerName = s_managername
+                Return Me._isrole
             End Get
-            Set(value As String)
-                s_managername = value
-                IsChanged = True
+            Set(value As Boolean)
+                If _isrole <> value Then
+                    Me._isrole = value
+                    IsChanged = True
+                End If
             End Set
         End Property
-
+        ''' <summary>
+        ''' Gets or sets the company ID.
+        ''' </summary>
+        ''' <value>The company name.</value>
+        Public Property Company() As String
+            Get
+                Return Me._companyID
+            End Get
+            Set(value As String)
+                If LCase(_companyID) <> LCase(value) Then
+                    Me._companyID = value
+                    IsChanged = True
+                End If
+            End Set
+        End Property
+        ''' <summary>
+        ''' gets or sets the ManagerID
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Property ManagerID() As String
+            Get
+                ManagerID = _managerid
+            End Get
+            Set(value As String)
+                If LCase(ManagerID) <> LCase(value) Then
+                    _managerid = value
+                    IsChanged = True
+                End If
+            End Set
+        End Property
+        ''' <summary>
+        ''' sets or gets the Organization Unit ID
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
 
         Public Property OrgUnitID() As String
             Get
-                OrgUnitID = s_orgunitID
+                OrgUnitID = _orgunitID
             End Get
             Set(value As String)
-                s_orgunitID = value
-                IsChanged = True
+                If LCase(_orgunitID) <> LCase(value) Then
+                    _orgunitID = value
+                    IsChanged = True
+                End If
+            End Set
+        End Property
+        ''' <summary>
+        ''' sets or gets the Organization Unit 
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+
+        Public Property OrgUnit() As OrgUnit
+            Get
+                Return OrgUnit.Retrieve(id:=_orgunitID)
+            End Get
+            Set(value As OrgUnit)
+                If LCase(_orgunitID) <> LCase(value.ID) Then
+                    _orgunitID = value.ID
+                    IsChanged = True
+                End If
+            End Set
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the email address 
+        ''' </summary>
+        ''' <value>The company name.</value>
+        Public Property eMail() As String
+            Get
+                Return Me._emailaddy
+            End Get
+            Set(value As String)
+                If LCase(_emailaddy) <> LCase(value) Then
+                    Me._emailaddy = LCase(Trim(value))
+                    IsChanged = True
+                End If
+            End Set
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the Phone number 
+        ''' </summary>
+        ''' <value>The company name.</value>
+        Public Property Phone() As String
+            Get
+                Return Me._phone
+            End Get
+            Set(value As String)
+                If LCase(_phone) <> LCase(value) Then
+                    Me._phone = LCase(Trim(value))
+                    IsChanged = True
+                End If
+            End Set
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the email address 
+        ''' </summary>
+        ''' <value>The company name.</value>
+        Public Property Fax() As String
+            Get
+                Return Me._fax
+            End Get
+            Set(value As String)
+                If LCase(_fax) <> LCase(value) Then
+                    Me._fax = LCase(Trim(value))
+                    IsChanged = True
+                End If
             End Set
         End Property
 #End Region
-
         ''' <summary>
-        ''' Initialize
+        ''' loads the persistence object with ID from the parameters
         ''' </summary>
+        ''' <param name="name"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overrides Function Initialize() As Boolean
-            Me.TableStore.SetProperty(ConstTPNCacheProperty, True)
-            Return MyBase.Initialize()
-        End Function
-        ''' <summary>
-        ''' Infuses the person definition by record
-        ''' </summary>
-        ''' <param name="aRecord"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Overrides Function Infuse(ByRef record As ormRecord) As Boolean Implements iormInfusable.Infuse
-
-            '* init
-            If Not Me.IsInitialized Then
-                If Not Me.Initialize() Then
-                    Infuse = False
-                    Exit Function
-                End If
-            End If
-
-
-            Try
-                s_name = CStr(record.GetValue("name"))
-                s_description = CStr(record.GetValue("desc"))
-                s_managername = CStr(record.GetValue("managername"))
-                s_orgunitID = CStr(record.GetValue("orgunitid"))
-                s_emailaddy = CStr(record.GetValue("emailaddy"))
-
-                Infuse = MyBase.Infuse(record)
-                _IsLoaded = Infuse
-                Exit Function
-            Catch ex As Exception
-                Call CoreMessageHandler(exception:=ex, subname:="clsOTDBDefPerson.Infuse")
-                Return False
-            End Try
-
+        Public Overloads Shared Function Retrieve(ByVal firstname As String, ByVal midnames As String(), ByVal sirname As String, Optional domainID As String = "") As Person
+            Return Retrieve(id:=BuildID(firstname:=firstname, midnames:=midnames, sirname:=sirname), domainID:=domainID)
         End Function
         ''' <summary>
         ''' Retrieve
@@ -1056,9 +1492,18 @@ Namespace OnTrack
         ''' <param name="id"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Retrieve(ByVal name As String, Optional forcereload As Boolean = False) As clsOTDBDefPerson
-            Dim primarykey() As Object = {name}
-            Return Retrieve(Of clsOTDBDefPerson)(pkArray:=primarykey, forceReload:=forcereload)
+        Public Overloads Shared Function Retrieve(ByVal id As String, Optional domainID As String = "", Optional forcereload As Boolean = False) As Person
+            Dim primarykey() As Object = {id, domainID}
+            Return Retrieve(Of Person)(pkArray:=primarykey, domainID:=domainID, forceReload:=forcereload)
+        End Function
+        ''' <summary>
+        ''' loads the persistence object with ID from the parameters
+        ''' </summary>
+        ''' <param name="name"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function LoadBy(ByVal firstname As String, ByVal sirname As String, Optional ByVal midnames As String() = Nothing, Optional domainID As String = "") As Boolean
+            Return LoadBy(id:=BuildID(firstname:=firstname, midnames:=midnames, sirname:=sirname), domainID:=domainID)
         End Function
         ''' <summary>
         ''' Load and infuses a object by primary key
@@ -1066,9 +1511,9 @@ Namespace OnTrack
         ''' <param name="Name"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function LoadBy(ByVal name As String) As Boolean
-            Dim primarykey() As Object = {name}
-            Return MyBase.LoadBy(pkArray:=primarykey)
+        Public Function LoadBy(ByVal id As String, Optional domainID As String = "") As Boolean
+            Dim primarykey() As Object = {id, domainID}
+            Return MyBase.LoadBy(pkArray:=primarykey, domainID:=domainID)
         End Function
         ''' <summary>
         ''' create the persistency schema
@@ -1077,116 +1522,37 @@ Namespace OnTrack
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function CreateSchema(Optional silent As Boolean = True) As Boolean
-
-            Dim aFieldDesc As New ormFieldDescription
-            Dim PrimaryColumnNames As New Collection
-            Dim aTableDef As New ObjectDefinition
-            Dim IDColumnNames As New Collection
-
-            With aTableDef
-                .Create(constTableID)
-                .Delete()
-
-                aFieldDesc.Tablename = constTableID
-                aFieldDesc.ID = ""
-                aFieldDesc.Parameter = ""
-
-                '***
-                '*** Fields
-                '****
-
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "name"
-                aFieldDesc.ID = "p1"
-                aFieldDesc.ColumnName = "name"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
-
-                'fieldnames
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "description"
-                aFieldDesc.ID = "p2"
-                aFieldDesc.ColumnName = "desc"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                'fieldnames
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "organisation unit id"
-                aFieldDesc.ID = "p3"
-                aFieldDesc.ColumnName = "orgunitid"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                'fieldnames
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "manager name"
-                aFieldDesc.ID = "p4"
-                aFieldDesc.ColumnName = "managername"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                'fieldnames
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "email address"
-                aFieldDesc.ID = "p5"
-                aFieldDesc.ColumnName = "emailaddress"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                '***
-                '*** TIMESTAMP
-                '****
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "last Update"
-                aFieldDesc.ColumnName = ConstFNUpdatedOn
-                aFieldDesc.ID = ""
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "creation Date"
-                aFieldDesc.ColumnName = ConstFNCreatedOn
-                aFieldDesc.ID = ""
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' Index
-                Call .AddIndex("PrimaryKey", PrimaryColumnNames, isprimarykey:=True)
-
-                ' persist
-                .Persist()
-                ' change the database
-                .AlterSchema()
-            End With
-
-            CreateSchema = True
-            Exit Function
+            Return ormDataObject.CreateSchema(Of Person)(silent:=silent)
 
         End Function
 
-        ''' <summary>
-        ''' Persist the Person Defintion
-        ''' </summary>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Function Persist(Optional timestamp As Date = ot.ConstNullDate) As Boolean
-
-
-            Try
-                Call Me.Record.SetValue("name", s_name)
-                Call Me.Record.SetValue("desc", s_description)
-                Call Me.Record.SetValue("orgunitid", s_orgunitID)
-                Call Me.Record.SetValue("managername", s_managername)
-                Call Me.Record.SetValue("emailaddy", s_emailaddy)
-
-                Return MyBase.Persist(timestamp)
-            Catch ex As Exception
-                Call CoreMessageHandler(exception:=ex, subname:="clsOTDBDefperson.persist")
-                Return False
-            End Try
-
-
-
-        End Function
         ''' <summary>
         ''' returns a collection of all Person Definition Objects
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Shared Function All() As List(Of clsOTDBDefPerson)
-            Return ormDataObject.All(Of clsOTDBDefPerson)()
+        Public Shared Function All(Optional domainID As String = "") As List(Of Person)
+            Return ormDataObject.All(Of Person)(domainID:=domainID)
+        End Function
+       
+        ''' <summary>
+        ''' build the ID string out of the names
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Private Shared Function BuildID(ByVal firstname As String, ByVal sirname As String, Optional ByVal midnames As String() = Nothing) As String
+            Dim pattern As String = "\b(\w|['-])+\b"
+            Dim midnamesS As String = ""
+            ' With lambda support:
+            firstname = Regex.Replace(LCase(firstname), pattern, Function(m) m.Value(0).ToString().ToUpper() & m.Value.Substring(1))
+            sirname = Regex.Replace(LCase(firstname), pattern, Function(m) m.Value(0).ToString().ToUpper() & m.Value.Substring(1))
+            If midnames IsNot Nothing Then midnamesS = Regex.Replace(LCase(Converter.Array2String(midnames)), pattern, Function(m) m.Value(0).ToString().ToUpper() & m.Value.Substring(1))
+
+            If midnamesS <> "" Then
+                Return sirname & ", " & firstname & " (" & midnamesS & ")"
+            Else
+                Return sirname & ", " & firstname
+            End If
         End Function
         ''' <summary>
         ''' Creates the persistence object
@@ -1194,44 +1560,82 @@ Namespace OnTrack
         ''' <param name="name"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function Create(ByVal name As String) As Boolean
-            Dim primarykey() As Object = {name}
+        Public Function Create(ByVal id As String, Optional domainID As String = "") As Boolean
+            Dim primarykey() As Object = {id, domainID}
             ' set the primaryKey
-            If MyBase.Create(primarykey, checkUnique:=True) Then
-                s_name = name
-                Return True
-            Else
-                Return False
-            End If
-
-
+            Return MyBase.Create(primarykey, domainID:=domainID, checkUnique:=True)
         End Function
-
+        ''' <summary>
+        ''' Creates the persistence object with ID from the parameters
+        ''' </summary>
+        ''' <param name="name"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function Create(ByVal firstname As String, ByVal sirname As String, Optional ByVal midnames As String() = Nothing, Optional domainID As String = "") As Boolean
+            Return Create(id:=BuildID(firstname:=firstname, midnames:=midnames, sirname:=sirname), domainID:=DomainID)
+        End Function
     End Class
 
     '************************************************************************************
-    '***** CLASS clsOTDBDefLogMessage describes an Error or Info Message
+    '***** CLASS ObjectLogMessageDef describes an Error or Info Message
     '*****
-    Public Class clsOTDBDefLogMessage
+    ''' <summary>
+    ''' Object Message Definition Class - bound messages to a buisiness object
+    ''' </summary>
+    ''' <remarks></remarks>
+    Public Class ObjectLogMessageDef
         Inherits ormDataObject
         Implements iormInfusable
         Implements iormPersistable
 
-        Const _tableID As String = "tblDefLogMessages"
+        '* Schema Mapping
+        <ormSchemaTable(version:=1, addsparefields:=True, adddomainID:=True)> Public Const ConstTableID As String = "tblDefObjectLogMessages"
 
-        ' fields
-        Private s_id As Long
-        Private s_weight As Integer
-        Private s_area As String = ""
-        Private s_typeid As otAppLogMessageType
-        Private s_message As String = ""
-        Private s_status1 As String = ""
-        Private s_statustype1 As String = ""
-        Private s_status2 As String = ""
-        Private s_statustype2 As String = ""
-        Private s_status3 As String = ""
-        Private s_statustype3 As String = ""
-        Private s_desc As String = ""
+        '* primary keys
+        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=20, primarykeyordinal:=1, _
+           ID:="omd1", title:="ID", description:="Identifier of the object message")> Public Const ConstFNMessageID = "msglogtag"
+
+        '* fields
+        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=100, _
+          ID:="omd2", title:="Area", description:="area of the object message")> Public Const constFNArea = "area"
+        <ormSchemaColumn(typeid:=otFieldDataType.Numeric, _
+        ID:="omd3", title:="Weight", description:="weight of the object message")> Public Const constFNWeight = "weight"
+        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=100, _
+        ID:="omd4", title:="Type", description:="type of the object message")> Public Const constFNType = "typeid"
+        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=1024, _
+        ID:="omd5", title:="Text", description:="message text of the object message")> Public Const constFNText = "message"
+        <ormSchemaColumn(typeid:=otFieldDataType.Memo,
+        ID:="omd6", title:="Description", description:="additional description and help text of the object message")> Public Const constFNDescription = "desc"
+
+        <ormSchemaColumn(referenceObjectEntry:=StatusItem.ConstTableID & "." & StatusItem.constFNType, _
+        ID:="omd11", isnullable:=True, title:="Status Code 1", description:="status type #1 of the object message")> Public Const constFNSType1 = "stype1"
+        <ormSchemaColumn(referenceObjectEntry:=StatusItem.ConstTableID & "." & StatusItem.constFNType, _
+         ID:="omd12", isnullable:=True, title:="Status Code 2", description:="status type #2 of the object message")> Public Const constFNSType2 = "stype2"
+        <ormSchemaColumn(referenceObjectEntry:=StatusItem.ConstTableID & "." & StatusItem.constFNType, _
+         ID:="omd13", isnullable:=True, title:="Status Code 3", description:="status type #3 of the object message")> Public Const constFNSType3 = "stype3"
+
+        <ormSchemaColumn(referenceObjectEntry:=StatusItem.ConstTableID & "." & StatusItem.constFNCode, _
+        ID:="omd21", isnullable:=True, title:="Status Code 1", description:="status code #1 of the object message")> Public Const constFNSCode1 = "scode1"
+        <ormSchemaColumn(referenceObjectEntry:=StatusItem.ConstTableID & "." & StatusItem.constFNCode, _
+         ID:="omd22", isnullable:=True, title:="Status Code 2", description:="status code #2 of the object message")> Public Const constFNSCode2 = "scode2"
+        <ormSchemaColumn(referenceObjectEntry:=StatusItem.ConstTableID & "." & StatusItem.constFNCode, _
+         ID:="omd23", isnullable:=True, title:="Status Code 3", description:="status code #3 of the object message")> Public Const constFNSCode3 = "scode3"
+
+
+        ' field mapping
+        <ormColumnMapping(fieldname:=ConstFNMessageID)> Private _id As Long
+        <ormColumnMapping(fieldname:=constFNWeight)> Private _weight As Double
+        <ormColumnMapping(fieldname:=constFNArea)> Private _area As String = ""
+        Private _typeid As otAppLogMessageType '* handled by infuse event
+        <ormColumnMapping(fieldname:=constFNText)> Private _message As String = ""
+        <ormColumnMapping(fieldname:=constFNDescription)> Private _desc As String = ""
+        <ormColumnMapping(fieldname:=constFNSCode1)> Private _status1 As String = ""
+        <ormColumnMapping(fieldname:=constFNSType1)> Private _statustype1 As String = ""
+        <ormColumnMapping(fieldname:=constFNSCode2)> Private _status2 As String = ""
+        <ormColumnMapping(fieldname:=constFNSType2)> Private _statustype2 As String = ""
+        <ormColumnMapping(fieldname:=constFNSCode3)> Private _status3 As String = ""
+        <ormColumnMapping(fieldname:=constFNSType3)> Private _statustype3 As String = ""
+
 
 
         ''' <summary>
@@ -1239,34 +1643,34 @@ Namespace OnTrack
         ''' </summary>
         ''' <remarks></remarks>
         Public Sub New()
-            Call MyBase.New(_tableID)
+            Call MyBase.New(ConstTableID)
         End Sub
 
-
+#Region "Properties"
         ReadOnly Property ID() As Long
             Get
-                ID = s_id
+                ID = _id
             End Get
         End Property
 
         Public Property Message() As String
             Get
-                Message = s_message
+                Message = _message
             End Get
             Set(value As String)
-                s_message = value
+                _message = value
                 IsChanged = True
             End Set
         End Property
 
 
-        Public Property Weight() As Integer
+        Public Property Weight() As Double
             Get
-                Weight = s_weight
+                Weight = _weight
             End Get
-            Set(avalue As Integer)
-                If s_weight <> avalue Then
-                    s_weight = avalue
+            Set(avalue As Double)
+                If _weight <> avalue Then
+                    _weight = avalue
                     IsChanged = True
                 End If
             End Set
@@ -1275,11 +1679,11 @@ Namespace OnTrack
 
         Public Property TypeID() As otAppLogMessageType
             Get
-                TypeID = s_typeid
+                TypeID = _typeid
             End Get
             Set(avalue As otAppLogMessageType)
-                If s_typeid <> avalue Then
-                    s_typeid = avalue
+                If _typeid <> avalue Then
+                    _typeid = avalue
                     IsChanged = True
                 End If
             End Set
@@ -1287,11 +1691,11 @@ Namespace OnTrack
 
         Public Property Area() As String
             Get
-                Area = s_area
+                Area = _area
             End Get
             Set(ByVal avalue As String)
-                If s_area <> avalue Then
-                    s_area = avalue
+                If _area <> avalue Then
+                    _area = avalue
                     IsChanged = True
                 End If
             End Set
@@ -1299,11 +1703,11 @@ Namespace OnTrack
 
         Public Property Statuscode1() As String
             Get
-                Statuscode1 = s_status1
+                Statuscode1 = _status1
             End Get
             Set(avalue As String)
-                If s_status1 <> LCase(avalue) Then
-                    s_status1 = LCase(avalue)
+                If _status1 <> LCase(avalue) Then
+                    _status1 = LCase(avalue)
                     IsChanged = True
                 End If
             End Set
@@ -1311,22 +1715,22 @@ Namespace OnTrack
 
         Public Property Statuscode2() As String
             Get
-                Statuscode2 = s_status2
+                Statuscode2 = _status2
             End Get
             Set(avalue As String)
-                If s_status2 <> LCase(avalue) Then
-                    s_status2 = LCase(avalue)
+                If _status2 <> LCase(avalue) Then
+                    _status2 = LCase(avalue)
                     IsChanged = True
                 End If
             End Set
         End Property
         Public Property Statuscode3() As String
             Get
-                Statuscode3 = s_status3
+                Statuscode3 = _status3
             End Get
             Set(avalue As String)
-                If s_status3 <> LCase(avalue) Then
-                    s_status3 = LCase(avalue)
+                If _status3 <> LCase(avalue) Then
+                    _status3 = LCase(avalue)
                     IsChanged = True
                 End If
             End Set
@@ -1334,37 +1738,39 @@ Namespace OnTrack
 
         Public Property Statustype1() As String
             Get
-                Statustype1 = s_statustype1
+                Statustype1 = _statustype1
             End Get
             Set(avalue As String)
-                If s_statustype1 <> LCase(avalue) Then
-                    s_statustype1 = LCase(avalue)
+                If _statustype1 <> LCase(avalue) Then
+                    _statustype1 = LCase(avalue)
                     IsChanged = True
                 End If
             End Set
         End Property
         Public Property Statustype2() As String
             Get
-                Statustype2 = s_statustype2
+                Statustype2 = _statustype2
             End Get
             Set(avalue As String)
-                If s_statustype2 <> LCase(avalue) Then
-                    s_statustype2 = LCase(avalue)
+                If _statustype2 <> LCase(avalue) Then
+                    _statustype2 = LCase(avalue)
                     IsChanged = True
                 End If
             End Set
         End Property
         Public Property Statustype3() As String
             Get
-                Statustype3 = s_statustype3
+                Statustype3 = _statustype3
             End Get
             Set(avalue As String)
-                If s_statustype3 <> LCase(avalue) Then
-                    s_statustype3 = LCase(avalue)
+                If _statustype3 <> LCase(avalue) Then
+                    _statustype3 = LCase(avalue)
                     IsChanged = True
                 End If
             End Set
         End Property
+#End Region
+
         Public Function GetStatusCodeOf(ByVal typeid As String) As String
             If Not _IsLoaded And Not Me.IsCreated Then
                 GetStatusCodeOf = ""
@@ -1418,125 +1824,48 @@ Namespace OnTrack
         ''' <param name="aRecord"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overrides Function Infuse(ByRef record As ormRecord) As Boolean Implements iormInfusable.Infuse
+        Private Sub OnInfused(sender As Object, e As ormDataObjectEventArgs) Handles MyBase.OnInfused
             Dim aVAlue As Object
 
-            '* init
-            If Not IsInitialized Then
-                If Not Me.Initialize() Then
-                    Infuse = False
-                    Exit Function
-                End If
-            End If
-
             Try
-
-                s_id = CLng(record.GetValue("id"))
-                s_message = CStr(record.GetValue("msg"))
-                s_area = CStr(record.GetValue("area"))
-                s_weight = CInt(record.GetValue("weight"))
-                aVAlue = record.GetValue("typeid")
-
+                aVAlue = e.Record.GetValue(constFNType)
                 Select Case LCase(aVAlue)
                     Case LCase(OTDBConst_MessageTypeid_error)
-                        s_typeid = otAppLogMessageType.[Error]
+                        _typeid = otAppLogMessageType.[Error]
                     Case LCase(OTDBConst_MessageTypeid_info)
-                        s_typeid = otAppLogMessageType.Info
+                        _typeid = otAppLogMessageType.Info
                     Case LCase(OTDBConst_MessageTypeid_attention)
-                        s_typeid = otAppLogMessageType.Attention
+                        _typeid = otAppLogMessageType.Attention
                     Case LCase(OTDBConst_MessageTypeid_warning)
-                        s_typeid = otAppLogMessageType.Warning
+                        _typeid = otAppLogMessageType.Warning
                 End Select
 
-                If Not DBNull.Value.Equals(record.GetValue("scode1")) Then
-                    s_status1 = CStr(record.GetValue("scode1"))
-                Else
-                    s_status1 = ""
-                End If
-                If Not DBNull.Value.Equals(record.GetValue("stype1")) Then
-                    s_statustype1 = CStr(record.GetValue("stype1"))
-                Else
-                    s_statustype1 = ""
-                End If
-
-                If Not DBNull.Value.Equals(record.GetValue("scode2")) Then
-                    s_status2 = CStr(record.GetValue("scode2"))
-                Else
-                    s_status2 = ""
-                End If
-                If Not DBNull.Value.Equals(record.GetValue("stype2")) Then
-                    s_statustype2 = CStr(record.GetValue("stype2"))
-                Else
-                    s_statustype2 = ""
-                End If
-
-                If Not DBNull.Value.Equals(record.GetValue("scode3")) Then
-                    s_status3 = CStr(record.GetValue("scode3"))
-                Else
-                    s_status3 = ""
-                End If
-                If Not DBNull.Value.Equals(record.GetValue("stype3")) Then
-                    s_statustype3 = CStr(record.GetValue("stype3"))
-                Else
-                    s_statustype3 = ""
-                End If
-
-                If Not DBNull.Value.Equals(record.GetValue("desc")) Then
-                    s_desc = CStr(record.GetValue("desc"))
-                Else
-                    s_desc = ""
-                End If
-
-                _IsLoaded = MyBase.Infuse(record)
-                Return Me.IsLoaded
-
             Catch ex As Exception
-                Call CoreMessageHandler(exception:=ex, subname:="clsOTDBDefLogMessage.Infuse")
-                Return False
+                Call CoreMessageHandler(exception:=ex, subname:="ObjectLogMessageDef.Infuse")
             End Try
 
+        End Sub
+        ''' <summary>
+        ''' returns a Object Log Message Definition Object from the data store
+        ''' </summary>
+        ''' <param name="id"></param>
+        ''' <param name="domainID"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Overloads Shared Function Retrieve(ByVal id As String, Optional domainID As String = "") As ObjectLogMessageDef
+            If domainID = "" Then domainID = CurrentSession.CurrentDomainID
+            Dim primarykey() As Object = {id, domainID}
+            Return Retrieve(Of ObjectLogMessageDef)(pkArray:=primarykey)
         End Function
         ''' <summary>
-        ''' Load and Infuse the Log Message Definition from store
+        ''' Load the Log Message Definition from store
         ''' </summary>
         ''' <param name="ID"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function LoadBy(ByVal ID As String) As Boolean
-            Dim aStore As iormDataStore
-            Dim aRecord As ormRecord
-            Dim primarykey() As Object = {ID}
-
-            '* lazy init
-            If Not Me.IsInitialized Then
-                If Not Me.Initialize() Then
-                    LoadBy = False
-                    Exit Function
-                End If
-            End If
-
-            aStore = Me.TableStore
-            ' try to load it from cache
-            aRecord = loadFromCache(_tableID, primarykey)
-            ' load it from database
-            If aRecord Is Nothing Then
-                'Set aStore = getTableClass(ourTableName)
-                aRecord = aStore.GetRecordByPrimaryKey(primarykey)
-            End If
-
-            If aRecord Is Nothing Then
-                Me.Unload()
-                LoadBy = Me.IsLoaded
-                Exit Function
-            Else
-                'me.record = aRecord
-                _IsLoaded = Me.Infuse(Me.Record)
-                Call AddToCache(_tableID, key:=primarykey, theOBJECT:=aRecord)
-                LoadBy = Me.IsLoaded
-                Exit Function
-            End If
-
-
+        Public Overloads Function LoadBy(ByVal id As String, Optional domainID As String = "") As Boolean
+            Dim primarykey() As Object = {id}
+            Return MyBase.LoadBy(pkArray:=primarykey, domainID:=domainID)
         End Function
         ''' <summary>
         ''' create the persitency schema
@@ -1545,133 +1874,133 @@ Namespace OnTrack
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function CreateSchema(Optional silent As Boolean = True) As Boolean
+            Return ormDataObject.CreateSchema(Of ObjectLogMessageDef)(silent:=silent)
+            'Dim aFieldDesc As New ormFieldDescription
+            'Dim PrimaryColumnNames As New Collection
+            'Dim aTableDef As New ObjectDefinition
 
-            Dim aFieldDesc As New ormFieldDescription
-            Dim PrimaryColumnNames As New Collection
-            Dim aTableDef As New ObjectDefinition
+            'With aTableDef
+            '    .Create(ConstTableID)
+            '    .Delete()
 
-            With aTableDef
-                .Create(_tableID)
-                .Delete()
+            '    aFieldDesc.Tablename = ConstTableID
+            '    aFieldDesc.ID = ""
+            '    aFieldDesc.Parameter = ""
+            '    aFieldDesc.Relation = New String() {}
 
-                aFieldDesc.Tablename = _tableID
-                aFieldDesc.ID = ""
-                aFieldDesc.Parameter = ""
-                aFieldDesc.Relation = New String() {}
+            '    '***
+            '    '*** Fields
+            '    '****
 
-                '***
-                '*** Fields
-                '****
+            '    aFieldDesc.Datatype = otFieldDataType.[Long]
+            '    aFieldDesc.Title = "message id"
+            '    aFieldDesc.ID = "lm1"
+            '    aFieldDesc.ColumnName = "id"
+            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '    PrimaryColumnNames.Add(aFieldDesc.ColumnName)
 
-                aFieldDesc.Datatype = otFieldDataType.[Long]
-                aFieldDesc.Title = "message id"
-                aFieldDesc.ID = "lm1"
-                aFieldDesc.ColumnName = "id"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
+            '    'fieldnames
+            '    aFieldDesc.Datatype = otFieldDataType.Text
+            '    aFieldDesc.Title = "area of message"
+            '    aFieldDesc.ID = "lm2"
+            '    aFieldDesc.ColumnName = "area"
+            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                'fieldnames
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "area of message"
-                aFieldDesc.ID = "lm2"
-                aFieldDesc.ColumnName = "area"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '    aFieldDesc.Datatype = otFieldDataType.Numeric
+            '    aFieldDesc.Title = "weight of message"
+            '    aFieldDesc.ID = "lm3"
+            '    aFieldDesc.ColumnName = "weight"
+            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                aFieldDesc.Datatype = otFieldDataType.Numeric
-                aFieldDesc.Title = "weight of message"
-                aFieldDesc.ID = "lm3"
-                aFieldDesc.ColumnName = "weight"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '    aFieldDesc.Datatype = otFieldDataType.Text
+            '    aFieldDesc.Title = "typeid of message"
+            '    aFieldDesc.ID = "lm4"
+            '    aFieldDesc.ColumnName = "typeid"
+            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "typeid of message"
-                aFieldDesc.ID = "lm4"
-                aFieldDesc.ColumnName = "typeid"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '    aFieldDesc.Datatype = otFieldDataType.Text
+            '    aFieldDesc.Title = "message"
+            '    aFieldDesc.ID = "lm11"
+            '    aFieldDesc.ColumnName = "msg"
+            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "message"
-                aFieldDesc.ID = "lm11"
-                aFieldDesc.ColumnName = "msg"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                aFieldDesc.Datatype = otFieldDataType.Memo
-                aFieldDesc.Title = "description"
-                aFieldDesc.ID = "lm12"
-                aFieldDesc.ColumnName = "desc"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '    aFieldDesc.Datatype = otFieldDataType.Memo
+            '    aFieldDesc.Title = "description"
+            '    aFieldDesc.ID = "lm12"
+            '    aFieldDesc.ColumnName = "desc"
+            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
 
-                ' STATUS 1
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "status code 1"
-                aFieldDesc.ID = "lm5"
-                aFieldDesc.Relation = New String() {"stat2"}
-                aFieldDesc.ColumnName = "scode1"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '    ' STATUS 1
+            '    aFieldDesc.Datatype = otFieldDataType.Text
+            '    aFieldDesc.Title = "status code 1"
+            '    aFieldDesc.ID = "lm5"
+            '    aFieldDesc.Relation = New String() {"stat2"}
+            '    aFieldDesc.ColumnName = "scode1"
+            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "status type 1"
-                aFieldDesc.ID = "lm6"
-                aFieldDesc.Relation = New String() {"stat1"}
-                aFieldDesc.ColumnName = "stype1"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '    aFieldDesc.Datatype = otFieldDataType.Text
+            '    aFieldDesc.Title = "status type 1"
+            '    aFieldDesc.ID = "lm6"
+            '    aFieldDesc.Relation = New String() {"stat1"}
+            '    aFieldDesc.ColumnName = "stype1"
+            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                ' STATUS 2
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "status code 2"
-                aFieldDesc.ID = "lm7"
-                aFieldDesc.Relation = New String() {"stat2"}
-                aFieldDesc.ColumnName = "scode2"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '    ' STATUS 2
+            '    aFieldDesc.Datatype = otFieldDataType.Text
+            '    aFieldDesc.Title = "status code 2"
+            '    aFieldDesc.ID = "lm7"
+            '    aFieldDesc.Relation = New String() {"stat2"}
+            '    aFieldDesc.ColumnName = "scode2"
+            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "status type 2"
-                aFieldDesc.ID = "lm8"
-                aFieldDesc.Relation = New String() {"stat1"}
-                aFieldDesc.ColumnName = "stype2"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' STATUS 3
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "status code 3"
-                aFieldDesc.ID = "lm9"
-                aFieldDesc.Relation = New String() {"stat2"}
-                aFieldDesc.ColumnName = "scode3"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '    aFieldDesc.Datatype = otFieldDataType.Text
+            '    aFieldDesc.Title = "status type 2"
+            '    aFieldDesc.ID = "lm8"
+            '    aFieldDesc.Relation = New String() {"stat1"}
+            '    aFieldDesc.ColumnName = "stype2"
+            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '    ' STATUS 3
+            '    aFieldDesc.Datatype = otFieldDataType.Text
+            '    aFieldDesc.Title = "status code 3"
+            '    aFieldDesc.ID = "lm9"
+            '    aFieldDesc.Relation = New String() {"stat2"}
+            '    aFieldDesc.ColumnName = "scode3"
+            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "status type 3"
-                aFieldDesc.ID = "lm10"
-                aFieldDesc.Relation = New String() {"stat1"}
-                aFieldDesc.ColumnName = "stype3"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                '***
-                '*** TIMESTAMP
-                '****
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "last Update"
-                aFieldDesc.ColumnName = ConstFNUpdatedOn
-                aFieldDesc.Relation = Nothing
-                aFieldDesc.ID = ""
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '    aFieldDesc.Datatype = otFieldDataType.Text
+            '    aFieldDesc.Title = "status type 3"
+            '    aFieldDesc.ID = "lm10"
+            '    aFieldDesc.Relation = New String() {"stat1"}
+            '    aFieldDesc.ColumnName = "stype3"
+            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '    '***
+            '    '*** TIMESTAMP
+            '    '****
+            '    aFieldDesc.Datatype = otFieldDataType.Timestamp
+            '    aFieldDesc.Title = "last Update"
+            '    aFieldDesc.ColumnName = ConstFNUpdatedOn
+            '    aFieldDesc.Relation = Nothing
+            '    aFieldDesc.ID = ""
+            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "creation Date"
-                aFieldDesc.Relation = Nothing
-                aFieldDesc.ColumnName = ConstFNCreatedOn
-                aFieldDesc.ID = ""
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' Index
-                Call .AddIndex("PrimaryKey", PrimaryColumnNames, isprimarykey:=True)
+            '    aFieldDesc.Datatype = otFieldDataType.Timestamp
+            '    aFieldDesc.Title = "creation Date"
+            '    aFieldDesc.Relation = Nothing
+            '    aFieldDesc.ColumnName = ConstFNCreatedOn
+            '    aFieldDesc.ID = ""
+            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '    ' Index
+            '    Call .AddIndex("PrimaryKey", PrimaryColumnNames, isprimarykey:=True)
 
-                ' persist
-                .Persist()
-                ' change the database
-                .AlterSchema()
-            End With
+            '    ' persist
+            '    .Persist()
+            '    ' change the database
+            '    .AlterSchema()
+            'End With
 
-            CreateSchema = True
-            Exit Function
+            'CreateSchema = True
+            'Exit Function
 
         End Function
 
@@ -1682,47 +2011,33 @@ Namespace OnTrack
         ''' <returns></returns>
         ''' <remarks></remarks>
 
-        Public Function Persist(Optional timestamp As Date = ot.ConstNullDate) As Boolean
+        Public Sub OnRecordFed(sender As Object, e As ormDataObjectEventArgs) Handles MyBase.OnRecordFed
 
             Try
-                Call Me.Record.SetValue("id", s_id)
-                Call Me.Record.SetValue("msg", s_message)
-                Call Me.Record.SetValue("area", s_area)
-                Call Me.Record.SetValue("weight", s_weight)
-                Select Case s_typeid
+                '* transform
+                Select Case _typeid
                     Case otAppLogMessageType.[Error]
-                        Call Me.Record.SetValue("typeid", "ERROR")
+                        Call e.Record.SetValue(constFNType, "ERROR")
                     Case otAppLogMessageType.Info
-                        Call Me.Record.SetValue("typeid", "INFO")
+                        Call e.Record.SetValue(constFNType, "INFO")
                     Case otAppLogMessageType.Attention
-                        Call Me.Record.SetValue("typeid", "ATTENTION")
+                        Call e.Record.SetValue(constFNType, "ATTENTION")
                     Case otAppLogMessageType.Warning
-                        Call Me.Record.SetValue("typeid", "WARNING")
+                        Call e.Record.SetValue(constFNType, "WARNING")
 
                 End Select
-                Call Me.Record.SetValue("scode1", s_status1)
-                Call Me.Record.SetValue("stype1", s_statustype1)
-                Call Me.Record.SetValue("scode2", s_status2)
-                Call Me.Record.SetValue("stype2", s_statustype2)
-                Call Me.Record.SetValue("scode3", s_status3)
-                Call Me.Record.SetValue("stype31", s_statustype3)
-                Call Me.Record.SetValue("desc", s_desc)
-
-                Return MyBase.Persist(timestamp)
 
             Catch ex As Exception
-                Call CoreMessageHandler(exception:=ex, subname:="clsOTDBDefLogMessage.persist")
-                Return False
+                Call CoreMessageHandler(exception:=ex, subname:="ObjectLogMessageDef.OnRecordFed")
             End Try
-
-        End Function
+        End Sub
         ''' <summary>
         ''' return all Log Message Definitions
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function All() As List(Of clsOTDBDefLogMessage)
-            Return ormDataObject.All(Of clsOTDBDefLogMessage)()
+        Public Function All(Optional domainID As String = "") As List(Of ObjectLogMessageDef)
+            Return ormDataObject.All(Of ObjectLogMessageDef)(domainID:=domainID)
         End Function
 
         ''' <summary>
@@ -1731,16 +2046,10 @@ Namespace OnTrack
         ''' <param name="ID"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Function Create(ByVal id As String) As Boolean
+        Public Overloads Function Create(ByVal id As String, Optional ByVal domainID As String = "") As Boolean
             Dim primarykey() As Object = {id}
             ' set the primaryKey
-            If MyBase.Create(primarykey, checkUnique:=True) Then
-                s_id = id
-                Return True
-            Else
-                Return False
-            End If
-
+            Return MyBase.Create(primarykey, domainID:=domainID, checkUnique:=True)
         End Function
     End Class
 
@@ -1748,60 +2057,104 @@ Namespace OnTrack
     '***** CLASS clsOTDBDefStatusItem is the object for a OTDBRecord (which is the datastore)
     '*****       defines a Status for different typeids
     '*****
-    Public Class clsOTDBDefStatusItem
+    ''' <summary>
+    ''' Status ITEM Class for Stati in Object Messages
+    ''' </summary>
+    ''' <remarks></remarks>
+    Public Class StatusItem
         Inherits ormDataObject
         Implements iormPersistable
         Implements iormInfusable
 
-        Public Const constTableID As String = "tblDefStatusItems"
+        '** schema
+        <ormSchemaTable(version:=2, addsparefields:=True, adddomainid:=True)> Public Const ConstTableID As String = "tblDefStatusItems"
 
-        ' fields
-        Private s_typeid As String = ""  ' Status Type
-        Private s_code As String = ""  ' code
+        '* primary Key
+        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=50, primarykeyordinal:=1, _
+            ID:="si1", title:="Type", description:="type of the status")> Public Const constFNType = "typeid"
+        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=50, primarykeyordinal:=2, _
+           ID:="si2", title:="Code", description:="code of the status")> Public Const constFNCode = "code"
+        <ormSchemaColumn(referenceObjectEntry:=Domain.ConstTableID & "." & Domain.ConstFNDomainID, primarykeyordinal:=3)> _
+        Public Shadows Const ConstFNDomainId = Domain.ConstFNDomainID
 
-        Private s_name As String = ""
-        Private s_description As String = ""
-        Private s_kpicode As String = ""
-        Private s_weight As Long
+        '* fields
+        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=100, _
+           ID:="si3", title:="Name", description:="name of the status")> Public Const constFNName = "name"
+        <ormSchemaColumn(typeid:=otFieldDataType.Memo, _
+          ID:="si4", title:="Description", description:="description of the status")> Public Const constFNDescription = "desc"
+        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=50, _
+          ID:="si5", title:="KPICode", description:="KPI code of the status")> Public Const constFNKPICode = "kpicode"
+        <ormSchemaColumn(typeid:=otFieldDataType.Numeric, _
+          ID:="si6", title:="Weight", description:="weight of the status")> Public Const constFNWeight = "weight"
+        <ormSchemaColumn(typeid:=otFieldDataType.Bool, _
+          ID:="si11", title:="Start", description:="set if the status is an start status")> Public Const constFNIsStartStatus = "isstart"
+        <ormSchemaColumn(typeid:=otFieldDataType.Bool, _
+          ID:="si12", title:="Intermediate", description:="set if the status is an intermediate status")> Public Const constFNIsEndStatus = "isend"
+        <ormSchemaColumn(typeid:=otFieldDataType.Bool, _
+         ID:="si13", title:="End", description:="set if the status is an end status")> Public Const constFNIsIntermediateStatus = "isimed"
 
-        Private s_bgcolor As Long
-        Private s_kpibgcolor As Long
+        <ormSchemaColumn(typeid:=otFieldDataType.Long, _
+          ID:="si21", title:="Foreground", description:="RGB foreground color code")> Public Const ConstFNFGColor = "fgcolor"
+        <ormSchemaColumn(typeid:=otFieldDataType.Long, _
+          ID:="si22", title:="Background", description:="RGB background color code")> Public Const ConstFNBGColor = "bgcolor"
+        <ormSchemaColumn(typeid:=otFieldDataType.Long, _
+          ID:="si23", title:="KPI Foreground", description:="RGB foreground kpi color code")> Public Const ConstFNKPIFGColor = "kpifgcolor"
+        <ormSchemaColumn(typeid:=otFieldDataType.Long, _
+          ID:="si24", title:="KPI Background", description:="RGB background kpi color code")> Public Const ConstFNKPIBGColor = "kpibgcolor"
 
-        Private s_fgcolor As Long
-        Private s_kpifgcolor As Long
 
-        Private s_endStatus As Boolean
-        Private s_startStatus As Boolean
-        Private s_intermediateStatus As Boolean
+        '* mappings
+        <ormColumnMapping(fieldname:=constFNType)> Private _type As String = ""  ' Status Type
+        <ormColumnMapping(fieldname:=constFNCode)> Private _code As String = ""  ' code
+        <ormColumnMapping(fieldname:=ConstFNDomainId)> Private _DomainID As String = ""  ' code
+        <ormColumnMapping(fieldname:=constFNName)> Private _name As String = ""
+        <ormColumnMapping(fieldname:=constFNDescription)> Private s_descriptio As String = ""
+        <ormColumnMapping(fieldname:=constFNKPICode)> Private _kpicode As String = ""
+        <ormColumnMapping(fieldname:=constFNWeight)> Private _weight As Double
+        <ormColumnMapping(fieldname:=ConstFNFGColor)> Private _fgcolor As Long
+        <ormColumnMapping(fieldname:=ConstFNBGColor)> Private _bgcolor As Long
+        <ormColumnMapping(fieldname:=ConstFNKPIFGColor)> Private _kpifgcolor As Long
+        <ormColumnMapping(fieldname:=ConstFNKPIBGColor)> Private _kpibgcolor As Long
+        <ormColumnMapping(fieldname:=constFNIsEndStatus)> Private _endStatus As Boolean
+        <ormColumnMapping(fieldname:=constFNIsStartStatus)> Private _startStatus As Boolean
+        <ormColumnMapping(fieldname:=constFNIsIntermediateStatus)> Private _intermediateStatus As Boolean
 
         ''' <summary>
         ''' constructor
         ''' </summary>
         ''' <remarks></remarks>
         Public Sub New()
-            Call MyBase.New(constTableID)
+            Call MyBase.New(ConstTableID)
         End Sub
 
 
+
+#Region "Properties"
+
         ReadOnly Property TypeID() As String
             Get
-                TypeID = s_typeid
+                TypeID = _type
             End Get
 
         End Property
         ReadOnly Property Code() As String
             Get
-                Code = s_code
+                Code = _code
             End Get
 
         End Property
+        ReadOnly Property DomainID() As String
+            Get
+                DomainID = _DomainID
+            End Get
 
+        End Property
         Public Property Description() As String
             Get
-                Description = s_description
+                Description = s_descriptio
             End Get
             Set(value As String)
-                s_description = value
+                s_descriptio = value
                 IsChanged = True
             End Set
         End Property
@@ -1809,33 +2162,33 @@ Namespace OnTrack
 
         Public Property Name() As String
             Get
-                Name = s_name
+                Name = _name
             End Get
             Set(value As String)
-                s_name = value
+                _name = value
                 IsChanged = True
             End Set
         End Property
 
         Public Property KPICode() As String
             Get
-                KPICode = s_kpicode
+                KPICode = _kpicode
             End Get
             Set(value As String)
-                If LCase(s_kpicode) <> LCase(value) Then
-                    s_kpicode = LCase(value)
+                If LCase(_kpicode) <> LCase(value) Then
+                    _kpicode = LCase(value)
                     IsChanged = True
                 End If
             End Set
         End Property
 
-        Public Property Weight() As Long
+        Public Property Weight() As Double
             Get
-                Weight = s_weight
+                Weight = _weight
             End Get
-            Set(value As Long)
-                If value <> s_weight Then
-                    s_weight = value
+            Set(value As Double)
+                If value <> _weight Then
+                    _weight = value
                     IsChanged = True
                 End If
             End Set
@@ -1843,10 +2196,10 @@ Namespace OnTrack
 
         Public Property IsStartStatus() As Boolean
             Get
-                IsStartStatus = s_startStatus
+                IsStartStatus = _startStatus
             End Get
             Set(value As Boolean)
-                s_startStatus = value
+                _startStatus = value
                 IsChanged = True
             End Set
         End Property
@@ -1854,10 +2207,10 @@ Namespace OnTrack
 
         Public Property IsIntermediateStatus() As Boolean
             Get
-                IsIntermediateStatus = s_intermediateStatus
+                IsIntermediateStatus = _intermediateStatus
             End Get
             Set(value As Boolean)
-                s_intermediateStatus = value
+                _intermediateStatus = value
                 IsChanged = True
             End Set
         End Property
@@ -1865,20 +2218,20 @@ Namespace OnTrack
 
         Public Property IsEndStatus() As Boolean
             Get
-                IsEndStatus = s_endStatus
+                IsEndStatus = _endStatus
             End Get
             Set(value As Boolean)
-                s_endStatus = value
+                _endStatus = value
                 IsChanged = True
             End Set
         End Property
 
         Public Property Formatbgcolor() As Long
             Get
-                Formatbgcolor = s_bgcolor
+                Formatbgcolor = _bgcolor
             End Get
             Set(value As Long)
-                s_bgcolor = value
+                _bgcolor = value
                 IsChanged = True
             End Set
         End Property
@@ -1887,20 +2240,20 @@ Namespace OnTrack
 
         Public Property Formatkpibgcolor() As Long
             Get
-                Formatbgcolor = s_kpibgcolor
+                Formatbgcolor = _kpibgcolor
             End Get
             Set(value As Long)
-                s_kpibgcolor = value
+                _kpibgcolor = value
                 IsChanged = True
             End Set
         End Property
 
         Public Property Formatfgcolor() As Long
             Get
-                Formatfgcolor = s_fgcolor
+                Formatfgcolor = _fgcolor
             End Get
             Set(value As Long)
-                s_fgcolor = value
+                _fgcolor = value
                 IsChanged = True
             End Set
         End Property
@@ -1908,74 +2261,25 @@ Namespace OnTrack
 
         Public Property Formatkpifgcolor() As Long
             Get
-                Formatfgcolor = s_fgcolor
+                Formatfgcolor = _fgcolor
             End Get
             Set(value As Long)
-                s_kpifgcolor = value
+                _kpifgcolor = value
                 IsChanged = True
             End Set
         End Property
-        ''' <summary>
-        ''' initialize
-        ''' </summary>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Overrides Function Initialize() As Boolean
-            Cache.RegisterCacheFor(constTableID)
-            Me.TableStore.SetProperty(ConstTPNCacheProperty, True)
-            Return MyBase.Initialize
-        End Function
-        ''' <summary>
-        ''' infuses a Definition of a Status Irem by record
-        ''' </summary>
-        ''' <param name="aRecord"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Overrides Function Infuse(ByRef record As ormRecord) As Boolean Implements iormInfusable.Infuse
+#End Region
 
-            '* init
-            If Not Me.IsInitialized Then
-                If Not Me.Initialize() Then
-                    Infuse = False
-                    Exit Function
-                End If
-            End If
-
-            Try
-
-                s_typeid = CStr(record.GetValue("typeid"))
-                s_code = CStr(record.GetValue("code"))
-                s_name = CStr(record.GetValue("name"))
-                s_description = CStr(record.GetValue("desc"))
-                s_kpicode = CStr(record.GetValue("kpicode"))
-
-                s_endStatus = CBool(record.GetValue("isend"))
-                s_startStatus = CBool(record.GetValue("isstart"))
-                s_intermediateStatus = CBool(record.GetValue("isintermediate"))
-
-                s_fgcolor = CLng(record.GetValue("fgcolor"))
-                s_bgcolor = CLng(record.GetValue("bgcolor"))
-                s_kpifgcolor = CLng(record.GetValue("kpifgcolor"))
-                s_kpibgcolor = CLng(record.GetValue("kpibgcolor"))
-                _IsLoaded = MyBase.Infuse(record)
-                Return Me.IsLoaded
-
-            Catch ex As Exception
-                Call CoreMessageHandler(exception:=ex, subname:="clsOTDBDefStatusItem.Infuse")
-                Return False
-            End Try
-
-        End Function
 
         ''' <summary>
-        ''' Retrieve
+        ''' Retrieve from datastore
         ''' </summary>
         ''' <param name="id"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Retrieve([typeid] As String, code As String, Optional forcereload As Boolean = False) As clsOTDBDefStatusItem
-            Dim pkarry() As Object = {LCase([typeid]), LCase(code)}
-            Return Retrieve(Of clsOTDBDefStatusItem)(pkArray:=pkarry, forceReload:=forcereload)
+        Public Overloads Shared Function Retrieve([typeid] As String, code As String, Optional domainID As String = "", Optional forcereload As Boolean = False) As StatusItem
+            Dim pkarry() As Object = {LCase([typeid]), LCase(code), UCase(domainID)}
+            Return Retrieve(Of StatusItem)(pkArray:=pkarry, domainID:=domainID, forceReload:=forcereload)
         End Function
 
         ''' <summary>
@@ -1985,9 +2289,9 @@ Namespace OnTrack
         ''' <param name="code"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function LoadBy(ByVal typeid As String, ByVal code As String) As Boolean
-            Dim pkarry() As Object = {LCase(typeid), LCase(code)}
-            Return MyBase.LoadBy(pkArray:=pkarry)
+        Public Function LoadBy(ByVal typeid As String, ByVal code As String, Optional domainID As String = "") As Boolean
+            Dim pkarry() As Object = {LCase(typeid), LCase(code), UCase(domainID)}
+            Return MyBase.LoadBy(pkArray:=pkarry, domainID:=domainID)
         End Function
         ''' <summary>
         ''' create the persistency schema
@@ -1996,161 +2300,129 @@ Namespace OnTrack
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function CreateSchema(Optional silent As Boolean = True) As Boolean
+            Return ormDataObject.CreateSchema(Of StatusItem)(silent:=silent)
+            'Dim aFieldDesc As New ormFieldDescription
+            'Dim PrimaryColumnNames As New Collection
+            'Dim aStore As New ObjectDefinition
 
-            Dim aFieldDesc As New ormFieldDescription
-            Dim PrimaryColumnNames As New Collection
-            Dim aStore As New ObjectDefinition
+            'With aStore
+            '    .Create(ConstTableID)
+            '    .Delete()
+            '    aFieldDesc.Tablename = ConstTableID
+            '    aFieldDesc.ID = ""
+            '    aFieldDesc.Parameter = ""
 
-            With aStore
-                .Create(constTableID)
-                .Delete()
-                aFieldDesc.Tablename = constTableID
-                aFieldDesc.ID = ""
-                aFieldDesc.Parameter = ""
+            '    '***
+            '    '*** Fields
+            '    '****
 
-                '***
-                '*** Fields
-                '****
+            '    aFieldDesc.Datatype = otFieldDataType.Text
+            '    aFieldDesc.Title = "type id of the status"
+            '    aFieldDesc.ID = "stat1"
+            '    aFieldDesc.ColumnName = "typeid"
+            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '    PrimaryColumnNames.Add(aFieldDesc.ColumnName)
 
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "type id of the status"
-                aFieldDesc.ID = "stat1"
-                aFieldDesc.ColumnName = "typeid"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
+            '    aFieldDesc.Datatype = otFieldDataType.Text
+            '    aFieldDesc.Title = "code"
+            '    aFieldDesc.ID = "stat2"
+            '    aFieldDesc.ColumnName = "code"
+            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '    PrimaryColumnNames.Add(aFieldDesc.ColumnName)
 
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "code"
-                aFieldDesc.ID = "stat2"
-                aFieldDesc.ColumnName = "code"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
+            '    'fieldnames
+            '    aFieldDesc.Datatype = otFieldDataType.Text
+            '    aFieldDesc.Title = "name of status"
+            '    aFieldDesc.ID = "stat3"
+            '    aFieldDesc.ColumnName = "name"
+            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                'fieldnames
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "name of status"
-                aFieldDesc.ID = "stat3"
-                aFieldDesc.ColumnName = "name"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '    aFieldDesc.Datatype = otFieldDataType.Text
+            '    aFieldDesc.Title = "description"
+            '    aFieldDesc.ID = "stat4"
+            '    aFieldDesc.ColumnName = "desc"
+            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "description"
-                aFieldDesc.ID = "stat4"
-                aFieldDesc.ColumnName = "desc"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '    aFieldDesc.Datatype = otFieldDataType.Text
+            '    aFieldDesc.Title = "kpi code of this status"
+            '    aFieldDesc.ID = "stat5"
+            '    aFieldDesc.ColumnName = "kpicode"
+            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "kpi code of this status"
-                aFieldDesc.ID = "stat5"
-                aFieldDesc.ColumnName = "kpicode"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '    aFieldDesc.Datatype = otFieldDataType.[Long]
+            '    aFieldDesc.Title = "weight"
+            '    aFieldDesc.ID = "stat6"
+            '    aFieldDesc.ColumnName = "weight"
+            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                aFieldDesc.Datatype = otFieldDataType.[Long]
-                aFieldDesc.Title = "weight"
-                aFieldDesc.ID = "stat6"
-                aFieldDesc.ColumnName = "weight"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '    aFieldDesc.Datatype = otFieldDataType.Bool
+            '    aFieldDesc.Title = "is end status"
+            '    aFieldDesc.ID = "stat7"
+            '    aFieldDesc.ColumnName = "isend"
+            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                aFieldDesc.Datatype = otFieldDataType.Bool
-                aFieldDesc.Title = "is end status"
-                aFieldDesc.ID = "stat7"
-                aFieldDesc.ColumnName = "isend"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '    aFieldDesc.Datatype = otFieldDataType.Bool
+            '    aFieldDesc.Title = "is start status"
+            '    aFieldDesc.ID = "stat8"
+            '    aFieldDesc.ColumnName = "isstart"
+            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                aFieldDesc.Datatype = otFieldDataType.Bool
-                aFieldDesc.Title = "is start status"
-                aFieldDesc.ID = "stat8"
-                aFieldDesc.ColumnName = "isstart"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '    aFieldDesc.Datatype = otFieldDataType.Bool
+            '    aFieldDesc.Title = "is intermediate status"
+            '    aFieldDesc.ID = "stat9"
+            '    aFieldDesc.ColumnName = "isimed"
+            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                aFieldDesc.Datatype = otFieldDataType.Bool
-                aFieldDesc.Title = "is intermediate status"
-                aFieldDesc.ID = "stat9"
-                aFieldDesc.ColumnName = "isimed"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '    aFieldDesc.Datatype = otFieldDataType.[Long]
+            '    aFieldDesc.Title = "foreground color"
+            '    aFieldDesc.ID = "stat10"
+            '    aFieldDesc.ColumnName = "fgcolor"
+            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                aFieldDesc.Datatype = otFieldDataType.[Long]
-                aFieldDesc.Title = "foreground color"
-                aFieldDesc.ID = "stat10"
-                aFieldDesc.ColumnName = "fgcolor"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '    aFieldDesc.Datatype = otFieldDataType.[Long]
+            '    aFieldDesc.Title = "background color"
+            '    aFieldDesc.ID = "stat11"
+            '    aFieldDesc.ColumnName = "bgcolor"
+            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                aFieldDesc.Datatype = otFieldDataType.[Long]
-                aFieldDesc.Title = "background color"
-                aFieldDesc.ID = "stat11"
-                aFieldDesc.ColumnName = "bgcolor"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '    aFieldDesc.Datatype = otFieldDataType.[Long]
+            '    aFieldDesc.Title = "kpi code foreground color"
+            '    aFieldDesc.ID = "stat12"
+            '    aFieldDesc.ColumnName = "kpifgcolor"
+            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                aFieldDesc.Datatype = otFieldDataType.[Long]
-                aFieldDesc.Title = "kpi code foreground color"
-                aFieldDesc.ID = "stat12"
-                aFieldDesc.ColumnName = "kpifgcolor"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '    aFieldDesc.Datatype = otFieldDataType.[Long]
+            '    aFieldDesc.Title = "kpi code background color"
+            '    aFieldDesc.ID = "stat13"
+            '    aFieldDesc.ColumnName = "kpibgcolor"
+            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                aFieldDesc.Datatype = otFieldDataType.[Long]
-                aFieldDesc.Title = "kpi code background color"
-                aFieldDesc.ID = "stat13"
-                aFieldDesc.ColumnName = "kpibgcolor"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '    '***
+            '    '*** TIMESTAMP
+            '    '****
+            '    aFieldDesc.Datatype = otFieldDataType.Timestamp
+            '    aFieldDesc.Title = "last Update"
+            '    aFieldDesc.ColumnName = ConstFNUpdatedOn
+            '    aFieldDesc.ID = ""
+            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                '***
-                '*** TIMESTAMP
-                '****
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "last Update"
-                aFieldDesc.ColumnName = ConstFNUpdatedOn
-                aFieldDesc.ID = ""
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '    aFieldDesc.Datatype = otFieldDataType.Timestamp
+            '    aFieldDesc.Title = "creation Date"
+            '    aFieldDesc.ColumnName = ConstFNCreatedOn
+            '    aFieldDesc.ID = ""
+            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '    ' Index
+            '    Call .AddIndex("PrimaryKey", PrimaryColumnNames, isprimarykey:=True)
 
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "creation Date"
-                aFieldDesc.ColumnName = ConstFNCreatedOn
-                aFieldDesc.ID = ""
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' Index
-                Call .AddIndex("PrimaryKey", PrimaryColumnNames, isprimarykey:=True)
+            '    ' persist
+            '    .Persist()
+            '    ' change the database
+            '    .AlterSchema()
+            'End With
 
-                ' persist
-                .Persist()
-                ' change the database
-                .AlterSchema()
-            End With
-
-            '
-            CreateSchema = True
-            Exit Function
-
-
-        End Function
-        ''' <summary>
-        ''' Persist the object
-        ''' </summary>
-        ''' <param name="timestamp"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Function Persist(Optional timestamp As Date = ot.ConstNullDate) As Boolean
-
-            Try
-                Call Me.Record.SetValue("typeid", s_typeid)
-                Call Me.Record.SetValue("code", s_code)
-                Call Me.Record.SetValue("name", s_name)
-                Call Me.Record.SetValue("kpicode", s_kpicode)
-                Call Me.Record.SetValue("desc", s_description)
-
-                Call Me.Record.SetValue("isend", s_endStatus)
-                Call Me.Record.SetValue("isstart", s_startStatus)
-                Call Me.Record.SetValue("isintermediate", s_intermediateStatus)
-
-                Call Me.Record.SetValue("fgcolor", s_fgcolor)
-                Call Me.Record.SetValue("bgcolor", s_bgcolor)
-                Call Me.Record.SetValue("kpifgcolor", s_kpifgcolor)
-                Call Me.Record.SetValue("kpibgcolor", s_kpibgcolor)
-                Return MyBase.Persist(timestamp)
-            Catch ex As Exception
-                Call CoreMessageHandler(subname:="clsOTDBDefStatusItem.persist", exception:=ex)
-                Return False
-            End Try
-
+            ''
+            'CreateSchema = True
+            'Exit Function
 
 
         End Function
@@ -2162,17 +2434,10 @@ Namespace OnTrack
         ''' <param name="code"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function Create(ByVal typeid As String, ByVal code As String) As Boolean
+        Public Function Create(ByVal typeid As String, ByVal code As String, Optional ByVal domainID As String = "") As Boolean
             ' set the primaryKey
-            Dim primarykey() As Object = {LCase(typeid), LCase(code)}
-            If MyBase.Create(primarykey, checkUnique:=True) Then
-                s_typeid = LCase(typeid)
-                s_code = LCase(code)
-                Return True
-            Else
-                Return False
-            End If
-
+            Dim primarykey() As Object = {LCase(typeid), LCase(code), domainID}
+            Return MyBase.Create(primarykey, domainID:=domainID, checkUnique:=True)
         End Function
 
     End Class
@@ -2190,16 +2455,16 @@ Namespace OnTrack
         Implements iormPersistable
 
         '** const
-        <ormSchemaTableAttribute(Version:=2, adddeletefieldbehavior:=True)> Const ConstTableID As String = "tblDefWorkspaces"
+        <ormSchemaTableAttribute(Version:=2, adddeletefieldbehavior:=True)> Public Const ConstTableID As String = "tblDefWorkspaces"
 
         <ormSchemaColumnAttribute(id:="WS", _
             typeid:=otFieldDataType.Text, size:=50, _
-            title:="workspaceID", Description:="workspaceID identifier", _
+            title:="Workspace", Description:="workspaceID identifier", _
             primaryKeyordinal:=1)> _
-        Public Const ConstFNWorkspaceID As String = "wspace"
+        Public Const ConstFNID As String = "wspace"
 
         <ormSchemaColumnAttribute(ID:="WS1", _
-            typeid:=otFieldDataType.Text, size:=100, _
+            typeid:=otFieldDataType.Text, size:=255, _
             title:="Description")> _
         Public Const ConstFNDescription = "desc"
 
@@ -2216,8 +2481,7 @@ Namespace OnTrack
         <ormSchemaColumnAttribute(ID:="WS4", _
             typeid:=otFieldDataType.Bool, _
             title:="Base", description:="if set this workspaceID is a base workspaceID") _
-             > _
-        Public Const ConstFNIsBase = "isbase"
+             > Public Const ConstFNIsBase = "isbase"
 
         <ormSchemaColumnAttribute(ID:="WS5", _
               typeid:=otFieldDataType.Bool, _
@@ -2250,22 +2514,22 @@ Namespace OnTrack
                > Public Const ConstMaxTargetUPDC = "maxtupdc"
 
         ' fields
-        <ormColumnMappingAttribute(fieldname:=ConstFNWorkspaceID)> Private s_ID As String = ""
-        <ormColumnMappingAttribute(fieldname:=ConstFNDescription)> Private s_description As String = ""
-        <ormColumnMappingAttribute(fieldname:=ConstFNIsBase)> Private s_isBasespace As Boolean
-        <ormColumnMappingAttribute(fieldname:=ConstFNHasAct)> Private s_hasActuals As Boolean
-        <ormColumnMappingAttribute(fieldname:=ConstFNFCRelyOn)> Private s_fcrelyingOn As String = ""
-        <ormColumnMappingAttribute(fieldname:=ConstFNActRelyOn)> Private s_actrelyingOn As String = ""
-        <ormColumnMappingAttribute(fieldname:=ConstFNAccesslist)> Private s_accesslistID As String = ""
+        <ormColumnMappingAttribute(fieldname:=ConstFNID)> Private _ID As String = ""
+        <ormColumnMappingAttribute(fieldname:=ConstFNDescription)> Private _description As String = ""
+        <ormColumnMappingAttribute(fieldname:=ConstFNIsBase)> Private _isBasespace As Boolean
+        <ormColumnMappingAttribute(fieldname:=ConstFNHasAct)> Private _hasActuals As Boolean
+        <ormColumnMappingAttribute(fieldname:=ConstFNFCRelyOn)> Private _fcrelyingOn As String = ""
+        <ormColumnMappingAttribute(fieldname:=ConstFNActRelyOn)> Private _actrelyingOn As String = ""
+        <ormColumnMappingAttribute(fieldname:=ConstFNAccesslist)> Private _accesslistID As String = ""
 
-        <ormColumnMappingAttribute(fieldname:=ConstMinScheduleUPC)> Private s_min_schedule_updc As Long
-        <ormColumnMappingAttribute(fieldname:=ConstFNMaxScheduleUPC)> Private s_max_schedule_updc As Long
-        <ormColumnMappingAttribute(fieldname:=ConstFNMinTargetUPDC)> Private s_min_target_updc As Long
-        <ormColumnMappingAttribute(fieldname:=ConstMaxTargetUPDC)> Private s_max_target_updc As Long
+        <ormColumnMappingAttribute(fieldname:=ConstMinScheduleUPC)> Private _min_schedule_updc As Long
+        <ormColumnMappingAttribute(fieldname:=ConstFNMaxScheduleUPC)> Private _max_schedule_updc As Long
+        <ormColumnMappingAttribute(fieldname:=ConstFNMinTargetUPDC)> Private _min_target_updc As Long
+        <ormColumnMappingAttribute(fieldname:=ConstMaxTargetUPDC)> Private _max_target_updc As Long
 
         ' dynamics
-        Private fc_wspace_stack As New Collection
-        Private act_wspace_stack As New Collection
+        Private _fc_wspace_stack As New List(Of String)
+        Private _act_wspace_stack As New List(Of String)
 
         ' further internals
 
@@ -2277,21 +2541,34 @@ Namespace OnTrack
             Call MyBase.New(ConstTableID)
         End Sub
 
+        ''' <summary>
+        ''' Gets or sets the domain ID.
+        ''' </summary>
+        ''' <value>The domain ID.</value>
+        Public Property DomainID() As String
+            Get
+                Return Me._domainID
+            End Get
+            Set(value As String)
+                Me._domainID = value
+            End Set
+        End Property
+
 #Region "Properties"
 
-        <ormPropertyMappingAttribute(ID:="ID", fieldname:=ConstFNWorkspaceID, tableid:=ConstTableID)> ReadOnly Property ID() As String
+        <ormPropertyMappingAttribute(ID:="ID", fieldname:=ConstFNID, tableid:=ConstTableID)> ReadOnly Property ID() As String
             Get
-                ID = s_ID
+                ID = _ID
             End Get
 
         End Property
 
         Public Property Description() As String
             Get
-                Description = s_description
+                Description = _description
             End Get
             Set(value As String)
-                s_description = value
+                _description = value
                 Me.IsChanged = True
             End Set
         End Property
@@ -2299,20 +2576,20 @@ Namespace OnTrack
 
         Public Property IsBasespace() As Boolean
             Get
-                IsBasespace = s_isBasespace
+                IsBasespace = _isBasespace
             End Get
             Set(value As Boolean)
-                s_isBasespace = value
+                _isBasespace = value
                 Me.IsChanged = True
             End Set
         End Property
 
         Public Property HasActuals() As Boolean
             Get
-                HasActuals = s_hasActuals
+                HasActuals = _hasActuals
             End Get
             Set(value As Boolean)
-                s_hasActuals = value
+                _hasActuals = value
                 Me.IsChanged = True
             End Set
         End Property
@@ -2320,7 +2597,7 @@ Namespace OnTrack
 
         Public Property FCRelyingOn() As String()
             Get
-                FCRelyingOn = SplitMultbyChar(text:=s_fcrelyingOn, DelimChar:=ConstDelimiter)
+                FCRelyingOn = SplitMultbyChar(text:=_fcrelyingOn, DelimChar:=ConstDelimiter)
                 If Not IsArrayInitialized(FCRelyingOn) Then
                     FCRelyingOn = New String() {}
                 End If
@@ -2336,12 +2613,12 @@ Namespace OnTrack
                             aStrValue = aStrValue & avalue(i) & ConstDelimiter
                         End If
                     Next i
-                    s_fcrelyingOn = aStrValue
+                    _fcrelyingOn = aStrValue
                     Me.IsChanged = True
                     'ElseIf Not isEmpty(Trim(aVAlue)) And Trim(aVAlue) <> "" And Not isNull(aVAlue) Then
                     '   s_fcrelyingOn = ConstDelimiter & UCase(Trim(avalue)) & ConstDelimiter
                 Else
-                    s_fcrelyingOn = ""
+                    _fcrelyingOn = ""
                 End If
             End Set
         End Property
@@ -2349,7 +2626,7 @@ Namespace OnTrack
 
         Public Property ACTRelyingOn() As String()
             Get
-                ACTRelyingOn = SplitMultbyChar(text:=s_actrelyingOn, DelimChar:=ConstDelimiter)
+                ACTRelyingOn = SplitMultbyChar(text:=_actrelyingOn, DelimChar:=ConstDelimiter)
                 If Not IsArrayInitialized(ACTRelyingOn) Then
                     ACTRelyingOn = New String() {}
                 End If
@@ -2365,19 +2642,19 @@ Namespace OnTrack
                             aStrValue = aStrValue & avalue(i) & ConstDelimiter
                         End If
                     Next i
-                    s_actrelyingOn = aStrValue
+                    _actrelyingOn = aStrValue
                     Me.IsChanged = True
                     'ElseIf Not isEmpty(Trim(aVAlue)) And Trim(aVAlue) <> "" And Not isNull(aVAlue) Then
                     '   s_actrelyingOn = ConstDelimiter & UCase(Trim(avalue)) & ConstDelimiter
                 Else
-                    s_actrelyingOn = ""
+                    _actrelyingOn = ""
                 End If
             End Set
         End Property
 
         Public Property AccesslistIDs() As String()
             Get
-                AccesslistIDs = SplitMultbyChar(text:=s_accesslistID, DelimChar:=ConstDelimiter)
+                AccesslistIDs = SplitMultbyChar(text:=_accesslistID, DelimChar:=ConstDelimiter)
                 If Not IsArrayInitialized(AccesslistIDs) Then
                     AccesslistIDs = New String() {}
                 End If
@@ -2393,52 +2670,52 @@ Namespace OnTrack
                             aStrValue = aStrValue & avalue(i) & ConstDelimiter
                         End If
                     Next i
-                    s_accesslistID = aStrValue
+                    _accesslistID = aStrValue
                     Me.IsChanged = True
                     'ElseIf Not isEmpty(Trim(aVAlue)) And Trim(aVAlue) <> "" And Not isNull(aVAlue) Then
                     '   s_accesslistID = ConstDelimiter & UCase(Trim(avalue)) & ConstDelimiter
                 Else
-                    s_accesslistID = ""
+                    _accesslistID = ""
                 End If
             End Set
         End Property
 
         Public Property Min_schedule_updc() As Long
             Get
-                Min_schedule_updc = s_min_schedule_updc
+                Min_schedule_updc = _min_schedule_updc
             End Get
             Set(value As Long)
-                s_min_schedule_updc = value
+                _min_schedule_updc = value
                 Me.IsChanged = True
             End Set
         End Property
 
         Public Property Max_schedule_updc() As Long
             Get
-                Max_schedule_updc = s_max_schedule_updc
+                Max_schedule_updc = _max_schedule_updc
             End Get
             Set(value As Long)
-                s_max_schedule_updc = value
+                _max_schedule_updc = value
                 Me.IsChanged = True
             End Set
         End Property
 
         Public Property Min_target_updc() As Long
             Get
-                Min_target_updc = s_min_target_updc
+                Min_target_updc = _min_target_updc
             End Get
             Set(value As Long)
-                s_min_target_updc = value
+                _min_target_updc = value
                 Me.IsChanged = True
             End Set
         End Property
 
         Public Property Max_target_updc() As Long
             Get
-                Max_target_updc = s_max_target_updc
+                Max_target_updc = _max_target_updc
             End Get
             Set(value As Long)
-                s_max_target_updc = value
+                _max_target_updc = value
                 Me.IsChanged = True
             End Set
         End Property
@@ -2513,7 +2790,7 @@ Namespace OnTrack
                     aFieldDesc.Datatype = otFieldDataType.Text
                     aFieldDesc.Title = "workspaceID  id"
                     aFieldDesc.ID = "ws"
-                    aFieldDesc.ColumnName = ConstFNWorkspaceID
+                    aFieldDesc.ColumnName = ConstFNID
                     Call .AddFieldDesc(fielddesc:=aFieldDesc)
                     primaryColumnNames.Add(aFieldDesc.ColumnName)
 
@@ -2624,7 +2901,7 @@ Namespace OnTrack
         Public Function Create(ByVal workspaceID As String) As Boolean
             Dim primarykey() As Object = {UCase(workspaceID)}
             If MyBase.Create(primarykey, checkUnique:=False) Then
-                s_ID = UCase(workspaceID)
+                _ID = UCase(workspaceID)
                 Return True
             Else
                 Return False
@@ -2642,7 +2919,7 @@ Namespace OnTrack
             Dim aList As New List(Of Workspace)
             For Each entry In aCollection
                 aList.Add(entry)
-                Cache.AddToCache(ConstTableID, entry.id, entry)
+                Cache.AddToCache(ConstTableID, entry.ID, entry)
             Next
             Return aList
         End Function
@@ -2658,7 +2935,7 @@ Namespace OnTrack
         Implements iormInfusable
         Implements iormPersistable
 
-    
+
         '** const
         <ormSchemaTableAttribute(Version:=1)> Public Const ConstTableID As String = "tblDefDomains"
 
@@ -2788,8 +3065,8 @@ Namespace OnTrack
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function RegisterSession(session As Session) As Boolean
-            If _SessionDir.containsKey(session.SessionID) Then
-                _Sessiondir.remove(session.SessionID)
+            If _SessionDir.ContainsKey(session.SessionID) Then
+                _SessionDir.Remove(session.SessionID)
             End If
             _SessionDir.Add(session.SessionID, session)
             AddHandler session.OnStarted, AddressOf OnSessionStart
@@ -2819,7 +3096,7 @@ Namespace OnTrack
         ''' <remarks></remarks>
         Public Overloads Shared Function Retrieve(ByVal id As String, Optional dbdriver As iormDBDriver = Nothing, Optional forcereload As Boolean = False) As Domain
             Dim pkarray() As Object = {UCase(id)}
-            Return Retrieve(Of Domain)(pkarray:=pkarray, dbdriver:=dbdriver, forcereload:=forcereload)
+            Return Retrieve(Of Domain)(pkArray:=pkarray, dbdriver:=dbdriver, forceReload:=forcereload)
         End Function
 
         ''' <summary>
@@ -2991,7 +3268,7 @@ Namespace OnTrack
             Dim aList As New List(Of Domain)
             For Each entry In aCollection
                 aList.Add(entry)
-                Cache.AddToCache(ConstTableID, entry.id, entry)
+                Cache.AddToCache(ConstTableID, entry.ID, entry)
             Next
             Return aList
         End Function
@@ -3005,29 +3282,48 @@ Namespace OnTrack
     ''' </summary>
     ''' <remarks></remarks>
 
-    Public Class clsOTDBDefOrgUnit
+    Public Class OrgUnit
         Inherits ormDataObject
         Implements iormPersistable
         Implements iormInfusable
 
-        Const _tableID As String = "tblDefOrgUnits"
+        '** Schema
+        <ormSchemaTable(version:=2, addsparefields:=True, adddeletefieldbehavior:=True, adddomainID:=True)> Public Const ConstTableID As String = "tblDefOrgUnits"
 
-        ' fields
-        Private _id As String = ""
-        Private _description As String = ""
-        Private _manager As String = ""
-        Private _siteid As String = ""
-        Private _superiorOUID As String = ""
-        Private _functionid As String = ""
+        '** primary Keys
+        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=100, primaryKeyOrdinal:=1, _
+            id:="OU1", title:="OrgUnit", description:="ID of the organization unit")> Public Const ConstFNID = "id"
+        <ormSchemaColumn(referenceObjectEntry:=Domain.ConstTableID & "." & Domain.ConstFNDomainID, primaryKeyOrdinal:=2)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
+
+        '** fields
+        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=255, _
+           id:="OU2", title:="Description", description:="description of the organization unit")> Public Const ConstFNDescription = "desc"
+        <ormSchemaColumn(referenceObjectEntry:=Person.constTableID & "." & Person.constFNID, _
+           id:="OU3", title:="Manager", description:="manager of the organization unit")> Public Const ConstFNManager = "manager"
+        <ormSchemaColumn(referenceObjectEntry:=Site.ConstTableID & "." & Site.constFNId, _
+          id:="OU4", title:="Site", description:="ID of the site organization unit")> Public Const ConstFNSite = "site"
+        <ormSchemaColumn(referenceObjectEntry:=ConstFNID, _
+          id:="OU5", title:="Superior", description:="superior ID of the  organization unit")> Public Const ConstFNSuperior = "superior"
+        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=50, _
+         id:="OU6", title:="Function", description:="default function ID of the  organization unit")> Public Const ConstFNFunction = "funct"
+
+        ' field mapping
+        <ormColumnMapping(fieldname:=ConstFNID)> Private _id As String = ""
+        <ormColumnMapping(fieldname:=ConstFNDescription)> Private _description As String = ""
+        <ormColumnMapping(fieldname:=ConstFNManager)> Private _manager As String = ""
+        <ormColumnMapping(fieldname:=ConstFNSite)> Private _siteid As String = ""
+        <ormColumnMapping(fieldname:=ConstFNSuperior)> Private _superiorOUID As String = ""
+        <ormColumnMapping(fieldname:=ConstFNFunction)> Private _functionid As String = ""
 
         ''' <summary>
         ''' constructor of a DefOrgUnit
         ''' </summary>
         ''' <remarks></remarks>
         Public Sub New()
-            MyBase.New(_tableID)
+            MyBase.New(ConstTableID)
         End Sub
 
+#Region "Properties"
         ReadOnly Property ID() As String
             Get
                 ID = _id
@@ -3085,56 +3381,17 @@ Namespace OnTrack
                 Me.IsChanged = True
             End Set
         End Property
-        ''' <summary>
-        ''' Initialize the data object
-        ''' </summary>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Overrides Function Initialize() As Boolean Implements iormPersistable.Initialize
-            Me.TableStore.SetProperty(ConstTPNCacheProperty, True)
-            Return MyBase.Initialize
-        End Function
-        ''' <summary>
-        ''' Infueses the DefOrgUnit Object with a record
-        ''' </summary>
-        ''' <param name="aRecord"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Overrides Function Infuse(ByRef record As ormRecord) As Boolean Implements iormInfusable.Infuse
+#End Region
 
-            '* init
-            If Not Me.IsInitialized Then
-                If Not Me.Initialize() Then
-                    Infuse = False
-                    Exit Function
-                End If
-            End If
-
-            Try
-                _id = CStr(record.GetValue("id"))
-                _description = CStr(record.GetValue("desc"))
-                _siteid = CStr(record.GetValue("sited"))
-                _manager = CStr(record.GetValue("manager"))
-                _functionid = CStr(record.GetValue("functionid"))
-                _superiorOUID = CStr(record.GetValue("supouid"))
-                _IsLoaded = MyBase.Infuse(record)
-                Return Me.IsLoaded
-
-            Catch ex As Exception
-                Call CoreMessageHandler(exception:=ex, subname:="clsOTDBDefOrgUnit.infuse")
-                Return False
-            End Try
-
-        End Function
 
         ''' <summary>
-        ''' Retrieve a User Definition
+        ''' Retrieve 
         ''' </summary>
         ''' <param name="id"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Retrieve(ByVal id As String, Optional forcereload As Boolean = False) As clsOTDBDefOrgUnit
-            Return Retrieve(Of clsOTDBDefOrgUnit)(pkArray:={id}, forceReload:=forcereload)
+        Public Overloads Shared Function Retrieve(ByVal id As String, Optional domainID As String = "", Optional forcereload As Boolean = False) As OrgUnit
+            Return Retrieve(Of OrgUnit)(pkArray:={domainID, id}, domainID:=domainID, forceReload:=forcereload)
         End Function
         ''' <summary>
         ''' loads and infuses a DefOrgUnit Object with the primary key
@@ -3142,9 +3399,9 @@ Namespace OnTrack
         ''' <param name="id"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function LoadBy(ByVal id As String) As Boolean
-            Dim primarykey() As Object = {id}
-            Return MyBase.LoadBy(pkArray:=primarykey)
+        Public Function LoadBy(ByVal id As String, Optional domainID As String = "") As Boolean
+            Dim primarykey() As Object = {id, domainID}
+            Return MyBase.LoadBy(pkArray:=primarykey, domainID:=domainID)
         End Function
         ''' <summary>
         ''' create the persistence schema
@@ -3153,162 +3410,150 @@ Namespace OnTrack
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function CreateSchema(Optional silent As Boolean = True) As Boolean
+            Return ormDataObject.CreateSchema(Of OrgUnit)(silent:=silent)
+            'Dim aFieldDesc As New ormFieldDescription
+            'Dim PrimaryColumnNames As New Collection
+            'Dim aStore As New ObjectDefinition
 
-            Dim aFieldDesc As New ormFieldDescription
-            Dim PrimaryColumnNames As New Collection
-            Dim aStore As New ObjectDefinition
+            'With aStore
+            '    .Create(ConstTableID)
+            '    .Delete()
 
-            With aStore
-                .Create(_tableID)
-                .Delete()
-
-                aFieldDesc.Tablename = _tableID
-                aFieldDesc.ID = ""
-                aFieldDesc.Parameter = ""
-
-
-                '***
-                '*** Fields
-                '****
-
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "organisation unit id"
-                aFieldDesc.ID = "OU1"
-                aFieldDesc.ColumnName = "id"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
-
-                'fieldnames
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "organization unit description"
-                aFieldDesc.ID = "OU2"
-                aFieldDesc.ColumnName = "desc"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "manager"
-                aFieldDesc.ID = "OU3"
-                aFieldDesc.Relation = New String() {"P1"}
-                aFieldDesc.ColumnName = "manager"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "siteid"
-                aFieldDesc.ID = "OU4"
-                aFieldDesc.ColumnName = "siteid"
-                aFieldDesc.Relation = New String() {"ous1"}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "functionid"
-                aFieldDesc.ID = "OU5"
-                aFieldDesc.ColumnName = "functionid"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "superior organisation unit ID"
-                aFieldDesc.ID = "OU6"
-                aFieldDesc.ColumnName = "supouid"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                '***
-                '*** TIMESTAMP
-                '****
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "last Update"
-                aFieldDesc.ColumnName = ConstFNUpdatedOn
-                aFieldDesc.ID = ""
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "creation Date"
-                aFieldDesc.ColumnName = ConstFNCreatedOn
-                aFieldDesc.ID = ""
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' Index
-                Call .AddIndex("PrimaryKey", PrimaryColumnNames, isprimarykey:=True)
-
-                ' persist
-                .Persist()
-                ' change the database
-                .AlterSchema()
-            End With
-
-            CreateSchema = True
-            Exit Function
+            '    aFieldDesc.Tablename = ConstTableID
+            '    aFieldDesc.ID = ""
+            '    aFieldDesc.Parameter = ""
 
 
-        End Function
+            '    '***
+            '    '*** Fields
+            '    '****
 
-        ''' <summary>
-        ''' Persists the Object in the data store
-        ''' </summary>
-        ''' <param name="timestamp"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Overloads Function Persist(Optional timestamp As Date = ot.ConstNullDate) As Boolean
+            '    aFieldDesc.Datatype = otFieldDataType.Text
+            '    aFieldDesc.Title = "organisation unit id"
+            '    aFieldDesc.ID = "OU1"
+            '    aFieldDesc.ColumnName = "id"
+            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '    PrimaryColumnNames.Add(aFieldDesc.ColumnName)
 
-            Try
-                Call Me.Record.SetValue("id", _id)
-                Call Me.Record.SetValue("desc", _description)
-                Call Me.Record.SetValue("siteid", _siteid)
-                Call Me.Record.SetValue("manager", _manager)
-                Call Me.Record.SetValue("functionid", _manager)
-                Call Me.Record.SetValue("supouid", _superiorOUID)
+            '    'fieldnames
+            '    aFieldDesc.Datatype = otFieldDataType.Text
+            '    aFieldDesc.Title = "organization unit description"
+            '    aFieldDesc.ID = "OU2"
+            '    aFieldDesc.ColumnName = "desc"
+            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                Return MyBase.Persist(timestamp)
+            '    aFieldDesc.Datatype = otFieldDataType.Text
+            '    aFieldDesc.Title = "manager"
+            '    aFieldDesc.ID = "OU3"
+            '    aFieldDesc.Relation = New String() {"P1"}
+            '    aFieldDesc.ColumnName = "manager"
+            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-            Catch ex As Exception
-                Call CoreMessageHandler(exception:=ex, subname:="clsOTDBDEfOrgUnit.persist")
-                Return False
-            End Try
+            '    aFieldDesc.Datatype = otFieldDataType.Text
+            '    aFieldDesc.Title = "siteid"
+            '    aFieldDesc.ID = "OU4"
+            '    aFieldDesc.ColumnName = "siteid"
+            '    aFieldDesc.Relation = New String() {"ous1"}
+            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '    aFieldDesc.Datatype = otFieldDataType.Text
+            '    aFieldDesc.Title = "functionid"
+            '    aFieldDesc.ID = "OU5"
+            '    aFieldDesc.ColumnName = "functionid"
+            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '    aFieldDesc.Datatype = otFieldDataType.Text
+            '    aFieldDesc.Title = "superior organisation unit ID"
+            '    aFieldDesc.ID = "OU6"
+            '    aFieldDesc.ColumnName = "supouid"
+            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '    '***
+            '    '*** TIMESTAMP
+            '    '****
+            '    aFieldDesc.Datatype = otFieldDataType.Timestamp
+            '    aFieldDesc.Title = "last Update"
+            '    aFieldDesc.ColumnName = ConstFNUpdatedOn
+            '    aFieldDesc.ID = ""
+            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '    aFieldDesc.Datatype = otFieldDataType.Timestamp
+            '    aFieldDesc.Title = "creation Date"
+            '    aFieldDesc.ColumnName = ConstFNCreatedOn
+            '    aFieldDesc.ID = ""
+            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '    ' Index
+            '    Call .AddIndex("PrimaryKey", PrimaryColumnNames, isprimarykey:=True)
+
+            '    ' persist
+            '    .Persist()
+            '    ' change the database
+            '    .AlterSchema()
+            'End With
+
+            'CreateSchema = True
+            'Exit Function
+
 
         End Function
+
+
         ''' <summary>
         ''' returns a collection of all objects
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function All() As List(Of clsOTDBDefOrgUnit)
-            Return ormDataObject.All(Of clsOTDBDefOrgUnit)()
+        Public Function All() As List(Of OrgUnit)
+            Return ormDataObject.All(Of OrgUnit)()
         End Function
         '**** create : create a new Object with primary keys
         '****
-        Public Function Create(ByVal id As String) As Boolean
-            Dim primarykey() As Object = {id}
+        Public Function Create(ByVal id As String, Optional domainID As String = "") As Boolean
+            Dim primarykey() As Object = {id, domainID}
             ' set the primaryKey
-            If MyBase.Create(primarykey, checkUnique:=True) Then
-                _id = id
-                Return True
-            Else
-                Return False
-            End If
-
+            Return MyBase.Create(primarykey, domainID:=domainID, checkUnique:=True)
         End Function
 
     End Class
 
-    '************************************************************************************
-    '***** CLASS clsOTDBDefOUSite describes additional database schema information
-    '*****
-
-    Public Class clsOTDBDefOUSite
+    
+    ''' <summary>
+    ''' Site Definition Class
+    ''' </summary>
+    ''' <remarks></remarks>
+    Public Class Site
         Inherits ormDataObject
         Implements iormInfusable
         Implements iormPersistable
 
-        Const _tableID As String = "tblDefOUSites"
+        '** schema
+        <ormSchemaTable(version:=2, adddomainID:=True, addsparefields:=True)> Public Const ConstTableID As String = "tblDefOUSites"
 
-        ' fields
-        Private s_id As String
-        Private s_description As String
+        '** keys
+        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=50, primarykeyordinal:=1, _
+            ID:="OUS1", title:="Site ID", description:="id of the site")> Public Const constFNId = "id"
+
+        <ormSchemaColumn(referenceObjecTEntry:=Domain.ConstTableID & "." & Domain.ConstFNDomainID, primarykeyordinal:=2)> _
+        Public Shadows Const constFNDomainID = Domain.ConstFNDomainID
+
+        '** fields
+        <ormSchemaColumn(referenceObjecTEntry:=CalendarEntry.ConstTableid & "." & CalendarEntry.constFNName, _
+            ID:="OUS2", title:="CalendarName", description:="name of the calendar valid for this site")> Public Const ConstFNCalendarID = "calendar"
+
+        <ormSchemaColumn(typeid:=otFieldDataType.Memo, id:="OUS10", title:="Description", description:="description of the site")> Public Const constFNDescription = "desc"
+        ' field mapping
+        <ormColumnMapping(fieldname:=constFNId)> Private _iD As String = ""
+        <ormColumnMapping(fieldname:=constFNId)> Private _CalendarID As String = ""
+        <ormColumnMapping(fieldname:=constFNDescription)> Private _description As String = ""
         ''' <summary>
         ''' constructor of Def OUSite
         ''' </summary>
         ''' <remarks></remarks>
         Public Sub New()
-            MyBase.New(_tableID)
+            MyBase.New(ConstTableID)
 
         End Sub
+
+#Region "Properties"
         ''' <summary>
         ''' ID
         ''' </summary>
@@ -3317,7 +3562,7 @@ Namespace OnTrack
         ''' <remarks></remarks>
         ReadOnly Property ID() As String
             Get
-                ID = s_id
+                ID = _iD
             End Get
 
         End Property
@@ -3329,60 +3574,23 @@ Namespace OnTrack
         ''' <remarks></remarks>
         Public Property Description() As String
             Get
-                Description = s_description
+                Description = _description
             End Get
             Set(value As String)
-                s_description = value
+                _description = value
                 Me.IsChanged = True
             End Set
         End Property
-        ''' <summary>
-        ''' Initialize the data object
-        ''' </summary>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Overrides Function Initialize() As Boolean Implements iormPersistable.Initialize
-            Me.TableStore.SetProperty(ConstTPNCacheProperty, True)
-            Return MyBase.Initialize
-        End Function
-        ''' <summary>
-        ''' Infuses a DEFOUSite Object by a record
-        ''' </summary>
-        ''' <param name="record"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Overrides Function Infuse(ByRef record As ormRecord) As Boolean Implements iormInfusable.Infuse
+#End Region
 
-            '* init
-            If Not Me.IsInitialized Then
-                If Not Me.Initialize() Then
-                    Infuse = False
-                    Exit Function
-                End If
-            End If
-
-
-            Try
-                s_id = CStr(record.GetValue("id"))
-                s_description = CStr(record.GetValue("desc"))
-                _IsLoaded = MyBase.Infuse(record)
-                Return Me.IsLoaded
-
-            Catch ex As Exception
-                Call CoreMessageHandler(exception:=ex, subname:="clsOTDBDEfOUSite.Infuse")
-                Return False
-            End Try
-
-
-        End Function
         ''' <summary>
         ''' Retrieve
         ''' </summary>
         ''' <param name="id"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Retrieve(ByVal id As String, Optional forcereload As Boolean = False) As clsOTDBDefOUSite
-            Return Retrieve(Of clsOTDBDefOUSite)(pkArray:={id}, forceReload:=forcereload)
+        Public Overloads Shared Function Retrieve(ByVal id As String, Optional domainid As String = "", Optional forcereload As Boolean = False) As Site
+            Return Retrieve(Of Site)(pkArray:={UCase(id), domainid}, domainID:=domainid, forceReload:=forcereload)
         End Function
         ''' <summary>
         ''' Load and infuse the object 
@@ -3390,9 +3598,9 @@ Namespace OnTrack
         ''' <param name="ID"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function LoadBy(ByVal id As String) As Boolean
-            Dim pkarry() As Object = {id}
-            Return MyBase.LoadBy(pkArray:=pkarry)
+        Public Function LoadBy(ByVal id As String, Optional domainID As String = "") As Boolean
+            Dim pkarry() As Object = {UCase(id), domainID}
+            Return MyBase.LoadBy(pkArray:=pkarry, domainID:=domainID)
         End Function
         ''' <summary>
         ''' create the persistency object
@@ -3401,99 +3609,22 @@ Namespace OnTrack
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function CreateSchema(Optional silent As Boolean = True) As Boolean
-
-            Dim aFieldDesc As New ormFieldDescription
-            Dim primaryColumnNames As New Collection
-            Dim aStore As New ObjectDefinition
-
-            With aStore
-                .Create(_tableID)
-                .Delete()
-
-                aFieldDesc.Tablename = _tableID
-                aFieldDesc.ID = ""
-                aFieldDesc.Parameter = ""
-                aFieldDesc.Relation = New String() {}
-                '***
-                '*** Fields
-                '****
-
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "site id"
-                aFieldDesc.ID = "ous1"
-                aFieldDesc.ColumnName = "id"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                primaryColumnNames.Add(aFieldDesc.ColumnName)
-
-                'fieldnames
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "organization unit description"
-                aFieldDesc.ID = "ous2"
-                aFieldDesc.ColumnName = "desc"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                '***
-                '*** TIMESTAMP
-                '****
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "last Update"
-                aFieldDesc.ColumnName = ConstFNUpdatedOn
-                aFieldDesc.ID = ""
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "creation Date"
-                aFieldDesc.ColumnName = ConstFNCreatedOn
-                aFieldDesc.ID = ""
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' Index
-                Call .AddIndex("PrimaryKey", primaryColumnNames, isprimarykey:=True)
-
-                ' persist
-                .Persist()
-                ' change the database
-                .AlterSchema()
-            End With
-
-            CreateSchema = True
-            Exit Function
-
-
-        End Function
-
-        ''' <summary>
-        ''' Persist the data object
-        ''' </summary>
-        ''' <param name="timestamp"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Overloads Function Persist(Optional timestamp As Date = ot.ConstNullDate) As Boolean
-
-            Call Me.Record.SetValue("id", s_id)
-            Call Me.Record.SetValue("desc", s_description)
-
-            Return MyBase.Persist(timestamp)
-
+            Return ormDataObject.CreateSchema(Of Site)(silent:=silent)
         End Function
         ''' <summary>
         ''' returns a collection of all objects
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function All() As List(Of clsOTDBDefOUSite)
-            Return ormDataObject.All(Of clsOTDBDefOUSite)()
+        Public Function All(Optional domainID As String = "") As List(Of Site)
+            Return ormDataObject.All(Of Site)(domainID:=domainID)
         End Function
         '**** create : create a new Object with primary keys
         '****
-        Public Function Create(ByVal ID As String) As Boolean
-            Dim primarykey() As Object = {ID}
+        Public Function Create(ByVal id As String, Optional domainID As String = "") As Boolean
+            Dim primarykey() As Object = {id, domainID}
             ' set the primaryKey
-            If MyBase.Create(primarykey, checkUnique:=True) Then
-                s_id = ID
-                Return True
-            Else
-                Return False
-            End If
+            return MyBase.Create(primarykey, domainID:=domainID, checkUnique:=True) 
         End Function
 
     End Class

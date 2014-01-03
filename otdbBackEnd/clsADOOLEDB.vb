@@ -192,7 +192,7 @@ Namespace OnTrack.Database
         ''' <param name="TableID"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Protected Friend Overrides Function createNativeTableSchema(ByVal TableID As String) As iotTableSchema
+        Protected Friend Overrides Function createNativeTableSchema(ByVal TableID As String) As iotDataSchema
             Return New clsOLEDBTableSchema(Me.CurrentConnection, TableID)
         End Function
         ''' <summary>
@@ -1352,7 +1352,7 @@ Namespace OnTrack.Database
     ''' <remarks></remarks>
     Public Class clsOLEDBTableSchema
         Inherits clsADONETTableSchema
-        Implements iotTableSchema
+        Implements iotDataSchema
 
 
         '***** internal variables
@@ -1391,7 +1391,7 @@ Namespace OnTrack.Database
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overrides Function AssignNativeDBParameter(fieldname As String, _
-                                                           Optional parametername As String = "") As IDbDataParameter Implements iotTableSchema.AssignNativeDBParameter
+                                                           Optional parametername As String = "") As IDbDataParameter Implements iotDataSchema.AssignNativeDBParameter
             Dim aDBColumnDescription As ColumnDescription = GetColumnDescription(Me.GetFieldordinal(fieldname))
             Dim aParameter As OleDbParameter
 

@@ -1156,7 +1156,7 @@ errorhandle:
         'Private s_savedToHost As Boolean
         Private s_DefConfiguration As New clsOTDBDefConfiguration
 
-        Private s_msglog As New clsOTDBMessagelog
+        Private s_msglog As New ObjectLog
 
         '** initialize
         Public Sub New()
@@ -1446,7 +1446,7 @@ errorhandle:
             ' delete just fields -> keep compounds
             If aTable.LoadBy(ourTableName) Then
                 For Each aTableEntry In aTable.Entries
-                    If aTableEntry.Typeid = otSchemaDefTableEntryType.Field Then
+                    If aTableEntry.Typeid = otObjectEntryDefinitiontype.Field Then
                         aTableEntry.Delete()
                     End If
                 Next aTableEntry
@@ -2171,7 +2171,7 @@ error_handle:
         '*****
         Public Function runXChangeOLD(ByRef MAPPING As Dictionary(Of Object, Object), _
                                                 ByRef CHANGECONFIG As clsOTDBXChangeConfig, _
-                                                Optional ByRef MSGLOG As clsOTDBMessagelog = Nothing) As Boolean
+                                                Optional ByRef MSGLOG As ObjectLog = Nothing) As Boolean
             Dim aCMuid As clsOTDBXChangeMember
             Dim aCMupdc As clsOTDBXChangeMember
             Dim aCMWspace As clsOTDBXChangeMember
@@ -2184,7 +2184,7 @@ error_handle:
             Dim aFlag As Boolean
 
             Dim aSchedule As New Schedule
-            Dim aCurrSCHEDULE As New clsOTDBCurrSchedule
+            Dim aCurrSCHEDULE As New CurrentSchedule
             Dim aDeliverable As New Deliverable
             Dim aTrack As New Track
             Dim anObjectDef As New clsOTDBXChangeMember
@@ -2208,7 +2208,7 @@ error_handle:
             ' set msglog
             If MSGLOG Is Nothing Then
                 If s_msglog Is Nothing Then
-                    s_msglog = New clsOTDBMessagelog
+                    s_msglog = New ObjectLog
                 End If
                 MSGLOG = s_msglog
                 MSGLOG.Create(Me.msglogtag)
@@ -2248,7 +2248,7 @@ error_handle:
         '*****
         Public Function runXPreCheckOLD(ByRef MAPPING As Dictionary(Of Object, Object), _
                                                   ByRef CHANGECONFIG As clsOTDBXChangeConfig, _
-                                                  Optional ByRef MSGLOG As clsOTDBMessagelog = Nothing) As Boolean
+                                                  Optional ByRef MSGLOG As ObjectLog = Nothing) As Boolean
             Dim aCMuid As clsOTDBXChangeMember
             Dim aCMupdc As clsOTDBXChangeMember
             Dim anObject As New clsOTDBXChangeMember
@@ -2347,7 +2347,7 @@ error_handle:
         'Private s_loadedFromHost As Boolean
         'Private s_savedToHost As Boolean
         Private s_isCacheNoSave As Boolean    ' if set this is not saved since taken from another configname
-        Private s_msglog As New clsOTDBMessagelog
+        Private s_msglog As New ObjectLog
 
         '** initialize
         Public Sub New()

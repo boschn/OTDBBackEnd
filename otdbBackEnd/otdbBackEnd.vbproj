@@ -104,6 +104,7 @@
     <Compile Include="clsConfigurable.vb" />
     <Compile Include="clsCore.vb" />
     <Compile Include="clsCoreDef.vb" />
+    <Compile Include="clsCoreHelper.vb" />
     <Compile Include="clsCoreORM.vb" />
     <Compile Include="clsCoreUI.vb" />
     <Compile Include="clsDefCore.vb" />
@@ -116,7 +117,6 @@
     <Compile Include="clsStatistics.vb" />
     <Compile Include="clsTimeInterval.vb" />
     <Compile Include="clsTracking.vb" />
-    <Compile Include="ormDataObjectEventArgs.vb" />
     <Compile Include="UIWinFormLogin.Designer.vb">
       <DependentUpon>UIWinFormLogin.vb</DependentUpon>
     </Compile>

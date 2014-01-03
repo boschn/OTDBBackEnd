@@ -45,7 +45,7 @@ Namespace OnTrack.Database
 
         Protected _IsInitialized As Boolean = False
         Protected _ErrorLogPersistCommand As IDbCommand = Nothing
-        Protected _ErrorLogPersistTableschema As iotTableSchema = Nothing
+        Protected _ErrorLogPersistTableschema As iotDataSchema = Nothing
 
         Protected _lock As New Object 'lockObject for driver instance
         ''' <summary>
@@ -1084,7 +1084,7 @@ Namespace OnTrack.Database
                     _OTDBDatabaseDriver.SetDBParameter("lastLogin_user", OTDBUsername)
                     _OTDBDatabaseDriver.SetDBParameter("lastLogin_timestamp", Date.Now.ToString)
 
-                    _OTDBUser = User.Retrieve(username:=Username)
+                    _OTDBUser = User.Retrieve(username:=OTDBUsername)
                     If _OTDBUser Is Nothing Then
                         Call CoreMessageHandler(message:="User Definition could not be loaded from the database", _
                                               subname:="clsADONETConnection.connect", arg1:=OTDBUsername, _
@@ -1139,7 +1139,7 @@ Namespace OnTrack.Database
     ''' <remarks></remarks>
     Public MustInherit Class clsADONETTableSchema
         Inherits ormTableSchema
-        Implements iotTableSchema
+        Implements iotDataSchema
 
         '** own ColumnDescription
         '**
@@ -1365,6 +1365,8 @@ Namespace OnTrack.Database
         Protected _IndexTable As DataTable
         Protected _Columns() As ColumnDescription
 
+
+
         '**** CommandStore
         Protected _CommandStore As New Dictionary(Of CommandKey, IDbCommand)
 
@@ -1413,7 +1415,7 @@ Namespace OnTrack.Database
         ''' <param name="fieldname"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overrides Function GetDefaultValue(index As Object) As Object Implements iotTableSchema.GetDefaultValue
+        Public Overrides Function GetDefaultValue(index As Object) As Object Implements iotDataSchema.GetDefaultValue
             Dim i As Integer = Me.GetFieldordinal(index:=index)
             Dim aDesc As ColumnDescription
 
@@ -1428,13 +1430,14 @@ Namespace OnTrack.Database
             Return Nothing
 
         End Function
+       
         ''' <summary>
-        ''' returns a Default Value for a fieldname
+        ''' returns true if default value exists for fieldname by index
         ''' </summary>
         ''' <param name="fieldname"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overrides Function HasDefaultValue(index As Object) As Boolean Implements iotTableSchema.HasDefaultValue
+        Public Overrides Function HasDefaultValue(index As Object) As Boolean Implements iotDataSchema.HasDefaultValue
             Dim i As Integer = Me.GetFieldordinal(index:=index)
             Dim aDesc As ColumnDescription
 
@@ -1454,7 +1457,7 @@ Namespace OnTrack.Database
         ''' <param name="Index">Index no</param>
         ''' <returns>ColumnDescription</returns>
         ''' <remarks>Returns Nothing on range bound exception</remarks>
-        Public Function GetColumnDescription(Index As UShort) As ColumnDescription
+        Public Function GetColumnDescription(index As UShort) As ColumnDescription
             If Index > 0 And Index <= _Columns.Length Then
                 Return _Columns(Index - 1)
             Else

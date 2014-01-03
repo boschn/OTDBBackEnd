@@ -200,7 +200,7 @@ Namespace OnTrack.Database
         ''' <param name="TableID"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Protected Friend Overrides Function CreateNativeTableSchema(ByVal TableID As String) As iotTableSchema
+        Protected Friend Overrides Function CreateNativeTableSchema(ByVal TableID As String) As iotDataSchema
             Return New clsMSSQLTableSchema(Me.CurrentConnection, TableID)
         End Function
         ''' <summary>
@@ -1128,7 +1128,7 @@ Namespace OnTrack.Database
                             If Not aSchemaDir.LoadBy(aTable.Name, entryname:=fieldDesc.ColumnName) Then
                                 Call aSchemaDir.Create(aTable.Name, entryname:=fieldDesc.ColumnName)
                             End If
-                            aSchemaDir.Typeid = otSchemaDefTableEntryType.Field
+                            aSchemaDir.Typeid = otObjectEntryDefinitiontype.Field
                             Call aSchemaDir.SetByFieldDesc(fieldDesc)
                             'aSchemaDir.isPrimaryKey = aDBDesc.OTDBPrimaryKeys
                             aSchemaDir.IsPrimaryKey = False
@@ -1209,7 +1209,7 @@ Namespace OnTrack.Database
                             If Not aSchemaDir.LoadBy(aTable.Name, entryname:=fieldDesc.ColumnName) Then
                                 Call aSchemaDir.Create(aTable.Name, entryname:=fieldDesc.ColumnName)
                             End If
-                            aSchemaDir.Typeid = otSchemaDefTableEntryType.Field
+                            aSchemaDir.Typeid = otObjectEntryDefinitiontype.Field
                             Call aSchemaDir.SetByFieldDesc(fieldDesc)
                             'aSchemaDir.isPrimaryKey = aDBDesc.OTDBPrimaryKeys
                             aSchemaDir.IsPrimaryKey = False
@@ -1634,7 +1634,7 @@ Namespace OnTrack.Database
     ''' <remarks></remarks>
     Public Class clsMSSQLTableSchema
         Inherits clsADONETTableSchema
-        Implements iotTableSchema
+        Implements iotDataSchema
 
 
         '***** internal variables
@@ -1672,7 +1672,7 @@ Namespace OnTrack.Database
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overrides Function AssignNativeDBParameter(fieldname As String, _
-                                                          Optional parametername As String = "") As System.Data.IDbDataParameter Implements iotTableSchema.AssignNativeDBParameter
+                                                          Optional parametername As String = "") As System.Data.IDbDataParameter Implements iotDataSchema.AssignNativeDBParameter
             Dim aDBColumnDescription As ColumnDescription = GetColumnDescription(Me.GetFieldordinal(fieldname))
             Dim aParameter As SqlParameter
 

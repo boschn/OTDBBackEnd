@@ -30,7 +30,7 @@ Namespace OnTrack.Database
             End If
 
 
-            Dim aCurrSCHEDULE As New clsOTDBCurrSchedule
+            Dim aCurrSCHEDULE As New CurrentSchedule
             Dim aCurrTarget As New CurrentTarget
 
             'Dim aMSPivot As New clsOTDBMilestonePivot
@@ -51,7 +51,7 @@ Namespace OnTrack.Database
 
             End If
             ' Create the CurrSchedule
-            If Not aCurrSCHEDULE.CreateSchema() Then
+            If Not CurrentSchedule.CreateSchema() Then
                 Call ot.CoreMessageHandler(showmsgbox:=False, subname:="createDatabase", _
                                              message:="Schema CurrSchedule couldn't be created")
             Else
@@ -122,8 +122,8 @@ Namespace OnTrack.Database
             End If
 
 
-            Dim aScheduleDefM As New clsOTDBDefScheduleMilestone
-            If Not aScheduleDefM.CreateSchema() Then
+            Dim aScheduleDefM As New ScheduleMilestoneDefinition
+            If Not ScheduleMilestoneDefinition.CreateSchema() Then
                 Call ot.CoreMessageHandler(showmsgbox:=False, subname:="createDatabase", _
                                              message:="Schema " & aScheduleDefM.TableID & " couldn't be created")
             Else
@@ -134,7 +134,7 @@ Namespace OnTrack.Database
                 '**** full
                 '****
 
-                aScheduleDefM = New clsOTDBDefScheduleMilestone
+                aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
                     If Not .Create("full", "bp11") Then .LoadBy("full", "bp11")
                     .ActualOfFC = ""
@@ -145,7 +145,7 @@ Namespace OnTrack.Database
                     .Persist()
 
                 End With
-                aScheduleDefM = New clsOTDBDefScheduleMilestone
+                aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
                     If Not .Create("full", "bp12") Then .LoadBy("full", "bp12")
                     .ActualOfFC = "bp11"
@@ -156,7 +156,7 @@ Namespace OnTrack.Database
                     .Persist()
 
                 End With
-                aScheduleDefM = New clsOTDBDefScheduleMilestone
+                aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
                     If Not .Create("full", "bp1") Then .LoadBy("full", "bp1")
                     .ActualOfFC = ""
@@ -166,7 +166,7 @@ Namespace OnTrack.Database
                     .Description = "ifm freeze"
                     .Persist()
                 End With
-                aScheduleDefM = New clsOTDBDefScheduleMilestone
+                aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
                     If Not .Create("full", "bp2") Then .LoadBy("full", "bp2")
                     .ActualOfFC = "bp1"
@@ -177,7 +177,7 @@ Namespace OnTrack.Database
                     .Persist()
 
                 End With
-                aScheduleDefM = New clsOTDBDefScheduleMilestone
+                aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
                     If Not .Create("full", "bp13") Then .LoadBy("full", "bp13")
                     .ActualOfFC = ""
@@ -188,7 +188,7 @@ Namespace OnTrack.Database
                     .Persist()
 
                 End With
-                aScheduleDefM = New clsOTDBDefScheduleMilestone
+                aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
                     If Not .Create("full", "bp3") Then .LoadBy("full", "bp3")
                     .ActualOfFC = ""
@@ -198,7 +198,7 @@ Namespace OnTrack.Database
                     .Description = "fap"
                     .Persist()
                 End With
-                aScheduleDefM = New clsOTDBDefScheduleMilestone
+                aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
                     If Not .Create("full", "bp4") Then .LoadBy("full", "bp4")
                     .ActualOfFC = "bp3"
@@ -209,7 +209,7 @@ Namespace OnTrack.Database
                     .Persist()
 
                 End With
-                aScheduleDefM = New clsOTDBDefScheduleMilestone
+                aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
                     If Not .Create("full", "bp5") Then .LoadBy("full", "bp5")
                     .ActualOfFC = ""
@@ -220,7 +220,7 @@ Namespace OnTrack.Database
                     .Persist()
 
                 End With
-                aScheduleDefM = New clsOTDBDefScheduleMilestone
+                aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
                     If Not .Create("full", "bp6") Then .LoadBy("full", "bp6")
                     .ActualOfFC = ""
@@ -231,7 +231,7 @@ Namespace OnTrack.Database
                     .Persist()
 
                 End With
-                aScheduleDefM = New clsOTDBDefScheduleMilestone
+                aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
                     If Not .Create("full", "bp20") Then .LoadBy("full", "bp20")
                     .ActualOfFC = ""
@@ -242,7 +242,7 @@ Namespace OnTrack.Database
                     .Persist()
 
                 End With
-                aScheduleDefM = New clsOTDBDefScheduleMilestone
+                aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
                     If Not .Create("full", "bp21") Then .LoadBy("full", "bp21")
                     .ActualOfFC = ""
@@ -253,7 +253,7 @@ Namespace OnTrack.Database
                     .Persist()
 
                 End With
-                aScheduleDefM = New clsOTDBDefScheduleMilestone
+                aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
                     If Not .Create("full", "bp22") Then .LoadBy("full", "bp22")
                     .ActualOfFC = "bp20"
@@ -263,7 +263,7 @@ Namespace OnTrack.Database
                     .Description = "fem status date"
                     .Persist()
                 End With
-                aScheduleDefM = New clsOTDBDefScheduleMilestone
+                aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
                     If Not .Create("full", "bp7") Then .LoadBy("full", "bp7")
                     .ActualOfFC = ""
@@ -274,7 +274,7 @@ Namespace OnTrack.Database
                     .Persist()
 
                 End With
-                aScheduleDefM = New clsOTDBDefScheduleMilestone
+                aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
                     If Not .Create("full", "bp8") Then .LoadBy("full", "bp8")
                     .ActualOfFC = "bp7"
@@ -285,7 +285,7 @@ Namespace OnTrack.Database
                     .Persist()
 
                 End With
-                aScheduleDefM = New clsOTDBDefScheduleMilestone
+                aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
 
                     If Not .Create("full", "bp9") Then .LoadBy("full", "bp9")
@@ -297,7 +297,7 @@ Namespace OnTrack.Database
                     .Persist()
 
                 End With
-                aScheduleDefM = New clsOTDBDefScheduleMilestone
+                aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
                     If Not .Create("full", "bp10") Then .LoadBy("full", "bp10")
                     .ActualOfFC = "bp9"
@@ -308,7 +308,7 @@ Namespace OnTrack.Database
                     .Persist()
 
                 End With
-                aScheduleDefM = New clsOTDBDefScheduleMilestone
+                aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
                     If Not .Create("full", "bp80") Then .LoadBy("full", "bp80")
                     .ActualOfFC = "bp9"
@@ -325,7 +325,7 @@ Namespace OnTrack.Database
                 '**** nocad
                 '****
 
-                aScheduleDefM = New clsOTDBDefScheduleMilestone
+                aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
                     If Not .Create("nocad", "bp11") Then .LoadBy("nocad", "bp11")
                     .ActualOfFC = ""
@@ -335,7 +335,7 @@ Namespace OnTrack.Database
                     .Description = "start work"
                     .Persist()
                 End With
-                aScheduleDefM = New clsOTDBDefScheduleMilestone
+                aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
                     If Not .Create("nocad", "bp12") Then .LoadBy("nocad", "bp12")
                     .ActualOfFC = "bp11"
@@ -346,7 +346,7 @@ Namespace OnTrack.Database
                     .Persist()
 
                 End With
-                aScheduleDefM = New clsOTDBDefScheduleMilestone
+                aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
                     If Not .Create("nocad", "bp1") Then .LoadBy("nocad", "bp1")
                     .ActualOfFC = ""
@@ -357,7 +357,7 @@ Namespace OnTrack.Database
                     .Persist()
 
                 End With
-                aScheduleDefM = New clsOTDBDefScheduleMilestone
+                aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
                     If Not .Create("nocad", "bp2") Then .LoadBy("nocad", "bp2")
                     .ActualOfFC = "bp3"
@@ -368,7 +368,7 @@ Namespace OnTrack.Database
                     .Persist()
 
                 End With
-                aScheduleDefM = New clsOTDBDefScheduleMilestone
+                aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
                     If Not .Create("nocad", "bp3") Then .LoadBy("nocad", "bp3")
                     .ActualOfFC = ""
@@ -379,7 +379,7 @@ Namespace OnTrack.Database
                     .Persist()
 
                 End With
-                aScheduleDefM = New clsOTDBDefScheduleMilestone
+                aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
                     If Not .Create("nocad", "bp4") Then .LoadBy("nocad", "bp4")
                     .ActualOfFC = "bp3"
@@ -391,7 +391,7 @@ Namespace OnTrack.Database
 
                 End With
 
-                aScheduleDefM = New clsOTDBDefScheduleMilestone
+                aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
                     If Not .Create("nocad", "bp7") Then .LoadBy("nocad", "bp7")
                     .ActualOfFC = ""
@@ -402,7 +402,7 @@ Namespace OnTrack.Database
                     .Persist()
 
                 End With
-                aScheduleDefM = New clsOTDBDefScheduleMilestone
+                aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
                     If Not .Create("nocad", "bp8") Then .LoadBy("nocad", "bp8")
                     .ActualOfFC = "bp7"
@@ -413,7 +413,7 @@ Namespace OnTrack.Database
                     .Persist()
 
                 End With
-                aScheduleDefM = New clsOTDBDefScheduleMilestone
+                aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
                     If Not .Create("nocad", "bp9") Then .LoadBy("nocad", "bp9")
                     .ActualOfFC = ""
@@ -424,7 +424,7 @@ Namespace OnTrack.Database
                     .Persist()
 
                 End With
-                aScheduleDefM = New clsOTDBDefScheduleMilestone
+                aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
                     If Not .Create("nocad", "bp10") Then .LoadBy("nocad", "bp10")
                     .ActualOfFC = "bp9"
@@ -435,7 +435,7 @@ Namespace OnTrack.Database
                     .Persist()
 
                 End With
-                aScheduleDefM = New clsOTDBDefScheduleMilestone
+                aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
                     If Not .Create("nocad", "bp80") Then .LoadBy("nocad", "bp80")
                     .ActualOfFC = "bp9"
@@ -451,7 +451,7 @@ Namespace OnTrack.Database
                 '**** pdm
                 '****
 
-                aScheduleDefM = New clsOTDBDefScheduleMilestone
+                aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
                     If Not .Create("pdm", "bp11") Then .LoadBy("pdm", "bp11")
                     .ActualOfFC = ""
@@ -462,7 +462,7 @@ Namespace OnTrack.Database
                     .Persist()
 
                 End With
-                aScheduleDefM = New clsOTDBDefScheduleMilestone
+                aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
                     If Not .Create("pdm", "bp12") Then .LoadBy("pdm", "bp12")
                     .ActualOfFC = "bp11"
@@ -473,7 +473,7 @@ Namespace OnTrack.Database
                     .Persist()
 
                 End With
-                aScheduleDefM = New clsOTDBDefScheduleMilestone
+                aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
                     If Not .Create("pdm", "bp1") Then .LoadBy("pdm", "bp1")
                     .ActualOfFC = ""
@@ -484,7 +484,7 @@ Namespace OnTrack.Database
                     .Persist()
 
                 End With
-                aScheduleDefM = New clsOTDBDefScheduleMilestone
+                aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
                     If Not .Create("pdm", "bp2") Then .LoadBy("pdm", "bp2")
                     .ActualOfFC = "bp3"
@@ -495,7 +495,7 @@ Namespace OnTrack.Database
                     .Persist()
 
                 End With
-                aScheduleDefM = New clsOTDBDefScheduleMilestone
+                aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
                     If Not .Create("pdm", "bp3") Then .LoadBy("pdm", "bp3")
                     .ActualOfFC = ""
@@ -506,7 +506,7 @@ Namespace OnTrack.Database
                     .Persist()
 
                 End With
-                aScheduleDefM = New clsOTDBDefScheduleMilestone
+                aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
                     If Not .Create("pdm", "bp4") Then .LoadBy("pdm", "bp4")
                     .ActualOfFC = "bp3"
@@ -518,7 +518,7 @@ Namespace OnTrack.Database
 
                 End With
 
-                aScheduleDefM = New clsOTDBDefScheduleMilestone
+                aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
                     If Not .Create("pdm", "bp7") Then .LoadBy("pdm", "bp7")
                     .ActualOfFC = ""
@@ -529,7 +529,7 @@ Namespace OnTrack.Database
                     .Persist()
 
                 End With
-                aScheduleDefM = New clsOTDBDefScheduleMilestone
+                aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
                     If Not .Create("pdm", "bp8") Then .LoadBy("pdm", "bp8")
                     .ActualOfFC = "bp7"
@@ -540,7 +540,7 @@ Namespace OnTrack.Database
                     .Persist()
 
                 End With
-                aScheduleDefM = New clsOTDBDefScheduleMilestone
+                aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
                     If Not .Create("pdm", "bp9") Then .LoadBy("pdm", "bp9")
                     .ActualOfFC = ""
@@ -551,7 +551,7 @@ Namespace OnTrack.Database
                     .Persist()
 
                 End With
-                aScheduleDefM = New clsOTDBDefScheduleMilestone
+                aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
                     If Not .Create("pdm", "bp10") Then .LoadBy("pdm", "bp10")
                     .ActualOfFC = "bp9"
@@ -562,7 +562,7 @@ Namespace OnTrack.Database
                     .Persist()
 
                 End With
-                aScheduleDefM = New clsOTDBDefScheduleMilestone
+                aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
                     If Not .Create("pdm", "bp80") Then .LoadBy("pdm", "bp80")
                     .ActualOfFC = "bp9"
@@ -576,7 +576,7 @@ Namespace OnTrack.Database
                 Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_Schedule", message:="Schedule Defintion for 'PDM' is up-to-date", _
                                              messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aScheduleDef.TableID)
 
-                aScheduleDefM = New clsOTDBDefScheduleMilestone
+                aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
                     If Not .Create("none", "bp80") Then .LoadBy("none", "bp80")
                     .ActualOfFC = ""
@@ -664,15 +664,15 @@ Namespace OnTrack.Database
 
             End If
 
-            Dim aDefMilestone As New clsOTDBDefMilestone
-            If Not aDefMilestone.CreateSchema() Then
+            Dim aDefMilestone As New MileStoneDefinition
+            If Not MileStoneDefinition.CreateSchema() Then
                 Call ot.CoreMessageHandler(showmsgbox:=False, subname:="createDatabase", _
                                              message:="Schema " & aMilestone.TableID & " couldn't be created")
             Else
                 Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_Schedule", message:="Milestone Definition is up-to-date", _
                                              messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aDefMilestone.TableID)
 
-                aDefMilestone = New clsOTDBDefMilestone
+                aDefMilestone = New MileStoneDefinition
                 With aDefMilestone
                     If Not .Create("bp11") Then .LoadBy("bp11")
                     .Description = "FC start work"
@@ -681,7 +681,7 @@ Namespace OnTrack.Database
                     .IsOfDate = True
                     .Persist()
                 End With
-                aDefMilestone = New clsOTDBDefMilestone
+                aDefMilestone = New MileStoneDefinition
                 With aDefMilestone
                     If Not .Create("bp12") Then .LoadBy("bp12")
                     .Description = "start work"
@@ -691,7 +691,7 @@ Namespace OnTrack.Database
                     .Persist()
 
                 End With
-                aDefMilestone = New clsOTDBDefMilestone
+                aDefMilestone = New MileStoneDefinition
                 With aDefMilestone
                     If Not .Create("bp1") Then .LoadBy("bp1")
                     .Description = "FC IFM freeze gate"
@@ -701,7 +701,7 @@ Namespace OnTrack.Database
                     .Persist()
 
                 End With
-                aDefMilestone = New clsOTDBDefMilestone
+                aDefMilestone = New MileStoneDefinition
                 With aDefMilestone
                     If Not .Create("bp2") Then .LoadBy("bp2")
                     .Description = "IFM freeze gate"
@@ -711,7 +711,7 @@ Namespace OnTrack.Database
                     .Persist()
 
                 End With
-                aDefMilestone = New clsOTDBDefMilestone
+                aDefMilestone = New MileStoneDefinition
                 With aDefMilestone
                     If Not .Create("bp13") Then .LoadBy("bp13")
                     .Description = "current IFM freeze status"
@@ -723,7 +723,7 @@ Namespace OnTrack.Database
                     .Persist()
 
                 End With
-                aDefMilestone = New clsOTDBDefMilestone
+                aDefMilestone = New MileStoneDefinition
                 With aDefMilestone
                     If Not .Create("bp15") Then .LoadBy("bp15")
                     .Description = "current IFM freeze status date"
@@ -734,7 +734,7 @@ Namespace OnTrack.Database
                     .Persist()
 
                 End With
-                aDefMilestone = New clsOTDBDefMilestone
+                aDefMilestone = New MileStoneDefinition
                 With aDefMilestone
                     If Not .Create("bp3") Then .LoadBy("bp3")
                     .Description = "FC FAP / Design Freeze status date"
@@ -744,7 +744,7 @@ Namespace OnTrack.Database
                     .Persist()
 
                 End With
-                aDefMilestone = New clsOTDBDefMilestone
+                aDefMilestone = New MileStoneDefinition
                 With aDefMilestone
                     If Not .Create("bp4") Then .LoadBy("bp4")
                     .Description = "FAP / Design Freeze gate"
@@ -754,7 +754,7 @@ Namespace OnTrack.Database
                     .Persist()
 
                 End With
-                aDefMilestone = New clsOTDBDefMilestone
+                aDefMilestone = New MileStoneDefinition
                 With aDefMilestone
                     If Not .Create("bp5") Then .LoadBy("bp5")
                     .Description = "dmu status"
@@ -766,7 +766,7 @@ Namespace OnTrack.Database
                     .Persist()
 
                 End With
-                aDefMilestone = New clsOTDBDefMilestone
+                aDefMilestone = New MileStoneDefinition
                 With aDefMilestone
                     If Not .Create("bp6") Then .LoadBy("bp6")
                     .Description = "dmu status date"
@@ -777,7 +777,7 @@ Namespace OnTrack.Database
                     .Persist()
 
                 End With
-                aDefMilestone = New clsOTDBDefMilestone
+                aDefMilestone = New MileStoneDefinition
                 With aDefMilestone
                     If Not .Create("bp20") Then .LoadBy("bp20")
                     .Description = "FC FEM result date"
@@ -787,7 +787,7 @@ Namespace OnTrack.Database
                     .Persist()
 
                 End With
-                aDefMilestone = New clsOTDBDefMilestone
+                aDefMilestone = New MileStoneDefinition
                 With aDefMilestone
                     If Not .Create("bp22") Then .LoadBy("bp22")
                     .Description = "FEM status date"
@@ -798,7 +798,7 @@ Namespace OnTrack.Database
                     .Persist()
 
                 End With
-                aDefMilestone = New clsOTDBDefMilestone
+                aDefMilestone = New MileStoneDefinition
                 With aDefMilestone
                     If Not .Create("bp21") Then .LoadBy("bp21")
                     .Description = "FEM Status"
@@ -810,7 +810,7 @@ Namespace OnTrack.Database
                     .Persist()
 
                 End With
-                aDefMilestone = New clsOTDBDefMilestone
+                aDefMilestone = New MileStoneDefinition
                 With aDefMilestone
                     If Not .Create("bp7") Then .LoadBy("bp7")
                     .Description = "FC PDM entry date (outgoing ENG)"
@@ -820,7 +820,7 @@ Namespace OnTrack.Database
                     .Persist()
 
                 End With
-                aDefMilestone = New clsOTDBDefMilestone
+                aDefMilestone = New MileStoneDefinition
                 With aDefMilestone
                     If Not .Create("bp8") Then .LoadBy("bp8")
                     .Description = "entry PDM date"
@@ -830,7 +830,7 @@ Namespace OnTrack.Database
                     .Persist()
 
                 End With
-                aDefMilestone = New clsOTDBDefMilestone
+                aDefMilestone = New MileStoneDefinition
                 With aDefMilestone
                     If Not .Create("bp14") Then .LoadBy("bp14")
                     .Description = "outgoing PDM DRL date"
@@ -840,7 +840,7 @@ Namespace OnTrack.Database
                     .Persist()
 
                 End With
-                aDefMilestone = New clsOTDBDefMilestone
+                aDefMilestone = New MileStoneDefinition
                 With aDefMilestone
                     If Not .Create("bp9") Then .LoadBy("bp9")
                     .Description = "FC PDM approval date"
@@ -850,7 +850,7 @@ Namespace OnTrack.Database
                     .Persist()
 
                 End With
-                aDefMilestone = New clsOTDBDefMilestone
+                aDefMilestone = New MileStoneDefinition
                 With aDefMilestone
                     If Not .Create("bp10") Then .LoadBy("bp10")
                     .Description = "PDM approval date"
@@ -860,7 +860,7 @@ Namespace OnTrack.Database
                     .Persist()
 
                 End With
-                aDefMilestone = New clsOTDBDefMilestone
+                aDefMilestone = New MileStoneDefinition
                 With aDefMilestone
                     If Not .Create("bp80") Then .LoadBy("bp80")
                     .Description = "first PDM approval date"
@@ -874,6 +874,15 @@ Namespace OnTrack.Database
                                              messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aScheduleDef.TableID)
 
             End If
+
+            If Not ScheduleLink.CreateSchema() Then
+                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="createDatabase", _
+                                             message:="Schema " & ScheduleLink.ConstTableID & " couldn't be created")
+            Else
+                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_Schedule", message:="Schedule Link Definition is up-to-date", _
+                                             messagetype:=otCoreMessageType.ApplicationInfo, tablename:=ScheduleLink.ConstTableID)
+            End If
+
 
             Dim aDependCheck As New clsOTDBDependCheck
             If Not aDependCheck.CreateSchema() Then
@@ -1054,9 +1063,9 @@ Namespace OnTrack.Database
 
            
             ' create
-            Dim aDefLogMsg As New clsOTDBDefLogMessage
+            Dim aDefLogMsg As New ObjectLogMessageDef
 
-            If Not clsOTDBDefLogMessage.CreateSchema() Then
+            If Not ObjectLogMessageDef.CreateSchema() Then
                 Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", message:="DefLogMsg couldn't be created", _
                                              messagetype:=otCoreMessageType.ApplicationError, tablename:=aDefLogMsg.TableID)
             Else
@@ -1064,8 +1073,8 @@ Namespace OnTrack.Database
                                              messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aDefLogMsg.TableID)
             End If
 
-            Dim aLogMessage As New clsOTDBMessageLogMember
-            If Not clsOTDBMessageLogMember.CreateSchema() Then
+            Dim aLogMessage As New ObjectLogMessage
+            If Not ObjectLogMessage.CreateSchema() Then
                 Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", _
                                              message:="Schema MessageLogMember couldn't be created", messagetype:=otCoreMessageType.ApplicationError, tablename:=aLogMessage.TableID)
             Else
@@ -1255,8 +1264,8 @@ Namespace OnTrack.Database
             End If
 
 
-            Dim aPerson As New clsOTDBDefPerson
-            If Not clsOTDBDefPerson.CreateSchema() Then
+            Dim aPerson As New Person
+            If Not Person.CreateSchema() Then
                 Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", tablename:=aPerson.TableID, _
                                              message:="Schema DefPerson couldn't be created", messagetype:=otCoreMessageType.ApplicationError)
             Else
@@ -1264,8 +1273,8 @@ Namespace OnTrack.Database
                                              message:="Schema DefPerson up-to-date", messagetype:=otCoreMessageType.ApplicationInfo)
             End If
             ' create
-            Dim aOrgUnit As New clsOTDBDefOrgUnit
-            If Not clsOTDBDefOrgUnit.CreateSchema() Then
+            Dim aOrgUnit As New OrgUnit
+            If Not OrgUnit.CreateSchema() Then
                 Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", tablename:=aOrgUnit.TableID, _
                                              message:="Schema OrgUnit couldn't be created", messagetype:=otCoreMessageType.ApplicationError)
             Else
@@ -1275,8 +1284,8 @@ Namespace OnTrack.Database
 
 
             ' create
-            Dim aSite As New clsOTDBDefOUSite
-            If Not clsOTDBDefOUSite.CreateSchema() Then
+            Dim aSite As New Site
+            If Not Site.CreateSchema() Then
                 Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", tablename:=aSite.TableID, _
                                              message:="Schema DefSite couldn't be created", messagetype:=otCoreMessageType.ApplicationError)
 
@@ -1318,14 +1327,14 @@ Namespace OnTrack.Database
                 End If
             End If
 
-            Dim aCalEntry As New clsOTDBCalendarEntry
-            If Not clsOTDBCalendarEntry.CreateSchema() Then
+            Dim aCalEntry As New CalendarEntry
+            If Not CalendarEntry.CreateSchema() Then
                 Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", tablename:=aCalEntry.TableID, _
                                              message:="Schema " & aCalEntry.TableID & " couldn't be created", messagetype:=otCoreMessageType.ApplicationError)
             Else
                 Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", tablename:=aCalEntry.TableID, _
                                              message:="Schema " & aCalEntry.TableID & " up-to-date", messagetype:=otCoreMessageType.ApplicationInfo)
-                aCalEntry = New clsOTDBCalendarEntry
+                aCalEntry = New CalendarEntry
                 With aCalEntry
                     Call .GenerateDays(fromdate:=CDate("01.01.2011"), untildate:=CDate("01.01.2016"), name:=ot.CurrentSession.DefaultCalendarName)
                     ' additional
@@ -1338,7 +1347,7 @@ Namespace OnTrack.Database
                         .Persist()
                     End If
                 End With
-                aCalEntry = New clsOTDBCalendarEntry
+                aCalEntry = New CalendarEntry
                 With aCalEntry
                     If .Create() Then
                         .Datevalue = CDate("01.04.2013")
@@ -1348,7 +1357,7 @@ Namespace OnTrack.Database
                         .Persist()
                     End If
                 End With
-                aCalEntry = New clsOTDBCalendarEntry
+                aCalEntry = New CalendarEntry
                 With aCalEntry
                     If .Create() Then
                         .Datevalue = CDate("09.05.2013")
@@ -1359,7 +1368,7 @@ Namespace OnTrack.Database
                     End If
                 End With
 
-                aCalEntry = New clsOTDBCalendarEntry
+                aCalEntry = New CalendarEntry
                 With aCalEntry
                     If .Create() Then
                         .Datevalue = CDate("10.05.2013")
@@ -1369,7 +1378,7 @@ Namespace OnTrack.Database
                         .Persist()
                     End If
                 End With
-                aCalEntry = New clsOTDBCalendarEntry
+                aCalEntry = New CalendarEntry
                 With aCalEntry
                     If .Create() Then
                         .Datevalue = CDate("20.05.2013")
@@ -1379,7 +1388,7 @@ Namespace OnTrack.Database
                         .Persist()
                     End If
                 End With
-                aCalEntry = New clsOTDBCalendarEntry
+                aCalEntry = New CalendarEntry
                 With aCalEntry
                     If .Create() Then
                         .Datevalue = CDate("31.10.2013")
@@ -1389,7 +1398,7 @@ Namespace OnTrack.Database
                         .Persist()
                     End If
                 End With
-                aCalEntry = New clsOTDBCalendarEntry
+                aCalEntry = New CalendarEntry
                 With aCalEntry
                     If .Create() Then
                         .Datevalue = CDate("20.11.2013")
@@ -1399,7 +1408,7 @@ Namespace OnTrack.Database
                         .Persist()
                     End If
                 End With
-                aCalEntry = New clsOTDBCalendarEntry
+                aCalEntry = New CalendarEntry
                 With aCalEntry
                     If .Create() Then
                         .Datevalue = CDate("18.04.2014")
@@ -1409,7 +1418,7 @@ Namespace OnTrack.Database
                         .Persist()
                     End If
                 End With
-                aCalEntry = New clsOTDBCalendarEntry
+                aCalEntry = New CalendarEntry
                 With aCalEntry
                     If .Create() Then
                         .Datevalue = CDate("01.04.2014")
@@ -1419,7 +1428,7 @@ Namespace OnTrack.Database
                         .Persist()
                     End If
                 End With
-                aCalEntry = New clsOTDBCalendarEntry
+                aCalEntry = New CalendarEntry
                 With aCalEntry
                     If .Create() Then
                         .Datevalue = CDate("29.05.2013")
@@ -1429,7 +1438,7 @@ Namespace OnTrack.Database
                         .Persist()
                     End If
                 End With
-                aCalEntry = New clsOTDBCalendarEntry
+                aCalEntry = New CalendarEntry
                 With aCalEntry
                     If .Create() Then
                         .Datevalue = CDate("20.05.2014")
@@ -1439,7 +1448,7 @@ Namespace OnTrack.Database
                         .Persist()
                     End If
                 End With
-                aCalEntry = New clsOTDBCalendarEntry
+                aCalEntry = New CalendarEntry
                 With aCalEntry
                     If .Create() Then
                         .Datevalue = CDate("31.10.2014")
@@ -1449,7 +1458,7 @@ Namespace OnTrack.Database
                         .Persist()
                     End If
                 End With
-                aCalEntry = New clsOTDBCalendarEntry
+                aCalEntry = New CalendarEntry
                 With aCalEntry
                     If .Create() Then
                         .Datevalue = CDate("19.11.2014")
@@ -1459,7 +1468,7 @@ Namespace OnTrack.Database
                         .Persist()
                     End If
                 End With
-                aCalEntry = New clsOTDBCalendarEntry
+                aCalEntry = New CalendarEntry
                 With aCalEntry
                     If .Create() Then
                         .Datevalue = CDate("03.04.2015")
@@ -1469,7 +1478,7 @@ Namespace OnTrack.Database
                         .Persist()
                     End If
                 End With
-                aCalEntry = New clsOTDBCalendarEntry
+                aCalEntry = New CalendarEntry
                 With aCalEntry
                     If .Create() Then
                         .Datevalue = CDate("06.04.2015")
@@ -1479,7 +1488,7 @@ Namespace OnTrack.Database
                         .Persist()
                     End If
                 End With
-                aCalEntry = New clsOTDBCalendarEntry
+                aCalEntry = New CalendarEntry
                 With aCalEntry
                     If .Create() Then
                         .Datevalue = CDate("14.05.2015")
@@ -1489,7 +1498,7 @@ Namespace OnTrack.Database
                         .Persist()
                     End If
                 End With
-                aCalEntry = New clsOTDBCalendarEntry
+                aCalEntry = New CalendarEntry
                 With aCalEntry
                     If .Create() Then
                         .Datevalue = CDate("25.05.2015")
@@ -1499,7 +1508,7 @@ Namespace OnTrack.Database
                         .Persist()
                     End If
                 End With
-                aCalEntry = New clsOTDBCalendarEntry
+                aCalEntry = New CalendarEntry
                 With aCalEntry
                     If .Create() Then
                         .Datevalue = CDate("31.10.2015")
@@ -1509,7 +1518,7 @@ Namespace OnTrack.Database
                         .Persist()
                     End If
                 End With
-                aCalEntry = New clsOTDBCalendarEntry
+                aCalEntry = New CalendarEntry
                 With aCalEntry
                     If .Create() Then
                         .Datevalue = CDate("18.11.2015")
@@ -1523,8 +1532,8 @@ Namespace OnTrack.Database
                                              message:="Calendar until 31.12.2016 created", messagetype:=otCoreMessageType.ApplicationInfo)
             End If
 
-            Dim aStatusItem As New clsOTDBDefStatusItem
-            If Not clsOTDBDefStatusItem.CreateSchema() Then
+            Dim aStatusItem As New StatusItem
+            If Not StatusItem.CreateSchema() Then
                 Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", tablename:=aStatusItem.TableID, _
                                              message:="Schema " & aStatusItem.TableID & " couldn't be created", messagetype:=otCoreMessageType.ApplicationError)
             Else

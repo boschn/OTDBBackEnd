@@ -1231,7 +1231,7 @@ Namespace OnTrack
         Optional ByVal break As Boolean = False, _
         Optional ByVal noOtdbAvailable As Boolean = False, _
         Optional ByVal messagetype As otCoreMessageType = otCoreMessageType.ApplicationError, _
-        Optional ByRef msglog As clsOTDBMessagelog = Nothing, _
+        Optional ByRef msglog As ObjectLog = Nothing, _
         Optional ByVal username As String = "")
             '<CallerMemberName> Optional memberName As String = Nothing, _
             '   <CallerFilePath> Optional sourcefilePath As String = Nothing, _

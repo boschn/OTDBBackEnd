@@ -147,13 +147,26 @@ Namespace OnTrack
             Private _DeleteFieldFlag As Boolean = False
             Private _SpareFieldsFlag As Boolean = False
             Private _AddDomainIDFlag As Boolean = False
-
+            Private _TableName As String = ""
             Public Sub New()
 
             End Sub
             Public Sub New(ID As String)
                 _ID = ID
             End Sub
+            ''' <summary>
+            ''' Gets or sets the name of the table.
+            ''' </summary>
+            ''' <value>The name of the table.</value>
+            Public Property TableName() As String
+                Get
+                    Return Me._TableName
+                End Get
+                Set
+                    Me._TableName = Value
+                End Set
+            End Property
+
             ''' <summary>
             ''' Gets or sets the add domain ID flag.
             ''' </summary>
@@ -232,7 +245,7 @@ Namespace OnTrack
         Public Class ormSchemaIndexAttribute
             Inherits Attribute
 
-            Private _Name As String
+            Private _indexName As String
             Private _ColumnNames() As String = {}
             Private _Version As UShort = 0
 
@@ -244,7 +257,7 @@ Namespace OnTrack
                 Get
                     Return Me._Version
                 End Get
-                Set
+                Set(value As UShort)
                     Me._Version = Value
                 End Set
             End Property
@@ -253,12 +266,12 @@ Namespace OnTrack
             ''' Gets or sets the name.
             ''' </summary>
             ''' <value>The name.</value>
-            Public Property Name() As String
+            Public Property IndexName() As String
                 Get
-                    Return Me._Name
+                    Return Me._indexName
                 End Get
                 Set(value As String)
-                    Me._Name = value
+                    Me._indexName = value
                 End Set
             End Property
 
@@ -356,22 +369,60 @@ Namespace OnTrack
         <AttributeUsage(AttributeTargets.Field, AllowMultiple:=False, Inherited:=True)> _
         Public Class ormSchemaColumnAttribute
             Inherits Attribute
-            Private _ID As String = ""
-            Private _TableID As String = ""
-            Private _Typeid As otFieldDataType
-            Private _Title As String = ""
-            Private _size As Long = 0
-            Private _Parameter As String
-            Private _primaryKeyordinal As Short = -1
-            Private _aliases() As String = {}
-            Private _relation() As String = {}
-            Private _IsNullable As Boolean = False
-            Private _IsArray As Boolean = False
-            Private _Description As String = ""
-            Private _DefaultValue As String = ""
-            Private _Version As UShort = 1
-            Private _Posordinal As UShort = 0
-            Private _SpareFieldTag As Boolean = False
+            Private _ID As String = Nothing
+            Private _TableID As String = Nothing
+            Private _Typeid As Nullable(Of otFieldDataType)
+            Private _Title As String = Nothing
+            Private _size As Nullable(Of Long)
+            Private _Parameter As String = Nothing
+            Private _primaryKeyOrdinal As Nullable(Of Short)
+            Private _aliases() As String = Nothing
+            Private _relation() As String = Nothing
+            Private _IsNullable As Nullable(Of Boolean)
+            Private _IsArray As Nullable(Of Boolean)
+            Private _Description As String = Nothing
+            Private _DefaultValue As String = Nothing
+            Private _Version As Nullable(Of UShort)
+            Private _Posordinal As Nullable(Of UShort)
+            Private _SpareFieldTag As Nullable(Of Boolean)
+            Private _ReferenceObjectEntry As String = Nothing
+            Private _ColumnName As String = Nothing
+
+            ''' <summary>
+            ''' Gets or sets the name of the column.
+            ''' </summary>
+            ''' <value>The name of the column.</value>
+            Public Property ColumnName() As String
+                Get
+                    Return Me._ColumnName
+                End Get
+                Set(value As String)
+                    Me._ColumnName = Value
+                End Set
+            End Property
+            Public ReadOnly Property HasValueColumnName As Boolean
+                Get
+                    Return _ColumnName IsNot Nothing
+                End Get
+            End Property
+            ''' <summary>
+            ''' Gets or sets the reference object entry. Has the form [tablename].[columnname] 
+            ''' such as Deliverable.constTableID & "." & deliverable.constFNUID
+            ''' </summary>
+            ''' <value>The reference object entry.</value>
+            Public Property ReferenceObjectEntry() As String
+                Get
+                    Return Me._ReferenceObjectEntry
+                End Get
+                Set(value As String)
+                    Me._ReferenceObjectEntry = Value
+                End Set
+            End Property
+            Public ReadOnly Property HasValueReferenceObjectEntry As Boolean
+                Get
+                    Return _ReferenceObjectEntry IsNot Nothing AndAlso _ReferenceObjectEntry = ""
+                End Get
+            End Property
 
             ''' <summary>
             ''' Gets or sets the pos ordinal.
@@ -382,8 +433,14 @@ Namespace OnTrack
                     Return Me._Posordinal
                 End Get
                 Set(value As UShort)
-                    Me._Posordinal = Value
+                    Me._Posordinal = value
                 End Set
+            End Property
+
+            Public ReadOnly Property hasValuePosOrdinal As Boolean
+                Get
+                    Return _Posordinal.HasValue
+                End Get
             End Property
 
             ''' <summary>
@@ -398,7 +455,11 @@ Namespace OnTrack
                     Me._DefaultValue = value
                 End Set
             End Property
-
+            Public ReadOnly Property HasValueDefaultValue As Boolean
+                Get
+                    Return _DefaultValue IsNot Nothing
+                End Get
+            End Property
             ''' <summary>
             ''' Gets or sets the description.
             ''' </summary>
@@ -411,7 +472,11 @@ Namespace OnTrack
                     Me._Description = value
                 End Set
             End Property
-
+            Public ReadOnly Property HasValueDescription As Boolean
+                Get
+                    Return _Description IsNot Nothing
+                End Get
+            End Property
             ''' <summary>
             ''' Gets or sets the is array flag. data field will be transformed into array
             ''' </summary>
@@ -423,6 +488,12 @@ Namespace OnTrack
                 Set(value As Boolean)
                     Me._IsArray = value
                 End Set
+            End Property
+
+            Public ReadOnly Property HasValueIsArray As Boolean
+                Get
+                    Return _IsArray.HasValue
+                End Get
             End Property
 
             ''' <summary>
@@ -437,6 +508,12 @@ Namespace OnTrack
                     Me._ID = value
                 End Set
             End Property
+            Public ReadOnly Property HasValueID As Boolean
+                Get
+                    Return _ID IsNot Nothing
+                End Get
+            End Property
+
             ''' <summary>
             ''' set or gets if this field is a spare field
             ''' </summary>
@@ -451,6 +528,11 @@ Namespace OnTrack
                     _SpareFieldTag = value
                 End Set
             End Property
+            Public ReadOnly Property HasValueSpareFieldTag As Boolean
+                Get
+                    Return _SpareFieldTag.HasValue
+                End Get
+            End Property
             ''' <summary>
             ''' Gets or sets the title.
             ''' </summary>
@@ -462,6 +544,11 @@ Namespace OnTrack
                 Set(value As String)
                     Me._Title = value
                 End Set
+            End Property
+            Public ReadOnly Property HasValueTitle As Boolean
+                Get
+                    Return _Title IsNot Nothing
+                End Get
             End Property
             ''' <summary>
             ''' Gets or sets the table ID.
@@ -475,7 +562,11 @@ Namespace OnTrack
                     Me._TableID = value
                 End Set
             End Property
-
+            Public ReadOnly Property hasValueTableID As Boolean
+                Get
+                    Return _TableID IsNot Nothing
+                End Get
+            End Property
             ''' <summary>
             ''' Gets or sets the typeid.
             ''' </summary>
@@ -488,7 +579,11 @@ Namespace OnTrack
                     Me._Typeid = value
                 End Set
             End Property
-
+            Public ReadOnly Property HasValueTypeID As Boolean
+                Get
+                    Return _Typeid.HasValue
+                End Get
+            End Property
 
             ''' <summary>
             ''' Gets or sets the size.
@@ -502,6 +597,11 @@ Namespace OnTrack
                     Me._size = value
                 End Set
             End Property
+            Public ReadOnly Property HasValueSize As Boolean
+                Get
+                    Return _size.HasValue
+                End Get
+            End Property
             ''' <summary>
             ''' Gets or sets the parameter.
             ''' </summary>
@@ -514,7 +614,11 @@ Namespace OnTrack
                     Me._Parameter = value
                 End Set
             End Property
-
+            Public ReadOnly Property HasValueParameter() As Boolean
+                Get
+                    Return _Parameter IsNot Nothing
+                End Get
+            End Property
             ''' <summary>
             ''' Gets or sets the is nullable.
             ''' </summary>
@@ -527,23 +631,34 @@ Namespace OnTrack
                     Me._IsNullable = value
                 End Set
             End Property
+            Public ReadOnly Property HasValueIsNullable()
+                Get
+                    Return _IsNullable.HasValue
+                End Get
+            End Property
+
             ''' <summary>
             ''' Gets or sets the primary key ordinal.
             ''' </summary>
             ''' <value>The primary key ordinal.</value>
-            Public Property PrimaryKeyordinal() As Short
+            Public Property PrimaryKeyOrdinal() As Short
                 Get
-                    Return Me._primaryKeyordinal
+                    Return Me._primaryKeyOrdinal
                 End Get
                 Set(value As Short)
                     If value > 0 Then
-                        Me._primaryKeyordinal = value
+                        Me._primaryKeyOrdinal = value
                     Else
                         CoreMessageHandler(message:="position index is less or equal 0", arg1:=value, subname:="ormSchemaColumn.PrimaryKeyordinal", messagetype:=otCoreMessageType.InternalError)
                         Debug.Assert(False)
                     End If
 
                 End Set
+            End Property
+            Public ReadOnly Property HasValuePrimaryKeyOrdinal As Boolean
+                Get
+                    Return _primaryKeyOrdinal.HasValue
+                End Get
             End Property
             ''' <summary>
             ''' Gets or sets the relation.
@@ -557,7 +672,11 @@ Namespace OnTrack
                     Me._relation = value
                 End Set
             End Property
-
+            Public ReadOnly Property HasValueRelation As Boolean
+                Get
+                    Return _relation IsNot Nothing AndAlso _relation.Count > 0
+                End Get
+            End Property
             ''' <summary>
             ''' Gets or sets the aliases.
             ''' </summary>
@@ -570,7 +689,17 @@ Namespace OnTrack
                     Me._aliases = value
                 End Set
             End Property
-
+            Public ReadOnly Property HasValueAliases As Boolean
+                Get
+                    Return _aliases IsNot Nothing AndAlso _aliases.Count > 0
+                End Get
+            End Property
+            ''' <summary>
+            ''' gets or sets the version counter
+            ''' </summary>
+            ''' <value></value>
+            ''' <returns></returns>
+            ''' <remarks></remarks>
             Public Property Version As UShort
                 Get
                     Return Me._Version
@@ -579,7 +708,11 @@ Namespace OnTrack
                     Me._Version = value
                 End Set
             End Property
-
+            Public ReadOnly Property HasValueVersion As Boolean
+                Get
+                    Return _Version.HasValue
+                End Get
+            End Property
         End Class
         '************************************************************************************
         '***** CLASS clsOTDBSQLCommand describes an SQL Command to be used for aTableStore
@@ -1565,7 +1698,7 @@ Namespace OnTrack
 
             Protected _ID As String
             Protected _TableDirectory As New Dictionary(Of String, iormDataStore)    'Table Directory of iOTDBTableStore
-            Protected _TableSchemaDirectory As New Dictionary(Of String, iotTableSchema)    'Table Directory of iOTDBTableSchema
+            Protected _TableSchemaDirectory As New Dictionary(Of String, iotDataSchema)    'Table Directory of iOTDBTableSchema
             Protected WithEvents _primaryConnection As iormConnection ' primary connection
             Protected WithEvents _session As Session
             Protected _CommandStore As New Dictionary(Of String, iormSqlCommand) ' store of the SqlCommands to handle
@@ -1624,11 +1757,11 @@ Namespace OnTrack
             ''' Gets or sets the table schema directory.
             ''' </summary>
             ''' <value>The table schema directory.</value>
-            Public Property TableSchemaDirectory() As Dictionary(Of String, iotTableSchema)
+            Public Property TableSchemaDirectory() As Dictionary(Of String, iotDataSchema)
                 Get
                     Return Me._TableSchemaDirectory
                 End Get
-                Set(value As Dictionary(Of String, iotTableSchema))
+                Set(value As Dictionary(Of String, iotDataSchema))
                     Me._TableSchemaDirectory = value
                 End Set
             End Property
@@ -1900,7 +2033,7 @@ Namespace OnTrack
             ''' <param name="TableID"></param>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Protected Friend MustOverride Function CreateNativeTableSchema(ByVal tableID As String) As iotTableSchema
+            Protected Friend MustOverride Function CreateNativeTableSchema(ByVal tableID As String) As iotDataSchema
 
             ''' <summary>
             ''' persists the errorlog
@@ -1949,14 +2082,14 @@ Namespace OnTrack
             ''' <param name="Tablename">The tablename.</param>
             ''' <param name="Force">The force.</param>
             ''' <returns></returns>
-            Public Function GetTableSchema(ByVal tableID As String, Optional ByVal force As Boolean = False) As iotTableSchema _
+            Public Function GetTableSchema(ByVal tableID As String, Optional ByVal force As Boolean = False) As iotDataSchema _
             Implements iormDBDriver.GetTableSchema
 
                 'take existing or make new one
                 If _TableSchemaDirectory.ContainsKey(tableID) And Not force Then
                     Return _TableSchemaDirectory.Item(tableID)
                 Else
-                    Dim aNewSchema As iotTableSchema
+                    Dim aNewSchema As iotDataSchema
 
                     ' delete the existing object
                     If _TableSchemaDirectory.ContainsKey(tableID) Then
@@ -3735,8 +3868,8 @@ Namespace OnTrack
             Public Shared Event OnSchemaCreated(sender As Object, e As ormDataObjectEventArgs)
 
             'Public Shared Property ConstTableID
-            <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=100, _
-                title:="Domain", description:="domain of the business Object", ID:="DM1")> Public Const ConstFNDomainID = Domain.ConstFNDomainID
+            <ormSchemaColumn(referenceObjectEntry:=Domain.ConstTableID & "." & Domain.ConstFNDomainID, _
+                title:="Domain", description:="domain of the business Object")> Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
             '** Column names and definition
             <ormSchemaColumnAttribute(typeid:=otFieldDataType.Timestamp, _
@@ -3848,7 +3981,7 @@ Namespace OnTrack
             ''' <value></value>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public ReadOnly Property TableSchema() As iotTableSchema
+            Public ReadOnly Property TableSchema() As iotDataSchema
                 Get
                     If Me.TableStore IsNot Nothing Then
                         Return Me.TableStore.TableSchema
@@ -3924,7 +4057,33 @@ Namespace OnTrack
                     End If
                 End Set
             End Property
+            ''' <summary>
+            ''' returns true if object has domain behavior
+            ''' </summary>
+            ''' <value></value>
+            ''' <returns></returns>
+            ''' <remarks></remarks>
+            Public ReadOnly Property HasDomainBehavior As Boolean
+                Get
+                    Dim aObjectDefinition As ObjectDefinition = Me.ObjectDefinition
+                    '** per flag
+                    If aObjectDefinition IsNot Nothing Then Return aObjectDefinition.DomainBehavior
+                End Get
 
+            End Property
+            ''' <summary>
+            ''' returns true if object has delete per flag behavior
+            ''' </summary>
+            ''' <value></value>
+            ''' <returns></returns>
+            ''' <remarks></remarks>
+            Public ReadOnly Property HasDeletePerFlagBehavior As Boolean
+                Get
+                    Dim aObjectDefinition As ObjectDefinition = Me.ObjectDefinition
+                    '** per flag
+                    If aObjectDefinition IsNot Nothing Then Return aObjectDefinition.DeletePerFlagBehavior
+                End Get
+            End Property
             ''' <summary>
             ''' Gets or sets the PS is changed.
             ''' </summary>
@@ -4320,10 +4479,11 @@ Namespace OnTrack
             ''' <param name="pkArray"></param>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public Shared Function LoadDataObjectBy(Of T As {iormInfusable, iormPersistable, New})(pkArray() As Object, Optional dbdriver As iormDBDriver = Nothing) As iormPersistable
+            Public Shared Function LoadDataObjectBy(Of T As {iormInfusable, iormPersistable, New})(pkArray() As Object, Optional domainID As String = "", Optional dbdriver As iormDBDriver = Nothing) As iormPersistable
                 Dim aDataObject As New T
-                If dbdriver IsNot Nothing Then aDataObject.dbdriver = dbdriver
-                If aDataObject.LoadBy(pkArray) Then
+
+                If dbdriver IsNot Nothing Then aDataObject.DbDriver = dbdriver
+                If aDataObject.LoadBy(pkArray, domainID:=domainID) Then
                     Return aDataObject
                 Else
                     Return Nothing
@@ -4335,9 +4495,9 @@ Namespace OnTrack
             ''' <param name="UID"></param>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public Overridable Function LoadBy(ByRef pkArray() As Object) As Boolean Implements iormPersistable.LoadBy
+            Public Overridable Function LoadBy(ByRef pkArray() As Object, Optional domainID As String = "", Optional loadDeleted As Boolean = False) As Boolean Implements iormPersistable.LoadBy
                 Dim aRecord As ormRecord
-
+                Dim domIndex As Integer = -1
                 '* init
                 If Not Me.IsInitialized AndAlso Not Me.Initialize Then
                     Return False
@@ -4345,6 +4505,23 @@ Namespace OnTrack
 
 
                 Try
+                    '** check for domainBehavior
+                    If Me.HasDomainBehavior Then
+                        domIndex = Me.TableSchema.GetDomainIDPKOrdinal
+                        If domIndex > 0 Then
+                            If domainID = "" Then domainID = CurrentSession.CurrentDomainID
+                            If pkArray.Count = Me.TableSchema.NoPrimaryKeyFields Then
+                                pkArray(domIndex - 1) = UCase(domainID)
+                            Else
+                                ReDim Preserve pkArray(Me.TableSchema.NoPrimaryKeyFields)
+                                pkArray(domIndex - 1) = UCase(domainID)
+                            End If
+                        Else
+                            CoreMessageHandler(message:="domainID is not in primary key although domain behavior is set", subname:="ormDataObject.loadby", _
+                                               arg1:=domainID, tablename:=Me.TableID, entryname:=ConstFNDomainID, messagetype:=otCoreMessageType.InternalError)
+                        End If
+                    End If
+
                     '** fire event
                     Dim ourEventArgs As New ormDataObjectEventArgs(Me, record:=aRecord, pkarray:=pkArray)
                     Dim useRecordCache = Me.TableStore.GetProperty(ConstTPNCacheProperty)
@@ -4361,28 +4538,56 @@ Namespace OnTrack
                         useRecordCache = ourEventArgs.UseCache
                     End If
 
-                    '* use Cache ...
+                    '* use record level Cache ...
                     If ourEventArgs.UseCache Then
                         ' try to load it from cache
-                        aRecord = TryCast(LoadFromCache("Record" & _TableID, pkArray), ormRecord)
+                        aRecord = TryCast(LoadFromCache("Record" & ConstDelimiter & _TableID, pkArray), ormRecord)
                     End If
                     '** load from tablestore if we do not have it
                     If aRecord Is Nothing Then
                         aRecord = Me.TableStore.GetRecordByPrimaryKey(pkArray)
                     End If
+                    '* on domain behavior ? -> reload from  the global domain
+                    If domIndex > 0 AndAlso aRecord Is Nothing Then
+                        pkArray(domIndex - 1) = ConstGlobalDomain
+                        aRecord = Me.TableStore.GetRecordByPrimaryKey(pkArray)
+                    End If
 
+                    '* still nothing ?!
                     If aRecord Is Nothing Then
                         _IsLoaded = False
                         Return False
                     Else
+                        '* what about deleted objects
+                        If Me.HasDeletePerFlagBehavior Then
+                            If aRecord.HasIndex(ConstFNIsDeleted) Then
+                                If CBool(aRecord.GetValue(ConstFNIsDeleted)) Then
+                                    _IsDeleted = True
+                                    '* load only on deleted
+                                    If Not loadDeleted Then
+                                        _IsLoaded = False
+                                        _IsCreated = False
+                                        Return False
+                                    End If
+                                Else
+                                    _IsDeleted = False
+                                End If
+                            Else
+                                CoreMessageHandler(message:="object has delete per flag behavior but no flag", messagetype:=otCoreMessageType.InternalError, _
+                                                    subname:="ormDataObject.loadby", tablename:=Me.TableID, entryname:=ConstFNIsDeleted)
+                                _IsDeleted = False
+                            End If
+                        Else
+                            _IsDeleted = False
+                        End If
+
                         '** add to cache
-                        If ourEventArgs.UseCache Then AddToCache("Record" & _TableID, key:=pkArray, theOBJECT:=aRecord)
+                        If ourEventArgs.UseCache Then AddToCache("Record" & ConstDelimiter & _TableID, key:=pkArray, theOBJECT:=aRecord)
                         _IsLoaded = Me.Infuse(aRecord)
 
                         '** reset flags
                         If Me.IsLoaded Then
                             _IsCreated = False
-                            _IsDeleted = False
                             _IsChanged = False
                         End If
 
@@ -4395,7 +4600,7 @@ Namespace OnTrack
 
                         '** return
                         Return Me.IsLoaded
-                    End If
+                        End If
 
                 Catch ex As Exception
                     Call CoreMessageHandler(exception:=ex, subname:="ormDataObject.Loadby", arg1:=pkArray, tablename:=_TableID)
@@ -4494,6 +4699,7 @@ Namespace OnTrack
             ''' <returns></returns>
             ''' <remarks></remarks>
             Public Shared Function All(Of T As {iormInfusable, iormPersistable, New})(Optional ID As String = "All", _
+                                                                                      Optional domainID As String = "",
                                                                                        Optional where As String = "", _
                                                                                        Optional orderby As String = "", _
                                                                                        Optional parameters As List(Of ormSqlCommandParameter) = Nothing) _
@@ -4504,6 +4710,7 @@ Namespace OnTrack
                 Dim aNewObject As New T
 
                 Try
+                    '** TODO: Add Domain Behavior
                     aStore = aNewObject.TableStore
                     aRecordCollection = aStore.GetRecordsBySqlCommand(id:=ID, wherestr:=where, orderby:=orderby, parameters:=parameters)
 
@@ -4511,7 +4718,7 @@ Namespace OnTrack
                         For Each aRecord In aRecordCollection
                             aNewObject = New T
                             If aNewObject.Infuse(aRecord) Then
-                                aCollection.Add(Item:=aNewObject)
+                                aCollection.Add(item:=aNewObject)
                             End If
                         Next aRecord
 
@@ -4606,84 +4813,164 @@ Namespace OnTrack
                     If ourEventArgs.AbortOperation Then
                         Return False
                     End If
+
                     '***
-                    '*** collect all the attributes first
+                    '*** go through all ORM Attributes and extract object definition properties
                     '***
-                    aFieldList = GetType(T).GetFields(Reflection.BindingFlags.Instance Or Reflection.BindingFlags.NonPublic Or _
-                                                      Reflection.BindingFlags.Public Or Reflection.BindingFlags.Static Or _
-                                                      Reflection.BindingFlags.FlattenHierarchy)
-                    '** look into each Const Type (Fields)
-                    For Each aFieldInfo As System.Reflection.FieldInfo In aFieldList
+                    For Each anAttribute In Reflector.GetAttributes(GetType(T))
 
-                        If aFieldInfo.MemberType = Reflection.MemberTypes.Field Then
-                            '** Attribtes
-                            For Each anAttribute As System.Attribute In Attribute.GetCustomAttributes(aFieldInfo)
-                                '** TABLE
-                                If anAttribute.GetType().Equals(GetType(ormSchemaTableAttribute)) Then
-                                    '** Schema Definition
-                                    tableIDs.Add(aFieldInfo.GetValue(Nothing))
-                                    tableAttrIds.Add(DirectCast(anAttribute, ormSchemaTableAttribute).ID)
-                                    tableVersions.Add(DirectCast(anAttribute, ormSchemaTableAttribute).Version)
-                                    tableAttrDeleteFlags.Add(DirectCast(anAttribute, ormSchemaTableAttribute).AddDeleteFieldBehavior)
-                                    tableAttrSpareFieldsFlags.Add(DirectCast(anAttribute, ormSchemaTableAttribute).AddSpareFields)
-                                    tableAttrDomainIDFlags.Add(DirectCast(anAttribute, ormSchemaTableAttribute).AddDomainID)
-                                    '** FIELD COLUMN
-                                ElseIf anAttribute.GetType().Equals(GetType(ormSchemaColumnAttribute)) Then
-                                    Dim aSchemaColumnAttribute = DirectCast(anAttribute, ormSchemaColumnAttribute)
-                                    With aSchemaColumnAttribute
-                                        Dim anOTDBFieldDesc As New ormFieldDescription
-                                        anOTDBFieldDesc.ColumnName = aFieldInfo.GetValue(Nothing)
-                                        anOTDBFieldDesc.ID = .ID
-                                        anOTDBFieldDesc.Title = .Title
-                                        anOTDBFieldDesc.Relation = .Relation
-                                        anOTDBFieldDesc.Aliases = .Aliases
-                                        anOTDBFieldDesc.IsNullable = .IsNullable
-                                        anOTDBFieldDesc.Datatype = .Typeid
-                                        anOTDBFieldDesc.Parameter = .Parameter
-                                        anOTDBFieldDesc.Size = .Size
-                                        anOTDBFieldDesc.Description = .Description
-                                        anOTDBFieldDesc.DefaultValue = .DefaultValue
-                                        anOTDBFieldDesc.IsArray = .IsArray
-                                        anOTDBFieldDesc.Version = .Version
-                                        '** ordinal position given or by the way they are coming
-                                        If .Posordinal = 0 Then
-                                            anOTDBFieldDesc.ordinalPosition = ordinalPos
-                                            ordinalPos += 1
-                                        Else
-                                            anOTDBFieldDesc.ordinalPosition = .Posordinal
-                                        End If
-
-                                        anOTDBFieldDesc.SpareFieldTag = .SpareFieldTag
-
-                                        '** add the field
-                                        fieldDescs.Add(anOTDBFieldDesc)
-
-                                        If .PrimaryKeyordinal > 0 Then
-                                            If primaryKeyList.ContainsKey(.PrimaryKeyordinal) Then
-                                                Call CoreMessageHandler(subname:="ormDataObject.CreateSchema(of T)", message:="Primary key member has a position number more than once", _
-                                                                       arg1:=anOTDBFieldDesc.ColumnName, messagetype:=otCoreMessageType.InternalError)
-                                                Return False
-                                            End If
-                                            primaryKeyList.Add(.PrimaryKeyordinal, anOTDBFieldDesc.ColumnName)
-                                        End If
-                                    End With
-                                    '** INDEX
-                                ElseIf anAttribute.GetType().Equals(GetType(ormSchemaIndexAttribute)) Then
-                                    Dim theColumnNames As String() = DirectCast(anAttribute, ormSchemaIndexAttribute).ColumnNames
-                                    Dim theIndexname As String = aFieldInfo.GetValue(Nothing)
-
-                                    If indexList.ContainsKey(theIndexname) Then
-                                        indexList.Remove(theIndexname)
+                        If anAttribute.GetType().Equals(GetType(ormSchemaTableAttribute)) Then
+                            '** Schema Definition
+                            tableIDs.Add(DirectCast(anAttribute, ormSchemaTableAttribute).TableName)
+                            tableAttrIds.Add(DirectCast(anAttribute, ormSchemaTableAttribute).ID)
+                            tableVersions.Add(DirectCast(anAttribute, ormSchemaTableAttribute).Version)
+                            tableAttrDeleteFlags.Add(DirectCast(anAttribute, ormSchemaTableAttribute).AddDeleteFieldBehavior)
+                            tableAttrSpareFieldsFlags.Add(DirectCast(anAttribute, ormSchemaTableAttribute).AddSpareFields)
+                            tableAttrDomainIDFlags.Add(DirectCast(anAttribute, ormSchemaTableAttribute).AddDomainID)
+                            '** FIELD COLUMN
+                        ElseIf anAttribute.GetType().Equals(GetType(ormSchemaColumnAttribute)) Then
+                            Dim aSchemaColumnAttribute = DirectCast(anAttribute, ormSchemaColumnAttribute)
+                            With aSchemaColumnAttribute
+                                Dim anOTDBFieldDesc As New ormFieldDescription
+                                anOTDBFieldDesc.ColumnName = DirectCast(anAttribute, ormSchemaColumnAttribute).ColumnName
+                                '*** REFERENCE OBJECT ENTRY
+                                If DirectCast(anAttribute, ormSchemaColumnAttribute).HasValueReferenceObjectEntry Then
+                                    Dim refTablename As String = ""
+                                    Dim refColumnName As String = ""
+                                    If DirectCast(anAttribute, ormSchemaColumnAttribute).ReferenceObjectEntry.Contains(".") Then
+                                        Dim j As UShort = DirectCast(anAttribute, ormSchemaColumnAttribute).ReferenceObjectEntry.IndexOf(".")
+                                        refTablename = DirectCast(anAttribute, ormSchemaColumnAttribute).ReferenceObjectEntry.Substring(0, j - 1)
+                                        refColumnName = DirectCast(anAttribute, ormSchemaColumnAttribute).ReferenceObjectEntry.Substring(j + 1)
+                                    ElseIf DirectCast(anAttribute, ormSchemaColumnAttribute).ReferenceObjectEntry.Contains(ConstDelimiter) Then
+                                        Dim j As UShort = DirectCast(anAttribute, ormSchemaColumnAttribute).ReferenceObjectEntry.IndexOf(ConstDelimiter)
+                                        refTablename = DirectCast(anAttribute, ormSchemaColumnAttribute).ReferenceObjectEntry.Substring(0, j - 1)
+                                        refColumnName = DirectCast(anAttribute, ormSchemaColumnAttribute).ReferenceObjectEntry.Substring(j + 1)
+                                    Else
+                                        refTablename = DirectCast(anAttribute, ormSchemaColumnAttribute).ReferenceObjectEntry
+                                        refColumnName = DirectCast(anAttribute, ormSchemaColumnAttribute).ColumnName
                                     End If
-                                    indexList.Add(key:=theIndexname, value:=theColumnNames)
+                                    Dim anReferenceAttribute As ormSchemaColumnAttribute = Reflector.GetColumnAttribute(tableid:=refTablename, columnName:=refColumnName)
+                                    If anReferenceAttribute IsNot Nothing Then
+                                        With anReferenceAttribute
+                                            If .HasValueID Then anOTDBFieldDesc.ID = .ID
+                                            If .HasValueTitle Then anOTDBFieldDesc.Title = .Title
+                                            If .HasValueRelation Then anOTDBFieldDesc.Relation = .Relation
+                                            If .HasValueAliases Then anOTDBFieldDesc.Aliases = .Aliases
+                                            If .HasValueIsNullable Then anOTDBFieldDesc.IsNullable = .IsNullable
+                                            If .HasValueTypeID Then anOTDBFieldDesc.Datatype = .Typeid
+                                            If .HasValueParameter Then anOTDBFieldDesc.Parameter = .Parameter
+                                            If .HasValueSize Then anOTDBFieldDesc.Size = .Size
+                                            If .HasValueDescription Then anOTDBFieldDesc.Description = .Description
+                                            If .HasValueDefaultValue Then anOTDBFieldDesc.DefaultValue = .DefaultValue
+                                            If .HasValueIsArray Then anOTDBFieldDesc.IsArray = .IsArray
+                                            If .HasValueVersion Then anOTDBFieldDesc.Version = .Version
+                                            If .HasValueSpareFieldTag Then anOTDBFieldDesc.SpareFieldTag = .SpareFieldTag
+                                        End With
+
+                                    Else
+                                        CoreMessageHandler(message:="referenceObjectEntry  table id <" & refTablename & "> and column name <" & refColumnName & "> not found for column schema", _
+                                                           entryname:=anOTDBFieldDesc.ColumnName, tablename:=GetType(T).Name, subname:="ormDataObject.createSchema(of T)", messagetype:=otCoreMessageType.InternalError)
+                                    End If
                                 End If
 
-                            Next
+                                '** Take Object Values
+                                If .HasValueID Then
+                                    anOTDBFieldDesc.ID = .ID
+                                Else : anOTDBFieldDesc.ID = ""
+                                End If
+                                If .HasValueTitle Then
+                                    anOTDBFieldDesc.Title = .Title
+                                Else : anOTDBFieldDesc.Title = ""
+                                End If
+                                If .HasValueRelation Then
+                                    anOTDBFieldDesc.Relation = .Relation
+                                Else : anOTDBFieldDesc.Relation = {}
+                                End If
+                                If .HasValueAliases Then
+                                    anOTDBFieldDesc.Aliases = .Aliases
+                                Else : anOTDBFieldDesc.Aliases = {}
+                                End If
+                                If .HasValueIsNullable Then
+                                    anOTDBFieldDesc.IsNullable = .IsNullable
+                                Else : anOTDBFieldDesc.IsNullable = False
+                                End If
+                                If .HasValueTypeID Then
+                                    anOTDBFieldDesc.Datatype = .Typeid
+                                Else : anOTDBFieldDesc.Datatype = otFieldDataType.Text
+                                End If
+
+                                If .HasValueParameter Then
+                                    anOTDBFieldDesc.Parameter = .Parameter
+                                Else : anOTDBFieldDesc.Parameter = ""
+                                End If
+
+                                If .HasValueSize Then
+                                    anOTDBFieldDesc.Size = .Size
+                                Else : anOTDBFieldDesc.Size = 0
+                                End If
+
+                                If .HasValueDescription Then
+                                    anOTDBFieldDesc.Description = .Description
+                                Else : anOTDBFieldDesc.Description = ""
+                                End If
+
+                                If .DefaultValue IsNot Nothing Then
+                                    anOTDBFieldDesc.DefaultValue = .DefaultValue
+                                Else : anOTDBFieldDesc.DefaultValue = ""
+                                End If
+
+                                If .HasValueIsArray Then
+                                    anOTDBFieldDesc.IsArray = .IsArray
+                                Else : anOTDBFieldDesc.IsArray = False
+                                End If
+
+                                If .HasValueVersion Then
+                                    anOTDBFieldDesc.Version = .Version
+                                Else : anOTDBFieldDesc.Version = 1
+                                End If
+
+                                If .HasValueSpareFieldTag Then
+                                    anOTDBFieldDesc.SpareFieldTag = .SpareFieldTag
+                                Else : anOTDBFieldDesc.SpareFieldTag = False
+                                End If
+
+                                '** ordinal position given or by the way they are coming
+                                If .hasValuePosOrdinal Then
+                                    anOTDBFieldDesc.ordinalPosition = ordinalPos
+                                    ordinalPos += 1
+                                Else
+                                    anOTDBFieldDesc.ordinalPosition = .Posordinal
+                                End If
+
+
+                                '** add the field
+                                fieldDescs.Add(anOTDBFieldDesc)
+
+                                If .HasValuePrimaryKeyOrdinal Then
+                                    If primaryKeyList.ContainsKey(.PrimaryKeyOrdinal) Then
+                                        Call CoreMessageHandler(subname:="ormDataObject.CreateSchema(of T)", message:="Primary key member has a position number more than once", _
+                                                               arg1:=anOTDBFieldDesc.ColumnName, messagetype:=otCoreMessageType.InternalError)
+                                        Return False
+                                    End If
+                                    primaryKeyList.Add(.PrimaryKeyOrdinal, anOTDBFieldDesc.ColumnName)
+                                End If
+                            End With
+                            '** INDEX
+                        ElseIf anAttribute.GetType().Equals(GetType(ormSchemaIndexAttribute)) Then
+                            Dim theColumnNames As String() = DirectCast(anAttribute, ormSchemaIndexAttribute).ColumnNames
+                            Dim theIndexname As String = DirectCast(anAttribute, ormSchemaIndexAttribute).IndexName
+
+                            If indexList.ContainsKey(theIndexname) Then
+                                indexList.Remove(theIndexname)
+                            End If
+                            indexList.Add(key:=theIndexname, value:=theColumnNames)
                         End If
+
                     Next
 
                     Dim I As ULong = 0
                     '*** create the table with schema entries
+                    '***
                     For Each aTableID In tableIDs
                         Dim aObjectDefinition As New ObjectDefinition
 
@@ -4739,7 +5026,7 @@ Namespace OnTrack
                             '** fire event
                             ourEventArgs = New ormDataObjectEventArgs([object]:=aObjectDefinition)
                             RaiseEvent OnSchemaCreated(Nothing, e:=ourEventArgs)
-                           
+
                         End With
 
 
@@ -4779,10 +5066,10 @@ Namespace OnTrack
             ''' <returns>the iotdbdataobject or nothing (if checkUnique)</returns>
             ''' <remarks></remarks>
             Protected Shared Function CreateDataObjectBy(Of T As {iormInfusable, iormPersistable, New}) _
-                                (ByRef pkArray() As Object, Optional checkUnique As Boolean = False) As iormPersistable
+                                (ByRef pkArray() As Object, Optional domainID As String = "", Optional checkUnique As Boolean = False) As iormPersistable
                 Dim aDataObject As New T
 
-                If aDataObject.Create(pkArray, checkUnique:=checkUnique) Then
+                If aDataObject.Create(pkArray, domainID:=domainID, checkUnique:=checkUnique) Then
                     Return aDataObject
                 Else
                     Return Nothing
@@ -4792,12 +5079,15 @@ Namespace OnTrack
             ''' generic function to create a dataobject by primary key
             ''' </summary>
             ''' <param name="pkArray"></param>
+            ''' <param name="domainID" > optional domain ID for domain behavior</param>
             ''' <param name="dataobject"></param>
             ''' <returns></returns>
             ''' <remarks></remarks>
             Protected Overridable Function Create(ByRef pkArray() As Object, _
+                                                  Optional domainID As String = "", _
                                                   Optional checkUnique As Boolean = False, _
                                                   Optional noInitialize As Boolean = False) As Boolean Implements iormPersistable.Create
+                Dim domindex As Integer = -1
 
                 '** initialize
                 If Not noInitialize AndAlso Not Me.IsInitialized AndAlso Not Me.Initialize Then
@@ -4813,6 +5103,22 @@ Namespace OnTrack
                     Return False
                 End If
 
+                '** check for domainBehavior
+                If Me.HasDomainBehavior Then
+                    domIndex = Me.TableSchema.GetDomainIDPKOrdinal
+                    If domIndex > 0 Then
+                        If domainID = "" Then domainID = CurrentSession.CurrentDomainID
+                        If pkArray.Count = Me.TableSchema.NoPrimaryKeyFields Then
+                            pkArray(domIndex - 1) = UCase(domainID)
+                        Else
+                            ReDim Preserve pkArray(Me.TableSchema.NoPrimaryKeyFields)
+                            pkArray(domIndex - 1) = UCase(domainID)
+                        End If
+                    Else
+                        CoreMessageHandler(message:="domainID is not in primary key although domain behavior is set", subname:="ormDataObject.create", _
+                                           arg1:=domainID, tablename:=Me.TableID, entryname:=ConstFNDomainID, messagetype:=otCoreMessageType.InternalError)
+                    End If
+                End If
                 '** fire event
                 Dim ourEventArgs As New ormDataObjectEventArgs(Me, record:=Me.Record, pkarray:=pkArray)
                 RaiseEvent OnCreating(Me, ourEventArgs)
@@ -4838,7 +5144,18 @@ Namespace OnTrack
                         Dim aRecord As ormRecord = aStore.GetRecordByPrimaryKey(pkArray)
                         '* not found
                         If aRecord IsNot Nothing Then
-                            Return False
+                            If Me.HasDeletePerFlagBehavior Then
+                                If aRecord.HasIndex(ConstFNIsDeleted) Then
+                                    If CBool(aRecord.GetValue(ConstFNIsDeleted)) Then
+                                        CoreMessageHandler(message:="deleted (per flag) object found - use undelete instead of create", messagetype:=otCoreMessageType.ApplicationWarning, _
+                                                            arg1:=pkArray, tablename:=Me.TableID)
+                                        Return False
+                                    End If
+                                End If
+                            Else
+                                Return False
+                            End If
+
                         Else
                             Me.Record.IsCreated = True
                         End If
@@ -4853,6 +5170,10 @@ Namespace OnTrack
                 '** set the table of the record
                 If Not Me.Record.IsTableSet AndAlso Not noInitialize Then Me.Record.SetTable(Me.TableID)
 
+                '** infuse what we have
+                Me.Infuse(Me.Record)
+
+                '** set status
                 _IsCreated = True
                 _IsDeleted = False
                 _deletedOn = ConstNullDate
@@ -4883,10 +5204,27 @@ Namespace OnTrack
             ''' <param name="pkArray"></param>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public Overloads Shared Function Retrieve(Of T As {iormInfusable, ormDataObject, iormPersistable, New})(pkArray() As Object, _
-                                                                                                                    Optional dbdriver As iormDBDriver = Nothing, _
-                                                                                                                    Optional forceReload As Boolean = False) As T
+            Public Overloads Shared Function Retrieve(Of T As {iormInfusable, ormDataObject, iormPersistable, New}) _
+                (pkArray() As Object, Optional domainID As String = "", Optional dbdriver As iormDBDriver = Nothing, Optional forceReload As Boolean = False) As T
                 Dim anObject As New T
+                Dim domindex As Integer = -1
+
+                '** check for domainBehavior
+                If anObject.HasDomainBehavior Then
+                    domindex = anObject.TableSchema.GetDomainIDPKOrdinal
+                    If domainID = "" Then domainID = CurrentSession.CurrentDomainID
+                    If domindex > 0 Then
+                        If pkArray.Count = anObject.TableSchema.NoPrimaryKeyFields Then
+                            pkArray(domindex - 1) = UCase(domainID)
+                        Else
+                            ReDim Preserve pkArray(anObject.TableSchema.NoPrimaryKeyFields)
+                            pkArray(domindex - 1) = UCase(domainID)
+                        End If
+                    Else
+                        CoreMessageHandler(message:="domainID is not in primary key although domain behavior is set", subname:="ormDataObject.Retrieve", _
+                                           arg1:=domainID, tablename:=anObject.TableID, entryname:=ConstFNDomainID, messagetype:=otCoreMessageType.InternalError)
+                    End If
+                End If
 
                 '* fire event
                 Dim ourEventArgs As New ormDataObjectEventArgs(anObject, pkArray:=pkArray)
@@ -4901,9 +5239,20 @@ Namespace OnTrack
                 End If
 
                 '* use Cache
-                If ourEventArgs.UseCache Then anObject = Cache.LoadFromCache(objecttag:=anObject.TableID, key:=pkArray)
+                If ourEventArgs.UseCache Then
+                    anObject = Cache.LoadFromCache(objecttag:=anObject.TableID, key:=pkArray)
+                    '* Domain Behavior - is global cached but it might be that we are missing the domain related one if one has been created
+                    '* after load of the object - since not in cache
+                    If anObject Is Nothing AndAlso domindex > 0 Then
+                        pkArray(domindex - 1) = UCase(domainID)
+                        anObject = Cache.LoadFromCache(objecttag:=anObject.TableID, key:=pkArray)
+                    End If
+                End If
+
+
+                '* load object
                 If anObject Is Nothing OrElse forceReload Then
-                    anObject = ormDataObject.LoadDataObjectBy(Of T)(pkArray:=pkArray, dbdriver:=dbdriver)
+                    anObject = ormDataObject.LoadDataObjectBy(Of T)(pkArray:=pkArray, domainID:=domainID, dbdriver:=dbdriver)
                     If Not anObject Is Nothing AndAlso ourEventArgs.UseCache Then
                         Cache.RegisterCacheFor(anObject.TableID)
                         Cache.AddToCache(objectTag:=anObject.TableID, key:=pkArray, theOBJECT:=anObject)
@@ -5135,7 +5484,9 @@ Namespace OnTrack
                                         '*** set the class internal field
                                         aValue = record.GetValue(DirectCast(anAttribute, ormColumnMappingAttribute).Fieldname)
                                         Dim converter As TypeConverter = TypeDescriptor.GetConverter(aField.FieldType)
-                                        If aValue Is Nothing OrElse aField.FieldType.Equals(aValue.GetType) Then
+                                        If IsDBNull(aValue) Then
+                                            ' do nothing leave the value
+                                        ElseIf aValue Is Nothing OrElse aField.FieldType.Equals(aValue.GetType) Then
                                             aField.SetValue(dataobject, aValue)
                                         ElseIf converter.GetType.Equals(GetType(EnumConverter)) Then
                                             Dim anewValue As Object = CTypeDynamic(aValue, aFieldType)
@@ -5173,7 +5524,7 @@ Namespace OnTrack
                                         End If
 
                                     End If
-                                End If
+                                    End If
 
                             Next
                         End If
@@ -5283,13 +5634,13 @@ Namespace OnTrack
                     Me.Record = record
                     If Not Infuse(Me, record) Then
                         '** minimal program if we failed to infuse by reflection
-                        If Me.TableSchema.HasFieldname(ConstFNUpdatedOn) Then
+                        If Me.TableSchema.Hasfieldname(ConstFNUpdatedOn) Then
                             _updatedOn = CDate(record.GetValue(ConstFNUpdatedOn))
                         End If
-                        If Me.TableSchema.HasFieldname(ConstFNCreatedOn) Then
+                        If Me.TableSchema.Hasfieldname(ConstFNCreatedOn) Then
                             _createdOn = CDate(record.GetValue(ConstFNCreatedOn))
                         End If
-                        If Me.TableSchema.HasFieldname(ConstFNDeletedOn) Then
+                        If Me.TableSchema.Hasfieldname(ConstFNDeletedOn) Then
                             _createdOn = CDate(record.GetValue(ConstFNDeletedOn))
                         End If
                     End If
@@ -5321,7 +5672,7 @@ Namespace OnTrack
             Implements iormDataStore
 
             Private _TableID As String 'Name of the Table or Datastore in the Database
-            Private _TableSchema As iotTableSchema  'Schema (Description) of the Table or DataStore
+            Private _TableSchema As iotDataSchema  'Schema (Description) of the Table or DataStore
             Private _Connection As iormConnection  ' Connection to use to access the Table or Datastore
 
             Private _PropertyBag As New Dictionary(Of String, Object)
@@ -5478,11 +5829,11 @@ Namespace OnTrack
             ''' Gets or sets the DB table schema.
             ''' </summary>
             ''' <value>The DB table schema.</value>
-            Public Overridable Property TableSchema() As iotTableSchema Implements iormDataStore.TableSchema
+            Public Overridable Property TableSchema() As iotDataSchema Implements iormDataStore.TableSchema
                 Get
                     Return _TableSchema
                 End Get
-                Friend Set(value As iotTableSchema)
+                Friend Set(value As iotDataSchema)
                     _TableSchema = value
                 End Set
             End Property
@@ -5783,7 +6134,7 @@ Namespace OnTrack
         '*****
 
         Public MustInherit Class ormTableSchema
-            Implements iotTableSchema
+            Implements iotDataSchema
 
             Protected _TableID As String
 
@@ -5796,7 +6147,7 @@ Namespace OnTrack
             Protected _PrimaryKeyIndexName As String
 
             Protected _IsInitialized As Boolean = False
-
+            Protected _DomainIDPrimaryKeyOrdinal As Short = -1 ' cache the Primary Key Ordinal of domainID for domainbehavior
             ''' <summary>
             ''' constructor
             ''' </summary>
@@ -5817,14 +6168,14 @@ Namespace OnTrack
             ''' <param name="p1">The p1.</param>
             ''' <returns></returns>
             Public MustOverride Function AssignNativeDBParameter(fieldname As String, _
-                                                                 Optional parametername As String = "") As System.Data.IDbDataParameter Implements iotTableSchema.AssignNativeDBParameter
+                                                                 Optional parametername As String = "") As System.Data.IDbDataParameter Implements iotDataSchema.AssignNativeDBParameter
 
 
             ''' <summary>
             ''' Gets or sets the is initialized. Should be True if the tableschema has a tableid 
             ''' </summary>
             ''' <value>The is initialized.</value>
-            Public ReadOnly Property IsInitialized() As Boolean Implements iotTableSchema.IsInitialized
+            Public ReadOnly Property IsInitialized() As Boolean Implements iotDataSchema.IsInitialized
                 Get
                     Return Me._IsInitialized
                 End Get
@@ -5835,7 +6186,7 @@ Namespace OnTrack
             ''' resets the TableSchema to hold nothing
             ''' </summary>
             ''' <remarks></remarks>
-            Protected Overridable Sub reset()
+            Protected Overridable Sub Reset()
                 Dim nullArray As Object = {}
                 _Fieldnames = nullArray
                 _fieldsDictionary.Clear()
@@ -5844,29 +6195,58 @@ Namespace OnTrack
                 _Primarykeys = nullArray
                 _NoPrimaryKeys = 0
                 _TableID = ""
+                _DomainIDPrimaryKeyOrdinal = -1
             End Sub
 
-            MustOverride Property TableID As String Implements iotTableSchema.TableID
-            Public MustOverride Function Refresh(Optional reloadForce As Boolean = False) As Boolean Implements iotTableSchema.Refresh
+            MustOverride Property TableID As String Implements iotDataSchema.TableID
+            Public MustOverride Function Refresh(Optional reloadForce As Boolean = False) As Boolean Implements iotDataSchema.Refresh
             ''' <summary>
             ''' Names of the Indices of the table
             ''' </summary>
             ''' <value>List(of String)</value>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public ReadOnly Property Indices As List(Of String) Implements iotTableSchema.Indices
+            Public ReadOnly Property Indices As List(Of String) Implements iotDataSchema.Indices
                 Get
                     Return _indexDictionary.Keys.ToList
                 End Get
 
             End Property
             ''' <summary>
+            ''' returns the primary Key ordinal (1..n) for the domain ID or less zero if not in primary key
+            ''' </summary>
+            ''' <returns></returns>
+            ''' <remarks></remarks>
+            Public Function GetDomainIDPKOrdinal() As Integer Implements iotDataSchema.GetDomainIDPKOrdinal
+                If _DomainIDPrimaryKeyOrdinal < 0 Then
+                    Dim i As Integer = Me.GetFieldordinal(index:=Domain.ConstFNDomainID)
+                    If i < 0 Then
+                        Return -1
+                    Else
+                        If Not Me.HasPrimaryKeyFieldname(name:=Domain.ConstFNDomainID) Then
+                            Return -1
+                        Else
+                            For i = 1 To Me.NoPrimaryKeyFields
+                                If Me.GetPrimaryKeyFieldname(i) = Domain.ConstFNDomainID Then
+                                    _DomainIDPrimaryKeyOrdinal = i
+                                    Return i
+                                End If
+                            Next
+                            Return -1
+                        End If
+                    End If
+                Else
+                    Return _DomainIDPrimaryKeyOrdinal
+                End If
+
+            End Function
+            ''' <summary>
             ''' returns the default Value
             ''' </summary>
             ''' <param name="index"></param>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public MustOverride Function GetDefaultValue(ByVal index As Object) As Object Implements iotTableSchema.GetDefaultValue
+            Public MustOverride Function GetDefaultValue(ByVal index As Object) As Object Implements iotDataSchema.GetDefaultValue
 
             ''' <summary>
             ''' returns if there is a default Value
@@ -5874,7 +6254,7 @@ Namespace OnTrack
             ''' <param name="index"></param>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public MustOverride Function HasDefaultValue(ByVal index As Object) As Boolean Implements iotTableSchema.HasDefaultValue
+            Public MustOverride Function HasDefaultValue(ByVal index As Object) As Boolean Implements iotDataSchema.HasDefaultValue
 
 
             '**** getIndex returns the ArrayList of Fieldnames for the Index or Nothing
@@ -5884,7 +6264,7 @@ Namespace OnTrack
             ''' <param name="indexname"></param>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public Function GetIndex(indexname As String) As ArrayList Implements iotTableSchema.GetIndex
+            Public Function GetIndex(indexname As String) As ArrayList Implements iotDataSchema.GetIndex
 
 
                 If Not _indexDictionary.ContainsKey(indexname) Then
@@ -5901,7 +6281,7 @@ Namespace OnTrack
             ''' <param name="indexname"></param>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public Function HasIndex(indexname As String) As Boolean Implements iotTableSchema.HasIndex
+            Public Function HasIndex(indexname As String) As Boolean Implements iotDataSchema.HasIndex
                 If Not _indexDictionary.ContainsKey(indexname) Then
                     Return False
                 Else
@@ -5916,7 +6296,7 @@ Namespace OnTrack
             ''' <value></value>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            ReadOnly Property PrimaryKeyIndexName As String Implements iotTableSchema.PrimaryKeyIndexName
+            ReadOnly Property PrimaryKeyIndexName As String Implements iotDataSchema.PrimaryKeyIndexName
                 Get
                     PrimaryKeyIndexName = _PrimaryKeyIndexName
                 End Get
@@ -5928,7 +6308,7 @@ Namespace OnTrack
             ''' </summary>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public ReadOnly Property NoFields() As Integer Implements iotTableSchema.NoFields
+            Public ReadOnly Property NoFields() As Integer Implements iotDataSchema.NoFields
                 Get
                     Return UBound(_Fieldnames) + 1 'zero bound
                 End Get
@@ -5938,7 +6318,7 @@ Namespace OnTrack
             ''' </summary>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public ReadOnly Property Fieldnames() As List(Of String) Implements iotTableSchema.Fieldnames
+            Public ReadOnly Property Fieldnames() As List(Of String) Implements iotDataSchema.Fieldnames
                 Get
                     Return _Fieldnames.ToList
 
@@ -5953,7 +6333,7 @@ Namespace OnTrack
             ''' <param name="anIndex"></param>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public Function GetFieldordinal(index As Object) As Integer Implements iotTableSchema.GetFieldordinal
+            Public Function GetFieldordinal(index As Object) As Integer Implements iotDataSchema.GetFieldordinal
                 Dim i As ULong
 
                 Try
@@ -5990,7 +6370,7 @@ Namespace OnTrack
             ''' <param name="i"></param>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public Function GetFieldname(ByVal i As Integer) As String Implements iotTableSchema.GetFieldname
+            Public Function GetFieldname(ByVal i As Integer) As String Implements iotDataSchema.GetFieldname
 
                 If i > 0 And i <= UBound(_Fieldnames) + 1 Then
                     Return _Fieldnames(i - 1)
@@ -6008,7 +6388,7 @@ Namespace OnTrack
             ''' <param name="name"></param>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public Function HasFieldname(ByVal name As String) As Boolean Implements iotTableSchema.HasFieldname
+            Public Function HasFieldname(ByVal name As String) As Boolean Implements iotDataSchema.HasFieldname
 
                 Dim i As Integer
 
@@ -6023,16 +6403,16 @@ Namespace OnTrack
             End Function
 
             ''' <summary>
-            ''' gets the fieldname of the primary key field by number
+            ''' gets the fieldname of the primary key field by number (1..)
             ''' </summary>
             ''' <param name="i">1..n</param>
             ''' <returnsString></returns>
             ''' <remarks></remarks>
-            Public Function GetPrimaryKeyFieldname(i As UShort) As String Implements iotTableSchema.GetPrimaryKeyFieldname
+            Public Function GetPrimaryKeyFieldname(i As UShort) As String Implements iotDataSchema.GetPrimaryKeyFieldname
                 Dim aCollection As ArrayList
 
                 If i < 1 Then
-                    Call CoreMessageHandler(subname:="clsOTDTable.getPrimaryKeyFieldName", _
+                    Call CoreMessageHandler(subname:="ormTableSchema.getPrimaryKeyFieldName", _
                                           message:="primary Key no : " & i.ToString & " is less then 1", _
                                           arg1:=i)
                     Return ""
@@ -6044,7 +6424,7 @@ Namespace OnTrack
                     If _indexDictionary.ContainsKey(_PrimaryKeyIndexName) Then
                         aCollection = _indexDictionary.Item(_PrimaryKeyIndexName)
                         If i > aCollection.Count Then
-                            Call CoreMessageHandler(subname:="clsOTDTable.getPrimaryKeyFieldIndex", _
+                            Call CoreMessageHandler(subname:="ormTableSchema.getPrimaryKeyFieldIndex", _
                                                   message:="primary Key no : " & i.ToString & " is out of range ", _
                                                   arg1:=i)
                             Return ""
@@ -6062,7 +6442,7 @@ Namespace OnTrack
 
 
                 Catch ex As Exception
-                    Call CoreMessageHandler(showmsgbox:=False, subname:="clsOTDTable.getPrimaryKeyFieldName", _
+                    Call CoreMessageHandler(showmsgbox:=False, subname:="ormTableSchema.getPrimaryKeyFieldName", _
                                           tablename:=_TableID, exception:=ex)
                     Return ""
                 End Try
@@ -6074,7 +6454,7 @@ Namespace OnTrack
             ''' <param name="i">1..n</param>
             ''' <returnsString></returns>
             ''' <remarks></remarks>
-            Public Function HasPrimaryKeyFieldname(ByRef name As String) As Boolean Implements iotTableSchema.HasprimaryKeyFieldname
+            Public Function HasPrimaryKeyFieldname(ByRef name As String) As Boolean Implements iotDataSchema.HasprimaryKeyfieldname
                 Dim aCollection As ArrayList
 
 
@@ -6094,7 +6474,7 @@ Namespace OnTrack
 
 
                 Catch ex As Exception
-                    Call CoreMessageHandler(showmsgbox:=False, subname:="clsOTDTable.hasPrimaryKeyName", _
+                    Call CoreMessageHandler(showmsgbox:=False, subname:="ormTableSchema.hasPrimaryKeyName", _
                                           tablename:=_TableID, exception:=ex)
                     Return Nothing
                 End Try
@@ -6107,13 +6487,13 @@ Namespace OnTrack
             ''' <param name="i">number of primary key field 1..n </param>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public Function GetordinalOfPrimaryKeyField(i As UShort) As Integer Implements iotTableSchema.GetordinalOfPrimaryKeyField
+            Public Function GetordinalOfPrimaryKeyField(i As UShort) As Integer Implements iotDataSchema.GetordinalOfPrimaryKeyField
                 Dim aCollection As ArrayList
                 Dim aFieldName As String
 
 
                 If i < 1 Then
-                    Call CoreMessageHandler(subname:="clsOTDTable.getPrimaryKeyFieldIndex", _
+                    Call CoreMessageHandler(subname:="ormTableSchema.getPrimaryKeyFieldIndex", _
                                           message:="primary Key no : " & i.ToString & " is less then 1", _
                                           arg1:=i)
                     GetordinalOfPrimaryKeyField = -1
@@ -6127,7 +6507,7 @@ Namespace OnTrack
                         aCollection = _indexDictionary.Item((_PrimaryKeyIndexName))
 
                         If i > aCollection.Count Then
-                            Call CoreMessageHandler(subname:="clsOTDTable.getPrimaryKeyFieldIndex", _
+                            Call CoreMessageHandler(subname:="ormTableSchema.getPrimaryKeyFieldIndex", _
                                                   message:="primary Key no : " & i.ToString & " is out of range ", _
                                                   arg1:=i)
                             GetordinalOfPrimaryKeyField = -1
@@ -6138,7 +6518,7 @@ Namespace OnTrack
                         GetordinalOfPrimaryKeyField = _fieldsDictionary.Item((aFieldName))
                         Exit Function
                     Else
-                        Call CoreMessageHandler(subname:="clsOTDTable.getPrimaryKeyFieldIndex", _
+                        Call CoreMessageHandler(subname:="ormTableSchema.getPrimaryKeyFieldIndex", _
                                               message:="primary Key : " & _PrimaryKeyIndexName & " does not exist !", _
                                               arg1:=i)
                         System.Diagnostics.Debug.WriteLine("clsOTDBTableSchema: primary Key : " & _PrimaryKeyIndexName & " does not exist !")
@@ -6147,7 +6527,7 @@ Namespace OnTrack
                     End If
 
                 Catch ex As Exception
-                    Call CoreMessageHandler(showmsgbox:=False, subname:="clsOTDTable.getPrimaryKeyFieldIndex", tablename:=_TableID, exception:=ex)
+                    Call CoreMessageHandler(showmsgbox:=False, subname:="ormTableSchema.getPrimaryKeyFieldIndex", tablename:=_TableID, exception:=ex)
                     Return -1
                 End Try
             End Function
@@ -6157,7 +6537,7 @@ Namespace OnTrack
             ''' </summary>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public Function NoPrimaryKeyFields() As Integer Implements iotTableSchema.NoPrimaryKeyFields
+            Public Function NoPrimaryKeyFields() As Integer Implements iotDataSchema.NoPrimaryKeyFields
                 Dim aCollection As ArrayList
 
                 Try
@@ -6175,7 +6555,7 @@ Namespace OnTrack
                     End If
 
                 Catch ex As Exception
-                    Call CoreMessageHandler(showmsgbox:=False, subname:="clsOTDTable.noPrimaryKeys", tablename:=TableID, exception:=ex)
+                    Call CoreMessageHandler(showmsgbox:=False, subname:="ormTableSchema.noPrimaryKeys", tablename:=TableID, exception:=ex)
                     Return -1
                 End Try
 

@@ -214,7 +214,7 @@ Namespace OnTrack.Database
         Function GetUserValidation(ByVal username As String, Optional ByVal selectAnonymous As Boolean = False, Optional ByRef nativeConnection As Object = Nothing) As UserValidation
         '*** get the TableStore
         Function GetTableStore(ByVal tableID As String, Optional ByVal force As Boolean = False) As iormDataStore
-        Function GetTableSchema(ByVal tableID As String, Optional ByVal force As Boolean = False) As iotTableSchema
+        Function GetTableSchema(ByVal tableID As String, Optional ByVal force As Boolean = False) As iotDataSchema
 
         Function RunSqlStatement(ByVal sqlcmdstr As String, Optional ByRef parameters As List(Of ormSqlCommandParameter) = Nothing, _
         Optional silent As Boolean = True, Optional nativeConnection As Object = Nothing) As Boolean
@@ -326,7 +326,7 @@ Namespace OnTrack.Database
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Property TableSchema As iotTableSchema
+        Property TableSchema As iotDataSchema
         ''' <summary>
         ''' set or gets the ID (name) of the table
         ''' </summary>
@@ -588,7 +588,7 @@ Namespace OnTrack.Database
     ''' interface for a native table schema for a table store
     ''' </summary>
     ''' <remarks></remarks>
-    Public Interface iotTableSchema
+    Public Interface iotDataSchema
         ''' <summary>
         ''' associated table id of the schema
         ''' </summary>
@@ -630,7 +630,7 @@ Namespace OnTrack.Database
         ''' <param name="anIndex"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Function GetFieldordinal(anIndex As Object) As Integer
+        Function GetFieldordinal(index As Object) As Integer
 
         '**** return fieldnames as Collection
         '****
@@ -640,7 +640,7 @@ Namespace OnTrack.Database
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        ReadOnly Property fieldnames() As List(Of String)
+        ReadOnly Property Fieldnames() As List(Of String)
 
         '** return fieldname by index 
         '** Nothing if out of range
@@ -666,6 +666,13 @@ Namespace OnTrack.Database
         ''' <returns></returns>
         ''' <remarks></remarks>
         Function Hasfieldname(ByVal name As String) As Boolean
+
+        ''' <summary>
+        ''' returns the ordinal number of the domainID in the primary key array - less zero if not in the primary key
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Function GetDomainIDPKOrdinal() As Integer
 
         ''' <summary>
         ''' returns the Default Value for a fieldname
@@ -946,7 +953,7 @@ Namespace OnTrack.Database
         ''' <param name="pkArray"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Function LoadBy(ByRef pkArray() As Object) As Boolean
+        Function LoadBy(ByRef pkArray() As Object, Optional domainID As String = "", Optional loadDeleted As Boolean = False) As Boolean
         ''' <summary>
         ''' create a persistable dataobject
         ''' </summary>
@@ -954,7 +961,7 @@ Namespace OnTrack.Database
         ''' <param name="checkUnique"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Function Create(ByRef pkArray() As Object, Optional checkUnique As Boolean = False, Optional noInitialize As Boolean = False) As Boolean
+        Function Create(ByRef pkArray() As Object, Optional domainID As String = "", Optional checkUnique As Boolean = False, Optional noInitialize As Boolean = False) As Boolean
 
         ''' <summary>
         ''' deletes a persistable object in the datastore
@@ -1069,11 +1076,11 @@ Namespace OnTrack
 
         '***** raiseMessage informs the Receiver about the Message-Event
         '*****
-        Function raiseMessage(ByVal index As Long, ByRef MSGLOG As clsOTDBMessagelog) As Boolean
+        Function raiseMessage(ByVal index As Long, ByRef MSGLOG As ObjectLog) As Boolean
 
         '***** hands over the msglog object to the receiver
         '*****
-        Function attachMessageLog(ByRef MSGLOG As clsOTDBMessagelog) As Boolean
+        Function attachMessageLog(ByRef MSGLOG As ObjectLog) As Boolean
 
     End Interface
 End Namespace
@@ -1141,7 +1148,7 @@ Namespace OnTrack
     End Enum
     ' Enum of MilestoneTypes
 
-    Public Enum otSchemaDefTableEntryType
+    Public Enum otObjectEntryDefinitiontype
         Field = 1
         Compound = 2
         Table = 3
@@ -1155,6 +1162,10 @@ Namespace OnTrack
         IntervalLeft = 1
         IntervalInvalid = -2
 
+    End Enum
+    ' Type of links between objects
+    Public Enum otScheduleLinkType
+        Deliverable = 1
     End Enum
     'LogMessageTypes
 

@@ -46,10 +46,10 @@ Namespace OnTrack.XChange
 
         ' result
         Private _convertSucceeded As Boolean = False
-        Private _msglog As clsOTDBMessagelog
+        Private _msglog As ObjectLog
 
         Public Sub New(datatype As otFieldDataType, valuetype As convertValueType, value As Object,
-                       Optional isnull As Boolean = False, Optional isempty As Boolean = False, Optional msglog As clsOTDBMessagelog = Nothing)
+                       Optional isnull As Boolean = False, Optional isempty As Boolean = False, Optional msglog As ObjectLog = Nothing)
             _datatype = datatype
             _valuetype = valuetype
             Me.Value = value
@@ -122,11 +122,11 @@ Namespace OnTrack.XChange
         ''' Gets or sets the msglog.
         ''' </summary>
         ''' <value>The msglog.</value>
-        Public Property Msglog() As clsOTDBMessagelog
+        Public Property Msglog() As ObjectLog
             Get
                 Return Me._msglog
             End Get
-            Set(value As clsOTDBMessagelog)
+            Set(value As ObjectLog)
                 Me._msglog = value
             End Set
         End Property
@@ -808,7 +808,7 @@ Namespace OnTrack.XChange
         Protected _EntryDefinition As ObjectEntryDefinition
         Protected _ObjectDefinition As ObjectDefinition
         Protected _aliases As String()    ' not saved !
-        Protected _msglog As New clsOTDBMessagelog
+        Protected _msglog As New ObjectLog
         Protected _msglogtag As String
 
         '** initialize
@@ -1332,7 +1332,7 @@ Namespace OnTrack.XChange
                 If Me.ordinal = New Ordinal(0) And Orderno <> 0 Then
                     Me.ordinal = New Ordinal(Orderno)
                 End If
-                If Orderno = 0 And Me.ordinal <> New Ordinal(0) And Me.ordinal.Type = otordinalType.longType Then
+                If Orderno = 0 And Me.ordinal <> New Ordinal(0) And Me.ordinal.Type = ordinalType.longType Then
                     Me.Orderno = Me.ordinal.Value
                 End If
                 Call Me.Record.SetValue(constFNordinal, _ordinal.Value.ToString)
@@ -1411,7 +1411,7 @@ Namespace OnTrack.XChange
         <ormColumnMappingAttribute(fieldname:=constFNOutline)> Private _outlineid As String = ""
 
 
-        Private _msglog As New clsOTDBMessagelog
+        Private _msglog As New ObjectLog
         Private _processedDate As Date = ConstNullDate
 
         ' members itself per key:=indexnumber, item:=clsOTDBXChangeMember
@@ -1438,7 +1438,7 @@ Namespace OnTrack.XChange
         Public Sub New()
             Call MyBase.New(constTableID)
             'me.record.tablename = ourTableName
-            _msglog = New clsOTDBMessagelog
+            _msglog = New ObjectLog
 
         End Sub
 
@@ -3245,7 +3245,7 @@ Namespace OnTrack.XChange
         Private _isPrecheckedOk As Boolean = False
 
 
-        Private _msglog As New clsOTDBMessagelog
+        Private _msglog As New ObjectLog
 
         '** events for convert values
         Public Event ConvertRequest2HostValue As EventHandler(Of ConvertRequestEventArgs)
@@ -3482,12 +3482,12 @@ Namespace OnTrack.XChange
                                                  ByRef hostvalue As Object, ByVal dbvalue As Object,
                                                 Optional ByRef hostValueIsNull As Boolean = False, Optional ByRef hostValueIsEmpty As Boolean = False,
                                                 Optional dbValueIsNull As Boolean = False, Optional dbValueIsEmpty As Boolean = False,
-                                                Optional ByRef msglog As clsOTDBMessagelog = Nothing) As Boolean
+                                                Optional ByRef msglog As ObjectLog = Nothing) As Boolean
 
             ' set msglog
             If msglog Is Nothing Then
                 If msglog Is Nothing Then
-                    msglog = New clsOTDBMessagelog
+                    msglog = New ObjectLog
                 End If
                 'MSGLOG.Create(Me.Msglogtag)
             End If
@@ -3618,10 +3618,10 @@ Namespace OnTrack.XChange
                                                 ByVal hostvalue As Object, ByRef dbvalue As Object,
                                                 Optional hostValueIsNull As Boolean = False, Optional hostValueIsEmpty As Boolean = False,
                                                 Optional ByRef dbValueIsNull As Boolean = False, Optional ByRef dbValueIsEmpty As Boolean = False,
-                                                Optional ByRef msglog As clsOTDBMessagelog = Nothing) As Boolean
+                                                Optional ByRef msglog As ObjectLog = Nothing) As Boolean
             ' set msglog
             If msglog Is Nothing Then
-                msglog = New clsOTDBMessagelog
+                msglog = New ObjectLog
             End If
 
             '*** transfer
@@ -3775,7 +3775,7 @@ Namespace OnTrack.XChange
         Private _XChangedTimestamp As Date = ConstNullDate
 
         Private _slots As New SortedDictionary(Of Ordinal, XSlot) 'the map
-        Private _msglog As New clsOTDBMessagelog
+        Private _msglog As New ObjectLog
 
         '** events for convert values
         Public Event ConvertRequest2HostValue As EventHandler(Of ConvertRequestEventArgs)
@@ -3876,7 +3876,7 @@ Namespace OnTrack.XChange
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public ReadOnly Property MsgLog() As clsOTDBMessagelog
+        Public ReadOnly Property MsgLog() As ObjectLog
             Get
                 Return _msglog
             End Get
@@ -4538,14 +4538,14 @@ Namespace OnTrack.XChange
         ''' <param name="SUSPENDOVERLOAD"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function RunXPreCheck(Optional ByRef msglog As clsOTDBMessagelog = Nothing,
+        Public Function RunXPreCheck(Optional ByRef msglog As ObjectLog = Nothing,
                                      Optional ByVal suspendoverload As Boolean = True) As Boolean
             Dim flag As Boolean
 
             ' set msglog
             If msglog Is Nothing Then
                 If _msglog Is Nothing Then
-                    _msglog = New clsOTDBMessagelog
+                    _msglog = New ObjectLog
                 End If
                 msglog = _msglog
                 'msglog.Create()
@@ -4603,7 +4603,7 @@ Namespace OnTrack.XChange
         ''' <param name="suspendoverload"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function RunXChange(Optional ByRef msglog As clsOTDBMessagelog = Nothing,
+        Public Function RunXChange(Optional ByRef msglog As ObjectLog = Nothing,
                                    Optional ByVal suspendoverload As Boolean = True) As Boolean
             Dim flag As Boolean
             Dim aTarget As New Target
@@ -4613,7 +4613,7 @@ Namespace OnTrack.XChange
             ' set msglog
             If msglog Is Nothing Then
                 If _msglog Is Nothing Then
-                    _msglog = New clsOTDBMessagelog
+                    _msglog = New ObjectLog
                 End If
                 msglog = _msglog
                 'msglog.Create(Me.msglogtag)
@@ -4633,7 +4633,7 @@ Namespace OnTrack.XChange
                 Select Case LCase(anConfigObject.Objectname)
 
                     ' currschedules
-                    Case LCase(clsOTDBCurrSchedule.ConstTableID)
+                    Case LCase(CurrentSchedule.ConstTableID)
                         flag = True
 
                     Case LCase(XOutline.constTableID)
@@ -4693,7 +4693,7 @@ Namespace OnTrack.XChange
         Private Function CreateandUpdateObject(ByRef xobject As XConfigObjectEntry,
                                                ByRef record As ormRecord,
                                                ByRef pkarray() As Object,
-                                               Optional ByRef msglog As clsOTDBMessagelog = Nothing
+                                               Optional ByRef msglog As ObjectLog = Nothing
                                                 ) As Boolean
             Dim aDataObjectType As System.Type
             Dim aDataobject As iormPersistable
@@ -4786,7 +4786,7 @@ Namespace OnTrack.XChange
         Public Function RunDefaultXchange(ByRef record As ormRecord, _
                                           Optional xobject As XConfigObjectEntry = Nothing, _
                                           Optional pkArray As Object() = Nothing, _
-                                          Optional ByRef msglog As clsOTDBMessagelog = Nothing,
+                                          Optional ByRef msglog As ObjectLog = Nothing,
                                           Optional ByVal nocompounds As Boolean = False) As Boolean
             Dim aValue As Object
 
@@ -4799,7 +4799,7 @@ Namespace OnTrack.XChange
             ' set msglog
             If msglog Is Nothing Then
                 If _msglog Is Nothing Then
-                    _msglog = New clsOTDBMessagelog
+                    _msglog = New ObjectLog
                 End If
                 msglog = _msglog
                 'msglog.Create(Me.msglogtag)
@@ -4918,13 +4918,13 @@ Namespace OnTrack.XChange
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function RunDefaultXchange(Of T As {iormInfusable, iormPersistable, New})(ByRef dataobject As T, _
-                                                                                         Optional ByRef msglog As clsOTDBMessagelog = Nothing, _
+                                                                                         Optional ByRef msglog As ObjectLog = Nothing, _
                                                                                          Optional ByVal nocompounds As Boolean = False) As Boolean
             Dim result As Boolean
             ' set msglog
             If msglog Is Nothing Then
                 If _msglog Is Nothing Then
-                    _msglog = New clsOTDBMessagelog
+                    _msglog = New ObjectLog
                 End If
                 msglog = _msglog
                 'msglog.Create(Me.msglogtag)
@@ -4955,7 +4955,7 @@ Namespace OnTrack.XChange
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function RunDefaultXChange(ByRef xobject As XConfigObjectEntry,
-                                                 Optional ByRef msglog As clsOTDBMessagelog = Nothing,
+                                                 Optional ByRef msglog As ObjectLog = Nothing,
                                                  Optional ByVal nocompounds As Boolean = False) As Boolean
             Dim aStore As iormDataStore
             Dim aRecord As ormRecord
@@ -4965,7 +4965,7 @@ Namespace OnTrack.XChange
             ' set msglog
             If msglog Is Nothing Then
                 If _msglog Is Nothing Then
-                    _msglog = New clsOTDBMessagelog
+                    _msglog = New ObjectLog
                 End If
                 msglog = _msglog
                 'msglog.Create(Me.msglogtag)
@@ -5013,7 +5013,7 @@ Namespace OnTrack.XChange
         Private Function fillMappingWithCompounds(ByRef RECORD As ormRecord, ByRef MAPPING As Dictionary(Of Object, Object),
                                                   ByRef ORIGMAPPING As Dictionary(Of Object, Object),
         ByRef TABLE As ObjectDefinition,
-        Optional ByRef MSGLOG As clsOTDBMessagelog = Nothing) As Boolean
+        Optional ByRef MSGLOG As ObjectLog = Nothing) As Boolean
             Dim aConfigmember As clsOTDBXChangeMember
             Dim aTable As iormDataStore
             Dim aRecord As ormRecord
@@ -5241,7 +5241,7 @@ Namespace OnTrack.XChange
         <ormColumnMappingAttribute(fieldname:=constFNOutline)> Private _outlineid As String = ""
 
 
-        Private _msglog As New clsOTDBMessagelog
+        Private _msglog As New ObjectLog
         Private _processedDate As Date = ConstNullDate
 
         ' members itself per key:=indexnumber, item:=clsOTDBXChangeMember
@@ -5268,7 +5268,7 @@ Namespace OnTrack.XChange
         Public Sub New()
             Call MyBase.New(constTableID)
             'me.record.tablename = ourTableName
-            _msglog = New clsOTDBMessagelog
+            _msglog = New ObjectLog
 
         End Sub
 
@@ -6686,7 +6686,7 @@ error_handle:
         '***** runXChange aMapping is aDictionay with key as ordinal and value
         '*****
         Public Function RunXChange(ByRef aMapping As Dictionary(Of Object, Object),
-                                    Optional ByRef msglog As clsOTDBMessagelog = Nothing,
+                                    Optional ByRef msglog As ObjectLog = Nothing,
                                     Optional ByVal suspendoverload As Boolean = True) As Boolean 'Implements iOTDBXChange.runXChange
 
             Dim flag As Boolean
@@ -6702,7 +6702,7 @@ error_handle:
             ' set msglog
             If msglog Is Nothing Then
                 If _msglog Is Nothing Then
-                    _msglog = New clsOTDBMessagelog
+                    _msglog = New ObjectLog
                 End If
                 msglog = _msglog
                 msglog.Create(Me.msglogtag)
@@ -6722,7 +6722,7 @@ error_handle:
                 Select Case LCase(anObject.Objectname)
 
                     ' currschedules
-                    Case LCase(clsOTDBCurrSchedule.ConstTableID)
+                    Case LCase(CurrentSchedule.ConstTableID)
                         flag = True
 
                         ' Tracks
@@ -6757,7 +6757,7 @@ error_handle:
         '*****
         Public Function runDefaultXChange4Object(ByRef XCHANGEOBJECT As clsOTDBXChangeMember,
         ByRef MAPPING As Dictionary(Of Object, Object),
-        Optional ByRef MSGLOG As clsOTDBMessagelog = Nothing,
+        Optional ByRef MSGLOG As ObjectLog = Nothing,
         Optional ByVal NoCompounds As Boolean = False) As Boolean
             Dim aTable As iormDataStore
             Dim aRecord As ormRecord
@@ -6785,7 +6785,7 @@ error_handle:
             ' set msglog
             If MSGLOG Is Nothing Then
                 If _msglog Is Nothing Then
-                    _msglog = New clsOTDBMessagelog
+                    _msglog = New ObjectLog
                 End If
                 MSGLOG = _msglog
                 MSGLOG.Create(Me.msglogtag)
@@ -7013,7 +7013,7 @@ error_handle:
         ByRef MAPPING As Dictionary(Of Object, Object),
         ByRef ORIGMAPPING As Dictionary(Of Object, Object),
         ByRef TABLE As ObjectDefinition,
-        Optional ByRef MSGLOG As clsOTDBMessagelog = Nothing) As Boolean
+        Optional ByRef MSGLOG As ObjectLog = Nothing) As Boolean
             Dim aConfigmember As clsOTDBXChangeMember
             Dim aTable As iormDataStore
             Dim aRecord As ormRecord
@@ -7194,7 +7194,7 @@ error_handle:
         '***** runXPreCheck on aMapping is aDictionay with key as ordinal and value
         '*****
         Public Function RunXPreCheck(ByRef aMapping As Dictionary(Of Object, Object),
-        Optional ByRef MSGLOG As clsOTDBMessagelog = Nothing,
+        Optional ByRef MSGLOG As ObjectLog = Nothing,
         Optional ByVal SUSPENDOVERLOAD As Boolean = True) As Boolean 'Implements iOTDBXChange.runXPreCheck
             Dim anObject As clsOTDBXChangeMember
             Dim m As Object
@@ -7210,7 +7210,7 @@ error_handle:
             ' set msglog
             If MSGLOG Is Nothing Then
                 If _msglog Is Nothing Then
-                    _msglog = New clsOTDBMessagelog
+                    _msglog = New ObjectLog
                 End If
                 MSGLOG = _msglog
                 MSGLOG.Create(Me.msglogtag)
@@ -7262,7 +7262,7 @@ error_handle:
         '*****
         Public Function runDefaultXPreCheck(ByRef anObject As clsOTDBXChangeMember,
         ByRef aMapping As Dictionary(Of Object, Object),
-        ByRef MSGLOG As clsOTDBMessagelog) As Boolean
+        ByRef MSGLOG As ObjectLog) As Boolean
             Dim aTable As iormDataStore
             Dim aRecord As ormRecord
             Dim PkFields As Collection
@@ -7282,7 +7282,7 @@ error_handle:
             ' set msglog
             If MSGLOG Is Nothing Then
                 If _msglog Is Nothing Then
-                    _msglog = New clsOTDBMessagelog
+                    _msglog = New ObjectLog
                 End If
                 MSGLOG = _msglog
                 MSGLOG.Create(Me.msglogtag)
@@ -7424,7 +7424,7 @@ error_handle:
         '****
         Public Function updateRecordValues(ByRef ObjectDef As clsOTDBXChangeMember,
         ByRef MAPPING As Dictionary(Of Object, Object),
-        ByRef MSGLOG As clsOTDBMessagelog,
+        ByRef MSGLOG As ObjectLog,
         ByRef RECORD As ormRecord) As Boolean
             '*** now we copy the object
             Dim aDefTable As New ObjectDefinition
@@ -7438,7 +7438,7 @@ error_handle:
             ' set msglog
             If MSGLOG Is Nothing Then
                 If _msglog Is Nothing Then
-                    _msglog = New clsOTDBMessagelog
+                    _msglog = New ObjectLog
                 End If
                 MSGLOG = _msglog
                 MSGLOG.Create(Me.msglogtag)
@@ -7632,7 +7632,7 @@ error_handle:
         Private _EntryDefinition As ObjectEntryDefinition
         Private _ObjectDefinition As ObjectDefinition
         Private _aliases As String()    ' not saved !
-        Private _msglog As New clsOTDBMessagelog
+        Private _msglog As New ObjectLog
         Private _msglogtag As String
 
         '** initialize
@@ -8401,7 +8401,7 @@ error_handle:
                 If Me.ordinal = New Ordinal(0) And Orderno <> 0 Then
                     Me.ordinal = New Ordinal(Orderno)
                 End If
-                If Orderno = 0 And Me.ordinal <> New Ordinal(0) And ordinal.Type = otordinalType.longType Then
+                If Orderno = 0 And Me.ordinal <> New Ordinal(0) And ordinal.Type = ordinalType.longType Then
                     Me.Orderno = Me.ordinal.Value
                 End If
                 Call Me.Record.SetValue(constFNordinal, _ordinal.Value.ToString)
@@ -8435,7 +8435,7 @@ error_handle:
         '****
         Public Function convertValue4DB(ByVal inValue As Object,
         ByRef outvalue As Object,
-        Optional ByRef MSGLOG As clsOTDBMessagelog = Nothing) As Boolean
+        Optional ByRef MSGLOG As ObjectLog = Nothing) As Boolean
 
             Dim aFieldDef As New ObjectEntryDefinition
             Dim result As Object
@@ -8450,7 +8450,7 @@ error_handle:
             ' set msglog
             If MSGLOG Is Nothing Then
                 If _msglog Is Nothing Then
-                    _msglog = New clsOTDBMessagelog
+                    _msglog = New ObjectLog
                 End If
                 MSGLOG = _msglog
                 MSGLOG.Create(Me.Msglogtag)
@@ -8573,7 +8573,7 @@ error_handle:
         Public Function convertValue2DB(ByVal inValue As Object,
         ByRef outvalue As Object,
         Optional ByVal existingValue As Boolean = True,
-        Optional ByRef MSGLOG As clsOTDBMessagelog = Nothing) As Boolean
+        Optional ByRef MSGLOG As ObjectLog = Nothing) As Boolean
 
             Dim aFieldDef As New ObjectEntryDefinition
             Dim result As Object
@@ -8587,7 +8587,7 @@ error_handle:
             ' set msglog
             If MSGLOG Is Nothing Then
                 If _msglog Is Nothing Then
-                    _msglog = New clsOTDBMessagelog
+                    _msglog = New ObjectLog
                 End If
                 MSGLOG = _msglog
                 MSGLOG.Create(Me.Msglogtag)
@@ -8720,7 +8720,7 @@ error_handle:
         '****
         Public Function compareValues(ByVal LEFTVALUE As Object,
         ByVal RIGHTVALUE As Object,
-        Optional ByRef MSGLOG As clsOTDBMessagelog = Nothing) As Integer
+        Optional ByRef MSGLOG As ObjectLog = Nothing) As Integer
 
             Dim aFieldDef As New ObjectEntryDefinition
 
@@ -8732,7 +8732,7 @@ error_handle:
             ' set msglog
             If MSGLOG Is Nothing Then
                 If _msglog Is Nothing Then
-                    _msglog = New clsOTDBMessagelog
+                    _msglog = New ObjectLog
                 End If
                 MSGLOG = _msglog
                 MSGLOG.Create(Me.Msglogtag)
@@ -8820,7 +8820,7 @@ error_handle:
         End Function
         '**** checkOnDataType : Checks the given aValue according to the datatype
         '****
-        Public Function checkOnDatatype(ByVal VALUE As Object, Optional ByRef MSGLOG As clsOTDBMessagelog = Nothing) As Boolean
+        Public Function checkOnDatatype(ByVal VALUE As Object, Optional ByRef MSGLOG As ObjectLog = Nothing) As Boolean
 
             '** check ok if special characters with special functions
             If Trim(VALUE) = ConstXChangeClearFieldValue Or Trim(VALUE) = "" Or IsEmpty(VALUE) Then
@@ -8833,7 +8833,7 @@ error_handle:
         ByRef VARIABLE As Object,
         Optional ByVal FORCE As Boolean = False,
         Optional ByRef oldValuesMap As Dictionary(Of Object, Object) = Nothing,
-        Optional ByRef MSGLOG As clsOTDBMessagelog = Nothing) As Boolean
+        Optional ByRef MSGLOG As ObjectLog = Nothing) As Boolean
             Dim aVAlue As Object
             Dim oldValue As Object
 
@@ -9857,7 +9857,7 @@ error_handle:
             Try
                 Call Me.Record.SetValue(constFNID, _id)
                 '** own feed record
-                If _ordinal.Type = otordinalType.longType Then
+                If _ordinal.Type = ordinalType.longType Then
                     Call Me.Record.SetValue(ConstFNordinall, _ordinal.Value)
                 Else
                     Call Me.Record.SetValue(ConstFNordinall, 0)

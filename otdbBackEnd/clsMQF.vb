@@ -68,7 +68,7 @@ Namespace OnTrack.Xchange
         Public ProcessStatusordinal As Object
         Public ProcessDateordinal As Object
         Public ProcessLogordinal As Object
-        Private s_msglog As New clsOTDBMessagelog
+        Private s_msglog As New ObjectLog
 
 
         Private _entries As New List(Of clsOTDBMessageQueueEntry)
@@ -166,7 +166,7 @@ Namespace OnTrack.Xchange
             End Set
         End Property
 
-        ReadOnly Property MSGLOG() As clsOTDBMessagelog
+        ReadOnly Property MSGLOG() As ObjectLog
             Get
                 MSGLOG = s_msglog
             End Get
@@ -711,7 +711,7 @@ error_handle:
         ''' <param name="index">The index.</param>
         ''' <param name="MSGLOG">The MSGLOG.</param>
         ''' <returns></returns>
-        Public Function raiseMessage(index As Long, ByRef MSGLOG As clsOTDBMessagelog) As Boolean Implements otLoggable.raiseMessage
+        Public Function raiseMessage(index As Long, ByRef MSGLOG As ObjectLog) As Boolean Implements otLoggable.raiseMessage
             ' TODO: Implement this method
             Throw New NotImplementedException()
         End Function
@@ -721,7 +721,7 @@ error_handle:
         ''' </summary>
         ''' <param name="MSGLOG">The MSGLOG.</param>
         ''' <returns></returns>
-        Public Function attachMessageLog(ByRef MSGLOG As clsOTDBMessagelog) As Boolean Implements otLoggable.attachMessageLog
+        Public Function attachMessageLog(ByRef MSGLOG As ObjectLog) As Boolean Implements otLoggable.attachMessageLog
             ' TODO: Implement this method
             Throw New NotImplementedException()
         End Function
@@ -775,7 +775,7 @@ error_handle:
 
         Public _queue As clsOTDBMessageQueue
         Private s_msglogtag As String = ""
-        Private s_msglog As New clsOTDBMessagelog
+        Private s_msglog As New ObjectLog
 
         '** initialize
         Public Sub New()
@@ -854,7 +854,7 @@ error_handle:
             End Get
 
         End Property
-        ReadOnly Property msglog() As clsOTDBMessagelog
+        ReadOnly Property msglog() As ObjectLog
             Get
                 MSGLOG = s_msglog
             End Get
@@ -996,7 +996,7 @@ error_handle:
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function IsActionProcessable(Optional ByVal actioncommand As String = "", _
-                                            Optional ByRef MSGLOG As clsOTDBMessagelog = Nothing) As Boolean
+                                            Optional ByRef MSGLOG As ObjectLog = Nothing) As Boolean
 
             If actioncommand = "" Then
                 actioncommand = LCase(Me.Action)
@@ -1004,7 +1004,7 @@ error_handle:
 
             'msglog
             If MSGLOG Is Nothing Then
-                MSGLOG = New clsOTDBMessagelog
+                MSGLOG = New ObjectLog
                 MSGLOG.Create(Me.msglogtag)
                 s_msglog = MSGLOG
             End If
@@ -1403,7 +1403,7 @@ error_handle:
         ''' <param name="msglog"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function RunPreCheck(Optional ByRef msglog As clsOTDBMessagelog = Nothing) As Boolean
+        Public Function RunPreCheck(Optional ByRef msglog As ObjectLog = Nothing) As Boolean
             RunPreCheck = runXChange(justprecheck:=True, MSGLOG:=MSGLOG)
 
         End Function
@@ -1488,7 +1488,7 @@ error_handle:
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function RunXChange(Optional justprecheck As Boolean = False, _
-                                   Optional ByRef MSGLOG As clsOTDBMessagelog = Nothing, _
+                                   Optional ByRef MSGLOG As ObjectLog = Nothing, _
                                    Optional ByRef MAPPING As Dictionary(Of Object, Object) = Nothing) As Boolean
             Dim aMapping As New Dictionary(Of Object, Object)
             Dim aConfig As clsOTDBXChangeConfig
@@ -1539,7 +1539,7 @@ error_handle:
 
             'msglog
             If MSGLOG Is Nothing Then
-                MSGLOG = New clsOTDBMessagelog
+                MSGLOG = New ObjectLog
                 MSGLOG.Create(Me.msglogtag)
                 s_msglog = MSGLOG
             End If
@@ -1571,7 +1571,7 @@ error_handle:
         '***** raiseMessage informs the Receiver about the Message-Event
         '*****
         Public Function RaiseMessage(ByVal index As Long, _
-                                                   ByRef MSGLOG As clsOTDBMessagelog) As Boolean Implements otLoggable.raiseMessage
+                                                   ByRef MSGLOG As ObjectLog) As Boolean Implements otLoggable.raiseMessage
             '*** implement
             Throw New NotImplementedException
             '***
@@ -1579,7 +1579,7 @@ error_handle:
 
         '***** hands over the msglog object to the receiver
         '*****
-        Public Function AttachMessageLog(ByRef MSGLOG As clsOTDBMessagelog) As Boolean Implements otLoggable.attachMessageLog
+        Public Function AttachMessageLog(ByRef MSGLOG As ObjectLog) As Boolean Implements otLoggable.attachMessageLog
             s_msglog = MSGLOG
         End Function
 
@@ -1661,7 +1661,7 @@ error_handle:
 
         '** dynmaic
         Public _entry As clsOTDBMessageQueueEntry
-        Private s_msglog As New clsOTDBMessagelog
+        Private s_msglog As New ObjectLog
 
 
         '** initialize

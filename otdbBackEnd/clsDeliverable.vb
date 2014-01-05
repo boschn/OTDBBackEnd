@@ -37,7 +37,7 @@ Namespace OnTrack.Deliverables
         Implements iormPersistable
         Implements iotCloneable(Of CurrentTarget)
 
-        <ormSchemaTable(Version:=2, adddeletefieldbehavior:=True, adddomainID:=True, addspareFields:=True)> Public Const ConstTableID = "tblCurrTargets"
+        <ormSchemaTable(Version:=2, adddeletefieldbehavior:=True, addDomainBehavior:=True, addspareFields:=True)> Public Const ConstTableID = "tblCurrTargets"
 
         <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=50, primarykeyordinal:=1, _
             title:="Workspace ID", description:="ID of the workspace", ID:="WS")> Const ConstFNWorkspace = Schedule.ConstFNWorkspace
@@ -52,11 +52,11 @@ Namespace OnTrack.Deliverables
           title:="is active", description:="is the target active", ID:="DT4")> Public Const ConstFNIsActive = "isactive"
        
 
-        <ormColumnMapping(fieldname:=ConstFNWorkspace)> Private _workspace As String = ""
-        <ormColumnMapping(fieldname:=ConstFNUid)> Private _uid As Long
-        <ormColumnMapping(fieldname:=ConstFNRevision)> Private _rev As String = ""
-        <ormColumnMapping(fieldname:=ConstFNUpdc)> Private _updc As Long    ' UPDC of target
-        <ormColumnMapping(fieldname:=ConstFNIsActive)> Private _isActive As Boolean
+        <ormColumnMapping(ColumnName:=ConstFNWorkspace)> Private _workspace As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNUid)> Private _uid As Long
+        <ormColumnMapping(ColumnName:=ConstFNRevision)> Private _rev As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNUpdc)> Private _updc As Long    ' UPDC of target
+        <ormColumnMapping(ColumnName:=ConstFNIsActive)> Private _isActive As Boolean
 
         ''' <summary>
         ''' constructor
@@ -174,7 +174,7 @@ Namespace OnTrack.Deliverables
 
                 If Not aCommand.Prepared Then
                     aCommand.Where = " uid = @UID "
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@uid", tablename:=ConstTableID, fieldname:="uid"))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@uid", tablename:=ConstTableID, columnname:="uid"))
                     aCommand.Prepare()
                 End If
 
@@ -213,7 +213,7 @@ Namespace OnTrack.Deliverables
 
                 If Not aCommand.Prepared Then
                     aCommand.Where = "[" & ConstFNWorkspace & "] = @wspace "
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@wspace", tablename:=ConstTableID, fieldname:=ConstFNWorkspace))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@wspace", tablename:=ConstTableID, ColumnName:=ConstFNWorkspace))
                     aCommand.Prepare()
                 End If
 
@@ -488,20 +488,20 @@ Namespace OnTrack.Deliverables
        Public Const ConstFNmsglogtag = ObjectLogMessage.ConstFNTag
 
         '*** variables
-        <ormColumnMappingAttribute(fieldname:=constFNUid)> Private _uid As Long
-        <ormColumnMappingAttribute(fieldname:=constFNUpdc)> Private _updc As Long
+        <ormColumnMappingAttribute(ColumnName:=ConstFNUid)> Private _uid As Long
+        <ormColumnMappingAttribute(ColumnName:=ConstFNUpdc)> Private _updc As Long
 
-        <ormColumnMappingAttribute(fieldname:=constFNWorkspace)> Private _workspace As String = ""
-        <ormColumnMappingAttribute(fieldname:=constFNTarget)> Private _targetdate As Date = ConstNullDate
-        <ormColumnMappingAttribute(fieldname:=constFNPrevTarget)> Private _prevTarget As Date = ConstNullDate
-        <ormColumnMappingAttribute(fieldname:=constFNTargetChanged)> Private _changedDate As Date = ConstNullDate
-        <ormColumnMappingAttribute(fieldname:=ConstFNRevision)> Private _rev As String = ""
-        <ormColumnMappingAttribute(fieldname:=ConstFNmsglogtag)> Private _msglogtag As String = ""
-        <ormColumnMapping(fieldname:=ConstFNNoTarget)> Private _notargetByItention As Boolean
-        <ormColumnMapping(fieldname:=ConstFNType)> Private _typeid As String
-        <ormColumnMapping(fieldname:=constFNRespOU)> Private _respOU As String = ""
-        <ormColumnMapping(fieldname:=constFNResp)> Private _resp As String = ""
-        <ormColumnMapping(fieldname:=constFNComment)> Private _cmt As String = ""
+        <ormColumnMappingAttribute(ColumnName:=ConstFNWorkspace)> Private _workspace As String = ""
+        <ormColumnMappingAttribute(ColumnName:=ConstFNTarget)> Private _targetdate As Date = ConstNullDate
+        <ormColumnMappingAttribute(ColumnName:=ConstFNPrevTarget)> Private _prevTarget As Date = ConstNullDate
+        <ormColumnMappingAttribute(ColumnName:=ConstFNTargetChanged)> Private _changedDate As Date = ConstNullDate
+        <ormColumnMappingAttribute(ColumnName:=ConstFNRevision)> Private _rev As String = ""
+        <ormColumnMappingAttribute(ColumnName:=ConstFNmsglogtag)> Private _msglogtag As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNNoTarget)> Private _notargetByItention As Boolean
+        <ormColumnMapping(ColumnName:=ConstFNType)> Private _typeid As String
+        <ormColumnMapping(ColumnName:=ConstFNRespOU)> Private _respOU As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNResp)> Private _resp As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNComment)> Private _cmt As String = ""
         'dynamic
         Private s_msglog As New ObjectLog
         ''' <summary>
@@ -1525,7 +1525,7 @@ error_handle:
         'Implements iOTDBXChange
 
         '** Table
-        <ormSchemaTable(version:=2, adddomainID:=True, addsparefields:=True)> Public Const ConstTableID = "tblDeliverableTracks"
+        <ormSchemaTable(version:=2, addDomainBehavior:=True, addsparefields:=True)> Public Const ConstTableID = "tblDeliverableTracks"
         '** Index
         <ormSchemaIndex(columnname1:=ConstFNWorkspace, columnname2:=constFNDeliverableUid, columnname3:=constFNScheduleUID, columnname4:=constFNScheduleUPDC, columnname5:=constFNTargetUPDC)> _
         Public Const constIndWSpace = "indWorkspace"
@@ -1596,36 +1596,36 @@ error_handle:
 
 
         '*** MAPPING
-        <ormColumnMapping(fieldname:=constFNDeliverableUid)> Private _deliverableUID As Long
-        <ormColumnMapping(fieldname:=constFNTargetUpdc)> Private _targetUPDC As Long
-        <ormColumnMapping(fieldname:=constFNScheduleUid)> Private _scheduleUID As Long
-        <ormColumnMapping(fieldname:=constFNScheduleUpdc)> Private _scheduleUPDC As Long
+        <ormColumnMapping(ColumnName:=ConstFNDeliverableUid)> Private _deliverableUID As Long
+        <ormColumnMapping(ColumnName:=ConstFNTargetUpdc)> Private _targetUPDC As Long
+        <ormColumnMapping(ColumnName:=ConstFNScheduleUid)> Private _scheduleUID As Long
+        <ormColumnMapping(ColumnName:=ConstFNScheduleUpdc)> Private _scheduleUPDC As Long
 
-        <ormColumnMapping(fieldname:=ConstFNWorkspace)> Private _workspaceID As String = ""
-        <ormColumnMapping(fieldname:=ConstFNMSIDDelivered)> Private _MSIDFinish As String = ""
-        <ormColumnMapping(fieldname:=ConstFNForecast)> Private s_currFC As Date = ConstNullDate
-        <ormColumnMapping(fieldname:=ConstFNTarget)> Private s_currTarget As Date = ConstNullDate
-        <ormColumnMapping(fieldname:=constFNBlockingItemReference)> Private s_blockingitemID As String = ""
-        <ormColumnMapping(fieldname:=ConstFNLCStatus)> Private s_FCLCStatus As String = ""
-        <ormColumnMapping(fieldname:=ConstFNTypeid)> Private s_scheduletype As String = ""
-        <ormColumnMapping(fieldname:=ConstFNScheduleRevision)> Private s_ScheduleRevision As String = ""
-        <ormColumnMapping(fieldname:=constFNTargetRevision)> Private s_TargetRevision As String = ""
-        <ormColumnMapping(fieldname:=ConstFNGoingAliveDate)> Private s_GoingAliveDate As Date = ConstNullDate
-        <ormColumnMapping(fieldname:=constFNBaseDelivery)> Private s_BaseLineFinishDate As Date = ConstNullDate
-        <ormColumnMapping(fieldname:=ConstFNBLFrom)> Private s_BaseLineFinishDateFrom As Date = ConstNullDate
-        <ormColumnMapping(fieldname:=constFNFcChanged)> Private s_FClastchangeDate As Date = ConstNullDate
-        <ormColumnMapping(fieldname:=constFNIsFrozen)> Private s_isFrozen As Boolean
-        <ormColumnMapping(fieldname:=constFNDelivery)> Private s_finishedOn As Date = ConstNullDate
-        <ormColumnMapping(fieldname:=constFNIsDelivered)> Private s_isFinished As Boolean
-        <ormColumnMapping(fieldname:=constFNBaselineUPDC)> Private s_BaselineUPDC As Long
-        <ormColumnMapping(fieldname:=ConstFNSyncStatus)> Private s_SyncStatus As String = ""
-        <ormColumnMapping(fieldname:=ConstFNPStatus)> Private s_pstatus As String = ""
-        <ormColumnMapping(fieldname:=ConstFNSyncDate)> Private s_syncFrom As Date = ConstNullDate
-        <ormColumnMapping(fieldname:=constFNFCGap)> Private s_FCgapToTarget As Long
-        <ormColumnMapping(fieldname:=constFNBLGap)> Private s_BaselineGapToTarget As Long
+        <ormColumnMapping(ColumnName:=ConstFNWorkspace)> Private _workspaceID As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNMSIDDelivered)> Private _MSIDFinish As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNForecast)> Private s_currFC As Date = ConstNullDate
+        <ormColumnMapping(ColumnName:=ConstFNTarget)> Private s_currTarget As Date = ConstNullDate
+        <ormColumnMapping(ColumnName:=ConstFNBlockingItemReference)> Private s_blockingitemID As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNLCStatus)> Private s_FCLCStatus As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNTypeid)> Private s_scheduletype As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNScheduleRevision)> Private s_ScheduleRevision As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNTargetRevision)> Private s_TargetRevision As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNGoingAliveDate)> Private s_GoingAliveDate As Date = ConstNullDate
+        <ormColumnMapping(ColumnName:=ConstFNBaseDelivery)> Private s_BaseLineFinishDate As Date = ConstNullDate
+        <ormColumnMapping(ColumnName:=ConstFNBLFrom)> Private s_BaseLineFinishDateFrom As Date = ConstNullDate
+        <ormColumnMapping(ColumnName:=ConstFNFcChanged)> Private s_FClastchangeDate As Date = ConstNullDate
+        <ormColumnMapping(ColumnName:=ConstFNIsFrozen)> Private s_isFrozen As Boolean
+        <ormColumnMapping(ColumnName:=ConstFNDelivery)> Private s_finishedOn As Date = ConstNullDate
+        <ormColumnMapping(ColumnName:=ConstFNIsDelivered)> Private s_isFinished As Boolean
+        <ormColumnMapping(ColumnName:=ConstFNBaselineUPDC)> Private s_BaselineUPDC As Long
+        <ormColumnMapping(ColumnName:=ConstFNSyncStatus)> Private s_SyncStatus As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNPStatus)> Private s_pstatus As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNSyncDate)> Private s_syncFrom As Date = ConstNullDate
+        <ormColumnMapping(ColumnName:=ConstFNFCGap)> Private s_FCgapToTarget As Long
+        <ormColumnMapping(ColumnName:=ConstFNBLGap)> Private s_BaselineGapToTarget As Long
 
-        <ormColumnMapping(fieldname:=constFNActiveTag)> Private s_activetag As String = ""
-        <ormColumnMapping(fieldname:=constFNMsgLogTag)> Private s_msglogtag As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNActiveTag)> Private s_activetag As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNMsgLogTag)> Private s_msglogtag As String = ""
 
 
         '********* dynamic
@@ -3283,7 +3283,7 @@ error_handle:
         Implements iotCloneable(Of DeliverableType)
 
         '** Table
-        <ormSchemaTable(version:=2, adddeletefieldbehavior:=True, adddomainID:=True, addsparefields:=True)> _
+        <ormSchemaTable(version:=2, adddeletefieldbehavior:=True, addDomainBehavior:=True, addsparefields:=True)> _
         Public Const ConstTableID = "tblDefDeliverableTypes"
 
         '** indexes
@@ -3322,10 +3322,10 @@ error_handle:
         title:="comment", description:="comments of the deliverable", ID:="DLVT10")> Public Const constFNComment = "cmt"
 
         '*** Mapping
-        <ormColumnMapping(fieldname:=constFNTypeID)> Private _typeid As String = ""
-        <ormColumnMapping(fieldname:=constFNDescription)> Private _description As String = ""
-        <ormColumnMapping(fieldname:=constFNComment)> Private _comment As String = ""
-        <ormColumnMapping(fieldname:=constFNDefScheduleType)> Private _defScheduleType As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNTypeID)> Private _typeid As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNDescription)> Private _description As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNComment)> Private _comment As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNDefScheduleType)> Private _defScheduleType As String = ""
 
         ''' <summary>
         ''' constructor
@@ -3528,9 +3528,9 @@ error_handle:
                     aCommand.Where = "[" & ConstFNIsDeleted & "] = @deleted "
                     aCommand.Where &= " AND ([" & ConstFNDomainID & "] = @domainID OR [" & ConstFNDomainID & "] = @globalID)"
                     aCommand.OrderBy = "[" & ConstTableID & "." & constFNTypeID & "] asc"
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@deleted", fieldname:=ConstFNIsDeleted, tablename:=ConstTableID))
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@domainID", fieldname:=ConstFNDomainID, tablename:=ConstTableID))
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@globalID", fieldname:=ConstFNDomainID, tablename:=ConstTableID))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@deleted", ColumnName:=ConstFNIsDeleted, tablename:=ConstTableID))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@domainID", ColumnName:=ConstFNDomainID, tablename:=ConstTableID))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@globalID", ColumnName:=ConstFNDomainID, tablename:=ConstTableID))
                     aCommand.Prepare()
                 End If
 
@@ -3583,7 +3583,7 @@ error_handle:
         Implements iotCloneable(Of Deliverable)
 
         '** Table
-        <ormSchemaTable(version:=2, adddeletefieldbehavior:=True, adddomainID:=False, addsparefields:=True)> _
+        <ormSchemaTable(version:=2, adddeletefieldbehavior:=True, addDomainBehavior:=False, addsparefields:=True)> _
         Public Const ConstTableID = "tblDeliverables"
 
         '** indexes
@@ -3669,30 +3669,30 @@ error_handle:
         title:="Function", description:="function of the deliverable", ID:="DLV30")> Public Const constFNFunction = "function"
         'Public Const constFNDepartment = "dept"
 
-        <ormColumnMapping(fieldname:=constFNUid)> Private _uid As Long
-        <ormColumnMapping(fieldname:=constFNfuid)> Private _firstrevUID As Long
-        <ormColumnMapping(fieldname:=constFNDeliverableID)> Private _deliverableID As String = ""
-        <ormColumnMapping(fieldname:=constFNRevision)> Private _revision As String = ""
-        <ormColumnMapping(fieldname:=constFNFormat)> Private _format As String = ""
-        <ormColumnMapping(fieldname:=constFNCategory)> Private _category As String = ""
-        <ormColumnMapping(fieldname:=constFNDescription)> Private _description As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNUid)> Private _uid As Long
+        <ormColumnMapping(ColumnName:=ConstFNfuid)> Private _firstrevUID As Long
+        <ormColumnMapping(ColumnName:=ConstFNDeliverableID)> Private _deliverableID As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNRevision)> Private _revision As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNFormat)> Private _format As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNCategory)> Private _category As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNDescription)> Private _description As String = ""
         'Private s_customerID As String = "" outdated movved to targets
-        <ormColumnMapping(fieldname:=constFNRespOU)> Private _respOUID As String = ""
-        <ormColumnMapping(fieldname:=constFNMatchCode)> Private _matchcode As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNRespOU)> Private _respOUID As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNMatchCode)> Private _matchcode As String = ""
         'Private s_assycode As String = "" obsolete
-        <ormColumnMapping(fieldname:=constFNPartID)> Private _partID As String = ""
-        <ormColumnMapping(fieldname:=constFNChangeRef)> Private _changerefID As String = ""
-        <ormColumnMapping(fieldname:=constFNTypeID)> Private _typeid As String = ""
-        <ormColumnMapping(fieldname:=constFNResponsiblePerson)> Private _responsibleID As String = ""
-        <ormColumnMapping(fieldname:=constFNBlockingItemReference)> Private _blockingitemID As String = ""
-        <ormColumnMapping(fieldname:=constFNComment)> Private _comment As String = ""
-        <ormColumnMapping(fieldname:=constFNMsgLogTag)> Private _msglogtag As String = ""
-        <ormColumnMapping(fieldname:=constFNConfigTag)> Private _configtag As String = ""
-        <ormColumnMapping(fieldname:=constFNActiveTag)> Private _activetag As String = ""
-        <ormColumnMapping(fieldname:=constFNWBSID)> Private _wbsid As String = ""
-        <ormColumnMapping(fieldname:=constFNWBSCode)> Private _wbscode As String = ""
-        <ormColumnMapping(fieldname:=constFNFunction)> Private _function As String = ""
-        <ormColumnMapping(fieldname:=ConstFNWorkspace)> Private _wspaceID As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNPartID)> Private _partID As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNChangeRef)> Private _changerefID As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNTypeID)> Private _typeid As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNResponsiblePerson)> Private _responsibleID As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNBlockingItemReference)> Private _blockingitemID As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNComment)> Private _comment As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNMsgLogTag)> Private _msglogtag As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNConfigTag)> Private _configtag As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNActiveTag)> Private _activetag As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNWBSID)> Private _wbsid As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNWBSCode)> Private _wbscode As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNFunction)> Private _function As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNWorkspace)> Private _wspaceID As String = ""
         ''' <summary>
         ''' constructor
         ''' </summary>
@@ -4483,9 +4483,9 @@ error_handle:
                     aCommand.Where = ConstFNIsDeleted & " = @deleted "
                     aCommand.Where &= " AND ([" & ConstFNDomainID & "] = @domainID OR [" & ConstFNDomainID & "] = @globalID)"
                     aCommand.OrderBy = "[" & ConstTableID & "." & constFNUid & "] asc"
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@deleted", fieldname:=ConstFNIsDeleted, tablename:=ConstTableID))
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@domainID", fieldname:=ConstFNDomainID, tablename:=ConstTableID))
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@globalID", fieldname:=ConstFNDomainID, tablename:=ConstTableID))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@deleted", ColumnName:=ConstFNIsDeleted, tablename:=ConstTableID))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@domainID", ColumnName:=ConstFNDomainID, tablename:=ConstTableID))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@globalID", ColumnName:=ConstFNDomainID, tablename:=ConstTableID))
                     aCommand.Prepare()
                 End If
                 If justdeleted Then
@@ -4540,10 +4540,10 @@ error_handle:
                     aCommand.Where = "[" & ConstFNIsDeleted & "] = @deleted AND " & constFNMatchCode & "] = @mcod"
                     aCommand.Where &= " AND ([" & ConstFNDomainID & "] = @domainID OR [" & ConstFNDomainID & "] = @globalID)"
                     aCommand.OrderBy = "[" & constFNUid & "] asc"
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@deleted", fieldname:=ConstFNIsDeleted, tablename:=ConstTableID))
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@mcod", fieldname:=constFNMatchCode, tablename:=ConstTableID))
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@domainID", fieldname:=ConstFNDomainID, tablename:=ConstTableID))
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@globalID", fieldname:=ConstFNDomainID, tablename:=ConstTableID))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@deleted", ColumnName:=ConstFNIsDeleted, tablename:=ConstTableID))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@mcod", ColumnName:=ConstFNMatchCode, tablename:=ConstTableID))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@domainID", ColumnName:=ConstFNDomainID, tablename:=ConstTableID))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@globalID", ColumnName:=ConstFNDomainID, tablename:=ConstTableID))
                     aCommand.Prepare()
                 End If
                 aCommand.SetParameterValue(ID:="@deleted", value:=False)
@@ -4622,10 +4622,10 @@ error_handle:
                     aCommand.Where = "[" & ConstFNIsDeleted & "] = @deleted AND [" & constFNPartID & "] = @pnid"
                     aCommand.Where &= " AND ([" & ConstFNDomainID & "] = @domainID OR [" & ConstFNDomainID & "] = @globalID)"
                     aCommand.OrderBy = "[" & constFNUid & "] asc"
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@deleted", fieldname:=ConstFNIsDeleted, tablename:=ConstTableID))
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@pnid", fieldname:="pnid", tablename:=ConstTableID))
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@domainID", fieldname:=ConstFNDomainID, tablename:=ConstTableID))
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@globalID", fieldname:=ConstFNDomainID, tablename:=ConstTableID))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@deleted", ColumnName:=ConstFNIsDeleted, tablename:=ConstTableID))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@pnid", columnname:="pnid", tablename:=ConstTableID))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@domainID", ColumnName:=ConstFNDomainID, tablename:=ConstTableID))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@globalID", ColumnName:=ConstFNDomainID, tablename:=ConstTableID))
                     aCommand.Prepare()
                 End If
                 aCommand.SetParameterValue(ID:="@deleted", value:=False)
@@ -4675,8 +4675,8 @@ error_handle:
                     aCommand.select = "[" & constFNUid & "], [" & constFNRevision & "],[" & constFNfuid & "]"
                     aCommand.Where = "[" & ConstFNIsDeleted & "] = @deleted and ([" & constFNUid & "] = @uid or [" & constFNfuid & "]=@uid)"
                     aCommand.OrderBy = "[" & ConstTableID & "." & constFNUid & "], [" & ConstTableID & "." & constFNRevision & "] asc"
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@deleted", fieldname:=ConstFNIsDeleted, tablename:=ConstTableID))
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@uid", fieldname:="uid", tablename:=ConstTableID))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@deleted", ColumnName:=ConstFNIsDeleted, tablename:=ConstTableID))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@uid", columnname:="uid", tablename:=ConstTableID))
                     aCommand.Prepare()
                 End If
                 aCommand.SetParameterValue(ID:="@deleted", value:=False)
@@ -4778,9 +4778,9 @@ error_handle:
                     aCommand.Where = ConstFNIsDeleted & " = @deleted"
                     aCommand.Where &= " AND ([" & ConstFNDomainID & "] = @domainID OR [" & ConstFNDomainID & "] = @globalID)"
                     aCommand.OrderBy = "[" & ConstTableID & "." & constFNMatchCode & "] asc"
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@deleted", fieldname:=ConstFNIsDeleted, tablename:=ConstTableID))
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@domainID", fieldname:=ConstFNDomainID, tablename:=ConstTableID))
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@globalID", fieldname:=ConstFNDomainID, tablename:=ConstTableID))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@deleted", ColumnName:=ConstFNIsDeleted, tablename:=ConstTableID))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@domainID", ColumnName:=ConstFNDomainID, tablename:=ConstTableID))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@globalID", ColumnName:=ConstFNDomainID, tablename:=ConstTableID))
                     aCommand.Prepare()
                 End If
 
@@ -5175,7 +5175,7 @@ error_handle:
                 If Not aCommand.Prepared Then
                     aCommand.select = "max([" & constFNUid & "])"
                     aCommand.Where = "[" & ConstFNDomainID & "] = @domain"
-                    aCommand.AddParameter(New ormSqlCommandParameter(id:="@domain", fieldname:=ConstFNDomainID, tablename:=ConstTableID))
+                    aCommand.AddParameter(New ormSqlCommandParameter(id:="@domain", ColumnName:=ConstFNDomainID, tablename:=ConstTableID))
                     aCommand.Prepare()
                 End If
                 aCommand.SetParameterValue(ID:="@domain", value:=domainID)

@@ -64,14 +64,14 @@ Namespace OnTrack.Deliverables
         <ormSchemaColumnAttribute(iD:="TI6", title:="Comments", description:="comment for the item", _
          typeid:=otFieldDataType.Memo)> Public Const constFNComment = "cmt"
 
-        <ormColumnMappingAttribute(fieldname:=constFNID)> Private s_listid As String = ""
-        <ormColumnMappingAttribute(fieldname:=constFNPos)> Private s_posno As Long
+        <ormColumnMappingAttribute(ColumnName:=ConstFNID)> Private s_listid As String = ""
+        <ormColumnMappingAttribute(ColumnName:=ConstFNPos)> Private s_posno As Long
 
-        <ormColumnMappingAttribute(fieldname:=constFNPartid)> Private s_pnid As String
-        <ormColumnMappingAttribute(fieldname:=constFNOrder)> Private s_order As Long
-        <ormColumnMappingAttribute(fieldname:=constFNComment)> Private s_cmt As String
-        <ormColumnMappingAttribute(fieldname:=constFNPrecode)> Private s_precode As String
-        <ormColumnMappingAttribute(fieldname:=constFNDLVUID)> Private s_DLVUID As Long
+        <ormColumnMappingAttribute(ColumnName:=ConstFNPartid)> Private s_pnid As String
+        <ormColumnMappingAttribute(ColumnName:=ConstFNOrder)> Private s_order As Long
+        <ormColumnMappingAttribute(ColumnName:=ConstFNComment)> Private s_cmt As String
+        <ormColumnMappingAttribute(ColumnName:=ConstFNPrecode)> Private s_precode As String
+        <ormColumnMappingAttribute(ColumnName:=ConstFNDLVUID)> Private s_DLVUID As Long
 
 #Region "Properties"
         ReadOnly Property Listid() As String

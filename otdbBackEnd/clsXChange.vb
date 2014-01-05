@@ -783,26 +783,26 @@ Namespace OnTrack.XChange
         Public Const constFNMsgLogTag = "msglogtag"
 
         ' fields
-        <ormColumnMappingAttribute(fieldname:=ConstFNID)> Protected _configname As String = ""
-        <ormColumnMappingAttribute(fieldname:=ConstFNIDNo)> Protected _idno As Long
-        <ormColumnMappingAttribute(fieldname:=constFNXID)> Protected _xid As String = ""
-        <ormColumnMappingAttribute(fieldname:=constFNObjectname)> Protected _objectname As String = ""
-        <ormColumnMappingAttribute(fieldname:=constFNEntryname)> Protected _entryname As String = ""
-        <ormColumnMappingAttribute(fieldname:=constFNRelation)> Protected _relation As String = ""
-        <ormColumnMappingAttribute(fieldname:=constFNParameter)> Protected _parameter As String = ""
-        '<otColumnMapping(fieldname:=constFNordinal)> do not since we cannot map it
+        <ormColumnMappingAttribute(ColumnName:=ConstFNID)> Protected _configname As String = ""
+        <ormColumnMappingAttribute(ColumnName:=ConstFNIDNo)> Protected _idno As Long
+        <ormColumnMappingAttribute(ColumnName:=ConstFNXID)> Protected _xid As String = ""
+        <ormColumnMappingAttribute(ColumnName:=ConstFNObjectname)> Protected _objectname As String = ""
+        <ormColumnMappingAttribute(ColumnName:=ConstFNEntryname)> Protected _entryname As String = ""
+        <ormColumnMappingAttribute(ColumnName:=ConstFNRelation)> Protected _relation As String = ""
+        <ormColumnMappingAttribute(ColumnName:=ConstFNParameter)> Protected _parameter As String = ""
+        '<otColumnMapping(ColumnName:=ConstFNordinal)> do not since we cannot map it
         Private _ordinal As Ordinal = New Ordinal(0)
-        <ormColumnMappingAttribute(fieldname:=constFNComment)> Protected _cmt As String = ""
-        <ormColumnMappingAttribute(fieldname:=constFNDesc)> Protected _desc As String = ""
-        <ormColumnMappingAttribute(fieldname:=constFNIsNotXChanged)> Protected _isNotXChanged As Boolean
-        <ormColumnMappingAttribute(fieldname:=constFNIsReadonly)> Protected _isReadOnly As Boolean
-        <ormColumnMappingAttribute(fieldname:=constFNIsAttributeEntry)> Protected _isAttributeEntry As Boolean
-        <ormColumnMappingAttribute(fieldname:=constFNIsObjectEntry)> Protected _isObjectEntry As Boolean
-        <ormColumnMappingAttribute(fieldname:=constFNIsCompoundEntry)> Protected _isCompundEntry As Boolean
-        <ormColumnMappingAttribute(fieldname:=constFNXCMD)> Protected _xcmd As otXChangeCommandType = 0
-        <ormColumnMappingAttribute(fieldname:=constFNIsOrder)> Protected _isOrdered As Boolean
-        <ormColumnMappingAttribute(fieldname:=constFNOrderNo)> Protected _orderNo As Long
-        <ormColumnMappingAttribute(fieldname:=constFNIsDynamic)> Protected _isDynamicAttribute As Boolean
+        <ormColumnMappingAttribute(ColumnName:=ConstFNComment)> Protected _cmt As String = ""
+        <ormColumnMappingAttribute(ColumnName:=ConstFNDesc)> Protected _desc As String = ""
+        <ormColumnMappingAttribute(ColumnName:=ConstFNIsNotXChanged)> Protected _isNotXChanged As Boolean
+        <ormColumnMappingAttribute(ColumnName:=ConstFNIsReadonly)> Protected _isReadOnly As Boolean
+        <ormColumnMappingAttribute(ColumnName:=ConstFNIsAttributeEntry)> Protected _isAttributeEntry As Boolean
+        <ormColumnMappingAttribute(ColumnName:=ConstFNIsObjectEntry)> Protected _isObjectEntry As Boolean
+        <ormColumnMappingAttribute(ColumnName:=ConstFNIsCompoundEntry)> Protected _isCompundEntry As Boolean
+        <ormColumnMappingAttribute(ColumnName:=ConstFNXCMD)> Protected _xcmd As otXChangeCommandType = 0
+        <ormColumnMappingAttribute(ColumnName:=ConstFNIsOrder)> Protected _isOrdered As Boolean
+        <ormColumnMappingAttribute(ColumnName:=ConstFNOrderNo)> Protected _orderNo As Long
+        <ormColumnMappingAttribute(ColumnName:=ConstFNIsDynamic)> Protected _isDynamicAttribute As Boolean
 
         'dynamic
         Protected _EntryDefinition As ObjectEntryDefinition
@@ -1404,11 +1404,11 @@ Namespace OnTrack.XChange
 
 
         ' fields
-        <ormColumnMappingAttribute(fieldname:=constFNID)> Private _configname As String = ""
-        <ormColumnMappingAttribute(fieldname:=constFNDesc)> Private _description As String = ""
-        <ormColumnMappingAttribute(fieldname:=constFNMsgLogTag)> Private _msglogtag As String = ""
-        <ormColumnMappingAttribute(fieldname:=constFNDynamic)> Private _DynamicAttributes As Boolean
-        <ormColumnMappingAttribute(fieldname:=constFNOutline)> Private _outlineid As String = ""
+        <ormColumnMappingAttribute(ColumnName:=ConstFNID)> Private _configname As String = ""
+        <ormColumnMappingAttribute(ColumnName:=ConstFNDesc)> Private _description As String = ""
+        <ormColumnMappingAttribute(ColumnName:=ConstFNMsgLogTag)> Private _msglogtag As String = ""
+        <ormColumnMappingAttribute(ColumnName:=ConstFNDynamic)> Private _DynamicAttributes As Boolean
+        <ormColumnMappingAttribute(ColumnName:=ConstFNOutline)> Private _outlineid As String = ""
 
 
         Private _msglog As New ObjectLog
@@ -2647,7 +2647,7 @@ Namespace OnTrack.XChange
                     Dim aCommand As ormSqlSelectCommand = aTable.CreateSqlSelectCommand(id:="loadbyXConfig")
                     If Not aCommand.Prepared Then
                         aCommand.Where = XConfigMember.ConstFNID & " = @" & XConfigMember.ConstFNID
-                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@" & constFNID, fieldname:=XConfigMember.ConstFNID, tablename:=XConfigMember.ConstTableID))
+                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@" & constFNID, columnname:=XConfigMember.ConstFNID, tablename:=XConfigMember.ConstTableID))
                         aCommand.OrderBy = "[" & XConfigMember.ConstTableID & "." & XConfigMember.ConstFNIDNo & "] asc"
                         aCommand.Prepare()
                     End If
@@ -5234,11 +5234,11 @@ Namespace OnTrack.XChange
 
 
         ' fields
-        <ormColumnMappingAttribute(fieldname:=constFNID)> Private _configname As String = ""
-        <ormColumnMappingAttribute(fieldname:=constFNDesc)> Private _description As String = ""
-        <ormColumnMappingAttribute(fieldname:=constFNMsgLogTag)> Private _msglogtag As String = ""
-        <ormColumnMappingAttribute(fieldname:=constFNDynamic)> Private _DynamicAttributes As Boolean
-        <ormColumnMappingAttribute(fieldname:=constFNOutline)> Private _outlineid As String = ""
+        <ormColumnMappingAttribute(ColumnName:=ConstFNID)> Private _configname As String = ""
+        <ormColumnMappingAttribute(ColumnName:=ConstFNDesc)> Private _description As String = ""
+        <ormColumnMappingAttribute(ColumnName:=ConstFNMsgLogTag)> Private _msglogtag As String = ""
+        <ormColumnMappingAttribute(ColumnName:=ConstFNDynamic)> Private _DynamicAttributes As Boolean
+        <ormColumnMappingAttribute(ColumnName:=ConstFNOutline)> Private _outlineid As String = ""
 
 
         Private _msglog As New ObjectLog
@@ -6510,7 +6510,7 @@ Namespace OnTrack.XChange
                     Dim aCommand As ormSqlSelectCommand = aTable.CreateSqlSelectCommand(id:="loadby")
                     If Not aCommand.Prepared Then
                         aCommand.Where = clsOTDBXChangeMember.constFNID & " = @" & clsOTDBXChangeMember.constFNID
-                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@" & constFNID, fieldname:=clsOTDBXChangeMember.constFNID, tablename:=clsOTDBXChangeMember.constTableID))
+                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@" & constFNID, columnname:=clsOTDBXChangeMember.ConstFNID, tablename:=clsOTDBXChangeMember.ConstTableID))
                         aCommand.OrderBy = clsOTDBXChangeMember.constFNIDNo & " asc"
                         aCommand.Prepare()
                     End If
@@ -7607,26 +7607,26 @@ error_handle:
 
 
         ' fields
-        <ormColumnMappingAttribute(fieldname:=constFNID)> Private _configname As String = ""
-        <ormColumnMappingAttribute(fieldname:=constFNIDNo)> Private _idno As Long
-        <ormColumnMappingAttribute(fieldname:=constFNXID)> Private _xid As String = ""
-        <ormColumnMappingAttribute(fieldname:=constFNObjectname)> Private _objectname As String = ""
-        <ormColumnMappingAttribute(fieldname:=constFNEntryname)> Private _entryname As String = ""
-        <ormColumnMappingAttribute(fieldname:=constFNRelation)> Private _relation As String = ""
-        <ormColumnMappingAttribute(fieldname:=constFNParameter)> Private _parameter As String = ""
-        '<otColumnMapping(fieldname:=constFNordinal)> do not since we cannot map it
+        <ormColumnMappingAttribute(ColumnName:=ConstFNID)> Private _configname As String = ""
+        <ormColumnMappingAttribute(ColumnName:=ConstFNIDNo)> Private _idno As Long
+        <ormColumnMappingAttribute(ColumnName:=ConstFNXID)> Private _xid As String = ""
+        <ormColumnMappingAttribute(ColumnName:=ConstFNObjectname)> Private _objectname As String = ""
+        <ormColumnMappingAttribute(ColumnName:=ConstFNEntryname)> Private _entryname As String = ""
+        <ormColumnMappingAttribute(ColumnName:=ConstFNRelation)> Private _relation As String = ""
+        <ormColumnMappingAttribute(ColumnName:=ConstFNParameter)> Private _parameter As String = ""
+        '<otColumnMapping(ColumnName:=ConstFNordinal)> do not since we cannot map it
         Private _ordinal As Ordinal = New Ordinal(0)
-        <ormColumnMappingAttribute(fieldname:=constFNComment)> Private _cmt As String = ""
-        <ormColumnMappingAttribute(fieldname:=constFNDesc)> Private _desc As String = ""
-        <ormColumnMappingAttribute(fieldname:=constFNIsNotXChanged)> Private _isNotXChanged As Boolean
-        <ormColumnMappingAttribute(fieldname:=constFNIsReadonly)> Private _isReadOnly As Boolean
-        <ormColumnMappingAttribute(fieldname:=constFNIsAttributeEntry)> Private _isAttributeEntry As Boolean
-        <ormColumnMappingAttribute(fieldname:=constFNIsObjectEntry)> Private _isObjectEntry As Boolean
-        <ormColumnMappingAttribute(fieldname:=constFNIsCompoundEntry)> Private _isCompundEntry As Boolean
-        <ormColumnMappingAttribute(fieldname:=constFNXCMD)> Private _xcmd As otXChangeCommandType
-        <ormColumnMappingAttribute(fieldname:=constFNIsOrder)> Private _isOrdered As Boolean
-        <ormColumnMappingAttribute(fieldname:=constFNOrderNo)> Private _orderNo As Long
-        <ormColumnMappingAttribute(fieldname:=constFNIsDynamic)> Private _isDynamicAttribute As Boolean
+        <ormColumnMappingAttribute(ColumnName:=ConstFNComment)> Private _cmt As String = ""
+        <ormColumnMappingAttribute(ColumnName:=ConstFNDesc)> Private _desc As String = ""
+        <ormColumnMappingAttribute(ColumnName:=ConstFNIsNotXChanged)> Private _isNotXChanged As Boolean
+        <ormColumnMappingAttribute(ColumnName:=ConstFNIsReadonly)> Private _isReadOnly As Boolean
+        <ormColumnMappingAttribute(ColumnName:=ConstFNIsAttributeEntry)> Private _isAttributeEntry As Boolean
+        <ormColumnMappingAttribute(ColumnName:=ConstFNIsObjectEntry)> Private _isObjectEntry As Boolean
+        <ormColumnMappingAttribute(ColumnName:=ConstFNIsCompoundEntry)> Private _isCompundEntry As Boolean
+        <ormColumnMappingAttribute(ColumnName:=ConstFNXCMD)> Private _xcmd As otXChangeCommandType
+        <ormColumnMappingAttribute(ColumnName:=ConstFNIsOrder)> Private _isOrdered As Boolean
+        <ormColumnMappingAttribute(ColumnName:=ConstFNOrderNo)> Private _orderNo As Long
+        <ormColumnMappingAttribute(ColumnName:=ConstFNIsDynamic)> Private _isDynamicAttribute As Boolean
 
         'dynamic
         Private _EntryDefinition As ObjectEntryDefinition
@@ -8927,9 +8927,9 @@ error_handle:
 
 
         ' key
-        <ormColumnMappingAttribute(Fieldname:=constFNID)> Private _id As String = ""
-        <ormColumnMappingAttribute(Fieldname:=constFNdesc)> Private _desc As String = ""
-        <ormColumnMappingAttribute(Fieldname:=constFNRev)> Private _DynamicAddRevisions As Boolean
+        <ormColumnMappingAttribute(ColumnName:=ConstFNID)> Private _id As String = ""
+        <ormColumnMappingAttribute(ColumnName:=ConstFNdesc)> Private _desc As String = ""
+        <ormColumnMappingAttribute(ColumnName:=ConstFNRev)> Private _DynamicAddRevisions As Boolean
         ' components itself per key:=posno, item:=cmid
         Private s_cmids As New OrderedDictionary()
 
@@ -9472,15 +9472,15 @@ error_handle:
         <ormSchemaColumnAttribute(iD:="otli14", typeid:=otFieldDataType.Text, size:=255,
        title:="Text", description:="Text if a text item")> Public Const ConstFNText = "text"
 
-        <ormColumnMappingAttribute(fieldname:=constFNID)> Private _id As String = ""   ' ID of the outline
+        <ormColumnMappingAttribute(ColumnName:=ConstFNID)> Private _id As String = ""   ' ID of the outline
 
         Private _keys As New List(Of OTLineKey)    'keys and values
         Private _ordinal As Ordinal ' extramapping
 
-        <ormColumnMappingAttribute(fieldname:=ConstFNIdent)> Private _level As Long = 0
-        <ormColumnMappingAttribute(fieldname:=ConstFNisgroup)> Private _isGroup As Boolean
-        <ormColumnMappingAttribute(fieldname:=ConstFNisText)> Private _isText As Boolean
-        <ormColumnMappingAttribute(fieldname:=ConstFNText)> Private _text As String = ""
+        <ormColumnMappingAttribute(ColumnName:=ConstFNIdent)> Private _level As Long = 0
+        <ormColumnMappingAttribute(ColumnName:=ConstFNisgroup)> Private _isGroup As Boolean
+        <ormColumnMappingAttribute(ColumnName:=ConstFNisText)> Private _isText As Boolean
+        <ormColumnMappingAttribute(ColumnName:=ConstFNText)> Private _text As String = ""
 
 #Region "properties"
 
@@ -9649,7 +9649,7 @@ error_handle:
                 If Not aCommand.Prepared Then
                     aCommand.OrderBy = "[" & constTableID & "." & ConstFNordinall & "] asc"
                     aCommand.Where = "[" & constFNID & "] = @ID"
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@ID", fieldname:=constFNID, tablename:=constTableID))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@ID", ColumnName:=ConstFNID, tablename:=constTableID))
                     aCommand.Prepare()
                 End If
 

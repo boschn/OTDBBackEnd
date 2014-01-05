@@ -37,9 +37,23 @@ Namespace OnTrack
         Public Class ormColumnMappingAttribute
             Inherits Attribute
 
-            Private _ID As String = ""
-            Private _fieldname As String = ""
-            Private _tableID As String = ""
+            Private _ID As String
+            Private _fieldname As String
+            Private _tableID As String
+            Private _relationName As String
+
+            ''' <summary>
+            ''' Gets or sets the name of the relation.
+            ''' </summary>
+            ''' <value>The name of the relation.</value>
+            Public Property RelationName() As String
+                Get
+                    Return Me._relationName
+                End Get
+                Set
+                    Me._relationName = Value
+                End Set
+            End Property
 
             ''' <summary>
             ''' Gets or sets the ID.
@@ -58,7 +72,7 @@ Namespace OnTrack
             ''' Gets or sets the table ID.
             ''' </summary>
             ''' <value>The table ID.</value>
-            Public Property TableID() As String
+            Public Property TableName() As String
                 Get
                     Return Me._tableID
                 End Get
@@ -71,7 +85,7 @@ Namespace OnTrack
             ''' Gets or sets the fieldname.
             ''' </summary>
             ''' <value>The fieldname.</value>
-            Public Property Fieldname() As String
+            Public Property ColumnName() As String
                 Get
                     Return Me._fieldname
                 End Get
@@ -109,7 +123,7 @@ Namespace OnTrack
             ''' Gets or sets the table ID.
             ''' </summary>
             ''' <value>The table ID.</value>
-            Public Property TableID() As String
+            Public Property TableName() As String
                 Get
                     Return Me._tableID
                 End Get
@@ -146,7 +160,7 @@ Namespace OnTrack
             Private _Version As UShort = 0
             Private _DeleteFieldFlag As Boolean = False
             Private _SpareFieldsFlag As Boolean = False
-            Private _AddDomainIDFlag As Boolean = False
+            Private _AddDomainBehaviorFlag As Boolean = False
             Private _TableName As String = ""
             Public Sub New()
 
@@ -162,7 +176,7 @@ Namespace OnTrack
                 Get
                     Return Me._TableName
                 End Get
-                Set
+                Set(value As String)
                     Me._TableName = Value
                 End Set
             End Property
@@ -171,12 +185,12 @@ Namespace OnTrack
             ''' Gets or sets the add domain ID flag.
             ''' </summary>
             ''' <value>The add domain ID flag.</value>
-            Public Property AddDomainID() As Boolean
+            Public Property AddDomainBehavior() As Boolean
                 Get
-                    Return Me._AddDomainIDFlag
+                    Return Me._AddDomainBehaviorFlag
                 End Get
                 Set(value As Boolean)
-                    Me._AddDomainIDFlag = Value
+                    Me._AddDomainBehaviorFlag = Value
                 End Set
             End Property
 
@@ -238,6 +252,66 @@ Namespace OnTrack
 
         End Class
         ''' <summary>
+        ''' Attribute Class for marking an constant field member in a class as Table name such as
+        ''' <otSchemaTable(Version:=1)>Const constTableName = "tblName"
+        ''' Version will be saved into clsOTDBDEfSchemaTable
+        ''' </summary>
+        ''' <remarks></remarks>
+        <AttributeUsage(AttributeTargets.Field, AllowMultiple:=False, Inherited:=True)> _
+        Public Class ormSchemaRelationAttribute
+            Inherits Attribute
+            Private _Name As String
+            Private _Version As Nullable(Of UShort)
+            Private _TableName As String
+            Public Sub New()
+
+            End Sub
+            Public Sub New(ID As String)
+                _Name = ID
+            End Sub
+            ''' <summary>
+            ''' Gets the name.
+            ''' </summary>
+            ''' <value>The name.</value>
+            Public Property Name() As String
+                Get
+                    Return Me._Name
+                End Get
+                Set(value As String)
+                    _Name = value
+                End Set
+            End Property
+
+            ''' <summary>
+            ''' Gets or sets the name of the table.
+            ''' </summary>
+            ''' <value>The name of the table.</value>
+            Public Property TableName() As String
+                Get
+                    Return Me._TableName
+                End Get
+                Set(value As String)
+                    Me._TableName = value
+                End Set
+            End Property
+
+          
+            ''' <summary>
+            ''' Gets or sets the version.
+            ''' </summary>
+            ''' <value>The version.</value>
+            Public Property Version() As UShort
+                Get
+                    Return Me._Version
+                End Get
+                Set(value As UShort)
+                    Me._Version = value
+                End Set
+            End Property
+        End Class
+
+
+        ''' <summary>
         ''' Attributes for Schema Generation of an Index
         ''' </summary>
         ''' <remarks></remarks>
@@ -248,6 +322,19 @@ Namespace OnTrack
             Private _indexName As String
             Private _ColumnNames() As String = {}
             Private _Version As UShort = 0
+            Private _TableName As String = Nothing
+            ''' <summary>
+            ''' Gets or sets the name of the table.
+            ''' </summary>
+            ''' <value>The name of the table.</value>
+            Public Property TableName() As String
+                Get
+                    Return Me._TableName
+                End Get
+                Set
+                    Me._TableName = Value
+                End Set
+            End Property
 
             ''' <summary>
             ''' Gets or sets the version.
@@ -258,7 +345,7 @@ Namespace OnTrack
                     Return Me._Version
                 End Get
                 Set(value As UShort)
-                    Me._Version = Value
+                    Me._Version = value
                 End Set
             End Property
 
@@ -397,7 +484,7 @@ Namespace OnTrack
                     Return Me._ColumnName
                 End Get
                 Set(value As String)
-                    Me._ColumnName = Value
+                    Me._ColumnName = value
                 End Set
             End Property
             Public ReadOnly Property HasValueColumnName As Boolean
@@ -415,7 +502,7 @@ Namespace OnTrack
                     Return Me._ReferenceObjectEntry
                 End Get
                 Set(value As String)
-                    Me._ReferenceObjectEntry = Value
+                    Me._ReferenceObjectEntry = value
                 End Set
             End Property
             Public ReadOnly Property HasValueReferenceObjectEntry As Boolean
@@ -554,7 +641,7 @@ Namespace OnTrack
             ''' Gets or sets the table ID.
             ''' </summary>
             ''' <value>The table ID.</value>
-            Public Property TableID() As String
+            Public Property Tablename() As String
                 Get
                     Return Me._TableID
                 End Get
@@ -931,7 +1018,7 @@ Namespace OnTrack
                                           message:=" tablename of parameter is not used in sql command", _
                                       messagetype:=otCoreMessageType.InternalError, tablename:=parameter.Tablename)
                     Return False
-                ElseIf Not parameter.NotColumn AndAlso Not Me._tablestores.Item(key:=parameter.Tablename).TableSchema.HasFieldname(parameter.Fieldname) Then
+                ElseIf Not parameter.NotColumn AndAlso Not Me._tablestores.Item(key:=parameter.Tablename).TableSchema.Hasfieldname(parameter.Fieldname) Then
                     Call CoreMessageHandler(subname:="clsOTDBSqlCommand.AddParameter", arg1:=Me.ID, entryname:=parameter.Fieldname, _
                                          message:=" fieldname of parameter is not used in table schema", _
                                      messagetype:=otCoreMessageType.InternalError, tablename:=parameter.Tablename)
@@ -1169,7 +1256,7 @@ Namespace OnTrack
             Private _ID As String = ""
             Private _NotColumn As Boolean = False
             Private _tablename As String = ""
-            Private _fieldname As String = ""
+            Private _columname As String = ""
             Private _datatype As otFieldDataType = 0
             Private _value As Object
 
@@ -1184,13 +1271,13 @@ Namespace OnTrack
             ''' <remarks></remarks>
             Public Sub New(ByVal ID As String, _
                            Optional datatype As otFieldDataType = 0, _
-                           Optional fieldname As String = "", _
+                           Optional columnname As String = "", _
                            Optional tablename As String = "", _
                            Optional value As Object = Nothing, _
                            Optional notColumn As Boolean = False)
                 _ID = Regex.Replace(ID, "\s", "") ' no white chars allowed
                 _datatype = datatype
-                If fieldname <> "" Then _fieldname = fieldname
+                If columnname <> "" Then _columname = columnname
                 If tablename <> "" Then _tablename = tablename
                 If Not value Is Nothing Then _value = value
                 _NotColumn = notColumn
@@ -1240,10 +1327,10 @@ Namespace OnTrack
             ''' <value>The fieldname.</value>
             Public Property Fieldname() As String
                 Get
-                    Return Me._fieldname
+                    Return Me._columname
                 End Get
                 Set(value As String)
-                    Me._fieldname = value
+                    Me._columname = value
                 End Set
             End Property
             ''' <summary>
@@ -1569,8 +1656,8 @@ Namespace OnTrack
                 '** fill tables first 
                 For Each atablename In _tablestores.Keys
                     'Dim aTablename = kvp.Key
-                    If Not aTableList.Contains(aTablename) Then
-                        aTableList.Add(aTablename)
+                    If Not aTableList.Contains(atablename) Then
+                        aTableList.Add(atablename)
                     End If
                 Next
 
@@ -2382,7 +2469,7 @@ Namespace OnTrack
                 If IsNumeric(index) Then
                     i = CInt(index)
                 Else
-                    If Not _TableStore.TableSchema.HasFieldname(index) Then
+                    If Not _TableStore.TableSchema.Hasfieldname(index) Then
                         Return Nothing
                     Else
                         i = _TableStore.TableSchema.GetFieldordinal(index)
@@ -2403,13 +2490,13 @@ Namespace OnTrack
                     If anObject IsNot Nothing Then
 
                         '** get default value out o fthe object entry store not from the db itself
-                        Dim anEntry As ObjectEntryDefinition = anObject.GetEntry(_TableStore.TableSchema.GetFieldname(i))
+                        Dim anEntry As ObjectEntryDefinition = anObject.GetEntry(_TableStore.TableSchema.Getfieldname(i))
                         If anEntry IsNot Nothing Then
                             Return anEntry.DefaultValue
                         Else
                             '** Fieldname not in EntryDefinition (additional field)
                             Call CoreMessageHandler(message:="fieldname not in object entry definition store - additional field ?!", messagetype:=otCoreMessageType.InternalWarning, _
-                                                     subname:="clsOTDBRecord.GetDefaultValue", entryname:=_TableStore.TableSchema.GetFieldname(i), tablename:=TableID)
+                                                     subname:="clsOTDBRecord.GetDefaultValue", entryname:=_TableStore.TableSchema.Getfieldname(i), tablename:=TableID)
                         End If
 
                     Else
@@ -2460,7 +2547,7 @@ Namespace OnTrack
                                 '** re-sort 
                                 Dim newValues(_TableStore.TableSchema.NoFields - 1) As Object
                                 Dim newOrigValues(_TableStore.TableSchema.NoFields - 1) As Object
-                                For Each fieldname In tablestore.TableSchema.fieldnames
+                                For Each fieldname In tablestore.TableSchema.Fieldnames
                                     If _entrynames.Contains(fieldname) Then
                                         newValues(_TableStore.TableSchema.GetFieldordinal(fieldname)) = _Values(Array.IndexOf(_entrynames, fieldname))
                                         newOrigValues(_TableStore.TableSchema.GetFieldordinal(fieldname)) = _OriginalValues(Array.IndexOf(_entrynames, fieldname))
@@ -2562,7 +2649,7 @@ Namespace OnTrack
                     Keys = New List(Of String)
                     Exit Function
                 ElseIf _IsTableSet Then
-                    Keys = _TableStore.TableSchema.fieldnames
+                    Keys = _TableStore.TableSchema.Fieldnames
                 Else
                     Keys = _entrynames.ToList
                 End If
@@ -3089,7 +3176,7 @@ Namespace OnTrack
             '*****
             '***** disconnect : Disconnects from the Database and cleans up the Enviorment
             Public Overridable Function Disconnect() As Boolean Implements iormConnection.Disconnect
-                If Not Me.isConnected Then
+                If Not Me.IsConnected Then
                     Return False
                 End If
                 ' Raise the event -> not working here ?!
@@ -3203,7 +3290,7 @@ Namespace OnTrack
             '********
 
             Public MustOverride Function Connect(Optional ByVal force As Boolean = False, _
-            Optional ByVal accessRequest As otAccessRight = otAccessRight.[readonly], _
+            Optional ByVal accessRequest As otAccessRight = otAccessRight.[ReadOnly], _
             Optional ByVal domain As String = "", _
             Optional ByVal OTDBUsername As String = "", _
             Optional ByVal OTDBPassword As String = "", _
@@ -3297,7 +3384,7 @@ Namespace OnTrack
 
                 '****
                 '**** no connection -> login
-                If Not Me.isConnected Then
+                If Not Me.IsConnected Then
 
                     If domainID = "" Then domainID = ConstGlobalDomain
                     '*** OTDBUsername supplied
@@ -3428,7 +3515,7 @@ Namespace OnTrack
                         Me.UILogin.Configset = ot.CurrentConfigSetName
                         Me.UILogin.EnableConfigSet = False
                         Me.UILogin.Accessright = accessRequest
-                       
+
                         Me.UILogin.Messagetext = "<html><strong>Attention !</strong><br />Please confirm by your password to obtain the access right.</html>"
                         Me.UILogin.EnableUsername = False
                         Me.UILogin.Username = ot.CurrentConnection.OTDBUser.Username
@@ -3468,7 +3555,7 @@ Namespace OnTrack
                                           break:=False, noOtdbAvailable:=True, messagetype:=otCoreMessageType.ApplicationError)
 
                     '*** reset
-                    If Not Me.isConnected Then
+                    If Not Me.IsConnected Then
                         ResetFromConnection()
                     Else
                         ' Disconnect() -> Do not ! fall back to old user
@@ -3482,7 +3569,7 @@ Namespace OnTrack
                                           break:=False, noOtdbAvailable:=True, messagetype:=otCoreMessageType.ApplicationError)
 
                     '*** reset
-                    If Not Me.isConnected Then
+                    If Not Me.IsConnected Then
                         ResetFromConnection()
                     Else
                         ' Disconnect() -> Do not ! fall back to old user
@@ -3494,7 +3581,7 @@ Namespace OnTrack
                                           break:=False, noOtdbAvailable:=True, messagetype:=otCoreMessageType.ApplicationError)
 
                     '*** reset
-                    If Not Me.isConnected Then
+                    If Not Me.IsConnected Then
                         ResetFromConnection()
                     Else
                         ' Disconnect() -> Do not ! fall back to old user
@@ -3506,7 +3593,7 @@ Namespace OnTrack
                                           break:=False, noOtdbAvailable:=True, messagetype:=otCoreMessageType.ApplicationError)
 
                     '*** reset
-                    If Not Me.isConnected Then
+                    If Not Me.IsConnected Then
                         ResetFromConnection()
                     Else
                         ' Disconnect() -> Do not ! fall back to old user
@@ -3543,7 +3630,7 @@ Namespace OnTrack
                 Get
                     Return Me._domain
                 End Get
-                Set
+                Set(value As String)
                     Me._domain = Value
                 End Set
             End Property
@@ -3725,7 +3812,7 @@ Namespace OnTrack
                     Return Me._result
                 End Get
                 Set(value As Boolean)
-                    Me._result = Value
+                    Me._result = value
                 End Set
             End Property
 
@@ -3738,7 +3825,7 @@ Namespace OnTrack
                     Return Me._pkarray
                 End Get
                 Set(value As Object())
-                    Me._pkarray = Value
+                    Me._pkarray = value
                 End Set
             End Property
 
@@ -3751,7 +3838,7 @@ Namespace OnTrack
                     Return Me._UseCache
                 End Get
                 Set(value As Boolean)
-                    Me._UseCache = Value
+                    Me._UseCache = value
                 End Set
             End Property
 
@@ -3764,7 +3851,7 @@ Namespace OnTrack
                     Return Me._Abort
                 End Get
                 Set(value As Boolean)
-                    Me._Abort = Value
+                    Me._Abort = value
                 End Set
             End Property
             ''' <summary>
@@ -3921,26 +4008,26 @@ Namespace OnTrack
             title:="flag parameter 3", description:="flag parameter 3")> Public Const ConstFNParamFlag3 = "param_flag3"
 
             '** columnMapping of persistable fields
-            <ormColumnMappingAttribute(fieldname:=ConstFNUpdatedOn)> Protected _updatedOn As Date = ot.ConstNullDate
-            <ormColumnMappingAttribute(fieldname:=ConstFNCreatedOn)> Protected _createdOn As Date = ConstNullDate
-            <ormColumnMappingAttribute(fieldname:=ConstFNDeletedOn)> Protected _deletedOn As Date = ConstNullDate
-            <ormColumnMappingAttribute(fieldname:=ConstFNIsDeleted)> Protected _IsDeleted As Boolean = False
+            <ormColumnMapping(ColumnName:=ConstFNUpdatedOn)> Protected _updatedOn As Date = ot.ConstNullDate
+            <ormColumnMapping(ColumnName:=ConstFNCreatedOn)> Protected _createdOn As Date = ConstNullDate
+            <ormColumnMapping(ColumnName:=ConstFNDeletedOn)> Protected _deletedOn As Date = ConstNullDate
+            <ormColumnMapping(ColumnName:=ConstFNIsDeleted)> Protected _IsDeleted As Boolean = False
 
             '** Spare Parameters
-            <ormColumnMapping(fieldname:=ConstFNParamText1)> Protected _parameter_txt1 As String = ""
-            <ormColumnMapping(fieldname:=ConstFNParamText2)> Protected _parameter_txt2 As String = ""
-            <ormColumnMapping(fieldname:=ConstFNParamText3)> Protected _parameter_txt3 As String = ""
-            <ormColumnMapping(fieldname:=ConstFNParamNum1)> Protected _parameter_num1 As Double
-            <ormColumnMapping(fieldname:=ConstFNParamNum2)> Protected _parameter_num2 As Double
-            <ormColumnMapping(fieldname:=ConstFNParamNum3)> Protected _parameter_num3 As Double
-            <ormColumnMapping(fieldname:=ConstFNParamDate1)> Protected _parameter_date1 As Date = ConstNullDate
-            <ormColumnMapping(fieldname:=ConstFNParamDate2)> Protected _parameter_date2 As Date = ConstNullDate
-            <ormColumnMapping(fieldname:=ConstFNParamDate3)> Protected _parameter_date3 As Date = ConstNullDate
-            <ormColumnMapping(fieldname:=ConstFNParamFlag1)> Protected _parameter_flag1 As Boolean
-            <ormColumnMapping(fieldname:=ConstFNParamFlag2)> Protected _parameter_flag2 As Boolean
-            <ormColumnMapping(fieldname:=ConstFNParamFlag3)> Protected _parameter_flag3 As Boolean
+            <ormColumnMapping(ColumnName:=ConstFNParamText1)> Protected _parameter_txt1 As String = ""
+            <ormColumnMapping(ColumnName:=ConstFNParamText2)> Protected _parameter_txt2 As String = ""
+            <ormColumnMapping(ColumnName:=ConstFNParamText3)> Protected _parameter_txt3 As String = ""
+            <ormColumnMapping(ColumnName:=ConstFNParamNum1)> Protected _parameter_num1 As Double
+            <ormColumnMapping(ColumnName:=ConstFNParamNum2)> Protected _parameter_num2 As Double
+            <ormColumnMapping(ColumnName:=ConstFNParamNum3)> Protected _parameter_num3 As Double
+            <ormColumnMapping(ColumnName:=ConstFNParamDate1)> Protected _parameter_date1 As Date = ConstNullDate
+            <ormColumnMapping(ColumnName:=ConstFNParamDate2)> Protected _parameter_date2 As Date = ConstNullDate
+            <ormColumnMapping(ColumnName:=ConstFNParamDate3)> Protected _parameter_date3 As Date = ConstNullDate
+            <ormColumnMapping(ColumnName:=ConstFNParamFlag1)> Protected _parameter_flag1 As Boolean
+            <ormColumnMapping(ColumnName:=ConstFNParamFlag2)> Protected _parameter_flag2 As Boolean
+            <ormColumnMapping(ColumnName:=ConstFNParamFlag3)> Protected _parameter_flag3 As Boolean
 
-            <ormColumnMapping(fieldname:=ConstFNDomainID)> Protected _domainID As String = ""
+            <ormColumnMapping(ColumnName:=ConstFNDomainID)> Protected _domainID As String = ""
 #Region "Properties"
             ''' <summary>
             ''' Gets the table store.
@@ -3992,7 +4079,7 @@ Namespace OnTrack
                 End Get
             End Property
 
-            
+
 
             ''' <summary>
             ''' Gets or sets the domain ID.
@@ -4008,7 +4095,7 @@ Namespace OnTrack
                     End If
                 End Get
                 Set(value As String)
-                    Me._domainID = Value
+                    Me._domainID = value
                 End Set
             End Property
             ''' <summary>
@@ -4400,7 +4487,7 @@ Namespace OnTrack
                 _TableID = ""
                 _dbdriver = Nothing
             End Sub
-          
+
             '*****
             '*****
             Private Sub NotifyPropertyChanged(Optional ByVal propertyname As String = Nothing)
@@ -4421,7 +4508,7 @@ Namespace OnTrack
                     Return ourEventArgs.Result
                 End If
                 '** set tableid
-                If Me.TableID <> "" And ourEventArgs.proceed Then
+                If Me.TableID <> "" And ourEventArgs.Proceed Then
                     _record = New ormRecord(Me.TableID, dbdriver:=_dbdriver)
                     If _record.IsTableSet Then
                         Initialize = True
@@ -4600,7 +4687,7 @@ Namespace OnTrack
 
                         '** return
                         Return Me.IsLoaded
-                        End If
+                    End If
 
                 Catch ex As Exception
                     Call CoreMessageHandler(exception:=ex, subname:="ormDataObject.Loadby", arg1:=pkArray, tablename:=_TableID)
@@ -4826,7 +4913,7 @@ Namespace OnTrack
                             tableVersions.Add(DirectCast(anAttribute, ormSchemaTableAttribute).Version)
                             tableAttrDeleteFlags.Add(DirectCast(anAttribute, ormSchemaTableAttribute).AddDeleteFieldBehavior)
                             tableAttrSpareFieldsFlags.Add(DirectCast(anAttribute, ormSchemaTableAttribute).AddSpareFields)
-                            tableAttrDomainIDFlags.Add(DirectCast(anAttribute, ormSchemaTableAttribute).AddDomainID)
+                            tableAttrDomainIDFlags.Add(DirectCast(anAttribute, ormSchemaTableAttribute).AddDomainBehavior)
                             '** FIELD COLUMN
                         ElseIf anAttribute.GetType().Equals(GetType(ormSchemaColumnAttribute)) Then
                             Dim aSchemaColumnAttribute = DirectCast(anAttribute, ormSchemaColumnAttribute)
@@ -5105,14 +5192,14 @@ Namespace OnTrack
 
                 '** check for domainBehavior
                 If Me.HasDomainBehavior Then
-                    domIndex = Me.TableSchema.GetDomainIDPKOrdinal
-                    If domIndex > 0 Then
+                    domindex = Me.TableSchema.GetDomainIDPKOrdinal
+                    If domindex > 0 Then
                         If domainID = "" Then domainID = CurrentSession.CurrentDomainID
                         If pkArray.Count = Me.TableSchema.NoPrimaryKeyFields Then
-                            pkArray(domIndex - 1) = UCase(domainID)
+                            pkArray(domindex - 1) = UCase(domainID)
                         Else
                             ReDim Preserve pkArray(Me.TableSchema.NoPrimaryKeyFields)
-                            pkArray(domIndex - 1) = UCase(domainID)
+                            pkArray(domindex - 1) = UCase(domainID)
                         End If
                     Else
                         CoreMessageHandler(message:="domainID is not in primary key although domain behavior is set", subname:="ormDataObject.create", _
@@ -5480,9 +5567,9 @@ Namespace OnTrack
                                 If anAttribute.GetType().Equals(GetType(ormColumnMappingAttribute)) Then
                                     Dim aField As System.Reflection.FieldInfo = DirectCast(aMember, System.Reflection.FieldInfo)
                                     Dim aFieldType As Type = aField.FieldType
-                                    If record.HasIndex(DirectCast(anAttribute, ormColumnMappingAttribute).Fieldname) Then
+                                    If record.HasIndex(DirectCast(anAttribute, ormColumnMappingAttribute).ColumnName) Then
                                         '*** set the class internal field
-                                        aValue = record.GetValue(DirectCast(anAttribute, ormColumnMappingAttribute).Fieldname)
+                                        aValue = record.GetValue(DirectCast(anAttribute, ormColumnMappingAttribute).ColumnName)
                                         Dim converter As TypeConverter = TypeDescriptor.GetConverter(aField.FieldType)
                                         If IsDBNull(aValue) Then
                                             ' do nothing leave the value
@@ -5519,12 +5606,12 @@ Namespace OnTrack
                                             aField.SetValue(dataobject, CDec(aValue))
                                         Else
                                             Call CoreMessageHandler(subname:="ormDataObject.infuse", message:="cannot convert record value type to field type", _
-                                                                   entryname:=DirectCast(anAttribute, ormColumnMappingAttribute).Fieldname, tablename:=dataobject.TableID, _
+                                                                   entryname:=DirectCast(anAttribute, ormColumnMappingAttribute).ColumnName, tablename:=dataobject.TableID, _
                                                                    arg1:=aField.Name, messagetype:=otCoreMessageType.InternalError)
                                         End If
 
                                     End If
-                                    End If
+                                End If
 
                             Next
                         End If
@@ -5587,9 +5674,9 @@ Namespace OnTrack
                                 If anAttribute.GetType().Equals(GetType(ormColumnMappingAttribute)) Then
                                     Dim aField As System.Reflection.FieldInfo = DirectCast(aMember, System.Reflection.FieldInfo)
                                     If Not record.IsTableSet OrElse _
-                                        (record.IsTableSet And record.HasIndex(DirectCast(anAttribute, ormColumnMappingAttribute).Fieldname)) Then
+                                        (record.IsTableSet And record.HasIndex(DirectCast(anAttribute, ormColumnMappingAttribute).ColumnName)) Then
                                         aValue = aField.GetValue(dataobject)
-                                        record.SetValue(DirectCast(anAttribute, ormColumnMappingAttribute).Fieldname, aValue)
+                                        record.SetValue(DirectCast(anAttribute, ormColumnMappingAttribute).ColumnName, aValue)
                                     End If
                                 End If
 
@@ -5723,7 +5810,7 @@ Namespace OnTrack
                         '* retrieve the maximum field
                         For Each pkvalue In pkArray
                             If pkvalue Is Nothing Then
-                                keyfieldname = TableSchema.GetPrimaryKeyFieldname(anIndex + 1)
+                                keyfieldname = TableSchema.GetPrimaryKeyfieldname(anIndex + 1)
                                 Exit For
                             End If
                             anIndex += 1
@@ -5733,9 +5820,9 @@ Namespace OnTrack
                         If anIndex > 0 Then
                             For j = 0 To anIndex - 1 ' an index points to the keyfieldname, parameter is the rest
                                 If j > 0 Then aCommand.Where &= " AND "
-                                aCommand.Where &= TableSchema.GetPrimaryKeyFieldname(j + 1) & " = @" & TableSchema.GetPrimaryKeyFieldname(j + 1)
-                                aCommand.AddParameter(New ormSqlCommandParameter(ID:="@" & TableSchema.GetPrimaryKeyFieldname(j + 1), _
-                                                                                     fieldname:=TableSchema.GetPrimaryKeyFieldname(j + 1), tablename:=Me.TableID))
+                                aCommand.Where &= TableSchema.GetPrimaryKeyfieldname(j + 1) & " = @" & TableSchema.GetPrimaryKeyfieldname(j + 1)
+                                aCommand.AddParameter(New ormSqlCommandParameter(ID:="@" & TableSchema.GetPrimaryKeyfieldname(j + 1), _
+                                                                                     columnname:=TableSchema.GetPrimaryKeyfieldname(j + 1), tablename:=Me.TableID))
                             Next
                         End If
                         aCommand.Prepare()
@@ -5745,7 +5832,7 @@ Namespace OnTrack
                     anIndex = 0
                     For Each pkvalue In pkArray
                         If Not pkvalue Is Nothing Then
-                            aCommand.SetParameterValue(ID:="@" & TableSchema.GetPrimaryKeyFieldname(anIndex + 1), value:=pkvalue)
+                            aCommand.SetParameterValue(ID:="@" & TableSchema.GetPrimaryKeyfieldname(anIndex + 1), value:=pkvalue)
                         Else
                             Exit For
                         End If
@@ -6370,7 +6457,7 @@ Namespace OnTrack
             ''' <param name="i"></param>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public Function GetFieldname(ByVal i As Integer) As String Implements iotDataSchema.GetFieldname
+            Public Function GetFieldname(ByVal i As Integer) As String Implements iotDataSchema.Getfieldname
 
                 If i > 0 And i <= UBound(_Fieldnames) + 1 Then
                     Return _Fieldnames(i - 1)
@@ -6388,7 +6475,7 @@ Namespace OnTrack
             ''' <param name="name"></param>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public Function HasFieldname(ByVal name As String) As Boolean Implements iotDataSchema.HasFieldname
+            Public Function HasFieldname(ByVal name As String) As Boolean Implements iotDataSchema.Hasfieldname
 
                 Dim i As Integer
 
@@ -6408,7 +6495,7 @@ Namespace OnTrack
             ''' <param name="i">1..n</param>
             ''' <returnsString></returns>
             ''' <remarks></remarks>
-            Public Function GetPrimaryKeyFieldname(i As UShort) As String Implements iotDataSchema.GetPrimaryKeyFieldname
+            Public Function GetPrimaryKeyFieldname(i As UShort) As String Implements iotDataSchema.GetPrimaryKeyfieldname
                 Dim aCollection As ArrayList
 
                 If i < 1 Then

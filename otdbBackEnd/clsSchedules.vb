@@ -37,7 +37,7 @@ Namespace OnTrack.Scheduling
         Implements iormPersistable
         Implements iormInfusable
 
-        <ormSchemaTable(version:=2, adddomainID:=True, addsparefields:=True, adddeletefieldbehavior:=True)> Public Const ConstTableID As String = "tblDefMilestones"
+        <ormSchemaTable(version:=2, addDomainBehavior:=True, addsparefields:=True, adddeletefieldbehavior:=True)> Public Const ConstTableID As String = "tblDefMilestones"
 
         '** keys
         <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=20, defaultValue:="", primarykeyordinal:=1, _
@@ -61,13 +61,13 @@ Namespace OnTrack.Scheduling
 
 
         '** MAPPING
-        <ormColumnMapping (fieldname:=constFNid)> Private _id As String = ""  ' id
-        <ormColumnMapping(fieldname:=ConstFNDescription)> Private _description As String = ""
-        <ormColumnMapping(fieldname:=ConstFNType)> Private _typeid As otMilestoneType
-        <ormColumnMapping(fieldname:=ConstFNDatatype)> Private _datatype As otFieldDataType
-        <ormColumnMapping(fieldname:=ConstFNRefID)> Private _refid As String = ""
-        <ormColumnMapping(fieldname:=ConstFNIsForecast)> Private _isForecast As Boolean
-        <ormColumnMapping(fieldname:=ConstFNStatus)> Private _statustypeid As String = ""
+        <ormColumnMapping (ColumnName:=ConstFNid)> Private _id As String = ""  ' id
+        <ormColumnMapping(ColumnName:=ConstFNDescription)> Private _description As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNType)> Private _typeid As otMilestoneType
+        <ormColumnMapping(ColumnName:=ConstFNDatatype)> Private _datatype As otFieldDataType
+        <ormColumnMapping(ColumnName:=ConstFNRefID)> Private _refid As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNIsForecast)> Private _isForecast As Boolean
+        <ormColumnMapping(ColumnName:=ConstFNStatus)> Private _statustypeid As String = ""
 
 
 
@@ -1221,7 +1221,7 @@ error_handle:
         Implements iormPersistable
         Implements iormInfusable
 
-        <ormSchemaTable(version:=2, adddomainID:=True, adddeletefieldbehavior:=True, addSpareFields:=True)> Public Const ConstTableID As String = "tblDefScheduleMilestones"
+        <ormSchemaTable(version:=2, addDomainBehavior:=True, adddeletefieldbehavior:=True, addSpareFields:=True)> Public Const ConstTableID As String = "tblDefScheduleMilestones"
         <ormSchemaIndex(columnname1:=ConstFNType, columnname2:=ConstFNOrderNo)> Public Const ConstIndOrder = "orderby"
 
         '** keys
@@ -1256,19 +1256,19 @@ error_handle:
 
 
         '** mapping
-        <ormColumnMapping(fieldname:=ConstFNType)> Private _scheduletype As String = ""
-        <ormColumnMapping(fieldname:=ConstFNID)> Private _id As String = ""
-        <ormColumnMapping(fieldname:=ConstFNDesc)> Private _description As String = ""
-        <ormColumnMapping(fieldname:=ConstFNOrderNo)> Private _orderNo As Long
-        <ormColumnMapping(fieldname:=ConstFNIsFC)> Private _isForecast As Boolean
-        <ormColumnMapping(fieldname:=ConstFNActualID)> Private _actualid As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNType)> Private _scheduletype As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNID)> Private _id As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNDesc)> Private _description As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNOrderNo)> Private _orderNo As Long
+        <ormColumnMapping(ColumnName:=ConstFNIsFC)> Private _isForecast As Boolean
+        <ormColumnMapping(ColumnName:=ConstFNActualID)> Private _actualid As String = ""
 
-        <ormColumnMapping(fieldname:=ConstFNIsMAND)> Private _isMandatory As Boolean
-        <ormColumnMapping(fieldname:=ConstFNIsFORB)> Private _isForbidden As Boolean
-        <ormColumnMapping(fieldname:=ConstFNIsFAC)> Private _isFacultative As Boolean
-        <ormColumnMapping(fieldname:=ConstFNIsFinish)> Private _isFinish As Boolean
-        <ormColumnMapping(fieldname:=ConstFNIsINPUT)> Private _isInputDeliverable As Boolean
-        <ormColumnMapping(fieldname:=ConstFNIsOutPut)> Private _isOutputDeliverable As Boolean
+        <ormColumnMapping(ColumnName:=ConstFNIsMAND)> Private _isMandatory As Boolean
+        <ormColumnMapping(ColumnName:=ConstFNIsFORB)> Private _isForbidden As Boolean
+        <ormColumnMapping(ColumnName:=ConstFNIsFAC)> Private _isFacultative As Boolean
+        <ormColumnMapping(ColumnName:=ConstFNIsFinish)> Private _isFinish As Boolean
+        <ormColumnMapping(ColumnName:=ConstFNIsINPUT)> Private _isInputDeliverable As Boolean
+        <ormColumnMapping(ColumnName:=ConstFNIsOutPut)> Private _isOutputDeliverable As Boolean
 
 
         ''' <summary>
@@ -1798,7 +1798,7 @@ error_handle:
                 Dim aCommand As ormSqlSelectCommand = aStore.CreateSqlSelectCommand(id:="allbytype")
                 If Not aCommand.Prepared Then
                     aCommand.Where = ConstFNType & "=@type"
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@type", fieldname:=ConstFNType, tablename:=ConstTableID))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@type", ColumnName:=ConstFNType, tablename:=ConstTableID))
                     aCommand.Prepare()
                 End If
 
@@ -1855,7 +1855,7 @@ error_handle:
         Implements iormPersistable
         Implements iormInfusable
 
-        <ormSchemaTable(version:=2, adddeletefieldbehavior:=True, adddomainID:=True)> Public Const ConstTableID = "tblDefSchedules"
+        <ormSchemaTable(version:=2, adddeletefieldbehavior:=True, addDomainBehavior:=True)> Public Const ConstTableID = "tblDefSchedules"
 
         '*** Columns
         <ormSchemaColumnAttribute(typeid:=otFieldDataType.Text, title:="unique ID", size:=50, Description:="Unique ID of the schedule type definition", _
@@ -1865,8 +1865,8 @@ error_handle:
 
 
         ' fields
-        <ormColumnMapping(fieldname:=ConstFNType)> Private _scheduletype As String = ""
-        <ormColumnMapping(fieldname:=ConstFNDescription)> Private _description As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNType)> Private _scheduletype As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNDescription)> Private _description As String = ""
 
         ' components itself per key:=posno, item:=clsOTDBDefScheduleMilestone
         Private _members As New Dictionary(Of String, ScheduleMilestoneDefinition)
@@ -2192,7 +2192,7 @@ error_handle:
                     If Not aCommand.Prepared Then
                         aCommand.Where = ScheduleMilestoneDefinition.ConstTableID & ".[" & ScheduleMilestoneDefinition.ConstFNType & "] = @type"
                         aCommand.OrderBy = "[" & ScheduleMilestoneDefinition.ConstFNOrderNo & "] asc"
-                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@type", fieldname:=ScheduleMilestoneDefinition.ConstFNType, _
+                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@type", columnname:=ScheduleMilestoneDefinition.ConstFNType, _
                                                                          tablename:=ScheduleMilestoneDefinition.ConstTableID))
                         aCommand.Prepare()
                     End If
@@ -2376,7 +2376,7 @@ error_handle:
         Implements iotCloneable(Of Schedule)
 
 
-        <ormSchemaTableAttribute(Version:=2, adddomainid:=False, AddDeleteFieldBehavior:=True, addsparefields:=True)> _
+        <ormSchemaTableAttribute(Version:=2, addDomainBehavior:=False, AddDeleteFieldBehavior:=True, addsparefields:=True)> _
         Public Const ConstTableID = "tblschedules"
         '** Indexes
         <ormSchemaIndexAttribute(columnname1:=ConstFNWorkspace, columnname2:=ConstFNUid, columnname3:=ConstFNUpdc)> Public Const ConstIndexWS = "workspaceID"
@@ -2433,28 +2433,28 @@ error_handle:
         <ormSchemaColumnAttribute(typeid:=otFieldDataType.Text, size:=100, title:="Activitiy Tag", Description:="Activity Tag", _
            id:="SC30", aliases:={}, Defaultvalue:="", parameter:="")> Public Const ConstFNActTag = "acttag"
 
-        <ormColumnMappingAttribute(fieldname:=ConstFNUid)> Private _uid As Long = 0
-        <ormColumnMappingAttribute(fieldname:=ConstFNUpdc)> Private _updc As Long = 0
-        <ormColumnMappingAttribute(fieldname:=ConstFNfcupdc)> Private _fcupdc As Long    ' update count of just fc
-        <ormColumnMappingAttribute(fieldname:=ConstFNPlanRev)> Private _plrev As String = ""
-        <ormColumnMappingAttribute(fieldname:=ConstFNPlanner)> Private _planner As String = ""
-        <ormColumnMappingAttribute(fieldname:=ConstFNisfrozen)> Private _isFrozen As Boolean
-        <ormColumnMappingAttribute(fieldname:=ConstFNpstatus)> Private _pstatus As String = ""
-        <ormColumnMappingAttribute(fieldname:=ConstFNlcstatus)> Private _lfcstatus As String = ""
-        <ormColumnMappingAttribute(fieldname:=ConstFNCheckedOn)> Private _checkedOn As Date = ConstNullDate
-        <ormColumnMappingAttribute(fieldname:=ConstFNFCupdatedOn)> Private _fcUpdatedOn As Date = ConstNullDate
-        <ormColumnMappingAttribute(fieldname:=ConstFNIsBaseline)> Private _isBaseline As Boolean = False
-        <ormColumnMappingAttribute(fieldname:=ConstFNBlDate)> Private _baselineDate As Date = ConstNullDate
-        <ormColumnMappingAttribute(fieldname:=ConstFNBlUpdc)> Private _baselineUPDC As Long = 0
+        <ormColumnMappingAttribute(ColumnName:=ConstFNUid)> Private _uid As Long = 0
+        <ormColumnMappingAttribute(ColumnName:=ConstFNUpdc)> Private _updc As Long = 0
+        <ormColumnMappingAttribute(ColumnName:=ConstFNfcupdc)> Private _fcupdc As Long    ' update count of just fc
+        <ormColumnMappingAttribute(ColumnName:=ConstFNPlanRev)> Private _plrev As String = ""
+        <ormColumnMappingAttribute(ColumnName:=ConstFNPlanner)> Private _planner As String = ""
+        <ormColumnMappingAttribute(ColumnName:=ConstFNisfrozen)> Private _isFrozen As Boolean
+        <ormColumnMappingAttribute(ColumnName:=ConstFNpstatus)> Private _pstatus As String = ""
+        <ormColumnMappingAttribute(ColumnName:=ConstFNlcstatus)> Private _lfcstatus As String = ""
+        <ormColumnMappingAttribute(ColumnName:=ConstFNCheckedOn)> Private _checkedOn As Date = ConstNullDate
+        <ormColumnMappingAttribute(ColumnName:=ConstFNFCupdatedOn)> Private _fcUpdatedOn As Date = ConstNullDate
+        <ormColumnMappingAttribute(ColumnName:=ConstFNIsBaseline)> Private _isBaseline As Boolean = False
+        <ormColumnMappingAttribute(ColumnName:=ConstFNBlDate)> Private _baselineDate As Date = ConstNullDate
+        <ormColumnMappingAttribute(ColumnName:=ConstFNBlUpdc)> Private _baselineUPDC As Long = 0
 
-        <ormColumnMappingAttribute(fieldname:=ConstFNWorkspace)> Private _workspace As String = ""
-        <ormColumnMappingAttribute(fieldname:=ConstFNTypeid)> Private _typeid As String = ""
-        <ormColumnMappingAttribute(fieldname:=ConstFNRequCap)> Private _requ As Double = 0
-        <ormColumnMappingAttribute(fieldname:=ConstFNUsedCap)> Private _used As Double = 0
-        <ormColumnMappingAttribute(fieldname:=ConstFNUsedCapRef)> Private _ufdt As Date = ConstNullDate
-        <ormColumnMappingAttribute(fieldname:=ConstFNComment)> Private _comment As String = ""
-        <ormColumnMappingAttribute(fieldname:=ConstFNMsgLogTag)> Private _msglogtag As String = ""
-        <ormColumnMappingAttribute(fieldname:=ConstFNActTag)> Private _activetag As String = ""
+        <ormColumnMappingAttribute(ColumnName:=ConstFNWorkspace)> Private _workspace As String = ""
+        <ormColumnMappingAttribute(ColumnName:=ConstFNTypeid)> Private _typeid As String = ""
+        <ormColumnMappingAttribute(ColumnName:=ConstFNRequCap)> Private _requ As Double = 0
+        <ormColumnMappingAttribute(ColumnName:=ConstFNUsedCap)> Private _used As Double = 0
+        <ormColumnMappingAttribute(ColumnName:=ConstFNUsedCapRef)> Private _ufdt As Date = ConstNullDate
+        <ormColumnMappingAttribute(ColumnName:=ConstFNComment)> Private _comment As String = ""
+        <ormColumnMappingAttribute(ColumnName:=ConstFNMsgLogTag)> Private _msglogtag As String = ""
+        <ormColumnMappingAttribute(ColumnName:=ConstFNActTag)> Private _activetag As String = ""
 
         ' components itself per key:=id, item:=clsOTDBXScheduleMilestone
         Private s_members As New Dictionary(Of String, ScheduleMilestone)
@@ -4780,8 +4780,8 @@ error_handle:
                 If Not aCommand.Prepared Then
                     aCommand.select = "max(updc)"
                     aCommand.Where = "uid=@uid and wspace=@wspace"
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@uid", fieldname:=ConstFNUid, tablename:=ConstTableID))
-                    aCommand.AddParameter(New ormSqlCommandParameter(id:="@wspace", fieldname:=ConstFNWorkspace, tablename:=ConstTableID))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@uid", ColumnName:=ConstFNUid, tablename:=ConstTableID))
+                    aCommand.AddParameter(New ormSqlCommandParameter(id:="@wspace", ColumnName:=ConstFNWorkspace, tablename:=ConstTableID))
                     aCommand.Prepare()
                 End If
                 aCommand.SetParameterValue(ID:="@uid", value:=Uid)
@@ -5412,21 +5412,21 @@ error_handle:
 
         ' fields
 
-        <ormColumnMapping(fieldname:=ConstFNUid)> Private _uid As Long
-        <ormColumnMapping(fieldname:=ConstFNUid)> Private _updc As Long
-        <ormColumnMapping(fieldname:=ConstFNUid)> Private _id As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNUid)> Private _uid As Long
+        <ormColumnMapping(ColumnName:=ConstFNUid)> Private _updc As Long
+        <ormColumnMapping(ColumnName:=ConstFNUid)> Private _id As String = ""
 
-        '<ormColumnMapping(fieldname:=ConstFNUid)> -> special infuse
+        '<ormColumnMapping(ColumnName:=ConstFNUid)> -> special infuse
         Private _value As Object
-        ' <ormColumnMapping(fieldname:=ConstFNUid)> -> special infuse
+        ' <ormColumnMapping(ColumnName:=ConstFNUid)> -> special infuse
         Private _datatype As otFieldDataType
-        <ormColumnMapping(fieldname:=ConstFNUid)> Private _cmt As String = ""
-        <ormColumnMapping(fieldname:=ConstFNUid)> Private _workspaceID As String = ""
-        <ormColumnMapping(fieldname:=ConstFNUid)> Private _isStatus As Boolean
+        <ormColumnMapping(ColumnName:=ConstFNUid)> Private _cmt As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNUid)> Private _workspaceID As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNUid)> Private _isStatus As Boolean
 
         'Private s_isActual As Boolean
-        <ormColumnMapping(fieldname:=ConstFNUid)> Private _isForecast As Boolean
-        <ormColumnMapping(fieldname:=ConstFNUid)> Private _msglogtag As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNUid)> Private _isForecast As Boolean
+        <ormColumnMapping(ColumnName:=ConstFNUid)> Private _msglogtag As String = ""
 
 
         'dynamic
@@ -6161,13 +6161,13 @@ error_handle:
             ID:="SL7", title:="Linke Type", description:="object link type")> Public Const ConstFNTypeID = "typeid"
 
         '** Mapping
-        <ormColumnMapping(fieldname:=ConstFNFromTagObject)> Private _tagObject As String
-        <ormColumnMapping(fieldname:=ConstFNFromTaguid)> Private _tagUid As String
-        <ormColumnMapping(fieldname:=ConstFNFromMilestone)> Private _tagMS As String
-        <ormColumnMapping(fieldname:=ConstFNToTagObject)> Private _2tagObject As String
-        <ormColumnMapping(fieldname:=ConstFNToTaguid)> Private _2taguid As Long
-        <ormColumnMapping(fieldname:=ConstFNToMilestone)> Private _2tagMS As String
-        <ormColumnMapping(fieldname:=ConstFNTypeID)> Private _type As otScheduleLinkType
+        <ormColumnMapping(ColumnName:=ConstFNFromTagObject)> Private _tagObject As String
+        <ormColumnMapping(ColumnName:=ConstFNFromTaguid)> Private _tagUid As String
+        <ormColumnMapping(ColumnName:=ConstFNFromMilestone)> Private _tagMS As String
+        <ormColumnMapping(ColumnName:=ConstFNToTagObject)> Private _2tagObject As String
+        <ormColumnMapping(ColumnName:=ConstFNToTaguid)> Private _2taguid As Long
+        <ormColumnMapping(ColumnName:=ConstFNToMilestone)> Private _2tagMS As String
+        <ormColumnMapping(ColumnName:=ConstFNTypeID)> Private _type As otScheduleLinkType
         ''' <summary>
         ''' constructor of Current schedule
         ''' </summary>
@@ -6327,13 +6327,13 @@ error_handle:
             ID:="CS3", title:="Linked UID", description:="uid link to the scheduled object")> Public Const ConstFNTaguid = "taguid"
 
         '** Mapping
-        <ormColumnMapping(fieldname:=ConstFNWorkspaceID)> Private _workspaceID As String
-        <ormColumnMapping(fieldname:=ConstFNTagObject)> Private _tagObject As String
-        <ormColumnMapping(fieldname:=ConstFNTaguid)> Private _tagUid As String
-        <ormColumnMapping(fieldname:=ConstFNUID)> Private _uid As Long
+        <ormColumnMapping(ColumnName:=ConstFNWorkspaceID)> Private _workspaceID As String
+        <ormColumnMapping(ColumnName:=ConstFNTagObject)> Private _tagObject As String
+        <ormColumnMapping(ColumnName:=ConstFNTaguid)> Private _tagUid As String
+        <ormColumnMapping(ColumnName:=ConstFNUID)> Private _uid As Long
 
-        <ormColumnMapping(fieldname:=ConstFNUPDC)> Private _updc As Long
-        <ormColumnMapping(fieldname:=ConstFNIsActive)> Private _isActive As Boolean
+        <ormColumnMapping(ColumnName:=ConstFNUPDC)> Private _updc As Long
+        <ormColumnMapping(ColumnName:=ConstFNIsActive)> Private _isActive As Boolean
         ''' <summary>
         ''' constructor of Current schedule
         ''' </summary>

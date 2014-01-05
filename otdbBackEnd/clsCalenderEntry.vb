@@ -34,7 +34,7 @@ Namespace OnTrack
         Implements iormPersistable
 
         '** Schema
-        <ormSchemaTable(version:=2, adddeletefieldbehavior:=True, adddomainID:=True, addsparefields:=True)> _
+        <ormSchemaTable(version:=2, adddeletefieldbehavior:=True, addDomainBehavior:=True, addsparefields:=True)> _
         Public Const ConstTableid As String = "tblCalendarEntries"
 
         <ormSchemaIndex(columnname1:=constFNName, columnname2:=constFNRefID, columnname3:=constFNID, columnname4:=constFNDomainID)> Public Const constINDEXRefID = "refid"
@@ -91,16 +91,16 @@ Namespace OnTrack
 
 
         '** mappings
-        <ormColumnMapping(fieldname:=constFNID)> Private _entryid As Long = 0
-        <ormColumnMapping(fieldname:=constFNName)> Private _name As String = ""
-        <ormColumnMapping(fieldname:=constFNTimestamp)> Private _timestamp As Date = ConstNullDate
-        <ormColumnMapping(fieldname:=constFNRefID)> Private _refid As Long = 0
-        <ormColumnMapping(fieldname:=constFNLength)> Private _length As Long = 0
+        <ormColumnMapping(ColumnName:=ConstFNID)> Private _entryid As Long = 0
+        <ormColumnMapping(ColumnName:=ConstFNName)> Private _name As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNTimestamp)> Private _timestamp As Date = ConstNullDate
+        <ormColumnMapping(ColumnName:=ConstFNRefID)> Private _refid As Long = 0
+        <ormColumnMapping(ColumnName:=ConstFNLength)> Private _length As Long = 0
         ' fields
-        <ormColumnMapping(fieldname:=ConstFNTypeID)> Private _EntryType As otCalendarEntryType
-        <ormColumnMapping(fieldname:=constFNIsImportant)> Private s_isImportant As Boolean = False
-        <ormColumnMapping(fieldname:=constFNNotAvail)> Private s_notAvailable As Boolean = False
-        <ormColumnMapping(fieldname:=ConstFNDescription)> Private s_description As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNTypeID)> Private _EntryType As otCalendarEntryType
+        <ormColumnMapping(ColumnName:=ConstFNIsImportant)> Private s_isImportant As Boolean = False
+        <ormColumnMapping(ColumnName:=ConstFNNotAvail)> Private s_notAvailable As Boolean = False
+        <ormColumnMapping(ColumnName:=ConstFNDescription)> Private s_description As String = ""
 
 
 
@@ -742,7 +742,7 @@ error_handle:
                     aCommand.select = "count(id)"
                     aCommand.Where = String.Format("[{0}}=@cname and [{1}] > @date1 and [{1}] <@date2 and [{2}] <> @avail and [{3}]=@typeID and ([{5}]=@domainid )", _
                     {constFNName, constFNTimestamp, constFNNotAvail, constFNDomainID})
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@cname", fieldname:="cname", tablename:=ConstTableid))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@cname", columnname:="cname", tablename:=ConstTableid))
                     aCommand.AddParameter(New ormSqlCommandParameter(ID:="@date1", datatype:=otFieldDataType.Date, notColumn:=True))
                     aCommand.AddParameter(New ormSqlCommandParameter(ID:="@date2", datatype:=otFieldDataType.Date, notColumn:=True))
                     aCommand.AddParameter(New ormSqlCommandParameter(ID:="@avail", datatype:=otFieldDataType.Bool, notColumn:=True))
@@ -811,7 +811,7 @@ error_handle:
                             {constFNName, constFNTimestamp, constFNNotAvail, ConstFNTypeID, constFNDomainID})
 
                         aCommand.OrderBy = "[" & constFNTimestamp & "] desc"
-                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@cname", fieldname:="cname", tablename:=ConstTableid))
+                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@cname", columnname:="cname", tablename:=ConstTableid))
                         aCommand.AddParameter(New ormSqlCommandParameter(ID:="@date1", datatype:=otFieldDataType.Date, notColumn:=True))
                         aCommand.AddParameter(New ormSqlCommandParameter(ID:="@avail", datatype:=otFieldDataType.Bool, notColumn:=True))
                         aCommand.AddParameter(New ormSqlCommandParameter(ID:="@typeid", datatype:=otFieldDataType.[Long], notColumn:=True))
@@ -830,7 +830,7 @@ error_handle:
 
                         aCommand.OrderBy = "[" & constFNTimestamp & "] asc"
 
-                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@cname", fieldname:="cname", tablename:=ConstTableid))
+                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@cname", columnname:="cname", tablename:=ConstTableid))
                         aCommand.AddParameter(New ormSqlCommandParameter(ID:="@date1", datatype:=otFieldDataType.Date, notColumn:=True))
                         aCommand.AddParameter(New ormSqlCommandParameter(ID:="@avail", datatype:=otFieldDataType.Bool, notColumn:=True))
                         aCommand.AddParameter(New ormSqlCommandParameter(ID:="@typeid", datatype:=otFieldDataType.[Long], notColumn:=True))
@@ -934,14 +934,14 @@ error_handle:
                     If aCommand.DatabaseDriver.DatabaseType = otDBServerType.SQLServer Then
                         aCommand.Where = String.Format(" [{0}] = @cname and convert(varchar, [{1}], 104) = @datestr and [{2}]=@domainID", _
                                                        {constFNName, constFNTimestamp, constFNDomainID})
-                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@cname", datatype:=otFieldDataType.Text, fieldname:="cname"))
+                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@cname", datatype:=otFieldDataType.Text, columnname:=constFNName))
                         aCommand.AddParameter(New ormSqlCommandParameter(ID:="@datestr", datatype:=otFieldDataType.Text, notColumn:=True))
                         aCommand.AddParameter(New ormSqlCommandParameter(ID:="@domainID", datatype:=otFieldDataType.Text, notColumn:=True))
 
                     ElseIf aCommand.DatabaseDriver.DatabaseType = otDBServerType.Access Then
                         aCommand.Where = String.Format(" [{0}] = @cname and [{1}] = @date and [{2}]=@domainID", _
                         {constFNName, constFNTimestamp, constFNDomainID})
-                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@cname", datatype:=otFieldDataType.Text, fieldname:="cname"))
+                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@cname", datatype:=otFieldDataType.Text, columnname:=constFNName))
                         aCommand.AddParameter(New ormSqlCommandParameter(ID:="@date", datatype:=otFieldDataType.[Date], notColumn:=True))
                         aCommand.AddParameter(New ormSqlCommandParameter(ID:="@domainID", datatype:=otFieldDataType.Text, notColumn:=True))
                     Else

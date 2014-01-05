@@ -406,7 +406,7 @@ Namespace OnTrack.Xchange
                 If Not aCommand.Prepared Then
                     aCommand.Where = clsOTDBMessageQueueEntry.ConstTableID & ".[" & clsOTDBMessageQueueEntry.ConstFNTag & "] = @tag"
                     aCommand.OrderBy = clsOTDBMessageQueueEntry.ConstTableID & ".[" & clsOTDBMessageQueueEntry.ConstFNRowno & "] asc"
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@tag", fieldname:=clsOTDBMessageQueueEntry.ConstFNTag, _
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@tag", columnname:=clsOTDBMessageQueueEntry.ConstFNTag, _
                                                                            tablename:=clsOTDBMessageQueueEntry.ConstTableID))
                 End If
                 If aCommand.Prepared Then
@@ -1118,10 +1118,10 @@ error_handle:
                     aCommand.Where = clsOTDBMessageQueueMember.constTableID & ".[" & ConstFNTag & "] = @tag and " & _
                                      clsOTDBMessageQueueMember.constTableID & ".[" & ConstFNRowno & "] = @rowno"
                     aCommand.AddParameter(New ormSqlCommandParameter(ID:="@tag", _
-                                                                           fieldname:=clsOTDBMessageQueueMember.ConstFNTag, _
+                                                                           columnname:=clsOTDBMessageQueueMember.ConstFNTag, _
                                                                            tablename:=clsOTDBMessageQueueMember.constTableID))
                     aCommand.AddParameter(New ormSqlCommandParameter(ID:="@" & clsOTDBMessageQueueMember.ConstFNRowno, _
-                                                                           fieldname:=clsOTDBMessageQueueMember.ConstFNRowno, _
+                                                                           columnname:=clsOTDBMessageQueueMember.ConstFNRowno, _
                                                                            tablename:=clsOTDBMessageQueueMember.constTableID))
                     aCommand.OrderBy = clsOTDBMessageQueueMember.constTableID & ".[" & clsOTDBMessageQueueMember.ConstFNIDNo & "] asc"
                     aCommand.Prepare()

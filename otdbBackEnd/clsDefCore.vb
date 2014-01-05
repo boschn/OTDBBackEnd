@@ -33,7 +33,7 @@ Namespace OnTrack
         Implements iormPersistable
 
         '** const
-        <ormSchemaTableAttribute(adddeletefieldbehavior:=True, adddomainID:=True, addsparefields:=True, Version:=1)> Public Const ConstTableID As String = "tblDefValueEntries"
+        <ormSchemaTableAttribute(adddeletefieldbehavior:=True, addDomainBehavior:=True, addsparefields:=True, Version:=1)> Public Const ConstTableID As String = "tblDefValueEntries"
 
         <ormSchemaColumnAttribute(id:="VE1", _
             typeid:=otFieldDataType.Text, size:=50, _
@@ -62,11 +62,11 @@ Namespace OnTrack
         Const ConstFNDatatype = "datatype"
 
         ' fields
-        <ormColumnMappingAttribute(fieldname:=ConstFNDomainID)> Private _DomainID As String = ""
-        <ormColumnMappingAttribute(fieldname:=ConstFNListID)> Private _ID As String = ""
-        <ormColumnMappingAttribute(fieldname:=ConstFNSelector)> Private _selector As String = ""
-        <ormColumnMappingAttribute(fieldname:=ConstFNValue)> Private _valuestring As String = ""
-        <ormColumnMappingAttribute(fieldname:=ConstFNDatatype)> Private _datatype As otFieldDataType = 0
+        <ormColumnMapping(ColumnName:=ConstFNDomainID)> Private _DomainID As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNListID)> Private _ID As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNSelector)> Private _selector As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNValue)> Private _valuestring As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNDatatype)> Private _datatype As otFieldDataType = 0
         ''' <summary>
         ''' constructor of a clsOTDBDefWorkspace
         ''' </summary>
@@ -220,7 +220,7 @@ Namespace OnTrack
         ''' <remarks></remarks>
         Public Overloads Shared Function RetrieveByListID(ByVal listID As String, Optional ByVal domainID As String = "", Optional forcereload As Boolean = False) As List(Of ValueEntry)
             Dim aParameterslist As New List(Of ormSqlCommandParameter)
-            aParameterslist.Add(New ormSqlCommandParameter(ID:="@id", fieldname:=ConstFNDomainID, tablename:=ConstTableID, value:=domainID))
+            aParameterslist.Add(New ormSqlCommandParameter(ID:="@id", columnname:=ConstFNDomainID, tablename:=ConstTableID, value:=domainID))
 
             Dim aList As List(Of ValueEntry) = ormDataObject.All(Of ValueEntry)(ID:="allbyListID", _
                                                                                       where:="[" & ConstFNDomainID & "] = @id", _
@@ -313,11 +313,11 @@ Namespace OnTrack
         Const ConstFNDatatype = "datatype"
 
         ' fields
-        <ormColumnMappingAttribute(fieldname:=ConstFNDomainID)> Private _DomainID As String = ""
-        <ormColumnMappingAttribute(fieldname:=ConstFNSettingID)> Private _ID As String = ""
-        <ormColumnMappingAttribute(fieldname:=ConstFNDescription)> Private _description As String = ""
-        <ormColumnMappingAttribute(fieldname:=ConstFNValue)> Private _valuestring As String = ""
-        <ormColumnMappingAttribute(fieldname:=ConstFNDatatype)> Private _datatype As otFieldDataType = 0
+        <ormColumnMapping(ColumnName:=ConstFNDomainID)> Private _DomainID As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNSettingID)> Private _ID As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNDescription)> Private _description As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNValue)> Private _valuestring As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNDatatype)> Private _datatype As otFieldDataType = 0
         ''' <summary>
         ''' constructor of a clsOTDBDefWorkspace
         ''' </summary>
@@ -464,7 +464,7 @@ Namespace OnTrack
         ''' <remarks></remarks>
         Public Overloads Shared Function RetrieveByDomain(ByVal domainID As String, Optional forcereload As Boolean = False) As List(Of DomainSetting)
             Dim aParameterslist As New List(Of ormSqlCommandParameter)
-            aParameterslist.Add(New ormSqlCommandParameter(ID:="@id", fieldname:=ConstFNDomainID, tablename:=ConstTableID, value:=domainID))
+            aParameterslist.Add(New ormSqlCommandParameter(ID:="@id", columnname:=ConstFNDomainID, tablename:=ConstTableID, value:=domainID))
 
             Dim aList As List(Of DomainSetting) = ormDataObject.All(Of DomainSetting)(ID:="allbyDomain", _
                                                                                       where:="[" & ConstFNDomainID & "] = @id", _
@@ -558,18 +558,18 @@ Namespace OnTrack
 
 
         'fields
-        <ormColumnMapping(Fieldname:=ConstFNUsername)> Private _username As String
-        <ormColumnMapping(Fieldname:=ConstFNPassword)> Private _password As String
-        <ormColumnMapping(Fieldname:=ConstFNDescription)> Private _desc As String
-        <ormColumnMapping(Fieldname:=ConstFNgroup)> Private _group As String
-        <ormColumnMapping(Fieldname:=ConstFNPerson)> Private _personID As String
+        <ormColumnMapping(ColumnName:=ConstFNUsername)> Private _username As String
+        <ormColumnMapping(ColumnName:=ConstFNPassword)> Private _password As String
+        <ormColumnMapping(ColumnName:=ConstFNDescription)> Private _desc As String
+        <ormColumnMapping(ColumnName:=ConstFNgroup)> Private _group As String
+        <ormColumnMapping(ColumnName:=ConstFNPerson)> Private _personID As String
 
-        <ormColumnMapping(Fieldname:=ConstFNDefaultWorkspace)> Private _DefaultWorkspace As String
-        <ormColumnMapping(Fieldname:=ConstFNIsAnonymous)> Private _isAnonymous As Boolean
-        <ormColumnMapping(Fieldname:=ConstFNReadData)> Private _hasRead As Boolean
-        <ormColumnMapping(Fieldname:=ConstFNUpdateData)> Private _hasUpdate As Boolean
-        <ormColumnMapping(Fieldname:=ConstFNAlterSchema)> Private _hasAlterSchema As Boolean
-        <ormColumnMapping(Fieldname:=ConstFNNoAccess)> Private _hasNoRights As Boolean
+        <ormColumnMapping(ColumnName:=ConstFNDefaultWorkspace)> Private _DefaultWorkspace As String
+        <ormColumnMapping(ColumnName:=ConstFNIsAnonymous)> Private _isAnonymous As Boolean
+        <ormColumnMapping(ColumnName:=ConstFNReadData)> Private _hasRead As Boolean
+        <ormColumnMapping(ColumnName:=ConstFNUpdateData)> Private _hasUpdate As Boolean
+        <ormColumnMapping(ColumnName:=ConstFNAlterSchema)> Private _hasAlterSchema As Boolean
+        <ormColumnMapping(ColumnName:=ConstFNNoAccess)> Private _hasNoRights As Boolean
 
         ' dynamics
         Private _settings As New Dictionary(Of String, UserSetting)
@@ -992,11 +992,11 @@ Namespace OnTrack
         Const ConstFNDatatype = "datatype"
 
         ' fields
-        <ormColumnMappingAttribute(fieldname:=ConstFNUsername)> Private _Username As String = ""
-        <ormColumnMappingAttribute(fieldname:=ConstFNSettingID)> Private _ID As String = ""
-        <ormColumnMappingAttribute(fieldname:=ConstFNDescription)> Private _description As String = ""
-        <ormColumnMappingAttribute(fieldname:=ConstFNValue)> Private _valuestring As String = ""
-        <ormColumnMappingAttribute(fieldname:=ConstFNDatatype)> Private _datatype As otFieldDataType = 0
+        <ormColumnMapping(ColumnName:=ConstFNUsername)> Private _Username As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNSettingID)> Private _ID As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNDescription)> Private _description As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNValue)> Private _valuestring As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNDatatype)> Private _datatype As otFieldDataType = 0
         ''' <summary>
         ''' constructor of a clsOTDBDefWorkspace
         ''' </summary>
@@ -1143,7 +1143,7 @@ Namespace OnTrack
         ''' <remarks></remarks>
         Public Overloads Shared Function RetrieveByUsername(ByVal Username As String, Optional forcereload As Boolean = False) As List(Of UserSetting)
             Dim aParameterslist As New List(Of ormSqlCommandParameter)
-            aParameterslist.Add(New ormSqlCommandParameter(ID:="@Username", fieldname:=ConstFNUsername, value:=Username))
+            aParameterslist.Add(New ormSqlCommandParameter(ID:="@Username", columnname:=ConstFNUsername, value:=Username))
 
             Dim aList As List(Of UserSetting) = ormDataObject.All(Of UserSetting)(ID:="allby" & Username, where:=ConstFNUsername & "= @Username", _
                                                                                       parameters:=aParameterslist)
@@ -1202,7 +1202,7 @@ Namespace OnTrack
         Implements iormPersistable
 
         '** Schema
-        <ormSchemaTable(version:=2, adddomainID:=True, addsparefields:=True, adddeletefieldbehavior:=True)> Public Const constTableID As String = "tblDefPersons"
+        <ormSchemaTable(version:=2, addDomainBehavior:=True, addsparefields:=True, adddeletefieldbehavior:=True)> Public Const constTableID As String = "tblDefPersons"
 
         '** primary keys
         <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=100, primarykeyordinal:=1, _
@@ -1237,19 +1237,19 @@ Namespace OnTrack
          id:="P12", title:="phone", description:="fax of the person")> Public Const constFNFax = "fax"
 
         ' field mapping
-        <ormColumnMapping(fieldname:=constFNID)> Private _id As String = ""
-        <ormColumnMapping(fieldname:=constFNFirstName)> Private _firstname As String = ""
-        <ormColumnMapping(fieldname:=constFNMidNames)> Private _midnames As String = ""
-        <ormColumnMapping(fieldname:=constFNSirName)> Private _sirname As String = ""
-        <ormColumnMapping(fieldname:=ConstFNIsRole)> Private _isrole As Boolean = False
-        <ormColumnMapping(fieldname:=constFNDescription)> Private _description As String = ""
-        <ormColumnMapping(fieldname:=ConstFNManager)> Private _managerid As String = ""
-        <ormColumnMapping(fieldname:=ConstFNOrgUnit)> Private _orgunitID As String = ""
-        <ormColumnMapping(fieldname:=constFNCompany)> Private _companyID As String = ""
-        <ormColumnMapping(fieldname:=constFNeMail)> Private _emailaddy As String = ""
-        <ormColumnMapping(fieldname:=constFNPhone)> Private _phone As String = ""
-        <ormColumnMapping(fieldname:=constFNMobile)> Private _mobile As String = ""
-        <ormColumnMapping(fieldname:=constFNFax)> Private _fax As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNID)> Private _id As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNFirstName)> Private _firstname As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNMidNames)> Private _midnames As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNSirName)> Private _sirname As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNIsRole)> Private _isrole As Boolean = False
+        <ormColumnMapping(ColumnName:=ConstFNDescription)> Private _description As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNManager)> Private _managerid As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNOrgUnit)> Private _orgunitID As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNCompany)> Private _companyID As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNeMail)> Private _emailaddy As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNPhone)> Private _phone As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNMobile)> Private _mobile As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNFax)> Private _fax As String = ""
 
         ''' <summary>
         ''' constructor
@@ -1534,7 +1534,7 @@ Namespace OnTrack
         Public Shared Function All(Optional domainID As String = "") As List(Of Person)
             Return ormDataObject.All(Of Person)(domainID:=domainID)
         End Function
-       
+
         ''' <summary>
         ''' build the ID string out of the names
         ''' </summary>
@@ -1589,7 +1589,7 @@ Namespace OnTrack
         Implements iormPersistable
 
         '* Schema Mapping
-        <ormSchemaTable(version:=1, addsparefields:=True, adddomainID:=True)> Public Const ConstTableID As String = "tblDefObjectLogMessages"
+        <ormSchemaTable(version:=1, addsparefields:=True, addDomainBehavior:=True)> Public Const ConstTableID As String = "tblDefObjectLogMessages"
 
         '* primary keys
         <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=20, primarykeyordinal:=1, _
@@ -1623,18 +1623,18 @@ Namespace OnTrack
 
 
         ' field mapping
-        <ormColumnMapping(fieldname:=ConstFNMessageID)> Private _id As Long
-        <ormColumnMapping(fieldname:=constFNWeight)> Private _weight As Double
-        <ormColumnMapping(fieldname:=constFNArea)> Private _area As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNMessageID)> Private _id As Long
+        <ormColumnMapping(ColumnName:=ConstFNWeight)> Private _weight As Double
+        <ormColumnMapping(ColumnName:=ConstFNArea)> Private _area As String = ""
         Private _typeid As otAppLogMessageType '* handled by infuse event
-        <ormColumnMapping(fieldname:=constFNText)> Private _message As String = ""
-        <ormColumnMapping(fieldname:=constFNDescription)> Private _desc As String = ""
-        <ormColumnMapping(fieldname:=constFNSCode1)> Private _status1 As String = ""
-        <ormColumnMapping(fieldname:=constFNSType1)> Private _statustype1 As String = ""
-        <ormColumnMapping(fieldname:=constFNSCode2)> Private _status2 As String = ""
-        <ormColumnMapping(fieldname:=constFNSType2)> Private _statustype2 As String = ""
-        <ormColumnMapping(fieldname:=constFNSCode3)> Private _status3 As String = ""
-        <ormColumnMapping(fieldname:=constFNSType3)> Private _statustype3 As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNText)> Private _message As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNDescription)> Private _desc As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNSCode1)> Private _status1 As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNSType1)> Private _statustype1 As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNSCode2)> Private _status2 As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNSType2)> Private _statustype2 As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNSCode3)> Private _status3 As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNSType3)> Private _statustype3 As String = ""
 
 
 
@@ -2067,7 +2067,7 @@ Namespace OnTrack
         Implements iormInfusable
 
         '** schema
-        <ormSchemaTable(version:=2, addsparefields:=True, adddomainid:=True)> Public Const ConstTableID As String = "tblDefStatusItems"
+        <ormSchemaTable(version:=2, addsparefields:=True, addDomainBehavior:=True)> Public Const ConstTableID As String = "tblDefStatusItems"
 
         '* primary Key
         <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=50, primarykeyordinal:=1, _
@@ -2104,20 +2104,20 @@ Namespace OnTrack
 
 
         '* mappings
-        <ormColumnMapping(fieldname:=constFNType)> Private _type As String = ""  ' Status Type
-        <ormColumnMapping(fieldname:=constFNCode)> Private _code As String = ""  ' code
-        <ormColumnMapping(fieldname:=ConstFNDomainId)> Private _DomainID As String = ""  ' code
-        <ormColumnMapping(fieldname:=constFNName)> Private _name As String = ""
-        <ormColumnMapping(fieldname:=constFNDescription)> Private s_descriptio As String = ""
-        <ormColumnMapping(fieldname:=constFNKPICode)> Private _kpicode As String = ""
-        <ormColumnMapping(fieldname:=constFNWeight)> Private _weight As Double
-        <ormColumnMapping(fieldname:=ConstFNFGColor)> Private _fgcolor As Long
-        <ormColumnMapping(fieldname:=ConstFNBGColor)> Private _bgcolor As Long
-        <ormColumnMapping(fieldname:=ConstFNKPIFGColor)> Private _kpifgcolor As Long
-        <ormColumnMapping(fieldname:=ConstFNKPIBGColor)> Private _kpibgcolor As Long
-        <ormColumnMapping(fieldname:=constFNIsEndStatus)> Private _endStatus As Boolean
-        <ormColumnMapping(fieldname:=constFNIsStartStatus)> Private _startStatus As Boolean
-        <ormColumnMapping(fieldname:=constFNIsIntermediateStatus)> Private _intermediateStatus As Boolean
+        <ormColumnMapping(ColumnName:=ConstFNType)> Private _type As String = ""  ' Status Type
+        <ormColumnMapping(ColumnName:=ConstFNCode)> Private _code As String = ""  ' code
+        <ormColumnMapping(ColumnName:=ConstFNDomainId)> Private _DomainID As String = ""  ' code
+        <ormColumnMapping(ColumnName:=ConstFNName)> Private _name As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNDescription)> Private s_descriptio As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNKPICode)> Private _kpicode As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNWeight)> Private _weight As Double
+        <ormColumnMapping(ColumnName:=ConstFNFGColor)> Private _fgcolor As Long
+        <ormColumnMapping(ColumnName:=ConstFNBGColor)> Private _bgcolor As Long
+        <ormColumnMapping(ColumnName:=ConstFNKPIFGColor)> Private _kpifgcolor As Long
+        <ormColumnMapping(ColumnName:=ConstFNKPIBGColor)> Private _kpibgcolor As Long
+        <ormColumnMapping(ColumnName:=ConstFNIsEndStatus)> Private _endStatus As Boolean
+        <ormColumnMapping(ColumnName:=ConstFNIsStartStatus)> Private _startStatus As Boolean
+        <ormColumnMapping(ColumnName:=ConstFNIsIntermediateStatus)> Private _intermediateStatus As Boolean
 
         ''' <summary>
         ''' constructor
@@ -2514,18 +2514,18 @@ Namespace OnTrack
                > Public Const ConstMaxTargetUPDC = "maxtupdc"
 
         ' fields
-        <ormColumnMappingAttribute(fieldname:=ConstFNID)> Private _ID As String = ""
-        <ormColumnMappingAttribute(fieldname:=ConstFNDescription)> Private _description As String = ""
-        <ormColumnMappingAttribute(fieldname:=ConstFNIsBase)> Private _isBasespace As Boolean
-        <ormColumnMappingAttribute(fieldname:=ConstFNHasAct)> Private _hasActuals As Boolean
-        <ormColumnMappingAttribute(fieldname:=ConstFNFCRelyOn)> Private _fcrelyingOn As String = ""
-        <ormColumnMappingAttribute(fieldname:=ConstFNActRelyOn)> Private _actrelyingOn As String = ""
-        <ormColumnMappingAttribute(fieldname:=ConstFNAccesslist)> Private _accesslistID As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNID)> Private _ID As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNDescription)> Private _description As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNIsBase)> Private _isBasespace As Boolean
+        <ormColumnMapping(ColumnName:=ConstFNHasAct)> Private _hasActuals As Boolean
+        <ormColumnMapping(ColumnName:=ConstFNFCRelyOn)> Private _fcrelyingOn As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNActRelyOn)> Private _actrelyingOn As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNAccesslist)> Private _accesslistID As String = ""
 
-        <ormColumnMappingAttribute(fieldname:=ConstMinScheduleUPC)> Private _min_schedule_updc As Long
-        <ormColumnMappingAttribute(fieldname:=ConstFNMaxScheduleUPC)> Private _max_schedule_updc As Long
-        <ormColumnMappingAttribute(fieldname:=ConstFNMinTargetUPDC)> Private _min_target_updc As Long
-        <ormColumnMappingAttribute(fieldname:=ConstMaxTargetUPDC)> Private _max_target_updc As Long
+        <ormColumnMapping(ColumnName:=ConstMinScheduleUPC)> Private _min_schedule_updc As Long
+        <ormColumnMapping(ColumnName:=ConstFNMaxScheduleUPC)> Private _max_schedule_updc As Long
+        <ormColumnMapping(ColumnName:=ConstFNMinTargetUPDC)> Private _min_target_updc As Long
+        <ormColumnMapping(ColumnName:=ConstMaxTargetUPDC)> Private _max_target_updc As Long
 
         ' dynamics
         Private _fc_wspace_stack As New List(Of String)
@@ -2556,7 +2556,7 @@ Namespace OnTrack
 
 #Region "Properties"
 
-        <ormPropertyMappingAttribute(ID:="ID", fieldname:=ConstFNID, tableid:=ConstTableID)> ReadOnly Property ID() As String
+        <ormPropertyMappingAttribute(ID:="ID", fieldname:=ConstFNID, tablename:=ConstTableID)> ReadOnly Property ID() As String
             Get
                 ID = _ID
             End Get
@@ -2966,12 +2966,12 @@ Namespace OnTrack
 
 
         ' fields
-        <ormColumnMappingAttribute(fieldname:=ConstFNDomainID)> Private _ID As String = ""
-        <ormColumnMappingAttribute(fieldname:=ConstFNDescription)> Private _description As String = ""
-        <ormColumnMappingAttribute(fieldname:=ConstFNIsGlobal)> Private _isGlobal As Boolean
+        <ormColumnMapping(ColumnName:=ConstFNDomainID)> Private _ID As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNDescription)> Private _description As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNIsGlobal)> Private _isGlobal As Boolean
 
-        <ormColumnMappingAttribute(fieldname:=ConstFNMinDeliverableUID)> Private _min_deliverable_uid As Long
-        <ormColumnMappingAttribute(fieldname:=ConstFNMaxDeliverableUID)> Private _max_deliverable_uid As Long
+        <ormColumnMapping(ColumnName:=ConstFNMinDeliverableUID)> Private _min_deliverable_uid As Long
+        <ormColumnMapping(ColumnName:=ConstFNMaxDeliverableUID)> Private _max_deliverable_uid As Long
 
         ' dynamics
         Private _settings As New Dictionary(Of String, DomainSetting)
@@ -2989,7 +2989,7 @@ Namespace OnTrack
         End Sub
 
 #Region "Properties"
-        <ormPropertyMappingAttribute(ID:="ID", fieldname:=ConstFNDomainID, tableid:=ConstTableID)> ReadOnly Property ID() As String
+        <ormPropertyMappingAttribute(ID:="ID", fieldname:=ConstFNDomainID, tablename:=ConstTableID)> ReadOnly Property ID() As String
             Get
                 ID = _ID
             End Get
@@ -3288,7 +3288,7 @@ Namespace OnTrack
         Implements iormInfusable
 
         '** Schema
-        <ormSchemaTable(version:=2, addsparefields:=True, adddeletefieldbehavior:=True, adddomainID:=True)> Public Const ConstTableID As String = "tblDefOrgUnits"
+        <ormSchemaTable(version:=2, addsparefields:=True, adddeletefieldbehavior:=True, addDomainBehavior:=True)> Public Const ConstTableID As String = "tblDefOrgUnits"
 
         '** primary Keys
         <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=100, primaryKeyOrdinal:=1, _
@@ -3308,12 +3308,12 @@ Namespace OnTrack
          id:="OU6", title:="Function", description:="default function ID of the  organization unit")> Public Const ConstFNFunction = "funct"
 
         ' field mapping
-        <ormColumnMapping(fieldname:=ConstFNID)> Private _id As String = ""
-        <ormColumnMapping(fieldname:=ConstFNDescription)> Private _description As String = ""
-        <ormColumnMapping(fieldname:=ConstFNManager)> Private _manager As String = ""
-        <ormColumnMapping(fieldname:=ConstFNSite)> Private _siteid As String = ""
-        <ormColumnMapping(fieldname:=ConstFNSuperior)> Private _superiorOUID As String = ""
-        <ormColumnMapping(fieldname:=ConstFNFunction)> Private _functionid As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNID)> Private _id As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNDescription)> Private _description As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNManager)> Private _manager As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNSite)> Private _siteid As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNSuperior)> Private _superiorOUID As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNFunction)> Private _functionid As String = ""
 
         ''' <summary>
         ''' constructor of a DefOrgUnit
@@ -3515,7 +3515,7 @@ Namespace OnTrack
 
     End Class
 
-    
+
     ''' <summary>
     ''' Site Definition Class
     ''' </summary>
@@ -3526,14 +3526,14 @@ Namespace OnTrack
         Implements iormPersistable
 
         '** schema
-        <ormSchemaTable(version:=2, adddomainID:=True, addsparefields:=True)> Public Const ConstTableID As String = "tblDefOUSites"
+        <ormSchemaTable(version:=2, addDomainBehavior:=True, addsparefields:=True)> Public Const ConstTableID As String = "tblDefOUSites"
 
         '** keys
         <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=50, primarykeyordinal:=1, _
             ID:="OUS1", title:="Site ID", description:="id of the site")> Public Const constFNId = "id"
 
         <ormSchemaColumn(referenceObjecTEntry:=Domain.ConstTableID & "." & Domain.ConstFNDomainID, primarykeyordinal:=2)> _
-        Public Shadows Const constFNDomainID = Domain.ConstFNDomainID
+        Public Shadows Const ConstFNDomainID = Domain.ConstFNDomainID
 
         '** fields
         <ormSchemaColumn(referenceObjecTEntry:=CalendarEntry.ConstTableid & "." & CalendarEntry.constFNName, _
@@ -3541,9 +3541,9 @@ Namespace OnTrack
 
         <ormSchemaColumn(typeid:=otFieldDataType.Memo, id:="OUS10", title:="Description", description:="description of the site")> Public Const constFNDescription = "desc"
         ' field mapping
-        <ormColumnMapping(fieldname:=constFNId)> Private _iD As String = ""
-        <ormColumnMapping(fieldname:=constFNId)> Private _CalendarID As String = ""
-        <ormColumnMapping(fieldname:=constFNDescription)> Private _description As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNId)> Private _iD As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNId)> Private _CalendarID As String = ""
+        <ormColumnMapping(ColumnName:=ConstFNDescription)> Private _description As String = ""
         ''' <summary>
         ''' constructor of Def OUSite
         ''' </summary>
@@ -3624,7 +3624,7 @@ Namespace OnTrack
         Public Function Create(ByVal id As String, Optional domainID As String = "") As Boolean
             Dim primarykey() As Object = {id, domainID}
             ' set the primaryKey
-            return MyBase.Create(primarykey, domainID:=domainID, checkUnique:=True) 
+            Return MyBase.Create(primarykey, domainID:=domainID, checkUnique:=True)
         End Function
 
     End Class

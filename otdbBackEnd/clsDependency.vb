@@ -697,7 +697,7 @@ Namespace OnTrack.Scheduling
                 If Not aCommand.Prepared Then
                     aCommand.Where = clsOTDBDependMember.constTableID & ".[" & clsOTDBDependMember.constFNPartID & "] = @partid"
                     aCommand.Where &= " AND " & clsOTDBDependMember.constTableID & ".[" & clsOTDBDependMember.constFNNoPos & "] = 0"
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@partid", fieldname:=clsOTDBDependMember.constFNPartID, tablename:=clsOTDBDependMember.constTableID))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@partid", columnname:=clsOTDBDependMember.constFNPartID, tablename:=clsOTDBDependMember.constTableID))
                     aCommand.Prepare()
                 End If
 
@@ -745,7 +745,7 @@ Namespace OnTrack.Scheduling
                 Dim aCommand As ormSqlSelectCommand = aStore.CreateSqlSelectCommand(id:="LoadByDependingFrom", addAllFields:=True)
                 If Not aCommand.Prepared Then
                     aCommand.Where = clsOTDBDependMember.constTableID & ".[" & clsOTDBDependMember.constfndepfromid & "] = @partid"
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@partid", fieldname:=clsOTDBDependMember.constFNDepFromId, tablename:=clsOTDBDependMember.constTableID))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@partid", columnname:=clsOTDBDependMember.constFNDepFromId, tablename:=clsOTDBDependMember.constTableID))
                     aCommand.Prepare()
                 End If
 
@@ -2598,8 +2598,8 @@ error_handle:
                     aCommand.Where = constTableID & ".[" & constFNdepfromid & "] = '' AND " & constTableID & ".[" & constFNtypeid & "] =@typeid"
                     aCommand.Where &= " AND " & constTableID & ".[" & constFNClusterID & "] = @clusterid"
                     aCommand.OrderBy = constTableID & ".[" & constFNClusterLevel & "] asc"
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@typeid", fieldname:=constFNtypeid, tablename:=constTableID))
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@clusterid", fieldname:=constFNClusterID, tablename:=constTableID))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@typeid", ColumnName:=ConstFNtypeid, tablename:=constTableID))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@clusterid", ColumnName:=ConstFNClusterID, tablename:=constTableID))
                     aCommand.Prepare()
                 End If
                 aCommand.SetParameterValue(ID:="@typeid", value:=typeid)
@@ -2649,9 +2649,9 @@ error_handle:
                     aCommand.Where = constTableID & ".[" & constFNPartid & "] = @partid AND " & constTableID & ".[" & constFNtypeid & "] =@typeid"
                     aCommand.Where &= " AND " & constTableID & ".[" & constFNPosno & "] = @posno"
                     aCommand.OrderBy = constTableID & ".[" & constFNSUpdc & "] desc"
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@partid", fieldname:=constFNPartid, tablename:=constTableID))
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@typeid", fieldname:=constFNtypeid, tablename:=constTableID))
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@posno", fieldname:=constFNPosno, tablename:=constTableID))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@partid", ColumnName:=ConstFNPartid, tablename:=constTableID))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@typeid", ColumnName:=ConstFNtypeid, tablename:=constTableID))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@posno", ColumnName:=ConstFNPosno, tablename:=constTableID))
                     aCommand.Prepare()
                 End If
                 aCommand.SetParameterValue(ID:="@partid", value:=dependMember.PartID)

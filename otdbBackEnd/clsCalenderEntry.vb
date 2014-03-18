@@ -44,53 +44,53 @@ Namespace OnTrack
 
         '*** keys
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, primarykeyordinal:=1, _
-            ID:="CAL1", title:="Name", description:="name of calendar")> Public Const constFNName = "cname"
+            XID:="CAL1", title:="Name", description:="name of calendar")> Public Const constFNName = "cname"
         <ormObjectEntry(typeid:=otFieldDataType.Long, primarykeyordinal:=2, _
-           ID:="CAL2", title:="EntryNo", description:="entry no in the calendar")> Public Const constFNID = "id"
+           XID:="CAL2", title:="EntryNo", description:="entry no in the calendar")> Public Const constFNID = "id"
         <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=3, useforeignkey:=True)> _
         Public Const constFNDomainID = Domain.ConstFNDomainID
 
         '** columns
         <ormObjectEntry(typeid:=otFieldDataType.Timestamp, _
-         ID:="CAL4", title:="Timestamp", description:="timestamp entry in the calendar")> Public Const constFNTimestamp = "timestamp"
+         XID:="CAL4", title:="Timestamp", description:="timestamp entry in the calendar")> Public Const constFNTimestamp = "timestamp"
         <ormObjectEntry(typeid:=otFieldDataType.Long, _
-         ID:="CAL5", title:="Type", description:="entry type in the calendar")> Public Const ConstFNTypeID = "typeid"
+         XID:="CAL5", title:="Type", description:="entry type in the calendar")> Public Const ConstFNTypeID = "typeid"
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=255, _
-        ID:="CAL6", title:="Description", description:="entry description in the calendar")> Public Const ConstFNDescription = "desc"
+        XID:="CAL6", title:="Description", description:="entry description in the calendar")> Public Const ConstFNDescription = "desc"
         <ormObjectEntry(typeid:=otFieldDataType.Long, _
-          ID:="CAL8", title:="RefID", description:="entry refID in the calendar")> Public Const constFNRefID = "refid"
+          XID:="CAL8", title:="RefID", description:="entry refID in the calendar")> Public Const constFNRefID = "refid"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Bool, iD:="cal9", title:="Not Available", description:="not available")> _
+        <ormObjectEntry(typeid:=otFieldDataType.Bool, XID:="cal9", title:="Not Available", description:="not available")> _
         Public Const constFNNotAvail = "notavail"
-        <ormObjectEntry(typeid:=otFieldDataType.Bool, iD:="cal10", title:="Is Important", description:="is important entry (prioritized)")> _
+        <ormObjectEntry(typeid:=otFieldDataType.Bool, XID:="cal10", title:="Is Important", description:="is important entry (prioritized)")> _
         Public Const constFNIsImportant = "isimp"
 
         <ormObjectEntry(typeid:=otFieldDataType.Long, _
-          ID:="CAL20", title:="TimeSpan", description:="length in minutes")> Public Const constFNLength = "length"
+          XID:="CAL20", title:="TimeSpan", description:="length in minutes")> Public Const constFNLength = "length"
 
 
         '** not mapped
 
         <ormObjectEntry(typeid:=otFieldDataType.Long, _
-          ID:="CAL31", title:="Week", description:="week of the year")> Public Const constFNNoWeek = "noweek"
+          XID:="CAL31", title:="Week", description:="week of the year")> Public Const constFNNoWeek = "noweek"
         <ormObjectEntry(typeid:=otFieldDataType.Long, _
-         ID:="CAL32", title:="Day", description:="day of the year")> Public Const constFNNoDay = "noday"
+         XID:="CAL32", title:="Day", description:="day of the year")> Public Const constFNNoDay = "noday"
         <ormObjectEntry(typeid:=otFieldDataType.Long, _
-         ID:="CAL33", title:="Weekday", description:="number of day in the week")> Public Const constFNweekday = "noweekday"
+         XID:="CAL33", title:="Weekday", description:="number of day in the week")> Public Const constFNweekday = "noweekday"
         <ormObjectEntry(typeid:=otFieldDataType.Long, _
-         ID:="CAL34", title:="Quarter", description:="no of quarter of the year")> Public Const constFNQuarter = "quarter"
+         XID:="CAL34", title:="Quarter", description:="no of quarter of the year")> Public Const constFNQuarter = "quarter"
         <ormObjectEntry(typeid:=otFieldDataType.Long, _
-         ID:="CAL35", title:="Year", description:="the year")> Public Const constFNYear = "year"
+         XID:="CAL35", title:="Year", description:="the year")> Public Const constFNYear = "year"
         <ormObjectEntry(typeid:=otFieldDataType.Long, _
-        ID:="CAL36", title:="Month", description:="the month")> Public Const constFNmonth = "month"
+        XID:="CAL36", title:="Month", description:="the month")> Public Const constFNmonth = "month"
         <ormObjectEntry(typeid:=otFieldDataType.Long, _
-        ID:="CAL37", title:="Day", description:="the day")> Public Const constFNDay = "day"
+        XID:="CAL37", title:="Day", description:="the day")> Public Const constFNDay = "day"
         <ormObjectEntry(typeid:=otFieldDataType.Time, _
-        ID:="CAL38", title:="Time", description:="time")> Public Const constFNTime = "timevalue"
+        XID:="CAL38", title:="Time", description:="time")> Public Const constFNTime = "timevalue"
         <ormObjectEntry(typeid:=otFieldDataType.Date, _
-        ID:="CAL39", title:="Date", description:="date")> Public Const constFNDate = "datevalue"
+        XID:="CAL39", title:="Date", description:="date")> Public Const constFNDate = "datevalue"
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=10, _
-        ID:="CAL40", title:="WeekYear", description:="Week and Year representation")> Public Const constFNWeekYear = "weekofyear"
+        XID:="CAL40", title:="WeekYear", description:="Week and Year representation")> Public Const constFNWeekYear = "weekofyear"
 
 
         '** mappings

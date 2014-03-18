@@ -39,22 +39,22 @@ Namespace OnTrack.Scheduling
 
         '** keys
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=20, defaultValue:="", primarykeyordinal:=1, _
-            ID:="bpd1", title:="ID", description:="id of the milestone")> Public Const ConstFNID = "id"
+            XID:="bpd1", title:="ID", description:="id of the milestone")> Public Const ConstFNID = "id"
         <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=2)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
         '** fields
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=255, _
-           ID:="bpd2", title:="Description", description:="description of the milestone")> Public Const ConstFNDescription = "desc"
+           XID:="bpd2", title:="Description", description:="description of the milestone")> Public Const ConstFNDescription = "desc"
         <ormObjectEntry(typeid:=otFieldDataType.Long, _
-           ID:="bpd3", title:="Type", description:="type of the milestone")> Public Const ConstFNType = "typeid"
+           XID:="bpd3", title:="Type", description:="type of the milestone")> Public Const ConstFNType = "typeid"
         <ormObjectEntry(typeid:=otFieldDataType.Long, _
-           ID:="bpd4", title:="Datatype", description:="datatype of the milestone")> Public Const ConstFNDatatype = "datatype"
+           XID:="bpd4", title:="Datatype", description:="datatype of the milestone")> Public Const ConstFNDatatype = "datatype"
         <ormObjectEntry(referenceobjectentry:=StatusItem.ConstObjectID & "." & StatusItem.constFNType, _
-          ID:="bpd5", title:="Status Item Type", description:="status item type of the milestone")> Public Const ConstFNStatus = "status"
+          XID:="bpd5", title:="Status Item Type", description:="status item type of the milestone")> Public Const ConstFNStatus = "status"
         <ormObjectEntry(typeid:=otFieldDataType.Bool, _
-         ID:="bpd6", title:="Forecast", description:="set if milestone is a forecast")> Public Const ConstFNIsForecast = "isforecast"
+         XID:="bpd6", title:="Forecast", description:="set if milestone is a forecast")> Public Const ConstFNIsForecast = "isforecast"
         <ormObjectEntry(referenceobjectentry:=ConstObjectID & "." & ConstFNID, _
-        ID:="bpd7", title:="Reference", description:="set if milestone is a reference")> Public Const ConstFNRefID = "refid"
+        XID:="bpd7", title:="Reference", description:="set if milestone is a reference")> Public Const ConstFNRefID = "refid"
 
 
 
@@ -1226,33 +1226,33 @@ Namespace OnTrack.Scheduling
         <ormSchemaIndex(columnname1:=ConstFNType, columnname2:=ConstFNOrderNo)> Public Const ConstIndOrder = "orderby"
 
         '** keys
-        <ormObjectEntry(id:="SCT1", typeid:=otFieldDataType.Text, size:=50, primaryKeyordinal:=1, aliases:={"bs4"}, title:="schedule type", _
+        <ormObjectEntry(XID:="SCT1", typeid:=otFieldDataType.Text, size:=50, primaryKeyordinal:=1, aliases:={"bs4"}, title:="schedule type", _
             description:=" type of schedule definition")> Public Const ConstFNType = "scheduletype"
-        <ormObjectEntry(id:="BPD1", typeid:=otFieldDataType.Text, size:=50, primaryKeyordinal:=2, title:="milestone id", _
+        <ormObjectEntry(XID:="BPD1", typeid:=otFieldDataType.Text, size:=50, primaryKeyordinal:=2, title:="milestone id", _
             description:=" id of milestone in schedule")> Public Const ConstFNID = "id"
         <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=3, useforeignkey:=otForeignKeyImplementation.NativeDatabase)> _
         Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
         '*** fields
-        <ormObjectEntry(id:="BSD1", typeid:=otFieldDataType.Text, size:=255, _
+        <ormObjectEntry(XID:="BSD1", typeid:=otFieldDataType.Text, size:=255, _
             title:="description", description:="description of milestone in schedule")> Public Const ConstFNDesc = "desc"
-        <ormObjectEntry(id:="BSD2", typeid:=otFieldDataType.Long, _
+        <ormObjectEntry(XID:="BSD2", typeid:=otFieldDataType.Long, _
            title:="ordinal", description:="ordinal of milestone in schedule")> Public Const ConstFNOrderNo = "orderno"
-        <ormObjectEntry(id:="BSD3", typeid:=otFieldDataType.Text, size:=50, _
+        <ormObjectEntry(XID:="BSD3", typeid:=otFieldDataType.Text, size:=50, _
             title:="actual of fc milestone id", description:=" actual id of this milestone in schedule")> Public Const ConstFNActualID = "actualid"
-        <ormObjectEntry(id:="BSD4", typeid:=otFieldDataType.Bool, _
+        <ormObjectEntry(XID:="BSD4", typeid:=otFieldDataType.Bool, _
         title:="is forecast", description:=" milestone is forecast in schedule")> Public Const ConstFNIsFC = "isfc"
-        <ormObjectEntry(id:="BSD5", typeid:=otFieldDataType.Bool, _
+        <ormObjectEntry(XID:="BSD5", typeid:=otFieldDataType.Bool, _
         title:="is facilitative", description:=" milestone is facilitative in schedule")> Public Const ConstFNIsFAC = "isfac"
-        <ormObjectEntry(id:="BSD6", typeid:=otFieldDataType.Bool, _
+        <ormObjectEntry(XID:="BSD6", typeid:=otFieldDataType.Bool, _
         title:="is prohibited", description:=" milestone is prohibited in schedule")> Public Const ConstFNIsFORB = "isforb"
-        <ormObjectEntry(id:="BSD7", typeid:=otFieldDataType.Bool, _
+        <ormObjectEntry(XID:="BSD7", typeid:=otFieldDataType.Bool, _
         title:="is mandatory", description:=" milestone is mandatory in schedule")> Public Const ConstFNIsMAND = "ismand"
-        <ormObjectEntry(id:="BSD8", typeid:=otFieldDataType.Bool, _
+        <ormObjectEntry(XID:="BSD8", typeid:=otFieldDataType.Bool, _
         title:="is input", description:=" milestone is input deliverable in schedule")> Public Const ConstFNIsINPUT = "isinput"
-        <ormObjectEntry(id:="BSD9", typeid:=otFieldDataType.Bool, _
+        <ormObjectEntry(XID:="BSD9", typeid:=otFieldDataType.Bool, _
         title:="is output", description:=" milestone is output deliverable in schedule")> Public Const ConstFNIsOutPut = "isoutput"
-        <ormObjectEntry(id:="BSD10", typeid:=otFieldDataType.Bool, _
+        <ormObjectEntry(XID:="BSD10", typeid:=otFieldDataType.Bool, _
        title:="is finish", description:=" milestone is end of schedule")> Public Const ConstFNIsFinish = "isfinish"
 
 
@@ -2389,9 +2389,9 @@ Namespace OnTrack.Scheduling
 
         '*** Columns
         <ormObjectEntry(typeid:=otFieldDataType.Long, title:="unique ID", Description:="Unique ID of the schedule", _
-            primaryKeyordinal:=1, id:="SC2", aliases:={"SUID"})> Public Const ConstFNUid = "uid"
+            primaryKeyordinal:=1, XID:="SC2", aliases:={"SUID"})> Public Const ConstFNUid = "uid"
         <ormObjectEntry(typeid:=otFieldDataType.Long, title:="update count", Description:="Update count of the schedule", _
-           primaryKeyordinal:=2, id:="SC3", aliases:={"BS3"})> Public Const ConstFNUpdc = "updc"
+           primaryKeyordinal:=2, XID:="SC3", aliases:={"BS3"})> Public Const ConstFNUpdc = "updc"
 
 
         <ormObjectEntry(typeid:=otFieldDataType.Long, title:="forecast update count", Description:="forecast update count of the schedule" _
@@ -2412,42 +2412,42 @@ Namespace OnTrack.Scheduling
         Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, title:="revision", Description:="revision of the schedule", _
-            id:="SC5", aliases:={"BS2"}, Defaultvalue:="")> Public Const ConstFNPlanRev = "plrev"
+            XID:="SC5", aliases:={"BS2"}, Defaultvalue:="")> Public Const ConstFNPlanRev = "plrev"
         <ormObjectEntry(typeid:=otFieldDataType.Bool, title:="is frozen", Description:="schedule is frozen flag", _
-            id:="SC6", aliases:={}, Defaultvalue:="false")> Public Const ConstFNisfrozen = "isfrozen"
+            XID:="SC6", aliases:={}, Defaultvalue:="false")> Public Const ConstFNisfrozen = "isfrozen"
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, title:="lifecycle status", Description:="lifecycle status of the schedule", _
-            id:="SC7", aliases:={"BS1"}, Defaultvalue:="", parameter:="LCStatus")> Public Const ConstFNlcstatus = "lcstatus"
+            XID:="SC7", aliases:={"BS1"}, Defaultvalue:="", parameter:="LCStatus")> Public Const ConstFNlcstatus = "lcstatus"
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, title:="process status", Description:="process status of the schedule", _
-            id:="SC8", aliases:={"S1"}, Defaultvalue:="", parameter:="PStatus")> Public Const ConstFNpstatus = "pstatus"
+            XID:="SC8", aliases:={"S1"}, Defaultvalue:="", parameter:="PStatus")> Public Const ConstFNpstatus = "pstatus"
         <ormObjectEntry(typeid:=otFieldDataType.Timestamp, title:="check timestamp", Description:="timestamp of check status of the schedule", _
-            id:="SC9", aliases:={}, Defaultvalue:="", parameter:="")> Public Const ConstFNCheckedOn = "checkedon"
+            XID:="SC9", aliases:={}, Defaultvalue:="", parameter:="")> Public Const ConstFNCheckedOn = "checkedon"
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, title:="planner", Description:="responsible planner of the schedule", _
-            id:="SC10", aliases:={}, Defaultvalue:="", parameter:="")> Public Const ConstFNPlanner = "resp"
+            XID:="SC10", aliases:={}, Defaultvalue:="", parameter:="")> Public Const ConstFNPlanner = "resp"
         <ormObjectEntry(typeid:=otFieldDataType.Memo, title:="comment", Description:="comment of the schedule", _
-            id:="SC12", aliases:={}, Defaultvalue:="", parameter:="")> Public Const ConstFNComment = "cmt"
+            XID:="SC12", aliases:={}, Defaultvalue:="", parameter:="")> Public Const ConstFNComment = "cmt"
         <ormObjectEntry(typeid:=otFieldDataType.Timestamp, title:="last fc update", Description:="last forecast change of the schedule", _
-            id:="SC13", aliases:={}, parameter:="")> Public Const ConstFNFCupdatedOn = "fcupdon"
+            XID:="SC13", aliases:={}, parameter:="")> Public Const ConstFNFCupdatedOn = "fcupdon"
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, title:="type", Description:="type of the schedule", _
-            id:="SC14", aliases:={"BS4"}, Defaultvalue:="")> Public Const ConstFNTypeid = "typeid"
+            XID:="SC14", aliases:={"BS4"}, Defaultvalue:="")> Public Const ConstFNTypeid = "typeid"
         <ormObjectEntry(typeid:=otFieldDataType.Bool, title:="baseline flag", Description:="flag if the schedule is a baseline", _
-            id:="SC15", aliases:={})> Public Const ConstFNIsBaseline = "isbaseline"
+            XID:="SC15", aliases:={})> Public Const ConstFNIsBaseline = "isbaseline"
         <ormObjectEntry(typeid:=otFieldDataType.Date, title:="baseline date", Description:="date of the baseline creation", _
-            id:="SC16", aliases:={})> Public Const ConstFNBlDate = "bldate"
+            XID:="SC16", aliases:={})> Public Const ConstFNBlDate = "bldate"
         <ormObjectEntry(typeid:=otFieldDataType.Long, title:="baseline updc", Description:="updc of the last baseline of this schedule", _
-            id:="SC17", aliases:={}, Defaultvalue:="0")> Public Const ConstFNBlUpdc = "blupdc"
+            XID:="SC17", aliases:={}, Defaultvalue:="0")> Public Const ConstFNBlUpdc = "blupdc"
 
         <ormObjectEntry(typeid:=otFieldDataType.Numeric, title:="required capacity", Description:="required capacity of this schedule", _
-            id:="SC20", aliases:={"WBS2"}, Defaultvalue:="0")> Public Const ConstFNRequCap = "requ"
+            XID:="SC20", aliases:={"WBS2"}, Defaultvalue:="0")> Public Const ConstFNRequCap = "requ"
         <ormObjectEntry(typeid:=otFieldDataType.Numeric, title:="used capacity", Description:="used capacity of this schedule", _
-            id:="SC21", aliases:={"WBS3"}, Defaultvalue:="0")> Public Const ConstFNUsedCap = "used"
+            XID:="SC21", aliases:={"WBS3"}, Defaultvalue:="0")> Public Const ConstFNUsedCap = "used"
         <ormObjectEntry(typeid:=otFieldDataType.Date, title:="used capacity reference date", Description:="used capacity reference date of this schedule", _
-            id:="SC22", aliases:={"WBS4"})> Public Const ConstFNUsedCapRef = "ufdt"
+            XID:="SC22", aliases:={"WBS4"})> Public Const ConstFNUsedCapRef = "ufdt"
 
         <ormObjectEntry(referenceObjectEntry:=ObjectLogMessage.ConstObjectID & "." & ObjectLogMessage.ConstFNTag)> _
         Public Const ConstFNmsglogtag = ObjectLogMessage.ConstFNTag
 
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, title:="Activitiy Tag", Description:="Activity Tag", _
-           id:="SC30", aliases:={}, Defaultvalue:="", parameter:="")> Public Const ConstFNActTag = "acttag"
+           XID:="SC30", aliases:={}, Defaultvalue:="", parameter:="")> Public Const ConstFNActTag = "acttag"
 
         <ormEntryMapping(EntryName:=ConstFNUid)> Private _uid As Long = 0
         <ormEntryMapping(EntryName:=ConstFNUpdc)> Private _updc As Long = 0
@@ -5395,10 +5395,10 @@ Namespace OnTrack.Scheduling
 
         '** Keys
         <ormObjectEntry(referenceObjectEntry:=Schedule.ConstObjectID & "." & Schedule.ConstFNUid, _
-             primaryKeyordinal:=1, id:="MST1", aliases:={"SUID"})> _
+             primaryKeyordinal:=1, XID:="MST1", aliases:={"SUID"})> _
         Public Const ConstFNUid = Schedule.ConstFNUid
         <ormObjectEntry(referenceObjectEntry:=Schedule.ConstObjectID & "." & Schedule.ConstFNUpdc, _
-           primaryKeyordinal:=2, id:="MST2")> _
+           primaryKeyordinal:=2, XID:="MST2")> _
         Public Const ConstFNUpdc = Schedule.ConstFNUpdc
         '** link together
         <ormSchemaForeignKey(entrynames:={ConstFNUid, ConstFNUpdc}, foreignkeyreferences:={Schedule.ConstObjectID & "." & Schedule.ConstFNUid, _
@@ -5406,25 +5406,25 @@ Namespace OnTrack.Scheduling
 
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, defaultvalue:="", _
             title:="milestone id", Description:="id of the milestone", _
-          primaryKeyordinal:=3, id:="MST3")> Public Const ConstFNID = "id"
+          primaryKeyordinal:=3, XID:="MST3")> Public Const ConstFNID = "id"
 
         '** Fields
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=255, defaultvalue:="", isnullable:=True, _
-           title:="value", Description:="text presentation of the milestone value", id:="MST4")> Public Const ConstFNvalue = "value"
+           title:="value", Description:="text presentation of the milestone value", XID:="MST4")> Public Const ConstFNvalue = "value"
         <ormObjectEntry(typeid:=otFieldDataType.Date, isnullable:=True, _
-          title:="value", Description:="date presentation of the milestone value", id:="MST5")> Public Const ConstFNvaluedate = "valuedate"
+          title:="value", Description:="date presentation of the milestone value", XID:="MST5")> Public Const ConstFNvaluedate = "valuedate"
         <ormObjectEntry(typeid:=otFieldDataType.Numeric, isnullable:=True, _
-                 title:="value", Description:="numeric presentation of the milestone value", id:="MST6")> Public Const ConstFNvaluenumeric = "valuenumeric"
+                 title:="value", Description:="numeric presentation of the milestone value", XID:="MST6")> Public Const ConstFNvaluenumeric = "valuenumeric"
         <ormObjectEntry(typeid:=otFieldDataType.Bool, isnullable:=True, _
-        title:="value", Description:="bool presentation of the milestone value", id:="MST7")> Public Const ConstFNvaluebool = "valuebool"
+        title:="value", Description:="bool presentation of the milestone value", XID:="MST7")> Public Const ConstFNvaluebool = "valuebool"
         <ormObjectEntry(typeid:=otFieldDataType.Long, isnullable:=True, _
-        title:="value", Description:="long presentation of the milestone value", id:="MST8")> Public Const ConstFNvaluelong = "valuelong"
+        title:="value", Description:="long presentation of the milestone value", XID:="MST8")> Public Const ConstFNvaluelong = "valuelong"
         <ormObjectEntry(typeid:=otFieldDataType.Long, defaultvalue:="0", _
-        title:="datatype", Description:="datatype of the milestone value", id:="MST10")> Public Const ConstFNDatatype = "datatype"
+        title:="datatype", Description:="datatype of the milestone value", XID:="MST10")> Public Const ConstFNDatatype = "datatype"
         <ormObjectEntry(typeid:=otFieldDataType.Bool, defaultvalue:="0", _
-        title:="is a forecast", Description:="true if the milestone is a forecast", id:="MST11")> Public Const ConstFNIsFC = "isforecast"
+        title:="is a forecast", Description:="true if the milestone is a forecast", XID:="MST11")> Public Const ConstFNIsFC = "isforecast"
         <ormObjectEntry(typeid:=otFieldDataType.Bool, defaultvalue:="0", _
-        title:="is a status", Description:="true if the milestone is a status", id:="MST12")> Public Const ConstFNIsStatus = "isstatus"
+        title:="is a status", Description:="true if the milestone is a status", XID:="MST12")> Public Const ConstFNIsStatus = "isstatus"
 
         <ormObjectEntry(referenceObjectEntry:=ObjectLogMessage.ConstObjectID & "." & ObjectLogMessage.ConstFNTag)> _
         Public Const ConstFNmsglogtag = ObjectLogMessage.ConstFNTag
@@ -5441,7 +5441,7 @@ Namespace OnTrack.Scheduling
         Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
         <ormObjectEntry(typeid:=otFieldDataType.Memo, defaultvalue:="", _
-                     title:="comment", Description:="comment", id:="MST14")> Public Const ConstFNcmt = "cmt"
+                     title:="comment", Description:="comment", XID:="MST14")> Public Const ConstFNcmt = "cmt"
 
 
         ' fields
@@ -6171,23 +6171,23 @@ Namespace OnTrack.Scheduling
 
         '** keys
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, primarykeyordinal:=1, _
-        ID:="SL1", title:="Linked From Object", description:="object link from the scheduled object")> Public Const ConstFNFromTagObject = "tagobject"
+        XID:="SL1", title:="Linked From Object", description:="object link from the scheduled object")> Public Const ConstFNFromTagObject = "tagobject"
         <ormObjectEntry(typeid:=otFieldDataType.Long, primarykeyordinal:=2, _
-            ID:="SL2", title:="Linked from UID", description:="uid link from the scheduled object")> Public Const ConstFNFromTaguid = "taguid"
+            XID:="SL2", title:="Linked from UID", description:="uid link from the scheduled object")> Public Const ConstFNFromTaguid = "taguid"
         <ormObjectEntry(referenceobjectentry:=MileStoneDefinition.ConstObjectID & "." & MileStoneDefinition.ConstFNID, primarykeyordinal:=3, defaultValue:="", _
-            ID:="SL3", title:="Linked from Milestone", description:="uid link from the scheduled object milestone")> Public Const ConstFNFromMilestone = "ms"
+            XID:="SL3", title:="Linked from Milestone", description:="uid link from the scheduled object milestone")> Public Const ConstFNFromMilestone = "ms"
 
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, primarykeyordinal:=4, _
-       ID:="SL4", title:="Linked to Object", description:="object link to the scheduled object")> Public Const ConstFNToTagObject = "tag2object"
+       XID:="SL4", title:="Linked to Object", description:="object link to the scheduled object")> Public Const ConstFNToTagObject = "tag2object"
         <ormObjectEntry(typeid:=otFieldDataType.Long, primarykeyordinal:=5, _
-            ID:="SL5", title:="Linked to UID", description:="uid link to the scheduled object")> Public Const ConstFNToTaguid = "tag2uid"
+            XID:="SL5", title:="Linked to UID", description:="uid link to the scheduled object")> Public Const ConstFNToTaguid = "tag2uid"
         <ormObjectEntry(referenceobjectentry:=MileStoneDefinition.ConstObjectID & "." & MileStoneDefinition.ConstFNID, primarykeyordinal:=6, defaultValue:="", _
-            ID:="SL6", title:="Linked to Milestone", description:="uid link to the scheduled object milestone")> Public Const ConstFNToMilestone = "2ms"
+            XID:="SL6", title:="Linked to Milestone", description:="uid link to the scheduled object milestone")> Public Const ConstFNToMilestone = "2ms"
 
 
         '** fields
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, _
-            ID:="SL7", title:="Linke Type", description:="object link type")> Public Const ConstFNTypeID = "typeid"
+            XID:="SL7", title:="Linke Type", description:="object link type")> Public Const ConstFNTypeID = "typeid"
 
         '** Mapping
         <ormEntryMapping(EntryName:=ConstFNFromTagObject)> Private _tagObject As String
@@ -6348,12 +6348,12 @@ Namespace OnTrack.Scheduling
         '** fields
         <ormObjectEntry(referenceobjectentry:=Schedule.ConstObjectID & "." & Schedule.ConstFNUpdc _
             )> Public Const ConstFNUPDC = Schedule.ConstFNUpdc
-        <ormObjectEntry(typeid:=otFieldDataType.Bool, id:="CS5", title:="Is Active", description:="set if active")> _
+        <ormObjectEntry(typeid:=otFieldDataType.Bool, XID:="CS5", title:="Is Active", description:="set if active")> _
         Public Const ConstFNIsActive = "isactive"
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, _
-         ID:="CS2", title:="Linked Object", description:="object link to the scheduled object")> Public Const ConstFNTagObject = "tagobject"
+         XID:="CS2", title:="Linked Object", description:="object link to the scheduled object")> Public Const ConstFNTagObject = "tagobject"
         <ormObjectEntry(typeid:=otFieldDataType.Long, _
-            ID:="CS3", title:="Linked UID", description:="uid link to the scheduled object")> Public Const ConstFNTaguid = "taguid"
+            XID:="CS3", title:="Linked UID", description:="uid link to the scheduled object")> Public Const ConstFNTaguid = "taguid"
 
         ' change FK Action since we have the workspace as FK (leads also to domians)
         <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, _

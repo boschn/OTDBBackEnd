@@ -862,7 +862,16 @@ Namespace OnTrack
                        
 
                     End If
-
+                    Dim anEntryAttribute = aClassDescription.GetObjectEntryAttribute(entryname)
+                    If anEntryAttribute Is Nothing Then
+                        CoreMessageHandler(message:="object entry attribute couldnot be retrieved from class description", arg1:=value, _
+                                           objectname:=Me.ObjectID, entryname:=entryname, _
+                                            messagetype:=otCoreMessageType.InternalError, subname:="ormDataObject.GetValue")
+                    End If
+                    Dim isnullable As Boolean = False
+                    If anEntryAttribute.HasValueIsNullable Then
+                        isnullable = anEntryAttribute.IsNullable
+                    End If
                     '** search the fields
                     For Each field In afieldinfos
 
@@ -922,7 +931,7 @@ Namespace OnTrack
                     '** Validate against the ObjectEntry Rules
                     If aValidateResult = otValidationResultType.Succeeded Or aValidateResult = otValidationResultType.FailedButSave Then
 
-                        Dim oldvalue As Object
+                       
                         Dim aClassDescription = Me.ObjectClassDescription 'ot.GetObjectClassDescription(Me.GetType)
                         If aClassDescription Is Nothing Then
                             CoreMessageHandler(message:=" Object's Class Description could not be retrieved - object not defined ?!", arg1:=value, _
@@ -936,7 +945,18 @@ Namespace OnTrack
                                                objectname:=Me.ObjectID, entryname:=entryname, _
                                                 messagetype:=otCoreMessageType.InternalError, subname:="ormDataObject.SetValue")
                         End If
+                        Dim anEntryAttribute = aClassDescription.GetObjectEntryAttribute(entryname)
+                        If anEntryAttribute Is Nothing Then
+                            CoreMessageHandler(message:="object entry attribute couldnot be retrieved from class description", arg1:=value, _
+                                               objectname:=Me.ObjectID, entryname:=entryname, _
+                                                messagetype:=otCoreMessageType.InternalError, subname:="ormDataObject.SetValue")
+                        End If
+                        Dim isnullable As Boolean = False
+                        If anEntryAttribute.HasValueIsNullable Then
+                            isnullable = anEntryAttribute.IsNullable
+                        End If
                         For Each field In afieldinfos
+                            Dim oldvalue As Object
                             If Not Reflector.GetFieldValue(field:=field, dataobject:=Me, value:=oldvalue) Then
                                 CoreMessageHandler(message:="field value ob data object couldnot be get", _
                                                     objectname:=Me.ObjectID, subname:="ormDataObject.setValue", _
@@ -944,7 +964,8 @@ Namespace OnTrack
                             End If
 
                             '*** if different value
-                            If value IsNot Nothing AndAlso Not value.Equals(oldvalue) Then
+                            If (Not isnullable AndAlso value IsNot Nothing AndAlso Not value.Equals(oldvalue)) OrElse _
+                                (isnullable AndAlso Not value.Equals(oldvalue)) Then
                                 If Not Reflector.SetFieldValue(field:=field, dataobject:=Me, value:=value) Then
                                     CoreMessageHandler(message:="field value ob data object couldnot be set", _
                                                         objectname:=Me.ObjectID, subname:="ormDataObject.setValue", _

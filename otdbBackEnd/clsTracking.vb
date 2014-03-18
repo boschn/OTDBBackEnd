@@ -25,126 +25,153 @@ Imports OnTrack
 
 Namespace OnTrack.Deliverables
 
-
-    '************************************************************************************
-    '***** CLASS clsOTDBTrackItem list is a arbitrary List of trackable Items
-    '*****
-    '*****
     ''' <summary>
-    ''' List of trackable items
+    ''' List of Tracking Items
     ''' </summary>
     ''' <remarks></remarks>
-    Public Class clsOTDBTrackItem
+    <ormObject(id:=TrackItem.constobjectID, version:=1, modulename:=ot.ConstModuleDeliverables, Description:="member of tracking lists" _
+        )> Public Class TrackItem
         Inherits ormDataObject
         Implements iormInfusable
         Implements iormPersistable
 
-        <ormSchemaTableAttribute(version:=1)> Public Const constTableID = "tblTrackItems"
-        <ormSchemaIndexAttribute(columnname1:=constFNID, columnname2:=constFNOrder)> Public Const constIndexOrder = "orderby"
+        '***
+        Public Const constObjectID = "TrackItem"
+        '*** TABLE
+        <ormSchemaTableAttribute(version:=1, addsparefields:=True, adddeletefieldbehavior:=True)> Public Const constTableID = "tblTrackItems"
+        '** Index
+        <ormSchemaIndexAttribute(columnname1:=constFNID, columnname2:=constFNOrdinal)> Public Const constIndexOrder = "orderby"
         <ormSchemaIndexAttribute(columnname1:=constFNID)> Public Const constIndexList = "lists"
 
-        <ormObjectEntry(iD:="TI1", title:="List ID", description:="name of the tracking item list", _
+        '** Primary Keys
+        <ormObjectEntry(XID:="TI1", title:="List ID", description:="name of the tracking item list", _
             typeid:=otFieldDataType.Text, size:=50, primaryKeyordinal:=1)> Public Const constFNID = "listid"
 
-        <ormObjectEntry(iD:="TI2", title:="List Pos", description:="entry number in the tracking item list", _
-            typeid:=otFieldDataType.Long, primaryKeyordinal:=4)> Public Const constFNPos = "posno"
+        <ormObjectEntry(XID:="TI2", title:="List Pos", description:="entry number in the tracking item list", _
+            typeid:=otFieldDataType.Long, primaryKeyordinal:=2)> Public Const constFNPos = "posno"
 
-        <ormObjectEntry(iD:="TI3", title:="part id", description:="part id of the item to be tracked", _
-           typeid:=otFieldDataType.Text, size:=50)> Public Const constFNPartid = "partid"
+        '*** fields
+        <ormObjectEntry(referenceObjectentry:=Parts.Part.ConstObjectID & "." & Parts.Part.ConstFNPartID, _
+            XID:="TI3", description:="part id of the item to be tracked", _
+           isnullable:=True, useforeignkey:=otForeignKeyImplementation.ORM)> Public Const constFNPartid = "partid"
 
-        <ormObjectEntry(iD:="TI4", title:="order", description:="ordinal in the list to be sorted", _
-           typeid:=otFieldDataType.Long)> Public Const constFNOrder = "order"
+        <ormObjectEntry(XID:="TI4", title:="order", description:="ordinal in the list to be sorted", _
+           typeid:=otFieldDataType.Long)> Public Const constFNOrdinal = "order"
 
-        <ormObjectEntry(iD:="TI5", title:="matchcode", description:="matchcode for items", _
-           typeid:=otFieldDataType.Text, size:=100)> Public Const constFNPrecode = "precode"
+        <ormObjectEntry(XID:="TI5", title:="matchcode", description:="matchcode for items", _
+           typeid:=otFieldDataType.Text, size:=100)> Public Const constFNMatchCode = "MATCHCODE"
 
-        <ormObjectEntry(iD:="TI7", title:="Deliverable UID", description:="UID of the deliverable to be tracked", _
-          typeid:=otFieldDataType.Long, size:=100)> Public Const constFNDLVUID = "dlvuid"
+        <ormObjectEntry(referenceObjectentry:=Deliverables.Deliverable.ConstObjectID & "." & Deliverables.Deliverable.constFNUid, _
+                XID:="TI7", description:="UID of the deliverable to be tracked", _
+          isnullable:=True, useforeignkey:=otForeignKeyImplementation.ORM)> Public Const constFNDLVUID = "DLVUID"
 
-        <ormObjectEntry(iD:="TI6", title:="Comments", description:="comment for the item", _
+        <ormObjectEntry(XID:="TI6", title:="Comments", description:="comment for the item", _
          typeid:=otFieldDataType.Memo)> Public Const constFNComment = "cmt"
 
-        <ormEntryMapping(EntryName:=ConstFNID)> Private s_listid As String = ""
-        <ormEntryMapping(EntryName:=ConstFNPos)> Private s_posno As Long
-
-        <ormEntryMapping(EntryName:=ConstFNPartid)> Private s_pnid As String
-        <ormEntryMapping(EntryName:=ConstFNOrder)> Private s_order As Long
-        <ormEntryMapping(EntryName:=ConstFNComment)> Private s_cmt As String
-        <ormEntryMapping(EntryName:=ConstFNPrecode)> Private s_precode As String
-        <ormEntryMapping(EntryName:=ConstFNDLVUID)> Private s_DLVUID As Long
+        '*** Mappings
+        <ormEntryMapping(EntryName:=constFNID)> Private _listid As String = ""
+        <ormEntryMapping(EntryName:=constFNPos)> Private _posno As Long
+        <ormEntryMapping(EntryName:=constFNPartid)> Private _pnid As String
+        <ormEntryMapping(EntryName:=constFNOrdinal)> Private _ordinal As Long
+        <ormEntryMapping(EntryName:=constFNComment)> Private _cmt As String
+        <ormEntryMapping(EntryName:=constFNMatchCode)> Private _matchcode As String = ""
+        <ormEntryMapping(EntryName:=constFNDLVUID)> Private _dlvuid As Long?
 
 #Region "Properties"
+        ''' <summary>
+        ''' gets the id of the tracking list
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
         ReadOnly Property Listid() As String
             Get
-                Listid = s_listid
+                Return _listid
             End Get
 
         End Property
-
+        ''' <summary>
+        ''' gets the position number in the list
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
         ReadOnly Property Posno() As Long
             Get
-                Posno = s_posno
+                Return _posno
             End Get
 
         End Property
 
+        ''' <summary>
+        ''' gets or set the part id to be tracked - might be null / nothing
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
         Public Property PartID() As String
             Get
-                PartID = s_pnid
+                Return _pnid
             End Get
             Set(value As String)
-                If value <> s_pnid Then
-                    s_pnid = value
-                    Me.IsChanged = True
-                End If
+                SetValue(constFNPartid, value)
             End Set
         End Property
-
+        ''' <summary>
+        ''' gets or sets some comments and textfield
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
         Public Property Comment() As String
             Get
-                Comment = s_cmt
+                Return _cmt
             End Get
             Set(value As String)
-                s_cmt = value
-                Me.IsChanged = True
+                SetValue(constFNComment, value)
             End Set
         End Property
-
-        Public Property Precode() As String
+        ''' <summary>
+        ''' gets or sets the matchcode
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Property Matchcode() As String
             Get
-                Precode = s_precode
+                Return _matchcode
             End Get
             Set(value As String)
-                If s_precode <> value Then
-                    s_precode = value
-                    Me.IsChanged = True
-                End If
-
+                SetValue(constFNMatchCode, value)
             End Set
         End Property
-
-        Public Property Order() As Long
+        ''' <summary>
+        ''' gets or sets the ordinal in the list
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Property Ordinal() As Long
             Get
-                Order = s_order
+                Return _ordinal
 
             End Get
             Set(value As Long)
-                If value <> s_order Then
-                    s_order = value
-                    Me.IsChanged = True
-                End If
+                SetValue(constFNOrdinal, value)
             End Set
         End Property
-
-        Public Property DlvUid() As Long
+        ''' <summary>
+        ''' gets or sets the deliverable uid to be tracked - might be nothing / nullable
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Property DlvUid() As Long?
             Get
-                DlvUid = s_DLVUID
+                Return _dlvuid
             End Get
-            Set(value As Long)
-                If s_DLVUID <> value Then
-                    s_DLVUID = value
-                    Me.IsChanged = True
-                End If
+            Set(value As Long?)
+                SetValue(constFNDLVUID, value)
             End Set
         End Property
 
@@ -154,29 +181,23 @@ Namespace OnTrack.Deliverables
         ''' </summary>
         ''' <remarks></remarks>
         Public Sub New()
-            MyBase.New(constTableID)
+            MyBase.New()
         End Sub
+       
+
         ''' <summary>
-        ''' loads the data object (the Track Item) from the store
+        ''' Retrieve a trackitem from the data store
         ''' </summary>
         ''' <param name="listid"></param>
         ''' <param name="posno"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function Inject(ByVal listid As String, ByVal posno As Long) As Boolean
+        Public Shared Function Retrieve(ByVal listid As String, ByVal posno As Long) As TrackItem
             Dim primarykey() As Object = {listid, posno}
-            Return MyBase.Inject(primarykey)
+            Return ormDataObject.Retrieve(Of TrackItem)(primarykey)
         End Function
 
-        ''' <summary>
-        ''' creates the schema for persistency
-        ''' </summary>
-        ''' <param name="silent"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Shared Function CreateSchema(Optional silent As Boolean = True) As Boolean
-            Return ormDataObject.CreateDataObjectSchema(Of clsOTDBTrackItem)(silent:=silent)
-        End Function
+       
         ''' <summary>
         ''' create a persistable track list item
         ''' </summary>
@@ -184,15 +205,9 @@ Namespace OnTrack.Deliverables
         ''' <param name="posno"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function Create(ByVal listid As String, ByVal posno As Long) As Boolean
+        Public Shared Function Create(ByVal listid As String, ByVal posno As Long) As TrackItem
             Dim primarykey() As Object = {listid, posno}
-            If MyBase.Create(primarykey, checkUnique:=True) Then
-                ' set the primaryKey
-                s_listid = listid
-                s_posno = posno
-                Return Me.IsCreated
-            End If
-            Return False
+            Return ormDataObject.CreateDataObject(Of TrackItem)(primarykey, checkUnique:=True)
         End Function
 
         ''' <summary>
@@ -213,7 +228,7 @@ Namespace OnTrack.Deliverables
             If Not aRecordCollection Is Nothing AndAlso aRecordCollection.Count > 0 Then
                 ' records read
                 For Each aRecord In aRecordCollection
-                    Dim anEntry As New clsOTDBTrackItem
+                    Dim anEntry As New TrackItem
                     If anEntry.Infuse(aRecord) Then
                         aCollection.Add(Item:=anEntry)
                     End If
@@ -228,8 +243,8 @@ Namespace OnTrack.Deliverables
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Shared Function All() As List(Of clsOTDBTrackItem)
-            Return ormDataObject.All(Of clsOTDBTrackItem)(ID:="all")
+        Public Shared Function All() As List(Of TrackItem)
+            Return ormDataObject.All(Of TrackItem)(ID:="all")
         End Function
 
     End Class

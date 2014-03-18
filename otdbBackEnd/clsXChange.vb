@@ -8926,13 +8926,13 @@ Namespace OnTrack.XChange
         Public Const constobjectid = "XOutline"
 
         <ormSchemaTableAttribute(Version:=1)> Public Const constTableID = "tblXOutlines"
-        <ormObjectEntry(ID:="otl1", primaryKeyordinal:=1,
+        <ormObjectEntry(XID:="otl1", primaryKeyordinal:=1,
                 typeid:=otFieldDataType.Text, size:=50,
                 description:="identifier of the outline", Title:="ID")> Public Const constFNID = "id"
-        <ormObjectEntry(ID:="otl2",
+        <ormObjectEntry(XID:="otl2",
                typeid:=otFieldDataType.Text, size:=255,
                 description:="description of the outline", Title:="description")> Public Const constFNdesc = "desc"
-        <ormObjectEntry(ID:="otl3",
+        <ormObjectEntry(XID:="otl3",
                        typeid:=otFieldDataType.Bool,
                         description:="True if deliverable revisions are added dynamically", Title:="DynRev")> Public Const constFNRev = "addrev"
 
@@ -9451,37 +9451,37 @@ Namespace OnTrack.XChange
         <ormSchemaIndexAttribute(columnname1:=constFNID, columnname2:=ConstFNordinall)> Public Const constIndexLongOutline = "longOutline"
         <ormSchemaIndexAttribute(columnname1:=ConstFNUid, columnname2:="id", columnname3:=ConstFNordinals)> Public Const constIndexUsedOutline = "UsedOutline"
 
-        <ormObjectEntry(iD:="otl1", primaryKeyordinal:=1, typeid:=otFieldDataType.Text, size:=50,
+        <ormObjectEntry(XID:="otl1", primaryKeyordinal:=1, typeid:=otFieldDataType.Text, size:=50,
             title:="Outline ID", description:="identifier of the outline")> Public Const constFNID = "id"
 
-        <ormObjectEntry(iD:="otli2", typeid:=otFieldDataType.Long,
+        <ormObjectEntry(XID:="otli2", typeid:=otFieldDataType.Long,
            title:="ordinal", description:="ordinal as long of the outline")> Public Const ConstFNordinall = "ordiall"
 
-        <ormObjectEntry(iD:="otli3", primaryKeyordinal:=2, typeid:=otFieldDataType.Text, size:=255,
+        <ormObjectEntry(XID:="otli3", primaryKeyordinal:=2, typeid:=otFieldDataType.Text, size:=255,
           title:="ordinals", description:="ordinal as string of the outline item")> Public Const ConstFNordinals = "ordials"
 
-        <ormObjectEntry(iD:="dlvuid", typeid:=otFieldDataType.Long,
+        <ormObjectEntry(XID:="dlvuid", typeid:=otFieldDataType.Long,
          title:="deliverable uid", description:="uid of the deliverable")> Public Const ConstFNUid = "uid"
 
-        <ormObjectEntry(iD:="otli4", typeid:=otFieldDataType.Long,
+        <ormObjectEntry(XID:="otli4", typeid:=otFieldDataType.Long,
           title:="identlevel", description:="identlevel as string of the outline")> Public Const ConstFNIdent = "level"
 
-        <ormObjectEntry(iD:="otli10", typeid:=otFieldDataType.Text, size:=255, innertypeid:=otFieldDataType.Text,
+        <ormObjectEntry(XID:="otli10", typeid:=otFieldDataType.Text, size:=255, innertypeid:=otFieldDataType.Text,
          title:="Types", description:="types the outline key")> Public Const ConstFNTypes = "types"
 
-        <ormObjectEntry(iD:="otli11", typeid:=otFieldDataType.Text, size:=255, innertypeid:=otFieldDataType.Text,
+        <ormObjectEntry(XID:="otli11", typeid:=otFieldDataType.Text, size:=255, innertypeid:=otFieldDataType.Text,
          title:="IDs", description:="ids the outline key")> Public Const ConstFNIDs = "ids"
 
-        <ormObjectEntry(iD:="otli12", typeid:=otFieldDataType.Text, size:=255, innertypeid:=otFieldDataType.Text,
+        <ormObjectEntry(XID:="otli12", typeid:=otFieldDataType.Text, size:=255, innertypeid:=otFieldDataType.Text,
         title:="Values", description:="values the outline key")> Public Const ConstFNValues = "values"
 
-        <ormObjectEntry(iD:="otli13", typeid:=otFieldDataType.Bool,
+        <ormObjectEntry(XID:="otli13", typeid:=otFieldDataType.Bool,
         title:="Grouping Item", description:="check if this an grouping item")> Public Const ConstFNisgroup = "isgrouped"
 
-        <ormObjectEntry(iD:="otli14", typeid:=otFieldDataType.Bool,
+        <ormObjectEntry(XID:="otli14", typeid:=otFieldDataType.Bool,
        title:="Text Item", description:="check if this an text item")> Public Const ConstFNisText = "istext"
 
-        <ormObjectEntry(iD:="otli14", typeid:=otFieldDataType.Text, size:=255,
+        <ormObjectEntry(XID:="otli14", typeid:=otFieldDataType.Text, size:=255,
        title:="Text", description:="Text if a text item")> Public Const ConstFNText = "text"
 
         <ormEntryMapping(EntryName:=constFNID)> Private _id As String = ""   ' ID of the outline

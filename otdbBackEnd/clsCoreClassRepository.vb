@@ -411,6 +411,7 @@ Namespace OnTrack
                             If .HasValueEntryType And Not attribute.HasValueEntryType Then attribute.EntryType = .EntryType
                             If .HasValueTitle And Not attribute.HasValueTitle Then attribute.Title = .Title
 
+                            If .HasValueXID And Not attribute.HasValueXID Then attribute.XID = .XID
                             If .HasValueAliases And Not attribute.HasValueAliases Then attribute.Aliases = .Aliases
                             If .HasValueProperties And Not attribute.HasValueProperties Then attribute.Properties = .Properties
                             If .HasValueVersion And Not attribute.HasValueVersion Then attribute.Version = .Version

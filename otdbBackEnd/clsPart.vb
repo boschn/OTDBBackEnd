@@ -46,7 +46,7 @@ Namespace OnTrack.Parts
 
         '*** Primary key
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, primarykeyOrdinal:=1, _
-            ID:="pt1", Aliases:={"C10"}, title:="PartID", description:="unique ID of the part")> Public Const ConstFNPartID = "pnid"
+            XID:="pt1", Aliases:={"C10"}, title:="PartID", description:="unique ID of the part")> Public Const ConstFNPartID = "pnid"
 
         '** Indices
         <ormSchemaIndex(columnname1:=ConstFNIsDeleted, columnname2:=ConstFNPartID)> Public Const ConstIndexDeleted = "indDeleted"
@@ -59,31 +59,31 @@ Namespace OnTrack.Parts
         '*** Fields
         <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=150, _
-            ID:="pt2", Title:="Description", description:="description of the part")> Public Const ConstFNDescription = "desc"
+            XID:="pt2", Title:="Description", description:="description of the part")> Public Const ConstFNDescription = "desc"
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=150, _
-           ID:="pt3", aliases:={"DLV31"}, Title:="Workpackage", description:="workpackage of the part")> Public Const ConstFNWorkpackage = "wkpk"
+           XID:="pt3", aliases:={"DLV31"}, Title:="Workpackage", description:="workpackage of the part")> Public Const ConstFNWorkpackage = "wkpk"
         <ormObjectEntry(referenceobjectentry:=OnTrack.Workspace.ConstObjectID & "." & OnTrack.Workspace.ConstFNID, _
            Description:="workspaceID ID of the part")> Public Const ConstFNWorkspace = OnTrack.Workspace.ConstFNID
         <ormObjectEntry(referenceobjectentry:=Deliverables.Deliverable.ConstObjectID & "." & Deliverables.Deliverable.constFNUid, isnullable:=True, _
-           ID:="DLV1", aliases:={"UID"}, Description:="deliverable UID of the part")> Public Const ConstFNDeliverableUID = Deliverables.Deliverable.constFNUid
+           XID:="DLV1", aliases:={"UID"}, Description:="deliverable UID of the part")> Public Const ConstFNDeliverableUID = Deliverables.Deliverable.constFNUid
         <ormObjectEntry(referenceobjectentry:=OrgUnit.ConstObjectID & "." & OrgUnit.ConstFNID, _
-            ID:="pt4", Title:="Responsible", description:="responsible person for the deliverable", ID:="DLV16")> Public Const constFNResponsiblePerson = "resp"
+            XID:="pt4", Title:="Responsible", description:="responsible person for the deliverable", XID:="DLV16")> Public Const constFNResponsiblePerson = "resp"
         <ormObjectEntry(referenceobjectentry:=OrgUnit.ConstObjectID & "." & OrgUnit.ConstFNID, _
-            id:="pt5", title:="Responsible OrgUnit", description:=" organization unit responsible for the part", ID:="")> Public Const constFNRespOU = "respou"
+            XID:="pt5", title:="Responsible OrgUnit", description:=" organization unit responsible for the part", XID:="")> Public Const constFNRespOU = "respou"
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, _
-            id:="pt6", title:="Type", description:="type of the part", ID:="DLV13")> Public Const constFNTypeID = "typeid"
+            XID:="pt6", title:="Type", description:="type of the part", XID:="DLV13")> Public Const constFNTypeID = "typeid"
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=150, _
-            id:="pt7", title:="Category", description:="category of the part", ID:="DLV13")> Public Const constFNCategory = "cat"
+            XID:="pt7", title:="Category", description:="category of the part", XID:="DLV13")> Public Const constFNCategory = "cat"
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, defaultValue:="", _
-            id:="pt8", title:="blocking item reference", description:="blocking item reference id for the deliverable", aliases:={"DLV17"})> Public Const constFNBlockingItemReference = "blitemid"
+            XID:="pt8", title:="blocking item reference", description:="blocking item reference id for the deliverable", aliases:={"DLV17"})> Public Const constFNBlockingItemReference = "blitemid"
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, defaultValue:="", _
-            id:="pt9", aliases:={"dlv8"}, title:="Change Reference", description:="change reference of the deliverable")> Public Const constFNChangeRef = "chref"
+            XID:="pt9", aliases:={"dlv8"}, title:="Change Reference", description:="change reference of the deliverable")> Public Const constFNChangeRef = "chref"
         <ormObjectEntry(typeid:=otFieldDataType.Memo, defaultValue:="", _
-            id:="pt10", title:="comment", description:="comments of the part", ID:="DLV18")> Public Const constFNComment = "cmt"
+            XID:="pt10", title:="comment", description:="comments of the part", XID:="DLV18")> Public Const constFNComment = "cmt"
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, defaultValue:="", _
-            id:="pt11", title:="Matchcode", description:="match code of the part")> Public Const constFNMatchCode = "matchcode"
+            XID:="pt11", title:="Matchcode", description:="match code of the part")> Public Const constFNMatchCode = "matchcode"
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, defaultValue:="", _
-             ID:="pt12", Title:="Function", description:="function of the deliverable")> Public Const constFNFunction = "function"
+             XID:="pt12", Title:="Function", description:="function of the deliverable")> Public Const constFNFunction = "function"
 
         <ormObjectEntry(referenceObjectEntry:=ObjectLogMessage.ConstObjectID & "." & ObjectLogMessage.ConstFNTag)> Public Const ConstFNmsglogtag = ObjectLogMessage.ConstFNTag
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=255, defaultValue:="", _

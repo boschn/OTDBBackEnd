@@ -297,9 +297,9 @@ Namespace OnTrack.Database
                         result = DBNull.Value
                     ElseIf Not isnullable AndAlso (invalue Is Nothing OrElse String.IsNullOrWhiteSpace(invalue.ToString) _
                         OrElse IsError(invalue) OrElse DBNull.Value.Equals(invalue)) Then
-                        result = Convert.ToUInt64(defaultvalue)
+                        result = Convert.ToInt64(defaultvalue)
                     ElseIf IsNumeric(invalue) Then
-                        result = Convert.ToUInt64(invalue)
+                        result = Convert.ToInt64(invalue)
                     Else
                         Call CoreMessageHandler(subname:="mssqlDBDriver.cvt2ColumnData", entryname:=fieldname, _
                                               message:="OTDB data " & invalue & " is not convertible to Long", _
@@ -954,6 +954,20 @@ Namespace OnTrack.Database
                         anIndex.IndexKeyType = IndexKeyType.None
                         anIndex.IgnoreDuplicateKeys = Not indexdefinition.IsUnique
                         anIndex.IsUnique = indexdefinition.IsUnique
+
+                        '** create filtered index if one of columns is nullable
+                        If indexdefinition.IsUnique Then
+                            For Each columnName As String In indexdefinition.Columnnames
+                                Dim filterstr As String = ""
+                                If aTable.Columns.Contains(columnName) AndAlso aTable.Columns.Item(columnName).Nullable Then
+                                    If filterstr <> "" Then filterstr &= " AND "
+                                    filterstr &= columnName & " is not null "
+                                End If
+                                If filterstr <> "" Then
+                                    anIndex.FilterDefinition = filterstr
+                                End If
+                            Next
+                        End If
                         '** create new
                     ElseIf Not indexdefinition.IsPrimary And Not existingIndex Then
                         If indexdefinition.DatabaseID = "" Then
@@ -966,21 +980,35 @@ Namespace OnTrack.Database
                         anIndex.IndexKeyType = IndexKeyType.None
                         anIndex.IgnoreDuplicateKeys = Not indexdefinition.IsUnique
                         anIndex.IsUnique = indexdefinition.IsUnique
+                        '** create filtered index if one of columns is nullable
+                        If indexdefinition.IsUnique Then
+                            For Each columnName As String In indexdefinition.Columnnames
+                                Dim filterstr As String = ""
+                                If aTable.Columns.Contains(columnName) AndAlso aTable.Columns.Item(columnName).Nullable Then
+                                    If filterstr <> "" Then filterstr &= " AND "
+                                    filterstr &= columnName & " is not null "
+                                End If
+                                If filterstr <> "" Then
+                                    anIndex.FilterDefinition = filterstr
+                                End If
+                            Next
+                        End If
                     End If
 
-                    ' check on keys & indexes
-                    For Each aColumnname As String In indexdefinition.Columnnames
-                        Dim indexColumn As IndexedColumn = New IndexedColumn(anIndex, aColumnname)
-                        anIndex.IndexedColumns.Add(indexColumn)
-                    Next
 
-                    ' attach the Index
-                    If Not anIndex Is Nothing Then
-                        anIndex.Create()
-                        Return anIndex
-                    Else
-                        Return Nothing
-                    End If
+                        ' check on keys & indexes
+                        For Each aColumnname As String In indexdefinition.Columnnames
+                            Dim indexColumn As IndexedColumn = New IndexedColumn(anIndex, aColumnname)
+                            anIndex.IndexedColumns.Add(indexColumn)
+                        Next
+
+                        ' attach the Index
+                        If Not anIndex Is Nothing Then
+                            anIndex.Create()
+                            Return anIndex
+                        Else
+                            Return Nothing
+                        End If
 
                 End SyncLock
 

@@ -1487,15 +1487,7 @@ Namespace OnTrack.Database
 
             End If
 
-            ' Create the Trackitems
-            If Not clsOTDBTrackItem.CreateSchema() Then
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="createDatabase_BO", _
-                                             message:="Schema TrackITems couldn't be created")
-            Else
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_BO", message:="Trackitem is up-to-date", _
-                                             messagetype:=otCoreMessageType.ApplicationInfo, tablename:=clsOTDBTrackItem.constTableID)
-
-            End If
+           
 
         End Sub
         ''' <summary>
@@ -1782,35 +1774,37 @@ Namespace OnTrack.Database
             End If
 
             '*** start a session
-            If Not CurrentSession.IsRunning Then
-                CurrentSession.StartUp(otAccessRight.AlterSchema, messagetext:="Please start up a Session to setup initial data")
+            Dim sessionrunning As Boolean = CurrentSession.IsRunning
+            Dim sessionstarted As Boolean = False
+            If sessionrunning Then
+                sessionstarted = CurrentSession.StartUp(otAccessRight.AlterSchema, messagetext:="Please start up a Session to setup initial data")
             End If
 
             '***
             '*** Initialize Data
-
-            If Not InitialCoreData() Then
-                Call ot.CoreMessageHandler(showmsgbox:=True, subname:="modCreateDB.createDatabase_RUN", _
-                                                      message:="failed to write initial core data - core might not be working correctly", _
-                                                      messagetype:=otCoreMessageType.InternalError)
-            Else
-                ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_RUN", _
-                                                      message:="core objects with data instanced and persisted", _
-                                                      messagetype:=otCoreMessageType.InternalInfo)
-            End If
-
-            If Not InitializeCalendar() Then
-                Call ot.CoreMessageHandler(showmsgbox:=True, subname:="modCreateDB.createDatabase_RUN", _
-                                                          message:="failed to write initial calendar data - calendar might not be working correctly", _
+            If sessionrunning OrElse sessionstarted Then
+                If Not InitialCoreData() Then
+                    Call ot.CoreMessageHandler(showmsgbox:=True, subname:="modCreateDB.createDatabase_RUN", _
+                                                          message:="failed to write initial core data - core might not be working correctly", _
                                                           messagetype:=otCoreMessageType.InternalError)
-            Else
-                ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_RUN", _
-                                                     message:="calendar instanced and persisted", _
-                                                     messagetype:=otCoreMessageType.InternalInfo)
-            End If
+                Else
+                    ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_RUN", _
+                                                          message:="core objects with data instanced and persisted", _
+                                                          messagetype:=otCoreMessageType.InternalInfo)
+                End If
 
+                If Not InitializeCalendar() Then
+                    Call ot.CoreMessageHandler(showmsgbox:=True, subname:="modCreateDB.createDatabase_RUN", _
+                                                              message:="failed to write initial calendar data - calendar might not be working correctly", _
+                                                              messagetype:=otCoreMessageType.InternalError)
+                Else
+                    ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_RUN", _
+                                                         message:="calendar instanced and persisted", _
+                                                         messagetype:=otCoreMessageType.InternalInfo)
+                End If
+            End If
             '*** shutdown a session
-            If CurrentSession.IsRunning Then
+            If CurrentSession.IsRunning AndAlso sessionstarted Then
                 CurrentSession.ShutDown(force:=True)
             End If
         End Sub

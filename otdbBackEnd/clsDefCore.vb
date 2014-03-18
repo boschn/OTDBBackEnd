@@ -38,20 +38,20 @@ Namespace OnTrack
 
         '*** Primary Keys
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, primaryKeyordinal:=1, _
-           ID:="VE2", title:="List", description:="ID of the list of values")> Const ConstFNListID = "id"
+           XID:="VE2", title:="List", description:="ID of the list of values")> Const ConstFNListID = "id"
 
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, primaryKeyordinal:=2, _
-            ID:="VE3", title:="Value", description:="value entry")> Const ConstFNValue = "value"
+            XID:="VE3", title:="Value", description:="value entry")> Const ConstFNValue = "value"
 
         <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=2 _
          , useforeignkey:=otForeignKeyImplementation.NativeDatabase, defaultvalue:=ConstGlobalDomain)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
         '*** Fields
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=255, _
-           ID:="VE4", title:="selector", description:="")> Const ConstFNSelector = "selector"
+           XID:="VE4", title:="selector", description:="")> Const ConstFNSelector = "selector"
 
         <ormObjectEntry(typeid:=otFieldDataType.Long, _
-          ID:="VE5", title:="datatype", description:="datatype of the  value")> Const ConstFNDatatype = "datatype"
+          XID:="VE5", title:="datatype", description:="datatype of the  value")> Const ConstFNDatatype = "datatype"
 
         ' fields
         <ormEntryMapping(EntryName:=ConstFNDomainID)> Private _DomainID As String = ""
@@ -272,29 +272,29 @@ Namespace OnTrack
         '** 
         <ormSchemaTableAttribute(adddeletefieldbehavior:=True, usecache:=True, Version:=1)> Public Const ConstTableID As String = "tblDefDomainSettings"
 
-        <ormObjectEntry(id:="DMS1", _
+        <ormObjectEntry(XID:="DMS1", _
             referenceobjectentry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, _
             title:="domain", Description:="domain identifier", _
             primaryKeyordinal:=1, _
             useforeignkey:=otForeignKeyImplementation.ORM)> _
         Const ConstFNDomainID As String = Domain.ConstFNDomainID
 
-        <ormObjectEntry(ID:="DMS2", _
+        <ormObjectEntry(XID:="DMS2", _
            typeid:=otFieldDataType.Text, size:=100, primaryKeyordinal:=2, _
            title:="Setting", description:="ID of the setting per domain")> _
         Const ConstFNSettingID = "id"
 
-        <ormObjectEntry(ID:="DMS3", _
+        <ormObjectEntry(XID:="DMS3", _
             typeid:=otFieldDataType.Text, size:=100, _
             title:="Description")> _
         Const ConstFNDescription = "desc"
 
-        <ormObjectEntry(ID:="DMS4", _
+        <ormObjectEntry(XID:="DMS4", _
            typeid:=otFieldDataType.Text, size:=255, _
            title:="value", description:="value of the domain setting in string presentation")> _
         Const ConstFNValue = "value"
 
-        <ormObjectEntry(ID:="DMS5", _
+        <ormObjectEntry(XID:="DMS5", _
           typeid:=otFieldDataType.Long, _
           title:="datatype", description:="datatype of the domain setting value")> _
         Const ConstFNDatatype = "datatype"
@@ -506,29 +506,29 @@ Namespace OnTrack
 
         '*** Primary Keys
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, primarykeyordinal:=1, _
-          ID:="G1", title:="Group", description:="name of the OnTrack user group")> Public Const ConstFNGroupname = "groupname"
+          XID:="G1", title:="Group", description:="name of the OnTrack user group")> Public Const ConstFNGroupname = "groupname"
         <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=2, _
                        defaultvalue:=ConstGlobalDomain)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
         '*** Fields
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=255, _
-        ID:="G5", title:="description", description:="description of the OnTrack user group")> Public Const ConstFNDescription = "desc"
+        XID:="G5", title:="description", description:="description of the OnTrack user group")> Public Const ConstFNDescription = "desc"
 
         <ormObjectEntry(referenceobjectentry:=Workspace.ConstObjectID & "." & Workspace.ConstFNID, _
-            ID:="G10", title:="Default Workspace", description:="default workspace of the OnTrack user")> Public Const ConstFNDefaultWorkspace = "defws"
+            XID:="G10", title:="Default Workspace", description:="default workspace of the OnTrack user")> Public Const ConstFNDefaultWorkspace = "defws"
         <ormObjectEntry(referenceobjectentry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, _
-           ID:="G11", title:="Default Domain", description:="default domain of the OnTrack user")> Public Const ConstFNDefaultDomainID = "defdomain"
+           XID:="G11", title:="Default Domain", description:="default domain of the OnTrack user")> Public Const ConstFNDefaultDomainID = "defdomain"
 
         <ormObjectEntry(typeid:=otFieldDataType.Bool, _
-           ID:="UR1", title:="Alter Schema Right", description:="has user the right to alter the database schema")> _
+           XID:="UR1", title:="Alter Schema Right", description:="has user the right to alter the database schema")> _
         Public Const ConstFNAlterSchema = "alterschema"
         <ormObjectEntry(typeid:=otFieldDataType.Bool, _
-          ID:="UR2", title:="Update Data Right", description:="has user the right to update data (new/change/delete)")> _
+          XID:="UR2", title:="Update Data Right", description:="has user the right to update data (new/change/delete)")> _
         Public Const ConstFNUpdateData = "updatedata"
         <ormObjectEntry(typeid:=otFieldDataType.Bool, _
-          ID:="UR3", title:="Read Data Right", description:="has user the right to read the database data")> Public Const ConstFNReadData = "readdata"
+          XID:="UR3", title:="Read Data Right", description:="has user the right to read the database data")> Public Const ConstFNReadData = "readdata"
         <ormObjectEntry(typeid:=otFieldDataType.Bool, _
-          ID:="UR4", title:="No Access", description:="has user no access")> Public Const ConstFNNoAccess = "noright"
+          XID:="UR4", title:="No Access", description:="has user no access")> Public Const ConstFNNoAccess = "noright"
 
         '* Relations
         '* Members
@@ -750,10 +750,10 @@ Namespace OnTrack
 
         '*** Primary Keys
         <ormObjectEntry(referenceObjectEntry:=Group.ConstObjectID & "." & Group.ConstFNGroupname, primarykeyordinal:=1, _
-          ID:="G1", title:="Group", description:="name of the OnTrack user group")> _
+          XID:="G1", title:="Group", description:="name of the OnTrack user group")> _
         Public Const ConstFNGroupname = "groupname"
         <ormObjectEntry(referenceObjectEntry:=User.ConstObjectID & "." & User.ConstFNUsername, primarykeyordinal:=2, _
-          ID:="G1", title:="Group", description:="name of the OnTrack user group", useforeignkey:=otForeignKeyImplementation.NativeDatabase)> _
+          XID:="G1", title:="Group", description:="name of the OnTrack user group", useforeignkey:=otForeignKeyImplementation.NativeDatabase)> _
         Public Const ConstFNUsername = "username"
 
         <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=3, _
@@ -865,35 +865,35 @@ Namespace OnTrack
 
         '*** Primary Keys
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, primarykeyordinal:=1, _
-          ID:="U1", title:="username", description:="name of the OnTrack user")> Public Const ConstFNUsername = "username"
+          XID:="U1", title:="username", description:="name of the OnTrack user")> Public Const ConstFNUsername = "username"
 
         '*** Fields
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=20, _
-           ID:="U2", title:="password", description:="password of the OnTrack user")> Public Const ConstFNPassword = "password"
+           XID:="U2", title:="password", description:="password of the OnTrack user")> Public Const ConstFNPassword = "password"
 
         <ormObjectEntry(referenceobjectentry:=Person.ConstObjectID & "." & Person.constFNID, _
-         ID:="U4", aliases:={"p1"})> Public Const ConstFNPerson = "person"
+         XID:="U4", aliases:={"p1"})> Public Const ConstFNPerson = "person"
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=255, _
-        ID:="U5", title:="description", description:="description of the OnTrack user")> Public Const ConstFNDescription = "desc"
+        XID:="U5", title:="description", description:="description of the OnTrack user")> Public Const ConstFNDescription = "desc"
         <ormObjectEntry(typeid:=otFieldDataType.Bool, _
-            ID:="U6", title:="is anonymous", description:="is user an anonymous user")> Public Const ConstFNIsAnonymous = "isanon"
+            XID:="U6", title:="is anonymous", description:="is user an anonymous user")> Public Const ConstFNIsAnonymous = "isanon"
         <ormObjectEntry(typeid:=otFieldDataType.Bool, _
-            ID:="U7", title:="is group", description:="is user an anonymous user")> Public Const ConstFNIsGroup = "isgroup"
+            XID:="U7", title:="is group", description:="is user an anonymous user")> Public Const ConstFNIsGroup = "isgroup"
 
         <ormObjectEntry(referenceobjectentry:=Workspace.ConstObjectID & "." & Workspace.ConstFNID, _
-            ID:="U10", title:="Default Workspace", description:="default workspace of the OnTrack user")> Public Const ConstFNDefaultWorkspace = "defws"
+            XID:="U10", title:="Default Workspace", description:="default workspace of the OnTrack user")> Public Const ConstFNDefaultWorkspace = "defws"
         <ormObjectEntry(referenceobjectentry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, _
-            ID:="U10", title:="Default Domain", description:="default domain of the OnTrack user")> Public Const ConstFNDefaultDomainID = "defdomain"
+            XID:="U10", title:="Default Domain", description:="default domain of the OnTrack user")> Public Const ConstFNDefaultDomainID = "defdomain"
         <ormObjectEntry(typeid:=otFieldDataType.Bool, _
-           ID:="UR1", title:="Alter Schema Right", description:="has user the right to alter the database schema")> _
+           XID:="UR1", title:="Alter Schema Right", description:="has user the right to alter the database schema")> _
         Public Const ConstFNAlterSchema = "alterschema"
         <ormObjectEntry(typeid:=otFieldDataType.Bool, _
-          ID:="UR2", title:="Update Data Right", description:="has user the right to update data (new/change/delete)")> _
+          XID:="UR2", title:="Update Data Right", description:="has user the right to update data (new/change/delete)")> _
         Public Const ConstFNUpdateData = "updatedata"
         <ormObjectEntry(typeid:=otFieldDataType.Bool, _
-          ID:="UR3", title:="Read Data Right", description:="has user the right to read the database data")> Public Const ConstFNReadData = "readdata"
+          XID:="UR3", title:="Read Data Right", description:="has user the right to read the database data")> Public Const ConstFNReadData = "readdata"
         <ormObjectEntry(typeid:=otFieldDataType.Bool, _
-          ID:="UR4", title:="No Access", description:="has user no access")> Public Const ConstFNNoAccess = "noright"
+          XID:="UR4", title:="No Access", description:="has user no access")> Public Const ConstFNNoAccess = "noright"
 
         '** relations
         '* Members
@@ -1379,21 +1379,21 @@ Namespace OnTrack
         <ormSchemaTableAttribute(adddeletefieldbehavior:=True, Version:=1)> Public Const ConstTableID As String = "tblDefUserSettings"
 
         '** Primary Key
-        <ormObjectEntry(id:="US1", referenceobjectentry:=User.ConstObjectID & "." & User.ConstFNUsername, primaryKeyordinal:=1)> _
+        <ormObjectEntry(XID:="US1", referenceobjectentry:=User.ConstObjectID & "." & User.ConstFNUsername, primaryKeyordinal:=1)> _
         Const ConstFNUsername As String = User.ConstFNUsername
 
         '** Fields
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, primaryKeyordinal:=2, _
-           ID:="US2", title:="Setting", description:="ID of the setting per user")> Const ConstFNSettingID = "id"
+           XID:="US2", title:="Setting", description:="ID of the setting per user")> Const ConstFNSettingID = "id"
 
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, _
-            ID:="US3", title:="Description")> Const ConstFNDescription = "desc"
+            XID:="US3", title:="Description")> Const ConstFNDescription = "desc"
 
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=255, _
-           ID:="US4", title:="value", description:="value of the user setting in string presentation")> Const ConstFNValue = "value"
+           XID:="US4", title:="value", description:="value of the user setting in string presentation")> Const ConstFNValue = "value"
 
         <ormObjectEntry(typeid:=otFieldDataType.Long, _
-          ID:="US5", title:="datatype", description:="datatype of the user setting value")> Const ConstFNDatatype = "datatype"
+          XID:="US5", title:="datatype", description:="datatype of the user setting value")> Const ConstFNDatatype = "datatype"
 
         ' fields
         <ormEntryMapping(EntryName:=ConstFNUsername)> Private _Username As String = ""
@@ -1604,35 +1604,35 @@ Namespace OnTrack
 
         '** primary keys
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, primarykeyordinal:=1, _
-            id:="P1", title:="ID", description:="ID of the person")> Public Const constFNID = "id"
+            XID:="P1", title:="ID", description:="ID of the person")> Public Const constFNID = "id"
         <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=2 _
          , useforeignkey:=otForeignKeyImplementation.NativeDatabase)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
         '** fields
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, _
-          id:="P2", title:="First Name", description:="first name of the person")> Public Const constFNFirstName = "firstname"
+          XID:="P2", title:="First Name", description:="first name of the person")> Public Const constFNFirstName = "firstname"
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=255, _
-         id:="P3", title:="Middle Names", description:="mid names of the person")> Public Const constFNMidNames = "midnames"
+         XID:="P3", title:="Middle Names", description:="mid names of the person")> Public Const constFNMidNames = "midnames"
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, _
-         id:="P4", title:="Sir Name", description:="sir name of the person")> Public Const constFNSirName = "sirname"
+         XID:="P4", title:="Sir Name", description:="sir name of the person")> Public Const constFNSirName = "sirname"
         <ormObjectEntry(typeid:=otFieldDataType.Memo, _
-           id:="P5", title:="Description", description:="description of the person")> Public Const constFNDescription = "desc"
+           XID:="P5", title:="Description", description:="description of the person")> Public Const constFNDescription = "desc"
         <ormObjectEntry(typeid:=otFieldDataType.Bool, _
-           id:="P6", title:="Role", description:="set if the person is a role")> Public Const ConstFNIsRole = "isrole"
+           XID:="P6", title:="Role", description:="set if the person is a role")> Public Const ConstFNIsRole = "isrole"
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, _
-        id:="P13", title:="Company Name", description:="name of the persons company")> Public Const constFNCompany = "company"
-        <ormObjectEntry(referenceObjectEntry:=ConstObjectID & "." & constFNID, ID:="P7", Title:="superior ID", description:="ID of the superior manager")> _
+        XID:="P13", title:="Company Name", description:="name of the persons company")> Public Const constFNCompany = "company"
+        <ormObjectEntry(referenceObjectEntry:=ConstObjectID & "." & constFNID, XID:="P7", Title:="superior ID", description:="ID of the superior manager")> _
         Public Const ConstFNManager = "superid"
         <ormObjectEntry(referenceObjectEntry:=OrgUnit.ConstObjectID & "." & OrgUnit.ConstFNID, _
-            ID:="P8")> Public Const ConstFNOrgUnit = "orgunit"
+            XID:="P8")> Public Const ConstFNOrgUnit = "orgunit"
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=255, _
-          id:="P9", title:="eMail", description:="eMail Address of the person")> Public Const constFNeMail = "email"
+          XID:="P9", title:="eMail", description:="eMail Address of the person")> Public Const constFNeMail = "email"
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, _
-         id:="P10", title:="phone", description:="phone of the person")> Public Const constFNPhone = "phone"
+         XID:="P10", title:="phone", description:="phone of the person")> Public Const constFNPhone = "phone"
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, _
-         id:="P11", title:="phone", description:="mobile of the person")> Public Const constFNMobile = "mobile"
+         XID:="P11", title:="phone", description:="mobile of the person")> Public Const constFNMobile = "mobile"
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, _
-         id:="P12", title:="phone", description:="fax of the person")> Public Const constFNFax = "fax"
+         XID:="P12", title:="phone", description:="fax of the person")> Public Const constFNFax = "fax"
 
         ' field mapping
         <ormEntryMapping(EntryName:=constFNID)> Private _id As String = ""
@@ -1993,35 +1993,35 @@ Namespace OnTrack
 
         '* primary keys
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=20, primarykeyordinal:=1, _
-           ID:="omd1", title:="ID", description:="Identifier of the object message")> Public Const ConstFNMessageID = "msglogtag"
+           XID:="omd1", title:="ID", description:="Identifier of the object message")> Public Const ConstFNMessageID = "msglogtag"
         <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=2 _
         , useforeignkey:=otForeignKeyImplementation.NativeDatabase, defaultvalue:=ConstGlobalDomain)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
         '* fields
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, _
-          ID:="omd2", title:="Area", description:="area of the object message")> Public Const constFNArea = "area"
+          XID:="omd2", title:="Area", description:="area of the object message")> Public Const constFNArea = "area"
         <ormObjectEntry(typeid:=otFieldDataType.Numeric, _
-        ID:="omd3", title:="Weight", description:="weight of the object message")> Public Const constFNWeight = "weight"
+        XID:="omd3", title:="Weight", description:="weight of the object message")> Public Const constFNWeight = "weight"
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, _
-        ID:="omd4", title:="Type", description:="type of the object message")> Public Const constFNType = "typeid"
+        XID:="omd4", title:="Type", description:="type of the object message")> Public Const constFNType = "typeid"
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=1024, _
-        ID:="omd5", title:="Text", description:="message text of the object message")> Public Const constFNText = "message"
+        XID:="omd5", title:="Text", description:="message text of the object message")> Public Const constFNText = "message"
         <ormObjectEntry(typeid:=otFieldDataType.Memo,
-        ID:="omd6", title:="Description", description:="additional description and help text of the object message")> Public Const constFNDescription = "desc"
+        XID:="omd6", title:="Description", description:="additional description and help text of the object message")> Public Const constFNDescription = "desc"
 
         <ormObjectEntry(referenceObjectEntry:=StatusItem.ConstObjectID & "." & StatusItem.constFNType, _
-        ID:="omd11", isnullable:=True, title:="Status Code 1", description:="status type #1 of the object message")> Public Const constFNSType1 = "stype1"
+        XID:="omd11", isnullable:=True, title:="Status Code 1", description:="status type #1 of the object message")> Public Const constFNSType1 = "stype1"
         <ormObjectEntry(referenceObjectEntry:=StatusItem.ConstObjectID & "." & StatusItem.constFNType, _
-         ID:="omd12", isnullable:=True, title:="Status Code 2", description:="status type #2 of the object message")> Public Const constFNSType2 = "stype2"
+         XID:="omd12", isnullable:=True, title:="Status Code 2", description:="status type #2 of the object message")> Public Const constFNSType2 = "stype2"
         <ormObjectEntry(referenceObjectEntry:=StatusItem.ConstObjectID & "." & StatusItem.constFNType, _
-         ID:="omd13", isnullable:=True, title:="Status Code 3", description:="status type #3 of the object message")> Public Const constFNSType3 = "stype3"
+         XID:="omd13", isnullable:=True, title:="Status Code 3", description:="status type #3 of the object message")> Public Const constFNSType3 = "stype3"
 
         <ormObjectEntry(referenceObjectEntry:=StatusItem.ConstObjectID & "." & StatusItem.constFNCode, _
-        ID:="omd21", isnullable:=True, title:="Status Code 1", description:="status code #1 of the object message")> Public Const constFNSCode1 = "scode1"
+        XID:="omd21", isnullable:=True, title:="Status Code 1", description:="status code #1 of the object message")> Public Const constFNSCode1 = "scode1"
         <ormObjectEntry(referenceObjectEntry:=StatusItem.ConstObjectID & "." & StatusItem.constFNCode, _
-         ID:="omd22", isnullable:=True, title:="Status Code 2", description:="status code #2 of the object message")> Public Const constFNSCode2 = "scode2"
+         XID:="omd22", isnullable:=True, title:="Status Code 2", description:="status code #2 of the object message")> Public Const constFNSCode2 = "scode2"
         <ormObjectEntry(referenceObjectEntry:=StatusItem.ConstObjectID & "." & StatusItem.constFNCode, _
-         ID:="omd23", isnullable:=True, title:="Status Code 3", description:="status code #3 of the object message")> Public Const constFNSCode3 = "scode3"
+         XID:="omd23", isnullable:=True, title:="Status Code 3", description:="status code #3 of the object message")> Public Const constFNSCode3 = "scode3"
 
 
         ' field mapping
@@ -2476,37 +2476,37 @@ Namespace OnTrack
 
         '* primary Key
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, primarykeyordinal:=1, _
-            ID:="si1", title:="Type", description:="type of the status")> Public Const constFNType = "typeid"
+            XID:="si1", title:="Type", description:="type of the status")> Public Const constFNType = "typeid"
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, primarykeyordinal:=2, _
-           ID:="si2", title:="Code", description:="code of the status")> Public Const constFNCode = "code"
+           XID:="si2", title:="Code", description:="code of the status")> Public Const constFNCode = "code"
         <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=3 _
          , useforeignkey:=otForeignKeyImplementation.NativeDatabase, defaultvalue:=ConstGlobalDomain)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
 
         '* fields
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, _
-           ID:="si3", title:="Name", description:="name of the status")> Public Const constFNName = "name"
+           XID:="si3", title:="Name", description:="name of the status")> Public Const constFNName = "name"
         <ormObjectEntry(typeid:=otFieldDataType.Memo, _
-          ID:="si4", title:="Description", description:="description of the status")> Public Const constFNDescription = "desc"
+          XID:="si4", title:="Description", description:="description of the status")> Public Const constFNDescription = "desc"
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, _
-          ID:="si5", title:="KPICode", description:="KPI code of the status")> Public Const constFNKPICode = "kpicode"
+          XID:="si5", title:="KPICode", description:="KPI code of the status")> Public Const constFNKPICode = "kpicode"
         <ormObjectEntry(typeid:=otFieldDataType.Numeric, _
-          ID:="si6", title:="Weight", description:="weight of the status")> Public Const constFNWeight = "weight"
+          XID:="si6", title:="Weight", description:="weight of the status")> Public Const constFNWeight = "weight"
         <ormObjectEntry(typeid:=otFieldDataType.Bool, _
-          ID:="si11", title:="Start", description:="set if the status is an start status")> Public Const constFNIsStartStatus = "isstart"
+          XID:="si11", title:="Start", description:="set if the status is an start status")> Public Const constFNIsStartStatus = "isstart"
         <ormObjectEntry(typeid:=otFieldDataType.Bool, _
-          ID:="si12", title:="Intermediate", description:="set if the status is an intermediate status")> Public Const constFNIsEndStatus = "isend"
+          XID:="si12", title:="Intermediate", description:="set if the status is an intermediate status")> Public Const constFNIsEndStatus = "isend"
         <ormObjectEntry(typeid:=otFieldDataType.Bool, _
-         ID:="si13", title:="End", description:="set if the status is an end status")> Public Const constFNIsIntermediateStatus = "isimed"
+         XID:="si13", title:="End", description:="set if the status is an end status")> Public Const constFNIsIntermediateStatus = "isimed"
 
         <ormObjectEntry(typeid:=otFieldDataType.Long, _
-          ID:="si21", title:="Foreground", description:="RGB foreground color code")> Public Const ConstFNFGColor = "fgcolor"
+          XID:="si21", title:="Foreground", description:="RGB foreground color code")> Public Const ConstFNFGColor = "fgcolor"
         <ormObjectEntry(typeid:=otFieldDataType.Long, _
-          ID:="si22", title:="Background", description:="RGB background color code")> Public Const ConstFNBGColor = "bgcolor"
+          XID:="si22", title:="Background", description:="RGB background color code")> Public Const ConstFNBGColor = "bgcolor"
         <ormObjectEntry(typeid:=otFieldDataType.Long, _
-          ID:="si23", title:="KPI Foreground", description:="RGB foreground kpi color code")> Public Const ConstFNKPIFGColor = "kpifgcolor"
+          XID:="si23", title:="KPI Foreground", description:="RGB foreground kpi color code")> Public Const ConstFNKPIFGColor = "kpifgcolor"
         <ormObjectEntry(typeid:=otFieldDataType.Long, _
-          ID:="si24", title:="KPI Background", description:="RGB background kpi color code")> Public Const ConstFNKPIBGColor = "kpibgcolor"
+          XID:="si24", title:="KPI Background", description:="RGB background kpi color code")> Public Const ConstFNKPIBGColor = "kpibgcolor"
 
 
         '* mappings
@@ -2867,45 +2867,45 @@ Namespace OnTrack
 
         '** primary Keys
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, primaryKeyordinal:=1, _
-            id:="WS", title:="Workspace", Description:="workspaceID identifier")> Public Const ConstFNID As String = "wspace"
+            XID:="WS", title:="Workspace", Description:="workspaceID identifier")> Public Const ConstFNID As String = "wspace"
 
         '** Fields
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=255, _
-            ID:="WS1", title:="Description")> Public Const ConstFNDescription = "desc"
+            XID:="WS1", title:="Description")> Public Const ConstFNDescription = "desc"
 
         <ormObjectEntry(typeid:=otFieldDataType.Text, innertypeid:=otFieldDataType.Text, _
-            ID:="WS2", title:="forecast lookup order", description:="Forecasts milestones are lookup in this order. Must include this workspaceID ID.")> _
+            XID:="WS2", title:="forecast lookup order", description:="Forecasts milestones are lookup in this order. Must include this workspaceID ID.")> _
         Public Const ConstFNFCRelyOn = "fcrelyOn"
 
         <ormObjectEntry(typeid:=otFieldDataType.Text, innertypeid:=otFieldDataType.Text, _
-            ID:="WS3", title:="actual lookup order", description:="Actual milestones are looked up in this order. Must include this workspaceID ID")> _
+            XID:="WS3", title:="actual lookup order", description:="Actual milestones are looked up in this order. Must include this workspaceID ID")> _
         Public Const ConstFNActRelyOn = "actrelyOn"
 
         <ormObjectEntry(typeid:=otFieldDataType.Bool, _
-            ID:="WS4", title:="Base", description:="if set this workspaceID is a base workspaceID")> Public Const ConstFNIsBase = "isbase"
+            XID:="WS4", title:="Base", description:="if set this workspaceID is a base workspaceID")> Public Const ConstFNIsBase = "isbase"
 
         <ormObjectEntry(typeid:=otFieldDataType.Bool, _
-              ID:="WS5", title:="has actuals", description:="if set this workspaceID has actual milestones") _
+              XID:="WS5", title:="has actuals", description:="if set this workspaceID has actual milestones") _
                > Public Const ConstFNHasAct = "hasact"
 
         <ormObjectEntry(typeid:=otFieldDataType.Text, _
-          ID:="WS6", title:="accesslist", description:="Accesslist") _
+          XID:="WS6", title:="accesslist", description:="Accesslist") _
            > Public Const ConstFNAccesslist = "acclist"
 
         <ormObjectEntry(typeid:=otFieldDataType.[Long], defaultValue:="0", _
-              ID:="WS7", title:="min schedule updc", description:="Minimum update counter for schedules of this workspaceID") _
+              XID:="WS7", title:="min schedule updc", description:="Minimum update counter for schedules of this workspaceID") _
                > Public Const ConstMinScheduleUPC = "minsupdc"
 
         <ormObjectEntry(typeid:=otFieldDataType.[Long], defaultValue:="0", _
-              ID:="WS8", title:="max schedule updc", description:="Maximum update counter for schedules of this workspaceID") _
+              XID:="WS8", title:="max schedule updc", description:="Maximum update counter for schedules of this workspaceID") _
                > Public Const ConstFNMaxScheduleUPC = "maxsupdc"
 
         <ormObjectEntry(typeid:=otFieldDataType.[Long], defaultValue:="0", _
-              ID:="WS9", title:="min target updc", description:="Minimum update counter for targets of this workspaceID") _
+              XID:="WS9", title:="min target updc", description:="Minimum update counter for targets of this workspaceID") _
                > Public Const ConstFNMinTargetUPDC = "mintupdc"
 
         <ormObjectEntry(typeid:=otFieldDataType.[Long], defaultValue:="0", _
-              ID:="WS10", title:="max target updc", description:="Minimum update counter for target of this workspaceID") _
+              XID:="WS10", title:="max target updc", description:="Minimum update counter for target of this workspaceID") _
                > Public Const ConstMaxTargetUPDC = "maxtupdc"
 
         ' fields
@@ -3323,25 +3323,25 @@ Namespace OnTrack
         <ormSchemaTableAttribute(Version:=1, usecache:=True)> Public Const ConstTableID As String = "tblDefDomains"
 
         '** key
-        <ormObjectEntry(id:="DM1", _
+        <ormObjectEntry(XID:="DM1", _
             typeid:=otFieldDataType.Text, size:=50, Properties:={ObjectEntryProperty.Keyword}, _
             title:="Domain", Description:="domain identifier", _
             primaryKeyordinal:=1, isnullable:=False, useforeignkey:=otForeignKeyImplementation.None)> Public Const ConstFNDomainID As String = "domainid"
 
         '** fields
-        <ormObjectEntry(ID:="DM2", _
+        <ormObjectEntry(XID:="DM2", _
             typeid:=otFieldDataType.Text, size:=100, _
             title:="Description")> Public Const ConstFNDescription = "desc"
 
-        <ormObjectEntry(ID:="DM3", _
+        <ormObjectEntry(XID:="DM3", _
             typeid:=otFieldDataType.Bool, title:="Global", description:="if set this domain is the global domain") _
              > Public Const ConstFNIsGlobal = "isglobal"
 
-        <ormObjectEntry(ID:="DM10", _
+        <ormObjectEntry(XID:="DM10", _
               typeid:=otFieldDataType.[Long], defaultValue:="0", _
               title:="min deliverable uid", description:="Minimum deliverable uid for domain")> Public Const ConstFNMinDeliverableUID = "mindlvuid"
 
-        <ormObjectEntry(ID:="DM11", _
+        <ormObjectEntry(XID:="DM11", _
               typeid:=otFieldDataType.[Long], defaultValue:="0", _
               title:="max deliverable uid", description:="Maximum deliverable uid for domain")> Public Const ConstFNMaxDeliverableUID = "maxdlvuid"
 
@@ -3699,21 +3699,21 @@ Namespace OnTrack
 
         '** primary Keys
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, primaryKeyOrdinal:=1, _
-            id:="OU1", title:="OrgUnit", description:="ID of the organization unit")> Public Const ConstFNID = "id"
+            XID:="OU1", title:="OrgUnit", description:="ID of the organization unit")> Public Const ConstFNID = "id"
         <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=2 _
          , useforeignkey:=otForeignKeyImplementation.NativeDatabase, defaultvalue:=ConstGlobalDomain)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
         '** fields
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=255, _
-           id:="OU2", title:="Description", description:="description of the organization unit")> Public Const ConstFNDescription = "desc"
+           XID:="OU2", title:="Description", description:="description of the organization unit")> Public Const ConstFNDescription = "desc"
         <ormObjectEntry(referenceObjectEntry:=Person.ConstObjectID & "." & Person.constFNID, _
-           id:="OU3", title:="Manager", description:="manager of the organization unit")> Public Const ConstFNManager = "manager"
+           XID:="OU3", title:="Manager", description:="manager of the organization unit")> Public Const ConstFNManager = "manager"
         <ormObjectEntry(referenceObjectEntry:=Site.ConstObjectiD & "." & Site.constFNId, _
-          id:="OU4", title:="Site", description:="ID of the site organization unit")> Public Const ConstFNSite = "site"
+          XID:="OU4", title:="Site", description:="ID of the site organization unit")> Public Const ConstFNSite = "site"
         <ormObjectEntry(referenceObjectEntry:=ConstObjectID & "." & ConstFNID, _
-          id:="OU5", title:="Superior", description:="superior ID of the  organization unit")> Public Const ConstFNSuperior = "superior"
+          XID:="OU5", title:="Superior", description:="superior ID of the  organization unit")> Public Const ConstFNSuperior = "superior"
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, _
-         id:="OU6", title:="Function", description:="default function ID of the  organization unit")> Public Const ConstFNFunction = "funct"
+         XID:="OU6", title:="Function", description:="default function ID of the  organization unit")> Public Const ConstFNFunction = "funct"
 
         ' field mapping
         <ormEntryMapping(EntryName:=ConstFNID)> Private _id As String = ""
@@ -3940,7 +3940,7 @@ Namespace OnTrack
 
         '** keys
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, primarykeyordinal:=1, _
-            ID:="OUS1", title:="Site ID", description:="id of the site")> Public Const constFNId = "id"
+            XID:="OUS1", title:="Site ID", description:="id of the site")> Public Const constFNId = "id"
 
         <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=2 _
          , useforeignkey:=otForeignKeyImplementation.NativeDatabase, defaultvalue:=ConstGlobalDomain)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
@@ -3948,9 +3948,9 @@ Namespace OnTrack
 
         '** fields
         <ormObjectEntry(referenceObjecTEntry:=CalendarEntry.ConstObjectID & "." & CalendarEntry.constFNName, _
-            ID:="OUS2", title:="CalendarName", description:="name of the calendar valid for this site")> Public Const ConstFNCalendarID = "calendar"
+            XID:="OUS2", title:="CalendarName", description:="name of the calendar valid for this site")> Public Const ConstFNCalendarID = "calendar"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Memo, id:="OUS10", title:="Description", description:="description of the site")> Public Const constFNDescription = "desc"
+        <ormObjectEntry(typeid:=otFieldDataType.Memo, XID:="OUS10", title:="Description", description:="description of the site")> Public Const constFNDescription = "desc"
         ' field mapping
         <ormEntryMapping(EntryName:=constFNId)> Private _iD As String = ""
         <ormEntryMapping(EntryName:=constFNId)> Private _CalendarID As String = ""

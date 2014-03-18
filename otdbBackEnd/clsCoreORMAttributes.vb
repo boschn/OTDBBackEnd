@@ -1656,6 +1656,7 @@ Namespace OnTrack.Database
         Private _Version As Nullable(Of UShort)
         Private _Posordinal As Nullable(Of UShort)
         Private _SpareFieldTag As Nullable(Of Boolean)
+        Private _XID As String = Nothing
         Private _aliases() As String = Nothing
         Private _relation() As String = Nothing
 
@@ -1950,7 +1951,23 @@ Namespace OnTrack.Database
                 Return _objectEntryName IsNot Nothing AndAlso _objectEntryName <> ""
             End Get
         End Property
-       
+        ''' <summary>
+        ''' Gets or sets the name of the column.
+        ''' </summary>
+        ''' <value>The name of the column.</value>
+        Public Property XID() As String
+            Get
+                Return Me._XID
+            End Get
+            Set(value As String)
+                Me._XID = value.ToUpper
+            End Set
+        End Property
+        Public ReadOnly Property HasValueXID As Boolean
+            Get
+                Return _XID IsNot Nothing AndAlso _XID <> ""
+            End Get
+        End Property
         ''' <summary>
         ''' Gets or sets the primary key ordinal.
         ''' </summary>

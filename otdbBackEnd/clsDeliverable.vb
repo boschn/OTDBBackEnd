@@ -48,15 +48,15 @@ Namespace OnTrack.Deliverables
 
         <ormObjectEntry(referenceObjectEntry:=Deliverable.ConstObjectID & "." & Deliverable.constFNUid, primarykeyordinal:=2, _
                         useforeignkey:=otForeignKeyImplementation.NativeDatabase, _
-                        ID:="CDT1", aliases:={"UID"})> Public Const ConstFNUid = Deliverable.constFNUid
+                        XID:="CDT1", aliases:={"UID"})> Public Const ConstFNUid = Deliverable.constFNUid
 
         '** other columns
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, _
-           title:="Revision", description:="revision of the target", ID:="T9")> Public Const ConstFNRevision = "rev"
+           title:="Revision", description:="revision of the target", XID:="T9")> Public Const ConstFNRevision = "rev"
         <ormObjectEntry(typeid:=otFieldDataType.Long, size:=100, _
-         title:="UpdateCount", description:="update number of the target", ID:="T10")> Public Const ConstFNUpdc = "updc"
+         title:="UpdateCount", description:="update number of the target", XID:="T10")> Public Const ConstFNUpdc = "updc"
         <ormObjectEntry(typeid:=otFieldDataType.Bool, _
-          title:="is active", description:="is the target active", ID:="DT4")> Public Const ConstFNIsActive = "isactive"
+          title:="is active", description:="is the target active", XID:="DT4")> Public Const ConstFNIsActive = "isactive"
 
         ' change FK Action since we have the workspace as FK (leads also to domians)
         <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, _
@@ -460,41 +460,41 @@ Namespace OnTrack.Deliverables
         '** Keys
         <ormObjectEntry(referenceobjectentry:=Deliverable.ConstObjectID & "." & Deliverable.constFNUid, _
             defaultValue:="0", primaryKeyordinal:=1, useforeignkey:=otForeignKeyImplementation.NativeDatabase, _
-            id:="DT1", aliases:={"UID"})> Public Const constFNUid = Deliverable.constFNUid
+            XID:="DT1", aliases:={"UID"})> Public Const constFNUid = Deliverable.constFNUid
 
         <ormObjectEntry(typeid:=otFieldDataType.Long, defaultValue:="0", primaryKeyordinal:=2, _
-            description:="update count of the target date", title:="Update count", id:="DT2", aliases:={"UPDC"})> Public Const constFNUpdc = "updc"
+            description:="update count of the target date", title:="Update count", XID:="DT2", aliases:={"UPDC"})> Public Const constFNUpdc = "updc"
 
         <ormObjectEntry(referenceobjectentry:=Workspace.ConstObjectID & "." & Workspace.ConstFNID, _
             useforeignkey:=otForeignKeyImplementation.NativeDatabase, _
             Description:="workspaceID ID of the schedule")> Public Const ConstFNWorkspace = Schedule.ConstFNWorkspace
 
         <ormObjectEntry(typeid:=otFieldDataType.Date, _
-            description:="current target date", title:="target date", id:="DT6", aliases:={"T2"})> Public Const constFNTarget = "targetdate"
+            description:="current target date", title:="target date", XID:="DT6", aliases:={"T2"})> Public Const constFNTarget = "targetdate"
 
         <ormObjectEntry(typeid:=otFieldDataType.Date, _
-            description:="previous target date", title:="previous target date", id:="DT5", aliases:={"T1"})> Public Const constFNPrevTarget = "pvtd"
+            description:="previous target date", title:="previous target date", XID:="DT5", aliases:={"T1"})> Public Const constFNPrevTarget = "pvtd"
 
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, title:="target revision", Description:="revision of the target", _
-           id:="DT4", aliases:={"t9"}, Defaultvalue:="")> Public Const ConstFNRevision = "rev"
+           XID:="DT4", aliases:={"t9"}, Defaultvalue:="")> Public Const ConstFNRevision = "rev"
 
         <ormObjectEntry(typeid:=otFieldDataType.Timestamp, _
-          description:="target change timestamp", title:="target change", id:="DT7", aliases:={"A6"})> Public Const constFNTargetChanged = "tchg"
+          description:="target change timestamp", title:="target change", XID:="DT7", aliases:={"A6"})> Public Const constFNTargetChanged = "tchg"
 
         <ormObjectEntry(typeid:=otFieldDataType.Bool, _
-          title:="No Target", description:="no target by intention", ID:="DT2")> Const ConstFNNoTarget = "notarget"
+          title:="No Target", description:="no target by intention", XID:="DT2")> Const ConstFNNoTarget = "notarget"
 
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, _
-          title:="Type", description:="type of the target", ID:="DT3")> Const ConstFNType = "typeid"
+          title:="Type", description:="type of the target", XID:="DT3")> Const ConstFNType = "typeid"
 
         <ormObjectEntry(referenceobjectentry:=OrgUnit.ConstObjectID & "." & OrgUnit.ConstFNID, defaultValue:="", _
-           title:="Responsible OrgUnit", description:=" organization unit responsible for the target", ID:="DT5")> Public Const constFNRespOU = "respou"
+           title:="Responsible OrgUnit", description:=" organization unit responsible for the target", XID:="DT5")> Public Const constFNRespOU = "respou"
 
         <ormObjectEntry(referenceobjectentry:=Person.ConstObjectID & "." & Person.constFNID, defaultValue:="", _
-            title:="Responsible Person", description:="responsible person for the target", ID:="DT6")> Public Const constFNResp = "resp"
+            title:="Responsible Person", description:="responsible person for the target", XID:="DT6")> Public Const constFNResp = "resp"
 
         <ormObjectEntry(typeid:=otFieldDataType.Memo, _
-            title:="Comment", Description:="comment of the target", id:="DT7", Defaultvalue:="")> Public Const ConstFNComment = "cmt"
+            title:="Comment", Description:="comment of the target", XID:="DT7", Defaultvalue:="")> Public Const ConstFNComment = "cmt"
 
         <ormObjectEntry(referenceobjectentry:=ObjectLogMessage.ConstObjectID & "." & ObjectLogMessage.ConstFNTag)> _
         Public Const ConstFNmsglogtag = ObjectLogMessage.ConstFNTag
@@ -1541,12 +1541,12 @@ Namespace OnTrack.Deliverables
 
         '** primary keys
         <ormObjectEntry(referenceobjectentry:=Deliverable.ConstObjectID & "." & Deliverable.constFNUid, primarykeyordinal:=1, _
-            ID:="DTR2", aliases:={"UID"})> Public Const constFNDeliverableUid = Deliverable.constFNUid
+            XID:="DTR2", aliases:={"UID"})> Public Const constFNDeliverableUid = Deliverable.constFNUid
 
         <ormObjectEntry(referenceobjectentry:=Schedule.ConstObjectID & "." & Schedule.ConstFNUid, primarykeyordinal:=2, _
-             ID:="DTR3", aliases:={"SC2"})> Public Const constFNScheduleUid = "suid"
+             XID:="DTR3", aliases:={"SC2"})> Public Const constFNScheduleUid = "suid"
         <ormObjectEntry(referenceobjectentry:=Schedule.ConstObjectID & "." & Schedule.ConstFNUpdc, primarykeyordinal:=3, _
-           ID:="DTR4", aliases:={"SC2"})> Public Const constFNScheduleUpdc = "supdc"
+           XID:="DTR4", aliases:={"SC2"})> Public Const constFNScheduleUpdc = "supdc"
         '**
         <ormSchemaForeignKey(useforeignkey:=otForeignKeyImplementation.NativeDatabase, _
             entrynames:={constFNScheduleUid, constFNScheduleUpdc}, _
@@ -1555,7 +1555,7 @@ Namespace OnTrack.Deliverables
         Public Const constFKSchedule = "fkschedule"
 
         <ormObjectEntry(referenceobjectentry:=Target.ConstObjectID & "." & Target.constFNUpdc, primarykeyordinal:=4, _
-           ID:="DTR5", aliases:={"DT2"})> Public Const constFNTargetUpdc = "tupdc"
+           XID:="DTR5", aliases:={"DT2"})> Public Const constFNTargetUpdc = "tupdc"
 
         <ormSchemaForeignKey(useforeignkey:=otForeignKeyImplementation.NativeDatabase, _
             entrynames:={constFNDeliverableUid, constFNTargetUpdc}, _
@@ -1568,61 +1568,61 @@ Namespace OnTrack.Deliverables
             useforeignkey:=otForeignKeyImplementation.NativeDatabase, _
                         foreignkeyproperties:={ForeignKeyProperty.OnDelete & "(" & ForeignKeyActionProperty.NOOP & ")", _
                             ForeignKeyProperty.OnUpdate & "(" & ForeignKeyActionProperty.NOOP & ")"}, _
-                        id:="DTR1", aliases:={"WS"})> Public Const ConstFNWorkspace = Workspace.ConstFNID
+                        XID:="DTR1", aliases:={"WS"})> Public Const ConstFNWorkspace = Workspace.ConstFNID
 
         <ormObjectEntry(referenceobjectentry:=ScheduleDefinition.ConstObjectID & "." & ScheduleDefinition.ConstFNType, _
             useforeignkey:=otForeignKeyImplementation.ORM, _
              foreignkeyProperties:={ForeignKeyProperty.OnUpdate & "(" & ForeignKeyActionProperty.NOOP & ")", _
                                    ForeignKeyProperty.OnDelete & "(" & ForeignKeyActionProperty.SetDefault & ")"}, _
-             id:="DTR6", aliases:={"SC14"}, Defaultvalue:="none")> Public Const ConstFNTypeid = Schedule.ConstFNTypeid
+             XID:="DTR6", aliases:={"SC14"}, Defaultvalue:="none")> Public Const ConstFNTypeid = Schedule.ConstFNTypeid
 
         <ormObjectEntry(referenceobjectentry:=Schedule.ConstObjectID & "." & Schedule.ConstFNPlanRev, _
-          id:="DTR7", aliases:={"SC5"}, Defaultvalue:="0")> Public Const ConstFNScheduleRevision = Schedule.ConstFNPlanRev
+          XID:="DTR7", aliases:={"SC5"}, Defaultvalue:="0")> Public Const ConstFNScheduleRevision = Schedule.ConstFNPlanRev
         <ormObjectEntry(referenceobjectentry:=Target.ConstObjectID & "." & Target.ConstFNRevision, title:="target revision", Description:="revision of the target", _
-          id:="DTR8", aliases:={"DT4"}, Defaultvalue:="0")> Public Const ConstFNTargetRevision = "trev"
+          XID:="DTR8", aliases:={"DT4"}, Defaultvalue:="0")> Public Const ConstFNTargetRevision = "trev"
         <ormObjectEntry(referenceobjectentry:=ScheduleMilestone.ConstObjectID & "." & ScheduleMilestone.ConstFNID, _
             title:="milestone ID delivered", Description:="schedule definition milestone ID for fc delivered", _
-            id:="DTR9", Defaultvalue:="")> Public Const ConstFNMSIDDelivered = "msfinid"
+            XID:="DTR9", Defaultvalue:="")> Public Const ConstFNMSIDDelivered = "msfinid"
         <ormObjectEntry(typeid:=otFieldDataType.Date, title:="current forecast", Description:="forecast date for deliverable delivered", _
-            id:="DTR10", isnullable:=True)> Public Const ConstFNForecast = "fcdate"
+            XID:="DTR10", isnullable:=True)> Public Const ConstFNForecast = "fcdate"
         <ormObjectEntry(typeid:=otFieldDataType.Date, title:="current target", Description:="target date for deliverable", _
-            id:="DTR11", isnullable:=True)> Public Const ConstFNTarget = "targetdate"
+            XID:="DTR11", isnullable:=True)> Public Const ConstFNTarget = "targetdate"
 
         <ormObjectEntry(referenceobjectentry:=Schedule.ConstObjectID & "." & Schedule.ConstFNlcstatus, _
-            id:="DTR12", aliases:={"SC7"}, Defaultvalue:="")> Public Const ConstFNLCStatus = Schedule.ConstFNlcstatus
+            XID:="DTR12", aliases:={"SC7"}, Defaultvalue:="")> Public Const ConstFNLCStatus = Schedule.ConstFNlcstatus
         <ormObjectEntry(referenceobjectentry:=Schedule.ConstObjectID & "." & Schedule.ConstFNpstatus, _
-            id:="DTR13", aliases:={"SC8"}, Defaultvalue:="")> Public Const ConstFNPStatus = Schedule.ConstFNpstatus
+            XID:="DTR13", aliases:={"SC8"}, Defaultvalue:="")> Public Const ConstFNPStatus = Schedule.ConstFNpstatus
 
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, title:="Synchro status", Description:="schedule synchro status", _
-            id:="DTR14", aliases:={}, Defaultvalue:="")> Public Const ConstFNSyncStatus = "sync"
+            XID:="DTR14", aliases:={}, Defaultvalue:="")> Public Const ConstFNSyncStatus = "sync"
         <ormObjectEntry(typeid:=otFieldDataType.Date, title:="Synchro check date", Description:="date of last synchro check status", _
-            id:="DTR15", Defaultvalue:="")> Public Const ConstFNSyncDate = "syncchkon"
+            XID:="DTR15", Defaultvalue:="")> Public Const ConstFNSyncDate = "syncchkon"
         <ormObjectEntry(typeid:=otFieldDataType.Date, title:="Going Alive Date", Description:="date of schedule going alive", _
-           id:="DTR16", Defaultvalue:="")> Public Const ConstFNGoingAliveDate = "goal"
+           XID:="DTR16", Defaultvalue:="")> Public Const ConstFNGoingAliveDate = "goal"
         <ormObjectEntry(typeid:=otFieldDataType.Bool, title:="Delivered", Description:="True if deliverable is delivered", _
-          id:="DTR17", Defaultvalue:="")> Public Const constFNIsDelivered = "isfinished"
+          XID:="DTR17", Defaultvalue:="")> Public Const constFNIsDelivered = "isfinished"
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, defaultValue:="", _
-                         title:="Blocking Item Reference", description:="Blocking Item Reference id for the deliverable", id:="DTR18", aliases:={"DLV17"})> _
+                         title:="Blocking Item Reference", description:="Blocking Item Reference id for the deliverable", XID:="DTR18", aliases:={"DLV17"})> _
         Public Const constFNBlockingItemReference = Deliverable.constFNBlockingItemReference
         <ormObjectEntry(typeid:=otFieldDataType.Date, title:="Delivery Date", Description:="date for deliverable to be delivered / finished", _
-          id:="DTR19", Defaultvalue:="")> Public Const constFNDelivery = "finish"
+          XID:="DTR19", Defaultvalue:="")> Public Const constFNDelivery = "finish"
 
         <ormObjectEntry(typeid:=otFieldDataType.Long, title:="Forecast Gap", Description:="gap in working days between forecast and target", _
-         id:="DTR20")> Public Const constFNFCGap = "fcgap"
+         XID:="DTR20")> Public Const constFNFCGap = "fcgap"
         <ormObjectEntry(typeid:=otFieldDataType.Long, title:="BaseLine Gap", Description:="gap in working days between forecast and target", _
-         id:="DTR21")> Public Const constFNBLGap = "blgap"
+         XID:="DTR21")> Public Const constFNBLGap = "blgap"
         <ormObjectEntry(typeid:=otFieldDataType.Date, title:="Schedule Change Date", Description:="forecast last changed on", _
-          id:="DTR23")> Public Const constFNFcChanged = "fcchanged"
+          XID:="DTR23")> Public Const constFNFcChanged = "fcchanged"
         <ormObjectEntry(typeid:=otFieldDataType.Date, title:="Baseline Delivery Date", Description:="delivery date from the baseline", _
-          id:="DTR24")> Public Const constFNBaseDelivery = "basefinish"
+          XID:="DTR24")> Public Const constFNBaseDelivery = "basefinish"
         <ormObjectEntry(typeid:=otFieldDataType.Bool, title:="Schedule Frozen", Description:="True if schedule is frozen / a baseline exists", _
-         id:="DTR25", aliases:={"SC6"})> Public Const constFNIsFrozen = Schedule.ConstFNisfrozen
+         XID:="DTR25", aliases:={"SC6"})> Public Const constFNIsFrozen = Schedule.ConstFNisfrozen
         <ormObjectEntry(typeid:=otFieldDataType.Long, title:="Schedule UpdateCount", description:="update count of the schedule", _
-            ID:="DTR26", aliases:={"SC17"})> Public Const constFNBaselineUPDC = Schedule.ConstFNBlUpdc
+            XID:="DTR26", aliases:={"SC17"})> Public Const constFNBaselineUPDC = Schedule.ConstFNBlUpdc
         <ormObjectEntry(typeid:=otFieldDataType.Date, title:="Baseline Reference Date", Description:="reference date for baseline", _
-         id:="DTR27", Defaultvalue:="")> Public Const ConstFNBLFrom = Schedule.ConstFNBlDate
+         XID:="DTR27", Defaultvalue:="")> Public Const ConstFNBLFrom = Schedule.ConstFNBlDate
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=255, defaultValue:="", _
-            title:="ActivityTag", description:="activity tag for the deliverable", ID:="DTR31")> _
+            title:="ActivityTag", description:="activity tag for the deliverable", XID:="DTR31")> _
         Public Const constFNActiveTag = "acttag"
 
         <ormObjectEntry(referenceobjectentry:=ObjectLogMessage.ConstObjectID & "." & ObjectLogMessage.ConstFNTag)> _
@@ -3312,35 +3312,35 @@ Namespace OnTrack.Deliverables
 
         '*** Fields
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, primarykeyordinal:=1, defaultValue:="", _
-           title:="Type", description:="type of the deliverable", ID:="DLVT1")> Public Const constFNTypeID = "id"
+           title:="Type", description:="type of the deliverable", XID:="DLVT1")> Public Const constFNTypeID = "id"
 
         <ormObjectEntry(referenceobjectentry:=ScheduleDefinition.ConstObjectID & "." & ScheduleDefinition.ConstFNType, defaultValue:="", _
-            title:="Schedule Type", description:="default schedule type of the deliverable", ID:="DLVT21")> _
+            title:="Schedule Type", description:="default schedule type of the deliverable", XID:="DLVT21")> _
         Public Const constFNDefScheduleType = "defscheduletype"
 
         <ormObjectEntry(referenceobjectentry:=OrgUnit.ConstObjectID & "." & OrgUnit.ConstFNID, defaultValue:="", _
-            title:="Organization Unit", description:="default organization unit responsible of the deliverable", ID:="DLVT22")> _
+            title:="Organization Unit", description:="default organization unit responsible of the deliverable", XID:="DLVT22")> _
         Public Const constFNDefRespOU = "defrespOU"
 
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, defaultValue:="", _
-           title:="Function", description:="default function type of the deliverable", ID:="DLVT23")> _
+           title:="Function", description:="default function type of the deliverable", XID:="DLVT23")> _
         Public Const constFNDefFunction = "deffunction"
 
         <ormObjectEntry(referenceobjectentry:=OrgUnit.ConstObjectID & "." & OrgUnit.ConstFNID, defaultValue:="", _
-          title:="Function", description:="default target responsible organization Unit", ID:="DLVT24")> _
+          title:="Function", description:="default target responsible organization Unit", XID:="DLVT24")> _
         Public Const constFNTargetOU = "deftargetOu"
 
         <ormObjectEntry(typeid:=otFieldDataType.Bool, size:=50, defaultValue:="0", _
-          title:="Target Necessary", description:="has mandatory target data", ID:="DLVT25")> _
+          title:="Target Necessary", description:="has mandatory target data", XID:="DLVT25")> _
         Public Const constFNhastarget = "hastargetdata"
 
 
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=255, defaultValue:="", _
-         title:="Description", description:="description of the deliverable type", ID:="DLVT3")> _
+         title:="Description", description:="description of the deliverable type", XID:="DLVT3")> _
         Public Const constFNDescription = "desc"
 
         <ormObjectEntry(typeid:=otFieldDataType.Memo, defaultValue:="", _
-        title:="comment", description:="comments of the deliverable", ID:="DLVT10")> Public Const constFNComment = "cmt"
+        title:="comment", description:="comments of the deliverable", XID:="DLVT10")> Public Const constFNComment = "cmt"
 
         '*** Mapping
         <ormEntryMapping(EntryName:=constFNTypeID)> Private _typeid As String = ""
@@ -3614,16 +3614,16 @@ Namespace OnTrack.Deliverables
 
         '*** primary key
         <ormObjectEntry(typeid:=otFieldDataType.Long, primarykeyordinal:=1, _
-            title:="Unique ID", description:="unique id of the deliverable", ID:="DLV1", aliases:={"UID"})> _
+            title:="Unique ID", description:="unique id of the deliverable", XID:="DLV1", aliases:={"UID"})> _
         Public Const constFNUid = "uid"
 
         '** fields
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, _
-            title:="category", description:="category of the deliverable", ID:="DLV2")> Public Const constFNCategory = "cat"
+            title:="category", description:="category of the deliverable", XID:="DLV2")> Public Const constFNCategory = "cat"
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=255, defaultValue:="", _
-            title:="id", description:="id of the deliverable", ID:="DLV3")> Public Const constFNDeliverableID = "id"
+            title:="id", description:="id of the deliverable", XID:="DLV3")> Public Const constFNDeliverableID = "id"
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, defaultValue:="", _
-            title:="Matchcode", description:="match code of the deliverable", ID:="DLV4")> Public Const constFNMatchCode = "matchcode"
+            title:="Matchcode", description:="match code of the deliverable", XID:="DLV4")> Public Const constFNMatchCode = "matchcode"
 
 
         ' change FK Action since we have the workspace as FK (leads also to domians)
@@ -3642,61 +3642,61 @@ Namespace OnTrack.Deliverables
                                    ForeignKeyProperty.OnUpdate & "(" & ForeignKeyActionProperty.SetDefault & ")"})> Public Const ConstFNWorkspace = Workspace.ConstFNID
 
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, defaultValue:="", _
-            title:="Revision", description:="revision of the deliverable", ID:="DLV6")> Public Const constFNRevision = "drev"
+            title:="Revision", description:="revision of the deliverable", XID:="DLV6")> Public Const constFNRevision = "drev"
 
         <ormObjectEntry(referenceobjectentry:=ConstObjectID & "." & constFNUid, title:="First Revision UID", description:="unique id of the first revision deliverable", _
-            ID:="DLV7", isnullable:=True)> Public Const constFNfuid = "fuid"
+            XID:="DLV7", isnullable:=True)> Public Const constFNfuid = "fuid"
 
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, defaultValue:="", _
-            title:="Change Reference", description:="change reference of the deliverable", ID:="DLV8")> Public Const constFNChangeRef = "chref"
+            title:="Change Reference", description:="change reference of the deliverable", XID:="DLV8")> Public Const constFNChangeRef = "chref"
 
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, defaultValue:="", _
-            title:="Format", description:="format of the deliverable", ID:="DLV9")> Public Const constFNFormat = "frmt"
+            title:="Format", description:="format of the deliverable", XID:="DLV9")> Public Const constFNFormat = "frmt"
 
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=255, defaultValue:="", _
-            title:="Description", description:="description of the deliverable", ID:="DLV10")> Public Const constFNDescription = "desc"
+            title:="Description", description:="description of the deliverable", XID:="DLV10")> Public Const constFNDescription = "desc"
 
         <ormObjectEntry(referenceobjectentry:=OrgUnit.ConstObjectID & "." & OrgUnit.ConstFNID, _
-            title:="Responsible OrgUnit", description:=" organization unit responsible for the deliverable", ID:="DLV11")> _
+            title:="Responsible OrgUnit", description:=" organization unit responsible for the deliverable", XID:="DLV11")> _
         Public Const constFNRespOU = "respou"
 
         <ormObjectEntry(referenceobjectentry:=Part.ConstObjectID & "." & Part.ConstFNPartID, _
-            isnullable:=True, description:="part id of the deliverable", ID:="DLV12", useforeignkey:=otForeignKeyImplementation.NativeDatabase)> Public Const constFNPartID = Part.ConstFNPartID
+            isnullable:=True, description:="part id of the deliverable", XID:="DLV12", useforeignkey:=otForeignKeyImplementation.NativeDatabase)> Public Const constFNPartID = Part.ConstFNPartID
 
         <ormObjectEntry(referenceobjectentry:=DeliverableType.ConstObjectID & "." & DeliverableType.constFNTypeID, _
-            title:="Type", description:="type of the deliverable", ID:="DLV13")> Public Const constFNTypeID = "typeid"
+            title:="Type", description:="type of the deliverable", XID:="DLV13")> Public Const constFNTypeID = "typeid"
 
         <ormObjectEntry(referenceobjectentry:=Person.ConstObjectID & "." & Person.constFNID, _
-            title:="Responsible", description:="responsible person for the deliverable", ID:="DLV16")> Public Const constFNResponsiblePerson = "resp"
+            title:="Responsible", description:="responsible person for the deliverable", XID:="DLV16")> Public Const constFNResponsiblePerson = "resp"
 
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, defaultValue:="", _
-            title:="blocking item reference", description:="blocking item reference id for the deliverable", ID:="DLV17")> Public Const constFNBlockingItemReference = "blitemid"
+            title:="blocking item reference", description:="blocking item reference id for the deliverable", XID:="DLV17")> Public Const constFNBlockingItemReference = "blitemid"
 
         <ormObjectEntry(typeid:=otFieldDataType.Memo, defaultValue:="", _
-            title:="comment", description:="comments of the deliverable", ID:="DLV18")> Public Const constFNComment = "cmt"
+            title:="comment", description:="comments of the deliverable", XID:="DLV18")> Public Const constFNComment = "cmt"
 
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=255, defaultValue:="", _
-        title:="ConfigTag", description:="config tag for the deliverable", ID:="DLV19")> Public Const constFNConfigTag = "cnftag"
+        title:="ConfigTag", description:="config tag for the deliverable", XID:="DLV19")> Public Const constFNConfigTag = "cnftag"
 
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=255, defaultValue:="", _
-        title:="ActivityTag", description:="activity tag for the deliverable", ID:="DLV20")> Public Const constFNActiveTag = "acttag"
+        title:="ActivityTag", description:="activity tag for the deliverable", XID:="DLV20")> Public Const constFNActiveTag = "acttag"
 
         <ormObjectEntry(referenceobjectentry:=ObjectLogMessage.ConstObjectID & "." & ObjectLogMessage.ConstFNTag)>
         Public Const ConstFNmsglogtag = ObjectLogMessage.ConstFNTag
 
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, defaultValue:="", _
-        title:="wbs reference", description:="work break down structure for the deliverable", ID:="DLV22")> _
+        title:="wbs reference", description:="work break down structure for the deliverable", XID:="DLV22")> _
         Public Const constFNWBSID = "wbs"
 
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, defaultValue:="", _
-        title:="wbscode reference", description:="wbscode for the deliverable", ID:="DLV23")> _
+        title:="wbscode reference", description:="wbscode for the deliverable", XID:="DLV23")> _
         Public Const constFNWBSCode = "wbscode"
 
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, defaultValue:="", _
-            title:="Function", description:="function of the deliverable", ID:="DLV30")> Public Const constFNFunction = "function"
+            title:="Function", description:="function of the deliverable", XID:="DLV30")> Public Const constFNFunction = "function"
 
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=150, _
-           ID:="DLV31", Title:="Workpackage", description:="workpackage of the deliverable")> Public Const ConstFNWorkpackage = "wkpk"
+           XID:="DLV31", Title:="Workpackage", description:="workpackage of the deliverable")> Public Const ConstFNWorkpackage = "wkpk"
 
         
 

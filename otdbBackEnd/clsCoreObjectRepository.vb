@@ -789,29 +789,30 @@ Namespace OnTrack
         Public Const ConstFNPosition As String = "pos"
 
         <ormObjectEntry(defaultvalue:="", typeid:=otFieldDataType.Memo, isnullable:=True, properties:={ObjectEntryProperty.Trim}, _
-                                  title:="Description", Description:="Description of the field")> Public Const ConstFNDescription As String = "desc"
+                    title:="Description", Description:="Description of the field")> Public Const ConstFNDescription As String = "desc"
 
         <ormObjectEntry(typeid:=otFieldDataType.List, defaultvalue:="", innertypeid:=otFieldDataType.Text, _
-                                 title:="Properties", Description:="database column properties")> Public Const ConstFNProperties As String = "properties"
+                    title:="Properties", Description:="database column properties")> Public Const ConstFNProperties As String = "properties"
 
         <ormObjectEntry(defaultvalue:="3", referenceobjectentry:=ObjectColumnEntry.ConstObjectID & "." & ObjectColumnEntry.ConstFNDatatype, _
-                                  title:="Datatype", Description:="OTDB field data type")> Public Const ConstFNDatatype As String = "datatype"
+                    title:="Datatype", Description:="OTDB field data type")> Public Const ConstFNDatatype As String = "datatype"
 
         <ormObjectEntry(defaultvalue:="", typeid:=otFieldDataType.Text, isnullable:=True,
-                      title:="DefaultValue", Description:="default value of the field")> Public Const ConstFNDefaultValue As String = "default"
+                    title:="DefaultValue", Description:="default value of the field")> Public Const ConstFNDefaultValue As String = "default"
 
         <ormObjectEntry(defaultvalue:="0", typeid:=otFieldDataType.Long, lowerRange:="0", _
-                                  title:="UpdateCount", Description:="version counter of updating")> Public Const ConstFNUPDC As String = "updc"
+                    title:="UpdateCount", Description:="version counter of updating")> Public Const ConstFNUPDC As String = "updc"
 
         <ormObjectEntry(typeid:=otFieldDataType.[Long], defaultvalue:="0", lowerRange:="0", _
-                                  title:="Size", Description:="max Length of the Column")> Public Const ConstFNSize As String = "size"
+                    title:="Size", Description:="max Length of the Column")> Public Const ConstFNSize As String = "size"
 
         <ormObjectEntry(defaultvalue:="primaryKey", typeid:=otFieldDataType.Text, isnullable:=True, properties:={ObjectEntryProperty.Keyword}, _
-                     title:="Primary Key name", Description:="name of the primary key index")> Public Const ConstFNindexname As String = "indexname"
+                    title:="Primary Key name", Description:="name of the primary key index")> Public Const ConstFNindexname As String = "indexname"
         <ormObjectEntry(defaultvalue:="0", typeid:=otFieldDataType.Bool, _
-                                  title:="Is primary Key", Description:="set if the entry is a primary key")> Public Const ConstFNPrimaryKey As String = "pkey"
+                    title:="Is primary Key", Description:="set if the entry is a primary key")> Public Const ConstFNPrimaryKey As String = "pkey"
+
         <ormObjectEntry(defaultvalue:="0", typeid:=otFieldDataType.Long, _
-                                  title:="Ordinal in Primary Key", Description:="Ordinal in Primary Key")> Public Const ConstFNPrimaryKeyOrdinal As String = "pkeyno"
+                    title:="Ordinal in Primary Key", Description:="Ordinal in Primary Key")> Public Const ConstFNPrimaryKeyOrdinal As String = "pkeyno"
 
         <ormObjectEntry(typeid:=otFieldDataType.Bool, defaultvalue:="0", title:="Is Nullable", Description:="set if the entry is a nullable")> _
         Public Const ConstFNIsNullable As String = "isnull"
@@ -2876,15 +2877,15 @@ Namespace OnTrack
 
 
         '** Primary key
-        <ormObjectEntry(referenceObjectEntry:=ObjectDefinition.ConstObjectID & "." & ObjectDefinition.ConstFNID, primarykeyordinal:=1, _
-                        ID:="op1")> Public Const ConstFNObjectname = AbstractEntryDefinition.ConstFNObjectName
+        <ormObjectEntry(referenceObjectEntry:=ObjectDefinition.ConstObjectID & "." & ObjectDefinition.ConstFNID, primarykeyordinal:=1 _
+                       )> Public Const ConstFNObjectname = AbstractEntryDefinition.ConstFNObjectName
         <ormObjectEntry(referenceObjectEntry:=ObjectColumnEntry.ConstObjectID & "." & ObjectColumnEntry.ConstFNEntryName, primarykeyordinal:=2, _
-                       ID:="op2", defaultvalue:="")> Public Const ConstFNEntryname = AbstractEntryDefinition.ConstFNEntryName
+                        defaultvalue:="")> Public Const ConstFNEntryname = AbstractEntryDefinition.ConstFNEntryName
 
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=150, primarykeyordinal:=3, properties:={ObjectEntryProperty.Keyword}, _
-                         ID:="op4", title:="Operation", description:="business object operation")> Public Const ConstFNOperation = "operation"
+                        title:="Operation", description:="business object operation")> Public Const ConstFNOperation = "operation"
         <ormObjectEntry(typeid:=otFieldDataType.Long, primarykeyordinal:=4, _
-                        ID:="op3", title:="Rule Order", description:="ordinal of the rule")> Public Const ConstFNRuleordinal = "order"
+                        title:="Rule Order", description:="ordinal of the rule")> Public Const ConstFNRuleordinal = "order"
         <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=5, _
                        useforeignkey:=otForeignKeyImplementation.None, defaultvalue:=ConstGlobalDomain)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
@@ -2900,23 +2901,23 @@ Namespace OnTrack
         '** Fields
 
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=255, _
-                         ID:="op4", title:="RuleType", description:="rule condition")> Public Const ConstFNRuleType = "typeid"
+            title:="RuleType", description:="rule condition")> Public Const ConstFNRuleType = "typeid"
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=255, _
-                         ID:="op5", title:="Rule", description:="rule condition")> Public Const ConstFNRule = "rule"
+            title:="Rule", description:="rule condition")> Public Const ConstFNRule = "rule"
 
         <ormObjectEntry(typeid:=otFieldDataType.Bool, defaultvalue:="1", _
-                        ID:="op8", title:="Allow Operation", description:="if condition andalso true allow Operation orelse if condition then disallow")> _
+            title:="Allow Operation", description:="if condition andalso true allow Operation orelse if condition then disallow")> _
         Public Const ConstFNAllow = "allow"
         <ormObjectEntry(typeid:=otFieldDataType.Bool, defaultvalue:="1", _
-                       ID:="op9", title:="Exit Operation", description:="if condition andalso exittrue then stop rule processing")> _
+            title:="Exit Operation", description:="if condition andalso exittrue then stop rule processing")> _
         Public Const ConstFNExitTrue = "exitontrue"
         <ormObjectEntry(typeid:=otFieldDataType.Bool, defaultvalue:="1", _
-                      ID:="op9", title:="Exit Operation", description:="if not condition andalso exitfalse then stop rule processing")> _
+            title:="Exit Operation", description:="if not condition andalso exitfalse then stop rule processing")> _
         Public Const ConstFNExitFalse = "exitonfalse"
         <ormObjectEntry(typeid:=otFieldDataType.Memo, _
-                         ID:="op10", title:="Description", description:="description of the permission rule")> Public Const ConstFNdesc = "desc"
+            title:="Description", description:="description of the permission rule")> Public Const ConstFNdesc = "desc"
         <ormObjectEntry(defaultvalue:="0", typeid:=otFieldDataType.[Long], _
-                                  title:="Version", Description:="version counter of updating")> Public Const ConstFNVersion As String = "updc"
+            title:="Version", Description:="version counter of updating")> Public Const ConstFNVersion As String = "updc"
 
         '*** Mappings
         <ormEntryMapping(entryname:=ConstFNObjectname)> Private _objectname As String = ""
@@ -3371,30 +3372,29 @@ Namespace OnTrack
 
         '** Primary key
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, primarykeyordinal:=1, properties:={ObjectEntryProperty.Keyword}, _
-                         ID:="OBJID", title:="Object ID", description:="unique name of the Object")> Public Const ConstFNID = "id"
+                         XID:="OBJID", title:="Object ID", description:="unique name of the Object")> Public Const ConstFNID = "id"
 
         '** Fields
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=150, properties:={ObjectEntryProperty.Keyword}, _
-                         ID:="OBJCLASS", title:="Object Class Name", description:="class name of the Object")> Public Const ConstFNClass = "class"
+                        title:="Object Class Name", description:="class name of the Object")> Public Const ConstFNClass = "class"
         <ormObjectEntry(typeid:=otFieldDataType.Memo, _
-                         ID:="OBJDESC", title:="Object Description", description:="description of the Object")> Public Const ConstFNdesc = "desc"
+                        title:="Object Description", description:="description of the Object")> Public Const ConstFNdesc = "desc"
         <ormObjectEntry(defaultvalue:="0", typeid:=otFieldDataType.[Long], _
-                                  title:="Version", Description:="version counter of updating")> Public Const ConstFNVersion As String = "updc"
+                        title:="Version", Description:="version counter of updating")> Public Const ConstFNVersion As String = "updc"
         <ormObjectEntry(typeid:=otFieldDataType.Bool, _
-                                  title:="Is Active", defaultvalue:="1", Description:="set if the object is active")> Public Const ConstFNISActive As String = "isactive"
+                        title:="Is Active", defaultvalue:="1", Description:="set if the object is active")> Public Const ConstFNISActive As String = "isactive"
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=150, properties:={ObjectEntryProperty.Upper, ObjectEntryProperty.Trim}, _
-                         ID:="OBJMODULE", title:="Object Module", description:="name of the module the object belongs to")> Public Const ConstFNModule = "module"
-
+                        title:="Object Module", description:="name of the module the object belongs to")> Public Const ConstFNModule = "module"
         <ormObjectEntry(typeid:=otFieldDataType.List, size:=255, innertypeid:=otFieldDataType.Text, properties:={ObjectEntryProperty.Keyword}, _
-                                  title:="Properties", defaultvalue:="", Description:="properties on object level")> Public Const ConstFNProperties As String = "properties"
+                        title:="Properties", defaultvalue:="", Description:="properties on object level")> Public Const ConstFNProperties As String = "properties"
         <ormObjectEntry(typeid:=otFieldDataType.Bool, _
-                                  title:="Use Cache", defaultvalue:="", Description:="set if the entry is object cached")> Public Const ConstFNUseCache As String = "objectcache"
+                        title:="Use Cache", defaultvalue:="", Description:="set if the entry is object cached")> Public Const ConstFNUseCache As String = "objectcache"
         <ormObjectEntry(typeid:=otFieldDataType.List, size:=255, innertypeid:=otFieldDataType.Text, properties:={ObjectEntryProperty.Keyword}, _
-                                  title:="Cache", defaultvalue:="", Description:="cache properties on object level")> Public Const ConstFNCacheProperties As String = "cacheproperties"
+                        title:="Cache", defaultvalue:="", Description:="cache properties on object level")> Public Const ConstFNCacheProperties As String = "cacheproperties"
         <ormObjectEntry(typeid:=otFieldDataType.List, size:=255, innertypeid:=otFieldDataType.Text, properties:={ObjectEntryProperty.Keyword}, _
-                         title:="Primary Key", description:="names of the object unique key")> Public Const ConstFNPrimaryKeys = "primarykeynames"
+                        title:="Primary Key", description:="names of the object unique key")> Public Const ConstFNPrimaryKeys = "primarykeynames"
         <ormObjectEntry(typeid:=otFieldDataType.List, size:=255, innertypeid:=otFieldDataType.Text, properties:={ObjectEntryProperty.Keyword}, _
-                         title:="Tables", description:="tables of the object")> Public Const ConstFNtablenames = "tables"
+                        title:="Tables", description:="tables of the object")> Public Const ConstFNtablenames = "tables"
 
         <ormObjectEntry(typeid:=otFieldDataType.Bool, defaultvalue:="0", _
                                   title:="TableDeleteFlagBehaviour", Description:="set if the object runs the delete per flag behavior")> Public Const ConstFNDeletePerFlag As String = "deleteperflag"
@@ -4463,7 +4463,7 @@ Namespace OnTrack
         <ormSchemaTableAttribute(Version:=5, usecache:=True, adddeletefieldbehavior:=True, addDomainBehavior:=True)> Public Const ConstTableID = "tblObjectEntries"
 
         '** Index
-        <ormSchemaIndexAttribute(ColumnName1:=ConstFNxid)> Public Const ConstIndexXID = "XID"
+        <ormSchemaIndexAttribute(ColumnName1:=ConstFNxid)> Public Const ConstIndexXID = "XID" ' not unqiue
         <ormSchemaIndexAttribute(columnName1:=ConstFNDomainID, ColumnName2:=ConstFNxid)> Public Const ConstIndDomain = "Domain"
 
         '*** KEYS
@@ -4488,8 +4488,8 @@ Namespace OnTrack
                                   Description:="max Length of the entry")> Public Const ConstFNIsNullable As String = "isnullable"
         <ormObjectEntry(referenceObjectentry:=ColumnDefinition.ConstObjectID & "." & ColumnDefinition.ConstFNDefaultValue)> Public Const ConstFNDefaultValue As String = "defaultvalue"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, defaultvalue:="", isunique:=True, properties:={ObjectEntryProperty.Keyword}, _
-                        title:="XChangeID", Description:="ID for XChange manager")> Public Const ConstFNxid As String = "xid"
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, isnullable:=True, properties:={ObjectEntryProperty.Keyword}, _
+                        title:="XChangeID", Description:="ID for XChange manager")> Public Const ConstFNxid As String = "XID"
 
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, defaultvalue:="", properties:={ObjectEntryProperty.Capitalize, ObjectEntryProperty.Trim}, _
                         title:="Title", Description:="title for column headers of the field")> Public Const ConstFNTitle As String = "title"
@@ -4550,7 +4550,7 @@ Namespace OnTrack
           title:="Render Regex Replace", Description:="regex replace pattern for rendering")> Public Const ConstFNRenderRegexPattern As String = "renderregexreplace"
 
         ' field mapping
-        <ormEntryMapping(EntryName:=ConstFNxid)> Protected _xid As String = ""
+        <ormEntryMapping(EntryName:=ConstFNxid)> Protected _xid As String 'nullable
         <ormEntryMapping(EntryName:=ConstFNObjectName)> Protected _objectname As String = ""
         <ormEntryMapping(EntryName:=ConstFNDatatype)> Protected _datatype As otFieldDataType = 0
         <ormEntryMapping(EntryName:=ConstFNInnerDatatype)> Protected _innerdatatype As otFieldDataType = 0
@@ -5123,7 +5123,8 @@ Namespace OnTrack
             With attribute
 
                 '** Slot Entry Properties
-                If .HasValueID Then Me.XID = .ID
+                If .HasValueXID Then Me.XID = .XID
+
                 If .HasValueDescription Then Me.Description = .Description
                 If .HasValueTypeID Then Me.Datatype = .Typeid
                 If .HasValueInnerTypeID Then Me.InnerDatatype = .InnerTypeid
@@ -5415,7 +5416,7 @@ Namespace OnTrack
     ''' </summary>
     ''' <remarks></remarks>
 
-    <ormObject(id:=ObjectCompoundEntry.ConstObjectID, modulename:=ConstModuleCore, _
+    <ormObject(ID:=ObjectCompoundEntry.ConstObjectID, modulename:=ConstModuleCore, _
         description:="Compound definition of an object entry definition.", _
              DeletefieldFlag:=True, AddDomainBehaviorFlag:=True, _
             usecache:=True, isbootstrap:=True, Version:=1)> _
@@ -5440,10 +5441,10 @@ Namespace OnTrack
         Public Const ConstFNCompoundRelation As String = "crelation"
 
         <ormObjectEntry(typeid:=otFieldDataType.Text, defaultvalue:="", size:=50, properties:={ObjectEntryProperty.Keyword}, posordinal:=102, _
-        title:="compound id field", Description:="name of the compound id field")> Public Const ConstFNCompoundIDField As String = "cidfield"
+            title:="compound id field", Description:="name of the compound id field")> Public Const ConstFNCompoundIDField As String = "cidfield"
 
         <ormObjectEntry(typeid:=otFieldDataType.Text, defaultvalue:="", size:=255, properties:={ObjectEntryProperty.Keyword}, posordinal:=103, _
-        title:="compound value field", Description:="name of the compound value field")> Public Const ConstFNCompoundValueField As String = "cvalfield"
+            title:="compound value field", Description:="name of the compound value field")> Public Const ConstFNCompoundValueField As String = "cvalfield"
 
 
         '** compound settings
@@ -6206,18 +6207,6 @@ Namespace OnTrack
         Public Overloads Shared Function Retrieve(ByVal objectname As String, entryname As String, Optional ByVal domainID As String = "", Optional runtimeOnly As Boolean = False) As ObjectColumnEntry
             Return Retrieve(Of ObjectColumnEntry)(pkArray:={objectname.ToUpper, entryname.ToUpper}, domainID:=domainID, runtimeOnly:=runtimeOnly)
         End Function
-
-
-        ''' <summary>
-        ''' create the schema for this object
-        ''' </summary>
-        ''' <param name="silent"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Shared Function CreateSchema(Optional silent As Boolean = True) As Boolean
-            Return ormDataObject.CreateDataObjectSchema(Of ObjectColumnEntry)()
-        End Function
-
 
         ''' <summary>
         ''' Event Handler relation loaded

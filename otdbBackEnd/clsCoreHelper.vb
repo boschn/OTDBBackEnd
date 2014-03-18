@@ -576,7 +576,8 @@ Namespace OnTrack.Database
                     ' build the key part
                     For i = 0 To attribute.ToEntries.Count - 1
                         If i > 0 Then wherekey &= " AND "
-                        wherekey &= toTablename & ".[" & attribute.ToEntries(i) & "] = @" & attribute.ToEntries(i)
+                        '** if where is run against select of datatable the tablename is creating an error
+                        wherekey &= "[" & attribute.ToEntries(i) & "] = @" & attribute.ToEntries(i)
                     Next
                     aCommand.Where = wherekey
                     If attribute.HasValueLinkJOin Then

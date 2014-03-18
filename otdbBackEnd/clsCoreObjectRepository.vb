@@ -3133,7 +3133,7 @@ Namespace OnTrack
                 aStore = GetTableStore(ConstTableID)
                 Dim aCommand As ormSqlSelectCommand = aStore.CreateSqlSelectCommand(id:="all", addAllFields:=True)
                 If Not aCommand.Prepared Then
-                    aCommand.Where = ConstFNIsDeleted & " = @deleted "
+                    aCommand.Where = "[" & ConstFNIsDeleted & "] = @deleted "
                     aCommand.Where &= " AND ([" & ConstFNDomainID & "] = @domainID OR [" & ConstFNDomainID & "] = @globalID)"
                     aCommand.Where &= " AND [" & ConstFNObjectname & "] = @objectname AND [" & ConstFNEntryname & "] = ''"
 

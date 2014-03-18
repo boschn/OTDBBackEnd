@@ -1673,7 +1673,10 @@ Namespace OnTrack.Database
             End If
 
             '*** set objects to load
-            CurrentDBDriver.SetDBParameter(ConstPNObjectsLoad, value:="", silent:=True)
+            Call CurrentDBDriver.SetDBParameter(ConstPNObjectsLoad, _
+                                                         Schedule.ConstObjectID & ", " & _
+                                                         ScheduleMilestone.ConstObjectID & ", " & _
+                                                         Deliverable.ConstObjectID, silent:=True)
             '*** bootstrap checksum
             CurrentDBDriver.SetDBParameter(ConstPNBootStrapSchemaChecksum, value:=ot.GetBootStrapSchemaChecksum, silent:=True)
 
@@ -2026,10 +2029,23 @@ Namespace OnTrack.Database
         ''' </summary>
         ''' <remarks></remarks>
         Public Function InitialCoreData() As Boolean
-            Dim aWorkspace As Workspace
+
+            '**** default domain settings
+            Dim aDomain = Domain.Retrieve(id:=ConstGlobalDomain)
+            If aDomain IsNot Nothing Then
+                '*** read the Domain Settings
+                '***
+                aDomain.SetSetting(id:=Session.ConstCPDependencySynchroMinOverlap, datatype:=otFieldDataType.Long, value:=7)
+                aDomain.SetSetting(id:=Session.ConstCPDefaultWorkspace, datatype:=otFieldDataType.Text, value:="@")
+                aDomain.SetSetting(id:=Session.ConstCPDefaultCalendarName, datatype:=otFieldDataType.Text, value:="default")
+                aDomain.SetSetting(id:=Session.ConstCPDefaultTodayLatency, datatype:=otFieldDataType.Long, value:=-14)
+                aDomain.SetSetting(id:=Session.ConstCDefaultScheduleTypeID, datatype:=otFieldDataType.Text, value:="none")
+                aDomain.SetSetting(id:=Session.ConstCDefaultDeliverableTypeID, datatype:=otFieldDataType.Text, value:="")
+                aDomain.Persist()
+            End If
 
             '*** Project Base workspaceID
-            aWorkspace = Workspace.Create("@")
+            Dim aWorkspace = Workspace.Create("@")
             If aWorkspace IsNot Nothing Then
                 aWorkspace.Description = "base workspaceID for SBB ENG Planning"
                 aWorkspace.IsBasespace = True

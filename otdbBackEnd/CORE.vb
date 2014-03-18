@@ -768,7 +768,7 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        ReadOnly Property Errorlog As ErrorLog
+        ReadOnly Property Errorlog As MessageLog
             Get
 
                 If IsInitialized OrElse Initialize() Then
@@ -1409,7 +1409,7 @@ Namespace OnTrack
         ''' <param name="otdberror">clsOTDBError object</param>
         ''' <returns>true if successful</returns>
         ''' <remarks></remarks>
-        Function AddErrorToLog(ByRef otdberror As CoreError) As Boolean
+        Function AddErrorToLog(ByRef otdberror As SessionLogMessage) As Boolean
 
             '** use _currentsession -> do not initialize log should be always there
             If Not _CurrentSession Is Nothing Then
@@ -1426,7 +1426,7 @@ Namespace OnTrack
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Function GetLastError() As CoreError
+        Function GetLastError() As SessionLogMessage
 
             If Not _CurrentSession Is Nothing Then
                 Return _CurrentSession.Errorlog.PeekLast
@@ -1469,7 +1469,7 @@ Namespace OnTrack
             '  <CallerLineNumber()> Optional sourceLineNumber As Integer = 0)
             Dim exmessagetext As String = ""
             Dim routinestack As String = ""
-            Dim aNewError As New CoreError
+            Dim aNewError As New SessionLogMessage
 
             ''' EXCEPTION HANDLING
             ''' 
@@ -1510,7 +1510,7 @@ Namespace OnTrack
             '**** add to the Connection.errorlog
             '****
             With aNewError
-                .Message = "Message: " & message & vbLf
+                .Message = message & vbLf
                 .Message &= exmessagetext
                 .Subname = subname
                 .Exception = exception

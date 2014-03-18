@@ -940,6 +940,20 @@ Namespace OnTrack.Database
             Dim atableid As String = ""
 
             Try
+                '****
+                '**** CHECK HERE IF WE CAN TAKE A CACHED DATATABLE FOR THE SQL SELECT
+                '****
+                If sqlcommand.TableIDs.Count = 1 Then
+                    atableid = sqlcommand.TableIDs.First
+                    Dim aTablestore = Me.GetTableStore(sqlcommand.TableIDs.First)
+                    If aTablestore.HasProperty(ConstTPNCacheProperty) Then
+                        '*** BRANCH OUT
+                        Return RunSqlSelectCommandCached(sqlcommand:=sqlcommand, parametervalues:=parametervalues, nativeConnection:=nativeConnection)
+                    End If
+                End If
+
+                '**** NORMAL PROCEDURE RUNS AGAINST DATABASE
+                '****
                 If Not sqlcommand.Prepared Then
                     If Not sqlcommand.Prepare Then
                         Call CoreMessageHandler(message:="SqlCommand couldn't be prepared", arg1:=sqlcommand.ID, _
@@ -1036,14 +1050,139 @@ Namespace OnTrack.Database
 
 
         End Function
+        ''' <summary>
+        ''' runs a Sql Select Command and returns a List of Records
+        ''' </summary>
+        ''' <param name="sqlcommand">a clsOTDBSqlSelectCommand</param>
+        ''' <param name="parameters"></param>
+        ''' <param name="nativeConnection"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function RunSqlSelectCommandCached(ByRef sqlcommand As ormSqlSelectCommand, _
+                                           Optional ByRef parametervalues As Dictionary(Of String, Object) = Nothing, _
+                                           Optional nativeConnection As Object = Nothing) As List(Of ormRecord)
 
+
+
+            Dim acvtvalue As Object
+            '*** Execute and get Results
+            Dim aDataReader As IDataReader
+            Dim theResults As New List(Of ormRecord)
+            Dim atableid As String = ""
+            Dim abostrophnecessary As Boolean
+            Dim wherestr As String = sqlcommand.Where
+            Dim aTablestore As iormDataStore
+
+            Try
+               
+
+                If sqlcommand.TableIDs.Count > 1 Then
+                    Call CoreMessageHandler(message:="SqlCommand cannot run against multiple datatables", arg1:=sqlcommand.ID, _
+                                               subname:="adonetDBDriver.runsqlselectCommand", messagetype:=otCoreMessageType.InternalError)
+                    Return theResults
+                Else
+                    atableid = sqlcommand.TableIDs.First
+                    aTablestore = Me.GetTableStore(sqlcommand.TableIDs.First)
+                    If aTablestore.HasProperty(ConstTPNCacheProperty) Then
+                        If Not DirectCast(aTablestore, adonetTableStore).IsCacheInitialized Then
+                            DirectCast(aTablestore, adonetTableStore).InitializeCache()
+                        End If
+                    Else
+                        Call CoreMessageHandler(message:="tablestore is not set to caching of table", arg1:=sqlcommand.ID, tablename:=aTablestore.TableID, _
+                                              subname:="adonetDBDriver.runsqlselectCommand", messagetype:=otCoreMessageType.InternalError)
+                        Return theResults
+                    End If
+                End If
+
+                '** prepare
+                If Not sqlcommand.Prepared Then
+                    If Not sqlcommand.Prepare Then
+                        Call CoreMessageHandler(message:="SqlCommand couldn't be prepared", arg1:=sqlcommand.ID, _
+                                               subname:="adonetDBDriver.runsqlselectCommand", messagetype:=otCoreMessageType.InternalError)
+                        Return theResults
+                    End If
+                End If
+               
+                '***  Assign the values
+                '** initial values
+                For i = 0 To sqlcommand.Parameters.Count - 1
+                    Dim aParameter As ormSqlCommandParameter = sqlcommand.Parameters(i)
+                    Dim aParameterValue As Object
+                    If parametervalues.Count > i Then
+                        aParameterValue = parametervalues.ElementAt(i).Value
+                    Else
+                        aParameterValue = aParameter.Value
+                    End If
+
+                    If Not aParameter.NotColumn AndAlso (aParameter.Fieldname <> "" And aParameter.Tablename <> "") Then
+                        If aTablestore.Convert2ColumnData(aParameter.Fieldname, invalue:=aParameterValue, outvalue:=acvtvalue, abostrophNecessary:=abostrophnecessary) Then
+                            ' and build wherestring for cache
+                            If abostrophnecessary Then
+                                wherestr = wherestr.Replace(aParameter.ID, "'" & acvtvalue.ToString & "'")
+                            Else
+                                wherestr = wherestr.Replace(aParameter.ID, acvtvalue.ToString)
+                            End If
+                        Else
+                            CoreMessageHandler(message:=" parameter value could not be converted", arg1:=aParameter.Value, columnname:=aParameter.Fieldname, tablename:=aParameter.Tablename, _
+                                                subname:="adonetdbdriver.RunSqlSelectCommand", messagetype:=otCoreMessageType.InternalError)
+                        End If
+                    Else
+                        If Convert2DBData(invalue:=aParameterValue, outvalue:=acvtvalue, targetType:=GetTargetTypeFor(aParameter.Datatype)) Then
+                            ' and build wherestring for cache
+                            If abostrophnecessary Then
+                                wherestr = wherestr.Replace(aParameter.ID, "'" & acvtvalue.ToString & "'")
+                            Else
+                                wherestr = wherestr.Replace(aParameter.ID, acvtvalue.ToString)
+                            End If
+                        Else
+                            CoreMessageHandler(message:=" parameter value could not be converted", arg1:=aParameter.Value, _
+                                                subname:="adonetdbdriver.RunSqlSelectCommand", messagetype:=otCoreMessageType.InternalError)
+                        End If
+                    End If
+
+                Next
+
+
+                Dim dataRows() As DataRow = DirectCast(aTablestore, adonetTableStore).cacheTable.Select(wherestr)
+                ' not found
+                If dataRows.GetLength(0) = 0 Then
+                    Return theResults
+                Else
+                    For Each row In dataRows
+                        Dim anewEnt = New ormRecord
+                        If DirectCast(aTablestore, adonetTableStore).InfuseRecord(anewEnt, row) Then
+                            theResults.Add(item:=anewEnt)
+                        Else
+                            Call CoreMessageHandler(subname:="adonetDBDriver.RunSqlSelectCommand", message:="couldnot infuse a record", _
+                                                  arg1:=anewEnt, tablename:=atableid, break:=False)
+                        End If
+                    Next
+                End If
+                Return theResults
+
+            Catch ex As OleDb.OleDbException
+                Call CoreMessageHandler(exception:=ex, subname:="adonetDBDriver.RunSqlSelectCommand", arg1:=sqlcommand.SqlText, messagetype:=otCoreMessageType.InternalException)
+                If Not aDataReader Is Nothing Then aDataReader.Close()
+                Return New List(Of ormRecord)
+            Catch ex As SqlException
+                Call CoreMessageHandler(exception:=ex, subname:="adonetDBDriver.runSqlSelectCommand", arg1:=sqlcommand.SqlText, messagetype:=otCoreMessageType.InternalException)
+                If Not aDataReader Is Nothing Then aDataReader.Close()
+                Return New List(Of ormRecord)
+            Catch ex As Exception
+                Call CoreMessageHandler(exception:=ex, subname:="adonetDBDriver.runSqlSelectCommand", arg1:=sqlcommand.SqlText, messagetype:=otCoreMessageType.InternalException)
+                If Not aDataReader Is Nothing Then aDataReader.Close()
+                Return New List(Of ormRecord)
+            End Try
+
+
+        End Function
         ''' <summary>
         ''' persists the errorlog
         ''' </summary>
         ''' <param name="TableID"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Protected Friend Overrides Function PersistLog(ByRef log As ErrorLog) As Boolean Implements iormDatabaseDriver.PersistLog
+        Protected Friend Overrides Function PersistLog(ByRef log As MessageLog) As Boolean Implements iormDatabaseDriver.PersistLog
 
 
             '** we need a valid connection also nativeInternal could work also
@@ -1061,7 +1200,7 @@ Namespace OnTrack.Database
                 '** build the command
                 If _ErrorLogPersistCommand Is Nothing Then
                     '* get the schema
-                    _ErrorLogPersistTableschema = Me.GetTableSchema(CoreError.ConstTableID)
+                    _ErrorLogPersistTableschema = Me.GetTableSchema(SessionLogMessage.ConstTableID)
                     If _ErrorLogPersistTableschema Is Nothing OrElse Not _ErrorLogPersistTableschema.IsInitialized Then
                         Return False
                     End If
@@ -1082,7 +1221,7 @@ Namespace OnTrack.Database
                 SyncLock DirectCast(_primaryConnection, adonetConnection).NativeInternalConnection
                     If _ErrorLogPersistCommand.Connection.State = ConnectionState.Open Then
                         PersistLog = False
-                        Dim anError As CoreError
+                        Dim anError As SessionLogMessage
                         Do
                             anError = log.Retain
                             If anError IsNot Nothing AndAlso Not anError.Processed Then
@@ -1093,43 +1232,43 @@ Namespace OnTrack.Database
                                         With _ErrorLogPersistCommand.Parameters.Item("@" & fieldname)
                                             '** set the value of parameter
                                             Select Case fieldname
-                                                Case CoreError.ConstFNTag
+                                                Case SessionLogMessage.ConstFNTag
                                                     If anError.Tag = "" Then
                                                         .value = CurrentSession.Errorlog.Tag
                                                     Else
                                                         .Value = anError.Tag
                                                     End If
-                                                Case CoreError.ConstFNno
+                                                Case SessionLogMessage.ConstFNno
                                                     .value = anError.Entryno
-                                                Case CoreError.ConstFNmessage
+                                                Case SessionLogMessage.ConstFNmessage
                                                     .value = anError.Message
-                                                Case CoreError.ConstFNtimestamp
+                                                Case SessionLogMessage.ConstFNtimestamp
                                                     .value = anError.Timestamp
-                                                Case CoreError.ConstFNID
+                                                Case SessionLogMessage.ConstFNID
                                                     .value = ""
-                                                Case CoreError.ConstFNsubname
+                                                Case SessionLogMessage.ConstFNsubname
                                                     .value = anError.Subname
-                                                Case CoreError.ConstFNtype
+                                                Case SessionLogMessage.ConstFNtype
                                                     .value = anError.messagetype
-                                                Case CoreError.ConstFNtablename
+                                                Case SessionLogMessage.ConstFNtablename
                                                     .value = anError.Tablename
-                                                Case CoreError.ConstFNStack
+                                                Case SessionLogMessage.ConstFNStack
                                                     .value = anError.StackTrace
-                                                Case CoreError.ConstFNColumn
+                                                Case SessionLogMessage.ConstFNColumn
                                                     .value = anError.Columnname
-                                                Case CoreError.ConstFNarg
+                                                Case SessionLogMessage.ConstFNarg
                                                     .value = anError.Arguments
-                                                Case CoreError.ConstFNUpdatedOn, CoreError.ConstFNCreatedOn
+                                                Case SessionLogMessage.ConstFNUpdatedOn, SessionLogMessage.ConstFNCreatedOn
                                                     .value = Date.Now
-                                                Case CoreError.ConstFNIsDeleted
+                                                Case SessionLogMessage.ConstFNIsDeleted
                                                     .value = False
-                                                Case CoreError.ConstFNDeletedOn
+                                                Case SessionLogMessage.ConstFNDeletedOn
                                                     .value = ConstNullDate
-                                                Case CoreError.ConstFNUsername
+                                                Case SessionLogMessage.ConstFNUsername
                                                     .value = anError.Username
-                                                Case CoreError.ConstFNObjectname
+                                                Case SessionLogMessage.ConstFNObjectname
                                                     .value = anError.Objectname
-                                                Case CoreError.ConstFNObjectentry
+                                                Case SessionLogMessage.ConstFNObjectentry
                                                     .value = anError.ObjectEntry
                                                 Case Else
                                                     .value = DBNull.Value
@@ -1222,7 +1361,7 @@ Namespace OnTrack.Database
         'Private _ADOError As ADODB.Error
         Protected Friend Shadows _useseek As Boolean = False 'use seek instead of SQL
 
-        Protected Friend Shadows WithEvents _ErrorLog As New ErrorLog(My.Computer.Name & "-" & My.User.Name & "-" & Date.Now.ToUniversalTime)
+        Protected Friend Shadows WithEvents _ErrorLog As New MessageLog(My.Computer.Name & "-" & My.User.Name & "-" & Date.Now.ToUniversalTime)
 
         Public Shadows Event OnConnection As EventHandler(Of ormConnectionEventArgs) Implements iormConnection.OnConnection
         Public Shadows Event OnDisconnection As EventHandler(Of ormConnectionEventArgs) Implements iormConnection.OnDisconnection
@@ -1240,23 +1379,23 @@ Namespace OnTrack.Database
             MyBase.Finalize()
             '*** close
             Try
-                If Not _nativeConnection Is Nothing AndAlso _nativeConnection.State <> ConnectionState.Closed Then
+                If Not _nativeConnection Is Nothing AndAlso _nativeConnection.State = ConnectionState.Open Then
                     _nativeConnection.Close()
                 End If
             Catch ex As Exception
-                Call CoreMessageHandler(exception:=ex, subname:="adonetConnection.finalize", messagetype:=otCoreMessageType.InternalException _
-                                       )
+                'Call CoreMessageHandler(exception:=ex, subname:="adonetConnection.finalize", messagetype:=otCoreMessageType.InternalException _
+                '                       )
 
             End Try
 
             '*** close
             Try
-                If Not _nativeinternalConnection Is Nothing AndAlso _nativeinternalConnection.State <> ConnectionState.Closed Then
+                If Not _nativeinternalConnection Is Nothing AndAlso _nativeinternalConnection.State = ConnectionState.Open Then
                     _nativeinternalConnection.Close()
                 End If
             Catch ex As Exception
-                Call CoreMessageHandler(exception:=ex, subname:="adonetConnection.finalize", messagetype:=otCoreMessageType.InternalException _
-                                       )
+                'Call CoreMessageHandler(exception:=ex, subname:="adonetConnection.finalize", messagetype:=otCoreMessageType.InternalException _
+                '                       )
             End Try
 
         End Sub
@@ -1339,7 +1478,7 @@ Namespace OnTrack.Database
             '***
             Call CoreMessageHandler(showmsgbox:=False, message:=" Connection disconnected ", _
                                   break:=True, noOtdbAvailable:=True, messagetype:=otCoreMessageType.ApplicationInfo, _
-                                  subname:="clsOTDBSession.Disconnect")
+                                  subname:="Session.Disconnect")
 
             '** close also the internal connection
             If Not _nativeinternalConnection Is Nothing AndAlso _nativeinternalConnection.State <> ConnectionState.Closed Then
@@ -1990,7 +2129,7 @@ Namespace OnTrack.Database
                     'CoreMessageHandler(message:="note: native internal connection used to build and drive commands during bootstrap", arg1:=_Connection.ID, _
                     '                   subname:="adonetTableSchema.buildCommand", _
                     '                  messagetype:=otCoreMessageType.InternalInfo, tablename:=_TableID)
-                Else
+                ElseIf nativeconnection Is Nothing Then
                     CoreMessageHandler(message:="no internal connection in the connection", arg1:=_Connection.ID, subname:="adonetTableSchema.buildCommand", _
                                        messagetype:=otCoreMessageType.InternalError, tablename:=_TableID)
                     Return Nothing
@@ -2232,6 +2371,28 @@ Namespace OnTrack.Database
             Call MyBase.New(Connection:=connection, tableID:=TableID, force:=forceSchemaReload)
         End Sub
 
+        ''' <summary>
+        ''' gets the current cache Table
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property CacheTable As DataTable
+            Get
+                Return _cacheTable
+            End Get
+        End Property
+        ''' <summary>
+        ''' gets an enumerable of the cached views (indices)
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property CacheViews As IEnumerable(Of DataView)
+            Get
+                Return _cacheViews
+            End Get
+        End Property
         ''' converts a Object from OTDB VB.NET Data to ColumnData in the Database
         ''' </summary>
         ''' <param name="index"></param>

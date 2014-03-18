@@ -30,7 +30,7 @@ Imports System.Reflection
 Namespace OnTrack
     Namespace Database
         '************************************************************************************
-        '***** CLASS clsOTDBSQLCommand describes an SQL Command to be used for aTableStore
+        '***** CLASS ormSqlCommand describes an SQL Command to be used for aTableStore
         '***** or a DB Driver
         '*****
         ''' <summary>
@@ -192,7 +192,7 @@ Namespace OnTrack
 
                 '** PARAMETER ID
                 If parameter.ID = "" And parameter.Fieldname = "" And Not parameter.NotColumn Then
-                    Call CoreMessageHandler(subname:="clsOTDBSqlCommand.AddParameter", arg1:=Me.ID, message:=" id not set in parameter for sql command", messagetype:=otCoreMessageType.InternalError)
+                    Call CoreMessageHandler(subname:="ormSqlCommand.AddParameter", arg1:=Me.ID, message:=" id not set in parameter for sql command", messagetype:=otCoreMessageType.InternalError)
                     Return False
                 ElseIf parameter.ID = "" And parameter.Fieldname <> "" And Not parameter.NotColumn Then
                     parameter.ID = "@" & parameter.Fieldname
@@ -203,12 +203,12 @@ Namespace OnTrack
                 '** TABLENAME
                 If parameter.Tablename = "" And Me.TableIDs(0) <> "" And Not parameter.NotColumn Then
                     parameter.Tablename = Me.TableIDs(0)
-                    Call CoreMessageHandler(subname:="clsOTDBSqlCommand.AddParameter", arg1:=Me.ID, _
+                    Call CoreMessageHandler(subname:="ormSqlCommand.AddParameter", arg1:=Me.ID, _
                                           message:=" tablename not set in parameter for sql command - first table used", _
                                           messagetype:=otCoreMessageType.InternalWarning, tablename:=Me.TableIDs(0))
 
                 ElseIf parameter.Tablename = "" And Me.TableIDs(0) = "" And Not parameter.NotColumn Then
-                    Call CoreMessageHandler(subname:="clsOTDBSqlCommand.AddParameter", arg1:=Me.ID, _
+                    Call CoreMessageHandler(subname:="ormSqlCommand.AddParameter", arg1:=Me.ID, _
                                           message:=" tablename not set in parameter for sql command - no default table", _
                                          messagetype:=otCoreMessageType.InternalError)
 
@@ -216,12 +216,12 @@ Namespace OnTrack
                 End If
                 '** fieldnames
                 If parameter.Fieldname = "" And parameter.ID = "" Then
-                    Call CoreMessageHandler(subname:="clsOTDBSqlCommand.AddParameter", arg1:=Me.ID, _
+                    Call CoreMessageHandler(subname:="ormSqlCommand.AddParameter", arg1:=Me.ID, _
                                           message:=" fieldname not set in parameter for sql command", _
                                           messagetype:=otCoreMessageType.InternalError)
                     Return False
                 ElseIf parameter.ID <> "" And parameter.Fieldname = "" And Not parameter.NotColumn Then
-                    Call CoreMessageHandler(subname:="clsOTDBSqlCommand.AddParameter", arg1:=Me.ID, _
+                    Call CoreMessageHandler(subname:="ormSqlCommand.AddParameter", arg1:=Me.ID, _
                                          message:=" fieldname not set in parameter for sql command - use ID without @", _
                                          messagetype:=otCoreMessageType.InternalWarning, tablename:=parameter.Tablename, entryname:=parameter.ID)
                     If parameter.ID.First = "@" Then
@@ -232,23 +232,23 @@ Namespace OnTrack
                 End If
                 '** table name ?!
                 If parameter.Tablename = "" And Not parameter.NotColumn Then
-                    Call CoreMessageHandler(subname:="clsOTDBSqlCommand.AddParameter", tablename:=parameter.Tablename, _
+                    Call CoreMessageHandler(subname:="ormSqlCommand.AddParameter", tablename:=parameter.Tablename, _
                                           message:="table name is blank", arg1:=parameter.ID)
                     Return False
                 End If
                 If Not parameter.NotColumn And parameter.Tablename <> "" AndAlso Not GetTableStore(parameter.Tablename).TableSchema.IsInitialized Then
-                    Call CoreMessageHandler(subname:="clsOTDBSqlCommand.AddParameter", tablename:=parameter.Tablename, _
+                    Call CoreMessageHandler(subname:="ormSqlCommand.AddParameter", tablename:=parameter.Tablename, _
                                            message:="couldnot initialize table schema")
                     Return False
                 End If
 
                 If Not parameter.NotColumn AndAlso Not Me._tablestores.ContainsKey(parameter.Tablename) Then
-                    Call CoreMessageHandler(subname:="clsOTDBSqlCommand.AddParameter", arg1:=Me.ID, entryname:=parameter.ID, _
+                    Call CoreMessageHandler(subname:="ormSqlCommand.AddParameter", arg1:=Me.ID, entryname:=parameter.ID, _
                                           message:=" tablename of parameter is not used in sql command", _
                                       messagetype:=otCoreMessageType.InternalError, tablename:=parameter.Tablename)
                     Return False
                 ElseIf Not parameter.NotColumn AndAlso Not Me._tablestores.Item(key:=parameter.Tablename).TableSchema.Hasfieldname(parameter.Fieldname) Then
-                    Call CoreMessageHandler(subname:="clsOTDBSqlCommand.AddParameter", arg1:=Me.ID, entryname:=parameter.Fieldname, _
+                    Call CoreMessageHandler(subname:="ormSqlCommand.AddParameter", arg1:=Me.ID, entryname:=parameter.Fieldname, _
                                          message:=" fieldname of parameter is not used in table schema", _
                                      messagetype:=otCoreMessageType.InternalError, tablename:=parameter.Tablename)
                     Return False
@@ -258,7 +258,7 @@ Namespace OnTrack
 
                 ''' datatype
                 If parameter.NotColumn And parameter.Datatype = 0 Then
-                    Call CoreMessageHandler(subname:="clsOTDBSqlCommand.AddParameter", _
+                    Call CoreMessageHandler(subname:="ormSqlCommand.AddParameter", _
                                           arg1:=Me.ID, message:=" datatype not set in parameter for sql command", _
                                           messagetype:=otCoreMessageType.InternalError)
                     Return False
@@ -293,7 +293,7 @@ Namespace OnTrack
             ''' <returns></returns>
             Public Function SetParameterValue(ID As String, [value] As Object) As Boolean Implements iormSqlCommand.SetParameterValue
                 If Not _parameters.ContainsKey(key:=ID) Then
-                    Call CoreMessageHandler(message:="Parameter ID not in Command", arg1:=Me.ID, entryname:=ID, subname:="clsOTDBSqlCommand.SetParameterValue", _
+                    Call CoreMessageHandler(message:="Parameter ID not in Command", arg1:=Me.ID, entryname:=ID, subname:="ormSqlCommand.SetParameterValue", _
                                           messagetype:=otCoreMessageType.InternalError)
                     Return False
                 End If
@@ -314,7 +314,7 @@ Namespace OnTrack
             ''' <returns></returns>
             Public Function GetParameterValue(ID As String) As Object Implements iormSqlCommand.GetParameterValue
                 If Not _parameters.ContainsKey(key:=ID) Then
-                    Call CoreMessageHandler(message:="Parameter ID not in Command", arg1:=Me.ID, entryname:=ID, subname:="clsOTDBSqlCommand.SetParameterValue", _
+                    Call CoreMessageHandler(message:="Parameter ID not in Command", arg1:=Me.ID, entryname:=ID, subname:="ormSqlCommand.SetParameterValue", _
                                           messagetype:=otCoreMessageType.InternalError)
                     Return Nothing
                 End If
@@ -346,9 +346,9 @@ Namespace OnTrack
                 Dim aNativeConnection As System.Data.IDbConnection
                 Dim aNativeCommand As System.Data.IDbCommand
                 Dim cvtvalue As Object
-
+                 Dim aTablestore As iormDataStore
                 If Me.DatabaseDriver Is Nothing Then
-                    Call CoreMessageHandler(subname:="clsOTDBSqlCommand.Prepare", arg1:=Me.ID, message:="database driver missing", _
+                    Call CoreMessageHandler(subname:="ormSqlCommand.Prepare", arg1:=Me.ID, message:="database driver missing", _
                                                 messagetype:=otCoreMessageType.InternalError)
                     Return False
                 Else
@@ -366,7 +366,7 @@ Namespace OnTrack
                     '**
                     If aSqlText = "" Then
                         Call CoreMessageHandler(message:="No SQL statement could'nt be build", arg1:=Me.ID, _
-                                               subname:="clsOTDBSqlCommand.Prepare", messagetype:=otCoreMessageType.InternalError)
+                                               subname:="ormSqlCommand.Prepare", messagetype:=otCoreMessageType.InternalError)
                         Return False
                     End If
                     'DatabaseDriver.StoreSqlCommand(me)
@@ -381,9 +381,9 @@ Namespace OnTrack
                         '** add Column Parameter
 
                         If Not aParameter.NotColumn And aParameter.Tablename <> "" And aParameter.Fieldname <> "" Then
-                            Dim aTablestore As iormDataStore = _databaseDriver.GetTableStore(aParameter.Tablename)
+                            aTablestore = _databaseDriver.GetTableStore(aParameter.Tablename)
                             If Not aTablestore.TableSchema.IsInitialized Then
-                                Call CoreMessageHandler(subname:="clsOTDBSqlCommand.Prepare", tablename:=aParameter.Tablename, _
+                                Call CoreMessageHandler(subname:="ormSqlCommand.Prepare", tablename:=aParameter.Tablename, _
                                                        message:="couldnot initialize table schema")
                                 Return False
                             End If
@@ -395,7 +395,7 @@ Namespace OnTrack
                                _databaseDriver.AssignNativeDBParameter(parametername:=aParameter.ID, datatype:=aParameter.Datatype)
                             If Not aParameter Is Nothing Then aNativeCommand.Parameters.Add(aNativeParameter)
                         Else
-                            Call CoreMessageHandler(subname:="clsOTDBSqlCommand.Prepare", arg1:=aParameter.ID, message:="Tablename missing", _
+                            Call CoreMessageHandler(subname:="ormSqlCommand.Prepare", arg1:=aParameter.ID, message:="Tablename missing", _
                                                   entryname:=aParameter.Fieldname, messagetype:=otCoreMessageType.InternalError)
                         End If
                     Next
@@ -403,13 +403,16 @@ Namespace OnTrack
                     aNativeCommand.Prepare()
                     Me._Prepared = True
                     '** initial values
+                    aTablestore = Nothing ' reset
                     For Each aParameter In Me.Parameters
                         If aParameter.Fieldname <> "" And aParameter.Tablename <> "" Then
-                            Dim aTablestore As iormDataStore = _databaseDriver.GetTableStore(aParameter.Tablename)
+                            If aTablestore Is Nothing OrElse aTablestore.TableID <> aParameter.Tablename Then
+                                aTablestore = _databaseDriver.GetTableStore(aParameter.Tablename)
+                            End If
                             If Not aTablestore.Convert2ColumnData(aParameter.Fieldname, invalue:=aParameter.Value, outvalue:=cvtvalue) Then
                                 Call CoreMessageHandler(message:="parameter value could not be converted", columnname:=aParameter.Fieldname, _
                                                         entryname:=aParameter.ID, arg1:=aParameter.Value, messagetype:=otCoreMessageType.InternalError, _
-                                                        subname:="clsOTDBSqlCommand.Prepare")
+                                                        subname:="ormSqlCommand.Prepare")
                             End If
                         Else
                             cvtvalue = aParameter.Value
@@ -418,7 +421,7 @@ Namespace OnTrack
                             aNativeCommand.Parameters(aParameter.ID).value = cvtvalue
                         Else
                             Call CoreMessageHandler(message:="Parameter ID is not in native sql command", entryname:=aParameter.ID, arg1:=Me.ID, _
-                                                   messagetype:=otCoreMessageType.InternalError, subname:="clsOTDBSqlCommand.Prepare")
+                                                   messagetype:=otCoreMessageType.InternalError, subname:="ormSqlCommand.Prepare")
 
                         End If
 
@@ -428,12 +431,12 @@ Namespace OnTrack
 
                 Catch ex As OleDb.OleDbException
                     Me._Prepared = False
-                    Call CoreMessageHandler(subname:="clsOTDBSqlCommand.Prepare", message:="Exception", arg1:=Me.ID, _
+                    Call CoreMessageHandler(subname:="ormSqlCommand.Prepare", message:="Exception", arg1:=Me.ID, _
                                            exception:=ex, messagetype:=otCoreMessageType.InternalException)
                     Return False
                 Catch ex As Exception
                     Me._Prepared = False
-                    Call CoreMessageHandler(subname:="clsOTDBSqlCommand.Prepare", message:="Exception", arg1:=Me.ID, _
+                    Call CoreMessageHandler(subname:="ormSqlCommand.Prepare", message:="Exception", arg1:=Me.ID, _
                                            exception:=ex, messagetype:=otCoreMessageType.InternalException)
                     Return False
                 End Try
@@ -487,8 +490,8 @@ Namespace OnTrack
                            Optional notColumn As Boolean = False)
                 _ID = Regex.Replace(ID, "\s", "") ' no white chars allowed
                 _datatype = datatype
-                If columnname <> "" Then _columname = columnname
-                If tablename <> "" Then _tablename = tablename
+                If columnname <> "" Then _columname = columnname.ToUpper
+                If tablename <> "" Then _tablename = tablename.ToUpper
                 If Not value Is Nothing Then _value = value
                 _NotColumn = notColumn
             End Sub
@@ -540,7 +543,7 @@ Namespace OnTrack
                     Return Me._columname
                 End Get
                 Set(value As String)
-                    Me._columname = value
+                    Me._columname = value.ToUpper
                 End Set
             End Property
             ''' <summary>
@@ -552,7 +555,7 @@ Namespace OnTrack
                     Return Me._tablename
                 End Get
                 Set(value As String)
-                    Me._tablename = value
+                    Me._tablename = value.ToUpper
                 End Set
             End Property
             ''' <summary>
@@ -686,14 +689,16 @@ Namespace OnTrack
                             _myCommand.DatabaseDriver = ot.CurrentConnection.DatabaseDriver
                         End If
                         ' retrieve the tablestore
-                        aTablestore = Me._myCommand.DatabaseDriver.GetTableStore(tableID:=value)
-                        If Not aTablestore Is Nothing Then
-                            If Not _myCommand._tablestores.ContainsKey(key:=value) Then
-                                ' add it
+                        If Not _myCommand._tablestores.ContainsKey(key:=value) Then
+                            ' add it
+                            aTablestore = Me._myCommand.DatabaseDriver.GetTableStore(tableID:=value)
+                            If aTablestore IsNot Nothing Then
                                 _myCommand._tablestores.Add(key:=aTablestore.TableID, value:=aTablestore)
                             End If
-                            _tablestore = aTablestore ' set it
+                        Else
+                            aTablestore = _myCommand._tablestores.Item(value)
                         End If
+                        _tablestore = aTablestore ' set it
                     End Set
                 End Property
 
@@ -808,6 +813,7 @@ Namespace OnTrack
             ''' <remarks></remarks>
             Public Function AddTable(tableid As String, Optional addAllFields As Boolean = True, Optional addFieldnames As List(Of String) = Nothing) As Boolean
                 Dim aTablestore As iormDataStore
+                tableid = tableid.ToUpper
                 If Me._databaseDriver Is Nothing Then
                     aTablestore = GetTableStore(tableid:=tableid)
                     If aTablestore Is Nothing Then
@@ -836,8 +842,8 @@ Namespace OnTrack
                 '*** include all fields
                 If addAllFields Then
                     For Each aFieldname As String In aTablestore.TableSchema.Fieldnames
-                        If Not _fields.ContainsKey(key:=tableid & "." & aFieldname) Then
-                            _fields.Add(key:=tableid & "." & aFieldname, value:=New ResultField(Me, tableid:=tableid, fieldname:=aFieldname))
+                        If Not _fields.ContainsKey(key:=tableid & "." & aFieldname.ToUpper) Then
+                            _fields.Add(key:=tableid & "." & aFieldname.ToUpper, value:=New ResultField(Me, tableid:=tableid, fieldname:=aFieldname.ToUpper))
                         End If
                     Next
                 End If
@@ -845,8 +851,8 @@ Namespace OnTrack
                 '** include specific fields
                 If Not addFieldnames Is Nothing Then
                     For Each aFieldname As String In addFieldnames
-                        If Not _fields.ContainsKey(key:=tableid & "." & aFieldname) Then
-                            _fields.Add(key:=tableid & "." & aFieldname, value:=New ResultField(Me, tableid:=tableid, fieldname:=aFieldname))
+                        If Not _fields.ContainsKey(key:=tableid & "." & aFieldname.ToUpper) Then
+                            _fields.Add(key:=tableid & "." & aFieldname, value:=New ResultField(Me, tableid:=tableid, fieldname:=aFieldname.ToUpper))
                         End If
                     Next
                 End If
@@ -905,7 +911,7 @@ Namespace OnTrack
                 For Each aTablename In aTableList
 
                     '** if innerjoin has the tablename
-                    If Not _innerjoin.tolower.Contains(aTablename.tolower) Then
+                    If Not _innerjoin.ToUpper.Contains(aTablename) Then
                         If Not first Then
                             Me._SqlText &= ","
                         End If
@@ -1399,7 +1405,7 @@ Namespace OnTrack
             ''' <param name="TableID"></param>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Protected Friend MustOverride Function PersistLog(ByRef log As ErrorLog) As Boolean Implements iormDatabaseDriver.PersistLog
+            Protected Friend MustOverride Function PersistLog(ByRef log As MessageLog) As Boolean Implements iormDatabaseDriver.PersistLog
             ''' <summary>
             ''' Gets the table store.
             ''' </summary>
@@ -1408,23 +1414,23 @@ Namespace OnTrack
             ''' <returns></returns>
             Public Function GetTableStore(ByVal tableID As String, Optional ByVal force As Boolean = False) As iormDataStore Implements iormDatabaseDriver.GetTableStore
                 'take existing or make new one
-                If _TableDirectory.ContainsKey(tableID) And Not force Then
-                    GetTableStore = _TableDirectory.Item(tableID)
+                If _TableDirectory.ContainsKey(tableID.ToUpper) And Not force Then
+                    Return _TableDirectory.Item(tableID.ToUpper)
                 Else
                     Dim aNewStore As iormDataStore
 
                     ' reload the existing object on force
-                    If _TableDirectory.ContainsKey(tableID) Then
-                        aNewStore = _TableDirectory.Item(tableID)
+                    If _TableDirectory.ContainsKey(tableID.ToUpper) Then
+                        aNewStore = _TableDirectory.Item(tableID.ToUpper)
                         aNewStore.Refresh(force)
                         Return aNewStore
                     End If
                     ' assign the Table
 
-                    aNewStore = CreateNativeTableStore(tableID, forceSchemaReload:=force)
+                    aNewStore = CreateNativeTableStore(tableID.ToUpper, forceSchemaReload:=force)
                     If Not aNewStore Is Nothing Then
-                        If Not _TableDirectory.ContainsKey(tableID) Then
-                            _TableDirectory.Add(key:=tableID, value:=aNewStore)
+                        If Not _TableDirectory.ContainsKey(tableID.ToUpper) Then
+                            _TableDirectory.Add(key:=tableID.ToUpper, value:=aNewStore)
                         End If
                     End If
                     ' return
@@ -1444,25 +1450,25 @@ Namespace OnTrack
             Implements iormDatabaseDriver.GetTableSchema
 
                 'take existing or make new one
-                If _TableSchemaDirectory.ContainsKey(tableID) And Not force Then
-                    Return _TableSchemaDirectory.Item(tableID)
+                If _TableSchemaDirectory.ContainsKey(tableID.ToUpper) And Not force Then
+                    Return _TableSchemaDirectory.Item(tableID.ToUpper)
                 Else
                     Dim aNewSchema As iotDataSchema
 
                     ' delete the existing object
-                    If _TableSchemaDirectory.ContainsKey(tableID) Then
-                        aNewSchema = _TableSchemaDirectory.Item(tableID)
+                    If _TableSchemaDirectory.ContainsKey(tableID.ToUpper) Then
+                        aNewSchema = _TableSchemaDirectory.Item(tableID.ToUpper)
                         SyncLock aNewSchema
                             If force Or Not aNewSchema.IsInitialized Then aNewSchema.Refresh(force)
                         End SyncLock
                         Return aNewSchema
                     End If
                     ' assign the Table
-                    aNewSchema = CreateNativeTableSchema(tableID)
+                    aNewSchema = CreateNativeTableSchema(tableID.ToUpper)
 
                     If Not aNewSchema Is Nothing Then
                         SyncLock _lockObject
-                            _TableSchemaDirectory.Add(key:=tableID, value:=aNewSchema)
+                            _TableSchemaDirectory.Add(key:=tableID.ToUpper, value:=aNewSchema)
                         End SyncLock
 
                         If Not aNewSchema.IsInitialized Then
@@ -2358,7 +2364,7 @@ Namespace OnTrack
             Protected _OTDBDatabaseDriver As iormDatabaseDriver
             Protected _useseek As Boolean 'use seek instead of SQL
 
-            Protected WithEvents _ErrorLog As ErrorLog
+            Protected WithEvents _ErrorLog As MessageLog
 
             Public Event OnConnection As EventHandler(Of ormConnectionEventArgs) Implements iormConnection.OnConnection
             Public Event OnDisconnection As EventHandler(Of ormConnectionEventArgs) Implements iormConnection.OnDisconnection
@@ -2439,10 +2445,10 @@ Namespace OnTrack
             ''' Gets the error log.
             ''' </summary>
             ''' <value>The error log.</value>
-            Public ReadOnly Property ErrorLog() As ErrorLog Implements iormConnection.ErrorLog
+            Public ReadOnly Property ErrorLog() As MessageLog Implements iormConnection.ErrorLog
                 Get
                     If _ErrorLog Is Nothing Then
-                        _ErrorLog = New ErrorLog(My.Computer.Name & "-" & My.User.Name & "-" & Date.Now.ToUniversalTime)
+                        _ErrorLog = New MessageLog(My.Computer.Name & "-" & My.User.Name & "-" & Date.Now.ToUniversalTime)
                     End If
                     Return _ErrorLog
                 End Get
@@ -3389,7 +3395,7 @@ Namespace OnTrack
                     Return Me._TableID
                 End Get
                 Set(value As String)
-                    Me._TableID = value
+                    Me._TableID = value.ToUpper
                 End Set
             End Property
 

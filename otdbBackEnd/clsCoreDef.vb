@@ -194,7 +194,7 @@ Namespace OnTrack.Database
         ''' <param name="log"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Function PersistLog(ByRef log As OnTrack.ErrorLog) As Boolean
+        Function PersistLog(ByRef log As OnTrack.MessageLog) As Boolean
 
         ''' <summary>
         ''' verify OnTrack if Data Objects are there and up to date
@@ -930,7 +930,7 @@ Namespace OnTrack.Database
         ReadOnly Property Useseek As Boolean
 
         '*** ErrorLog
-        ReadOnly Property [ErrorLog] As ErrorLog
+        ReadOnly Property [ErrorLog] As MessageLog
 
         ''' <summary>
         ''' returns true if connected

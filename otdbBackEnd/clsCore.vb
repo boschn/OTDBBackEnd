@@ -52,7 +52,7 @@ Namespace OnTrack
         '*** SESSION
         Private _OTDBUser As User
         Private _Username As String = ""
-        Private _errorLog As ErrorLog
+        Private _errorLog As MessageLog
         Private _logagent As SessionAgent
         Private _UseConfigSetName As String = ""
         Private _CurrentDomainID As String = ConstGlobalDomain
@@ -116,7 +116,7 @@ Namespace OnTrack
             _SessionID = ConstDelimiter & Date.Now.ToString("s") & ConstDelimiter & My.Computer.Name & ConstDelimiter _
             & My.User.Name & ConstDelimiter & id & ConstDelimiter
             '* init
-            _errorLog = New ErrorLog(_SessionID)
+            _errorLog = New MessageLog(_SessionID)
             _logagent = New SessionAgent(Me)
 
             If configSetname <> "" Then
@@ -351,7 +351,7 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        ReadOnly Property Errorlog As ErrorLog
+        ReadOnly Property Errorlog As MessageLog
             Get
                 Return _errorLog
             End Get
@@ -1266,6 +1266,7 @@ Namespace OnTrack
                 Else
                     _DefaultDeliverableTypeID = ""
                 End If
+
             End If
 
 
@@ -1294,7 +1295,7 @@ Namespace OnTrack
                 If Not _logagent Is Nothing Then
                     aValue = ot.GetConfigProperty(constCPNUseLogAgent)
                     If CBool(aValue) Then
-                        '_logagent.Start()
+                        _logagent.Start()
                         '***
                         Call CoreMessageHandler(showmsgbox:=False, message:=" LogAgent for Session started ", arg1:=_SessionID, _
                                                 break:=True, noOtdbAvailable:=True, messagetype:=otCoreMessageType.ApplicationInfo, _
@@ -1349,16 +1350,6 @@ Namespace OnTrack
                     _primaryDBDriver.VerifyOnTrackDatabase()
                 ElseIf ot.GetBootStrapSchemaChecksum <> Convert.ToUInt64(aValue) Then
                     _primaryDBDriver.VerifyOnTrackDatabase()
-                End If
-
-                '*** Object to load initially
-                aValue = _primaryDBDriver.GetDBParameter(ConstPNObjectsLoad, silent:=True)
-                If aValue Is Nothing OrElse aValue = "" Then
-                    Call _primaryDBDriver.SetDBParameter(ConstPNObjectsLoad, _
-                                                         Scheduling.Schedule.ConstObjectID & ", " & _
-                                                         Scheduling.ScheduleMilestone.ConstObjectID & ", " & _
-                                                         Deliverables.Deliverable.ConstObjectID, silent:=True)
-
                 End If
 
                 '*** set started
@@ -1621,15 +1612,13 @@ Namespace OnTrack
         End Sub
 
     End Class
-    '************************************************************************************
-    '******* CLASS clsOTDBError describes an ErrorCondition
-    '*******
+   
     ''' <summary>
-    ''' describes a persistable Core Error Message
+    ''' describes a persistable Session Log Message
     ''' </summary>
     ''' <remarks></remarks>
 
-    <ormObject(id:=CoreError.ConstObjectID, modulename:=constModuleCore, Version:=1)> Public Class CoreError
+    <ormObject(id:=SessionLogMessage.ConstObjectID, modulename:=ConstModuleCore, Version:=1)> Public Class SessionLogMessage
         Inherits ormDataObject
         Implements iormPersistable
         Implements iormInfusable
@@ -1637,9 +1626,9 @@ Namespace OnTrack
         Implements ICloneable
 
         '*** CONST Schema
-        Public Const ConstObjectID = "CoreError"
+        Public Const ConstObjectID = "SessionMessage"
         '** Table
-        <ormSchemaTableAttribute(Version:=4)> Public Const ConstTableID = "tblSessionErrorlog"
+        <ormSchemaTableAttribute(Version:=5)> Public Const ConstTableID = "tblSessionLogMessages"
 
         '*** Schema Field Definitions
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, _
@@ -1683,6 +1672,9 @@ Namespace OnTrack
 
         <ormObjectEntry(typeid:=otFieldDataType.Memo, isnullable:=True, title:="stack trace", Description:="caller stack trace")> _
         Public Const ConstFNStack As String = "stack"
+
+        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, _
+         useforeignkey:=otForeignKeyImplementation.None, isnullable:=True)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
         ' fields
         <ormEntryMapping(EntryName:=ConstFNTag)> Private _tag As String = ""
@@ -1928,7 +1920,7 @@ Namespace OnTrack
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function CreateSchema(Optional silent As Boolean = True) As Boolean
-            Return ormDataObject.CreateDataObjectSchema(Of CoreError)()
+            Return ormDataObject.CreateDataObjectSchema(Of SessionLogMessage)()
         End Function
 
         ''' <summary>
@@ -1976,7 +1968,7 @@ Namespace OnTrack
         ''' <returns></returns>
         ''' <remarks></remarks>
         Function Clone() As Object Implements System.ICloneable.Clone
-            Dim aClone As New CoreError
+            Dim aClone As New SessionLogMessage
             With aClone
                 .Tag = Me.Tag.Clone
                 .ID = Me.ID.Clone
@@ -2047,16 +2039,16 @@ Namespace OnTrack
     Public Class OTErrorEventArgs
         Inherits EventArgs
 
-        Private _error As CoreError
+        Private _error As SessionLogMessage
 
-        Public Sub New(newError As CoreError)
+        Public Sub New(newError As SessionLogMessage)
             _error = newError
         End Sub
         ''' <summary>
         ''' Gets the error.
         ''' </summary>
         ''' <value>The error.</value>
-        Public ReadOnly Property [Error]() As CoreError
+        Public ReadOnly Property [Error]() As SessionLogMessage
             Get
                 Return Me._error
             End Get
@@ -2065,19 +2057,19 @@ Namespace OnTrack
     End Class
 
     ''' <summary>
-    ''' Describes an ErrorLog of Core Errors
+    ''' Describes an not persistable Log of Messages. Can be persisted by SessionLogMessages
     ''' </summary>
     ''' <remarks></remarks>
 
-    Public Class ErrorLog
+    Public Class MessageLog
         Implements IEnumerable
         Implements ICloneable
 
         Public Event onErrorRaised As EventHandler(Of OTErrorEventArgs)
         Public Event onLogClear As EventHandler(Of OTErrorEventArgs)
         '*** log
-        Private _log As New SortedList(Of Long, CoreError)
-        Private _queue As New ConcurrentQueue(Of CoreError)
+        Private _log As New SortedList(Of Long, SessionLogMessage)
+        Private _queue As New ConcurrentQueue(Of SessionLogMessage)
         Private _maxEntry As Long = 0
         Private _tag As String
         Private _lockObject As New Object ' lock object instead of me
@@ -2105,7 +2097,7 @@ Namespace OnTrack
         Public Function GetEnumerator() As IEnumerator Implements IEnumerable.GetEnumerator
             Dim anEnumerator As IEnumerator
             SyncLock _lockObject
-                Dim aList As List(Of CoreError) = _log.Values.ToList
+                Dim aList As List(Of SessionLogMessage) = _log.Values.ToList
                 anEnumerator = aList.GetEnumerator
             End SyncLock
             Return anEnumerator
@@ -2139,12 +2131,12 @@ Namespace OnTrack
             '** we have a session
             If CurrentSession.IsRunning Then
                 '*** only if the table is there
-                If CurrentSession.CurrentDBDriver.GetTable(CoreError.ConstTableID) Is Nothing Then
+                If CurrentSession.CurrentDBDriver.GetTable(SessionLogMessage.ConstTableID) Is Nothing Then
                     Return False
                 End If
 
                 SyncLock _lockObject
-                    For Each anError As CoreError In _log.Values
+                    For Each anError As SessionLogMessage In _log.Values
                         If Not anError.Processed Then
                             If anError.Create(sessiontag:=_tag, entryno:=anError.Entryno) Then
                                 anError.Persist()
@@ -2163,8 +2155,8 @@ Namespace OnTrack
         ''' </summary>
         ''' <param name="otdberror"></param>
         ''' <remarks></remarks>
-        Public Sub Enqueue(otdberror As CoreError)
-            Dim aClone As CoreError = otdberror.Clone
+        Public Sub Enqueue(otdberror As SessionLogMessage)
+            Dim aClone As SessionLogMessage = otdberror.Clone
 
             ' add
             SyncLock _lockObject
@@ -2203,8 +2195,8 @@ Namespace OnTrack
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function PeekFirst() As CoreError
-            Dim anError As CoreError
+        Public Function PeekFirst() As SessionLogMessage
+            Dim anError As SessionLogMessage
             SyncLock _lockObject
                 If _queue.TryPeek(anError) Then
                     Return anError
@@ -2218,8 +2210,8 @@ Namespace OnTrack
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function PeekLast() As CoreError
-            Dim anError As CoreError
+        Public Function PeekLast() As SessionLogMessage
+            Dim anError As SessionLogMessage
             SyncLock _lockObject
                 If _queue.Count >= 1 Then
                     Return _queue.ToArray.Last
@@ -2233,8 +2225,8 @@ Namespace OnTrack
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function Retain() As CoreError
-            Dim anError As CoreError
+        Public Function Retain() As SessionLogMessage
+            Dim anError As SessionLogMessage
             SyncLock _lockObject
                 If _queue.TryDequeue([anError]) Then
                     Return anError

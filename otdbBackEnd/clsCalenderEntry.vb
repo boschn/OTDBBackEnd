@@ -28,79 +28,82 @@ Namespace OnTrack
     ''' Calendar Entry Class
     ''' </summary>
     ''' <remarks></remarks>
-    Public Class CalendarEntry
+    <ormObject(id:=CalendarEntry.ConstObjectID, modulename:=constModuleCore, Version:=1)> Public Class CalendarEntry
         Inherits ormDataObject
         Implements iormInfusable
         Implements iormPersistable
 
+        Public Const ConstObjectID = "CalendarEntry"
         '** Schema
         <ormSchemaTable(version:=2, adddeletefieldbehavior:=True, addDomainBehavior:=True, addsparefields:=True)> _
         Public Const ConstTableid As String = "tblCalendarEntries"
 
         <ormSchemaIndex(columnname1:=constFNName, columnname2:=constFNRefID, columnname3:=constFNID, columnname4:=constFNDomainID)> Public Const constINDEXRefID = "refid"
         <ormSchemaIndex(columnname1:=constFNName, columnname2:=constFNTimestamp, columnname3:=ConstFNTypeID, columnname4:=constFNDomainID)> Public Const constIndexType = "typeid"
+        <ormSchemaIndex(columnname1:=constFNName, columnname2:=constFNTimestamp, columnname3:=constFNDomainID, columnname4:=ConstFNTypeID)> Public Const constIndexDomain = "domain"
 
-        ' keys
-        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=50, primarykeyordinal:=1, _
+        '*** keys
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, primarykeyordinal:=1, _
             ID:="CAL1", title:="Name", description:="name of calendar")> Public Const constFNName = "cname"
-        <ormSchemaColumn(typeid:=otFieldDataType.Long, primarykeyordinal:=2, _
+        <ormObjectEntry(typeid:=otFieldDataType.Long, primarykeyordinal:=2, _
            ID:="CAL2", title:="EntryNo", description:="entry no in the calendar")> Public Const constFNID = "id"
-        <ormSchemaColumn(referenceObjecTEntry:=Domain.ConstTableID & "." & Domain.ConstFNDomainID, primarykeyordinal:=3)> _
-        Public Shadows Const constFNDomainID = Domain.ConstFNDomainID
+        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=3, useforeignkey:=True)> _
+        Public Const constFNDomainID = Domain.ConstFNDomainID
 
-        <ormSchemaColumn(typeid:=otFieldDataType.Timestamp, _
+        '** columns
+        <ormObjectEntry(typeid:=otFieldDataType.Timestamp, _
          ID:="CAL4", title:="Timestamp", description:="timestamp entry in the calendar")> Public Const constFNTimestamp = "timestamp"
-        <ormSchemaColumn(typeid:=otFieldDataType.Long, _
+        <ormObjectEntry(typeid:=otFieldDataType.Long, _
          ID:="CAL5", title:="Type", description:="entry type in the calendar")> Public Const ConstFNTypeID = "typeid"
-        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=255, _
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=255, _
         ID:="CAL6", title:="Description", description:="entry description in the calendar")> Public Const ConstFNDescription = "desc"
-        <ormSchemaColumn(typeid:=otFieldDataType.Long, _
+        <ormObjectEntry(typeid:=otFieldDataType.Long, _
           ID:="CAL8", title:="RefID", description:="entry refID in the calendar")> Public Const constFNRefID = "refid"
 
-        <ormSchemaColumn(typeid:=otFieldDataType.Bool, iD:="cal9", title:="Not Available", description:="not available")> _
+        <ormObjectEntry(typeid:=otFieldDataType.Bool, iD:="cal9", title:="Not Available", description:="not available")> _
         Public Const constFNNotAvail = "notavail"
-        <ormSchemaColumn(typeid:=otFieldDataType.Bool, iD:="cal10", title:="Is Important", description:="is important entry (prioritized)")> _
+        <ormObjectEntry(typeid:=otFieldDataType.Bool, iD:="cal10", title:="Is Important", description:="is important entry (prioritized)")> _
         Public Const constFNIsImportant = "isimp"
 
-        <ormSchemaColumn(typeid:=otFieldDataType.Long, _
+        <ormObjectEntry(typeid:=otFieldDataType.Long, _
           ID:="CAL20", title:="TimeSpan", description:="length in minutes")> Public Const constFNLength = "length"
 
 
         '** not mapped
 
-        <ormSchemaColumn(typeid:=otFieldDataType.Long, _
+        <ormObjectEntry(typeid:=otFieldDataType.Long, _
           ID:="CAL31", title:="Week", description:="week of the year")> Public Const constFNNoWeek = "noweek"
-        <ormSchemaColumn(typeid:=otFieldDataType.Long, _
+        <ormObjectEntry(typeid:=otFieldDataType.Long, _
          ID:="CAL32", title:="Day", description:="day of the year")> Public Const constFNNoDay = "noday"
-        <ormSchemaColumn(typeid:=otFieldDataType.Long, _
+        <ormObjectEntry(typeid:=otFieldDataType.Long, _
          ID:="CAL33", title:="Weekday", description:="number of day in the week")> Public Const constFNweekday = "noweekday"
-        <ormSchemaColumn(typeid:=otFieldDataType.Long, _
+        <ormObjectEntry(typeid:=otFieldDataType.Long, _
          ID:="CAL34", title:="Quarter", description:="no of quarter of the year")> Public Const constFNQuarter = "quarter"
-        <ormSchemaColumn(typeid:=otFieldDataType.Long, _
+        <ormObjectEntry(typeid:=otFieldDataType.Long, _
          ID:="CAL35", title:="Year", description:="the year")> Public Const constFNYear = "year"
-        <ormSchemaColumn(typeid:=otFieldDataType.Long, _
+        <ormObjectEntry(typeid:=otFieldDataType.Long, _
         ID:="CAL36", title:="Month", description:="the month")> Public Const constFNmonth = "month"
-        <ormSchemaColumn(typeid:=otFieldDataType.Long, _
+        <ormObjectEntry(typeid:=otFieldDataType.Long, _
         ID:="CAL37", title:="Day", description:="the day")> Public Const constFNDay = "day"
-        <ormSchemaColumn(typeid:=otFieldDataType.Time, _
+        <ormObjectEntry(typeid:=otFieldDataType.Time, _
         ID:="CAL38", title:="Time", description:="time")> Public Const constFNTime = "timevalue"
-        <ormSchemaColumn(typeid:=otFieldDataType.Date, _
+        <ormObjectEntry(typeid:=otFieldDataType.Date, _
         ID:="CAL39", title:="Date", description:="date")> Public Const constFNDate = "datevalue"
-        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=10, _
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=10, _
         ID:="CAL40", title:="WeekYear", description:="Week and Year representation")> Public Const constFNWeekYear = "weekofyear"
 
 
         '** mappings
-        <ormColumnMapping(ColumnName:=ConstFNID)> Private _entryid As Long = 0
-        <ormColumnMapping(ColumnName:=ConstFNName)> Private _name As String = ""
-        <ormColumnMapping(ColumnName:=ConstFNTimestamp)> Private _timestamp As Date = ConstNullDate
-        <ormColumnMapping(ColumnName:=ConstFNRefID)> Private _refid As Long = 0
-        <ormColumnMapping(ColumnName:=ConstFNLength)> Private _length As Long = 0
+        <ormEntryMapping(EntryName:=constFNID)> Private _entryid As Long = 0
+        <ormEntryMapping(EntryName:=constFNName)> Private _name As String = ""
+        <ormEntryMapping(EntryName:=constFNTimestamp)> Private _timestamp As Date = ConstNullDate
+        <ormEntryMapping(EntryName:=constFNRefID)> Private _refid As Long = 0
+        <ormEntryMapping(EntryName:=constFNLength)> Private _length As Long = 0
         ' fields
-        <ormColumnMapping(ColumnName:=ConstFNTypeID)> Private _EntryType As otCalendarEntryType
-        <ormColumnMapping(ColumnName:=ConstFNIsImportant)> Private s_isImportant As Boolean = False
-        <ormColumnMapping(ColumnName:=ConstFNNotAvail)> Private s_notAvailable As Boolean = False
-        <ormColumnMapping(ColumnName:=ConstFNDescription)> Private s_description As String = ""
+        <ormEntryMapping(EntryName:=ConstFNTypeID)> Private _EntryType As otCalendarEntryType
+        <ormEntryMapping(EntryName:=constFNIsImportant)> Private s_isImportant As Boolean = False
+        <ormEntryMapping(EntryName:=constFNNotAvail)> Private s_notAvailable As Boolean = False
+        <ormEntryMapping(EntryName:=ConstFNDescription)> Private s_description As String = ""
 
 
 
@@ -414,7 +417,7 @@ Namespace OnTrack
         ''' <param name="sender"></param>
         ''' <param name="e"></param>
         ''' <remarks></remarks>
-        Public Sub OnRecordFed(sender As Object, e As ormDataObjectEventArgs) Handles MyBase.OnRecordFed
+        Public Sub OnRecordFed(sender As Object, e As ormDataObjectEventArgs) Handles MyBase.ClassOnRecordFed
             Try
                 If e.Record.HasIndex(constFNYear) Then e.Record.SetValue(constFNYear, Me.year)
                 If e.Record.HasIndex(constFNmonth) Then e.Record.SetValue(constFNmonth, Me.month)
@@ -450,9 +453,9 @@ Namespace OnTrack
         ''' <param name="ID"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Function LoadBy(ByVal name As String, ByVal ID As Long, Optional domainID As String = "") As Boolean
+        Public Overloads Function Inject(ByVal name As String, ByVal ID As Long, Optional domainID As String = "") As Boolean
             Dim primarykey() As Object = {name, ID, domainID}
-            Return MyBase.LoadBy(pkArray:=primarykey, domainID:=domainID)
+            Return MyBase.Inject(pkArray:=primarykey, domainID:=domainID)
         End Function
         ''' <summary>
         ''' create persistency schema
@@ -461,7 +464,7 @@ Namespace OnTrack
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function CreateSchema(Optional silent As Boolean = True) As Boolean
-            Return ormDataObject.CreateSchema(Of CalendarEntry)(silent:=silent)
+            Return ormDataObject.CreateDataObjectSchema(Of CalendarEntry)(silent:=silent)
 
             'Dim aFieldDesc As New ormFieldDescription
             'Dim PrimaryColumnNames As New Collection
@@ -797,7 +800,7 @@ error_handle:
             If name = "" Then
                 name = CurrentSession.DefaultCalendarName
             End If
-            If DomainID = "" Then DomainID = CurrentSession.CurrentDomainID
+            If domainID = "" Then domainID = CurrentSession.CurrentDomainID
 
             '**
             Try
@@ -932,7 +935,7 @@ error_handle:
                     aCommand.AddTable(ConstTableid, addAllFields:=True)
                     '** Depends on the server
                     If aCommand.DatabaseDriver.DatabaseType = otDBServerType.SQLServer Then
-                        aCommand.Where = String.Format(" [{0}] = @cname and convert(varchar, [{1}], 104) = @datestr and [{2}]=@domainID", _
+                        aCommand.Where = String.Format(" [{0}] = @cname and CONVERT(nvarchar, [{1}], 104) = @datestr and [{2}] = @domainID", _
                                                        {constFNName, constFNTimestamp, constFNDomainID})
                         aCommand.AddParameter(New ormSqlCommandParameter(ID:="@cname", datatype:=otFieldDataType.Text, columnname:=constFNName))
                         aCommand.AddParameter(New ormSqlCommandParameter(ID:="@datestr", datatype:=otFieldDataType.Text, notColumn:=True))
@@ -942,7 +945,7 @@ error_handle:
                         aCommand.Where = String.Format(" [{0}] = @cname and [{1}] = @date and [{2}]=@domainID", _
                         {constFNName, constFNTimestamp, constFNDomainID})
                         aCommand.AddParameter(New ormSqlCommandParameter(ID:="@cname", datatype:=otFieldDataType.Text, columnname:=constFNName))
-                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@date", datatype:=otFieldDataType.[Date], notColumn:=True))
+                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@date", datatype:=otFieldDataType.Date, notColumn:=True))
                         aCommand.AddParameter(New ormSqlCommandParameter(ID:="@domainID", datatype:=otFieldDataType.Text, notColumn:=True))
                     Else
                         CoreMessageHandler(message:="DatabaseType not recognized for SQL Statement", messagetype:=otCoreMessageType.InternalError, _
@@ -957,11 +960,11 @@ error_handle:
                 ' set Parameter
                 aCommand.SetParameterValue("@cname", name)
                 If aCommand.DatabaseDriver.DatabaseType = otDBServerType.SQLServer Then
-                    aCommand.SetParameterValue("@datestr", Format(refDate, "dd.MM.yyyy"))
+                    aCommand.SetParameterValue("@datestr", Format("dd.MM.yyyy", refDate))
                 Else
                     aCommand.SetParameterValue("@date", refDate)
                 End If
-                aCommand.SetParameterValue("@domainid", domainID)
+                aCommand.SetParameterValue("@domainID", domainID)
 
                 '** run the Command
                 Dim theRecords As List(Of ormRecord) = aCommand.RunSelect
@@ -972,7 +975,7 @@ error_handle:
                         Dim aNewObject As New CalendarEntry
                         aNewObject = New CalendarEntry
                         If aNewObject.Infuse(aRecord) Then
-                            aCollection.Add(Item:=aNewObject)
+                            aCollection.Add(item:=aNewObject)
                         End If
                     Next aRecord
 

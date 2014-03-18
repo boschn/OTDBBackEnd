@@ -43,35 +43,35 @@ Namespace OnTrack.Deliverables
         <ormSchemaIndexAttribute(columnname1:=constFNID, columnname2:=constFNOrder)> Public Const constIndexOrder = "orderby"
         <ormSchemaIndexAttribute(columnname1:=constFNID)> Public Const constIndexList = "lists"
 
-        <ormSchemaColumnAttribute(iD:="TI1", title:="List ID", description:="name of the tracking item list", _
+        <ormObjectEntry(iD:="TI1", title:="List ID", description:="name of the tracking item list", _
             typeid:=otFieldDataType.Text, size:=50, primaryKeyordinal:=1)> Public Const constFNID = "listid"
 
-        <ormSchemaColumnAttribute(iD:="TI2", title:="List Pos", description:="entry number in the tracking item list", _
+        <ormObjectEntry(iD:="TI2", title:="List Pos", description:="entry number in the tracking item list", _
             typeid:=otFieldDataType.Long, primaryKeyordinal:=4)> Public Const constFNPos = "posno"
 
-        <ormSchemaColumnAttribute(iD:="TI3", title:="part id", description:="part id of the item to be tracked", _
+        <ormObjectEntry(iD:="TI3", title:="part id", description:="part id of the item to be tracked", _
            typeid:=otFieldDataType.Text, size:=50)> Public Const constFNPartid = "partid"
 
-        <ormSchemaColumnAttribute(iD:="TI4", title:="order", description:="ordinal in the list to be sorted", _
+        <ormObjectEntry(iD:="TI4", title:="order", description:="ordinal in the list to be sorted", _
            typeid:=otFieldDataType.Long)> Public Const constFNOrder = "order"
 
-        <ormSchemaColumnAttribute(iD:="TI5", title:="matchcode", description:="matchcode for items", _
+        <ormObjectEntry(iD:="TI5", title:="matchcode", description:="matchcode for items", _
            typeid:=otFieldDataType.Text, size:=100)> Public Const constFNPrecode = "precode"
 
-        <ormSchemaColumnAttribute(iD:="TI7", title:="Deliverable UID", description:="UID of the deliverable to be tracked", _
+        <ormObjectEntry(iD:="TI7", title:="Deliverable UID", description:="UID of the deliverable to be tracked", _
           typeid:=otFieldDataType.Long, size:=100)> Public Const constFNDLVUID = "dlvuid"
 
-        <ormSchemaColumnAttribute(iD:="TI6", title:="Comments", description:="comment for the item", _
+        <ormObjectEntry(iD:="TI6", title:="Comments", description:="comment for the item", _
          typeid:=otFieldDataType.Memo)> Public Const constFNComment = "cmt"
 
-        <ormColumnMappingAttribute(ColumnName:=ConstFNID)> Private s_listid As String = ""
-        <ormColumnMappingAttribute(ColumnName:=ConstFNPos)> Private s_posno As Long
+        <ormEntryMapping(EntryName:=ConstFNID)> Private s_listid As String = ""
+        <ormEntryMapping(EntryName:=ConstFNPos)> Private s_posno As Long
 
-        <ormColumnMappingAttribute(ColumnName:=ConstFNPartid)> Private s_pnid As String
-        <ormColumnMappingAttribute(ColumnName:=ConstFNOrder)> Private s_order As Long
-        <ormColumnMappingAttribute(ColumnName:=ConstFNComment)> Private s_cmt As String
-        <ormColumnMappingAttribute(ColumnName:=ConstFNPrecode)> Private s_precode As String
-        <ormColumnMappingAttribute(ColumnName:=ConstFNDLVUID)> Private s_DLVUID As Long
+        <ormEntryMapping(EntryName:=ConstFNPartid)> Private s_pnid As String
+        <ormEntryMapping(EntryName:=ConstFNOrder)> Private s_order As Long
+        <ormEntryMapping(EntryName:=ConstFNComment)> Private s_cmt As String
+        <ormEntryMapping(EntryName:=ConstFNPrecode)> Private s_precode As String
+        <ormEntryMapping(EntryName:=ConstFNDLVUID)> Private s_DLVUID As Long
 
 #Region "Properties"
         ReadOnly Property Listid() As String
@@ -163,9 +163,9 @@ Namespace OnTrack.Deliverables
         ''' <param name="posno"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function LoadBy(ByVal listid As String, ByVal posno As Long) As Boolean
+        Public Function Inject(ByVal listid As String, ByVal posno As Long) As Boolean
             Dim primarykey() As Object = {listid, posno}
-            Return MyBase.LoadBy(primarykey)
+            Return MyBase.Inject(primarykey)
         End Function
 
         ''' <summary>
@@ -175,7 +175,7 @@ Namespace OnTrack.Deliverables
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function CreateSchema(Optional silent As Boolean = True) As Boolean
-            Return ormDataObject.CreateSchema(Of clsOTDBTrackItem)(silent:=silent)
+            Return ormDataObject.CreateDataObjectSchema(Of clsOTDBTrackItem)(silent:=silent)
         End Function
         ''' <summary>
         ''' create a persistable track list item

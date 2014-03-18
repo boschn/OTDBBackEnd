@@ -102,7 +102,7 @@ Namespace OnTrack.Configurables
             Dim anItem As New clsOTDBDefConfigurationItem
 
             If Not anItem.create(CONFIGNAME:=Me.CONFIGNAME, ID:=ID) Then
-                Call anItem.loadBy(CONFIGNAME:=Me.CONFIGNAME, ID:=ID)
+                Call anItem.Inject(CONFIGNAME:=Me.CONFIGNAME, ID:=ID)
             End If
 
             With anItem
@@ -123,7 +123,7 @@ Namespace OnTrack.Configurables
         Public Function addItem(ByRef ITEM As clsOTDBDefConfigurationItem) As Boolean
             Dim flag As Boolean
             Dim existEntry As New clsOTDBDefConfigurationItem
-            Dim aTableEntry As New ObjectEntryDefinition
+            Dim aTableEntry As AbstractEntryDefinition
             Dim aKeyCollection As New Collection
 
             Dim m As Object
@@ -139,7 +139,7 @@ Namespace OnTrack.Configurables
                 Call s_items.Remove(key:=ITEM.ID)
             End If
             ' load aliases
-            If aTableEntry.LoadBy(objectname:=ourTableName, entryname:=ITEM.ID) Then
+            If aTableEntry.Inject(objectname:=ourTableName, entryname:=ITEM.ID) Then
                 For Each m In aTableEntry.Aliases
                     If s_aliases.ContainsKey(key:=LCase(m)) Then
                         Call s_aliases.Remove(key:=LCase(m))
@@ -170,7 +170,7 @@ Namespace OnTrack.Configurables
                 End If
             End If
             If Me.IsCreated Then
-                Call Me.loadBy(CONFIGNAME:=Me.CONFIGNAME)
+                Call Me.Inject(CONFIGNAME:=Me.CONFIGNAME)
             End If
             If Not _IsLoaded And Not Me.IsCreated Then
                 delete = False
@@ -186,7 +186,7 @@ Namespace OnTrack.Configurables
             ' reset it
             s_items = New Dictionary(Of String, clsOTDBDefConfigurationItem)
             If Not anEntry.create(CONFIGNAME:=s_configname, ID:="") Then
-                Call anEntry.loadBy(CONFIGNAME:=s_configname, ID:="")
+                Call anEntry.Inject(CONFIGNAME:=s_configname, ID:="")
                 anEntry.ID = ""
 
             End If
@@ -267,9 +267,9 @@ Namespace OnTrack.Configurables
 
 
 
-        '**** loadby : load the object by the PrimaryKeys
+        '**** Inject : load the object by the PrimaryKeys
         '****
-        Public Function loadBy(ByVal CONFIGNAME As String) As Boolean
+        Public Function Inject(ByVal CONFIGNAME As String) As Boolean
             Dim aTable As iormDataStore
             Dim aRecordCollection As List(Of ormRecord)
             Dim aRecord As ormRecord
@@ -283,7 +283,7 @@ Namespace OnTrack.Configurables
             '* init
             If Not Me.IsInitialized Then
                 If Not Me.initialize() Then
-                    loadBy = False
+                    Inject = False
                     Exit Function
                 End If
             End If
@@ -296,7 +296,7 @@ Namespace OnTrack.Configurables
 
             If aRecordCollection Is Nothing Then
                 Me.Unload()
-                loadBy = False
+                Inject = False
                 Exit Function
             Else
                 s_configname = CONFIGNAME
@@ -312,13 +312,13 @@ Namespace OnTrack.Configurables
                 Next aRecord
                 '
                 _IsLoaded = True
-                loadBy = True
+                Inject = True
                 Exit Function
             End If
 
 error_handler:
             Me.Unload()
-            loadBy = True
+            Inject = True
             Exit Function
         End Function
 
@@ -421,7 +421,7 @@ errorhandle:
 
             aVAlue = loadFromCache(ourTableName, New String() {"SINGLETON", CONFIGNAME})
             If aVAlue Is Nothing Then
-                If Not aCachedObject.loadBy(CONFIGNAME:=CONFIGNAME) Then
+                If Not aCachedObject.Inject(CONFIGNAME:=CONFIGNAME) Then
                     aCachedObject = Nothing
                 Else
                     Call AddToCache(ourTableName, New String() {"SINGLETON", CONFIGNAME}, theOBJECT:=aCachedObject)
@@ -786,9 +786,9 @@ error_handler:
             loadByID = False
             Exit Function
         End Function
-        '**** loadby : load the object by the PrimaryKeys
+        '**** Inject : load the object by the PrimaryKeys
         '****
-        Public Function loadBy(ByVal CONFIGNAME As String, ByVal ID As String) As Boolean
+        Public Function Inject(ByVal CONFIGNAME As String, ByVal ID As String) As Boolean
             Dim aTable As iormDataStore
             Dim pkarry(1) As Object
             Dim aRecord As ormRecord
@@ -796,7 +796,7 @@ error_handler:
             '* lazy init
             If Not Me.IsInitialized Then
                 If Not Me.initialize() Then
-                    loadBy = False
+                    Inject = False
                     Exit Function
                 End If
             End If
@@ -818,14 +818,14 @@ error_handler:
 
             If aRecord Is Nothing Then
                 Me.Unload()
-                loadBy = Me.IsLoaded
+                Inject = Me.IsLoaded
                 Exit Function
             Else
                 Me.Record = aRecord
                 _IsLoaded = Me.infuse(Me.Record)
                 Call AddToCache(objectTag:=ourTableName, key:=pkarry, theOBJECT:=aRecord)
 
-                loadBy = Me.IsLoaded
+                Inject = Me.IsLoaded
                 Exit Function
             End If
 
@@ -839,131 +839,131 @@ error_handler:
         ''' <remarks></remarks>
         Public Overloads Shared Function CreateSchema(Optional silent As Boolean = True) As Boolean
 
-            Dim aFieldDesc As New ormFieldDescription
-            Dim PrimaryColumnNames As New Collection
-            Dim aTable As New ObjectDefinition
-            Dim IDColumnNames As New Collection
+'            Dim aFieldDesc As New ormFieldDescription
+'            Dim PrimaryColumnNames As New Collection
+'            Dim aTable As New ObjectDefinition
+'            Dim IDColumnNames As New Collection
 
-            '
+'            '
 
-            With aTable
-                .Create(ourTableName)
-                .Delete()
+'            With aTable
+'                .Create(ourTableName)
+'                .Delete()
 
-                aFieldDesc.Tablename = ourTableName
-                aFieldDesc.ID = ""
-                aFieldDesc.Parameter = ""
-                aFieldDesc.Relation = New String() {}
+'                aFieldDesc.Tablename = ourTableName
+'                aFieldDesc.ID = ""
+'                aFieldDesc.Parameter = ""
+'                aFieldDesc.Relation = New String() {}
 
-                '***
-                '*** Fields
-                '****
+'                '***
+'                '*** Fields
+'                '****
 
-                'Tablename
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "configname"
-                aFieldDesc.ColumnName = "cname"
-                aFieldDesc.Size = 50
-                Call .AddFieldDesc(aFieldDesc)
-                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
+'                'Tablename
+'                aFieldDesc.Datatype = otFieldDataType.Text
+'                aFieldDesc.Title = "configname"
+'                aFieldDesc.ColumnName = "cname"
+'                aFieldDesc.Size = 50
+'                Call .AddFieldDesc(aFieldDesc)
+'                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
 
-                ' id
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "ID of config item"
-                aFieldDesc.ColumnName = "id"
-                aFieldDesc.ID = ""
-                Call .AddFieldDesc(aFieldDesc)
-                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
-                ' alias IDs
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "aliases id"
-                aFieldDesc.ColumnName = "alias"
-                aFieldDesc.ID = ""
-                aFieldDesc.Size = 0
-                Call .AddFieldDesc(aFieldDesc)
+'                ' id
+'                aFieldDesc.Datatype = otFieldDataType.Text
+'                aFieldDesc.Title = "ID of config item"
+'                aFieldDesc.ColumnName = "id"
+'                aFieldDesc.ID = ""
+'                Call .AddFieldDesc(aFieldDesc)
+'                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
+'                ' alias IDs
+'                aFieldDesc.Datatype = otFieldDataType.Text
+'                aFieldDesc.Title = "aliases id"
+'                aFieldDesc.ColumnName = "alias"
+'                aFieldDesc.ID = ""
+'                aFieldDesc.Size = 0
+'                Call .AddFieldDesc(aFieldDesc)
 
-                'title
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "title"
-                aFieldDesc.ColumnName = "title"
-                Call .AddFieldDesc(aFieldDesc)
+'                'title
+'                aFieldDesc.Datatype = otFieldDataType.Text
+'                aFieldDesc.Title = "title"
+'                aFieldDesc.ColumnName = "title"
+'                Call .AddFieldDesc(aFieldDesc)
 
-                'Type
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "typeid"
-                aFieldDesc.ColumnName = "typeid"
-                Call .AddFieldDesc(aFieldDesc)
+'                'Type
+'                aFieldDesc.Datatype = otFieldDataType.Text
+'                aFieldDesc.Title = "typeid"
+'                aFieldDesc.ColumnName = "typeid"
+'                Call .AddFieldDesc(aFieldDesc)
 
-                'Parameter
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "Parameter"
-                aFieldDesc.ColumnName = "parameter"
-                Call .AddFieldDesc(aFieldDesc)
+'                'Parameter
+'                aFieldDesc.Datatype = otFieldDataType.Text
+'                aFieldDesc.Title = "Parameter"
+'                aFieldDesc.ColumnName = "parameter"
+'                Call .AddFieldDesc(aFieldDesc)
 
-                'datatype
-                aFieldDesc.Datatype = otFieldDataType.[Long]
-                aFieldDesc.Title = "data type of the id data field"
-                aFieldDesc.ColumnName = "datatype"
-                Call .AddFieldDesc(aFieldDesc)
+'                'datatype
+'                aFieldDesc.Datatype = otFieldDataType.[Long]
+'                aFieldDesc.Title = "data type of the id data field"
+'                aFieldDesc.ColumnName = "datatype"
+'                Call .AddFieldDesc(aFieldDesc)
 
-                'version
-                aFieldDesc.Datatype = otFieldDataType.[Long]
-                aFieldDesc.Title = "update / version counter"
-                aFieldDesc.ColumnName = "updc"
-                Call .AddFieldDesc(aFieldDesc)
+'                'version
+'                aFieldDesc.Datatype = otFieldDataType.[Long]
+'                aFieldDesc.Title = "update / version counter"
+'                aFieldDesc.ColumnName = "updc"
+'                Call .AddFieldDesc(aFieldDesc)
 
-                'size
-                aFieldDesc.Datatype = otFieldDataType.[Long]
-                aFieldDesc.Title = "size of datafield"
-                aFieldDesc.ColumnName = "size"
-                Call .AddFieldDesc(aFieldDesc)
+'                'size
+'                aFieldDesc.Datatype = otFieldDataType.[Long]
+'                aFieldDesc.Title = "size of datafield"
+'                aFieldDesc.ColumnName = "size"
+'                Call .AddFieldDesc(aFieldDesc)
 
-                'Relation
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "Relation"
-                aFieldDesc.ColumnName = "relation"
-                Call .AddFieldDesc(aFieldDesc)
+'                'Relation
+'                aFieldDesc.Datatype = otFieldDataType.Text
+'                aFieldDesc.Title = "Relation"
+'                aFieldDesc.ColumnName = "relation"
+'                Call .AddFieldDesc(aFieldDesc)
 
-                'comment
-                aFieldDesc.Datatype = otFieldDataType.Memo
-                aFieldDesc.Title = "comment and description"
-                aFieldDesc.ColumnName = "cmt"
-                Call .AddFieldDesc(aFieldDesc)
-
-
-                '***
-                '*** TIMESTAMP
-                '****
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "last Update"
-                aFieldDesc.ColumnName = ConstFNUpdatedOn
-                aFieldDesc.ID = ""
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "creation Date"
-                aFieldDesc.ColumnName = ConstFNCreatedOn
-                aFieldDesc.ID = ""
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' Index
-                Call .AddIndex("PrimaryKey", PrimaryColumnNames, isprimarykey:=True)
-
-                ' persist
-                .Persist()
-
-                ' change the database
-                .AlterSchema()
-            End With
+'                'comment
+'                aFieldDesc.Datatype = otFieldDataType.Memo
+'                aFieldDesc.Title = "comment and description"
+'                aFieldDesc.ColumnName = "cmt"
+'                Call .AddFieldDesc(aFieldDesc)
 
 
-            '
-            CreateSchema = True
-            Exit Function
+'                '***
+'                '*** TIMESTAMP
+'                '****
+'                aFieldDesc.Datatype = otFieldDataType.Timestamp
+'                aFieldDesc.Title = "last Update"
+'                aFieldDesc.ColumnName = ConstFNUpdatedOn
+'                aFieldDesc.ID = ""
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-            ' Handle the error
-error_handle:
-            Call CoreMessageHandler(subname:="clsOTDBDefConfigurationItem.createSchema", tablename:=ourTableName)
-            CreateSchema = False
+'                aFieldDesc.Datatype = otFieldDataType.Timestamp
+'                aFieldDesc.Title = "creation Date"
+'                aFieldDesc.ColumnName = ConstFNCreatedOn
+'                aFieldDesc.ID = ""
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                ' Index
+'                Call .AddIndex("PrimaryKey", PrimaryColumnNames, isprimarykey:=True)
+
+'                ' persist
+'                .Persist()
+
+'                ' change the database
+'                .CreateObjectSchema()
+'            End With
+
+
+'            '
+'            CreateSchema = True
+'            Exit Function
+
+'            ' Handle the error
+'error_handle:
+'            Call CoreMessageHandler(subname:="clsOTDBDefConfigurationItem.createSchema", tablename:=ourTableName)
+'            CreateSchema = False
         End Function
 
         '**** persist
@@ -975,7 +975,7 @@ error_handle:
             Dim aConfig As New clsOTDBConfigurable
             Dim aCompDesc As New ormCompoundDesc
 
-            Dim aSchemaDefTable As New ObjectDefinition
+            'Dim anObjectDef As ObjectDefinition = OnTrack.ObjectDefinition.Retrieve (objectname:=aConfig.)
 
             '* init
             If Not Me.IsInitialized Then
@@ -996,24 +996,24 @@ error_handle:
 
             ' create compound for tblschedules
             '
-            If aSchemaDefTable.LoadBy(aConfig.TableID) Then
-                aSchemaDefTable.Create(aConfig.TableID)
-            End If
+            'If anObjectDef.Inject(aConfig.TableID) Then
+            '    anObjectDef.Create(aConfig.TableID)
+            'End If
 
             aCompDesc.Tablename = aConfig.TableID
             aCompDesc.compound_Tablename = aConfigItem.TableID
             aCompDesc.ID = s_id
             aCompDesc.compound_Relation = New String() {"uid"}
-            aCompDesc.compound_IDfieldname = "id"
-            aCompDesc.compound_Valuefieldname = "value"
+            aCompDesc.compound_IDFieldname = "id"
+            aCompDesc.compound_ValueFieldname = "value"
             aCompDesc.Datatype = Me.DATATYPE
             aCompDesc.Aliases = Me.aliases
             aCompDesc.Parameter = Me.PARAMETER
             aCompDesc.Title = "config item of " & s_configname & "(" & s_id & ")"
 
-            If aSchemaDefTable.AddCompoundDesc(aCompDesc) Then
-                aSchemaDefTable.Persist()
-            End If
+            'If anObjectDef.AddEntry(aCompDesc) Then
+            '    anObjectDef.Persist()
+            'End If
 
 
             'On Error GoTo errorhandle
@@ -1109,7 +1109,7 @@ errorhandle:
 
             aVAlue = loadFromCache(ourTableName, New String() {"SINGLETON", CONFIGNAME, ID})
             If aVAlue Is Nothing Then
-                If Not aCachedObject.loadBy(CONFIGNAME:=CONFIGNAME, ID:=ID) Then
+                If Not aCachedObject.Inject(CONFIGNAME:=CONFIGNAME, ID:=ID) Then
                     aCachedObject = Nothing
                 Else
                     Call AddToCache(objectTag:=ourTableName, key:=New String() {"SINGLETON", CONFIGNAME, ID}, theOBJECT:=aCachedObject)
@@ -1429,121 +1429,121 @@ errorhandle:
         '********** static createSchema
         '**********
         Public Function createSchema(Optional silent As Boolean = True) As Boolean
-            Dim aFieldDesc As New ormFieldDescription
-            Dim PrimaryColumnNames As New Collection
-            Dim WorkspaceColumnNames As New Collection
-            Dim CompundIndexColumnNames As New Collection
-            Dim aTable As New ObjectDefinition
-            Dim aTableEntry As New ObjectEntryDefinition
+'            Dim aFieldDesc As New ormFieldDescription
+'            Dim PrimaryColumnNames As New Collection
+'            Dim WorkspaceColumnNames As New Collection
+'            Dim CompundIndexColumnNames As New Collection
+'            Dim aTable As New ObjectDefinition
+'            Dim aTableEntry As New ObjectEntryDefinition
 
 
-            aFieldDesc.ID = ""
-            aFieldDesc.Parameter = ""
-            aFieldDesc.Relation = New String() {}
-            aFieldDesc.Aliases = New String() {}
-            aFieldDesc.Tablename = ourTableName
+'            aFieldDesc.ID = ""
+'            aFieldDesc.Parameter = ""
+'            aFieldDesc.Relation = New String() {}
+'            aFieldDesc.Aliases = New String() {}
+'            aFieldDesc.Tablename = ourTableName
 
-            ' delete just fields -> keep compounds
-            If aTable.LoadBy(ourTableName) Then
-                For Each aTableEntry In aTable.Entries
-                    If aTableEntry.Typeid = otObjectEntryDefinitiontype.Field Then
-                        aTableEntry.Delete()
-                    End If
-                Next aTableEntry
-                aTable.Persist()
-            End If
-            aTable = New ObjectDefinition
-            aTable.Create(ourTableName)
+'            ' delete just fields -> keep compounds
+'            If aTable.Inject(ourTableName) Then
+'                For Each aTableEntry In aTable.Entries
+'                    If aTableEntry.Typeid = otObjectEntryDefinitiontype.Field Then
+'                        aTableEntry.Delete()
+'                    End If
+'                Next aTableEntry
+'                aTable.Persist()
+'            End If
+'            aTable = New ObjectDefinition
+'            aTable.Create(ourTableName)
 
-            '******
-            '****** Fields
+'            '******
+'            '****** Fields
 
-            With aTable
-
-
-                '**** UID
-                aFieldDesc.Datatype = otFieldDataType.[Long]
-                aFieldDesc.Title = "uid of configuration"
-                aFieldDesc.ID = "cnf1"
-                aFieldDesc.Aliases = New String() {}
-                aFieldDesc.ColumnName = "uid"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
-                CompundIndexColumnNames.Add(aFieldDesc.ColumnName)
-                '**** msglogtag
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "configuration name"
-                aFieldDesc.Aliases = New String() {}
-                aFieldDesc.ID = "cnf2"
-                aFieldDesc.ColumnName = "cname"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                CompundIndexColumnNames.Add(aFieldDesc.ColumnName)
-                '***** updc
-                aFieldDesc.Datatype = otFieldDataType.[Long]
-                aFieldDesc.Title = "update count"
-                aFieldDesc.ID = "cnf3"
-                aFieldDesc.Aliases = New String() {}
-                aFieldDesc.ColumnName = "updc"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                CompundIndexColumnNames.Add(aFieldDesc.ColumnName)
-
-                '**** msglogtag
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "message log tag"
-                aFieldDesc.Aliases = New String() {}
-                aFieldDesc.ID = "cnf20"
-                aFieldDesc.ColumnName = "msglogtag"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'            With aTable
 
 
-                '**** comment
-                aFieldDesc.Datatype = otFieldDataType.Memo
-                aFieldDesc.Title = "comment"
-                aFieldDesc.Aliases = New String() {}
-                aFieldDesc.ID = "cnf30"
-                aFieldDesc.ColumnName = "cmt"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                '**** UID
+'                aFieldDesc.Datatype = otFieldDataType.[Long]
+'                aFieldDesc.Title = "uid of configuration"
+'                aFieldDesc.ID = "cnf1"
+'                aFieldDesc.Aliases = New String() {}
+'                aFieldDesc.ColumnName = "uid"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
+'                CompundIndexColumnNames.Add(aFieldDesc.ColumnName)
+'                '**** msglogtag
+'                aFieldDesc.Datatype = otFieldDataType.Text
+'                aFieldDesc.Title = "configuration name"
+'                aFieldDesc.Aliases = New String() {}
+'                aFieldDesc.ID = "cnf2"
+'                aFieldDesc.ColumnName = "cname"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                CompundIndexColumnNames.Add(aFieldDesc.ColumnName)
+'                '***** updc
+'                aFieldDesc.Datatype = otFieldDataType.[Long]
+'                aFieldDesc.Title = "update count"
+'                aFieldDesc.ID = "cnf3"
+'                aFieldDesc.Aliases = New String() {}
+'                aFieldDesc.ColumnName = "updc"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                CompundIndexColumnNames.Add(aFieldDesc.ColumnName)
 
-                '***
-                '*** TIMESTAMP
-                '****
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "last Update"
-                aFieldDesc.ColumnName = ConstFNUpdatedOn
-                aFieldDesc.ID = ""
-                aFieldDesc.Aliases = New String() {}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                '**** msglogtag
+'                aFieldDesc.Datatype = otFieldDataType.Text
+'                aFieldDesc.Title = "message log tag"
+'                aFieldDesc.Aliases = New String() {}
+'                aFieldDesc.ID = "cnf20"
+'                aFieldDesc.ColumnName = "msglogtag"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "creation Date"
-                aFieldDesc.ColumnName = ConstFNCreatedOn
-                aFieldDesc.ID = ""
-                aFieldDesc.Aliases = New String() {}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' Index
-                Call .AddIndex("PrimaryKey", PrimaryColumnNames, isprimarykey:=True)
-                Call .AddIndex("workspaceID", WorkspaceColumnNames, isprimarykey:=False)
-                Call .AddIndex(ConstDefaultCompoundIndexName, CompundIndexColumnNames, isprimarykey:=False)
-                ' persist
-                .Persist()
-                ' change the database
-                .AlterSchema()
-            End With
 
-            ' reset the Table description
-            If Not Me.Record.SetTable(ourTableName, forceReload:=True) Then
-                Call CoreMessageHandler(subname:="clsOTDBConfigurable.createSchema", tablename:=ourTableName, _
-                                      message:="Error while setTable in createSchema")
-            End If
+'                '**** comment
+'                aFieldDesc.Datatype = otFieldDataType.Memo
+'                aFieldDesc.Title = "comment"
+'                aFieldDesc.Aliases = New String() {}
+'                aFieldDesc.ID = "cnf30"
+'                aFieldDesc.ColumnName = "cmt"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-            '
-            createSchema = True
-            Exit Function
+'                '***
+'                '*** TIMESTAMP
+'                '****
+'                aFieldDesc.Datatype = otFieldDataType.Timestamp
+'                aFieldDesc.Title = "last Update"
+'                aFieldDesc.ColumnName = ConstFNUpdatedOn
+'                aFieldDesc.ID = ""
+'                aFieldDesc.Aliases = New String() {}
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-            ' Handle the error
-error_handle:
-            Call CoreMessageHandler(subname:="clsOTDBConfigurable.createSchema", tablename:=ourTableName)
-            createSchema = False
+'                aFieldDesc.Datatype = otFieldDataType.Timestamp
+'                aFieldDesc.Title = "creation Date"
+'                aFieldDesc.ColumnName = ConstFNCreatedOn
+'                aFieldDesc.ID = ""
+'                aFieldDesc.Aliases = New String() {}
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                ' Index
+'                Call .AddIndex("PrimaryKey", PrimaryColumnNames, isprimarykey:=True)
+'                Call .AddIndex("workspaceID", WorkspaceColumnNames, isprimarykey:=False)
+'                Call .AddIndex(ConstDefaultCompoundIndexName, CompundIndexColumnNames, isprimarykey:=False)
+'                ' persist
+'                .Persist()
+'                ' change the database
+'                .CreateObjectSchema()
+'            End With
+
+'            ' reset the Table description
+'            If Not Me.Record.SetTable(ourTableName, forceReload:=True) Then
+'                Call CoreMessageHandler(subname:="clsOTDBConfigurable.createSchema", tablename:=ourTableName, _
+'                                      message:="Error while setTable in createSchema")
+'            End If
+
+'            '
+'            createSchema = True
+'            Exit Function
+
+'            ' Handle the error
+'error_handle:
+'            Call CoreMessageHandler(subname:="clsOTDBConfigurable.createSchema", tablename:=ourTableName)
+'            createSchema = False
         End Function
 
         '***** loadItems -> load all Items as Items
@@ -1560,7 +1560,7 @@ error_handle:
             Dim m As Object
 
             aTable = GetTableStore(ourTableName)
-            If Not aDefConfig.loadBy(CONFIGNAME:=CONFIGNAME) Then
+            If Not aDefConfig.Inject(CONFIGNAME:=CONFIGNAME) Then
                 loadItems = False
                 Exit Function
             End If
@@ -1595,7 +1595,7 @@ error_handle:
                     End If
                     Call anItem.PERSIST()
                 Else
-                    Call anItem.loadBy(UID:=s_uid, CONFIGNAME:=s_configname, ID:=aDefConfigItem.ID)
+                    Call anItem.Inject(UID:=s_uid, CONFIGNAME:=s_configname, ID:=aDefConfigItem.ID)
                 End If
                 '** include
                 Call addItem(ITEM:=anItem)
@@ -1753,9 +1753,9 @@ errorhandle:
         End Function
 
 
-        '**** loadby : load the object by the PrimaryKeys
+        '**** Inject : load the object by the PrimaryKeys
         '****
-        Public Function loadBy(UID As Long) As Boolean
+        Public Function Inject(UID As Long) As Boolean
             Dim aTable As iormDataStore
             Dim pkarry() As Object
             Dim aRecord As ormRecord
@@ -1764,7 +1764,7 @@ errorhandle:
             '* init
             If Not Me.IsInitialized Then
                 If Not initialize() Then
-                    loadBy = False
+                    Inject = False
                     Exit Function
                 End If
             End If
@@ -1779,17 +1779,17 @@ errorhandle:
 
             If aRecord Is Nothing Then
                 Me.Unload()
-                loadBy = Me.IsLoaded
+                Inject = Me.IsLoaded
                 Exit Function
             Else
                 Me.Record = aRecord
                 _IsLoaded = Me.infuse(Me.Record)
                 If Not _IsLoaded Then
-                    loadBy = False
+                    Inject = False
                     Exit Function
                 End If
 
-                loadBy = MyBase.Infuse(aRecord)
+                Inject = MyBase.Infuse(aRecord)
                 Exit Function
             End If
 
@@ -2705,9 +2705,9 @@ errorhandle:
         End Function
 
 
-        '**** loadby : load the object by the PrimaryKeys
+        '**** Inject : load the object by the PrimaryKeys
         '****
-        Public Function loadBy(ByVal UID As Long, ByVal CONFIGNAME As String, ByVal ID As String) As Boolean
+        Public Function Inject(ByVal UID As Long, ByVal CONFIGNAME As String, ByVal ID As String) As Boolean
             Dim aTable As iormDataStore
             Dim pkarry(3) As Object
             Dim aRecord As ormRecord
@@ -2715,7 +2715,7 @@ errorhandle:
             '* lazy init
             If Not Me.IsInitialized Then
                 If Not Me.initialize() Then
-                    loadBy = False
+                    Inject = False
                     Exit Function
                 End If
             End If
@@ -2731,12 +2731,12 @@ errorhandle:
 
             If aRecord Is Nothing Then
                 Me.Unload()
-                loadBy = Me.IsLoaded
+                Inject = Me.IsLoaded
                 Exit Function
             Else
                 Me.Record = aRecord
                 _IsLoaded = Me.infuse(Me.Record)
-                loadBy = Me.IsLoaded
+                Inject = Me.IsLoaded
                 Exit Function
             End If
 
@@ -2747,214 +2747,214 @@ errorhandle:
         '**********
         Public Function createSchema(Optional silent As Boolean = True) As Boolean
 
-            Dim aFieldDesc As New ormFieldDescription
-            Dim PrimaryColumnNames As New Collection
-            Dim CompoundIndexColumnNames As New Collection
-            Dim aTable As New ObjectDefinition
+'            Dim aFieldDesc As New ormFieldDescription
+'            Dim PrimaryColumnNames As New Collection
+'            Dim CompoundIndexColumnNames As New Collection
+'            Dim aTable As New ObjectDefinition
 
 
-            aFieldDesc.ID = ""
-            aFieldDesc.Parameter = ""
-            aFieldDesc.Tablename = ourTableName
+'            aFieldDesc.ID = ""
+'            aFieldDesc.Parameter = ""
+'            aFieldDesc.Tablename = ourTableName
 
-            With aTable
-                .Create(ourTableName)
-                .Delete()
+'            With aTable
+'                .Create(ourTableName)
+'                .Delete()
 
-                '***
-                '*** Fields
-                '****
+'                '***
+'                '*** Fields
+'                '****
 
-                'Type
-                aFieldDesc.Datatype = otFieldDataType.[Long]
+'                'Type
+'                aFieldDesc.Datatype = otFieldDataType.[Long]
 
-                aFieldDesc.Title = "uid of the configuration"
-                aFieldDesc.ColumnName = "uid"
-                aFieldDesc.ID = "cfi1"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
-                CompoundIndexColumnNames.Add(aFieldDesc.ColumnName)
-                'configname
-                aFieldDesc.Datatype = otFieldDataType.[Long]
-                aFieldDesc.Title = "configname of config"
-                aFieldDesc.ColumnName = "cname"
-                aFieldDesc.ID = "cfi2"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
-                CompoundIndexColumnNames.Add(aFieldDesc.ColumnName)
+'                aFieldDesc.Title = "uid of the configuration"
+'                aFieldDesc.ColumnName = "uid"
+'                aFieldDesc.ID = "cfi1"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
+'                CompoundIndexColumnNames.Add(aFieldDesc.ColumnName)
+'                'configname
+'                aFieldDesc.Datatype = otFieldDataType.[Long]
+'                aFieldDesc.Title = "configname of config"
+'                aFieldDesc.ColumnName = "cname"
+'                aFieldDesc.ID = "cfi2"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
+'                CompoundIndexColumnNames.Add(aFieldDesc.ColumnName)
 
-                'id
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "config item id"
-                aFieldDesc.ColumnName = "id"
-                aFieldDesc.ID = "cfi3"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
+'                'id
+'                aFieldDesc.Datatype = otFieldDataType.Text
+'                aFieldDesc.Title = "config item id"
+'                aFieldDesc.ColumnName = "id"
+'                aFieldDesc.ID = "cfi3"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
 
-                'value
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "value as text"
-                aFieldDesc.ColumnName = "value"
-                aFieldDesc.ID = "cfi4"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                'value
+'                aFieldDesc.Datatype = otFieldDataType.Text
+'                aFieldDesc.Title = "value as text"
+'                aFieldDesc.ColumnName = "value"
+'                aFieldDesc.ID = "cfi4"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                'date
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "value as date"
-                aFieldDesc.ColumnName = "valuedate"
-                aFieldDesc.ID = "cfi5"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                'date
+'                aFieldDesc.Datatype = otFieldDataType.Text
+'                aFieldDesc.Title = "value as date"
+'                aFieldDesc.ColumnName = "valuedate"
+'                aFieldDesc.ID = "cfi5"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                'numeric
-                aFieldDesc.Datatype = otFieldDataType.Numeric
-                aFieldDesc.Title = "value as numeric"
-                aFieldDesc.ColumnName = "valuenumeric"
-                aFieldDesc.ID = "cfi6"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                'numeric
+'                aFieldDesc.Datatype = otFieldDataType.Numeric
+'                aFieldDesc.Title = "value as numeric"
+'                aFieldDesc.ColumnName = "valuenumeric"
+'                aFieldDesc.ID = "cfi6"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                'bool
-                aFieldDesc.Datatype = otFieldDataType.Bool
-                aFieldDesc.Title = "value as bool"
-                aFieldDesc.ColumnName = "valuebool"
-                aFieldDesc.ID = "cfi7"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-
-                'bool
-                aFieldDesc.Datatype = otFieldDataType.[Long]
-                aFieldDesc.Title = "value as long"
-                aFieldDesc.ColumnName = "valuelong"
-                aFieldDesc.ID = "cfi8"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                'datatype
-                aFieldDesc.Datatype = otFieldDataType.[Long]
-                aFieldDesc.Title = "datatype"
-                aFieldDesc.ColumnName = "datatype"
-                aFieldDesc.ID = "cfi10"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                ' cmt
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "message log tag"
-                aFieldDesc.ColumnName = "msglogtag"
-                aFieldDesc.ID = "cfi13"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                'bool
+'                aFieldDesc.Datatype = otFieldDataType.Bool
+'                aFieldDesc.Title = "value as bool"
+'                aFieldDesc.ColumnName = "valuebool"
+'                aFieldDesc.ID = "cfi7"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
 
-                ' msglogtag
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "comment"
-                aFieldDesc.ColumnName = "cmt"
-                aFieldDesc.ID = "cfi14"
-                aFieldDesc.Size = 100
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                'bool
+'                aFieldDesc.Datatype = otFieldDataType.[Long]
+'                aFieldDesc.Title = "value as long"
+'                aFieldDesc.ColumnName = "valuelong"
+'                aFieldDesc.ID = "cfi8"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                ' parameter_txt 1
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "parameter_txt 1"
-                aFieldDesc.ColumnName = "param_txt1"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                'datatype
+'                aFieldDesc.Datatype = otFieldDataType.[Long]
+'                aFieldDesc.Title = "datatype"
+'                aFieldDesc.ColumnName = "datatype"
+'                aFieldDesc.ID = "cfi10"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                ' parameter_txt 2
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "parameter_txt 2 of condition"
-                aFieldDesc.ColumnName = "param_txt2"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                ' cmt
+'                aFieldDesc.Datatype = otFieldDataType.Text
+'                aFieldDesc.Title = "message log tag"
+'                aFieldDesc.ColumnName = "msglogtag"
+'                aFieldDesc.ID = "cfi13"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                ' parameter_txt 2
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "parameter_txt 3 of condition"
-                aFieldDesc.ColumnName = "param_txt3"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                ' parameter_num 1
-                aFieldDesc.Datatype = otFieldDataType.Numeric
-                aFieldDesc.Title = "parameter numeric 1 of condition"
-                aFieldDesc.ColumnName = "param_num1"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' parameter_num 2
-                aFieldDesc.Datatype = otFieldDataType.Numeric
-                aFieldDesc.Title = "parameter numeric 2 of condition"
-                aFieldDesc.ColumnName = "param_num2"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                ' msglogtag
+'                aFieldDesc.Datatype = otFieldDataType.Text
+'                aFieldDesc.Title = "comment"
+'                aFieldDesc.ColumnName = "cmt"
+'                aFieldDesc.ID = "cfi14"
+'                aFieldDesc.Size = 100
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                ' parameter_num 2
-                aFieldDesc.Datatype = otFieldDataType.Numeric
-                aFieldDesc.Title = "parameter numeric 3 of condition"
-                aFieldDesc.ColumnName = "param_num3"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                ' parameter_txt 1
+'                aFieldDesc.Datatype = otFieldDataType.Text
+'                aFieldDesc.Title = "parameter_txt 1"
+'                aFieldDesc.ColumnName = "param_txt1"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                ' parameter_date 1
-                aFieldDesc.Datatype = otFieldDataType.[Date]
-                aFieldDesc.Title = "parameter date 1 of condition"
-                aFieldDesc.ColumnName = "param_date1"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                ' parameter_txt 2
+'                aFieldDesc.Datatype = otFieldDataType.Text
+'                aFieldDesc.Title = "parameter_txt 2 of condition"
+'                aFieldDesc.ColumnName = "param_txt2"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                ' parameter_date 2
-                aFieldDesc.Datatype = otFieldDataType.[Date]
-                aFieldDesc.Title = "parameter date 2 of condition"
-                aFieldDesc.ColumnName = "param_date2"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' parameter_date 3
-                aFieldDesc.Datatype = otFieldDataType.[Date]
-                aFieldDesc.Title = "parameter date 3 of condition"
-                aFieldDesc.ColumnName = "param_date3"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                ' parameter_txt 2
+'                aFieldDesc.Datatype = otFieldDataType.Text
+'                aFieldDesc.Title = "parameter_txt 3 of condition"
+'                aFieldDesc.ColumnName = "param_txt3"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                ' parameter_flag 1
-                aFieldDesc.Datatype = otFieldDataType.Bool
-                aFieldDesc.Title = "parameter flag 1 of condition"
-                aFieldDesc.ColumnName = "param_flag1"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                ' parameter_num 1
+'                aFieldDesc.Datatype = otFieldDataType.Numeric
+'                aFieldDesc.Title = "parameter numeric 1 of condition"
+'                aFieldDesc.ColumnName = "param_num1"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                ' parameter_num 2
+'                aFieldDesc.Datatype = otFieldDataType.Numeric
+'                aFieldDesc.Title = "parameter numeric 2 of condition"
+'                aFieldDesc.ColumnName = "param_num2"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                ' parameter_flag 2
-                aFieldDesc.Datatype = otFieldDataType.Bool
-                aFieldDesc.Title = "parameter flag 2 of condition"
-                aFieldDesc.ColumnName = "param_flag2"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                ' parameter_num 2
+'                aFieldDesc.Datatype = otFieldDataType.Numeric
+'                aFieldDesc.Title = "parameter numeric 3 of condition"
+'                aFieldDesc.ColumnName = "param_num3"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                ' parameter_flag 3
-                aFieldDesc.Datatype = otFieldDataType.Bool
-                aFieldDesc.Title = "parameter flag 3 of condition"
-                aFieldDesc.ColumnName = "param_flag3"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                '***
-                '*** TIMESTAMP
-                '****
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "last Update"
-                aFieldDesc.ColumnName = ConstFNUpdatedOn
-                aFieldDesc.ID = ""
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                ' parameter_date 1
+'                aFieldDesc.Datatype = otFieldDataType.[Date]
+'                aFieldDesc.Title = "parameter date 1 of condition"
+'                aFieldDesc.ColumnName = "param_date1"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "creation Date"
-                aFieldDesc.ColumnName = ConstFNCreatedOn
-                aFieldDesc.ID = ""
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' Index
-                Call .AddIndex("PrimaryKey", PrimaryColumnNames, isprimarykey:=True)
-                Call .AddIndex(ConstDefaultCompoundIndexName, CompoundIndexColumnNames, isprimarykey:=False)
-                ' persist
-                .Persist()
-                ' change the database
-                .AlterSchema()
-            End With
+'                ' parameter_date 2
+'                aFieldDesc.Datatype = otFieldDataType.[Date]
+'                aFieldDesc.Title = "parameter date 2 of condition"
+'                aFieldDesc.ColumnName = "param_date2"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                ' parameter_date 3
+'                aFieldDesc.Datatype = otFieldDataType.[Date]
+'                aFieldDesc.Title = "parameter date 3 of condition"
+'                aFieldDesc.ColumnName = "param_date3"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-            ' reset the Table description
-            If Not Me.Record.SetTable(ourTableName, forceReload:=True) Then
-                Call CoreMessageHandler(subname:="clsOTDBSchedule.createSchema", tablename:=ourTableName, _
-                                      message:="Error while setTable in createSchema")
-            End If
+'                ' parameter_flag 1
+'                aFieldDesc.Datatype = otFieldDataType.Bool
+'                aFieldDesc.Title = "parameter flag 1 of condition"
+'                aFieldDesc.ColumnName = "param_flag1"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-            createSchema = True
-            Exit Function
+'                ' parameter_flag 2
+'                aFieldDesc.Datatype = otFieldDataType.Bool
+'                aFieldDesc.Title = "parameter flag 2 of condition"
+'                aFieldDesc.ColumnName = "param_flag2"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-            ' Handle the error
-error_handle:
-            Call CoreMessageHandler(subname:="clsOTDBConfigurableItem.createSchema")
-            createSchema = False
+'                ' parameter_flag 3
+'                aFieldDesc.Datatype = otFieldDataType.Bool
+'                aFieldDesc.Title = "parameter flag 3 of condition"
+'                aFieldDesc.ColumnName = "param_flag3"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                '***
+'                '*** TIMESTAMP
+'                '****
+'                aFieldDesc.Datatype = otFieldDataType.Timestamp
+'                aFieldDesc.Title = "last Update"
+'                aFieldDesc.ColumnName = ConstFNUpdatedOn
+'                aFieldDesc.ID = ""
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+'                aFieldDesc.Datatype = otFieldDataType.Timestamp
+'                aFieldDesc.Title = "creation Date"
+'                aFieldDesc.ColumnName = ConstFNCreatedOn
+'                aFieldDesc.ID = ""
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                ' Index
+'                Call .AddIndex("PrimaryKey", PrimaryColumnNames, isprimarykey:=True)
+'                Call .AddIndex(ConstDefaultCompoundIndexName, CompoundIndexColumnNames, isprimarykey:=False)
+'                ' persist
+'                .Persist()
+'                ' change the database
+'                .CreateObjectSchema()
+'            End With
+
+'            ' reset the Table description
+'            If Not Me.Record.SetTable(ourTableName, forceReload:=True) Then
+'                Call CoreMessageHandler(subname:="clsOTDBSchedule.createSchema", tablename:=ourTableName, _
+'                                      message:="Error while setTable in createSchema")
+'            End If
+
+'            createSchema = True
+'            Exit Function
+
+'            ' Handle the error
+'error_handle:
+'            Call CoreMessageHandler(subname:="clsOTDBConfigurableItem.createSchema")
+'            createSchema = False
         End Function
 
         '****
@@ -3411,119 +3411,119 @@ error_handler:
         Public Function createSchema(Optional ByVal silent As Boolean = True) As Boolean
 
 
-            Dim aFieldDesc As New ormFieldDescription
-            Dim PrimaryColumnNames As New Collection
-            Dim aTable As New ObjectDefinition
+'            Dim aFieldDesc As New ormFieldDescription
+'            Dim PrimaryColumnNames As New Collection
+'            Dim aTable As New ObjectDefinition
 
-            With aTable
-                .Create(ourTableName)
-                .Delete()
+'            With aTable
+'                .Create(ourTableName)
+'                .Delete()
 
-                aFieldDesc.Tablename = ourTableName
-                aFieldDesc.ID = ""
-                aFieldDesc.Parameter = ""
+'                aFieldDesc.Tablename = ourTableName
+'                aFieldDesc.ID = ""
+'                aFieldDesc.Parameter = ""
 
-                '*** UID
-                '**** UID
-                aFieldDesc.Datatype = otFieldDataType.[Long]
-                aFieldDesc.Title = "uid of config"
-                aFieldDesc.Aliases = New String() {}
-                aFieldDesc.ID = "cnfl2"
-                aFieldDesc.ColumnName = "uid"
-                aFieldDesc.Size = 0
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
+'                '*** UID
+'                '**** UID
+'                aFieldDesc.Datatype = otFieldDataType.[Long]
+'                aFieldDesc.Title = "uid of config"
+'                aFieldDesc.Aliases = New String() {}
+'                aFieldDesc.ID = "cnfl2"
+'                aFieldDesc.ColumnName = "uid"
+'                aFieldDesc.Size = 0
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
 
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "configname"
-                aFieldDesc.ID = "cnfl2"
-                aFieldDesc.ColumnName = "cname"
-                aFieldDesc.Size = 50
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
-
-
+'                aFieldDesc.Datatype = otFieldDataType.Text
+'                aFieldDesc.Title = "configname"
+'                aFieldDesc.ID = "cnfl2"
+'                aFieldDesc.ColumnName = "cname"
+'                aFieldDesc.Size = 50
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
 
 
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "objectname to link"
-                aFieldDesc.ID = "cnfl3"
-                aFieldDesc.Aliases = New String() {}
-                aFieldDesc.ColumnName = "objectname"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                '**** configtag
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "tag of objectname"
-                aFieldDesc.ID = "cnfl4"
-                aFieldDesc.Aliases = New String() {}
-                aFieldDesc.ColumnName = "tag"
-                aFieldDesc.Size = 100
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
 
-                '***** isactive
-                aFieldDesc.Datatype = otFieldDataType.Bool
-                aFieldDesc.Title = "is an active setting"
-                aFieldDesc.Aliases = New String() {}
-                aFieldDesc.ID = "cnfl5"
-                aFieldDesc.ColumnName = "isactive"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                aFieldDesc.Datatype = otFieldDataType.Text
+'                aFieldDesc.Title = "objectname to link"
+'                aFieldDesc.ID = "cnfl3"
+'                aFieldDesc.Aliases = New String() {}
+'                aFieldDesc.ColumnName = "objectname"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                '***** message log tag
-                aFieldDesc.Datatype = otFieldDataType.[Long]
-                aFieldDesc.Title = "datatype of tag"
-                aFieldDesc.Aliases = New String() {}
-                aFieldDesc.ID = ""
-                aFieldDesc.ColumnName = "datatype"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                '**** configtag
+'                aFieldDesc.Datatype = otFieldDataType.Text
+'                aFieldDesc.Title = "tag of objectname"
+'                aFieldDesc.ID = "cnfl4"
+'                aFieldDesc.Aliases = New String() {}
+'                aFieldDesc.ColumnName = "tag"
+'                aFieldDesc.Size = 100
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
 
-                '***** message log tag
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "message log tag"
-                aFieldDesc.Aliases = New String() {}
-                aFieldDesc.ID = ""
-                aFieldDesc.ColumnName = "msglogtag"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                '***** isactive
+'                aFieldDesc.Datatype = otFieldDataType.Bool
+'                aFieldDesc.Title = "is an active setting"
+'                aFieldDesc.Aliases = New String() {}
+'                aFieldDesc.ID = "cnfl5"
+'                aFieldDesc.ColumnName = "isactive"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                '***
-                '*** TIMESTAMP
-                '****
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "last Update"
-                aFieldDesc.ColumnName = ConstFNUpdatedOn
-                aFieldDesc.ID = ""
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                '***** message log tag
+'                aFieldDesc.Datatype = otFieldDataType.[Long]
+'                aFieldDesc.Title = "datatype of tag"
+'                aFieldDesc.Aliases = New String() {}
+'                aFieldDesc.ID = ""
+'                aFieldDesc.ColumnName = "datatype"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "creation Date"
-                aFieldDesc.ColumnName = ConstFNCreatedOn
-                aFieldDesc.ID = ""
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' Index
-                Call .AddIndex("PrimaryKey", PrimaryColumnNames, isprimarykey:=True)
+'                '***** message log tag
+'                aFieldDesc.Datatype = otFieldDataType.Text
+'                aFieldDesc.Title = "message log tag"
+'                aFieldDesc.Aliases = New String() {}
+'                aFieldDesc.ID = ""
+'                aFieldDesc.ColumnName = "msglogtag"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                ' persist
-                .Persist()
-                ' change the database
-                .AlterSchema()
+'                '***
+'                '*** TIMESTAMP
+'                '****
+'                aFieldDesc.Datatype = otFieldDataType.Timestamp
+'                aFieldDesc.Title = "last Update"
+'                aFieldDesc.ColumnName = ConstFNUpdatedOn
+'                aFieldDesc.ID = ""
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-            End With
+'                aFieldDesc.Datatype = otFieldDataType.Timestamp
+'                aFieldDesc.Title = "creation Date"
+'                aFieldDesc.ColumnName = ConstFNCreatedOn
+'                aFieldDesc.ID = ""
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                ' Index
+'                Call .AddIndex("PrimaryKey", PrimaryColumnNames, isprimarykey:=True)
 
-            ' reset the Table description
-            If Not Me.Record.SetTable(ourTableName, forceReload:=True) Then
-                Call CoreMessageHandler(subname:="clsOTDBConfigurableLink.createSchema", tablename:=ourTableName, _
-                                      message:="Error while setTable in createSchema")
-            End If
+'                ' persist
+'                .Persist()
+'                ' change the database
+'                .CreateObjectSchema()
 
-            '
-            createSchema = True
-            Exit Function
+'            End With
 
-            ' Handle the error
-error_handle:
-            Call CoreMessageHandler(subname:="clsOTDBConfigurableLink.createSchema", tablename:=ourTableName)
-            createSchema = False
+'            ' reset the Table description
+'            If Not Me.Record.SetTable(ourTableName, forceReload:=True) Then
+'                Call CoreMessageHandler(subname:="clsOTDBConfigurableLink.createSchema", tablename:=ourTableName, _
+'                                      message:="Error while setTable in createSchema")
+'            End If
+
+'            '
+'            createSchema = True
+'            Exit Function
+
+'            ' Handle the error
+'error_handle:
+'            Call CoreMessageHandler(subname:="clsOTDBConfigurableLink.createSchema", tablename:=ourTableName)
+'            createSchema = False
         End Function
 
         '**** infuse the the Object by a OTBRecord
@@ -3569,7 +3569,7 @@ errorhandle:
 
         '****** getCurrSchedule entry
         '******
-        Public Function loadBy(ByVal UID As Long, _
+        Public Function Inject(ByVal UID As Long, _
                                ByVal CONFIGNAME As String, _
                                ByVal TAG As Object) As Boolean
             Dim aTable As iormDataStore
@@ -3579,7 +3579,7 @@ errorhandle:
             '* init
             If Not Me.IsInitialized Then
                 If Not Me.initialize() Then
-                    loadBy = False
+                    Inject = False
                     Exit Function
                 End If
             End If
@@ -3596,12 +3596,12 @@ errorhandle:
 
             If aRecord Is Nothing Then
                 Me.Unload()
-                loadBy = Me.IsLoaded
+                Inject = Me.IsLoaded
                 Exit Function
             Else
                 Me.Record = aRecord
                 _IsLoaded = Me.Infuse(Me.Record)
-                loadBy = Me.IsLoaded
+                Inject = Me.IsLoaded
                 Exit Function
             End If
         End Function

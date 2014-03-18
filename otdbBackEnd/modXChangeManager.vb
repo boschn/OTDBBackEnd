@@ -58,12 +58,12 @@ Namespace Ontrack
                                                          ByVal xcmd As otXChangeCommandType) As clsOTDBXChangeConfig
                 Dim anObjectName As String
                 Dim aNewConfig As New clsOTDBXChangeConfig
-                Dim aSchemaDefTable As New ObjectDefinition
+                Dim anObjectDefinition As ObjectDefinition = OnTrack.ObjectDefinition.Retrieve(objectname:=objectname)
                 Dim i As Long
 
                 '*** load the table definition
-                If Not aSchemaDefTable.LoadBy(objectname) Then
-                    Call ot.CoreMessageHandler(arg1:=objectname, tablename:=objectname, message:=" Could not load SchemaTableDefinition")
+                If anObjectDefinition Is Nothing Then
+                    Call ot.CoreMessageHandler(arg1:=objectname, tablename:=objectname, message:=" Could not load ObjectDEFINITION")
                     CreateXChangeConfigFromTable = Nothing
                     Exit Function
                 End If
@@ -71,7 +71,7 @@ Namespace Ontrack
                 '****
                 '****
                 anObjectName = objectname
-                If aNewConfig.LoadBy(configname) Then
+                If aNewConfig.Inject(configname) Then
                     aNewConfig.Delete()
                 End If
 
@@ -80,8 +80,8 @@ Namespace Ontrack
                 aNewConfig.AddObjectByName(anObjectName)
                 i = 1
                 '
-                For Each aFieldDef As ObjectEntryDefinition In aSchemaDefTable.Entries
-                    If aFieldDef.ID <> "" Then
+                For Each aFieldDef As AbstractEntryDefinition In anObjectDefinition.Entries
+                    If aFieldDef.XID <> "" Then
                         Call aNewConfig.AddAttributeByField(objectentry:=aFieldDef, ordinal:=New Ordinal(i), xcmd:=xcmd)
                         i = i + 1
                     End If
@@ -96,22 +96,18 @@ Namespace Ontrack
                                                        ByVal IDs As Object, _
                                                        ByVal XCMD As otXChangeCommandType, _
                                                        Optional ByRef OBJECTNAMES As Object = Nothing) As clsOTDBXChangeConfig
-                Dim anObjectName As String
                 Dim aNewConfig As New clsOTDBXChangeConfig
-                Dim aColl As Collection
-                Dim aSchemaDefTable As New ObjectDefinition
-                Dim m As Object
-                Dim aFieldDef As New ObjectEntryDefinition
+
                 Dim i As Long
 
                 '*** load the table definition
-                'If Not aSchemaDefTable.loadBy(Tablename) Then
+                'If Not aSchemaDefTable.Inject(Tablename) Then
                 '    Call OTDBErrorHandler(arg1:=Tablename, Tablename:=Tablename, message:=" Could not load SchemaTableDefinition")
                 '    Set createXChangeConfigFromIDs = Nothing
                 '    Exit Function
                 'End If
                 'anObjectName = Tablename
-                'If aNewConfig.loadBy(ConfigName) Then
+                'If aNewConfig.Inject(ConfigName) Then
                 '    aNewConfig.delete
                 'End If
 

@@ -15,24 +15,17 @@ Imports System.Collections
 Imports System.ComponentModel
 Imports OnTrack
 Imports OnTrack.Database
+Imports System.Reflection
 
 Namespace OnTrack
 
-    '*************************************************************************************
-    '*************************************************************************************
-
-    Public Enum otAccessRight
-        Prohibited = 0
-        [ReadOnly] = 1
-        ReadUpdateData = 2
-        AlterSchema = 4
-    End Enum
-
-    '********** Structure to Use to Validate UserInformation
-    '**********
-
+    
+    ''' <summary>
+    ''' Structure to Use to Validate UserInformation
+    ''' </summary>
+    ''' <remarks></remarks>
     Public Structure UserValidation
-        Public validEntry As Boolean
+        Public ValidEntry As Boolean
 
         Public Username As String
         Public Password As String
@@ -48,7 +41,7 @@ Namespace OnTrack
     '**** INTERFACE iOTDBForm defines a Wrapper for a Form UI for the Core to use
     '****           
     '****
-        
+
     Public Interface iOTDBUIAbstractForm
 
     End Interface
@@ -71,13 +64,52 @@ Namespace OnTrack.Database
         ADONETSQL
         ADONETOLEDB
     End Enum
-    '*************************************************************************************
-    '**** ENUM OTDBFieldDatatype -> type of datafields
+
+    ''' <summary>
+    ''' Enumeration of the validation properties
+    ''' </summary>
+    ''' <remarks></remarks>
+    Public Enum otValidationProperties
+        <Description("ALPHANUM")> Alphanum
+
+    End Enum
+    ''' <summary>
+    ''' type of validation results
+    ''' </summary>
+    ''' <remarks></remarks>
+    Public Enum otValidationResultType
+        FailedNoSave = 1
+        FailedButSave
+        Succeeded
+    End Enum
+    ''' <summary>
+    ''' Point of Lifecycle to infuse a relation
+    ''' </summary>
+    ''' <remarks></remarks>
+
+    Public Enum otInfuseMode
+        None = 0
+        OnInject = 1
+        OnCreate = 2
+        OnDefault = 8
+        OnDemand = 16
+        Always = 27 ' Logical AND of everything
+    End Enum
+    ''' <summary>
+    ''' the Foreign Key Implementation layer
+    ''' on Native Database layer or ORM (internal)
+    ''' </summary>
+    ''' <remarks></remarks>
+    Public Enum otForeignKeyImplementation
+        None = 0
+        NativeDatabase = 1
+        ORM = 3
+    End Enum
     ''' <summary>
     ''' Data Types for OnTrack Database Fields
     ''' </summary>
     ''' <remarks></remarks>
-        
+
     <TypeConverter(GetType(Long))> Public Enum otFieldDataType
         Numeric = 1
         List = 2
@@ -98,8 +130,50 @@ Namespace OnTrack.Database
     '**** INTERFACE iOTDBDatabaseEnvirorment defines a Wrapper fora Database with the
     '****           ORM functions for a DataObject
     '****
+    ''' <summary>
+    ''' interface defines a wraper database definition class for ORM functions
+    ''' </summary>
+    ''' <remarks></remarks>
+    Public Interface iormDatabaseDriver
 
-    Public Interface iormDBDriver
+        ''' <summary>
+        ''' returns or creates foreign keys for a columndefinition
+        ''' </summary>
+        ''' <param name="nativeTable"></param>
+        ''' <param name="columndefinition"></param>
+        ''' <param name="createOrAlter"></param>
+        ''' <param name="connection"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Function GetForeignKeys(nativeTable As Object, foreignkeydefinition As ForeignKeyDefinition, Optional createOrAlter As Boolean = False, Optional ByRef connection As iormConnection = Nothing) As IEnumerable(Of Object)
+
+        Function CreateGlobalDomain(Optional ByRef nativeConnection As Object = Nothing) As Boolean
+
+        Function HasAdminUserValidation(Optional ByRef nativeConnection As Object = Nothing) As Boolean
+
+        ''' <summary>
+        ''' creates or retrieves an index out of a indexdefinition
+        ''' </summary>
+        ''' <param name="nativeTable"></param>
+        ''' <param name="indexdefinition"></param>
+        ''' <param name="forceCreation"></param>
+        ''' <param name="createOrAlter"></param>
+        ''' <param name="connection"></param>
+        ''' <returns>native index object</returns>
+        ''' <remarks></remarks>
+        Function GetIndex(ByRef nativeTable As Object, ByRef indexdefinition As IndexDefinition, Optional forceCreation As Boolean = False, _
+                          Optional createOrAlter As Boolean = False, Optional ByRef connection As iormConnection = Nothing) As Object
+
+        ''' <summary>
+        ''' Install the OnTrackDatabase
+        ''' </summary>
+        ''' <param name="askBefore"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Function InstallOnTrackDatabase(askBefore As Boolean, modules As String()) As Boolean
+
+        '*** Bootstrap Install Request
+        Event RequestBootstrapInstall(sender As Object, e As SessionBootstrapEventArgs)
 
         '** the ID
         Property ID() As String
@@ -127,14 +201,13 @@ Namespace OnTrack.Database
         ''' </summary>
         ''' <returns>true if OnTrack is ok</returns>
         ''' <remarks></remarks>
-        Function VerifyOnTrackDatabase(verifyOnly As Boolean, createOnMissing As Boolean) As Boolean
+        Function VerifyOnTrackDatabase(Optional modules As String() = Nothing, Optional install As Boolean = False, Optional verifySchema As Boolean = False) As Boolean
 
         '*** Register Connection
         Function RegisterConnection(ByRef connection As iormConnection) As Boolean
 
         '*** create
-        Function GetCatalog(Optional ByVal force As Boolean = False, _
-        Optional ByRef nativeConnection As Object = Nothing) As Object
+        Function GetCatalog(Optional ByVal force As Boolean = False, Optional ByRef connection As iormConnection = Nothing) As Object
 
         ''' <summary>
         ''' returns true if the datastore has the table
@@ -143,7 +216,25 @@ Namespace OnTrack.Database
         ''' <param name="nativeConnection"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Function HasTable(ByVal tableID As String, Optional ByRef nativeConnection As Object = Nothing) As Boolean
+        Function HasTable(ByVal tableID As String, Optional ByRef connection As iormConnection = Nothing, Optional nativeConnection As Object = Nothing) As Boolean
+
+        ''' <summary>
+        ''' returns True if data store has the table by definition
+        ''' </summary>
+        ''' <param name="tablename"></param>
+        ''' <param name="connection"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Function VerifyTableSchema(tabledefinition As TableDefinition, Optional ByRef connection As iormConnection = Nothing, Optional nativeConnection As Object = Nothing) As Boolean
+
+        ''' <summary>
+        ''' returns True if data store has the table by definition
+        ''' </summary>
+        ''' <param name="tablename"></param>
+        ''' <param name="connection"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Function VerifyTableSchema(tableattribute As ormSchemaTableAttribute, Optional ByRef connection As iormConnection = Nothing, Optional nativeConnection As Object = Nothing) As Boolean
 
         ''' <summary>
         ''' returns or creates a Table in the data store
@@ -156,30 +247,10 @@ Namespace OnTrack.Database
         ''' <returns></returns>
         ''' <remarks></remarks>
         Function GetTable(ByVal tablename As String, _
-        Optional ByVal createOrAlter As Boolean = True, _
-        Optional ByVal addToSchemaDir As Boolean = True, _
-        Optional ByRef nativeConnection As Object = Nothing, _
-        Optional ByRef tableNativeObject As Object = Nothing) As Object
+                Optional ByVal createOrAlter As Boolean = False, _
+                Optional ByRef connection As iormConnection = Nothing, _
+                Optional ByRef tableNativeObject As Object = Nothing) As Object
 
-        ''' <summary>
-        ''' returns or create an Index in the data store
-        ''' </summary>
-        ''' <param name="nativeTable"></param>
-        ''' <param name="indexname"></param>
-        ''' <param name="columnNames"></param>
-        ''' <param name="primaryKey"></param>
-        ''' <param name="forceCreation"></param>
-        ''' <param name="createOrAlter"></param>
-        ''' <param name="addToSchemaDir"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Function GetIndex(ByRef nativeTable As Object, _
-        ByRef indexname As String, _
-        ByRef columnNames As List(Of String), _
-        Optional ByVal primaryKey As Boolean = False, _
-        Optional ByVal forceCreation As Boolean = False, _
-        Optional ByVal createOrAlter As Boolean = True, _
-        Optional ByVal addToSchemaDir As Boolean = True) As Object
         ''' <summary>
         ''' returns true if the data store has the columnname in the table
         ''' </summary>
@@ -188,7 +259,27 @@ Namespace OnTrack.Database
         ''' <param name="nativeConnection"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Function HasColumn(tableID As String, columnname As String, Optional ByRef nativeConnection As Object = Nothing) As Boolean
+        Function HasColumn(tableID As String, columnname As String, Optional ByRef connection As iormConnection = Nothing) As Boolean
+        ''' <summary>
+        ''' returns true if the data store has the column definition in the table
+        ''' </summary>
+        ''' <param name="tablename"></param>
+        ''' <param name="columnname"></param>
+        ''' <param name="nativeConnection"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Function VerifyColumnSchema(columndefinition As ColumnDefinition, Optional ByRef connection As iormConnection = Nothing, Optional silent As Boolean = False) As Boolean
+
+        ''' <summary>
+        ''' returns true if the data store has the column table attribute in the table
+        ''' </summary>
+        ''' <param name="tablename"></param>
+        ''' <param name="columnname"></param>
+        ''' <param name="nativeConnection"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Function VerifyColumnSchema(columnattribute As ormSchemaTableColumnAttribute, Optional ByRef connection As iormConnection = Nothing, Optional silent As Boolean = False) As Boolean
+
         ''' <summary>
         ''' returns or creates a column in the data store
         ''' </summary>
@@ -198,24 +289,82 @@ Namespace OnTrack.Database
         ''' <param name="addToSchemaDir"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Function GetColumn(nativeTable As Object, fielddescription As ormFieldDescription, _
-        Optional ByVal createOrAlter As Boolean = True, _
-        Optional ByVal addToSchemaDir As Boolean = True) As Object
-        '** Parameter
+        Function GetColumn(nativeTable As Object, columndefinition As ColumnDefinition, Optional ByVal createOrAlter As Boolean = False, Optional ByRef connection As iormConnection = Nothing) As Object
+        ''' <summary>
+        ''' creates the UserDefinition Table
+        ''' </summary>
+        ''' <param name="nativeConnection"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
         Function CreateDBUserDefTable(Optional ByRef nativeConnection As Object = Nothing) As Boolean
-
+        ''' <summary>
+        ''' creates the DB parameter table
+        ''' </summary>
+        ''' <param name="nativeConnection"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
         Function CreateDBParameterTable(Optional ByRef nativeConnection As Object = Nothing) As Boolean
 
+        ''' <summary>
+        ''' sets a db parameter
+        ''' </summary>
+        ''' <param name="parametername"></param>
+        ''' <param name="value"></param>
+        ''' <param name="nativeConnection"></param>
+        ''' <param name="updateOnly"></param>
+        ''' <param name="silent"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
         Function SetDBParameter(ByVal parametername As String, ByVal value As Object, Optional ByRef nativeConnection As Object = Nothing, _
         Optional ByVal updateOnly As Boolean = False, Optional ByVal silent As Boolean = False) As Boolean
+
+        ''' <summary>
+        ''' returns a DB parameter value
+        ''' </summary>
+        ''' <param name="parametername"></param>
+        ''' <param name="nativeConnection"></param>
+        ''' <param name="silent"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
         Function GetDBParameter(parametername As String, Optional ByRef nativeConnection As Object = Nothing, Optional silent As Boolean = False) As Object
 
-        '*** get user definition
+        ''' <summary>
+        ''' gets a user validation structure from the DB
+        ''' </summary>
+        ''' <param name="username"></param>
+        ''' <param name="selectAnonymous"></param>
+        ''' <param name="nativeConnection"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
         Function GetUserValidation(ByVal username As String, Optional ByVal selectAnonymous As Boolean = False, Optional ByRef nativeConnection As Object = Nothing) As UserValidation
-        '*** get the TableStore
+
+        ''' <summary>
+        ''' returns a Tablestore Object
+        ''' </summary>
+        ''' <param name="tableID"></param>
+        ''' <param name="force"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
         Function GetTableStore(ByVal tableID As String, Optional ByVal force As Boolean = False) As iormDataStore
+
+        ''' <summary>
+        ''' returns a Tableschema Object
+        ''' </summary>
+        ''' <param name="tableID"></param>
+        ''' <param name="force"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
         Function GetTableSchema(ByVal tableID As String, Optional ByVal force As Boolean = False) As iotDataSchema
 
+        ''' <summary>
+        ''' runs a sql statement against the database
+        ''' </summary>
+        ''' <param name="sqlcmdstr"></param>
+        ''' <param name="parameters"></param>
+        ''' <param name="silent"></param>
+        ''' <param name="nativeConnection"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
         Function RunSqlStatement(ByVal sqlcmdstr As String, Optional ByRef parameters As List(Of ormSqlCommandParameter) = Nothing, _
         Optional silent As Boolean = True, Optional nativeConnection As Object = Nothing) As Boolean
 
@@ -262,7 +411,7 @@ Namespace OnTrack.Database
         ''' <param name="aNativeConnection"></param>
         ''' <returns>a idbcommand</returns>
         ''' <remarks></remarks>
-        Function CreateNativeDBCommand(p1 As String, aNativeConnection As Data.IDbConnection) As Data.IDbCommand
+        Function CreateNativeDBCommand(p1 As String, nativeConnection As Data.IDbConnection) As Data.IDbCommand
         ''' <summary>
         ''' creates and assigns a native DB Paramter by otdb datatype
         ''' </summary>
@@ -271,10 +420,7 @@ Namespace OnTrack.Database
         ''' <param name="value"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Function AssignNativeDBParameter(parametername As String, _
-        datatype As otFieldDataType, _
-        Optional maxsize As Long = 0, _
-        Optional value As Object = Nothing) As System.Data.IDbDataParameter
+        Function AssignNativeDBParameter(parametername As String, datatype As otFieldDataType, Optional maxsize As Long = 0, Optional value As Object = Nothing) As System.Data.IDbDataParameter
 
         ''' <summary>
         ''' returns the target type for a OTDB FieldType - MAPPING
@@ -294,11 +440,9 @@ Namespace OnTrack.Database
         ''' <param name="fieldname">optional fieldname to use on error handling</param>
         ''' <returns>the converted object</returns>
         ''' <remarks></remarks>
-        Function Convert2DBData(ByVal value As Object, _
-        targetType As Long, _
-        Optional ByVal maxsize As Long = 0, _
-        Optional ByRef abostrophNecessary As Boolean = False, _
-        Optional ByVal fieldname As String = "") As Object
+        Function Convert2DBData(ByVal invalue As Object, ByRef outvalue As Object, targetType As Long, _
+                                Optional ByVal maxsize As Long = 0, Optional ByRef abostrophNecessary As Boolean = False, _
+                                Optional ByVal fieldname As String = "", Optional isnullable As Boolean = False, Optional defaultvalue As Object = Nothing) As Boolean
     End Interface
     '************************************************************************************
     '**** INTERFACE iOTDBTableStore defines a Wrapper Connector to a Database with the
@@ -461,11 +605,13 @@ Namespace OnTrack.Database
         ''' <param name="fieldname">optional fieldname to use on error handling</param>
         ''' <returns>the converted object</returns>
         ''' <remarks></remarks>
-        Function Convert2ColumnData(ByVal value As Object, _
-        targetType As Long, _
-        Optional ByVal maxsize As Long = 0, _
-        Optional ByRef abostrophNecessary As Boolean = False, _
-        Optional ByVal fieldname As String = "") As Object
+        Function Convert2ColumnData(ByVal invalue As Object, ByRef outvalue As Object, _
+                                    targetType As Long, _
+                                    Optional ByVal maxsize As Long = 0, _
+                                    Optional ByRef abostrophNecessary As Boolean = False, _
+                                    Optional ByVal fieldname As String = "", _
+                                    Optional isnullable As Boolean? = Nothing, _
+                                    Optional defaultvalue As Object = Nothing) As Boolean
         ''' <summary>
         ''' convert a value to data type of the column
         ''' </summary>
@@ -475,8 +621,10 @@ Namespace OnTrack.Database
         ''' <returns>converted value</returns>
         ''' <remarks></remarks>
         Function Convert2ColumnData(ByVal index As Object, _
-        ByVal value As Object, _
-        Optional ByRef abostrophNecessary As Boolean = False) As Object
+                                    ByVal invalue As Object, ByRef outvalue As Object, _
+                                    Optional ByRef abostrophNecessary As Boolean = False, _
+                                    Optional isnullable As Boolean? = Nothing, _
+                                    Optional defaultvalue As Object = Nothing) As Boolean
 
         '********* cvt2ObjData returns a object from the native Datatype 
         ''' <summary>
@@ -488,8 +636,10 @@ Namespace OnTrack.Database
         ''' <returns></returns>
         ''' <remarks></remarks>
         Function Convert2ObjectData(ByVal index As Object, _
-        ByVal value As Object, _
-        Optional ByRef abostrophNecessary As Boolean = False) As Object
+                                    ByVal invalue As Object, ByRef outvalue As Object, _
+                                    Optional isnullable As Boolean? = Nothing, _
+                                    Optional defaultvalue As Object = Nothing, _
+                                    Optional ByRef abostrophNecessary As Boolean = False) As Boolean
 
         ''' <summary>
         ''' returns true if the tablestore has the named property
@@ -589,6 +739,9 @@ Namespace OnTrack.Database
     ''' </summary>
     ''' <remarks></remarks>
     Public Interface iotDataSchema
+
+        Function GetNullable(index As Object) As Boolean
+
         ''' <summary>
         ''' associated table id of the schema
         ''' </summary>
@@ -610,6 +763,9 @@ Namespace OnTrack.Database
         ''' <returns></returns>
         ''' <remarks></remarks>
         ReadOnly Property Indices As List(Of String)
+
+        ReadOnly Property PrimaryKeys As List(Of String)
+
         ''' <summary>
         ''' refresh loads the schema
         ''' </summary>
@@ -759,7 +915,7 @@ Namespace OnTrack.Database
 
         '******** Connect : Connects to the Database and initialize Environment
         Function Connect(Optional ByVal FORCE As Boolean = False, _
-        Optional ByVal access As otAccessRight = otAccessRight.[readonly], _
+        Optional ByVal access As otAccessRight = otAccessRight.[ReadOnly], _
          Optional ByVal domainID As String = "", _
         Optional ByVal OTDBUsername As String = "", _
         Optional ByVal OTDBPassword As String = "", _
@@ -812,11 +968,6 @@ Namespace OnTrack.Database
         ''' <value>The access.</value>
         Property Access As otAccessRight
 
-        ''' <summary>
-        ''' Gets or sets the user.
-        ''' </summary>
-        ''' <value>The user.</value>
-        Property OTDBUser As OnTrack.User
 
         ''' <summary>
         ''' Gets or sets the dbpassword.
@@ -857,7 +1008,7 @@ Namespace OnTrack.Database
         ''' Gets or sets the DatabaseEnvirorment.
         ''' </summary>
         ''' <value>iOTDBDatabaseEnvirorment</value>
-        Property DatabaseDriver As iormDBDriver
+        Property DatabaseDriver As iormDatabaseDriver
         ''' <summary>
         ''' Gets the NativeConnection.
         ''' </summary>
@@ -878,15 +1029,64 @@ Namespace OnTrack.Database
         Optional ByRef password As String = "", _
         Optional ByRef domainID As String = "", _
         Optional ByRef [Objectnames] As List(Of String) = Nothing, _
-        Optional forceLogin As Boolean = False, _
-        Optional loginOnDemand As Boolean = False) As Boolean
+        Optional useLoginWindow As Boolean = True, Optional messagetext As String = Nothing) As Boolean
 
         '*** Events
         Event OnConnection As EventHandler(Of ormConnectionEventArgs)
         Event OnDisconnection As EventHandler(Of ormConnectionEventArgs)
 
     End Interface
+    ''' <summary>
+    ''' Interface for Validation of objects
+    ''' </summary>
+    ''' <remarks></remarks>
+    Public Interface iormValidatable
 
+        ''' <summary>
+        ''' Event on Class Level for Validation (before Validating)
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Event ClassOnValidating(sender As Object, e As ormDataObjectEventArgs)
+        ''' <summary>
+        ''' Event on Class Level for Validation (after Validation)
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Event ClassOnValidated(sender As Object, e As ormDataObjectEventArgs)
+        ''' <summary>
+        ''' Event on Object Instance Level for Validation (before Validation)
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Event OnValidating(sender As Object, e As ormDataObjectEventArgs)
+        ''' <summary>
+        ''' Event on Object Instance Level for Validation (after Validation)
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Event OnValidated(sender As Object, e As ormDataObjectEventArgs)
+
+        ''' <summary>
+        ''' validates the Business Object as total
+        ''' </summary>
+        ''' <returns>True if validated and OK</returns>
+        ''' <remarks></remarks>
+        Function Validate() As otValidationResultType
+
+        ''' <summary>
+        ''' validates a named object entry of the object
+        ''' </summary>
+        ''' <param name="enryname"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Function Validate(enryname As String, value As Object) As otValidationResultType
+
+    End Interface
 
     '************************************************************************************
     '**** INTERFACE iOTDBDataObject
@@ -898,7 +1098,25 @@ Namespace OnTrack.Database
 
     Public Interface iormPersistable
 
-        Property DbDriver As iormDBDriver
+        ''' <summary>
+        ''' creates an Object out or a record
+        ''' </summary>
+        ''' <param name="record"></param>
+        ''' <param name="domainID"></param>
+        ''' <param name="checkUnique"></param>
+        ''' <param name="runtimeOnly"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+
+        Function feedrecord(Optional record As ormRecord = Nothing) As Boolean
+
+        Function isalive(Optional throwError As Boolean = True, Optional subname As String = "") As Boolean
+
+        Property ObjectClassDescription As ObjectClassDescription
+
+        Function Create(ByRef record As ormRecord, Optional domainID As String = "", Optional checkUnique As Boolean = False, Optional runtimeOnly As Boolean = False) As Boolean
+
+        Property DbDriver As iormDatabaseDriver
         ''' <summary>
         ''' Tablestore associated with this data object
         ''' </summary>
@@ -942,18 +1160,33 @@ Namespace OnTrack.Database
         ''' <remarks></remarks>
         ReadOnly Property IsInitialized As Boolean
         ''' <summary>
+        ''' returns the Object ID of the persistable
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        ReadOnly Property ObjectID As String
+        ''' <summary>
+        ''' returns True if the persistable is only a runtime object and not persistable before not switched to runtimeOff
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        ReadOnly Property RuntimeOnly As Boolean
+
+        ''' <summary>
         ''' Initialize the data object
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Function Initialize() As Boolean
+        Function Initialize(Optional RuntimeOnly As Boolean = False) As Boolean
         ''' <summary>
         ''' load and infuse the dataobject by primary key
         ''' </summary>
         ''' <param name="pkArray"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Function LoadBy(ByRef pkArray() As Object, Optional domainID As String = "", Optional loadDeleted As Boolean = False) As Boolean
+        Function Inject(ByRef pkArray() As Object, Optional domainID As String = "", Optional loadDeleted As Boolean = False) As Boolean
         ''' <summary>
         ''' create a persistable dataobject
         ''' </summary>
@@ -961,7 +1194,7 @@ Namespace OnTrack.Database
         ''' <param name="checkUnique"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Function Create(ByRef pkArray() As Object, Optional domainID As String = "", Optional checkUnique As Boolean = False, Optional noInitialize As Boolean = False) As Boolean
+        Function Create(ByRef pkArray() As Object, Optional domainID As String = "", Optional checkUnique As Boolean = False, Optional runTimeonly As Boolean = False) As Boolean
 
         ''' <summary>
         ''' deletes a persistable object in the datastore
@@ -996,6 +1229,7 @@ Namespace OnTrack.Database
     ''' <remarks></remarks>
 
     Public Interface iormInfusable
+
         ''' <summary>
         ''' Infuse the object with data from the record
         ''' </summary>
@@ -1037,6 +1271,7 @@ Namespace OnTrack.Database
         Function Clone(Of T As {iormPersistable, iormInfusable, Class, New})(newpkarray() As Object) As T
     End Interface
 
+
     ''' <summary>
     ''' interface for having an Compound 
     ''' </summary>
@@ -1048,11 +1283,231 @@ Namespace OnTrack.Database
         ''' <param name="envelope"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Function AddSlotCompounds(ByRef envelope As Xchange.XEnvelope) As Boolean
+        Function AddSlotCompounds(ByRef envelope As XChange.XEnvelope) As Boolean
 
     End Interface
 End Namespace
-    
+
+Namespace OnTrack
+
+    ''' <summary>
+    ''' Interface for Object Entries
+    ''' </summary>
+    ''' <remarks></remarks>
+    Public Interface iObjectEntry
+        Inherits iormPersistable
+
+        ''' <summary>
+        ''' True if ObjectEntry has a defined lower value
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        ReadOnly Property HasLowerRangeValue() As Boolean
+
+        ''' <summary>
+        ''' gets the lower range Value
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Property LowerRangeValue() As Object
+
+        ''' <summary>
+        ''' True if ObjectEntry has a defined upper value
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        ReadOnly Property HasUpperRangeValue() As Boolean
+
+        ''' <summary>
+        ''' gets the upper range Value
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Property UpperRangeValue() As Object
+
+        ''' <summary>
+        ''' gets the list of possible values
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        ReadOnly Property HasPossibleValues() As Boolean
+
+        ''' <summary>
+        ''' gets the list of possible values
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Property PossibleValues() As List(Of String)
+
+        ''' <summary>
+        ''' Gets or sets the description.
+        ''' </summary>
+        ''' <value>The description.</value>
+        Property Description() As String
+
+        ''' <summary>
+        ''' sets or gets the object name of the entry
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        ReadOnly Property Objectname() As String
+
+        ''' <summary>
+        ''' sets or gets the XchangeManager ID for the field 
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Property XID() As String
+
+        ''' <summary>
+        ''' returns the name of the entry
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        ReadOnly Property Entryname() As String
+
+        ''' <summary>
+        ''' sets or gets the type otObjectEntryDefinitionType
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Property Typeid() As otObjectEntryDefinitiontype
+
+        ''' <summary>
+        ''' sets or gets true if this field is a spare field
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Property SpareFieldTag() As Object
+
+        '''' <summary>
+        '''' returns the field data type
+        '''' </summary>
+        '''' <value></value>
+        '''' <returns></returns>
+        '''' <remarks></remarks>
+        Property Datatype() As otFieldDataType
+        ''' <summary>
+        ''' returns version
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Property Version() As Long
+
+        ''' <summary>
+        ''' returns a array of aliases
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Property Aliases() As String()
+
+        ''' <summary>
+        ''' returns Title (Column Header)
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Property Title() As String
+
+        ''' <summary>
+        ''' sets or gets the default value for the object entry
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Property DefaultValue As Object
+
+        ''' <summary>
+        ''' returns True if the Entry is a Column
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Property IsColumn As Boolean
+
+        ''' <summary>
+        ''' returns true if the Entry is a Compound entry
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Property IsCompound As Boolean
+
+        ''' <summary>
+        ''' sets or gets the condition for dynamically looking up values
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Property LookupCondition As String
+
+        ''' <summary>
+        ''' returns true if there is a dynamically lookup condition
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        ReadOnly Property HasLookupCondition As Boolean
+
+        ReadOnly Property HasValidationProperties As Boolean
+
+        Property Validationproperties As String()
+
+        ReadOnly Property HasValidateRegExpression As Boolean
+
+        Property ValidateRegExpression As String
+
+        Property Validate As Boolean
+
+        ReadOnly Property HasRenderProperties As Boolean
+
+        Property RenderProperties As String()
+
+        ReadOnly Property HasRenderRegExpression As Boolean
+
+        Property RenderRegExpMatch As String
+
+        Property RenderRegExpPattern As String
+
+        Property Render As Boolean
+
+        Property Properties As List(Of ObjectEntryProperty)
+
+        Property Size As UShort
+
+        Property IsNullable As Boolean
+
+        Property PrimaryKeyOrdinal As UShort
+
+        Property InnerDatatype As otFieldDataType
+
+        Function SetByAttribute(attribute As ormObjectEntryAttribute) As Boolean
+
+        ''' <summary>
+        ''' handler for the OnSwitchRuntimeOff event
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Sub OnswitchRuntimeOff(sender As Object, e As ormDataObjectEventArgs)
+
+
+    End Interface
+
+End Namespace
 Namespace OnTrack
 
     '************************************************************************************
@@ -1084,7 +1539,7 @@ Namespace OnTrack
 
     End Interface
 End Namespace
-    
+
 Namespace OnTrack.XChange
 
     '************************************************************************************
@@ -1149,7 +1604,7 @@ Namespace OnTrack
     ' Enum of MilestoneTypes
 
     Public Enum otObjectEntryDefinitiontype
-        Field = 1
+        Column = 1
         Compound = 2
         Table = 3
     End Enum

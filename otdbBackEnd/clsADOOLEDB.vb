@@ -11,7 +11,7 @@ REM *********** Change Log:
 REM ***********
 REM *********** (C) by Boris Schneider 2013
 REM ***********************************************************************************************************************************************
-Option Explicit Off
+Option Explicit On
 
 Imports System.Collections
 Imports System.ComponentModel
@@ -30,20 +30,17 @@ Imports OnTrack
 Namespace OnTrack.Database
 
 
-    '************************************************************************************
-    '***** CLASS clsOLEDBDriver describes the  Database Driver  to OnTrack
-    '*****       based on ADO.NET OLEDB
-    '*****
     ''' <summary>
-    ''' clsOLEDBDriver is the database driver for ADO.NET OLEDB drivers
+    ''' oleDBDriver is the database driver for ADO.NET OLEDB drivers
     ''' </summary>
     ''' <remarks></remarks>
-    Public Class clsOLEDBDriver
-        Inherits clsADONETDBDriver
-        Implements iormDBDriver
+    Public Class oleDBDriver
+        Inherits adonetDBDriver
+        Implements iormDatabaseDriver
 
-        Protected Friend Shadows WithEvents _primaryConnection As clsOLEDBConnection '-> in clsOTDBDriver
+        Protected Friend Shadows WithEvents _primaryConnection As oledbConnection '-> in clsOTDBDriver
         Private Shadows _ParametersTableAdapter As New OleDbDataAdapter
+        Shadows Event RequestBootstrapInstall(sender As Object, e As SessionBootstrapEventArgs) Implements iormDatabaseDriver.RequestBootstrapInstall
 
         ''' <summary>
         ''' Constructor
@@ -53,7 +50,7 @@ Namespace OnTrack.Database
         Public Sub New(id As String, ByRef session As Session)
             Call MyBase.New(id, session)
             If Me._primaryConnection Is Nothing Then
-                _primaryConnection = New clsOLEDBConnection(id:="primary", DatabaseDriver:=Me, session:=session, sequence:=ConfigSequence.primary)
+                _primaryConnection = New oledbConnection(id:="primary", DatabaseDriver:=Me, session:=session, sequence:=ConfigSequence.primary)
             End If
         End Sub
 
@@ -64,12 +61,18 @@ Namespace OnTrack.Database
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads ReadOnly Property NativeConnection() As OleDbConnection
+        Public Overloads ReadOnly Property NativeConnection() As OleDb.OleDbConnection
             Get
-                Return DirectCast(_primaryConnection.NativeConnection, OleDbConnection)
+                Return DirectCast(_primaryConnection.NativeConnection, System.Data.OleDb.OleDbConnection)
             End Get
 
         End Property
+
+        ''' <summary>
+        ''' builds the adapter for the parameters table
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
         Private Function BuildParameterAdapter()
 
             With _ParametersTableAdapter
@@ -91,7 +94,7 @@ Namespace OnTrack.Database
                 "@changedOn", OleDbType.VarChar, 50, "changedOn")
                 .InsertCommand.Parameters.Add( _
                 "@description", OleDbType.VarChar, 250, "description")
-                .InsertCommand.Connection = DirectCast(_primaryConnection.NativeInternalConnection, OleDbConnection)
+                .InsertCommand.Connection = DirectCast(_primaryConnection.NativeInternalConnection, System.Data.OleDb.OleDbConnection)
                 .InsertCommand.Prepare()
 
 
@@ -109,7 +112,7 @@ Namespace OnTrack.Database
                 .UpdateCommand.Parameters.Add( _
                 "@ID", OleDbType.Char, 50, "ID").SourceVersion = _
                     DataRowVersion.Original
-                .UpdateCommand.Connection = DirectCast(_primaryConnection.NativeInternalConnection, OleDbConnection)
+                .UpdateCommand.Connection = DirectCast(_primaryConnection.NativeInternalConnection, System.Data.OleDb.OleDbConnection)
                 .UpdateCommand.Prepare()
 
 
@@ -119,7 +122,7 @@ Namespace OnTrack.Database
                 .DeleteCommand.Parameters.Add( _
                 "@ID", OleDbType.Char, 50, "ID").SourceVersion = _
                     DataRowVersion.Original
-                .DeleteCommand.Connection = DirectCast(_primaryConnection.NativeInternalConnection, OleDbConnection)
+                .DeleteCommand.Connection = DirectCast(_primaryConnection.NativeInternalConnection, System.Data.OleDb.OleDbConnection)
                 .DeleteCommand.Prepare()
 
             End With
@@ -127,41 +130,87 @@ Namespace OnTrack.Database
         End Function
         '***
         '*** Initialize Driver
-        Protected Friend Function Initialize(Optional Force As Boolean = False) As Boolean
+        ''' <summary>
+        ''' Initialize the driver
+        ''' </summary>
+        ''' <param name="Force"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Protected Friend Overrides Function Initialize(Optional force As Boolean = False) As Boolean
 
-            If Me.IsInitialized And Not Force Then
+            If Me.IsInitialized And Not force Then
                 Return True
             End If
 
             Try
-                Call MyBase.Initialize()
+                Call MyBase.Initialize(Force:=force)
 
                 ' we have no Connection ?!
                 If _primaryConnection Is Nothing Then
-                    _primaryConnection = New clsOLEDBConnection("primary", Me, _session, ConfigSequence.primary)
+                    _primaryConnection = New oledbConnection("primary", Me, _session, ConfigSequence.primary)
                 End If
-                '*** set the DataTable
-                _OnTrackDataSet = New DataSet("onTrackSession -" & Date.Now.ToString)
-                ' the command
-                Dim aDBCommand = New OleDbCommand()
-                aDBCommand.CommandText = "select ID, [Value], changedOn, description from " & _parametersTableName
-                aDBCommand.Connection = DirectCast(_primaryConnection.NativeInternalConnection, OleDbConnection)
-                ' fill with adapter
-                _ParametersTableAdapter = New OleDbDataAdapter()
-                _ParametersTableAdapter.SelectCommand = aDBCommand
-                _ParametersTableAdapter.MissingSchemaAction = MissingSchemaAction.AddWithKey
-                _ParametersTableAdapter.FillSchema(_OnTrackDataSet, SchemaType.Source)
-                _ParametersTableAdapter.Fill(_OnTrackDataSet, _parametersTableName)
-                ' build Commands
-                Call BuildParameterAdapter()
-                ' set the Table
-                _ParametersTable = _OnTrackDataSet.Tables(_parametersTableName)
+
+                '*** do we have the Table ?! - donot do this in bootstrapping since we are running in recursion then
+                If Not Me.HasTable(_parametersTableName) And Not _session.IsBootstrappingInstallationRequested Then
+                    If Not VerifyOnTrackDatabase(install:=False) Then
+                        '* now in bootstrap ?!
+                        If _session.IsBootstrappingInstallationRequested Then
+                            CoreMessageHandler(message:="verifying the database failed moved to bootstrapping - caching parameters meanwhile", _
+                                               subname:="oleDBDriver.Initialize", _
+                                          messagetype:=otCoreMessageType.InternalWarning, arg1:=Me.ID)
+                            Me.IsInitialized = True
+                            Return True
+                        Else
+                            CoreMessageHandler(message:="verifying the database failed - failed to initialize driver", subname:="oleDBDriver.Initialize", _
+                                              messagetype:=otCoreMessageType.InternalError, arg1:=Me.ID)
+                            Me.IsInitialized = False
+                            Return False
+                        End If
+                    End If
+                End If
+
+                '*** end of bootstrapping conditions reinitialize automatically
+                '*** might be that we are now in bootstrapping
+                If Not _session.IsBootstrappingInstallationRequested OrElse force Then
+                    '*** set the DataTable
+                    If _OnTrackDataSet Is Nothing Then _OnTrackDataSet = New DataSet(Me.ID & Date.Now.ToString)
+
+                    '** create adapaters
+                    If Me.HasTable(_parametersTableName) Then
+                        ' the command
+                        Dim aDBCommand = New OleDbCommand()
+                        aDBCommand.CommandText = "select ID, [Value], changedOn, description from " & _parametersTableName
+                        aDBCommand.Connection = DirectCast(_primaryConnection.NativeInternalConnection, System.Data.OleDb.OleDbConnection)
+                        ' fill with adapter
+                        _ParametersTableAdapter = New OleDbDataAdapter()
+                        _ParametersTableAdapter.SelectCommand = aDBCommand
+                        _ParametersTableAdapter.MissingSchemaAction = MissingSchemaAction.AddWithKey
+                        _ParametersTableAdapter.FillSchema(_OnTrackDataSet, SchemaType.Source)
+                        _ParametersTableAdapter.Fill(_OnTrackDataSet, _parametersTableName)
+                        ' build Commands
+                        Call BuildParameterAdapter()
+                        ' set the Table
+                        _ParametersTable = _OnTrackDataSet.Tables(_parametersTableName)
+
+                        '** save the cache
+                        If _BootStrapParameterCache.Count > 0 Then
+                            For Each kvp As KeyValuePair(Of String, Object) In _BootStrapParameterCache
+                                SetDBParameter(parametername:=kvp.Key, value:=kvp.Value, silent:=True)
+                            Next
+                            _BootStrapParameterCache.Clear()
+                        End If
+                    Else
+                        '** important to recognize where to write data
+                        _ParametersTable = Nothing
+                    End If
+
+                End If
 
                 Me.IsInitialized = True
                 Return True
             Catch ex As Exception
                 Me.IsInitialized = False
-                Call CoreMessageHandler(subname:="clsOLEDBDriver.OnConnection", message:="couldnot Initialize Driver", _
+                Call CoreMessageHandler(subname:="oleDBDriver.OnConnection", message:="couldnot Initialize Driver", _
                                       exception:=ex)
                 Me.IsInitialized = False
                 Return False
@@ -183,8 +232,8 @@ Namespace OnTrack.Database
         ''' <param name="TableID"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Protected Friend Overrides Function createNativeTableStore(ByVal TableID As String, ByVal forceSchemaReload As Boolean) As iormDataStore
-            Return New clsOLEDBTableStore(Me.CurrentConnection, TableID, forceSchemaReload)
+        Protected Friend Overrides Function CreateNativeTableStore(ByVal TableID As String, ByVal forceSchemaReload As Boolean) As iormDataStore
+            Return New oledbTableStore(Me.CurrentConnection, TableID, forceSchemaReload)
         End Function
         ''' <summary>
         ''' create a new TableSchema for this Driver
@@ -192,25 +241,34 @@ Namespace OnTrack.Database
         ''' <param name="TableID"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Protected Friend Overrides Function createNativeTableSchema(ByVal TableID As String) As iotDataSchema
-            Return New clsOLEDBTableSchema(Me.CurrentConnection, TableID)
+        Protected Friend Overrides Function CreateNativeTableSchema(ByVal TableID As String) As iotDataSchema
+            Return New oledbTableSchema(Me.CurrentConnection, TableID)
         End Function
         ''' <summary>
         ''' 
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overrides Function CreateNativeDBCommand(commandstr As String, nativeConnection As IDbConnection) As IDbCommand Implements iormDBDriver.CreateNativeDBCommand
+        Public Overrides Function CreateNativeDBCommand(commandstr As String, nativeConnection As IDbConnection) As IDbCommand Implements iormDatabaseDriver.CreateNativeDBCommand
             Return New OleDbCommand(commandstr, nativeConnection)
         End Function
 
+        ''' <summary>
+        '''  raise the RequestBootStrapInstall Event
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Protected Overrides Sub RaiseRequestBootstrapInstall(sender As Object, ByRef e As EventArgs)
+            RaiseEvent RequestBootstrapInstall(sender, e)
+        End Sub
         ''' <summary>
         ''' returns the target type for a OTDB FieldType - MAPPING
         ''' </summary>
         ''' <param name="type"></param>
         ''' <remarks></remarks>
         ''' <returns></returns>
-        Public Overrides Function GetTargetTypeFor(type As otFieldDataType) As Long Implements iormDBDriver.GetTargetTypeFor
+        Public Overrides Function GetTargetTypeFor(type As otFieldDataType) As Long Implements iormDatabaseDriver.GetTargetTypeFor
 
             Try
                 Select Case type
@@ -223,24 +281,25 @@ Namespace OnTrack.Database
                     Case otFieldDataType.Time
                         Return OleDbType.DBTime
                     Case otFieldDataType.List
-                        Return OleDbType.LongVarWChar
+                        Return OleDbType.WChar
                     Case otFieldDataType.[Long]
-                        Return OleDbType.BigInt
+                        Return OleDbType.Integer
                     Case otFieldDataType.Memo
-                        Return OleDbType.LongVarWChar
-                        Return OleDbType.Decimal
+                        Return OleDbType.WChar
+                    Case otFieldDataType.Numeric
+                        Return OleDbType.Double
                     Case otFieldDataType.Timestamp
-                        Return OleDbType.DBTimeStamp
+                        Return OleDbType.Date
                     Case otFieldDataType.Text
-                        Return OleDbType.LongVarWChar
+                        Return OleDbType.WChar
                     Case Else
 
-                        Call CoreMessageHandler(subname:="clsMSSQLDriver.GetTargetTypefor", message:="Type not defined",
+                        Call CoreMessageHandler(subname:="oleDBDriver.GetTargetTypefor", message:="Type not defined",
                                        messagetype:=otCoreMessageType.InternalException)
                 End Select
-              
+
             Catch ex As Exception
-                Call CoreMessageHandler(subname:="clsMSSQLDriver.GetTargetTypefor", message:="Exception", exception:=ex, _
+                Call CoreMessageHandler(subname:="oleDBDriver.GetTargetTypefor", message:="Exception", exception:=ex, _
                                        messagetype:=otCoreMessageType.InternalException)
                 Return 0
             End Try
@@ -254,94 +313,126 @@ Namespace OnTrack.Database
         ''' <param name="abostrophNecessary"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overrides Function Convert2DBData(ByVal value As Object, _
+        Public Overrides Function Convert2DBData(ByVal invalue As Object, ByRef outvalue As Object, _
                                                      targetType As Long, _
                                                      Optional ByVal maxsize As Long = 0, _
                                                     Optional ByRef abostrophNecessary As Boolean = False, _
-                                                    Optional ByVal fieldname As String = "") As Object Implements iormDBDriver.Convert2DBData
+                                                    Optional ByVal fieldname As String = "", _
+                                                    Optional isnullable As Boolean = False, _
+                                                     Optional defaultvalue As Object = Nothing) As Boolean Implements iormDatabaseDriver.Convert2DBData
 
-            Dim result As Object
+            Dim result As Object = Nothing
             Try
-                '*
-                '*
-                If IsError(value) Then
-                    Call CoreMessageHandler(subname:="clsOLEDBTablestore.cvt2ColumnData", _
-                                          message:="Error in Formular of field value " & value & " while updating OTDB", _
-                                          arg1:=value, messagetype:=otCoreMessageType.InternalError)
-                    System.Diagnostics.Debug.WriteLine("Error in Formular of field value " & value & " while updating OTDB")
-                    value = ""
+                
+                ''' convert an array object to a string
+                If IsArray(invalue) Then
+                    invalue = Converter.Array2String(invalue)
                 End If
 
-                If targetType = OleDbType.BigInt Or targetType = OleDbType.Integer _
-                      Or targetType = OleDbType.SmallInt Or targetType = OleDbType.TinyInt _
-                      Or targetType = OleDbType.UnsignedBigInt Or targetType = OleDbType.UnsignedInt _
-                      Or targetType = OleDbType.UnsignedSmallInt Or targetType = OleDbType.UnsignedTinyInt _
-                      Or targetType = OleDbType.SmallInt Or targetType = OleDbType.TinyInt Then
 
-                    If value Is Nothing OrElse IsError(value) OrElse DBNull.Value.Equals(value) _
-                        OrElse String.IsNullOrWhiteSpace(value.ToString) Then
-                        result = 0
-                    ElseIf IsNumeric(value) Then
-                        result = CLng(value)
-                    Else
-                        Call CoreMessageHandler(subname:="clsOLEDBTableStore.cvt2ColumnData", entryname:=fieldname, _
-                                              message:="OTDB data " & value & " is not convertible to Integer", _
-                                              arg1:=value, messagetype:=otCoreMessageType.InternalError)
-                        System.Diagnostics.Debug.WriteLine("OTDB data " & value & " is not convertible to Integer")
+                If targetType = OleDbType.BigInt OrElse targetType = OleDbType.Integer _
+                      OrElse targetType = OleDbType.SmallInt OrElse targetType = OleDbType.TinyInt _
+                      OrElse targetType = OleDbType.UnsignedBigInt OrElse targetType = OleDbType.UnsignedInt _
+                      OrElse targetType = OleDbType.UnsignedSmallInt OrElse targetType = OleDbType.UnsignedTinyInt _
+                      OrElse targetType = OleDbType.SmallInt OrElse targetType = OleDbType.TinyInt Then
+
+                    If defaultvalue Is Nothing Then defaultvalue = 0
+
+                    If isnullable AndAlso (invalue Is Nothing OrElse String.IsNullOrWhiteSpace(invalue.ToString) _
+                        OrElse DBNull.Value.Equals(invalue)) Then
                         result = DBNull.Value
+                    ElseIf Not isnullable AndAlso (invalue Is Nothing OrElse String.IsNullOrWhiteSpace(invalue.ToString) _
+                        OrElse IsError(invalue) OrElse DBNull.Value.Equals(invalue)) Then
+                        result = Convert.ToUInt64(defaultvalue)
+                    ElseIf IsNumeric(invalue) Then
+                        result = Convert.ToUInt64(invalue)
+                    Else
+                        Call CoreMessageHandler(subname:="oledbTableStore.cvt2ColumnData", entryname:=fieldname, _
+                                              message:="OTDB data " & invalue & " is not convertible to Integer", _
+                                              arg1:=invalue, messagetype:=otCoreMessageType.InternalError)
+                        System.Diagnostics.Debug.WriteLine("OTDB data " & invalue & " is not convertible to Integer")
+                        outvalue = Nothing
+                        Return False
+
                     End If
 
-                ElseIf targetType = OleDbType.Char Or targetType = OleDbType.BSTR Or targetType = OleDbType.LongVarChar _
-                Or targetType = OleDbType.LongVarWChar Or targetType = OleDbType.VarChar Or targetType = OleDbType.VarWChar _
-                Or targetType = OleDbType.WChar Then
-                    abostrophNecessary = True
+                ElseIf targetType = OleDbType.Char OrElse targetType = OleDbType.BSTR OrElse targetType = OleDbType.LongVarChar _
+                OrElse targetType = OleDbType.LongVarWChar OrElse targetType = OleDbType.VarChar OrElse targetType = OleDbType.VarWChar _
+                OrElse targetType = OleDbType.WChar Then
 
-                    If value Is Nothing OrElse IsError(value) OrElse DBNull.Value.Equals(value) OrElse String.IsNullOrWhiteSpace(value.ToString) Then
-                        result = ""
+                    abostrophNecessary = True
+                    If defaultvalue Is Nothing Then defaultvalue = ""
+
+                    If isnullable AndAlso (invalue Is Nothing OrElse DBNull.Value.Equals(invalue)) Then
+                        result = DBNull.Value
+
+                    ElseIf Not isnullable AndAlso (invalue Is Nothing OrElse String.IsNullOrWhiteSpace(invalue) OrElse _
+                                               DBNull.Value.Equals(invalue)) Then
+                        result = Convert.ToString(defaultvalue)
                     Else
-                        If maxsize < Len(CStr(value)) And maxsize <> 0 Then
-                            result = Mid(CStr(value), 1, maxsize - 1)
+                        If maxsize < Len(CStr(invalue)) And maxsize > 1 Then
+                            result = Mid(Convert.ToString(invalue), 0, maxsize - 1)
                         Else
-                            result = CStr(value)
+                            result = Convert.ToString(invalue)
                         End If
                     End If
 
-                ElseIf targetType = OleDbType.Date Or targetType = OleDbType.DBDate Or targetType = OleDbType.DBTime _
-                Or targetType = OleDbType.DBTimeStamp Then
-                    If value Is Nothing OrElse IsError(value) Or DBNull.Value.Equals(value) _
-                        OrElse String.IsNullOrWhiteSpace(value.ToString) Then
-                        result = ConstNullDate
-                    ElseIf IsDate(value) Then
-                        result = CDate(value)
-                    ElseIf value.GetType = GetType(TimeSpan) Then
-                        result = value
-                    Else
-                        System.Diagnostics.Debug.WriteLine("OTDB data " & value & " is not convertible to Date")
-                        Call CoreMessageHandler(subname:="clsOLEDBTableStore.cvt2ColumnData", entryname:=fieldname, _
-                                              message:="OTDB data " & value & " is not convertible to Date", _
-                                              arg1:=value, messagetype:=otCoreMessageType.InternalError)
-                        result = ConstNullDate
-                    End If
-                ElseIf targetType = OleDbType.Double Or targetType = OleDbType.Decimal _
-                Or targetType = OleDbType.Single Or targetType = OleDbType.Numeric Then
-                    If value Is Nothing OrElse IsError(value) Or DBNull.Value.Equals(value) _
-                       OrElse String.IsNullOrWhiteSpace(value.ToString) Then
-                        result = 0
-                    ElseIf IsNumeric(value) Then
-                        result = CDbl(value)
-                    Else
-                        System.Diagnostics.Debug.WriteLine("OTDB data " & value & " is not convertible to Double")
-                        Call CoreMessageHandler(subname:="clsOLEDBTableStore.cvt2ColumnData", entryname:=fieldname, _
-                                              message:="OTDB data " & value & " is not convertible to Double", _
-                                              arg1:=targetType, messagetype:=otCoreMessageType.InternalError)
+                ElseIf targetType = OleDbType.Date OrElse targetType = OleDbType.DBDate OrElse targetType = OleDbType.DBTime _
+                OrElse targetType = OleDbType.DBTimeStamp Then
+                    If defaultvalue Is Nothing Then defaultvalue = ConstNullDate
+
+                    If isnullable AndAlso (invalue Is Nothing OrElse String.IsNullOrWhiteSpace(invalue.ToString) OrElse _
+                         DBNull.Value.Equals(invalue)) Then
                         result = DBNull.Value
+                    ElseIf Not isnullable AndAlso (invalue Is Nothing OrElse String.IsNullOrWhiteSpace(invalue.ToString) OrElse _
+                         DBNull.Value.Equals(invalue)) Then
+                        result = Convert.ToDateTime(defaultvalue)
+                    ElseIf IsDate(invalue) Then
+                        result = Convert.ToDateTime(invalue)
+                    ElseIf invalue.GetType = GetType(TimeSpan) Then
+                        result = invalue
+                    Else
+                        Call CoreMessageHandler(subname:="oledbTableStore.cvt2ColumnData", entryname:=fieldname, _
+                                             message:="OTDB data " & invalue & " is not convertible to Date", _
+                                             arg1:=invalue, messagetype:=otCoreMessageType.InternalError)
+                        outvalue = Nothing
+                        Return False
                     End If
+
+                ElseIf targetType = OleDbType.Double OrElse targetType = OleDbType.Decimal _
+                OrElse targetType = OleDbType.Single OrElse targetType = OleDbType.Numeric Then
+
+                    If defaultvalue Is Nothing Then defaultvalue = Convert.ToDouble(0)
+
+                    If isnullable AndAlso (invalue Is Nothing OrElse String.IsNullOrWhiteSpace(invalue.ToString) _
+                        OrElse DBNull.Value.Equals(invalue)) Then
+                        result = DBNull.Value
+                    ElseIf Not isnullable AndAlso (invalue Is Nothing OrElse String.IsNullOrWhiteSpace(invalue.ToString) _
+                        OrElse DBNull.Value.Equals(invalue)) Then
+                        result = defaultvalue
+                    ElseIf IsNumeric(invalue) Then
+                        result = Convert.ToDouble(invalue)
+                    Else
+                        Call CoreMessageHandler(subname:="oledbTableStore.cvt2ColumnData", entryname:=fieldname, _
+                                              message:="OTDB data " & invalue & " is not convertible to Double", _
+                                              arg1:=targetType, messagetype:=otCoreMessageType.InternalError)
+
+                        outvalue = Nothing
+                        Return False
+                    End If
+
                 ElseIf targetType = OleDbType.Boolean Then
-                    If value Is Nothing OrElse IsError(value) OrElse DBNull.Value.Equals(value) _
-                       OrElse String.IsNullOrWhiteSpace(value.ToString) OrElse (IsNumeric(value) AndAlso value = 0) Then
-                        result = False
-                    ElseIf TypeOf (value) Is Boolean Then
-                        result = value
+
+                    If defaultvalue Is Nothing Then defaultvalue = Convert.ToBoolean(False)
+
+                    If isnullable AndAlso (invalue Is Nothing OrElse DBNull.Value.Equals(invalue) OrElse String.IsNullOrWhiteSpace(invalue.ToString) _
+                         OrElse (IsNumeric(invalue) AndAlso invalue = 0)) Then
+                        result = DBNull.Value
+                    ElseIf isnullable AndAlso (invalue Is Nothing OrElse DBNull.Value.Equals(invalue) OrElse String.IsNullOrWhiteSpace(invalue.ToString) _
+                         OrElse (IsNumeric(invalue) AndAlso invalue = 0)) Then
+                        result = defaultvalue
+                    ElseIf TypeOf (invalue) Is Boolean Then
+                        result = Convert.ToBoolean(invalue)
                     Else
                         result = True
                     End If
@@ -349,9 +440,10 @@ Namespace OnTrack.Database
                 End If
 
                 ' return
-                Return result
+                outvalue = result
+                Return True
             Catch ex As Exception
-                Call CoreMessageHandler(message:="Exception", subname:="clsOLEDBTablestore.convert2ColumnData(Object, long ..", _
+                Call CoreMessageHandler(message:="Exception", subname:="oledbTableStore.convert2ColumnData(Object, long ..", _
                                        exception:=ex, messagetype:=otCoreMessageType.InternalException)
                 Return Nothing
             End Try
@@ -368,7 +460,7 @@ Namespace OnTrack.Database
                                                           datatype As otFieldDataType, _
                                                            Optional maxsize As Long = 0, _
                                                           Optional value As Object = Nothing) As System.Data.IDbDataParameter _
-                                                      Implements iormDBDriver.AssignNativeDBParameter
+                                                      Implements iormDatabaseDriver.AssignNativeDBParameter
 
 
             Try
@@ -377,7 +469,7 @@ Namespace OnTrack.Database
                 aParameter.ParameterName = parametername
                 aParameter.OleDbType = GetTargetTypeFor(datatype)
                 Select Case datatype
-                 
+
                     Case otFieldDataType.Bool
                         aParameter.Value = False
                     Case otFieldDataType.[Date]
@@ -406,7 +498,7 @@ Namespace OnTrack.Database
                 End If
                 Return aParameter
             Catch ex As Exception
-                Call CoreMessageHandler(subname:="clsOLEDBDriver.assignDBParameter", message:="Exception", exception:=ex, _
+                Call CoreMessageHandler(subname:="oleDBDriver.assignDBParameter", message:="Exception", exception:=ex, _
                                        messagetype:=otCoreMessageType.InternalException)
                 Return Nothing
             End Try
@@ -420,7 +512,7 @@ Namespace OnTrack.Database
         ''' <param name="FORCE">The FORCE.</param>
         ''' <param name="NativeConnection">The native connection.</param>
         ''' <returns></returns>
-        Public Overrides Function GetCatalog(Optional FORCE As Boolean = False, Optional ByRef NativeConnection As Object = Nothing) As Object
+        Public Overrides Function GetCatalog(Optional FORCE As Boolean = False, Optional ByRef connection As iormConnection = Nothing) As Object
             ' TODO: Implement this method
             Throw New NotImplementedException()
         End Function
@@ -432,40 +524,54 @@ Namespace OnTrack.Database
         ''' <param name="nativeConnection"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overrides Function HasTable(tableid As String, Optional ByRef nativeConnection As Object = Nothing) As Boolean
-            Dim myConnection As clsOLEDBConnection
-            Dim aSchemaDir As ObjectDefinition
+        Public Overrides Function HasTable(tableid As String, _
+                                           Optional ByRef connection As iormConnection = Nothing, _
+                                           Optional nativeConnection As Object = Nothing) As Boolean
+            Dim myConnection As OnTrack.Database.oledbConnection
             Dim aTable As DataTable
-
+            Dim myNativeConnection As OleDb.OleDbConnection
 
             '* if already loaded
             If _TableDirectory.ContainsKey(key:=tableid) Then Return True
 
-
-
-            '* check rights
-            If LCase(tableid) <> LCase(User.ConstTableID) And LCase(tableid) <> LCase(ObjectDefinition.ConstTableID) Then
-                If Not _primaryConnection.VerifyUserAccess(otAccessRight.[ReadOnly], loginOnFailed:=True) Then
-                    Call CoreMessageHandler(showmsgbox:=True, subname:="clsOLEDBDriver.HasTable", tablename:=tableid, _
-                                          message:="No right to read schema of database", messagetype:=otCoreMessageType.ApplicationError)
-                    Return False
-                End If
+            If connection Is Nothing Then
+                myConnection = _primaryConnection
+            Else
+                myConnection = connection
             End If
 
-            'If _primaryConnection Is Nothing OrElse Not _primaryConnection.IsConnected Then
-            '    Call CoreMessageHandler(subname:="clsOLEDBDriver.HasTable", tablename:=tableid, _
-            '                         message:="not connected to database", messagetype:=otCoreMessageType.InternalError)
-            '    Return fase
+            If nativeConnection Is Nothing Then
+                myNativeConnection = TryCast(myConnection.NativeInternalConnection, OleDb.OleDbConnection)
+            Else
+                myNativeConnection = TryCast(nativeConnection, OleDb.OleDbConnection)
+            End If
+
+            If myConnection Is Nothing OrElse myConnection.NativeInternalConnection Is Nothing Then
+                Call CoreMessageHandler(subname:="oleDBDriver.HasTable", message:="No current Connection to the Database", _
+                                      messagetype:=otCoreMessageType.ApplicationError)
+                Return Nothing
+            End If
+            If myNativeConnection Is Nothing Then
+                Call CoreMessageHandler(subname:="oleDBDriver.HasTable", message:="No current internal Connection to the Database", _
+                                      messagetype:=otCoreMessageType.ApplicationError)
+                Return Nothing
+            End If
+            '*** check on rights we cannot check on the User Table -> recursion
+            '* do not check -> makes no sense since we are checking the database status before we are installing
+            'If Not CurrentSession.IsBootstrappingInstallation AndAlso tableid <> User.ConstTableID Then
+            '    If Not _currentUserValidation.ValidEntry AndAlso Not _currentUserValidation.HasReadRights Then
+            '        If Not myConnection.VerifyUserAccess(accessRequest:=otAccessRight.[ReadOnly], loginOnFailed:=True) Then
+            '            Call CoreMessageHandler(showmsgbox:=True, subname:="oleDBDriver.HasTable", _
+            '                                  message:="No right to read schema of database", messagetype:=otCoreMessageType.ApplicationError)
+            '            Return Nothing
+            '        End If
+            '    End If
             'End If
 
+
             Try
-                myConnection = DirectCast(_primaryConnection, clsOLEDBConnection)
                 Dim restrictionsTable() As String = {Nothing, Nothing, tableid}
-                If nativeConnection Is Nothing Then
-                    aTable = DirectCast(myConnection.NativeInternalConnection, OleDbConnection).GetSchema("COLUMNS", restrictionsTable)
-                Else
-                    aTable = DirectCast(nativeConnection, OleDbConnection).GetSchema("COLUMNS", restrictionsTable)
-                End If
+                aTable = myNativeConnection.GetSchema("COLUMNS", restrictionsTable)
 
                 If aTable.Rows.Count = 0 Then
                     Return False
@@ -475,80 +581,69 @@ Namespace OnTrack.Database
 
             Catch ex As OleDb.OleDbException
                 Call CoreMessageHandler(message:="Exception", exception:=ex, tablename:=tableid, _
-                                      subname:="clsOLEDBDriver.hasTable", messagetype:=otCoreMessageType.InternalError)
+                                      subname:="oleDBDriver.hasTable", messagetype:=otCoreMessageType.InternalError)
                 Return Nothing
 
             Catch ex As Exception
                 Call CoreMessageHandler(message:="Exception", exception:=ex, tablename:=tableid, _
-                                      subname:="clsOLEDBDriver.hasTable", messagetype:=otCoreMessageType.InternalError)
+                                      subname:="oleDBDriver.hasTable", messagetype:=otCoreMessageType.InternalError)
                 Return Nothing
             End Try
 
         End Function
+
         ''' <summary>
         ''' Gets the table.
         ''' </summary>
         ''' <param name="tablename">The tablename.</param>
         ''' <param name="createOnMissing">The create on missing.</param>
-        ''' <param name="addToSchemaDir">The add to schema dir.</param>
         ''' <param name="NativeConnection">The native connection.</param>
         ''' <returns></returns>
         Public Overrides Function GetTable(tableid As String, _
-                                           Optional createOnMissing As Boolean = True, _
-                                           Optional addToSchemaDir As Boolean = True, _
-                                           Optional ByRef nativeConnection As Object = Nothing, _
+                                           Optional createOrAlter As Boolean = False, _
+                                           Optional ByRef connection As iormConnection = Nothing, _
                                             Optional ByRef nativeTableObject As Object = Nothing) As Object
 
+            Dim myConnection As oledbConnection
+            Dim aTable As DataTable
+            Dim aStatement As String = ""
+
+            If connection Is Nothing Then
+                myConnection = _primaryConnection
+            Else
+                myConnection = connection
+            End If
+
+            If myConnection Is Nothing Then
+                Call CoreMessageHandler(subname:="oleDBDriver.GetTable", tablename:=tableid, message:="No current Connection to the Database", _
+                                      messagetype:=otCoreMessageType.ApplicationError)
+                Return Nothing
+            End If
             '*** check on rights
-            If createOnMissing Then
-                If _primaryConnection Is Nothing Then
-                    Call CoreMessageHandler(subname:="clsOLEDBDriver.GetTable", tablename:=tableid, _
-                                          message:="No current Connection to the Database", messagetype:=otCoreMessageType.ApplicationError)
+            If createOrAlter And Not CurrentSession.IsBootstrappingInstallationRequested Then
+                If Not myConnection.VerifyUserAccess(accessRequest:=otAccessRight.AlterSchema, useLoginWindow:=True) Then
+                    Call CoreMessageHandler(showmsgbox:=True, subname:="oleDBDriver.GetTable", tablename:=tableid, _
+                                          message:="No right to alter schema of database", messagetype:=otCoreMessageType.ApplicationError)
                     Return Nothing
-                Else
-                    If Not _primaryConnection.VerifyUserAccess(otAccessRight.AlterSchema, loginOnFailed:=True) Then
-                        Call CoreMessageHandler(showmsgbox:=True, subname:="clsOLEDBDriver.GetTable", tablename:=tableid, _
-                                              message:="No right to alter schema of database", messagetype:=otCoreMessageType.ApplicationError)
-                        Return Nothing
-                    End If
                 End If
             End If
 
 
-
-            Dim myConnection As clsOLEDBConnection
-            Dim aSchemaDir As ObjectDefinition
-            Dim aTable As DataTable
-            Dim aStatement As String = ""
-
             Try
-                myConnection = DirectCast(_primaryConnection, clsOLEDBConnection)
                 Dim restrictionsTable() As String = {Nothing, Nothing, tableid}
-                If nativeConnection Is Nothing Then
-                    aTable = DirectCast(myConnection.NativeInternalConnection, OleDbConnection).GetSchema("COLUMNS", restrictionsTable)
-                Else
-                    aTable = DirectCast(nativeConnection, OleDbConnection).GetSchema("COLUMNS", restrictionsTable)
-                End If
-
+                aTable = DirectCast(myConnection.NativeInternalConnection, System.Data.OleDb.OleDbConnection).GetSchema("COLUMNS", restrictionsTable)
 
 
                 '** create the table
                 '**
-                If aTable.Rows.Count = 0 And createOnMissing Then
+                If aTable.Rows.Count = 0 And createOrAlter Then
 
                     aStatement = "CREATE TABLE " & tableid & " ( tttemp  bit )"
                     Me.RunSqlStatement(aStatement, _
-                                       nativeConnection:=DirectCast(myConnection.NativeInternalConnection, OleDbConnection))
+                                       nativeConnection:=DirectCast(myConnection.NativeInternalConnection, System.Data.OleDb.OleDbConnection))
 
-                    aTable = DirectCast(myConnection.NativeInternalConnection, OleDbConnection).GetSchema("COLUMNS", restrictionsTable)
+                    aTable = DirectCast(myConnection.NativeInternalConnection, System.Data.OleDb.OleDbConnection).GetSchema("COLUMNS", restrictionsTable)
 
-                    ' check if containskey -> write
-                    If addToSchemaDir Then
-                        ' set it here -> bootstrapping will fail otherwise
-                        aSchemaDir = New ObjectDefinition
-                        Call aSchemaDir.Create(tableid)
-                        Call aSchemaDir.Persist()
-                    End If
                     Return aTable
 
                 ElseIf aTable.Rows.Count > 0 Then
@@ -566,71 +661,61 @@ Namespace OnTrack.Database
                     End If
                     Return aTable
                 Else
-                    Call CoreMessageHandler(subname:="clsOLEDBDriver.getTable", tablename:=tableid, _
+                    Call CoreMessageHandler(subname:="oleDBDriver.getTable", tablename:=tableid, _
                                           message:="Table was not found in database", messagetype:=otCoreMessageType.ApplicationWarning)
                     Return Nothing
                 End If
 
             Catch ex As OleDb.OleDbException
                 Call CoreMessageHandler(message:="Exception", exception:=ex, tablename:=tableid, _
-                                      subname:="clsOLEDBDriver.getTable", messagetype:=otCoreMessageType.InternalError)
+                                      subname:="oleDBDriver.getTable", messagetype:=otCoreMessageType.InternalError)
                 Return Nothing
 
             Catch ex As Exception
                 Call CoreMessageHandler(message:="Exception", exception:=ex, tablename:=tableid, _
-                                      subname:="clsOLEDBDriver.getTable", messagetype:=otCoreMessageType.InternalError)
+                                      subname:="oleDBDriver.getTable", messagetype:=otCoreMessageType.InternalError)
                 Return Nothing
             End Try
 
         End Function
 
-        ''' <summary>
-        ''' Gets the index.
-        ''' </summary>
-        ''' <param name="nativeTABLE">The native TABLE.</param>
-        ''' <param name="indexname">The indexname.</param>
-        ''' <param name="ColumnNames">The column names.</param>
-        ''' <param name="PrimaryKey">The primary key.</param>
-        ''' <param name="forceCreation">The force creation.</param>
-        ''' <param name="createOnMissing">The create on missing.</param>
-        ''' <param name="addToSchemaDir">The add to schema dir.</param>
-        ''' <returns></returns>
-        Public Overrides Function GetIndex(ByRef nativeTABLE As Object, _
-                                           ByRef indexname As String, _
-                                           ByRef ColumnNames As List(Of String), _
-                                           Optional PrimaryKey As Boolean = False, _
-                                           Optional forceCreation As Boolean = False, _
-                                           Optional createOnMissing As Boolean = True, _
-                                           Optional addToSchemaDir As Boolean = True) As Object
-            Dim aTable As DataTable = TryCast(nativeTABLE, DataTable)
+        Public Overrides Function GetIndex(ByRef nativeTable As Object, ByRef indexdefinition As IndexDefinition, _
+                                         Optional ByVal forceCreation As Boolean = False, _
+                                         Optional ByVal createOrAlter As Boolean = False, _
+                                          Optional ByRef connection As iormConnection = Nothing) As Object Implements iormDatabaseDriver.GetIndex
+            Dim aTable As DataTable = TryCast(nativeTable, DataTable)
+            Dim myconnection As oledbConnection
             Dim atableid As String = ""
 
             '** no object ?!
             If aTable Is Nothing Then
                 Return Nothing
             End If
+            If connection Is Nothing Then
+                myconnection = _primaryConnection
+            Else
+                myconnection = connection
+            End If
 
+            If myconnection Is Nothing Then
+                Call CoreMessageHandler(subname:="oleDBDriver.GetIndex", arg1:=indexdefinition.Name, _
+                                      message:="No current Connection to the Database", messagetype:=otCoreMessageType.ApplicationError)
+                Return Nothing
+                '** Schema and User Creation are for free !
+            End If
             '*** check on rights
-            If createOnMissing Then
-                If _primaryConnection Is Nothing Then
-                    Call CoreMessageHandler(subname:="clsOLEDBDriver.GetIndex", tablename:=atableid, _
-                                          message:="No current Connection to the Database", messagetype:=otCoreMessageType.ApplicationError)
+            If createOrAlter And Not CurrentSession.IsBootstrappingInstallationRequested Then
+                If Not myconnection.VerifyUserAccess(accessRequest:=otAccessRight.AlterSchema, useLoginWindow:=True) Then
+                    Call CoreMessageHandler(showmsgbox:=True, subname:="oleDBDriver.GetIndex", arg1:=indexdefinition.Name, _
+                                          message:="No right to alter schema of database", messagetype:=otCoreMessageType.ApplicationError)
                     Return Nothing
-                Else
-                    If Not _primaryConnection.VerifyUserAccess(otAccessRight.AlterSchema, loginOnFailed:=True) Then
-                        Call CoreMessageHandler(showmsgbox:=True, subname:="clsOLEDBDriver.GetIndex", tablename:=atableid, _
-                                              message:="No right to alter schema of database", messagetype:=otCoreMessageType.ApplicationError)
-                        Return Nothing
-                    End If
                 End If
             End If
 
 
-            Dim newindexname As String = indexname.Clone
 
-            Dim aSchemaDir As ObjectEntryDefinition
+            Dim newindexname As String = indexdefinition.Name.Clone
             Dim aStatement As String = ""
-
             Dim anIndexTable As DataTable
             Dim existingIndex As Boolean = False
             Dim indexnotchanged As Boolean = False
@@ -651,16 +736,15 @@ Namespace OnTrack.Database
                      IsNullable = columnRow.Field(Of Nullable(Of Boolean))("IS_NULLABLE")
 
                 If tableidList.Count = 0 Then
-                    Call CoreMessageHandler(message:="atableid couldn't be retrieved from nativetable object", subname:="clsOLEDBDriver.getIndex", _
-                                                 tablename:=atableid, arg1:=indexname, messagetype:=otCoreMessageType.InternalError)
+                    Call CoreMessageHandler(message:="atableid couldn't be retrieved from nativetable object", subname:="oleDBDriver.getIndex", _
+                                                 tablename:=atableid, arg1:=indexdefinition.Name, messagetype:=otCoreMessageType.InternalError)
                     Return Nothing
                 Else
                     atableid = tableidList(0).TableName
                 End If
                 '** read indixes
                 Dim restrictionsIndex() As String = {Nothing, Nothing, Nothing, Nothing, atableid}
-                anIndexTable = DirectCast(_primaryConnection.NativeInternalConnection, OleDbConnection). _
-                                                GetSchema("INDEXES", restrictionsIndex)
+                anIndexTable = DirectCast(myconnection.NativeInternalConnection, System.Data.OleDb.OleDbConnection).GetSchema("INDEXES", restrictionsIndex)
 
                 Dim columnsIndexList = From indexRow In anIndexTable.AsEnumerable _
                                         Select TableName = indexRow.Field(Of String)("TABLE_NAME"), _
@@ -684,9 +768,9 @@ Namespace OnTrack.Database
                     existingprimaryName = primaryIndexList(0).theIndexName
                 End If
 
-                If columnsIndexList.Count = 0 And Not createOnMissing Then
+                If columnsIndexList.Count = 0 And Not createOrAlter Then
                     Return Nothing
-                ElseIf columnsIndexList.Count = 0 And createOnMissing Then
+                ElseIf columnsIndexList.Count = 0 And createOrAlter Then
                     existingIndex = False
                     indexnotchanged = False
                 ElseIf Not forceCreation Then
@@ -701,117 +785,105 @@ Namespace OnTrack.Database
                         existingIndexName = anIndex.theIndexName
                     Next
                     ' go through
-                    For Each columnName As String In ColumnNames
-                        If LCase(anIndexColumnsList.Item(i)) <> LCase(columnName) Then
-                            indexnotchanged = False
-                            Exit For
-                        Else
-                            indexnotchanged = True
-                            ' check if containskey -> write
-                            If addToSchemaDir And PrimaryKey Then
-                                ' set it here -> bootstrapping will fail otherwise
-                                aSchemaDir = New ObjectEntryDefinition
-                                If Not aSchemaDir.LoadBy(atableid, entryname:=columnName) Then
-                                    Call aSchemaDir.Create(atableid, entryname:=columnName)
-                                End If
-                                aSchemaDir.Indexname = LCase(atableid & "_" & indexname)
-                                aSchemaDir.IndexPosition = i + 1
-                                aSchemaDir.IsKey = True
-                                aSchemaDir.IsPrimaryKey = True
-                                Call aSchemaDir.Persist()
+                    If anIndexColumnsList.Count = indexdefinition.Columnnames.Count Then
+                        For Each columnName As String In indexdefinition.Columnnames
+                            If LCase(anIndexColumnsList.Item(i)) <> LCase(columnName) Then
+                                indexnotchanged = False
+                                Exit For
+                            Else
+                                indexnotchanged = True
                             End If
-                        End If
-                        'Next j
 
-                        ' exit
-                        If Not indexnotchanged Then
-                            Exit For
-                        End If
-                        i = i + 1
-                    Next columnName
+                            ' exit
+                            If Not indexnotchanged Then
+                                Exit For
+                            End If
+                            i = i + 1
+                        Next columnName
+                    Else
+                        indexnotchanged = False ' different number of columnnames
+                    End If
                     '** check if primary is different
-                    If PrimaryKey <> isprimaryKey Or forceCreation Then
+                    If indexdefinition.IsPrimary <> isprimaryKey Or forceCreation Then
                         indexnotchanged = False
                     End If
                     ' return
                     If indexnotchanged Then
                         Return columnsIndexList
                     End If
-                End If
+                    End If
 
 
-                '** drop existing
+                    '** drop existing
 
-                If (isprimaryKey Or PrimaryKey) And existingprimaryName <> "" Then
-                    aStatement = " ALTER TABLE " & atableid & " DROP CONSTRAINT [" & existingprimaryName & "]"
-                    Me.RunSqlStatement(aStatement)
-                ElseIf existingIndex Then
-                    aStatement = " DROP INDEX " & existingIndex
-                    Me.RunSqlStatement(aStatement)
-                End If
+                    If (isprimaryKey Or indexdefinition.IsPrimary) And existingprimaryName <> "" Then
+                        aStatement = " ALTER TABLE " & atableid & " DROP CONSTRAINT [" & existingprimaryName & "]"
+                        Me.RunSqlStatement(aStatement)
+                    ElseIf existingIndex Then
+                        aStatement = " DROP INDEX " & existingIndex
+                        Me.RunSqlStatement(aStatement)
+                    End If
 
-
-
-                '*** build new
-                If PrimaryKey Then
-                    aStatement = " ALTER TABLE [" & atableid & "] ADD CONSTRAINT [" & atableid & "_" & indexname & "] PRIMARY KEY ("
+                    '*** build new
+                    If indexdefinition.IsPrimary Then
+                        aStatement = " ALTER TABLE [" & atableid & "] ADD CONSTRAINT [" & atableid & "_" & indexdefinition.Name & "] PRIMARY KEY ("
+                        Dim comma As Boolean = False
+                        For Each name As String In indexdefinition.Columnnames
+                            If comma Then aStatement &= ","
+                            aStatement &= "[" & name & "]"
+                            comma = True
+                        Next
+                        aStatement &= ")"
+                        Me.RunSqlStatement(aStatement)
+                Else
+                    Dim UniqueStr As String = ""
+                    If indexdefinition.IsUnique Then UniqueStr = "UNIQUE"
+                    aStatement = " CREATE " & UniqueStr & " INDEX [" & atableid & "_" & indexdefinition.Name & "] ON [" & atableid & "] ("
                     Dim comma As Boolean = False
-                    For Each name As String In ColumnNames
+                    For Each name As String In indexdefinition.Columnnames
                         If comma Then aStatement &= ","
                         aStatement &= "[" & name & "]"
                         comma = True
                     Next
                     aStatement &= ")"
                     Me.RunSqlStatement(aStatement)
-                Else
-                    aStatement = " CREATE INDEX [" & atableid & "_" & indexname & "] ON [" & atableid & "] ("
-                    Dim comma As Boolean = False
-                    For Each name As String In ColumnNames
-                        If comma Then aStatement &= ","
-                        aStatement &= "[" & name & "]"
-                        comma = True
-                    Next
-                    aStatement &= ")"
-                    Me.RunSqlStatement(aStatement)
-                End If
+                    End If
 
-                '** read indixes
+                    '** read indixes
 
-                anIndexTable = DirectCast(_primaryConnection.NativeInternalConnection, OleDbConnection). _
-                                                GetSchema("INDEXES", restrictionsIndex)
+                    anIndexTable = DirectCast(myconnection.NativeInternalConnection, System.Data.OleDb.OleDbConnection).GetSchema("INDEXES", restrictionsIndex)
 
+                    Dim columnsResultIndexList = From indexRow In anIndexTable.AsEnumerable Select TableName = indexRow.Field(Of String)("TABLE_NAME"), _
+                                                 theIndexName = indexRow.Field(Of String)("INDEX_NAME"), _
+                                                 Columnordinal = indexRow.Field(Of Int64)("ORDINAL_POSITION"), _
+                                                 ColumnName = indexRow.Field(Of String)("COLUMN_NAME"), _
+                                                IndexisPrimaryKey = indexRow.Field(Of Boolean)("PRIMARY_KEY") _
+                                                Where [ColumnName] <> "" And TableName <> "" And Columnordinal > 0 And (theIndexName = newindexname Or theIndexName = atableid & "_" & newindexname) _
+                                                Order By TableName, newindexname, Columnordinal, ColumnName
 
-                Dim columnsResultIndexList = From indexRow In anIndexTable.AsEnumerable Select TableName = indexRow.Field(Of String)("TABLE_NAME"), _
-                                             theIndexName = indexRow.Field(Of String)("INDEX_NAME"), _
-                                             Columnordinal = indexRow.Field(Of Int64)("ORDINAL_POSITION"), _
-                                             ColumnName = indexRow.Field(Of String)("COLUMN_NAME"), _
-                                            IndexisPrimaryKey = indexRow.Field(Of Boolean)("PRIMARY_KEY") _
-                                            Where [ColumnName] <> "" And TableName <> "" And Columnordinal > 0 And (theIndexName = newindexname Or theIndexName = atableid & "_" & newindexname) _
-                                            Order By TableName, newindexname, Columnordinal, ColumnName
-
-                If columnsResultIndexList.Count > 0 Then
-                    Return columnsResultIndexList
-                Else
-                    Call CoreMessageHandler(message:="creation of index failed", arg1:=indexname, _
-                                                 subname:="clsOLEDBDriver.getIndex", tablename:=atableid, _
-                                                 messagetype:=otCoreMessageType.InternalError)
-                    Return Nothing
-                End If
+                    If columnsResultIndexList.Count > 0 Then
+                        Return columnsResultIndexList
+                    Else
+                        Call CoreMessageHandler(message:="creation of index failed", arg1:=indexdefinition.Name, _
+                                                     subname:="oleDBDriver.getIndex", tablename:=atableid, _
+                                                     messagetype:=otCoreMessageType.InternalError)
+                        Return Nothing
+                    End If
 
             Catch ex As OleDb.OleDbException
-                Call CoreMessageHandler(showmsgbox:=True, subname:="clsMSSQLDriver.GetIndex", arg1:=indexname, tablename:=atableid, _
+                Call CoreMessageHandler(showmsgbox:=True, subname:="oleDBDriver.GetIndex", arg1:=aStatement, tablename:=atableid, _
                                            message:="Exception", exception:=ex, messagetype:=otCoreMessageType.InternalError)
-                _primaryConnection.IsNativeInternalLocked = False
+                myconnection.IsNativeInternalLocked = False
                 Return Nothing
 
             Catch ex As Exception
-                Call CoreMessageHandler(showmsgbox:=True, subname:="clsMSSQLDriver.GetIndex", arg1:=indexname, tablename:=atableid, _
+                Call CoreMessageHandler(showmsgbox:=True, subname:="oleDBDriver.GetIndex", arg1:=indexdefinition.Name, tablename:=atableid, _
                                            message:="Exception", exception:=ex, messagetype:=otCoreMessageType.InternalError)
-                _primaryConnection.IsNativeInternalLocked = False
+                myconnection.IsNativeInternalLocked = False
                 Return Nothing
             End Try
         End Function
-
+       
         ''' <summary>
         ''' returns True if the table id has the Column
         ''' </summary>
@@ -820,24 +892,206 @@ Namespace OnTrack.Database
         ''' <param name="nativeConnection"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overrides Function HasColumn(tableid As String, columnname As String, Optional ByRef nativeConnection As Object = Nothing) As Boolean
-            Dim myConnection As clsOLEDBConnection
-            Dim aSchemaDir As ObjectDefinition
+        Public Overrides Function VerifyColumnSchema(columndefinition As ColumnDefinition, Optional ByRef connection As iormConnection = Nothing, Optional silent As Boolean = False) As Boolean
+            Dim myConnection As oledbConnection
             Dim aTable As DataTable
+            Dim tableid As String = columndefinition.Tablename
+            Dim columnname As String = columndefinition.Name
 
-            If Not _primaryConnection.VerifyUserAccess(otAccessRight.[ReadOnly], loginOnFailed:=True) Then
-                Call CoreMessageHandler(showmsgbox:=True, subname:="clsOLEDBDriver.HasTable", tablename:=tableid, _
+            If connection Is Nothing Then
+                myConnection = _primaryConnection
+            Else
+                myConnection = connection
+            End If
+
+            '** do not session since we might checking this to get bootstrapping status before session is started
+            If Not CurrentSession.IsBootstrappingInstallationRequested AndAlso Not myConnection.VerifyUserAccess(accessRequest:=otAccessRight.[ReadOnly], useLoginWindow:=True) Then
+                Call CoreMessageHandler(showmsgbox:=True, subname:="oleDBDriver.verifyColumnSchema", tablename:=tableid, _
                                       message:="No right to read schema of database", messagetype:=otCoreMessageType.ApplicationError)
                 Return Nothing
             End If
             Try
-                myConnection = DirectCast(_primaryConnection, clsOLEDBConnection)
                 Dim restrictionsTable() As String = {Nothing, Nothing, tableid}
-                If nativeConnection Is Nothing Then
-                    aTable = DirectCast(myConnection.NativeInternalConnection, OleDbConnection).GetSchema("COLUMNS", restrictionsTable)
+                aTable = DirectCast(myConnection.NativeInternalConnection, System.Data.OleDb.OleDbConnection).GetSchema("COLUMNS", restrictionsTable)
+
+
+                '** select
+                Dim columnsResultList = From columnRow In aTable.AsEnumerable _
+                               Select TableName = columnRow.Field(Of String)("TABLE_NAME"), _
+                               Columnordinal = columnRow.Field(Of Int64)("ORDINAL_POSITION"), _
+                               DataType = columnRow.Field(Of OleDbType)("DATA_TYPE"), _
+                               [name] = columnRow.Field(Of String)("COLUMN_NAME"), _
+                               Description = columnRow.Field(Of String)("DESCRIPTION"), _
+                               CharacterMaxLength = columnRow.Field(Of Nullable(Of Int64))("CHARACTER_MAXIMUM_LENGTH"), _
+                               IsNullable = columnRow.Field(Of Nullable(Of Boolean))("IS_NULLABLE") _
+                               Where [name] = columndefinition.Name
+
+                If columnsResultList.Count = 0 Then
+                    If Not silent Then
+                        CoreMessageHandler(message:="verifying table column: column does not exist in database ", _
+                                                      tablename:=tableid, columnname:=columnname, subname:="oledbdriver.verifyColumnSchema", messagetype:=otCoreMessageType.InternalError)
+
+                    End If
+                    Return False
                 Else
-                    aTable = DirectCast(nativeConnection, OleDbConnection).GetSchema("COLUMNS", restrictionsTable)
+                    '** what to check
+                    For Each column In columnsResultList
+                        '** check on datatype
+                        If column.DataType <> GetTargetTypeFor(columndefinition.Datatype) Then
+                            If Not silent Then
+                                CoreMessageHandler(message:="verifying table column: column data type in database differs from column definition", arg1:=columndefinition.Datatype, _
+                                                        tablename:=tableid, columnname:=columnname, subname:="oledbdriver.verifyColumnSchema", messagetype:=otCoreMessageType.InternalError)
+                            End If
+                            Return False
+                        End If
+                        '** check on size
+                        If column.DataType = OleDbType.VarChar OrElse column.DataType = OleDbType.LongVarChar OrElse _
+                            column.DataType = OleDbType.LongVarWChar OrElse column.DataType = OleDbType.VarWChar Then
+                            If columndefinition.Size > column.CharacterMaxLength Then
+                                If Not silent Then
+                                    CoreMessageHandler(message:="verifying table column: column size in database differs from column definition", arg1:=columndefinition.Size, _
+                                                        tablename:=tableid, columnname:=columnname, subname:="oledbdriver.verifyColumnSchema", messagetype:=otCoreMessageType.InternalError)
+                                End If
+                                Return False
+                            End If
+                        End If
+
+                    Next
+                    Return True
                 End If
+
+            Catch ex As OleDb.OleDbException
+                Call CoreMessageHandler(message:="Exception", exception:=ex, tablename:=tableid, _
+                                      subname:="oleDBDriver.verifyColumnSchema", messagetype:=otCoreMessageType.InternalError)
+                Return Nothing
+
+            Catch ex As Exception
+                Call CoreMessageHandler(message:="Exception", exception:=ex, tablename:=tableid, _
+                                      subname:="oleDBDriver.verifyColumnSchema", messagetype:=otCoreMessageType.InternalError)
+                Return Nothing
+            End Try
+
+
+        End Function
+        ''' <summary>
+        ''' returns True if the table id has the Column
+        ''' </summary>
+        ''' <param name="tablename"></param>
+        ''' <param name="columnname"></param>
+        ''' <param name="nativeConnection"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Overrides Function VerifyColumnSchema(columnattribute As ormSchemaTableColumnAttribute, Optional ByRef connection As iormConnection = Nothing, Optional silent As Boolean = False) As Boolean
+            Dim myConnection As oledbConnection
+            Dim aTable As DataTable
+            Dim tableid As String = columnattribute.Tablename
+            Dim columnname As String = columnattribute.ColumnName
+
+            If connection Is Nothing Then
+                myConnection = _primaryConnection
+            Else
+                myConnection = connection
+            End If
+
+            '** do not session since we might checking this to get bootstrapping status before session is started
+            If Not CurrentSession.IsBootstrappingInstallationRequested AndAlso Not myConnection.VerifyUserAccess(accessRequest:=otAccessRight.[ReadOnly], useLoginWindow:=True) Then
+                Call CoreMessageHandler(showmsgbox:=True, subname:="oleDBDriver.HasTable", tablename:=tableid, _
+                                                 message:="No right to read schema of database", messagetype:=otCoreMessageType.ApplicationError)
+                Return Nothing
+            End If
+            Try
+                Dim restrictionsTable() As String = {Nothing, Nothing, tableid}
+                aTable = DirectCast(myConnection.NativeInternalConnection, System.Data.OleDb.OleDbConnection).GetSchema("COLUMNS", restrictionsTable)
+
+
+                '** select
+                Dim columnsResultList = From columnRow In aTable.AsEnumerable _
+                               Select TableName = columnRow.Field(Of String)("TABLE_NAME"), _
+                               Columnordinal = columnRow.Field(Of Int64)("ORDINAL_POSITION"), _
+                               DataType = columnRow.Field(Of OleDbType)("DATA_TYPE"), _
+                               [name] = columnRow.Field(Of String)("COLUMN_NAME"), _
+                               Description = columnRow.Field(Of String)("DESCRIPTION"), _
+                               CharacterMaxLength = columnRow.Field(Of Nullable(Of Int64))("CHARACTER_MAXIMUM_LENGTH"), _
+                               IsNullable = columnRow.Field(Of Nullable(Of Boolean))("IS_NULLABLE") _
+                               Where [name] = columnname
+
+                If columnsResultList.Count = 0 Then
+                    If Not silent Then
+                        CoreMessageHandler(message:="verifying table column: column doesnot exist in database ", _
+                                                      tablename:=tableid, columnname:=columnname, subname:="oledbdriver.verifyColumnSchema", messagetype:=otCoreMessageType.InternalError)
+                    End If
+                    Return False
+                Else
+                    '** what to check
+                    For Each column In columnsResultList
+                        '** check on datatype
+                        If columnattribute.HasValueTypeID AndAlso column.DataType <> GetTargetTypeFor(columnattribute.Typeid) Then
+                            If Not silent Then
+                                CoreMessageHandler(message:="verifying table column: column data type in database differs from column attribute", arg1:=columnattribute.Typeid, _
+                                                      tablename:=tableid, columnname:=columnname, subname:="oledbdriver.verifyColumnSchema", messagetype:=otCoreMessageType.InternalError)
+
+                            End If
+                            Return False
+                        End If
+                        '** check on size
+                        If column.DataType = OleDbType.VarChar OrElse column.DataType = OleDbType.LongVarChar OrElse _
+                            column.DataType = OleDbType.LongVarWChar OrElse column.DataType = OleDbType.VarWChar Then
+                            If columnattribute.HasValueSize AndAlso columnattribute.Size > column.CharacterMaxLength Then
+                                If Not silent Then
+                                    CoreMessageHandler(message:="verifying table column: column size in database differs from column attribute", arg1:=columnattribute.Size, _
+                                                       tablename:=tableid, columnname:=columnname, subname:="oledbdriver.verifyColumnSchema", messagetype:=otCoreMessageType.InternalError)
+
+                                End If
+
+                                Return False
+                            End If
+                        End If
+
+                    Next
+                    Return True
+                End If
+
+            Catch ex As OleDb.OleDbException
+                Call CoreMessageHandler(message:="Exception", exception:=ex, tablename:=tableid, _
+                                      subname:="oleDBDriver.hasColumn", messagetype:=otCoreMessageType.InternalError)
+                Return Nothing
+
+            Catch ex As Exception
+                Call CoreMessageHandler(message:="Exception", exception:=ex, tablename:=tableid, _
+                                      subname:="oleDBDriver.hasColumn", messagetype:=otCoreMessageType.InternalError)
+                Return Nothing
+            End Try
+
+
+        End Function
+        ''' <summary>
+        ''' returns True if the table id has the Column
+        ''' </summary>
+        ''' <param name="tablename"></param>
+        ''' <param name="columnname"></param>
+        ''' <param name="nativeConnection"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Overrides Function HasColumn(tableid As String, columnname As String, Optional ByRef connection As iormConnection = Nothing) As Boolean
+            Dim myConnection As oledbConnection
+            Dim aTable As DataTable
+
+            If connection Is Nothing Then
+                myConnection = _primaryConnection
+            Else
+                myConnection = connection
+            End If
+
+            '* doesnot make any sense
+            'If Not myConnection.VerifyUserAccess(otAccessRight.[ReadOnly], loginOnFailed:=True) And Not CurrentSession.IsBootstrappingInstallation Then
+            '    Call CoreMessageHandler(showmsgbox:=True, subname:="oleDBDriver.HasTable", tablename:=tableid, _
+            '                          message:="No right to read schema of database", messagetype:=otCoreMessageType.ApplicationError)
+            '    Return Nothing
+            'End If
+
+            Try
+                Dim restrictionsTable() As String = {Nothing, Nothing, tableid}
+                aTable = DirectCast(myConnection.NativeInternalConnection, System.Data.OleDb.OleDbConnection).GetSchema("COLUMNS", restrictionsTable)
 
                 '** select
                 Dim columnsResultList = From columnRow In aTable.AsEnumerable _
@@ -853,12 +1107,12 @@ Namespace OnTrack.Database
 
             Catch ex As OleDb.OleDbException
                 Call CoreMessageHandler(message:="Exception", exception:=ex, tablename:=tableid, _
-                                      subname:="clsOLEDBDriver.hasColumn", messagetype:=otCoreMessageType.InternalError)
+                                      subname:="oleDBDriver.hasColumn", messagetype:=otCoreMessageType.InternalError)
                 Return Nothing
 
             Catch ex As Exception
                 Call CoreMessageHandler(message:="Exception", exception:=ex, tablename:=tableid, _
-                                      subname:="clsOLEDBDriver.hasColumn", messagetype:=otCoreMessageType.InternalError)
+                                      subname:="oleDBDriver.hasColumn", messagetype:=otCoreMessageType.InternalError)
                 Return Nothing
             End Try
 
@@ -872,84 +1126,90 @@ Namespace OnTrack.Database
         ''' <param name="createOnMissing">The create on missing.</param>
         ''' <param name="addToSchemaDir">The add to schema dir.</param>
         ''' <returns></returns>
-        Public Overrides Function GetColumn(nativeTABLE As Object, _
-                                            fielddesc As ormFieldDescription, _
-                                            Optional createOnMissing As Boolean = True, _
-                                            Optional addToSchemaDir As Boolean = True) As Object
+        Public Overrides Function GetColumn(nativeTable As Object, columndefinition As ColumnDefinition, _
+                                            Optional createOrAlter As Boolean = False, _
+                                            Optional ByRef connection As iormConnection = Nothing) As Object Implements iormDatabaseDriver.GetColumn
 
-
-            Dim aTable As DataTable = TryCast(nativeTABLE, DataTable)
+            Dim aTable As DataTable = TryCast(nativeTable, DataTable)
             Dim atableid As String = ""
+            Dim myConnection As oledbConnection
+            Dim aStatement As String = ""
 
             '** no object ?!
             If aTable Is Nothing Then
+                Call CoreMessageHandler(subname:="oleDBDriver.GetColumn", message:="native table parameter to function is nothing",
+                                        messagetype:=otCoreMessageType.ApplicationError)
                 Return Nothing
             End If
 
+            If connection Is Nothing Then
+                myConnection = _primaryConnection
+            Else
+                myConnection = connection
+            End If
+
+            If myConnection Is Nothing Then
+                Call CoreMessageHandler(subname:="oleDBDriver.GetColumn", message:="No current Connection to the Database", _
+                                      messagetype:=otCoreMessageType.ApplicationError)
+                Return Nothing
+            End If
             '*** check on rights
-            If createOnMissing Then
-                If _primaryConnection Is Nothing Then
-                    Call CoreMessageHandler(subname:="clsOLEDBDriver.GetTable", tablename:=atableid, _
-                                          message:="No current Connection to the Database", messagetype:=otCoreMessageType.ApplicationError)
+            If createOrAlter And Not CurrentSession.IsBootstrappingInstallationRequested Then
+                If Not myConnection.VerifyUserAccess(accessRequest:=otAccessRight.AlterSchema, useLoginWindow:=True) Then
+                    Call CoreMessageHandler(showmsgbox:=True, subname:="oleDBDriver.GetColumn", _
+                                          message:="No right to alter schema of database", messagetype:=otCoreMessageType.ApplicationError)
                     Return Nothing
-                Else
-                    If Not _primaryConnection.VerifyUserAccess(otAccessRight.AlterSchema, loginOnFailed:=True) Then
-                        Call CoreMessageHandler(showmsgbox:=True, subname:="clsOLEDBDriver.GetTable", tablename:=atableid, _
-                                              message:="No right to alter schema of database", messagetype:=otCoreMessageType.ApplicationError)
-                        Return Nothing
-                    End If
                 End If
             End If
 
 
-
-            Dim myConnection As clsOLEDBConnection
-            Dim aSchemaDir As ObjectDefinition
-
-            Dim aStatement As String = ""
-
             Try
-                myConnection = DirectCast(_primaryConnection, clsOLEDBConnection)
-
                 '** select
                 Dim columnsList = From columnRow In aTable.AsEnumerable _
                                Select TableName = columnRow.Field(Of String)("TABLE_NAME"), _
                                Columnordinal = columnRow.Field(Of Int64)("ORDINAL_POSITION"), _
                                DataType = columnRow.Field(Of OleDbType)("DATA_TYPE"), _
-                               [ColumnName] = columnRow.Field(Of String)("COLUMN_NAME"), _
+                               [name] = columnRow.Field(Of String)("COLUMN_NAME"), _
                                Description = columnRow.Field(Of String)("DESCRIPTION"), _
                                CharacterMaxLength = columnRow.Field(Of Nullable(Of Int64))("CHARACTER_MAXIMUM_LENGTH"), _
                                IsNullable = columnRow.Field(Of Nullable(Of Boolean))("IS_NULLABLE") _
-                               Where [ColumnName] = fielddesc.ColumnName
+                               Where [name] = columndefinition.Name
 
-                If columnsList.Count > 0 Then
+                If columnsList.Count > 0 And Not createOrAlter Then
                     Return columnsList
-                End If
+                Else
 
-                '** create the column
-                '**
-                If columnsList.Count = 0 And createOnMissing Then
+                    '** create the column
+                    '**
 
                     Dim tableidList = From columnRow In aTable.AsEnumerable _
                                           Select TableName = columnRow.Field(Of String)("TABLE_NAME"), _
                                           Columnordinal = columnRow.Field(Of Int64)("ORDINAL_POSITION"), _
                                           DataType = columnRow.Field(Of OleDbType)("DATA_TYPE"), _
-                                          [ColumnName] = columnRow.Field(Of String)("COLUMN_NAME"), _
+                                          [name] = columnRow.Field(Of String)("COLUMN_NAME"), _
                                           Description = columnRow.Field(Of String)("DESCRIPTION"), _
                                           CharacterMaxLength = columnRow.Field(Of Nullable(Of Int64))("CHARACTER_MAXIMUM_LENGTH"), _
                                           IsNullable = columnRow.Field(Of Nullable(Of Boolean))("IS_NULLABLE")
 
                     If tableidList.Count = 0 Then
-                        Call CoreMessageHandler(message:="atableid couldn't be retrieved from nativetable object", subname:="clsOLEDBDriver.getColumn", _
-                                                     tablename:=atableid, entryname:=fielddesc.ColumnName, messagetype:=otCoreMessageType.InternalError)
+                        Call CoreMessageHandler(message:="atableid couldn't be retrieved from nativetable object", subname:="oleDBDriver.getColumn", _
+                                                     tablename:=atableid, entryname:=columndefinition.Name, messagetype:=otCoreMessageType.InternalError)
                         Return Nothing
                     Else
                         atableid = tableidList(0).TableName
                     End If
 
-                    aStatement = "ALTER TABLE " & atableid & " ADD COLUMN [" & fielddesc.ColumnName & "] "
+                    aStatement = "ALTER TABLE " & atableid
+                    If columnsList.Count = 0 Then
+                        aStatement &= " ADD COLUMN "
+                    ElseIf Me.DatabaseType = otDBServerType.Access Then
+                        aStatement &= " ALTER COLUMN "
+                    Else
+                        aStatement &= " MODIFY COLUMN "
+                    End If
+                    aStatement &= "[" & columndefinition.Name & "] "
 
-                    Select Case fielddesc.Datatype
+                    Select Case columndefinition.Datatype
                         Case otFieldDataType.Bool
                             aStatement &= " BIT "
                         Case otFieldDataType.Binary
@@ -973,10 +1233,14 @@ Namespace OnTrack.Database
                             aStatement &= " FLOAT "
                         Case otFieldDataType.Text, otFieldDataType.List
                             aStatement &= " NVARCHAR("
-                            If fielddesc.Size = 0 Then
-                                aStatement &= Const_MaxTextSize.ToString & ")"
-                            Else
-                                aStatement &= fielddesc.Size.ToString & ")"
+                            If columndefinition.Size = 0 Then
+                                aStatement &= Const_MaxTextSize.ToString
+                                aStatement &= ")"
+                            ElseIf Me.DatabaseType = otDBServerType.Access And columndefinition.Size <= 255 Then
+                                aStatement &= columndefinition.Size.ToString
+                                aStatement &= ")"
+                            ElseIf Me.DatabaseType = otDBServerType.Access And columndefinition.Size > 255 Then
+                                aStatement &= " MEMO "
                             End If
 
                         Case otFieldDataType.Timestamp
@@ -984,66 +1248,69 @@ Namespace OnTrack.Database
                         Case otFieldDataType.Time
                             aStatement &= " TIME "
                         Case Else
-                            Call CoreMessageHandler(message:="Datatype is not implemented", tablename:=atableid, entryname:=fielddesc.ColumnName, _
-                                                         subname:="clsOLEDBDriver.getColumn", arg1:=fielddesc.Datatype.ToString, _
+                            Call CoreMessageHandler(message:="Datatype is not implemented", tablename:=atableid, entryname:=columndefinition.Name, _
+                                                         subname:="oleDBDriver.getColumn", arg1:=columndefinition.Datatype.ToString, _
                                                          messagetype:=otCoreMessageType.InternalError)
                             Return Nothing
                     End Select
 
-                    If fielddesc.IsNullable Then
+                    If columndefinition.IsNullable Then
                         aStatement &= " NULL "
                     Else
                         aStatement &= " NOT NULL "
                     End If
 
+                    If columndefinition.DefaultValue IsNot Nothing Then
+                        '** to be implemented
+                        '     aStatement &= " DEFAULT '" & columndefinition.DefaultValueString & "'" not working mus be differentiate to string sql presenttion of data
+                    End If
                     '** Run it
                     Me.RunSqlStatement(aStatement, _
-                                       nativeConnection:=DirectCast(myConnection.NativeInternalConnection, OleDbConnection))
+                                       nativeConnection:=DirectCast(myConnection.NativeInternalConnection, System.Data.OleDb.OleDbConnection))
 
+                    '** add uniqueness
+                    If columndefinition.IsUnique Then
+                        aStatement = "ALTER TABLE " & atableid & " ADD CONSTRAINT " & "C_" & atableid & "_" & columndefinition.Name & " UNIQUE (" & columndefinition.Name & ")"
+                        '** Run it
+                        Me.RunSqlStatement(aStatement, _
+                                           nativeConnection:=DirectCast(myConnection.NativeInternalConnection, System.Data.OleDb.OleDbConnection))
+                    End If
+
+                    '** get the result
                     Dim restrictionsTable() As String = {Nothing, Nothing, atableid}
-                    aTable = DirectCast(myConnection.NativeInternalConnection, OleDbConnection).GetSchema("COLUMNS", restrictionsTable)
+                    aTable = DirectCast(myConnection.NativeInternalConnection, System.Data.OleDb.OleDbConnection).GetSchema("COLUMNS", restrictionsTable)
                     '** select
                     Dim columnsResultList = From columnRow In aTable.AsEnumerable _
                                            Select TableName = columnRow.Field(Of String)("TABLE_NAME"), _
                                            Columnordinal = columnRow.Field(Of Int64)("ORDINAL_POSITION"), _
                                            DataType = columnRow.Field(Of OleDbType)("DATA_TYPE"), _
-                                           [ColumnName] = columnRow.Field(Of String)("COLUMN_NAME"), _
+                                           [name] = columnRow.Field(Of String)("COLUMN_NAME"), _
                                            Description = columnRow.Field(Of String)("DESCRIPTION"), _
                                            CharacterMaxLength = columnRow.Field(Of Nullable(Of Int64))("CHARACTER_MAXIMUM_LENGTH"), _
                                            IsNullable = columnRow.Field(Of Nullable(Of Boolean))("IS_NULLABLE") _
-                                           Where [ColumnName] = fielddesc.ColumnName
+                                           Where [name] = columndefinition.Name
 
 
-                    ' check if containskey -> write
-                    If addToSchemaDir Then
-                        ' set it here -> bootstrapping will fail otherwise
-                        aSchemaDir = New ObjectDefinition
-                        Call aSchemaDir.Create(atableid)
-                        Call aSchemaDir.Persist()
-                    End If
 
                     If columnsResultList.Count > 0 Then
                         Return columnsResultList
                     Else
-                        Call CoreMessageHandler(message:="Add Column failed", subname:="clsOLEDBDriver", _
-                                                    tablename:=atableid, entryname:=fielddesc.ColumnName, _
+                        Call CoreMessageHandler(message:="Add Column failed", subname:="oleDBDriver", _
+                                                    tablename:=atableid, entryname:=columndefinition.Name, _
                                                     messagetype:=otCoreMessageType.InternalError)
                         Return Nothing
                     End If
 
-                ElseIf Not createOnMissing Then
-                    Return Nothing
-                Else
-                    Return columnsList
+
                 End If
 
             Catch ex As OleDb.OleDbException
-                Call CoreMessageHandler(message:="Exception", exception:=ex, tablename:=atableid, entryname:=fielddesc.ColumnName, _
-                                     subname:="clsOLEDBDriver.getColumn", messagetype:=otCoreMessageType.InternalError)
+                Call CoreMessageHandler(message:="Exception", exception:=ex, arg1:=aStatement, tablename:=atableid, entryname:=columndefinition.Name, _
+                                     subname:="oleDBDriver.getColumn", messagetype:=otCoreMessageType.InternalError)
                 Return Nothing
             Catch ex As Exception
-                Call CoreMessageHandler(message:="Exception", exception:=ex, tablename:=atableid, entryname:=fielddesc.ColumnName, _
-                                      subname:="clsOLEDBDriver.getColumn", messagetype:=otCoreMessageType.InternalError)
+                Call CoreMessageHandler(message:="Exception", exception:=ex, tablename:=atableid, entryname:=columndefinition.Name, _
+                                      subname:="oleDBDriver.getColumn", messagetype:=otCoreMessageType.InternalError)
                 Return Nothing
             End Try
 
@@ -1064,86 +1331,88 @@ Namespace OnTrack.Database
                                                 Optional updateOnly As Boolean = False, _
                                                 Optional silent As Boolean = False) As Boolean
 
-            Dim otdbcn As OleDbConnection
             Dim dataRows() As DataRow
             Dim insertFlag As Boolean = False
 
             '*** get the native Connection 
             If nativeConnection Is Nothing Then
                 If Not Me.CurrentConnection Is Nothing Then
-                    nativeConnection = DirectCast(_primaryConnection, clsOLEDBConnection).NativeInternalConnection
+                    nativeConnection = DirectCast(_primaryConnection, OnTrack.Database.oledbConnection).NativeInternalConnection
                     If nativeConnection Is Nothing Then
-                        Call CoreMessageHandler(subname:="clsOLEDBDriver.setDBParameter", _
+                        Call CoreMessageHandler(subname:="oleDBDriver.setDBParameter", _
                                               message:="Native Internal Connection not available")
                         Return False
                     End If
                 Else
-                    Call CoreMessageHandler(subname:="clsOLEDBDriver.setDBParameter", _
+                    Call CoreMessageHandler(subname:="oleDBDriver.setDBParameter", _
                                           message:="Connection not available")
                     Return False
                 End If
 
             End If
 
-            '*** try to cast
-            Try
-                otdbcn = DirectCast(nativeConnection, OleDbConnection)
-            Catch ex As Exception
-                Call CoreMessageHandler(subname:="clsOLEDBDriver.setDBParameter", _
-                                      exception:=ex, message:="object is not castable to OLEDBConnection")
-                Return False
-            End Try
-
             '** init driver
             If Not Me.IsInitialized Then
                 Me.Initialize()
             End If
             Try
-                dataRows = _ParametersTable.Select("[ID]='" & parametername & "'")
-
-                ' not found
-                If dataRows.GetLength(0) = 0 Then
-                    If updateOnly And silent Then
-                        SetDBParameter = False
-                        Exit Function
-                    ElseIf updateOnly And Not silent Then
-                        Call CoreMessageHandler(showmsgbox:=True, _
-                                              message:="The Parameter '" & parametername & "' was not found in the OTDB Table tblParametersGlobal", subname:="clsOLEDBDriver.setdbparameter", messagetype:=otCoreMessageType.ApplicationError)
-                        Return False
-                    ElseIf Not updateOnly Then
-                        ReDim dataRows(0)
-                        dataRows(0) = _ParametersTable.NewRow
-                        dataRows(0)("description") = ""
-
-                        insertFlag = True
+                '** on Bootstrapping in the cache
+                '** but bootstrapping mode is not sufficnt
+                If _BootStrapParameterCache IsNot Nothing AndAlso _ParametersTable Is Nothing Then
+                    If _BootStrapParameterCache.ContainsKey(key:=parametername) Then
+                        _BootStrapParameterCache.Remove(key:=parametername)
                     End If
-                End If
-
-                ' value
-                'dataRows(0).BeginEdit()
-                dataRows(0)("ID") = parametername
-                dataRows(0)("Value") = CStr(value)
-                dataRows(0)("changedOn") = Date.Now().ToString
-                'dataRows(0).EndEdit()
-
-                '* add to table
-                If insertFlag Then
-                    _ParametersTable.Rows.Add(dataRows(0))
-                End If
-
-                '*
-                Dim i = _ParametersTableAdapter.Update(_ParametersTable)
-                If i > 0 Then
-                    _ParametersTable.AcceptChanges()
+                    _BootStrapParameterCache.Add(key:=parametername, value:=value)
                     Return True
+
                 Else
-                    Return False
+                    '** diretc in the table
+                    dataRows = _ParametersTable.Select("[" & ConstFNID & "]='" & parametername & "'")
+
+                    ' not found
+                    If dataRows.GetLength(0) = 0 Then
+                        If updateOnly And silent Then
+                            SetDBParameter = False
+                            Exit Function
+                        ElseIf updateOnly And Not silent Then
+                            Call CoreMessageHandler(showmsgbox:=True, _
+                                                  message:="The Parameter '" & parametername & "' was not found in the Table " & ConstParameterTableName, subname:="oleDBDriver.setdbparameter", messagetype:=otCoreMessageType.ApplicationError)
+                            Return False
+                        ElseIf Not updateOnly Then
+                            ReDim dataRows(0)
+                            dataRows(0) = _ParametersTable.NewRow
+                            dataRows(0)(constFNDescription) = ""
+
+                            insertFlag = True
+                        End If
+                    End If
+
+                    ' value
+                    'dataRows(0).BeginEdit()
+                    dataRows(0)(ConstFNID) = parametername
+                    dataRows(0)(ConstFNValue) = CStr(value)
+                    dataRows(0)(ConstFNChangedOn) = Date.Now().ToString
+                    'dataRows(0).EndEdit()
+
+                    '* add to table
+                    If insertFlag Then
+                        _ParametersTable.Rows.Add(dataRows(0))
+                    End If
+
+                    '*
+                    Dim i = _ParametersTableAdapter.Update(_ParametersTable)
+                    If i > 0 Then
+                        _ParametersTable.AcceptChanges()
+                        Return True
+                    Else
+                        Return False
+                    End If
                 End If
 
             Catch ex As Exception
                 ' Handle the error
 
-                Call CoreMessageHandler(showmsgbox:=silent, subname:="clsOLEDBDriver.setDBParameter", _
+                Call CoreMessageHandler(showmsgbox:=silent, subname:="oleDBDriver.setDBParameter", _
                                       tablename:=_parametersTableName, entryname:=parametername)
                 SetDBParameter = False
             End Try
@@ -1162,7 +1431,6 @@ Namespace OnTrack.Database
                                                 Optional ByRef nativeConnection As Object = Nothing, _
                                                 Optional silent As Boolean = False) As Object
 
-            Dim otdbcn As OleDbConnection
             Dim dataRows() As DataRow
 
             '*** get the native Connection 
@@ -1170,21 +1438,14 @@ Namespace OnTrack.Database
                 If Not Me.CurrentConnection Is Nothing Then
                     nativeConnection = _primaryConnection.NativeInternalConnection
                     If nativeConnection Is Nothing Then
-                        Call CoreMessageHandler(subname:="clsOLEDBDriver.getDBParameter", message:="Native internal Connection not available")
+                        Call CoreMessageHandler(subname:="oleDBDriver.getDBParameter", message:="Native internal Connection not available")
                         Return Nothing
                     End If
                 Else
-                    Call CoreMessageHandler(subname:="clsOLEDBDriver.getDBParameter", message:="Connection not available")
+                    Call CoreMessageHandler(subname:="oleDBDriver.getDBParameter", message:="Connection not available")
                     Return Nothing
                 End If
             End If
-            '** cast to OLEDB Connection
-            Try
-                otdbcn = DirectCast(nativeConnection, OleDbConnection)
-            Catch ex As Exception
-                Call CoreMessageHandler(subname:="clsOLEDBDriver.getDBParameter", exception:=ex, message:="object is not castable to OLEDBConnection")
-                Return Nothing
-            End Try
 
             Try
                 '** init driver
@@ -1192,27 +1453,38 @@ Namespace OnTrack.Database
                     Me.Initialize()
                 End If
 
-                '** select row
-                dataRows = _ParametersTable.Select("[ID]='" & parameterename & "'")
-
-                ' not found
-                If dataRows.GetLength(0) = 0 Then
-                    If silent Then
+                '** on Bootstrapping out of the cache
+                '** but bootstrapping mode is not sufficnt
+                If _BootStrapParameterCache IsNot Nothing AndAlso _ParametersTable Is Nothing Then
+                    If _BootStrapParameterCache.ContainsKey(key:=parameterename) Then
+                        Return _BootStrapParameterCache.Item(key:=parameterename)
+                    Else
                         Return Nothing
-                    ElseIf Not silent Then
-                        Call CoreMessageHandler(showmsgbox:=True, _
-                                              message:="The Parameter '" & parameterename & "' was not found in the OTDB Table tblParametersGlobal", subname:="clsOLEDBDriver.setdbparameter", messagetype:=otCoreMessageType.ApplicationError)
-                        Return Nothing
-
                     End If
+                Else
+                    '** select row
+                    dataRows = _ParametersTable.Select("[" & ConstFNID & "]='" & parameterename & "'")
+
+                    ' not found
+                    If dataRows.GetLength(0) = 0 Then
+                        If silent Then
+                            Return Nothing
+                        ElseIf Not silent Then
+                            Call CoreMessageHandler(showmsgbox:=True, _
+                                                  message:="The Parameter '" & parameterename & "' was not found in the OTDB Table " & ConstParameterTableName, subname:="oleDBDriver.setdbparameter", messagetype:=otCoreMessageType.ApplicationError)
+                            Return Nothing
+
+                        End If
+                    End If
+
+                    ' value
+                    Return dataRows(0)(ConstFNValue)
                 End If
 
-                ' value
-                Return dataRows(0)("Value")
 
                 ' Handle the error
             Catch ex As Exception
-                Call CoreMessageHandler(showmsgbox:=silent, subname:="clsOLEDBDriver.getDBParameter", tablename:="tblParametersGlobal", _
+                Call CoreMessageHandler(showmsgbox:=silent, subname:="oleDBDriver.getDBParameter", tablename:=ConstParameterTableName, _
                                       exception:=ex, entryname:=parameterename)
                 Return Nothing
             End Try
@@ -1229,18 +1501,18 @@ Namespace OnTrack.Database
         ''' <remarks></remarks>
         Public Overrides Function RunSqlStatement(ByVal sqlcmdstr As String, Optional ByRef parameters As List(Of ormSqlCommandParameter) = Nothing, _
                                                   Optional silent As Boolean = True, Optional nativeConnection As Object = Nothing) As Boolean _
-        Implements iormDBDriver.RunSqlStatement
-            Dim anativeConnection As OleDbConnection
+        Implements iormDatabaseDriver.RunSqlStatement
+            Dim anativeConnection As System.Data.OleDb.OleDbConnection
             '*** get the native Connection 
             If nativeConnection Is Nothing Then
                 If Not Me.CurrentConnection Is Nothing Then
-                    anativeConnection = DirectCast(Me.CurrentConnection, clsADONETConnection).NativeInternalConnection
+                    anativeConnection = DirectCast(Me.CurrentConnection, adonetConnection).NativeInternalConnection
                     If anativeConnection Is Nothing Then
-                        Call CoreMessageHandler(subname:="clsMSSQLDriver.runSQLCommand", message:="Native internal Connection not available")
+                        Call CoreMessageHandler(subname:="oleDBDriver.runSQLCommand", message:="Native internal Connection not available")
                         Return Nothing
                     End If
                 Else
-                    Call CoreMessageHandler(subname:="clsMSSQLDriver.runSQLCommand", message:="Connection not available")
+                    Call CoreMessageHandler(subname:="oleDBDriver.runSQLCommand", message:="Connection not available")
                     Return Nothing
                 End If
             Else
@@ -1257,7 +1529,7 @@ Namespace OnTrack.Database
                     Return False
                 End If
             Catch ex As Exception
-                Call CoreMessageHandler(subname:="clsOLEDBDriver.runSQLCommand", exception:=ex)
+                Call CoreMessageHandler(subname:="oleDBDriver.runSQLCommand", exception:=ex, arg1:=sqlcmdstr)
                 Return False
             End Try
 
@@ -1284,13 +1556,13 @@ Namespace OnTrack.Database
         End Sub
     End Class
 
-    '************************************************************************************
-    '***** CLASS clsOLEDBConnection describes the Connection description to OnTrack
-    '*****        based on ADO.NET OLEDB Driver
-    '*****
 
-    Public Class clsOLEDBConnection
-        Inherits clsADONETConnection
+    ''' <summary>
+    ''' OLE DB OnTrack Database Connection Class
+    ''' </summary>
+    ''' <remarks></remarks>
+    Public Class oledbConnection
+        Inherits adonetConnection
         Implements iormConnection
 
         'Protected Friend Shadows _nativeConnection As OleDbConnection
@@ -1299,7 +1571,7 @@ Namespace OnTrack.Database
         Public Shadows Event OnConnection As EventHandler(Of ormConnectionEventArgs) Implements iormConnection.OnConnection
         Public Shadows Event OnDisconnection As EventHandler(Of ormConnectionEventArgs) Implements iormConnection.OnDisconnection
 
-        Public Sub New(ByVal id As String, ByRef databaseDriver As iormDBDriver, ByRef session As Session, sequence As ot.ConfigSequence)
+        Public Sub New(ByVal id As String, ByRef databaseDriver As iormDatabaseDriver, ByRef session As Session, sequence As ot.ConfigSequence)
             MyBase.New(id, databaseDriver, session, sequence)
         End Sub
 
@@ -1309,21 +1581,33 @@ Namespace OnTrack.Database
         Public Shadows Function RaiseOnDisConnected() Handles MyBase.OnDisconnection
             RaiseEvent OnDisconnection(Me, New ormConnectionEventArgs(Me))
         End Function
+        ''' <summary>
+        ''' gets the native connection
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Friend Overrides ReadOnly Property NativeConnection() As Object
+            Get
+                Return _nativeConnection
+            End Get
+        End Property
 
         ''' <summary>
         ''' Gets or sets the connection.
         ''' </summary>
         ''' <value>The connection.</value>
-        Public Property OLEDBConnection() As OleDbConnection
+        Public Property OledbConnection() As OleDb.OleDbConnection
             Get
                 If _nativeConnection Is Nothing AndAlso _nativeConnection.State <> ConnectionState.Closed Then
                     Return Nothing
                 Else
-                    Return DirectCast(Me.NativeConnection, OleDbConnection)
+                    Dim otdbcn As oledbConnection
+                    Return DirectCast(Me.NativeConnection, System.Data.OleDb.OleDbConnection)
                 End If
 
             End Get
-            Protected Friend Set(value As OleDbConnection)
+            Protected Friend Set(value As OleDb.OleDbConnection)
                 Me._nativeConnection = value
             End Set
         End Property
@@ -1335,23 +1619,18 @@ Namespace OnTrack.Database
         ''' <returns></returns>
         ''' <remarks></remarks>
         Protected Friend Overrides Function CreateNewNativeConnection() As IDbConnection
-            Return New OleDbConnection()
+            Return New System.Data.OleDb.OleDbConnection()
         End Function
 
     End Class
 
 
-    '************************************************************************************
-    '***** CLASS clsOLEDBTableSchema  CLASS describes the schema per table of the database itself
-    '*****        based on ADO.NET OLEDB Driver
-    '*****
-
     ''' <summary>
     ''' CLASS describes the schema per table of the database itself
     ''' </summary>
     ''' <remarks></remarks>
-    Public Class clsOLEDBTableSchema
-        Inherits clsADONETTableSchema
+    Public Class oledbTableSchema
+        Inherits adonetTableSchema
         Implements iotDataSchema
 
 
@@ -1359,7 +1638,7 @@ Namespace OnTrack.Database
         '*****
         'Protected Friend Shadows _Connection As clsOLEDBConnection
 
-        Public Sub New(ByRef connection As clsOLEDBConnection, ByVal tableID As String)
+        Public Sub New(ByRef connection As oledbConnection, ByVal tableID As String)
             MyBase.New(connection, tableID)
 
         End Sub
@@ -1392,7 +1671,7 @@ Namespace OnTrack.Database
         ''' <remarks></remarks>
         Public Overrides Function AssignNativeDBParameter(fieldname As String, _
                                                            Optional parametername As String = "") As IDbDataParameter Implements iotDataSchema.AssignNativeDBParameter
-            Dim aDBColumnDescription As ColumnDescription = GetColumnDescription(Me.GetFieldordinal(fieldname))
+            Dim aDBColumnDescription As adoNetColumnDescription = GetColumnDescription(Me.GetFieldordinal(fieldname))
             Dim aParameter As OleDbParameter
 
             If Not aDBColumnDescription Is Nothing Then
@@ -1428,7 +1707,7 @@ Namespace OnTrack.Database
                 End If
                 Return aParameter
             Else
-                Call CoreMessageHandler(subname:="clsADONETTableSchema.buildParameter", message:="ColumnDescription couldn't be loaded", _
+                Call CoreMessageHandler(subname:="oleDBTableSchema.buildParameter", message:="ColumnDescription couldn't be loaded", _
                                                      arg1:=fieldname, tablename:=_TableID, messagetype:=otCoreMessageType.InternalError)
                 Return Nothing
 
@@ -1448,12 +1727,12 @@ Namespace OnTrack.Database
             Dim index As Integer
             Dim aColumnCollection As ArrayList
             Dim aColumnName As String = ""
-            Dim aCon As OleDbConnection = DirectCast(DirectCast(_Connection, clsOLEDBConnection).NativeInternalConnection, OleDbConnection)
+            Dim aCon As System.Data.OleDb.OleDbConnection = DirectCast(DirectCast(_Connection, oledbConnection).NativeInternalConnection, System.Data.OleDb.OleDbConnection)
 
 
             ' return if no TableID
             If _TableID = "" Then
-                Call CoreMessageHandler(subname:="clsOLEDBTableSchema.refresh", _
+                Call CoreMessageHandler(subname:="oleDBTableSchema.refresh", _
                                       message:="Nothing table name to set to", _
                                       tablename:=TableID)
                 _IsInitialized = False
@@ -1518,13 +1797,13 @@ Namespace OnTrack.Database
                 no = columnsList.Count
 
                 If no = 0 Then
-                    Call CoreMessageHandler(subname:="clsOLEDBTableSchema.Refresh", tablename:=Me.TableID, _
+                    Call CoreMessageHandler(subname:="oleDBTableSchema.Refresh", tablename:=Me.TableID, _
                                           messagetype:=otCoreMessageType.InternalError, message:="table has no fields - does it exist ?")
                     _IsInitialized = False
                     Return False
                 End If
 
-                ReDim _fieldnames(no - 1)
+                ReDim _Fieldnames(no - 1)
                 ReDim _Columns(no - 1)
 
                 ' set the Dictionaries if reload
@@ -1540,16 +1819,16 @@ Namespace OnTrack.Database
 
                     '*
                     If row.ColumnName.Contains(".") Then
-                        aColumnName = LCase(row.ColumnName.Substring(row.ColumnName.IndexOf(".") + 1, row.ColumnName.Length - row.ColumnName.IndexOf(".") + 1))
+                        aColumnName = UCase(row.ColumnName.Substring(row.ColumnName.IndexOf(".") + 1, row.ColumnName.Length - row.ColumnName.IndexOf(".") + 1))
                     Else
-                        aColumnName = LCase(row.ColumnName)
+                        aColumnName = UCase(row.ColumnName)
                     End If
                     '*
-                    _Fieldnames(i) = aColumnName
+                    _Fieldnames(i) = aColumnName.ToUpper
                     '* set the description
-                    _Columns(i) = New ColumnDescription
+                    _Columns(i) = New adoNetColumnDescription
                     With _Columns(i)
-                        .ColumnName = aColumnName
+                        .ColumnName = aColumnName.ToUpper
                         .Description = row.Description
                         '.HasDefault = row.HasDefault
                         .CharacterMaxLength = row.CharacterMaxLength
@@ -1571,11 +1850,11 @@ Namespace OnTrack.Database
                     End With
 
                     ' remove if existing
-                    If _fieldsDictionary.ContainsKey(aColumnName) Then
-                        _fieldsDictionary.Remove(aColumnName)
+                    If _fieldsDictionary.ContainsKey(aColumnName.ToUpper) Then
+                        _fieldsDictionary.Remove(aColumnName.ToUpper)
                     End If
                     ' add
-                    _fieldsDictionary.Add(key:=aColumnName, value:=i + 1) 'store no field 1... not the array index
+                    _fieldsDictionary.Add(key:=aColumnName.ToUpper, value:=i + 1) 'store no field 1... not the array index
 
                     '* 
                     i = i + 1
@@ -1589,41 +1868,41 @@ Namespace OnTrack.Database
                 For Each row In columnsIndexList
 
                     If row.ColumnName.Contains(".") Then
-                        aColumnName = LCase(row.ColumnName.Substring(row.ColumnName.IndexOf(".") + 1, row.ColumnName.Length))
+                        aColumnName = UCase(row.ColumnName.Substring(row.ColumnName.IndexOf(".") + 1, row.ColumnName.Length))
                     Else
-                        aColumnName = LCase(row.ColumnName)
+                        aColumnName = UCase(row.ColumnName)
                     End If
 
-                    If row.IndexName <> anIndexName Then
+                    If row.IndexName.ToUpper <> anIndexName.ToUpper Then
                         '** store
                         If anIndexName <> "" Then
-                            If _indexDictionary.ContainsKey(anIndexName) Then
-                                _indexDictionary.Remove(key:=anIndexName)
+                            If _indexDictionary.ContainsKey(anIndexName.ToUpper) Then
+                                _indexDictionary.Remove(key:=anIndexName.ToUpper)
                             End If
-                            _indexDictionary.Add(key:=anIndexName, value:=aColumnCollection)
+                            _indexDictionary.Add(key:=anIndexName.ToUpper, value:=aColumnCollection)
                         End If
                         ' new
-                        anIndexName = row.IndexName.Clone
+                        anIndexName = row.IndexName.ToUpper
                         aColumnCollection = New ArrayList
                     End If
                     '** Add To List
-                    aColumnCollection.Add(aColumnName)
+                    aColumnCollection.Add(aColumnName.ToUpper)
 
                     ' indx no
-                    index = _fieldsDictionary.Item(aColumnName)
+                    index = _fieldsDictionary.Item(aColumnName.ToUpper)
                     '
                     '** check if primaryKey
                     'fill old primary Key structure
                     If row.isPrimaryKey Then
-                        _PrimaryKeyIndexName = row.IndexName.Clone
+                        _PrimaryKeyIndexName = row.IndexName.ToUpper
                         _NoPrimaryKeys = _NoPrimaryKeys + 1
                         ReDim Preserve _Primarykeys(0 To _NoPrimaryKeys - 1)
                         _Primarykeys(_NoPrimaryKeys - 1) = index - 1 ' set to the array 0...ubound
                     End If
 
-                    If Not _fieldsDictionary.ContainsKey(aColumnName) Then
-                        Call CoreMessageHandler(subname:="clsOLEDBTableSchema.refresh", _
-                                              message:="clsOLEDBTableSchema : column " & row.ColumnName & " not in dictionary ?!", _
+                    If Not _fieldsDictionary.ContainsKey(aColumnName.ToUpper) Then
+                        Call CoreMessageHandler(subname:="oleDBTableSchema.refresh", _
+                                              message:="oleDBTableSchema : column " & row.ColumnName & " not in dictionary ?!", _
                                               tablename:=TableID, entryname:=row.ColumnName)
 
                         Return False
@@ -1632,10 +1911,10 @@ Namespace OnTrack.Database
                 Next
                 '** store final
                 If anIndexName <> "" Then
-                    If _indexDictionary.ContainsKey(anIndexName) Then
-                        _indexDictionary.Remove(key:=anIndexName)
+                    If _indexDictionary.ContainsKey(anIndexName.ToUpper) Then
+                        _indexDictionary.Remove(key:=anIndexName.ToUpper)
                     End If
-                    _indexDictionary.Add(key:=anIndexName, value:=aColumnCollection)
+                    _indexDictionary.Add(key:=anIndexName.ToUpper, value:=aColumnCollection)
                 End If
 
                 '**** build the commands
@@ -1661,7 +1940,7 @@ Namespace OnTrack.Database
                 Return True
 
             Catch ex As Exception
-                Call CoreMessageHandler(showmsgbox:=False, subname:="clsOLEDBTableSchema.refresh", tablename:=_TableID, _
+                Call CoreMessageHandler(showmsgbox:=False, subname:="oleDBTableSchema.refresh", tablename:=_TableID, _
                                       arg1:=reloadForce, exception:=ex)
                 _IsInitialized = False
                 Return False
@@ -1671,14 +1950,12 @@ Namespace OnTrack.Database
 
     End Class
 
-
-    '************************************************************************************
-    '***** CLASS clsOLEDBTableStore describes the per Table reference and Helper Class
-    '*****                    ORM Mapping Class and Table Access Workhorse
-    '*****
-
-    Public Class clsOLEDBTableStore
-        Inherits clsADONETTableStore
+    ''' <summary>
+    ''' describes the ORM Mapping Function per Table for OLE DB
+    ''' </summary>
+    ''' <remarks></remarks>
+    Public Class oledbTableStore
+        Inherits adonetTableStore
         Implements iormDataStore
 
         'Protected Friend Shadows _cacheAdapter As OleDbDataAdapter
@@ -1716,14 +1993,25 @@ Namespace OnTrack.Database
         ''' <param name="abostrophNecessary"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overrides Function Convert2ColumnData(ByVal value As Object, _
+        Public Overrides Function Convert2ColumnData(ByVal invalue As Object, ByRef outvalue As Object, _
                                                      targetType As Long, _
                                                      Optional ByVal maxsize As Long = 0, _
                                                     Optional ByRef abostrophNecessary As Boolean = False, _
-                                                    Optional ByVal fieldname As String = "") As Object _
+                                                    Optional ByVal fieldname As String = "", _
+                                                    Optional isnullable? As Boolean = Nothing, _
+                                                    Optional defaultvalue As Object = Nothing) As Boolean _
                                                 Implements iormDataStore.Convert2ColumnData
-            Return Connection.DatabaseDriver.Convert2DBData(value:=value, targetType:=targetType, maxsize:=maxsize, abostrophNecessary:=abostrophNecessary, _
-                                       fieldname:=fieldname)
+            If Not isnullable.HasValue And fieldname <> "" Then
+                isnullable = Me.TableSchema.GetNullable(fieldname)
+            Else
+                isnullable = False
+            End If
+            If defaultvalue Is Nothing And fieldname <> "" Then
+                defaultvalue = Me.TableSchema.GetDefaultValue(fieldname)
+            End If
+            Return Connection.DatabaseDriver.Convert2DBData(invalue:=invalue, outvalue:=outvalue, _
+                                                            targetType:=targetType, maxsize:=maxsize, abostrophNecessary:=abostrophNecessary, _
+                                       fieldname:=fieldname, isnullable:=isnullable, defaultvalue:=defaultvalue)
         End Function
 
 
@@ -1738,10 +2026,14 @@ Namespace OnTrack.Database
         ''' <param name="abostrophNecessary">True if necessary</param>
         ''' <returns>converted value </returns>
         ''' <remarks></remarks>
-        Public Overrides Function Convert2ObjectData(ByVal index As Object, ByVal value As Object, Optional ByRef abostrophNecessary As Boolean = False) As Object _
-        Implements iormDataStore.Convert2ObjectData
-            Dim aSchema As clsOLEDBTableSchema = Me.TableSchema
-            Dim aDBColumn As clsOLEDBTableSchema.ColumnDescription
+        Public Overrides Function Convert2ObjectData(ByVal index As Object, _
+                                                     ByVal invalue As Object, _
+                                                     ByRef outvalue As Object, _
+                                                     Optional isnullable As Boolean? = Nothing, _
+                                                     Optional defaultvalue As Object = Nothing, _
+                                                     Optional ByRef abostrophNecessary As Boolean = False) As Boolean Implements iormDataStore.Convert2ObjectData
+            Dim aSchema As oledbTableSchema = Me.TableSchema
+            Dim aDBColumn As oledbTableSchema.adoNetColumnDescription
             Dim result As Object
             Dim fieldno As Integer
 
@@ -1751,78 +2043,135 @@ Namespace OnTrack.Database
 
                 fieldno = aSchema.GetFieldordinal(index)
                 If fieldno < 0 Then
-                    Call CoreMessageHandler(subname:="clsOLEDBTableStoreStore.cvt2ColumnData", messagetype:=otCoreMessageType.InternalError, _
+                    Call CoreMessageHandler(subname:="oledbTableStore.cvt2ColumnData", messagetype:=otCoreMessageType.InternalError, _
                                           message:="iOTDBTableStore " & Me.TableID & " anIndex for " & index & " not found", _
                                           tablename:=Me.TableID, arg1:=index)
                     System.Diagnostics.Debug.WriteLine("iOTDBTableStore " & Me.TableID & " anIndex for " & index & " not found")
 
-                    Return DBNull.Value
+                    Return False
                 Else
                     aDBColumn = aSchema.GetColumnDescription(fieldno)
                 End If
                 abostrophNecessary = False
-
+                If Not isnullable.HasValue Then
+                    isnullable = Me.TableSchema.GetNullable(index)
+                End If
+                If defaultvalue = Nothing Then
+                    defaultvalue = Me.TableSchema.GetDefaultValue(index)
+                End If
                 '*
                 '*
                 'If IsError(aValue) Then
-                '    System.Diagnostics.Debug.WriteLine "Error in Formular of field value " & aValue & " while updating OTDB"
+                '    System.Diagnostics.Debug.WriteLine "Error in Formular of field invalue " & aValue & " while updating OTDB"
                 '    aValue = ""
                 'End If
 
-                If aDBColumn.DataType = OleDbType.BigInt Or aDBColumn.DataType = OleDbType.Integer _
-                Or aDBColumn.DataType = OleDbType.SmallInt Or aDBColumn.DataType = OleDbType.TinyInt _
-                Or aDBColumn.DataType = OleDbType.UnsignedBigInt Or aDBColumn.DataType = OleDbType.UnsignedInt _
-                Or aDBColumn.DataType = OleDbType.UnsignedSmallInt Or aDBColumn.DataType = OleDbType.UnsignedTinyInt _
-                Or aDBColumn.DataType = OleDbType.SmallInt Or aDBColumn.DataType = OleDbType.TinyInt Then
-                    If (Not IsNumeric(value) Or value Is Nothing Or DBNull.Value.Equals(value) Or IsError(value)) OrElse String.IsNullOrWhiteSpace(value) Then
-                        result = 0
-                    ElseIf IsNumeric(value) Then
-                        result = CLng(value)
+                If aDBColumn.DataType = OleDbType.BigInt OrElse aDBColumn.DataType = OleDbType.Integer _
+                OrElse aDBColumn.DataType = OleDbType.SmallInt OrElse aDBColumn.DataType = OleDbType.TinyInt _
+                OrElse aDBColumn.DataType = OleDbType.UnsignedBigInt OrElse aDBColumn.DataType = OleDbType.UnsignedInt _
+                OrElse aDBColumn.DataType = OleDbType.UnsignedSmallInt OrElse aDBColumn.DataType = OleDbType.UnsignedTinyInt _
+                OrElse aDBColumn.DataType = OleDbType.SmallInt OrElse aDBColumn.DataType = OleDbType.TinyInt Then
+                    If defaultvalue Is Nothing Then defaultvalue = Convert.ToInt64(0)
+                    If isnullable Then
+                        result = New Nullable(Of Long)
                     Else
-                        Call CoreMessageHandler(subname:="clsOLEDBTablestore.conver2ObjectData", messagetype:=otCoreMessageType.InternalError, _
-                                              message:="OTDB data '" & value & "' is not convertible to Integer", _
-                                              arg1:=aDBColumn.DataType, tablename:=Me.TableID, entryname:=aDBColumn.ColumnName)
-                        result = DBNull.Value
+                        result = New Long
                     End If
 
-                ElseIf aDBColumn.DataType = OleDbType.Char Or aDBColumn.DataType = OleDbType.BSTR Or aDBColumn.DataType = OleDbType.LongVarChar _
-                Or aDBColumn.DataType = OleDbType.LongVarWChar Or aDBColumn.DataType = OleDbType.VarChar Or aDBColumn.DataType = OleDbType.VarWChar _
-                Or aDBColumn.DataType = OleDbType.WChar Then
+                    If isnullable AndAlso (Not IsNumeric(invalue) OrElse invalue Is Nothing OrElse _
+                                               DBNull.Value.Equals(invalue) OrElse String.IsNullOrWhiteSpace(invalue)) Then
+                        result = New Nullable(Of Long)
+                    ElseIf Not isnullable AndAlso (Not IsNumeric(invalue) OrElse invalue Is Nothing OrElse _
+                                               DBNull.Value.Equals(invalue) OrElse String.IsNullOrWhiteSpace(invalue)) Then
+                        result = Convert.ToInt64(defaultvalue)
+                    ElseIf IsNumeric(invalue) Then
+                        result = Convert.ToInt64(invalue)
+                    Else
+                        Call CoreMessageHandler(subname:="oledbTableStore.conver2ObjectData", messagetype:=otCoreMessageType.InternalError, _
+                                              message:="OTDB data '" & invalue & "' is not convertible to Integer", _
+                                              arg1:=aDBColumn.DataType, tablename:=Me.TableID, entryname:=aDBColumn.ColumnName)
+                        Return False
+                    End If
+
+
+                ElseIf aDBColumn.DataType = OleDbType.Char OrElse aDBColumn.DataType = OleDbType.BSTR OrElse aDBColumn.DataType = OleDbType.LongVarChar _
+                OrElse aDBColumn.DataType = OleDbType.LongVarWChar OrElse aDBColumn.DataType = OleDbType.VarChar OrElse aDBColumn.DataType = OleDbType.VarWChar _
+                OrElse aDBColumn.DataType = OleDbType.WChar Then
                     abostrophNecessary = True
-                    If (value Is Nothing Or DBNull.Value.Equals(value) Or IsError(value)) OrElse String.IsNullOrWhiteSpace(value) Then
-                        result = ""
+                    If defaultvalue Is Nothing Then defaultvalue = Convert.ToString("")
+
+                    If isnullable AndAlso (invalue Is Nothing OrElse DBNull.Value.Equals(invalue) OrElse _
+                                          String.IsNullOrWhiteSpace(invalue)) Then
+                        result = Nothing
+                    ElseIf Not isnullable AndAlso (invalue Is Nothing OrElse DBNull.Value.Equals(invalue) OrElse _
+                                          String.IsNullOrWhiteSpace(invalue)) Then
+                        result = Convert.ToString(defaultvalue)
                     Else
-                        result = CStr(value)
+                        result = Convert.ToString(invalue)
                     End If
 
-                ElseIf aDBColumn.DataType = OleDbType.Date Or aDBColumn.DataType = OleDbType.DBDate Or aDBColumn.DataType = OleDbType.DBTime _
-                Or aDBColumn.DataType = OleDbType.DBTimeStamp Then
+                ElseIf aDBColumn.DataType = OleDbType.Date OrElse aDBColumn.DataType = OleDbType.DBDate OrElse aDBColumn.DataType = OleDbType.DBTime _
+                OrElse aDBColumn.DataType = OleDbType.DBTimeStamp Then
+                    If defaultvalue Is Nothing Then defaultvalue = Convert.ToDateTime(ConstNullDate)
+                    If isnullable Then
+                        result = New Nullable(Of DateTime)
+                    Else
+                        result = New DateTime
+                    End If
 
-                    If (Not IsDate(value) Or value Is Nothing Or DBNull.Value.Equals(value) Or IsError(value)) OrElse String.IsNullOrWhiteSpace(value) Then
-                        result = ConstNullDate
-                    ElseIf IsDate(value) Then
-                        result = CDate(value)
+                    If isnullable AndAlso (Not IsDate(invalue) OrElse invalue Is Nothing OrElse DBNull.Value.Equals(invalue) _
+                                            OrElse String.IsNullOrWhiteSpace(invalue)) Then
+                        result = New Nullable(Of DateTime)
+                    ElseIf (Not IsDate(invalue) OrElse invalue Is Nothing OrElse DBNull.Value.Equals(invalue) OrElse IsError(invalue)) OrElse String.IsNullOrWhiteSpace(invalue) Then
+                        result = Convert.ToDateTime(defaultvalue)
+                    ElseIf IsDate(invalue) Then
+                        result = Convert.ToDateTime(invalue)
                     Else
-                        Call CoreMessageHandler(subname:="clsOLEDBTablestore.conver2ObjectData", messagetype:=otCoreMessageType.InternalError, _
-                                              message:="OTDB data '" & value & "' is not convertible to Date", _
-                                              arg1:=aDBColumn.DataType, tablename:=Me.TableID, entryname:=aDBColumn.ColumnName)
-                        result = ConstNullDate
+                        Call CoreMessageHandler(subname:="oledbTableStore.conver2ObjectData", messagetype:=otCoreMessageType.InternalError, _
+                                            message:="OTDB data '" & invalue & "' is not convertible to Date", _
+                                            arg1:=aDBColumn.DataType, tablename:=Me.TableID, entryname:=aDBColumn.ColumnName)
+                        Return False
                     End If
-                ElseIf aDBColumn.DataType = OleDbType.Double Or aDBColumn.DataType = OleDbType.Decimal _
-                Or aDBColumn.DataType = OleDbType.Single Or aDBColumn.DataType = OleDbType.Numeric Then
-                    If (Not IsNumeric(value) Or value Is Nothing Or DBNull.Value.Equals(value) Or IsError(value)) OrElse String.IsNullOrWhiteSpace(value) Then
-                        result = 0
-                    ElseIf IsNumeric(value) Then
-                        result = CDbl(value)
+
+                ElseIf aDBColumn.DataType = OleDbType.Double OrElse aDBColumn.DataType = OleDbType.Decimal _
+                OrElse aDBColumn.DataType = OleDbType.Single OrElse aDBColumn.DataType = OleDbType.Numeric Then
+                    If defaultvalue Is Nothing Then defaultvalue = Convert.ToDouble(0)
+                    If isnullable Then
+                        result = New Nullable(Of Double)
                     Else
-                        Call CoreMessageHandler(subname:="clsOLEDBTablestore.conver2ObjectData", messagetype:=otCoreMessageType.InternalError, _
-                                              message:="OTDB data '" & value & "' is not convertible to Double", _
-                                              arg1:=aDBColumn.DataType, tablename:=Me.TableID, entryname:=aDBColumn.ColumnName)
-                        result = DBNull.Value
+                        result = New Double
                     End If
+
+                    If isnullable AndAlso (Not IsNumeric(invalue) OrElse invalue Is Nothing OrElse _
+                        DBNull.Value.Equals(invalue) OrElse String.IsNullOrWhiteSpace(invalue)) Then
+                        result = New Nullable(Of Double)
+                    ElseIf isnullable AndAlso (Not IsNumeric(invalue) OrElse invalue Is Nothing OrElse _
+                        DBNull.Value.Equals(invalue) OrElse String.IsNullOrWhiteSpace(invalue)) Then
+                        result = Convert.ToDouble(defaultvalue)
+                    ElseIf IsNumeric(invalue) Then
+                        result = Convert.ToDouble(invalue)
+                    Else
+                        Call CoreMessageHandler(subname:="oledbTableStore.conver2ObjectData", messagetype:=otCoreMessageType.InternalError, _
+                                             message:="OTDB data '" & invalue & "' is not convertible to Double", _
+                                             arg1:=aDBColumn.DataType, tablename:=Me.TableID, entryname:=aDBColumn.ColumnName)
+                        Return False
+                    End If
+
+
                 ElseIf aDBColumn.DataType = OleDbType.Boolean Then
-                    If (value Is Nothing Or DBNull.Value.Equals(value) Or IsError(value) Or value = False) OrElse String.IsNullOrWhiteSpace(value) Then
-                        result = False
+                    If defaultvalue Is Nothing Then defaultvalue = Convert.ToBoolean(False)
+                    If isnullable Then
+                        result = New Nullable(Of Boolean)
+                    Else
+                        result = New Boolean
+                    End If
+
+                    If isnullable AndAlso (invalue Is Nothing OrElse DBNull.Value.Equals(invalue) _
+                                               OrElse invalue = False) OrElse String.IsNullOrWhiteSpace(invalue) Then
+                        result = New Nullable(Of Boolean)
+                    ElseIf Not isnullable AndAlso (invalue Is Nothing OrElse DBNull.Value.Equals(invalue) _
+                                               OrElse invalue = False) OrElse String.IsNullOrWhiteSpace(invalue) Then
+                        result = Convert.ToBoolean(False)
                     Else
                         result = True
                     End If
@@ -1830,9 +2179,10 @@ Namespace OnTrack.Database
                 End If
 
                 ' return
-                Return result
+                outvalue = result
+                Return True
             Catch ex As Exception
-                Call CoreMessageHandler(showmsgbox:=False, subname:="clsOLEDBTableStore.cvt2ObjData", _
+                Call CoreMessageHandler(showmsgbox:=False, subname:="oledbTableStore.cvt2ObjData", _
                                       arg1:=aDBColumn.DataType, tablename:=Me.TableID, entryname:=aDBColumn.ColumnName, exception:=ex, _
                                       messagetype:=otCoreMessageType.InternalError)
                 Return Nothing
@@ -1856,10 +2206,10 @@ Namespace OnTrack.Database
                     ' set theAdapter
                     _cacheAdapter = New OleDbDataAdapter
                     _cacheAdapter.MissingSchemaAction = MissingSchemaAction.AddWithKey
-                    aDataSet = DirectCast(Me.Connection.DatabaseDriver, clsOLEDBDriver).OnTrackDataSet
+                    aDataSet = DirectCast(Me.Connection.DatabaseDriver, oleDBDriver).OnTrackDataSet
                     ' Select Command
-                    aCommand = DirectCast(Me.TableSchema, clsOLEDBTableSchema).getCommand(Me.TableSchema.PrimaryKeyIndexName, _
-                                                                                          clsOLEDBTableSchema.CommandType.SelectType)
+                    aCommand = DirectCast(Me.TableSchema, oledbTableSchema).GetCommand(Me.TableSchema.PrimaryKeyIndexName, _
+                                                                                          oledbTableSchema.CommandType.SelectType)
                     If Not aCommand Is Nothing Then
                         Dim selectstr As String = "SELECT "
                         For i = 1 To Me.TableSchema.NoFields
@@ -1871,9 +2221,9 @@ Namespace OnTrack.Database
                         selectstr &= " FROM " & Me.TableID
                         _cacheAdapter.SelectCommand = New OleDbCommand(selectstr)
                         _cacheAdapter.SelectCommand.CommandType = CommandType.Text
-                        _cacheAdapter.SelectCommand.Connection = DirectCast(Me.Connection.NativeConnection, OleDbConnection)
+                        _cacheAdapter.SelectCommand.Connection = DirectCast(Me.Connection.NativeConnection, System.Data.OleDb.OleDbConnection)
                         _cacheAdapter.FillSchema(aDataSet, SchemaType.Source)
-                        DirectCast(_cacheAdapter, OleDbDataAdapter).Fill(aDataSet, Me.TableID)
+                        DirectCast(_cacheAdapter, System.Data.OleDb.OleDbDataAdapter).Fill(aDataSet, Me.TableID)
                         ' set the Table
                         _cacheTable = aDataSet.Tables(Me.TableID)
                         If _cacheTable Is Nothing Then
@@ -1891,7 +2241,7 @@ Namespace OnTrack.Database
                             End If
 
                             Dim fieldlist As String = ""
-                            For Each fieldname In Me.TableSchema.getIndex(indexName)
+                            For Each fieldname In Me.TableSchema.GetIndex(indexName)
                                 If fieldlist = "" Then
                                     fieldlist &= fieldname
                                 Else
@@ -1908,21 +2258,21 @@ Namespace OnTrack.Database
                     End If
 
                     ' Delete Command
-                    aCommand = DirectCast(Me.TableSchema, clsOLEDBTableSchema).getCommand(Me.TableSchema.PrimaryKeyIndexName, _
-                                                                                          clsOLEDBTableSchema.CommandType.DeleteType)
+                    aCommand = DirectCast(Me.TableSchema, oledbTableSchema).GetCommand(Me.TableSchema.PrimaryKeyIndexName, _
+                                                                                          oledbTableSchema.CommandType.DeleteType)
                     If Not aCommand Is Nothing Then
                         _cacheAdapter.DeleteCommand = aCommand
                     End If
 
                     ' Insert Command
-                    aCommand = DirectCast(Me.TableSchema, clsOLEDBTableSchema).getCommand(Me.TableSchema.PrimaryKeyIndexName, _
-                                                                                          clsOLEDBTableSchema.CommandType.InsertType)
+                    aCommand = DirectCast(Me.TableSchema, oledbTableSchema).GetCommand(Me.TableSchema.PrimaryKeyIndexName, _
+                                                                                          oledbTableSchema.CommandType.InsertType)
                     If Not aCommand Is Nothing Then
                         _cacheAdapter.InsertCommand = aCommand
                     End If
                     ' Update Command
-                    aCommand = DirectCast(Me.TableSchema, clsOLEDBTableSchema).getCommand(Me.TableSchema.PrimaryKeyIndexName, _
-                                                                                          clsOLEDBTableSchema.CommandType.UpdateType)
+                    aCommand = DirectCast(Me.TableSchema, oledbTableSchema).GetCommand(Me.TableSchema.PrimaryKeyIndexName, _
+                                                                                          oledbTableSchema.CommandType.UpdateType)
                     If Not aCommand Is Nothing Then
                         _cacheAdapter.UpdateCommand = aCommand
                     End If
@@ -1936,7 +2286,7 @@ Namespace OnTrack.Database
 
 
             Catch ex As Exception
-                Call CoreMessageHandler(subname:="clsOLEDBTablestore.initializeCache", exception:=ex, message:="Exception", _
+                Call CoreMessageHandler(subname:="oledbTableStore.initializeCache", exception:=ex, message:="Exception", _
                                       messagetype:=otCoreMessageType.InternalError, tablename:=Me.TableID)
                 Return False
             End Try
@@ -1950,14 +2300,14 @@ Namespace OnTrack.Database
         ''' <remarks></remarks>
         Public Overrides Function UpdateDBDataTable(ByRef dataadapter As IDbDataAdapter, ByRef datatable As DataTable) As Integer
             Try
-                Return DirectCast(dataadapter, OleDbDataAdapter).Update(datatable)
+                Return DirectCast(dataadapter, System.Data.OleDb.OleDbDataAdapter).Update(datatable)
 
             Catch ex As OleDb.OleDbException
-                Call CoreMessageHandler(message:="Exception occured", subname:="clsOLEDBTableStore.UpdateDBDataTable", exception:=ex, _
+                Call CoreMessageHandler(message:="Exception occured", subname:="oledbTableStore.UpdateDBDataTable", exception:=ex, _
                                     messagetype:=otCoreMessageType.InternalError, tablename:=Me.TableID)
                 Return Nothing
             Catch ex As Exception
-                Call CoreMessageHandler(message:="Exception occured", subname:="clsOLEDBTableStore.UpdateDBDataTable", exception:=ex, _
+                Call CoreMessageHandler(message:="Exception occured", subname:="oledbTableStore.UpdateDBDataTable", exception:=ex, _
                                        messagetype:=otCoreMessageType.InternalError, tablename:=Me.TableID)
                 Return 0
             End Try

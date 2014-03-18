@@ -24,50 +24,48 @@ Imports OnTrack.XChange
 Namespace OnTrack.Scheduling
 
 
-    '************************************************************************************
-    '***** CLASS MileStoneDefinition is the object for a OTDBRecord (which is the datastore)
-    '*****       defines the Milestone in a Schedule Definition
-    '*****
     ''' <summary>
     ''' milestone definition class
     ''' </summary>
     ''' <remarks></remarks>
+    <ormObject(version:=1, ID:=MileStoneDefinition.ConstObjectID, Modulename:=constModuleScheduling, Description:="definition of milestones for all schedule types")> _
     Public Class MileStoneDefinition
         Inherits ormDataObject
         Implements iormPersistable
         Implements iormInfusable
 
+        Public Const ConstObjectID = "MilestoneDefinition"
         <ormSchemaTable(version:=2, addDomainBehavior:=True, addsparefields:=True, adddeletefieldbehavior:=True)> Public Const ConstTableID As String = "tblDefMilestones"
 
         '** keys
-        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=20, defaultValue:="", primarykeyordinal:=1, _
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=20, defaultValue:="", primarykeyordinal:=1, _
             ID:="bpd1", title:="ID", description:="id of the milestone")> Public Const ConstFNID = "id"
-        <ormSchemaColumn(referenceobjectentry:=Domain.ConstTableID & "." & Domain.ConstFNDomainID, primarykeyordinal:=2)> Public Shadows Const ConstFNDomainID = Domain.ConstFNDomainID
+        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=2)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
         '** fields
-        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=255, _
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=255, _
            ID:="bpd2", title:="Description", description:="description of the milestone")> Public Const ConstFNDescription = "desc"
-        <ormSchemaColumn(typeid:=otFieldDataType.Long, _
+        <ormObjectEntry(typeid:=otFieldDataType.Long, _
            ID:="bpd3", title:="Type", description:="type of the milestone")> Public Const ConstFNType = "typeid"
-        <ormSchemaColumn(typeid:=otFieldDataType.Long, _
+        <ormObjectEntry(typeid:=otFieldDataType.Long, _
            ID:="bpd4", title:="Datatype", description:="datatype of the milestone")> Public Const ConstFNDatatype = "datatype"
-        <ormSchemaColumn(referenceobjectentry:=StatusItem.ConstTableID & "." & StatusItem.constFNType, _
+        <ormObjectEntry(referenceobjectentry:=StatusItem.ConstObjectID & "." & StatusItem.constFNType, _
           ID:="bpd5", title:="Status Item Type", description:="status item type of the milestone")> Public Const ConstFNStatus = "status"
-        <ormSchemaColumn(typeid:=otFieldDataType.Bool, _
+        <ormObjectEntry(typeid:=otFieldDataType.Bool, _
          ID:="bpd6", title:="Forecast", description:="set if milestone is a forecast")> Public Const ConstFNIsForecast = "isforecast"
-        <ormSchemaColumn(referenceobjectentry:=ConstFNID, _
+        <ormObjectEntry(referenceobjectentry:=ConstObjectID & "." & ConstFNID, _
         ID:="bpd7", title:="Reference", description:="set if milestone is a reference")> Public Const ConstFNRefID = "refid"
 
 
 
         '** MAPPING
-        <ormColumnMapping (ColumnName:=ConstFNid)> Private _id As String = ""  ' id
-        <ormColumnMapping(ColumnName:=ConstFNDescription)> Private _description As String = ""
-        <ormColumnMapping(ColumnName:=ConstFNType)> Private _typeid As otMilestoneType
-        <ormColumnMapping(ColumnName:=ConstFNDatatype)> Private _datatype As otFieldDataType
-        <ormColumnMapping(ColumnName:=ConstFNRefID)> Private _refid As String = ""
-        <ormColumnMapping(ColumnName:=ConstFNIsForecast)> Private _isForecast As Boolean
-        <ormColumnMapping(ColumnName:=ConstFNStatus)> Private _statustypeid As String = ""
+        <ormEntryMapping(EntryName:=ConstFNID)> Private _id As String = ""  ' id
+        <ormEntryMapping(EntryName:=ConstFNDescription)> Private _description As String = ""
+        <ormEntryMapping(EntryName:=ConstFNType)> Private _typeid As otMilestoneType
+        <ormEntryMapping(EntryName:=ConstFNDatatype)> Private _datatype As otFieldDataType
+        <ormEntryMapping(EntryName:=ConstFNRefID)> Private _refid As String = ""
+        <ormEntryMapping(EntryName:=ConstFNIsForecast)> Private _isForecast As Boolean
+        <ormEntryMapping(EntryName:=ConstFNStatus)> Private _statustypeid As String = ""
 
 
 
@@ -202,18 +200,18 @@ Namespace OnTrack.Scheduling
 
 #End Region
 
-       
+
 
         ''' <summary>
         ''' constructor
         ''' </summary>
         ''' <remarks></remarks>
         Public Sub New()
-            Call MyBase.New(constTableID)
+            Call MyBase.New(ConstTableID)
 
         End Sub
-        
-        
+
+
         ''' <summary>
         ''' Retrieve
         ''' </summary>
@@ -230,9 +228,9 @@ Namespace OnTrack.Scheduling
         ''' <param name="ID"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Function LoadBy(ByVal ID As String, Optional domainID As String = "") As Boolean
+        Public Overloads Function Inject(ByVal ID As String, Optional domainID As String = "") As Boolean
             Dim pkarray() As Object = {LCase(ID), domainID}
-            Return MyBase.LoadBy(pkarray, domainID:=domainID)
+            Return MyBase.Inject(pkarray, domainID:=domainID)
         End Function
         ''' <summary>
         ''' create a persistance schema
@@ -241,7 +239,7 @@ Namespace OnTrack.Scheduling
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function CreateSchema(Optional silent As Boolean = True) As Boolean
-            Return ormDataObject.CreateSchema(Of MileStoneDefinition)(silent:=silent)
+            Return ormDataObject.CreateDataObjectSchema(Of MileStoneDefinition)(silent:=silent)
             '            Dim aFieldDesc As New ormFieldDescription
             '            Dim primaryColumnNames As New Collection
             '            'Dim workspaceColumnNames As New Collection
@@ -256,7 +254,7 @@ Namespace OnTrack.Scheduling
 
             '            ' delete it
             '            With aTable
-            '                .LoadBy(constTableID)
+            '                .Inject(constTableID)
             '                .Delete()
             '            End With
 
@@ -413,7 +411,7 @@ Namespace OnTrack.Scheduling
             '            CreateSchema = False
         End Function
 
-        
+
         ''' <summary>
         ''' Return a collection of all def Milestones
         ''' </summary>
@@ -423,7 +421,7 @@ Namespace OnTrack.Scheduling
             Return ormDataObject.All(Of MileStoneDefinition)(domainID:=domainID)
         End Function
 
-        
+
 
         ''' <summary>
         ''' create persistable object with primary key ID
@@ -433,10 +431,11 @@ Namespace OnTrack.Scheduling
         ''' <remarks></remarks>
         Public Overloads Function Create(ByVal ID As String, Optional domainID As String = "") As Boolean
             Dim pkarray() As Object = {ID, domainID}
-            return Me.Create(pkarray, checkUnique:=True, domainID:=DomainID) 
+            Return Me.Create(pkarray, checkUnique:=True, domainID:=domainID)
         End Function
 
     End Class
+
     '************************************************************************************
     '***** CLASS clsOTDBDefScheduleTask is the object for a OTDBRecord (which is the datastore)
     '*****       Defines the Schedule Task of Milestones
@@ -810,7 +809,7 @@ Namespace OnTrack.Scheduling
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overloads Function Initialize() As Boolean
-            Cache.RegisterCacheFor(ConstTableID)
+            Cache.RegisterCacheFor(constTableID)
             Me.TableStore.SetProperty(ConstTPNCacheProperty, True)
 
             s_parameter_date1 = ConstNullDate
@@ -886,9 +885,9 @@ Namespace OnTrack.Scheduling
         ''' <param name="ID"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function LoadBy(ByVal scheduletype As String, ByVal ID As String) As Boolean
+        Public Function Inject(ByVal scheduletype As String, ByVal ID As String) As Boolean
             Dim pkarray() As Object = {LCase(scheduletype), LCase(ID)}
-            Return MyBase.LoadBy(pkarray)
+            Return MyBase.Inject(pkarray)
         End Function
         ''' <summary>
         ''' create the persistency schema
@@ -897,219 +896,219 @@ Namespace OnTrack.Scheduling
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function CreateSchema(Optional silent As Boolean = True) As Boolean
-            Dim aFieldDesc As New ormFieldDescription
-            Dim PrimaryColumnNames As New Collection
-            Dim OrderByColumnNames As New Collection
-            Dim aTable As New ObjectDefinition
+            '            Dim aFieldDesc As New ormFieldDescription
+            '            Dim PrimaryColumnNames As New Collection
+            '            Dim OrderByColumnNames As New Collection
+            '            Dim aTable As New ObjectDefinition
 
 
-            aFieldDesc.ID = ""
-            aFieldDesc.Parameter = ""
-            aFieldDesc.Tablename = constTableID
+            '            aFieldDesc.ID = ""
+            '            aFieldDesc.Parameter = ""
+            '            aFieldDesc.Tablename = constTableID
 
-            With aTable
-                .Create(constTableID)
-                .Delete()
+            '            With aTable
+            '                .Create(constTableID)
+            '                .Delete()
 
-                'Tablename
+            '                'Tablename
 
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "scheduletype"
-                aFieldDesc.ID = "bs4"
-                aFieldDesc.ColumnName = "scheduletype"
-                aFieldDesc.Size = 50
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
-                OrderByColumnNames.Add(aFieldDesc.ColumnName)
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "scheduletype"
+            '                aFieldDesc.ID = "bs4"
+            '                aFieldDesc.ColumnName = "scheduletype"
+            '                aFieldDesc.Size = 50
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
+            '                OrderByColumnNames.Add(aFieldDesc.ColumnName)
 
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "task id"
-                aFieldDesc.ID = "bpt1"
-                aFieldDesc.ColumnName = "id"
-                aFieldDesc.Size = 20
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "task id"
+            '                aFieldDesc.ID = "bpt1"
+            '                aFieldDesc.ColumnName = "id"
+            '                aFieldDesc.Size = 20
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
 
-                'Fieldnames
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "description"
-                aFieldDesc.ID = "bpt2"
-                aFieldDesc.ColumnName = "desc"
-                aFieldDesc.Size = 0
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                'Fieldnames
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "description"
+            '                aFieldDesc.ID = "bpt2"
+            '                aFieldDesc.ColumnName = "desc"
+            '                aFieldDesc.Size = 0
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                aFieldDesc.Datatype = otFieldDataType.[Long]
-                aFieldDesc.Title = "order no"
-                aFieldDesc.ID = "bpt3"
-                aFieldDesc.ColumnName = "orderno"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                OrderByColumnNames.Add("orderno")
+            '                aFieldDesc.Datatype = otFieldDataType.[Long]
+            '                aFieldDesc.Title = "order no"
+            '                aFieldDesc.ID = "bpt3"
+            '                aFieldDesc.ColumnName = "orderno"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                OrderByColumnNames.Add("orderno")
 
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "start milestone id"
-                aFieldDesc.ID = "bpt4"
-                aFieldDesc.ColumnName = "startid"
-                aFieldDesc.Size = 20
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "start milestone id"
+            '                aFieldDesc.ID = "bpt4"
+            '                aFieldDesc.ColumnName = "startid"
+            '                aFieldDesc.Size = 20
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "finish milestone id"
-                aFieldDesc.ID = "bpt5"
-                aFieldDesc.ColumnName = "finishid"
-                aFieldDesc.Size = 20
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "finish milestone id"
+            '                aFieldDesc.ID = "bpt5"
+            '                aFieldDesc.ColumnName = "finishid"
+            '                aFieldDesc.Size = 20
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "start actual milestone id"
-                aFieldDesc.ID = "bpt6"
-                aFieldDesc.ColumnName = "actstartid"
-                aFieldDesc.Size = 20
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "start actual milestone id"
+            '                aFieldDesc.ID = "bpt6"
+            '                aFieldDesc.ColumnName = "actstartid"
+            '                aFieldDesc.Size = 20
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "finish actual milestone id"
-                aFieldDesc.ID = "bpt7"
-                aFieldDesc.ColumnName = "actfinishid"
-                aFieldDesc.Size = 20
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "finish actual milestone id"
+            '                aFieldDesc.ID = "bpt7"
+            '                aFieldDesc.ColumnName = "actfinishid"
+            '                aFieldDesc.Size = 20
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                aFieldDesc.Datatype = otFieldDataType.Bool
-                aFieldDesc.Title = "take actual over forecast milestone id"
-                aFieldDesc.ID = "bpt8"
-                aFieldDesc.ColumnName = "actoverfc"
-                aFieldDesc.Size = 20
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                aFieldDesc.Datatype = otFieldDataType.Bool
+            '                aFieldDesc.Title = "take actual over forecast milestone id"
+            '                aFieldDesc.ID = "bpt8"
+            '                aFieldDesc.ColumnName = "actoverfc"
+            '                aFieldDesc.Size = 20
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "alternative start milestone ids"
-                aFieldDesc.ID = "bpt9"
-                aFieldDesc.ColumnName = "altstartids"
-                aFieldDesc.Size = 0
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "alternative start milestone ids"
+            '                aFieldDesc.ID = "bpt9"
+            '                aFieldDesc.ColumnName = "altstartids"
+            '                aFieldDesc.Size = 0
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "alternative finish milestone ids"
-                aFieldDesc.ID = "bpt10"
-                aFieldDesc.ColumnName = "altfinishids"
-                aFieldDesc.Size = 0
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-
-                aFieldDesc.Datatype = otFieldDataType.Bool
-                aFieldDesc.Title = "is facultative"
-                aFieldDesc.ID = "bpt11"
-                aFieldDesc.ColumnName = "isfac"
-
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                aFieldDesc.Datatype = otFieldDataType.Bool
-                aFieldDesc.Title = "is forbidden"
-                aFieldDesc.ID = "bpt12"
-                aFieldDesc.ColumnName = "isforb"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                aFieldDesc.Datatype = otFieldDataType.Bool
-                aFieldDesc.Title = "is mandatory"
-                aFieldDesc.ID = "bpt13"
-                aFieldDesc.ColumnName = "ismand"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' parameter_txt 1
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "parameter_txt 1 of condition"
-                aFieldDesc.ColumnName = "param_txt1"
-                aFieldDesc.Size = 0
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' parameter_txt 2
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "parameter_txt 2 of condition"
-                aFieldDesc.ColumnName = "param_txt2"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' parameter_txt 2
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "parameter_txt 3 of condition"
-                aFieldDesc.ColumnName = "param_txt3"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' parameter_num 1
-                aFieldDesc.Datatype = otFieldDataType.Numeric
-                aFieldDesc.Title = "parameter numeric 1 of condition"
-                aFieldDesc.ColumnName = "param_num1"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' parameter_num 2
-                aFieldDesc.Datatype = otFieldDataType.Numeric
-                aFieldDesc.Title = "parameter numeric 2 of condition"
-                aFieldDesc.ColumnName = "param_num2"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                ' parameter_num 2
-                aFieldDesc.Datatype = otFieldDataType.Numeric
-                aFieldDesc.Title = "parameter numeric 3 of condition"
-                aFieldDesc.ColumnName = "param_num3"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                ' parameter_date 1
-                aFieldDesc.Datatype = otFieldDataType.[Date]
-                aFieldDesc.Title = "parameter date 1 of condition"
-                aFieldDesc.ColumnName = "param_date1"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' parameter_date 2
-                aFieldDesc.Datatype = otFieldDataType.[Date]
-                aFieldDesc.Title = "parameter date 2 of condition"
-                aFieldDesc.ColumnName = "param_date2"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' parameter_date 3
-                aFieldDesc.Datatype = otFieldDataType.[Date]
-                aFieldDesc.Title = "parameter date 3 of condition"
-                aFieldDesc.ColumnName = "param_date3"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                ' parameter_flag 1
-                aFieldDesc.Datatype = otFieldDataType.Bool
-                aFieldDesc.Title = "parameter flag 1 of condition"
-                aFieldDesc.ColumnName = "param_flag1"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' parameter_flag 2
-                aFieldDesc.Datatype = otFieldDataType.Bool
-                aFieldDesc.Title = "parameter flag 2 of condition"
-                aFieldDesc.ColumnName = "param_flag2"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                ' parameter_flag 3
-                aFieldDesc.Datatype = otFieldDataType.Bool
-                aFieldDesc.Title = "parameter flag 3 of condition"
-                aFieldDesc.ColumnName = "param_flag3"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                '***
-                '*** TIMESTAMP
-                '****
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "last Update"
-                aFieldDesc.ColumnName = ConstFNUpdatedOn
-                aFieldDesc.ID = ""
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "creation Date"
-                aFieldDesc.ColumnName = ConstFNCreatedOn
-                aFieldDesc.ID = ""
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' Index
-                Call .AddIndex("PrimaryKey", PrimaryColumnNames, isprimarykey:=True)
-                Call .AddIndex("Orderby", OrderByColumnNames, isprimarykey:=False)
-                ' persist
-                .Persist()
-                ' change the database
-                .AlterSchema()
-            End With
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "alternative finish milestone ids"
+            '                aFieldDesc.ID = "bpt10"
+            '                aFieldDesc.ColumnName = "altfinishids"
+            '                aFieldDesc.Size = 0
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
 
-            ' Handle the error
-            CreateSchema = True
-            Exit Function
+            '                aFieldDesc.Datatype = otFieldDataType.Bool
+            '                aFieldDesc.Title = "is facultative"
+            '                aFieldDesc.ID = "bpt11"
+            '                aFieldDesc.ColumnName = "isfac"
 
-            ' Handle the error
-error_handle:
-            Call CoreMessageHandler(subname:="clsOTDBDefScheduleMilestone.createSchema", tablename:=constTableID)
-            CreateSchema = False
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                aFieldDesc.Datatype = otFieldDataType.Bool
+            '                aFieldDesc.Title = "is forbidden"
+            '                aFieldDesc.ID = "bpt12"
+            '                aFieldDesc.ColumnName = "isforb"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                aFieldDesc.Datatype = otFieldDataType.Bool
+            '                aFieldDesc.Title = "is mandatory"
+            '                aFieldDesc.ID = "bpt13"
+            '                aFieldDesc.ColumnName = "ismand"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' parameter_txt 1
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "parameter_txt 1 of condition"
+            '                aFieldDesc.ColumnName = "param_txt1"
+            '                aFieldDesc.Size = 0
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' parameter_txt 2
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "parameter_txt 2 of condition"
+            '                aFieldDesc.ColumnName = "param_txt2"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' parameter_txt 2
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "parameter_txt 3 of condition"
+            '                aFieldDesc.ColumnName = "param_txt3"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' parameter_num 1
+            '                aFieldDesc.Datatype = otFieldDataType.Numeric
+            '                aFieldDesc.Title = "parameter numeric 1 of condition"
+            '                aFieldDesc.ColumnName = "param_num1"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' parameter_num 2
+            '                aFieldDesc.Datatype = otFieldDataType.Numeric
+            '                aFieldDesc.Title = "parameter numeric 2 of condition"
+            '                aFieldDesc.ColumnName = "param_num2"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                ' parameter_num 2
+            '                aFieldDesc.Datatype = otFieldDataType.Numeric
+            '                aFieldDesc.Title = "parameter numeric 3 of condition"
+            '                aFieldDesc.ColumnName = "param_num3"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                ' parameter_date 1
+            '                aFieldDesc.Datatype = otFieldDataType.[Date]
+            '                aFieldDesc.Title = "parameter date 1 of condition"
+            '                aFieldDesc.ColumnName = "param_date1"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' parameter_date 2
+            '                aFieldDesc.Datatype = otFieldDataType.[Date]
+            '                aFieldDesc.Title = "parameter date 2 of condition"
+            '                aFieldDesc.ColumnName = "param_date2"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' parameter_date 3
+            '                aFieldDesc.Datatype = otFieldDataType.[Date]
+            '                aFieldDesc.Title = "parameter date 3 of condition"
+            '                aFieldDesc.ColumnName = "param_date3"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                ' parameter_flag 1
+            '                aFieldDesc.Datatype = otFieldDataType.Bool
+            '                aFieldDesc.Title = "parameter flag 1 of condition"
+            '                aFieldDesc.ColumnName = "param_flag1"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' parameter_flag 2
+            '                aFieldDesc.Datatype = otFieldDataType.Bool
+            '                aFieldDesc.Title = "parameter flag 2 of condition"
+            '                aFieldDesc.ColumnName = "param_flag2"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                ' parameter_flag 3
+            '                aFieldDesc.Datatype = otFieldDataType.Bool
+            '                aFieldDesc.Title = "parameter flag 3 of condition"
+            '                aFieldDesc.ColumnName = "param_flag3"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                '***
+            '                '*** TIMESTAMP
+            '                '****
+            '                aFieldDesc.Datatype = otFieldDataType.Timestamp
+            '                aFieldDesc.Title = "last Update"
+            '                aFieldDesc.ColumnName = ConstFNUpdatedOn
+            '                aFieldDesc.ID = ""
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                aFieldDesc.Datatype = otFieldDataType.Timestamp
+            '                aFieldDesc.Title = "creation Date"
+            '                aFieldDesc.ColumnName = ConstFNCreatedOn
+            '                aFieldDesc.ID = ""
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' Index
+            '                Call .AddIndex("PrimaryKey", PrimaryColumnNames, isprimarykey:=True)
+            '                Call .AddIndex("Orderby", OrderByColumnNames, isprimarykey:=False)
+            '                ' persist
+            '                .Persist()
+            '                ' change the database
+            '                .CreateObjectSchema()
+            '            End With
+
+
+            '            ' Handle the error
+            '            CreateSchema = True
+            '            Exit Function
+
+            '            ' Handle the error
+            'error_handle:
+            '            Call CoreMessageHandler(subname:="clsOTDBDefScheduleMilestone.createSchema", tablename:=constTableID)
+            '            CreateSchema = False
         End Function
 
         ''' <summary>
@@ -1208,67 +1207,70 @@ error_handle:
         End Function
 
     End Class
-    '************************************************************************************
-    '***** CLASS clsOTDBDefScheduleMilestones is the object for a OTDBRecord (which is the datastore)
-    '*****       Defines the Schedule Entities of Milestones
-    '*****
+
     ''' <summary>
     ''' Definition of a schedule milestone class
     ''' </summary>
     ''' <remarks></remarks>
+    <ormObject(id:=ScheduleMilestoneDefinition.ConstObjectID, modulename:=constModuleScheduling, Version:=1, description:="declaration of milestones specific in a schedule type")> _
     Public Class ScheduleMilestoneDefinition
         Inherits ormDataObject
         Implements iormPersistable
         Implements iormInfusable
 
+        Public Const ConstObjectID = "ScheduleMilestoneDefinition"
+
+        '** Schema Table
         <ormSchemaTable(version:=2, addDomainBehavior:=True, adddeletefieldbehavior:=True, addSpareFields:=True)> Public Const ConstTableID As String = "tblDefScheduleMilestones"
+        '*** Index
         <ormSchemaIndex(columnname1:=ConstFNType, columnname2:=ConstFNOrderNo)> Public Const ConstIndOrder = "orderby"
 
         '** keys
-        <ormSchemaColumn(id:="SCT1", typeid:=otFieldDataType.Text, size:=50, primaryKeyordinal:=1, aliases:={"bs4"}, title:="schedule type", _
+        <ormObjectEntry(id:="SCT1", typeid:=otFieldDataType.Text, size:=50, primaryKeyordinal:=1, aliases:={"bs4"}, title:="schedule type", _
             description:=" type of schedule definition")> Public Const ConstFNType = "scheduletype"
-        <ormSchemaColumn(id:="BPD1", typeid:=otFieldDataType.Text, size:=50, primaryKeyordinal:=2, title:="milestone id", _
+        <ormObjectEntry(id:="BPD1", typeid:=otFieldDataType.Text, size:=50, primaryKeyordinal:=2, title:="milestone id", _
             description:=" id of milestone in schedule")> Public Const ConstFNID = "id"
-        <ormSchemaColumn(referenceobjectEntry:=Domain.ConstTableID & "." & Domain.ConstFNDomainID, primarykeyordinal:=3)> Public Shadows Const ConstFNDomainID = Domain.ConstFNDomainID
+        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=3, useforeignkey:=otForeignKeyImplementation.NativeDatabase)> _
+        Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
         '*** fields
-        <ormSchemaColumn(id:="BSD1", typeid:=otFieldDataType.Text, size:=255, _
+        <ormObjectEntry(id:="BSD1", typeid:=otFieldDataType.Text, size:=255, _
             title:="description", description:="description of milestone in schedule")> Public Const ConstFNDesc = "desc"
-        <ormSchemaColumn(id:="BSD2", typeid:=otFieldDataType.Long, _
+        <ormObjectEntry(id:="BSD2", typeid:=otFieldDataType.Long, _
            title:="ordinal", description:="ordinal of milestone in schedule")> Public Const ConstFNOrderNo = "orderno"
-        <ormSchemaColumn(id:="BSD3", typeid:=otFieldDataType.Text, size:=50, _
+        <ormObjectEntry(id:="BSD3", typeid:=otFieldDataType.Text, size:=50, _
             title:="actual of fc milestone id", description:=" actual id of this milestone in schedule")> Public Const ConstFNActualID = "actualid"
-        <ormSchemaColumn(id:="BSD4", typeid:=otFieldDataType.Bool, _
+        <ormObjectEntry(id:="BSD4", typeid:=otFieldDataType.Bool, _
         title:="is forecast", description:=" milestone is forecast in schedule")> Public Const ConstFNIsFC = "isfc"
-        <ormSchemaColumn(id:="BSD5", typeid:=otFieldDataType.Bool, _
+        <ormObjectEntry(id:="BSD5", typeid:=otFieldDataType.Bool, _
         title:="is facilitative", description:=" milestone is facilitative in schedule")> Public Const ConstFNIsFAC = "isfac"
-        <ormSchemaColumn(id:="BSD6", typeid:=otFieldDataType.Bool, _
+        <ormObjectEntry(id:="BSD6", typeid:=otFieldDataType.Bool, _
         title:="is prohibited", description:=" milestone is prohibited in schedule")> Public Const ConstFNIsFORB = "isforb"
-        <ormSchemaColumn(id:="BSD7", typeid:=otFieldDataType.Bool, _
+        <ormObjectEntry(id:="BSD7", typeid:=otFieldDataType.Bool, _
         title:="is mandatory", description:=" milestone is mandatory in schedule")> Public Const ConstFNIsMAND = "ismand"
-        <ormSchemaColumn(id:="BSD8", typeid:=otFieldDataType.Bool, _
+        <ormObjectEntry(id:="BSD8", typeid:=otFieldDataType.Bool, _
         title:="is input", description:=" milestone is input deliverable in schedule")> Public Const ConstFNIsINPUT = "isinput"
-        <ormSchemaColumn(id:="BSD9", typeid:=otFieldDataType.Bool, _
+        <ormObjectEntry(id:="BSD9", typeid:=otFieldDataType.Bool, _
         title:="is output", description:=" milestone is output deliverable in schedule")> Public Const ConstFNIsOutPut = "isoutput"
-        <ormSchemaColumn(id:="BSD10", typeid:=otFieldDataType.Bool, _
+        <ormObjectEntry(id:="BSD10", typeid:=otFieldDataType.Bool, _
        title:="is finish", description:=" milestone is end of schedule")> Public Const ConstFNIsFinish = "isfinish"
 
 
 
         '** mapping
-        <ormColumnMapping(ColumnName:=ConstFNType)> Private _scheduletype As String = ""
-        <ormColumnMapping(ColumnName:=ConstFNID)> Private _id As String = ""
-        <ormColumnMapping(ColumnName:=ConstFNDesc)> Private _description As String = ""
-        <ormColumnMapping(ColumnName:=ConstFNOrderNo)> Private _orderNo As Long
-        <ormColumnMapping(ColumnName:=ConstFNIsFC)> Private _isForecast As Boolean
-        <ormColumnMapping(ColumnName:=ConstFNActualID)> Private _actualid As String = ""
+        <ormEntryMapping(EntryName:=ConstFNType)> Private _scheduletype As String = ""
+        <ormEntryMapping(EntryName:=ConstFNID)> Private _id As String = ""
+        <ormEntryMapping(EntryName:=ConstFNDesc)> Private _description As String = ""
+        <ormEntryMapping(EntryName:=ConstFNOrderNo)> Private _orderNo As Long
+        <ormEntryMapping(EntryName:=ConstFNIsFC)> Private _isForecast As Boolean
+        <ormEntryMapping(EntryName:=ConstFNActualID)> Private _actualid As String = ""
 
-        <ormColumnMapping(ColumnName:=ConstFNIsMAND)> Private _isMandatory As Boolean
-        <ormColumnMapping(ColumnName:=ConstFNIsFORB)> Private _isForbidden As Boolean
-        <ormColumnMapping(ColumnName:=ConstFNIsFAC)> Private _isFacultative As Boolean
-        <ormColumnMapping(ColumnName:=ConstFNIsFinish)> Private _isFinish As Boolean
-        <ormColumnMapping(ColumnName:=ConstFNIsINPUT)> Private _isInputDeliverable As Boolean
-        <ormColumnMapping(ColumnName:=ConstFNIsOutPut)> Private _isOutputDeliverable As Boolean
+        <ormEntryMapping(EntryName:=ConstFNIsMAND)> Private _isMandatory As Boolean
+        <ormEntryMapping(EntryName:=ConstFNIsFORB)> Private _isForbidden As Boolean
+        <ormEntryMapping(EntryName:=ConstFNIsFAC)> Private _isFacultative As Boolean
+        <ormEntryMapping(EntryName:=ConstFNIsFinish)> Private _isFinish As Boolean
+        <ormEntryMapping(EntryName:=ConstFNIsINPUT)> Private _isInputDeliverable As Boolean
+        <ormEntryMapping(EntryName:=ConstFNIsOutPut)> Private _isOutputDeliverable As Boolean
 
 
         ''' <summary>
@@ -1276,7 +1278,7 @@ error_handle:
         ''' </summary>
         ''' <remarks></remarks>
         Public Sub New()
-            Call MyBase.New(constTableID)
+            Call MyBase.New(ConstTableID)
         End Sub
 
 
@@ -1483,9 +1485,9 @@ error_handle:
         ''' <param name="ID"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Function LoadBy(ByVal scheduletype As String, ByVal ID As String, Optional domainID As String = "") As Boolean
+        Public Overloads Function Inject(ByVal scheduletype As String, ByVal ID As String, Optional domainID As String = "") As Boolean
             Dim pkarray() As Object = {LCase(scheduletype), LCase(ID), domainID}
-            Return MyBase.LoadBy(pkarray, domainID:=domainID)
+            Return MyBase.Inject(pkarray, domainID:=domainID)
         End Function
         ''' <summary>
         ''' create persistency schema
@@ -1494,212 +1496,212 @@ error_handle:
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function CreateSchema(Optional silent As Boolean = True) As Boolean
-            Return ormDataObject.CreateSchema(Of ScheduleMilestoneDefinition)()
+            Return ormDataObject.CreateDataObjectSchema(Of ScheduleMilestoneDefinition)()
 
-'            '*** OUTDATED CODE
-'            '****
-'            Dim aFieldDesc As New ormFieldDescription
-'            Dim PrimaryColumnNames As New Collection
-'            Dim OrderByColumnNames As New Collection
-'            Dim aTable As New ObjectDefinition
-
-
-'            aFieldDesc.ID = ""
-'            aFieldDesc.Parameter = ""
-'            aFieldDesc.Tablename = ConstTableID
-
-'            With aTable
-'                .Create(ConstTableID)
-'                .Delete()
-'                'Tablename
-
-'                aFieldDesc.Datatype = otFieldDataType.Text
-'                aFieldDesc.Title = "type of schedule"
-'                aFieldDesc.Aliases = New String() {"bs4"}
-'                aFieldDesc.ID = "sct1"
-'                aFieldDesc.ColumnName = "scheduletype"
-'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-'                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
-'                OrderByColumnNames.Add(aFieldDesc.ColumnName)
-
-'                aFieldDesc.Datatype = otFieldDataType.Text
-'                aFieldDesc.Title = "milestone id"
-'                aFieldDesc.Aliases = New String() {}
-'                aFieldDesc.ID = "bpd1"
-'                aFieldDesc.ColumnName = "id"
-'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-'                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
-
-'                'Fieldnames
-'                aFieldDesc.Datatype = otFieldDataType.Text
-'                aFieldDesc.Title = "description"
-'                aFieldDesc.ID = "bsd1"
-'                aFieldDesc.ColumnName = "desc"
-'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-'                aFieldDesc.Datatype = otFieldDataType.[Long]
-'                aFieldDesc.Title = "order no"
-'                aFieldDesc.ID = "bsd2"
-'                aFieldDesc.ColumnName = "orderno"
-'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-'                OrderByColumnNames.Add(aFieldDesc.ColumnName)
-
-'                aFieldDesc.Datatype = otFieldDataType.Text
-'                aFieldDesc.Title = "actual of id"
-'                aFieldDesc.ID = "bsd3"
-'                aFieldDesc.ColumnName = "actualid"
-'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-'                aFieldDesc.Datatype = otFieldDataType.Bool
-'                aFieldDesc.Title = "is forecast"
-'                aFieldDesc.ID = "bsd4"
-'                aFieldDesc.ColumnName = "isfc"
-'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-'                aFieldDesc.Datatype = otFieldDataType.Bool
-'                aFieldDesc.Title = "is facultative"
-'                aFieldDesc.ID = "bsd5"
-'                aFieldDesc.ColumnName = "isfac"
-'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-'                aFieldDesc.Datatype = otFieldDataType.Bool
-'                aFieldDesc.Title = "is forbidden"
-'                aFieldDesc.ID = "bsd6"
-'                aFieldDesc.ColumnName = "isforb"
-'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-'                aFieldDesc.Datatype = otFieldDataType.Bool
-'                aFieldDesc.Title = "is mandatory"
-'                aFieldDesc.ID = "bsd7"
-'                aFieldDesc.ColumnName = "ismand"
-'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '            '*** OUTDATED CODE
+            '            '****
+            '            Dim aFieldDesc As New ormFieldDescription
+            '            Dim PrimaryColumnNames As New Collection
+            '            Dim OrderByColumnNames As New Collection
+            '            Dim aTable As New ObjectDefinition
 
 
-'                aFieldDesc.Datatype = otFieldDataType.Bool
-'                aFieldDesc.Title = "is input deliverable"
-'                aFieldDesc.ID = "bsd8"
-'                aFieldDesc.ColumnName = "isinput"
-'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '            aFieldDesc.ID = ""
+            '            aFieldDesc.Parameter = ""
+            '            aFieldDesc.Tablename = ConstTableID
+
+            '            With aTable
+            '                .Create(ConstTableID)
+            '                .Delete()
+            '                'Tablename
+
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "type of schedule"
+            '                aFieldDesc.Aliases = New String() {"bs4"}
+            '                aFieldDesc.ID = "sct1"
+            '                aFieldDesc.ColumnName = "scheduletype"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
+            '                OrderByColumnNames.Add(aFieldDesc.ColumnName)
+
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "milestone id"
+            '                aFieldDesc.Aliases = New String() {}
+            '                aFieldDesc.ID = "bpd1"
+            '                aFieldDesc.ColumnName = "id"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
+
+            '                'Fieldnames
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "description"
+            '                aFieldDesc.ID = "bsd1"
+            '                aFieldDesc.ColumnName = "desc"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                aFieldDesc.Datatype = otFieldDataType.[Long]
+            '                aFieldDesc.Title = "order no"
+            '                aFieldDesc.ID = "bsd2"
+            '                aFieldDesc.ColumnName = "orderno"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                OrderByColumnNames.Add(aFieldDesc.ColumnName)
+
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "actual of id"
+            '                aFieldDesc.ID = "bsd3"
+            '                aFieldDesc.ColumnName = "actualid"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                aFieldDesc.Datatype = otFieldDataType.Bool
+            '                aFieldDesc.Title = "is forecast"
+            '                aFieldDesc.ID = "bsd4"
+            '                aFieldDesc.ColumnName = "isfc"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                aFieldDesc.Datatype = otFieldDataType.Bool
+            '                aFieldDesc.Title = "is facultative"
+            '                aFieldDesc.ID = "bsd5"
+            '                aFieldDesc.ColumnName = "isfac"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                aFieldDesc.Datatype = otFieldDataType.Bool
+            '                aFieldDesc.Title = "is forbidden"
+            '                aFieldDesc.ID = "bsd6"
+            '                aFieldDesc.ColumnName = "isforb"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                aFieldDesc.Datatype = otFieldDataType.Bool
+            '                aFieldDesc.Title = "is mandatory"
+            '                aFieldDesc.ID = "bsd7"
+            '                aFieldDesc.ColumnName = "ismand"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
 
-'                aFieldDesc.Datatype = otFieldDataType.Bool
-'                aFieldDesc.Title = "is output deliverable"
-'                aFieldDesc.ID = "bsd9"
-'                aFieldDesc.ColumnName = "isoutput"
-'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                aFieldDesc.Datatype = otFieldDataType.Bool
+            '                aFieldDesc.Title = "is input deliverable"
+            '                aFieldDesc.ID = "bsd8"
+            '                aFieldDesc.ColumnName = "isinput"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
 
-'                ' parameter_txt 1
-'                aFieldDesc.Datatype = otFieldDataType.Text
-'                aFieldDesc.Title = "parameter_txt 1 of condition"
-'                aFieldDesc.ColumnName = "param_txt1"
-'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                aFieldDesc.Datatype = otFieldDataType.Bool
+            '                aFieldDesc.Title = "is output deliverable"
+            '                aFieldDesc.ID = "bsd9"
+            '                aFieldDesc.ColumnName = "isoutput"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
 
-'                ' parameter_txt 2
-'                aFieldDesc.Datatype = otFieldDataType.Text
-'                aFieldDesc.Title = "parameter_txt 2 of condition"
-'                aFieldDesc.ColumnName = "param_txt2"
-'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' parameter_txt 1
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "parameter_txt 1 of condition"
+            '                aFieldDesc.ColumnName = "param_txt1"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
 
-'                ' parameter_txt 2
-'                aFieldDesc.Datatype = otFieldDataType.Text
-'                aFieldDesc.Title = "parameter_txt 3 of condition"
-'                aFieldDesc.ColumnName = "param_txt3"
-'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' parameter_txt 2
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "parameter_txt 2 of condition"
+            '                aFieldDesc.ColumnName = "param_txt2"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
 
-'                ' parameter_num 1
-'                aFieldDesc.Datatype = otFieldDataType.Numeric
-'                aFieldDesc.Title = "parameter numeric 1 of condition"
-'                aFieldDesc.ColumnName = "param_num1"
-'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' parameter_txt 2
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "parameter_txt 3 of condition"
+            '                aFieldDesc.ColumnName = "param_txt3"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
 
-'                ' parameter_num 2
-'                aFieldDesc.Datatype = otFieldDataType.Numeric
-'                aFieldDesc.Title = "parameter numeric 2 of condition"
-'                aFieldDesc.ColumnName = "param_num2"
-'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-'                ' parameter_num 2
-'                aFieldDesc.Datatype = otFieldDataType.Numeric
-'                aFieldDesc.Title = "parameter numeric 3 of condition"
-'                aFieldDesc.ColumnName = "param_num3"
-'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' parameter_num 1
+            '                aFieldDesc.Datatype = otFieldDataType.Numeric
+            '                aFieldDesc.Title = "parameter numeric 1 of condition"
+            '                aFieldDesc.ColumnName = "param_num1"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
 
-'                ' parameter_date 1
-'                aFieldDesc.Datatype = otFieldDataType.[Date]
-'                aFieldDesc.Title = "parameter date 1 of condition"
-'                aFieldDesc.ColumnName = "param_date1"
-'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' parameter_num 2
+            '                aFieldDesc.Datatype = otFieldDataType.Numeric
+            '                aFieldDesc.Title = "parameter numeric 2 of condition"
+            '                aFieldDesc.ColumnName = "param_num2"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                ' parameter_num 2
+            '                aFieldDesc.Datatype = otFieldDataType.Numeric
+            '                aFieldDesc.Title = "parameter numeric 3 of condition"
+            '                aFieldDesc.ColumnName = "param_num3"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
 
-'                ' parameter_date 2
-'                aFieldDesc.Datatype = otFieldDataType.[Date]
-'                aFieldDesc.Title = "parameter date 2 of condition"
-'                aFieldDesc.ColumnName = "param_date2"
-'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' parameter_date 1
+            '                aFieldDesc.Datatype = otFieldDataType.[Date]
+            '                aFieldDesc.Title = "parameter date 1 of condition"
+            '                aFieldDesc.ColumnName = "param_date1"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
 
-'                ' parameter_date 3
-'                aFieldDesc.Datatype = otFieldDataType.[Date]
-'                aFieldDesc.Title = "parameter date 3 of condition"
-'                aFieldDesc.ColumnName = "param_date3"
-'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' parameter_date 2
+            '                aFieldDesc.Datatype = otFieldDataType.[Date]
+            '                aFieldDesc.Title = "parameter date 2 of condition"
+            '                aFieldDesc.ColumnName = "param_date2"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
 
-'                ' parameter_flag 1
-'                aFieldDesc.Datatype = otFieldDataType.Bool
-'                aFieldDesc.Title = "parameter flag 1 of condition"
-'                aFieldDesc.ColumnName = "param_flag1"
-'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-'                ' parameter_flag 2
-'                aFieldDesc.Datatype = otFieldDataType.Bool
-'                aFieldDesc.Title = "parameter flag 2 of condition"
-'                aFieldDesc.ColumnName = "param_flag2"
-'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-'                ' parameter_flag 3
-'                aFieldDesc.Datatype = otFieldDataType.Bool
-'                aFieldDesc.Title = "parameter flag 3 of condition"
-'                aFieldDesc.ColumnName = "param_flag3"
-'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' parameter_date 3
+            '                aFieldDesc.Datatype = otFieldDataType.[Date]
+            '                aFieldDesc.Title = "parameter date 3 of condition"
+            '                aFieldDesc.ColumnName = "param_date3"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
 
-'                '***
-'                '*** TIMESTAMP
-'                '****
-'                aFieldDesc.Datatype = otFieldDataType.Timestamp
-'                aFieldDesc.Title = "last Update"
-'                aFieldDesc.ColumnName = ConstFNUpdatedOn
-'                aFieldDesc.ID = ""
-'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' parameter_flag 1
+            '                aFieldDesc.Datatype = otFieldDataType.Bool
+            '                aFieldDesc.Title = "parameter flag 1 of condition"
+            '                aFieldDesc.ColumnName = "param_flag1"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-'                aFieldDesc.Datatype = otFieldDataType.Timestamp
-'                aFieldDesc.Title = "creation Date"
-'                aFieldDesc.ColumnName = ConstFNCreatedOn
-'                aFieldDesc.ID = ""
-'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-'                ' Index
-'                Call .AddIndex("PrimaryKey", PrimaryColumnNames, isprimarykey:=True)
-'                Call .AddIndex("Orderby", OrderByColumnNames, isprimarykey:=False)
-'                ' persist
-'                .Persist()
-'                ' change the database
-'                .AlterSchema()
-'            End With
+            '                ' parameter_flag 2
+            '                aFieldDesc.Datatype = otFieldDataType.Bool
+            '                aFieldDesc.Title = "parameter flag 2 of condition"
+            '                aFieldDesc.ColumnName = "param_flag2"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                ' parameter_flag 3
+            '                aFieldDesc.Datatype = otFieldDataType.Bool
+            '                aFieldDesc.Title = "parameter flag 3 of condition"
+            '                aFieldDesc.ColumnName = "param_flag3"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
 
-'            ' Handle the error
-'            CreateSchema = True
-'            Exit Function
-'error_handle:
-'            Call CoreMessageHandler(subname:="clsOTDBDefScheduleMilestone.createSchema", tablename:=ConstTableID)
-'            CreateSchema = False
+            '                '***
+            '                '*** TIMESTAMP
+            '                '****
+            '                aFieldDesc.Datatype = otFieldDataType.Timestamp
+            '                aFieldDesc.Title = "last Update"
+            '                aFieldDesc.ColumnName = ConstFNUpdatedOn
+            '                aFieldDesc.ID = ""
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                aFieldDesc.Datatype = otFieldDataType.Timestamp
+            '                aFieldDesc.Title = "creation Date"
+            '                aFieldDesc.ColumnName = ConstFNCreatedOn
+            '                aFieldDesc.ID = ""
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' Index
+            '                Call .AddIndex("PrimaryKey", PrimaryColumnNames, isprimarykey:=True)
+            '                Call .AddIndex("Orderby", OrderByColumnNames, isprimarykey:=False)
+            '                ' persist
+            '                .Persist()
+            '                ' change the database
+            '                .AlterSchema()
+            '            End With
+
+
+            '            ' Handle the error
+            '            CreateSchema = True
+            '            Exit Function
+            'error_handle:
+            '            Call CoreMessageHandler(subname:="clsOTDBDefScheduleMilestone.createSchema", tablename:=ConstTableID)
+            '            CreateSchema = False
         End Function
 
         ''' <summary>
@@ -1715,7 +1717,7 @@ error_handle:
 
             '* init
             If Not Me.IsInitialized Then
-                If Not Me.initialize() Then
+                If Not Me.Initialize() Then
                     Persist = False
                     Exit Function
                 End If
@@ -1733,11 +1735,11 @@ error_handle:
                     '*** create compound for schedules
                     '***
                     If aSchemaDefTable Is Nothing Then
-                        aSchemaDefTable.Create(tablename:=Schedule.ConstTableID)
+                        aSchemaDefTable.Create(objectID:=Schedule.ConstObjectID)
                     End If
 
-                    aCompDesc.Tablename = LCase(Schedule.ConstTableID)
-                    aCompDesc.compound_Tablename = LCase(ScheduleMilestone.constTableID)
+                    aCompDesc.Tablename = Schedule.ConstTableID.ToLower
+                    aCompDesc.compound_Tablename = ScheduleMilestone.constTableID.ToLower
                     aCompDesc.ID = _id
                     aCompDesc.compound_Relation = New String() {"uid", "updc"}
                     aCompDesc.compound_IDFieldname = "id"
@@ -1750,7 +1752,7 @@ error_handle:
                     aCompDesc.Parameter = ""
                     aCompDesc.Title = "Milestone " & _id
 
-                    If aSchemaDefTable.AddCompoundDesc(aCompDesc) Then
+                    If aSchemaDefTable.AddEntry(aCompDesc) Then
                         aSchemaDefTable.Persist()
                     End If
 
@@ -1783,12 +1785,12 @@ error_handle:
         ''' <remarks></remarks>
         Public Shared Function AllByType(ByVal scheduletype As String) As List(Of ScheduleMilestoneDefinition)
 
-            Dim aStore As iormDataStore = ot.GetTableStore(constTableID)
+            Dim aStore As iormDataStore = ot.GetTableStore(ConstTableID)
             Dim acollection As List(Of ScheduleMilestoneDefinition)
 
             Try
 
-                acollection = Cache.loadFromCache(constTableID, scheduletype)
+                acollection = Cache.LoadFromCache(ConstTableID, scheduletype)
                 If acollection IsNot Nothing Then
                     Return acollection
                 Else
@@ -1816,8 +1818,8 @@ error_handle:
 
                 '** get from Cache
                 If acollection.Count > 0 Then
-                    Cache.RegisterCacheFor(constTableID)
-                    Cache.AddToCache(constTableID, scheduletype, acollection)
+                    Cache.RegisterCacheFor(ConstTableID)
+                    Cache.AddToCache(ConstTableID, scheduletype, acollection)
                 End If
 
                 Return acollection
@@ -1838,35 +1840,37 @@ error_handle:
         Public Overloads Function Create(ByVal scheduletype As String, ByVal ID As String, Optional domainID As String = "") As Boolean
             Dim pkarray() As Object = {LCase(scheduletype), LCase(ID), domainID}
             ' set the primaryKey
-            return MyBase.Create(pkarray, domainID:=domainID, checkUnique:=True) 
+            Return MyBase.Create(pkarray, domainID:=domainID, checkUnique:=True)
         End Function
 
     End Class
-    '************************************************************************************
-    '***** CLASS ScheduleDefinition is the object for a OTDBRecord (which is the datastore)
-    '*****       Defines the Schedule per Scheduletype-ID
-    '*****
+
     ''' <summary>
     ''' schedule definition object
     ''' </summary>
     ''' <remarks></remarks>
-    Public Class ScheduleDefinition
+    <ormObject(id:=ScheduleDefinition.ConstObjectID, modulename:=constModuleScheduling, Version:=1, description:="definition of schedules (types)")> Public Class ScheduleDefinition
         Inherits ormDataObject
         Implements iormPersistable
         Implements iormInfusable
 
+        Public Const ConstObjectID = "ScheduleDefinition"
+
+        '*** Schema Tabble
         <ormSchemaTable(version:=2, adddeletefieldbehavior:=True, addDomainBehavior:=True)> Public Const ConstTableID = "tblDefSchedules"
 
-        '*** Columns
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Text, title:="unique ID", size:=50, Description:="Unique ID of the schedule type definition", _
+        '*** Keys
+        <ormObjectEntry(typeid:=otFieldDataType.Text, title:="unique ID", size:=50, Description:="Unique ID of the schedule type definition", _
             primaryKeyordinal:=1, id:="SCT1", aliases:={"bs4"})> Public Const ConstFNType = "scheduletype"
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Text, size:=255, title:="description", Description:="description of the schedule definition", _
+
+        '** Fields
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=255, title:="description", Description:="description of the schedule definition", _
            id:="SCT2")> Public Const ConstFNDescription = "desc"
 
 
         ' fields
-        <ormColumnMapping(ColumnName:=ConstFNType)> Private _scheduletype As String = ""
-        <ormColumnMapping(ColumnName:=ConstFNDescription)> Private _description As String = ""
+        <ormEntryMapping(EntryName:=ConstFNType)> Private _scheduletype As String = ""
+        <ormEntryMapping(EntryName:=ConstFNDescription)> Private _description As String = ""
 
         ' components itself per key:=posno, item:=clsOTDBDefScheduleMilestone
         Private _members As New Dictionary(Of String, ScheduleMilestoneDefinition)
@@ -1964,7 +1968,7 @@ error_handle:
             End If
 
             ' load
-            If Not anEntry.LoadBy(Me.ScheduleType, anEntryID) Then
+            If Not anEntry.Inject(Me.ScheduleType, anEntryID) Then
                 AddMilestoneByID = False
                 Exit Function
             End If
@@ -1973,7 +1977,7 @@ error_handle:
             For Each kvp As KeyValuePair(Of String, ScheduleMilestoneDefinition) In _members
                 existEntry = kvp.Value
                 ' check
-                If LCase(existEntry.ID) = LCase(anEntryID) Then
+                If existEntry.ID.ToLower = LCase(anEntryID) Then
                     AddMilestoneByID = False
                     Exit Function
                 End If
@@ -1990,7 +1994,7 @@ error_handle:
             Dim flag As Boolean
             Dim existEntry As New ScheduleMilestoneDefinition
             Dim aMilestone As New ScheduleMilestone
-            Dim aTableEntry As New ObjectEntryDefinition
+            Dim anObjectEntry As iObjectEntry
             Dim aSchedule As New Schedule
             Dim m As Object
 
@@ -2005,8 +2009,9 @@ error_handle:
                 Call _members.Remove(key:=anEntry.ID)
             End If
             ' load aliases
-            If aTableEntry.LoadBy(objectname:=aSchedule.TableID, entryname:=anEntry.ID) Then
-                For Each m In aTableEntry.Aliases
+            anObjectEntry = ObjectDefinition.Retrieve(objectname:=ConstObjectID).GetEntry(anEntry.ID)
+            If anObjectEntry IsNot Nothing Then
+                For Each m In anObjectEntry.Aliases
                     If _aliases.ContainsKey(key:=LCase(m)) Then
                         Call _aliases.Remove(key:=LCase(m))
                     End If
@@ -2055,7 +2060,7 @@ error_handle:
             ' reset it
             _members = New Dictionary(Of String, ScheduleMilestoneDefinition)
             If Not anEntry.Create(scheduletype:=Me.ScheduleType, ID:="") Then
-                Call anEntry.LoadBy(scheduletype:=Me.ScheduleType, ID:="")
+                Call anEntry.Inject(scheduletype:=Me.ScheduleType, ID:="")
             End If
             _members.Add(key:=anEntry.ID, value:=anEntry)
 
@@ -2177,18 +2182,18 @@ error_handle:
         ''' <param name="scheduletype"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function LoadBy(ByVal scheduletype As String, Optional domainID As String = "") As Boolean
+        Public Function Inject(ByVal scheduletype As String, Optional domainID As String = "") As Boolean
             Dim aStore As iormDataStore
             Dim aRecordCollection As List(Of ormRecord)
             Dim aRecord As ormRecord
             Dim anEntry As New ScheduleMilestoneDefinition
             Dim pkarray() As String = {LCase(scheduletype)}
             Try
-                If MyBase.LoadBy(pkarray) Then
+                If MyBase.Inject(pkarray) Then
 
                     '*** load all milestones
                     aStore = GetTableStore(ScheduleMilestoneDefinition.ConstTableID)
-                    Dim aCommand As ormSqlSelectCommand = aStore.CreateSqlSelectCommand(id:="loadby", addAllFields:=True)
+                    Dim aCommand As ormSqlSelectCommand = aStore.CreateSqlSelectCommand(id:="Inject", addAllFields:=True)
                     If Not aCommand.Prepared Then
                         aCommand.Where = ScheduleMilestoneDefinition.ConstTableID & ".[" & ScheduleMilestoneDefinition.ConstFNType & "] = @type"
                         aCommand.OrderBy = "[" & ScheduleMilestoneDefinition.ConstFNOrderNo & "] asc"
@@ -2219,7 +2224,7 @@ error_handle:
                 End If
 
             Catch ex As Exception
-                Call CoreMessageHandler(subname:="ScheduleDefinition.loadby", exception:=ex)
+                Call CoreMessageHandler(subname:="ScheduleDefinition.Inject", exception:=ex)
                 Return False
             End Try
 
@@ -2259,7 +2264,7 @@ error_handle:
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function CreateSchema(Optional silent As Boolean = True) As Boolean
-            Return ormDataObject.CreateSchema(Of ScheduleDefinition)(silent:=silent)
+            Return ormDataObject.CreateDataObjectSchema(Of ScheduleDefinition)(silent:=silent)
 
             '            ''' OOUTDATED CODE
 
@@ -2347,7 +2352,7 @@ error_handle:
                 _scheduletype = LCase(scheduletype)
                 _members = New Dictionary(Of String, ScheduleMilestoneDefinition)
                 ' abort create if exists
-                If Not anEntry.Create(scheduletype:=scheduletype, ID:="", domainid:=domainid) Then
+                If Not anEntry.Create(scheduletype:=scheduletype, ID:="", domainID:=domainid) Then
                     Return False
                 End If
                 _members.Add(key:=0, value:=anEntry)
@@ -2359,14 +2364,12 @@ error_handle:
         End Function
 
     End Class
-    '************************************************************************************
-    '***** CLASS clsOTDBSchedule is the object for a OTDBRecord (which is the datastore)
-    '*****
-    '*****
+
     ''' <summary>
     ''' schedule class
     ''' </summary>
     ''' <remarks></remarks>
+    <ormObject(Version:=1, ID:=Schedule.ConstObjectID, modulename:=constModuleScheduling, Title:="Schedule", Description:="schedules for business objects")> _
     Public Class Schedule
         Inherits ormDataObject
         Implements iotXChangeable
@@ -2375,7 +2378,9 @@ error_handle:
         Implements iotHasCompounds
         Implements iotCloneable(Of Schedule)
 
+        Public Const ConstObjectID = constModuleScheduling
 
+        '** Schema Table
         <ormSchemaTableAttribute(Version:=2, addDomainBehavior:=False, AddDeleteFieldBehavior:=True, addsparefields:=True)> _
         Public Const ConstTableID = "tblschedules"
         '** Indexes
@@ -2383,78 +2388,89 @@ error_handle:
         <ormSchemaIndexAttribute(columnname1:=ConstFNUid)> Public Const ConstIndexUID = "uidIndex"
 
         '*** Columns
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Long, title:="unique ID", Description:="Unique ID of the schedule", _
-            primaryKeyordinal:=1, id:="SC2", aliases:={"UID"})> Public Const ConstFNUid = "uid"
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Long, title:="update count", Description:="Update count of the schedule", _
+        <ormObjectEntry(typeid:=otFieldDataType.Long, title:="unique ID", Description:="Unique ID of the schedule", _
+            primaryKeyordinal:=1, id:="SC2", aliases:={"SUID"})> Public Const ConstFNUid = "uid"
+        <ormObjectEntry(typeid:=otFieldDataType.Long, title:="update count", Description:="Update count of the schedule", _
            primaryKeyordinal:=2, id:="SC3", aliases:={"BS3"})> Public Const ConstFNUpdc = "updc"
 
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Long, title:="forecast update count", Description:="forecast update count of the schedule" _
+        <ormObjectEntry(typeid:=otFieldDataType.Long, title:="forecast update count", Description:="forecast update count of the schedule" _
           )> Public Const ConstFNfcupdc = "fcupdc"
 
-        <ormSchemaColumnAttribute(referenceObjectEntry:=Workspace.ConstTableID & "." & Workspace.ConstFNID, _
-            Description:="workspaceID ID of the schedule")> Public Const ConstFNWorkspace = Workspace.ConstFNID
+        <ormObjectEntry(referenceObjectEntry:=Workspace.ConstObjectID & "." & Workspace.ConstFNID, _
+            Description:="workspaceID ID of the schedule", useforeignkey:=otForeignKeyImplementation.NativeDatabase, _
+             foreignkeyProperties:={ForeignKeyProperty.OnDelete & "(" & ForeignKeyActionProperty.NOOP & ")", _
+                                   ForeignKeyProperty.OnUpdate & "(" & ForeignKeyActionProperty.NOOP & ")"})> Public Const ConstFNWorkspace = Workspace.ConstFNID
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Text, size:=50, title:="revision", Description:="revision of the schedule", _
+        ' change FK Action since we have the workspace as FK (leads also to domians)
+        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, _
+            title:="Domain", description:="domain of the business Object", _
+            defaultvalue:=ConstGlobalDomain, _
+            useforeignkey:=otForeignKeyImplementation.NativeDatabase, _
+            foreignkeyProperties:={ForeignKeyProperty.OnDelete & "(" & ForeignKeyActionProperty.NOOP & ")", _
+                                   ForeignKeyProperty.OnUpdate & "(" & ForeignKeyActionProperty.NOOP & ")"})> _
+        Public Const ConstFNDomainID = Domain.ConstFNDomainID
+
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, title:="revision", Description:="revision of the schedule", _
             id:="SC5", aliases:={"BS2"}, Defaultvalue:="")> Public Const ConstFNPlanRev = "plrev"
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Bool, title:="is frozen", Description:="schedule is frozen flag", _
+        <ormObjectEntry(typeid:=otFieldDataType.Bool, title:="is frozen", Description:="schedule is frozen flag", _
             id:="SC6", aliases:={}, Defaultvalue:="false")> Public Const ConstFNisfrozen = "isfrozen"
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Text, size:=50, title:="lifecycle status", Description:="lifecycle status of the schedule", _
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, title:="lifecycle status", Description:="lifecycle status of the schedule", _
             id:="SC7", aliases:={"BS1"}, Defaultvalue:="", parameter:="LCStatus")> Public Const ConstFNlcstatus = "lcstatus"
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Text, size:=50, title:="process status", Description:="process status of the schedule", _
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, title:="process status", Description:="process status of the schedule", _
             id:="SC8", aliases:={"S1"}, Defaultvalue:="", parameter:="PStatus")> Public Const ConstFNpstatus = "pstatus"
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Timestamp, title:="check timestamp", Description:="timestamp of check status of the schedule", _
+        <ormObjectEntry(typeid:=otFieldDataType.Timestamp, title:="check timestamp", Description:="timestamp of check status of the schedule", _
             id:="SC9", aliases:={}, Defaultvalue:="", parameter:="")> Public Const ConstFNCheckedOn = "checkedon"
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Text, size:=100, title:="planner", Description:="responsible planner of the schedule", _
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, title:="planner", Description:="responsible planner of the schedule", _
             id:="SC10", aliases:={}, Defaultvalue:="", parameter:="")> Public Const ConstFNPlanner = "resp"
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Memo, title:="comment", Description:="comment of the schedule", _
+        <ormObjectEntry(typeid:=otFieldDataType.Memo, title:="comment", Description:="comment of the schedule", _
             id:="SC12", aliases:={}, Defaultvalue:="", parameter:="")> Public Const ConstFNComment = "cmt"
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Timestamp, title:="last fc update", Description:="last forecast change of the schedule", _
+        <ormObjectEntry(typeid:=otFieldDataType.Timestamp, title:="last fc update", Description:="last forecast change of the schedule", _
             id:="SC13", aliases:={}, parameter:="")> Public Const ConstFNFCupdatedOn = "fcupdon"
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Text, size:=50, title:="type", Description:="type of the schedule", _
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, title:="type", Description:="type of the schedule", _
             id:="SC14", aliases:={"BS4"}, Defaultvalue:="")> Public Const ConstFNTypeid = "typeid"
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Bool, title:="baseline flag", Description:="flag if the schedule is a baseline", _
+        <ormObjectEntry(typeid:=otFieldDataType.Bool, title:="baseline flag", Description:="flag if the schedule is a baseline", _
             id:="SC15", aliases:={})> Public Const ConstFNIsBaseline = "isbaseline"
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Date, title:="baseline date", Description:="date of the baseline creation", _
+        <ormObjectEntry(typeid:=otFieldDataType.Date, title:="baseline date", Description:="date of the baseline creation", _
             id:="SC16", aliases:={})> Public Const ConstFNBlDate = "bldate"
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Long, title:="baseline updc", Description:="updc of the last baseline of this schedule", _
+        <ormObjectEntry(typeid:=otFieldDataType.Long, title:="baseline updc", Description:="updc of the last baseline of this schedule", _
             id:="SC17", aliases:={}, Defaultvalue:="0")> Public Const ConstFNBlUpdc = "blupdc"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Numeric, title:="required capacity", Description:="required capacity of this schedule", _
+        <ormObjectEntry(typeid:=otFieldDataType.Numeric, title:="required capacity", Description:="required capacity of this schedule", _
             id:="SC20", aliases:={"WBS2"}, Defaultvalue:="0")> Public Const ConstFNRequCap = "requ"
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Numeric, title:="used capacity", Description:="used capacity of this schedule", _
+        <ormObjectEntry(typeid:=otFieldDataType.Numeric, title:="used capacity", Description:="used capacity of this schedule", _
             id:="SC21", aliases:={"WBS3"}, Defaultvalue:="0")> Public Const ConstFNUsedCap = "used"
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Date, title:="used capacity reference date", Description:="used capacity reference date of this schedule", _
+        <ormObjectEntry(typeid:=otFieldDataType.Date, title:="used capacity reference date", Description:="used capacity reference date of this schedule", _
             id:="SC22", aliases:={"WBS4"})> Public Const ConstFNUsedCapRef = "ufdt"
 
-        <ormSchemaColumnAttribute(referenceObjectEntry:=ObjectLogMessage.ConstTableID & "." & ObjectLogMessage.ConstFNTag)> _
+        <ormObjectEntry(referenceObjectEntry:=ObjectLogMessage.ConstObjectID & "." & ObjectLogMessage.ConstFNTag)> _
         Public Const ConstFNmsglogtag = ObjectLogMessage.ConstFNTag
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Text, size:=100, title:="Activitiy Tag", Description:="Activity Tag", _
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, title:="Activitiy Tag", Description:="Activity Tag", _
            id:="SC30", aliases:={}, Defaultvalue:="", parameter:="")> Public Const ConstFNActTag = "acttag"
 
-        <ormColumnMappingAttribute(ColumnName:=ConstFNUid)> Private _uid As Long = 0
-        <ormColumnMappingAttribute(ColumnName:=ConstFNUpdc)> Private _updc As Long = 0
-        <ormColumnMappingAttribute(ColumnName:=ConstFNfcupdc)> Private _fcupdc As Long    ' update count of just fc
-        <ormColumnMappingAttribute(ColumnName:=ConstFNPlanRev)> Private _plrev As String = ""
-        <ormColumnMappingAttribute(ColumnName:=ConstFNPlanner)> Private _planner As String = ""
-        <ormColumnMappingAttribute(ColumnName:=ConstFNisfrozen)> Private _isFrozen As Boolean
-        <ormColumnMappingAttribute(ColumnName:=ConstFNpstatus)> Private _pstatus As String = ""
-        <ormColumnMappingAttribute(ColumnName:=ConstFNlcstatus)> Private _lfcstatus As String = ""
-        <ormColumnMappingAttribute(ColumnName:=ConstFNCheckedOn)> Private _checkedOn As Date = ConstNullDate
-        <ormColumnMappingAttribute(ColumnName:=ConstFNFCupdatedOn)> Private _fcUpdatedOn As Date = ConstNullDate
-        <ormColumnMappingAttribute(ColumnName:=ConstFNIsBaseline)> Private _isBaseline As Boolean = False
-        <ormColumnMappingAttribute(ColumnName:=ConstFNBlDate)> Private _baselineDate As Date = ConstNullDate
-        <ormColumnMappingAttribute(ColumnName:=ConstFNBlUpdc)> Private _baselineUPDC As Long = 0
+        <ormEntryMapping(EntryName:=ConstFNUid)> Private _uid As Long = 0
+        <ormEntryMapping(EntryName:=ConstFNUpdc)> Private _updc As Long = 0
+        <ormEntryMapping(EntryName:=ConstFNfcupdc)> Private _fcupdc As Long    ' update count of just fc
+        <ormEntryMapping(EntryName:=ConstFNPlanRev)> Private _plrev As String = ""
+        <ormEntryMapping(EntryName:=ConstFNPlanner)> Private _planner As String = ""
+        <ormEntryMapping(EntryName:=ConstFNisfrozen)> Private _isFrozen As Boolean
+        <ormEntryMapping(EntryName:=ConstFNpstatus)> Private _pstatus As String = ""
+        <ormEntryMapping(EntryName:=ConstFNlcstatus)> Private _lfcstatus As String = ""
+        <ormEntryMapping(EntryName:=ConstFNCheckedOn)> Private _checkedOn As Date = ConstNullDate
+        <ormEntryMapping(EntryName:=ConstFNFCupdatedOn)> Private _fcUpdatedOn As Date = ConstNullDate
+        <ormEntryMapping(EntryName:=ConstFNIsBaseline)> Private _isBaseline As Boolean = False
+        <ormEntryMapping(EntryName:=ConstFNBlDate)> Private _baselineDate As Date = ConstNullDate
+        <ormEntryMapping(EntryName:=ConstFNBlUpdc)> Private _baselineUPDC As Long = 0
 
-        <ormColumnMappingAttribute(ColumnName:=ConstFNWorkspace)> Private _workspace As String = ""
-        <ormColumnMappingAttribute(ColumnName:=ConstFNTypeid)> Private _typeid As String = ""
-        <ormColumnMappingAttribute(ColumnName:=ConstFNRequCap)> Private _requ As Double = 0
-        <ormColumnMappingAttribute(ColumnName:=ConstFNUsedCap)> Private _used As Double = 0
-        <ormColumnMappingAttribute(ColumnName:=ConstFNUsedCapRef)> Private _ufdt As Date = ConstNullDate
-        <ormColumnMappingAttribute(ColumnName:=ConstFNComment)> Private _comment As String = ""
-        <ormColumnMappingAttribute(ColumnName:=ConstFNMsgLogTag)> Private _msglogtag As String = ""
-        <ormColumnMappingAttribute(ColumnName:=ConstFNActTag)> Private _activetag As String = ""
+        <ormEntryMapping(EntryName:=ConstFNWorkspace)> Private _workspace As String = ""
+        <ormEntryMapping(EntryName:=ConstFNTypeid)> Private _typeid As String = ""
+        <ormEntryMapping(EntryName:=ConstFNRequCap)> Private _requ As Double = 0
+        <ormEntryMapping(EntryName:=ConstFNUsedCap)> Private _used As Double = 0
+        <ormEntryMapping(EntryName:=ConstFNUsedCapRef)> Private _ufdt As Date = ConstNullDate
+        <ormEntryMapping(EntryName:=ConstFNComment)> Private _comment As String = ""
+        <ormEntryMapping(EntryName:=ConstFNmsglogtag)> Private _msglogtag As String = ""
+        <ormEntryMapping(EntryName:=ConstFNActTag)> Private _activetag As String = ""
 
         ' components itself per key:=id, item:=clsOTDBXScheduleMilestone
         Private s_members As New Dictionary(Of String, ScheduleMilestone)
@@ -2535,7 +2551,7 @@ error_handle:
             End Get
         End Property
         ''' <summary>
-        ''' returns true if the the forecast is changed since loadby / last persist
+        ''' returns true if the the forecast is changed since Inject / last persist
         ''' </summary>
         ''' <value></value>
         ''' <returns></returns>
@@ -3140,7 +3156,7 @@ error_handle:
                 Exit Function
             End If
 
-            If Not aScheduleMSDef.LoadBy(Me.Typeid, MSID) Then
+            If Not aScheduleMSDef.Inject(Me.Typeid, MSID) Then
                 MoveMilestone = False
                 Exit Function
             End If
@@ -3289,7 +3305,7 @@ error_handle:
                 End If
                 ' go through
                 For Each aScheduleMSDef In aMSDefCollection
-                    If aMilestoneDef.LoadBy(aScheduleMSDef.ID) Then
+                    If aMilestoneDef.Inject(aScheduleMSDef.ID) Then
                         If (aMilestoneDef.Datatype = otMilestoneType.Status And Not justDates) Or justDates Then
                             Call aCollection.Add(Item:=aScheduleMSDef)
                         End If
@@ -3343,248 +3359,248 @@ error_handle:
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function CreateSchema(Optional silent As Boolean = True) As Boolean
-            Return ormDataObject.CreateSchema(Of Schedule)()
+            Return ormDataObject.CreateDataObjectSchema(Of Schedule)()
 
-            Dim aFieldDesc As New ormFieldDescription
-            Dim PrimaryColumnNames As New Collection
-            Dim WorkspaceColumnNames As New Collection
-            Dim uidcolumnnames As New Collection
-            Dim aTable As New ObjectDefinition
-            Dim aTableEntry As New ObjectEntryDefinition
-
-
-            aFieldDesc.ID = ""
-            aFieldDesc.Parameter = ""
-            aFieldDesc.Relation = New String() {}
-            aFieldDesc.Aliases = New String() {}
-            aFieldDesc.Tablename = ConstTableID
-
-            ' delete just fields -> keep compounds
-            If aTable.LoadBy(ConstTableID) Then
-                For Each aTableEntry In aTable.Entries
-                    If aTableEntry.Typeid = otObjectEntryDefinitiontype.Field Then
-                        aTableEntry.Delete()
-                    End If
-                Next aTableEntry
-                aTable.Persist()
-            End If
-            aTable = New ObjectDefinition
-            aTable.Create(ConstTableID)
-
-            '******
-            '****** Fields
-
-            With aTable
-
-                '*** workspaceID
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "workspaceID"
-                aFieldDesc.ID = "ws"
-                aFieldDesc.ColumnName = ConstFNWorkspace
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                WorkspaceColumnNames.Add(aFieldDesc.ColumnName)
-
-                '**** UID
-                aFieldDesc.Datatype = otFieldDataType.[Long]
-                aFieldDesc.Title = "uid of deliverable"
-                aFieldDesc.ID = "SC2"
-                aFieldDesc.Aliases = New String() {ConstFNUid}
-                aFieldDesc.ColumnName = ConstFNUid
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
-                WorkspaceColumnNames.Add(aFieldDesc.ColumnName)
-                uidcolumnnames.Add(aFieldDesc.ColumnName)
-
-                '***** updc
-                aFieldDesc.Datatype = otFieldDataType.[Long]
-                aFieldDesc.Title = "update count of schedule"
-                aFieldDesc.ID = "SC3"
-                aFieldDesc.Aliases = New String() {"bs3"}
-                aFieldDesc.ColumnName = ConstFNUpdc
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
-                WorkspaceColumnNames.Add(aFieldDesc.ColumnName)
-
-                '***** fcupdc
-                aFieldDesc.Datatype = otFieldDataType.[Long]
-                aFieldDesc.Title = "update count of forecast"
-                aFieldDesc.ID = "SC4"
-                aFieldDesc.Aliases = New String() {}
-                aFieldDesc.ColumnName = ConstFNfcupdc
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '            Dim aFieldDesc As New ormFieldDescription
+            '            Dim PrimaryColumnNames As New Collection
+            '            Dim WorkspaceColumnNames As New Collection
+            '            Dim uidcolumnnames As New Collection
+            '            Dim aTable As New ObjectDefinition
+            '            Dim aTableEntry As New ObjectEntryDefinition
 
 
-                '**** planning revision
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "deliverable revision"
-                aFieldDesc.Aliases = New String() {"bs2"}
-                aFieldDesc.ID = "SC5"
-                aFieldDesc.ColumnName = "plrev"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '            aFieldDesc.ID = ""
+            '            aFieldDesc.Parameter = ""
+            '            aFieldDesc.Relation = New String() {}
+            '            aFieldDesc.Aliases = New String() {}
+            '            aFieldDesc.Tablename = ConstTableID
 
-                '**** is frozen
-                aFieldDesc.Datatype = otFieldDataType.Bool
-                aFieldDesc.Title = "schedule frozen"
-                aFieldDesc.Aliases = New String() {}
-                aFieldDesc.ID = "SC6"
-                aFieldDesc.ColumnName = "isfrozen"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '            ' delete just fields -> keep compounds
+            '            If aTable.Inject(ConstTableID) Then
+            '                For Each aTableEntry In aTable.Entries
+            '                    If aTableEntry.Typeid = otObjectEntryDefinitiontype.Field Then
+            '                        aTableEntry.Delete()
+            '                    End If
+            '                Next aTableEntry
+            '                aTable.Persist()
+            '            End If
+            '            aTable = New ObjectDefinition
+            '            aTable.Create(ConstTableID)
 
-                '**** lifecyclestatus
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "schedule lifecycle status"
-                aFieldDesc.Aliases = New String() {"bs1"}
-                aFieldDesc.ID = "SC7"
-                aFieldDesc.ColumnName = "lcstatus"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '            '******
+            '            '****** Fields
 
-                '**** process status
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "schedule process status"
-                aFieldDesc.Aliases = New String() {"s1"}
-                aFieldDesc.ID = "SC8"
-                aFieldDesc.ColumnName = "pstatus"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '            With aTable
 
-                '**** checked date
-                aFieldDesc.Datatype = otFieldDataType.[Date]
-                aFieldDesc.Title = "schedule checked date"
-                aFieldDesc.Aliases = New String() {}
-                aFieldDesc.ID = "SC9"
-                aFieldDesc.ColumnName = "checkedon"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                '*** workspaceID
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "workspaceID"
+            '                aFieldDesc.ID = "ws"
+            '                aFieldDesc.ColumnName = ConstFNWorkspace
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                WorkspaceColumnNames.Add(aFieldDesc.ColumnName)
 
-                '**** planner
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "responsible planner"
-                aFieldDesc.Aliases = New String() {}
-                aFieldDesc.ID = "SC10"
-                aFieldDesc.ColumnName = "resp"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                '**** UID
+            '                aFieldDesc.Datatype = otFieldDataType.[Long]
+            '                aFieldDesc.Title = "uid of deliverable"
+            '                aFieldDesc.ID = "SC2"
+            '                aFieldDesc.Aliases = New String() {ConstFNUid}
+            '                aFieldDesc.ColumnName = ConstFNUid
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
+            '                WorkspaceColumnNames.Add(aFieldDesc.ColumnName)
+            '                uidcolumnnames.Add(aFieldDesc.ColumnName)
 
-                '**** msglogtag
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "message log tag"
-                aFieldDesc.Aliases = New String() {}
-                aFieldDesc.ID = "SC11"
-                aFieldDesc.ColumnName = "msglogtag"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                '***** updc
+            '                aFieldDesc.Datatype = otFieldDataType.[Long]
+            '                aFieldDesc.Title = "update count of schedule"
+            '                aFieldDesc.ID = "SC3"
+            '                aFieldDesc.Aliases = New String() {"bs3"}
+            '                aFieldDesc.ColumnName = ConstFNUpdc
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
+            '                WorkspaceColumnNames.Add(aFieldDesc.ColumnName)
 
-
-                '**** comment
-                aFieldDesc.Datatype = otFieldDataType.Memo
-                aFieldDesc.Title = "comment"
-                aFieldDesc.Aliases = New String() {}
-                aFieldDesc.ID = "SC12"
-                aFieldDesc.ColumnName = "cmt"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                '**** last fc update
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "last forecast updated on"
-                aFieldDesc.Aliases = New String() {}
-                aFieldDesc.ID = "SC13"
-                aFieldDesc.ColumnName = "fcupdon"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                '**** scedule type
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "schedule type"
-                aFieldDesc.Aliases = New String() {"bs4"}
-                aFieldDesc.ID = "SC14"
-                aFieldDesc.ColumnName = ConstFNTypeid
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                '**** is baseline
-                aFieldDesc.Datatype = otFieldDataType.Bool
-                aFieldDesc.Title = "schedule is baseline"
-                aFieldDesc.Aliases = New String() {}
-                aFieldDesc.ID = "SC15"
-                aFieldDesc.ColumnName = "isbaseline"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                '**** baseline date
-                aFieldDesc.Datatype = otFieldDataType.[Date]
-                aFieldDesc.Title = "baseline date"
-                aFieldDesc.Aliases = New String() {}
-                aFieldDesc.ID = "SC16"
-                aFieldDesc.ColumnName = "bldate"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                '**** baseline updc
-                aFieldDesc.Datatype = otFieldDataType.[Long]
-                aFieldDesc.Title = "baseline updc"
-                aFieldDesc.Aliases = New String() {}
-                aFieldDesc.ID = "SC17"
-                aFieldDesc.ColumnName = "blupdc"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                '**** required capacity
-                '****
-                aFieldDesc.Datatype = otFieldDataType.Numeric
-                aFieldDesc.Title = "required capacity"
-                aFieldDesc.ID = "SC20"
-                aFieldDesc.Aliases = New String() {"wbs2"}
-                aFieldDesc.ColumnName = ConstFNRequCap
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                aFieldDesc.Datatype = otFieldDataType.Numeric
-                aFieldDesc.Title = "used capacity"
-                aFieldDesc.ID = "SC21"
-                aFieldDesc.Aliases = New String() {"wbs3"}
-                aFieldDesc.ColumnName = ConstFNUsedCap
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                aFieldDesc.Datatype = otFieldDataType.[Date]
-                aFieldDesc.Title = "used capacity date"
-                aFieldDesc.ID = "SC22"
-                aFieldDesc.Aliases = New String() {"wbs4"}
-                aFieldDesc.ColumnName = "ufdt"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                '**** activeTag
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "tag of activitiy"
-                aFieldDesc.ID = "sc30"
-                aFieldDesc.Aliases = New String() {}
-                aFieldDesc.ColumnName = "acttag"
-                aFieldDesc.Size = 100
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                '***** fcupdc
+            '                aFieldDesc.Datatype = otFieldDataType.[Long]
+            '                aFieldDesc.Title = "update count of forecast"
+            '                aFieldDesc.ID = "SC4"
+            '                aFieldDesc.Aliases = New String() {}
+            '                aFieldDesc.ColumnName = ConstFNfcupdc
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
 
-                '***
-                '*** TIMESTAMP
-                '****
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "last Update"
-                aFieldDesc.ColumnName = ConstFNUpdatedOn
-                aFieldDesc.ID = ""
-                aFieldDesc.Aliases = New String() {}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                '**** planning revision
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "deliverable revision"
+            '                aFieldDesc.Aliases = New String() {"bs2"}
+            '                aFieldDesc.ID = "SC5"
+            '                aFieldDesc.ColumnName = "plrev"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "creation Date"
-                aFieldDesc.ColumnName = ConstFNCreatedOn
-                aFieldDesc.ID = ""
-                aFieldDesc.Aliases = New String() {}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                '**** is frozen
+            '                aFieldDesc.Datatype = otFieldDataType.Bool
+            '                aFieldDesc.Title = "schedule frozen"
+            '                aFieldDesc.Aliases = New String() {}
+            '                aFieldDesc.ID = "SC6"
+            '                aFieldDesc.ColumnName = "isfrozen"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                ' Index
-                Call .AddIndex("PrimaryKey", PrimaryColumnNames, isprimarykey:=True)
-                Call .AddIndex("workspaceID", WorkspaceColumnNames, isprimarykey:=False)
-                Call .AddIndex("uidIndex", uidcolumnnames, isprimarykey:=False)
+            '                '**** lifecyclestatus
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "schedule lifecycle status"
+            '                aFieldDesc.Aliases = New String() {"bs1"}
+            '                aFieldDesc.ID = "SC7"
+            '                aFieldDesc.ColumnName = "lcstatus"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                ' persist
-                .Persist()
-                ' change the database
-                .AlterSchema()
-            End With
+            '                '**** process status
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "schedule process status"
+            '                aFieldDesc.Aliases = New String() {"s1"}
+            '                aFieldDesc.ID = "SC8"
+            '                aFieldDesc.ColumnName = "pstatus"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-            '
-            CreateSchema = True
-            Exit Function
+            '                '**** checked date
+            '                aFieldDesc.Datatype = otFieldDataType.[Date]
+            '                aFieldDesc.Title = "schedule checked date"
+            '                aFieldDesc.Aliases = New String() {}
+            '                aFieldDesc.ID = "SC9"
+            '                aFieldDesc.ColumnName = "checkedon"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-            ' Handle the error
-error_handle:
-            Call CoreMessageHandler(subname:="clsOTDBSchedule.createSchema", tablename:=ConstTableID)
-            CreateSchema = False
+            '                '**** planner
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "responsible planner"
+            '                aFieldDesc.Aliases = New String() {}
+            '                aFieldDesc.ID = "SC10"
+            '                aFieldDesc.ColumnName = "resp"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                '**** msglogtag
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "message log tag"
+            '                aFieldDesc.Aliases = New String() {}
+            '                aFieldDesc.ID = "SC11"
+            '                aFieldDesc.ColumnName = "msglogtag"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+
+            '                '**** comment
+            '                aFieldDesc.Datatype = otFieldDataType.Memo
+            '                aFieldDesc.Title = "comment"
+            '                aFieldDesc.Aliases = New String() {}
+            '                aFieldDesc.ID = "SC12"
+            '                aFieldDesc.ColumnName = "cmt"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                '**** last fc update
+            '                aFieldDesc.Datatype = otFieldDataType.Timestamp
+            '                aFieldDesc.Title = "last forecast updated on"
+            '                aFieldDesc.Aliases = New String() {}
+            '                aFieldDesc.ID = "SC13"
+            '                aFieldDesc.ColumnName = "fcupdon"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                '**** scedule type
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "schedule type"
+            '                aFieldDesc.Aliases = New String() {"bs4"}
+            '                aFieldDesc.ID = "SC14"
+            '                aFieldDesc.ColumnName = ConstFNTypeid
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                '**** is baseline
+            '                aFieldDesc.Datatype = otFieldDataType.Bool
+            '                aFieldDesc.Title = "schedule is baseline"
+            '                aFieldDesc.Aliases = New String() {}
+            '                aFieldDesc.ID = "SC15"
+            '                aFieldDesc.ColumnName = "isbaseline"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                '**** baseline date
+            '                aFieldDesc.Datatype = otFieldDataType.[Date]
+            '                aFieldDesc.Title = "baseline date"
+            '                aFieldDesc.Aliases = New String() {}
+            '                aFieldDesc.ID = "SC16"
+            '                aFieldDesc.ColumnName = "bldate"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                '**** baseline updc
+            '                aFieldDesc.Datatype = otFieldDataType.[Long]
+            '                aFieldDesc.Title = "baseline updc"
+            '                aFieldDesc.Aliases = New String() {}
+            '                aFieldDesc.ID = "SC17"
+            '                aFieldDesc.ColumnName = "blupdc"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                '**** required capacity
+            '                '****
+            '                aFieldDesc.Datatype = otFieldDataType.Numeric
+            '                aFieldDesc.Title = "required capacity"
+            '                aFieldDesc.ID = "SC20"
+            '                aFieldDesc.Aliases = New String() {"wbs2"}
+            '                aFieldDesc.ColumnName = ConstFNRequCap
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                aFieldDesc.Datatype = otFieldDataType.Numeric
+            '                aFieldDesc.Title = "used capacity"
+            '                aFieldDesc.ID = "SC21"
+            '                aFieldDesc.Aliases = New String() {"wbs3"}
+            '                aFieldDesc.ColumnName = ConstFNUsedCap
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                aFieldDesc.Datatype = otFieldDataType.[Date]
+            '                aFieldDesc.Title = "used capacity date"
+            '                aFieldDesc.ID = "SC22"
+            '                aFieldDesc.Aliases = New String() {"wbs4"}
+            '                aFieldDesc.ColumnName = "ufdt"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                '**** activeTag
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "tag of activitiy"
+            '                aFieldDesc.ID = "sc30"
+            '                aFieldDesc.Aliases = New String() {}
+            '                aFieldDesc.ColumnName = "acttag"
+            '                aFieldDesc.Size = 100
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+
+            '                '***
+            '                '*** TIMESTAMP
+            '                '****
+            '                aFieldDesc.Datatype = otFieldDataType.Timestamp
+            '                aFieldDesc.Title = "last Update"
+            '                aFieldDesc.ColumnName = ConstFNUpdatedOn
+            '                aFieldDesc.ID = ""
+            '                aFieldDesc.Aliases = New String() {}
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                aFieldDesc.Datatype = otFieldDataType.Timestamp
+            '                aFieldDesc.Title = "creation Date"
+            '                aFieldDesc.ColumnName = ConstFNCreatedOn
+            '                aFieldDesc.ID = ""
+            '                aFieldDesc.Aliases = New String() {}
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                ' Index
+            '                Call .AddIndex("PrimaryKey", PrimaryColumnNames, isprimarykey:=True)
+            '                Call .AddIndex("workspaceID", WorkspaceColumnNames, isprimarykey:=False)
+            '                Call .AddIndex("uidIndex", uidcolumnnames, isprimarykey:=False)
+
+            '                ' persist
+            '                .Persist()
+            '                ' change the database
+            '                .CreateObjectSchema()
+            '            End With
+
+            '            '
+            '            CreateSchema = True
+            '            Exit Function
+
+            '            ' Handle the error
+            'error_handle:
+            '            Call CoreMessageHandler(subname:="clsOTDBSchedule.createSchema", tablename:=ConstTableID)
+            '            CreateSchema = False
         End Function
 
         '***** loadMilestones -> load all Milestones as Members -> look for Actuals access
@@ -3638,7 +3654,7 @@ error_handle:
 
                     '** load the milestone
                     Dim aMilestone As New ScheduleMilestone
-                    If aMilestone.LoadBy(UID:=_uid, updc:=updc, ID:=aScheduleMSDef.ID) Then
+                    If aMilestone.Inject(UID:=_uid, updc:=updc, ID:=aScheduleMSDef.ID) Then
                         ' iscache must be kept
                         aMilestone.IsCacheNoSave = isCache
                         '** include
@@ -3765,13 +3781,13 @@ error_handle:
         ''' <param name="workspaceID"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Function Loadby(ByVal uid As Long, Optional workspaceID As String = "") As Boolean
+        Public Overloads Function Inject(ByVal uid As Long, Optional workspaceID As String = "") As Boolean
             If workspaceID = "" Then
                 workspaceID = CurrentSession.CurrentWorkspaceID
             End If
             Dim aCurrSchedule As CurrentSchedule = CurrentSchedule.Retrieve(UID:=uid, workspaceID:=workspaceID)
             If aCurrSchedule IsNot Nothing Then
-                Me.Loadby(UID:=uid, updc:=aCurrSchedule.UPDC)
+                Me.Inject(UID:=uid, updc:=aCurrSchedule.UPDC)
             Else
                 Return Nothing
             End If
@@ -3783,8 +3799,8 @@ error_handle:
         ''' <param name="updc"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Function LoadBy(ByVal UID As Long, ByVal updc As Long) As Boolean
-            Return MyBase.LoadBy(pkArray:={UID, updc})
+        Public Overloads Function Inject(ByVal UID As Long, ByVal updc As Long) As Boolean
+            Return MyBase.Inject(pkArray:={UID, updc})
         End Function
         ''' <summary>
         ''' loads an schedule from store
@@ -3871,10 +3887,10 @@ error_handle:
             Dim aTarget As New CurrentTarget
 
             If IsLoaded Then
-                If Not aTarget.LoadBy(uid:=Me.Uid, workspaceID:=Me.workspaceID) Then
+                If Not aTarget.Inject(uid:=Me.Uid, workspaceID:=Me.workspaceID) Then
                     aTarget.UPDC = 0
                 End If
-                If aTrackDef.loadBy(deliverableUID:=Me.Uid, _
+                If aTrackDef.Inject(deliverableUID:=Me.Uid, _
                                     scheduleUID:=Me.Uid, _
                                     scheduleUPDC:=Me.Updc, _
                                     targetUPDC:=aTarget.UPDC) Then
@@ -4014,7 +4030,7 @@ error_handle:
                         IsFinished = False
                         Exit Function
                     End If
-                ElseIf LCase(Me.Typeid) = "none" Then
+                ElseIf Me.Typeid.ToLower = "none" Then
                     IsFinished = True
                     Exit Function
                 Else
@@ -4448,7 +4464,7 @@ error_handle:
                     End If
                     '** update Track
                     If isProcessable Then
-                        Call aTrack.UpdateFromSchedule(Me, workspaceID:=Me.workspaceID, PERSIST:=True, checkGAP:=True)
+                        Call aTrack.UpdateFromSchedule(Me, workspaceID:=Me.workspaceID, persist:=True, checkGAP:=True)
                     End If
                 Else
                     isProcessable = False
@@ -4459,7 +4475,7 @@ error_handle:
                 '**** save without Milestone checking
                 isProcessable = Me.Persist(timestamp:=timestamp, forceSerializeToOTDB:=forceSerializeToOTDB)
                 '** update Track
-                Call aTrack.UpdateFromSchedule(Me, workspaceID:=Me.workspaceID, PERSIST:=True, checkGAP:=True)
+                Call aTrack.UpdateFromSchedule(Me, workspaceID:=Me.workspaceID, persist:=True, checkGAP:=True)
             Else
                 '** nothing changed
                 '***
@@ -4716,7 +4732,7 @@ error_handle:
                 End If
             End If
             '**
-            If Not aWorkspace.LoadBy(workspaceID) Then
+            If Not aWorkspace.Inject(workspaceID) Then
                 Call CoreMessageHandler(arg1:=workspaceID, subname:="clsOTDBSchedule.cloneToWorkspace", message:="couldn't load workspaceID")
                 CloneToWorkspace = False
                 Exit Function
@@ -4746,7 +4762,7 @@ error_handle:
 
             ' set the currschedule
             If setCurrSchedule Then
-                If Not aCurrSCHEDULE.LoadBy(UID:=Me.Uid, workspaceID:=workspaceID) Then
+                If Not aCurrSCHEDULE.Inject(UID:=Me.Uid, workspaceID:=workspaceID) Then
                     Call aCurrSCHEDULE.Create(UID:=Me.Uid, workspaceID:=workspaceID)
                 End If
                 aCurrSCHEDULE.UPDC = newUPDC
@@ -4849,7 +4865,7 @@ error_handle:
             Dim aValue, anOldValue As Object
 
             '* load the schedule from the envelope
-            If Not Me.Loadby(envelope:=envelope) Then
+            If Not Me.Inject(envelope:=envelope) Then
                 ' could not load the envelope -> Add ?!
                 Dim anUID As Object = envelope.GetSlotValueByFieldname(fieldname:=ConstFNUid, tablename:=ConstTableID)
                 Dim aTypeid As String = envelope.GetSlotValueByFieldname(fieldname:=ScheduleDefinition.ConstFNType, tablename:=ScheduleDefinition.ConstTableID)
@@ -5031,7 +5047,7 @@ error_handle:
                 '*** indeed we have something to update
                 setCurrSchedule = True
                 ' get the updc
-                If aCurrSCHEDULE.LoadBy(UID:=anUID, workspaceID:=aWorkspace) Then
+                If aCurrSCHEDULE.Inject(UID:=anUID, workspaceID:=aWorkspace) Then
                     anUPDC = aCurrSCHEDULE.UPDC
 
                     'System.Diagnostics.Debug.WriteLine(anUID, anUPDC)
@@ -5051,7 +5067,7 @@ error_handle:
             End If
 
             '** load the Schedule
-            If Not aSchedule.Loadby(UID:=anUID, updc:=anUPDC) Then
+            If Not aSchedule.Inject(UID:=anUID, updc:=anUPDC) Then
                 If anObjectDef.XChangeCmd <> otXChangeCommandType.UpdateCreate Then
                     Call MSGLOG.AddMsg("203", Nothing, Nothing, "SC3", CHANGECONFIG.Configname, anUID & "," & anUPDC)
                     runXChangeOLD = False
@@ -5250,7 +5266,7 @@ error_handle:
         ''' <param name="envelope"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Function LoadBy(ByRef envelope As XEnvelope) As Boolean
+        Public Overloads Function Inject(ByRef envelope As XEnvelope) As Boolean
             Dim uid As Long
             Dim updc As Long
             Dim wsID As String = ""
@@ -5267,7 +5283,7 @@ error_handle:
                 End If
                 If aValue Is Nothing OrElse Not IsNumeric(aValue) Then
                     CoreMessageHandler(message:="Envelope has no id 'uid'", messagetype:=otCoreMessageType.ApplicationError, _
-                                       subname:="clsOTDBSchedule.Loadby(Envelope)")
+                                       subname:="clsOTDBSchedule.Inject(Envelope)")
                     If envelope.Xchangeconfig.AttributeByFieldName(fieldname:=Me.ConstFNUid, tablename:=Me.ConstTableID) Is Nothing Then
                         Call envelope.MsgLog.AddMsg("200", Nothing, Nothing, "SC2", "SC2", ConstTableID, envelope.Xchangeconfig.Configname)
                     Else
@@ -5300,16 +5316,16 @@ error_handle:
                         envelope.AddSlotByID(id:="SC3", value:=updc, isHostValue:=False, extendXConfig:=True)
                     Else
                         'CoreMessageHandler(message:="Envelope has no determinable id 'SC3'", messagetype:=otCoreMessageType.ApplicationError, _
-                        '                   subname:="clsOTDBSchedule.Loadby(Envelope)")
+                        '                   subname:="clsOTDBSchedule.Inject(Envelope)")
                         Return False
                     End If
                 Else
                     updc = CLng(aValue)
                 End If
                 '*** load the schedule
-                If Not Me.Loadby(UID:=uid, updc:=updc) Then
+                If Not Me.Inject(UID:=uid, updc:=updc) Then
                     CoreMessageHandler(message:="could not load the schedule ", arg1:=CStr(uid) & "." & CStr(updc), _
-                                       messagetype:=otCoreMessageType.ApplicationError, subname:="clsOTDBSchedule.Loadby(Envelope)")
+                                       messagetype:=otCoreMessageType.ApplicationError, subname:="clsOTDBSchedule.Inject(Envelope)")
                     Return False
                 End If
             Else
@@ -5331,7 +5347,7 @@ error_handle:
         Public Function AddSlotCompounds(ByRef envelope As XEnvelope) As Boolean Implements iotHasCompounds.AddSlotCompounds
             Dim avalue As Object
 
-            If Not Me.Loadby(envelope:=envelope) Then
+            If Not Me.Inject(envelope:=envelope) Then
                 CoreMessageHandler(message:="Schedule could not be loaded from envelope", subname:="clsOTDBSchedule.AddCompounds", messagetype:=otCoreMessageType.ApplicationError)
                 Return False
             End If
@@ -5339,7 +5355,7 @@ error_handle:
             '*** Add all compounds to the envelope
             Dim anObjectDef As ObjectDefinition = CurrentSession.Objects.GetObject(objectname:=Me.ConstTableID)
             For Each anEntry In anObjectDef.Entries
-                Dim anAttribute As XChange.XConfigAttributeEntry = envelope.Xchangeconfig.AttributeByID(ID:=anEntry.ID, objectname:=Me.ConstTableID)
+                Dim anAttribute As Xchange.XConfigAttributeEntry = envelope.Xchangeconfig.AttributeByID(ID:=anEntry.XID, objectname:=Me.ConstTableID)
                 If anAttribute IsNot Nothing AndAlso anAttribute.IsCompound Then
                     '** COMPOUNDS ARE ALWAYS MILESTONES FOR SCHEDULES
                     '**
@@ -5358,75 +5374,93 @@ error_handle:
 #End Region
 
     End Class
-    '************************************************************************************
-    '***** CLASS clsOTDBScheduleMilestone describes additional database schema information
-    '*****
+
     ''' <summary>
     ''' Schedule Milestone Class
     ''' </summary>
     ''' <remarks></remarks>
-    Public Class ScheduleMilestone
+    <ormObject(id:=ScheduleMilestone.ConstObjectID, modulename:=constModuleScheduling, Version:=1, description:="milestone data for schedules")> Public Class ScheduleMilestone
         Inherits ormDataObject
         Implements iormPersistable
         Implements iotCloneable(Of ScheduleMilestone)
         Implements iormInfusable
 
+        Public Const ConstObjectID = "ScheduleMilestone"
+
+        '** Table
         <ormSchemaTable(version:=2, adddeletefieldbehavior:=True, addsparefields:=True)> Public Const constTableID = "tblScheduleMilestones"
+
+        '** Index
         <ormSchemaIndex(columnname1:=ConstFNUid, columnname2:=ConstFNUpdc)> Public constIndexCompound = ConstDefaultCompoundIndexName
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Long, title:="unique ID", Description:="Unique ID of the schedule", _
-             primaryKeyordinal:=1, id:="MST1", aliases:={"UID"})> Public Const ConstFNUid = Schedule.ConstFNUid
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Long, title:="update count", Description:="Update count of the schedule", _
-           primaryKeyordinal:=2, id:="MST2")> Public Const ConstFNUpdc = Schedule.ConstFNUpdc
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Text, size:=50, defaultvalue:="", _
+        '** Keys
+        <ormObjectEntry(referenceObjectEntry:=Schedule.ConstObjectID & "." & Schedule.ConstFNUid, _
+             primaryKeyordinal:=1, id:="MST1", aliases:={"SUID"})> _
+        Public Const ConstFNUid = Schedule.ConstFNUid
+        <ormObjectEntry(referenceObjectEntry:=Schedule.ConstObjectID & "." & Schedule.ConstFNUpdc, _
+           primaryKeyordinal:=2, id:="MST2")> _
+        Public Const ConstFNUpdc = Schedule.ConstFNUpdc
+        '** link together
+        <ormSchemaForeignKey(entrynames:={ConstFNUid, ConstFNUpdc}, foreignkeyreferences:={Schedule.ConstObjectID & "." & Schedule.ConstFNUid, _
+                Schedule.ConstObjectID & "." & Schedule.ConstFNUpdc}, useforeignkey:=otForeignKeyImplementation.NativeDatabase)> Public Const constFKSchedule = "fkschedules"
+
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, defaultvalue:="", _
             title:="milestone id", Description:="id of the milestone", _
           primaryKeyordinal:=3, id:="MST3")> Public Const ConstFNID = "id"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Text, size:=255, defaultvalue:="", isnullable:=True, _
+        '** Fields
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=255, defaultvalue:="", isnullable:=True, _
            title:="value", Description:="text presentation of the milestone value", id:="MST4")> Public Const ConstFNvalue = "value"
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Date, isnullable:=True, _
+        <ormObjectEntry(typeid:=otFieldDataType.Date, isnullable:=True, _
           title:="value", Description:="date presentation of the milestone value", id:="MST5")> Public Const ConstFNvaluedate = "valuedate"
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Numeric, isnullable:=True, _
+        <ormObjectEntry(typeid:=otFieldDataType.Numeric, isnullable:=True, _
                  title:="value", Description:="numeric presentation of the milestone value", id:="MST6")> Public Const ConstFNvaluenumeric = "valuenumeric"
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Bool, isnullable:=True, _
+        <ormObjectEntry(typeid:=otFieldDataType.Bool, isnullable:=True, _
         title:="value", Description:="bool presentation of the milestone value", id:="MST7")> Public Const ConstFNvaluebool = "valuebool"
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Long, isnullable:=True, _
+        <ormObjectEntry(typeid:=otFieldDataType.Long, isnullable:=True, _
         title:="value", Description:="long presentation of the milestone value", id:="MST8")> Public Const ConstFNvaluelong = "valuelong"
-
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Long, defaultvalue:="0", _
+        <ormObjectEntry(typeid:=otFieldDataType.Long, defaultvalue:="0", _
         title:="datatype", Description:="datatype of the milestone value", id:="MST10")> Public Const ConstFNDatatype = "datatype"
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Bool, defaultvalue:="0", _
+        <ormObjectEntry(typeid:=otFieldDataType.Bool, defaultvalue:="0", _
         title:="is a forecast", Description:="true if the milestone is a forecast", id:="MST11")> Public Const ConstFNIsFC = "isforecast"
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Bool, defaultvalue:="0", _
+        <ormObjectEntry(typeid:=otFieldDataType.Bool, defaultvalue:="0", _
         title:="is a status", Description:="true if the milestone is a status", id:="MST12")> Public Const ConstFNIsStatus = "isstatus"
 
-        <ormSchemaColumnAttribute(referenceObjectEntry:=ObjectLogMessage.ConstTableID & "." & ObjectLogMessage.ConstFNTag)> _
+        <ormObjectEntry(referenceObjectEntry:=ObjectLogMessage.ConstObjectID & "." & ObjectLogMessage.ConstFNTag)> _
         Public Const ConstFNmsglogtag = ObjectLogMessage.ConstFNTag
 
-      
-        <ormSchemaColumnAttribute(referenceObjectEntry:=Workspace.ConstTableID & "." & Workspace.ConstFNID, _
-             Description:="workspaceID ID of the schedule")> Public Const ConstFNWorkspace = Workspace.ConstFNID
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Memo, defaultvalue:="", _
+        <ormObjectEntry(referenceObjectEntry:=Workspace.ConstObjectID & "." & Workspace.ConstFNID, _
+             Description:="workspaceID ID of the schedule", useforeignkey:=otForeignKeyImplementation.NativeDatabase)> Public Const ConstFNWorkspace = Workspace.ConstFNID
+        ' change FK Action since we have the workspace as FK (leads also to domians)
+        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, _
+            title:="Domain", description:="domain of the business Object", _
+            defaultvalue:=ConstGlobalDomain, _
+            useforeignkey:=otForeignKeyImplementation.NativeDatabase, _
+            foreignkeyProperties:={ForeignKeyProperty.OnDelete & "(" & ForeignKeyActionProperty.NOOP & ")", _
+                                   ForeignKeyProperty.OnUpdate & "(" & ForeignKeyActionProperty.NOOP & ")"})> _
+        Public Const ConstFNDomainID = Domain.ConstFNDomainID
+
+        <ormObjectEntry(typeid:=otFieldDataType.Memo, defaultvalue:="", _
                      title:="comment", Description:="comment", id:="MST14")> Public Const ConstFNcmt = "cmt"
 
 
         ' fields
 
-        <ormColumnMapping(ColumnName:=ConstFNUid)> Private _uid As Long
-        <ormColumnMapping(ColumnName:=ConstFNUid)> Private _updc As Long
-        <ormColumnMapping(ColumnName:=ConstFNUid)> Private _id As String = ""
+        <ormEntryMapping(EntryName:=ConstFNUid)> Private _uid As Long
+        <ormEntryMapping(EntryName:=ConstFNUid)> Private _updc As Long
+        <ormEntryMapping(EntryName:=ConstFNUid)> Private _id As String = ""
 
-        '<ormColumnMapping(ColumnName:=ConstFNUid)> -> special infuse
+        '<ormEntryMapping(EntryName:=ConstFNUid)> -> special infuse
         Private _value As Object
-        ' <ormColumnMapping(ColumnName:=ConstFNUid)> -> special infuse
+        ' <ormEntryMapping(EntryName:=ConstFNUid)> -> special infuse
         Private _datatype As otFieldDataType
-        <ormColumnMapping(ColumnName:=ConstFNUid)> Private _cmt As String = ""
-        <ormColumnMapping(ColumnName:=ConstFNUid)> Private _workspaceID As String = ""
-        <ormColumnMapping(ColumnName:=ConstFNUid)> Private _isStatus As Boolean
+        <ormEntryMapping(EntryName:=ConstFNUid)> Private _cmt As String = ""
+        <ormEntryMapping(EntryName:=ConstFNUid)> Private _workspaceID As String = ""
+        <ormEntryMapping(EntryName:=ConstFNUid)> Private _isStatus As Boolean
 
         'Private s_isActual As Boolean
-        <ormColumnMapping(ColumnName:=ConstFNUid)> Private _isForecast As Boolean
-        <ormColumnMapping(ColumnName:=ConstFNUid)> Private _msglogtag As String = ""
+        <ormEntryMapping(EntryName:=ConstFNUid)> Private _isForecast As Boolean
+        <ormEntryMapping(EntryName:=ConstFNUid)> Private _msglogtag As String = ""
 
 
         'dynamic
@@ -5646,19 +5680,19 @@ error_handle:
                     Case otFieldDataType.Numeric
                         aVAlue = record.GetValue(ConstFNvaluenumeric)
                         _value = CDbl(aVAlue)
-                    Case otFieldDataType.List, otFieldDataType.Text
+                    Case otFieldDataType.Text
 
                         _value = CStr(aVAlue)
                     Case otFieldDataType.Runtime, otFieldDataType.Formula, otFieldDataType.Binary
                         _value = ""
-                        Call CoreMessageHandler(subname:="clsOTDBScheduleMilestone.infuse", messagetype:=otCoreMessageType.ApplicationError, _
+                        Call CoreMessageHandler(subname:="ScheduleMilestone.infuse", messagetype:=otCoreMessageType.ApplicationError, _
                                               message:="runtime, formular, binary can't infuse", msglog:=s_msglog, arg1:=aVAlue)
                     Case otFieldDataType.[Date], otFieldDataType.Timestamp
                         aVAlue = record.GetValue(ConstFNvaluedate)
                         If IsDate(aVAlue) Then
                             _value = CDate(aVAlue)
                         Else
-                            Call CoreMessageHandler(subname:="clsOTDBScheduleMilestone.infuse", _
+                            Call CoreMessageHandler(subname:="ScheduleMilestone.infuse", _
                                             message:="Value supposed to be a date cannot be converted", _
                                             messagetype:=otCoreMessageType.ApplicationError, _
                                             msglog:=s_msglog, arg1:=aVAlue)
@@ -5674,7 +5708,7 @@ error_handle:
                     Case otFieldDataType.Memo
                         _value = CStr(aVAlue)
                     Case Else
-                        Call CoreMessageHandler(subname:="clsOTDBScheduleMilestone.infuse", _
+                        Call CoreMessageHandler(subname:="ScheduleMilestone.infuse", _
                                               message:="unknown datatype to be infused", msglog:=s_msglog, arg1:=aVAlue)
                 End Select
 
@@ -5682,7 +5716,7 @@ error_handle:
 
 
             Catch ex As Exception
-                Call CoreMessageHandler(exception:=ex, subname:="clsOTDBScheduleMilestone.Infuse")
+                Call CoreMessageHandler(exception:=ex, subname:="ScheduleMilestone.Infuse")
                 Return False
             End Try
 
@@ -5697,9 +5731,9 @@ error_handle:
         ''' <param name="ID"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Function LoadBy(ByVal UID As Long, ByVal updc As Long, ByVal ID As String) As Boolean
+        Public Overloads Function Inject(ByVal UID As Long, ByVal updc As Long, ByVal ID As String) As Boolean
             Dim pkarray() As Object = {UID, updc, ID}
-            Return MyBase.LoadBy(pkarray)
+            Return MyBase.Inject(pkarray)
         End Function
         ''' <summary>
         ''' create the persistency schema 
@@ -5708,234 +5742,234 @@ error_handle:
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function CreateSchema(Optional silent As Boolean = True) As Boolean
-            Return ormDataObject.CreateSchema(Of ScheduleMilestone)()
+            Return ormDataObject.CreateDataObjectSchema(Of ScheduleMilestone)()
 
-            '''** OUTDATED
-            Dim aFieldDesc As New ormFieldDescription
-            Dim PrimaryColumnNames As New Collection
-            Dim CompundColumnNames As New Collection
-            Dim aTable As New ObjectDefinition
-
-
-            aFieldDesc.ID = ""
-            aFieldDesc.Parameter = ""
-            aFieldDesc.Tablename = constTableID
-
-            With aTable
-                .Create(constTableID)
-                .Delete()
-
-                '***
-                '*** Fields
-                '****
-
-                'Type
-                aFieldDesc.Datatype = otFieldDataType.[Long]
-
-                aFieldDesc.Title = "uid of the schedule"
-                aFieldDesc.ColumnName = "uid"
-                aFieldDesc.ID = "mst1"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
-                CompundColumnNames.Add(aFieldDesc.ColumnName)
-                'updc
-                aFieldDesc.Datatype = otFieldDataType.[Long]
-                aFieldDesc.Title = "updc of schedule"
-                aFieldDesc.ColumnName = "updc"
-                aFieldDesc.ID = "mst2"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
-                CompundColumnNames.Add(aFieldDesc.ColumnName)
-                'id
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "milestone id"
-                aFieldDesc.ColumnName = "id"
-                aFieldDesc.ID = "mst3"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
-
-                'value
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "value as text"
-                aFieldDesc.ColumnName = "value"
-                aFieldDesc.ID = "mst4"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                'date
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "value as date"
-                aFieldDesc.ColumnName = "valuedate"
-                aFieldDesc.ID = "mst5"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                'numeric
-                aFieldDesc.Datatype = otFieldDataType.Numeric
-                aFieldDesc.Title = "value as numeric"
-                aFieldDesc.ColumnName = "valuenumeric"
-                aFieldDesc.ID = "mst6"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                'bool
-                aFieldDesc.Datatype = otFieldDataType.Bool
-                aFieldDesc.Title = "value as bool"
-                aFieldDesc.ColumnName = "valuebool"
-                aFieldDesc.ID = "mst7"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '            '''** OUTDATED
+            '            Dim aFieldDesc As New ormFieldDescription
+            '            Dim PrimaryColumnNames As New Collection
+            '            Dim CompundColumnNames As New Collection
+            '            Dim aTable As New ObjectDefinition
 
 
-                'bool
-                aFieldDesc.Datatype = otFieldDataType.[Long]
-                aFieldDesc.Title = "value as long"
-                aFieldDesc.ColumnName = "valuelong"
-                aFieldDesc.ID = "mst8"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '            aFieldDesc.ID = ""
+            '            aFieldDesc.Parameter = ""
+            '            aFieldDesc.Tablename = constTableID
 
-                'datatype
-                aFieldDesc.Datatype = otFieldDataType.[Long]
-                aFieldDesc.Title = "datatype"
-                aFieldDesc.ColumnName = "datatype"
-                aFieldDesc.ID = "mst10"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '            With aTable
+            '                .Create(constTableID)
+            '                .Delete()
 
-                ' is forecast ?
-                aFieldDesc.Datatype = otFieldDataType.Bool
-                aFieldDesc.Title = "is an ForecastEntry"
-                aFieldDesc.ColumnName = "isforecast"
-                aFieldDesc.ID = "mst11"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                '***
+            '                '*** Fields
+            '                '****
 
-                ' is status ?
-                aFieldDesc.Datatype = otFieldDataType.Bool
-                aFieldDesc.Title = "is an StatusEntry"
-                aFieldDesc.ColumnName = "isstatus"
-                aFieldDesc.ID = "mst12"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                'Type
+            '                aFieldDesc.Datatype = otFieldDataType.[Long]
 
-                ' cmt
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "message log tag"
-                aFieldDesc.ColumnName = "msglogtag"
-                aFieldDesc.ID = "mst13"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                aFieldDesc.Title = "uid of the schedule"
+            '                aFieldDesc.ColumnName = "uid"
+            '                aFieldDesc.ID = "mst1"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
+            '                CompundColumnNames.Add(aFieldDesc.ColumnName)
+            '                'updc
+            '                aFieldDesc.Datatype = otFieldDataType.[Long]
+            '                aFieldDesc.Title = "updc of schedule"
+            '                aFieldDesc.ColumnName = "updc"
+            '                aFieldDesc.ID = "mst2"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
+            '                CompundColumnNames.Add(aFieldDesc.ColumnName)
+            '                'id
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "milestone id"
+            '                aFieldDesc.ColumnName = "id"
+            '                aFieldDesc.ID = "mst3"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
 
-                ' workspaceID
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "workspaceID"
-                aFieldDesc.ColumnName = "wspace"
-                aFieldDesc.ID = "ws"
-                aFieldDesc.Size = 20
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                'value
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "value as text"
+            '                aFieldDesc.ColumnName = "value"
+            '                aFieldDesc.ID = "mst4"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                'date
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "value as date"
+            '                aFieldDesc.ColumnName = "valuedate"
+            '                aFieldDesc.ID = "mst5"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                'numeric
+            '                aFieldDesc.Datatype = otFieldDataType.Numeric
+            '                aFieldDesc.Title = "value as numeric"
+            '                aFieldDesc.ColumnName = "valuenumeric"
+            '                aFieldDesc.ID = "mst6"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                'bool
+            '                aFieldDesc.Datatype = otFieldDataType.Bool
+            '                aFieldDesc.Title = "value as bool"
+            '                aFieldDesc.ColumnName = "valuebool"
+            '                aFieldDesc.ID = "mst7"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
 
-                ' msglogtag
-                aFieldDesc.Datatype = otFieldDataType.Memo
-                aFieldDesc.Title = "comment"
-                aFieldDesc.ColumnName = "cmt"
-                aFieldDesc.ID = "mst14"
-                aFieldDesc.Size = 0
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                'bool
+            '                aFieldDesc.Datatype = otFieldDataType.[Long]
+            '                aFieldDesc.Title = "value as long"
+            '                aFieldDesc.ColumnName = "valuelong"
+            '                aFieldDesc.ID = "mst8"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                ' parameter_txt 1
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "parameter_txt 1"
-                aFieldDesc.ColumnName = "param_txt1"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                'datatype
+            '                aFieldDesc.Datatype = otFieldDataType.[Long]
+            '                aFieldDesc.Title = "datatype"
+            '                aFieldDesc.ColumnName = "datatype"
+            '                aFieldDesc.ID = "mst10"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                ' parameter_txt 2
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "parameter_txt 2 of condition"
-                aFieldDesc.ColumnName = "param_txt2"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' is forecast ?
+            '                aFieldDesc.Datatype = otFieldDataType.Bool
+            '                aFieldDesc.Title = "is an ForecastEntry"
+            '                aFieldDesc.ColumnName = "isforecast"
+            '                aFieldDesc.ID = "mst11"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                ' parameter_txt 2
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "parameter_txt 3 of condition"
-                aFieldDesc.ColumnName = "param_txt3"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' is status ?
+            '                aFieldDesc.Datatype = otFieldDataType.Bool
+            '                aFieldDesc.Title = "is an StatusEntry"
+            '                aFieldDesc.ColumnName = "isstatus"
+            '                aFieldDesc.ID = "mst12"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                ' parameter_num 1
-                aFieldDesc.Datatype = otFieldDataType.Numeric
-                aFieldDesc.Title = "parameter numeric 1 of condition"
-                aFieldDesc.ColumnName = "param_num1"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' parameter_num 2
-                aFieldDesc.Datatype = otFieldDataType.Numeric
-                aFieldDesc.Title = "parameter numeric 2 of condition"
-                aFieldDesc.ColumnName = "param_num2"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' cmt
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "message log tag"
+            '                aFieldDesc.ColumnName = "msglogtag"
+            '                aFieldDesc.ID = "mst13"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                ' parameter_num 2
-                aFieldDesc.Datatype = otFieldDataType.Numeric
-                aFieldDesc.Title = "parameter numeric 3 of condition"
-                aFieldDesc.ColumnName = "param_num3"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' workspaceID
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "workspaceID"
+            '                aFieldDesc.ColumnName = "wspace"
+            '                aFieldDesc.ID = "ws"
+            '                aFieldDesc.Size = 20
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                ' parameter_date 1
-                aFieldDesc.Datatype = otFieldDataType.Date
-                aFieldDesc.Title = "parameter date 1 of condition"
-                aFieldDesc.ColumnName = "param_date1"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                ' parameter_date 2
-                aFieldDesc.Datatype = otFieldDataType.Date
-                aFieldDesc.Title = "parameter date 2 of condition"
-                aFieldDesc.ColumnName = "param_date2"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' parameter_date 3
-                aFieldDesc.Datatype = otFieldDataType.Date
-                aFieldDesc.Title = "parameter date 3 of condition"
-                aFieldDesc.ColumnName = "param_date3"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' msglogtag
+            '                aFieldDesc.Datatype = otFieldDataType.Memo
+            '                aFieldDesc.Title = "comment"
+            '                aFieldDesc.ColumnName = "cmt"
+            '                aFieldDesc.ID = "mst14"
+            '                aFieldDesc.Size = 0
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                ' parameter_flag 1
-                aFieldDesc.Datatype = otFieldDataType.Bool
-                aFieldDesc.Title = "parameter flag 1 of condition"
-                aFieldDesc.ColumnName = "param_flag1"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' parameter_txt 1
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "parameter_txt 1"
+            '                aFieldDesc.ColumnName = "param_txt1"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                ' parameter_flag 2
-                aFieldDesc.Datatype = otFieldDataType.Bool
-                aFieldDesc.Title = "parameter flag 2 of condition"
-                aFieldDesc.ColumnName = "param_flag2"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' parameter_txt 2
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "parameter_txt 2 of condition"
+            '                aFieldDesc.ColumnName = "param_txt2"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                ' parameter_flag 3
-                aFieldDesc.Datatype = otFieldDataType.Bool
-                aFieldDesc.Title = "parameter flag 3 of condition"
-                aFieldDesc.ColumnName = "param_flag3"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                '***
-                '*** TIMESTAMP
-                '****
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "last Update"
-                aFieldDesc.ColumnName = ConstFNUpdatedOn
-                aFieldDesc.ID = ""
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' parameter_txt 2
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "parameter_txt 3 of condition"
+            '                aFieldDesc.ColumnName = "param_txt3"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "creation Date"
-                aFieldDesc.ColumnName = ConstFNCreatedOn
-                aFieldDesc.ID = ""
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' Index
-                Call .AddIndex("PrimaryKey", PrimaryColumnNames, isprimarykey:=True)
+            '                ' parameter_num 1
+            '                aFieldDesc.Datatype = otFieldDataType.Numeric
+            '                aFieldDesc.Title = "parameter numeric 1 of condition"
+            '                aFieldDesc.ColumnName = "param_num1"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' parameter_num 2
+            '                aFieldDesc.Datatype = otFieldDataType.Numeric
+            '                aFieldDesc.Title = "parameter numeric 2 of condition"
+            '                aFieldDesc.ColumnName = "param_num2"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                '*** Compound Part key !!
-                Call .AddIndex(ConstDefaultCompoundIndexName, CompundColumnNames, isprimarykey:=False)
-                ' persist
-                .Persist()
-                ' change the database
-                .AlterSchema()
-            End With
+            '                ' parameter_num 2
+            '                aFieldDesc.Datatype = otFieldDataType.Numeric
+            '                aFieldDesc.Title = "parameter numeric 3 of condition"
+            '                aFieldDesc.ColumnName = "param_num3"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-            CreateSchema = True
-            Exit Function
+            '                ' parameter_date 1
+            '                aFieldDesc.Datatype = otFieldDataType.Date
+            '                aFieldDesc.Title = "parameter date 1 of condition"
+            '                aFieldDesc.ColumnName = "param_date1"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-            ' Handle the error
-error_handle:
-            Call CoreMessageHandler(subname:="clsOTDBScheduleMilestone.createSchema")
-            CreateSchema = False
+            '                ' parameter_date 2
+            '                aFieldDesc.Datatype = otFieldDataType.Date
+            '                aFieldDesc.Title = "parameter date 2 of condition"
+            '                aFieldDesc.ColumnName = "param_date2"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' parameter_date 3
+            '                aFieldDesc.Datatype = otFieldDataType.Date
+            '                aFieldDesc.Title = "parameter date 3 of condition"
+            '                aFieldDesc.ColumnName = "param_date3"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                ' parameter_flag 1
+            '                aFieldDesc.Datatype = otFieldDataType.Bool
+            '                aFieldDesc.Title = "parameter flag 1 of condition"
+            '                aFieldDesc.ColumnName = "param_flag1"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                ' parameter_flag 2
+            '                aFieldDesc.Datatype = otFieldDataType.Bool
+            '                aFieldDesc.Title = "parameter flag 2 of condition"
+            '                aFieldDesc.ColumnName = "param_flag2"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                ' parameter_flag 3
+            '                aFieldDesc.Datatype = otFieldDataType.Bool
+            '                aFieldDesc.Title = "parameter flag 3 of condition"
+            '                aFieldDesc.ColumnName = "param_flag3"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                '***
+            '                '*** TIMESTAMP
+            '                '****
+            '                aFieldDesc.Datatype = otFieldDataType.Timestamp
+            '                aFieldDesc.Title = "last Update"
+            '                aFieldDesc.ColumnName = ConstFNUpdatedOn
+            '                aFieldDesc.ID = ""
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                aFieldDesc.Datatype = otFieldDataType.Timestamp
+            '                aFieldDesc.Title = "creation Date"
+            '                aFieldDesc.ColumnName = ConstFNCreatedOn
+            '                aFieldDesc.ID = ""
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' Index
+            '                Call .AddIndex("PrimaryKey", PrimaryColumnNames, isprimarykey:=True)
+
+            '                '*** Compound Part key !!
+            '                Call .AddIndex(ConstDefaultCompoundIndexName, CompundColumnNames, isprimarykey:=False)
+            '                ' persist
+            '                .Persist()
+            '                ' change the database
+            '                .CreateObjectSchema()
+            '            End With
+
+            '            CreateSchema = True
+            '            Exit Function
+
+            '            ' Handle the error
+            'error_handle:
+            '            Call CoreMessageHandler(subname:="ScheduleMilestone.createSchema")
+            '            CreateSchema = False
         End Function
 
         ''' <summary>
@@ -5943,76 +5977,67 @@ error_handle:
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Function FeedRecord() As Boolean
-            '* init
-            If Not Me.IsInitialized Then
-                If Not Me.Initialize() Then
-                    Return False
-                End If
-            End If
-            If Not _IsLoaded And Not Me.IsCreated And Not s_isCacheNoSave Then
-                Return False
-            End If
+        Public Sub OnFeedRecord(sender As Object, e As ormDataObjectEventArgs) Handles MyBase.ClassOnRecordFed
+
 
             Try
-                If MyBase.FeedRecord(Me, Me.Record) Then
-                    '** special Handling
-                    Call Me.Record.SetValue(ConstFNDatatype, _datatype)
-                    Call Me.Record.SetValue(ConstFNvaluedate, ConstNullDate)
-                    Call Me.Record.SetValue(ConstFNvaluenumeric, 0)
-                    Call Me.Record.SetValue(ConstFNvaluelong, 0)
-                    Call Me.Record.SetValue(ConstFNvaluebool, False)
+                '** special Handling
+                Call Me.Record.SetValue(ConstFNDatatype, DirectCast(e.DataObject, ScheduleMilestone).Datatype)
+                Call Me.Record.SetValue(ConstFNvaluedate, ConstNullDate)
+                Call Me.Record.SetValue(ConstFNvaluenumeric, 0)
+                Call Me.Record.SetValue(ConstFNvaluelong, 0)
+                Call Me.Record.SetValue(ConstFNvaluebool, False)
 
-                    Select Case _datatype
+                Dim avalue = DirectCast(e.DataObject, ScheduleMilestone).Value
 
-                        Case otFieldDataType.Numeric
-                            If IsNumeric(_value) Then Call Me.Record.SetValue(ConstFNvaluenumeric, CDbl(_value))
-                            Call Me.Record.SetValue("value", CStr(_value))
-                        Case otFieldDataType.List, otFieldDataType.Text, otFieldDataType.Memo
-                            Call Me.Record.SetValue("value", CStr(_value))
-                        Case otFieldDataType.Runtime, otFieldDataType.Formula, otFieldDataType.Binary
-                            Call CoreMessageHandler(subname:="clsOTDBScheduleMilestone.persist", _
-                                                  message:="datatype (runtime, formular, binary) not specified how to be persisted", msglog:=s_msglog, arg1:=_datatype)
-                        Case otFieldDataType.[Date]
-                            If IsDate(_value) Then
-                                Call Me.Record.SetValue(ConstFNvaluedate, CDate(_value))
-                                Call Me.Record.SetValue("value", Format(_value, "dd.mm.yyyy"))
-                            Else
-                                Call Me.Record.SetValue("value", CStr(_value))
-                            End If
-                        Case otFieldDataType.[Long]
-                            If IsNumeric(_value) Then Call Me.Record.SetValue(ConstFNvaluelong, CLng(_value))
-                            Call Me.Record.SetValue("value", CStr(_value))
-                        Case otFieldDataType.Timestamp
-                            If IsDate(_value) Then
-                                Call Me.Record.SetValue(ConstFNvaluedate, CDate(_value))
-                                Call Me.Record.SetValue("value", Format(_value, "dd.mm.yyyy hh:mm:ss"))
-                            Else
-                                Call Me.Record.SetValue("value", CStr(_value))
-                            End If
-                        Case otFieldDataType.Bool
-                            If _value = "" Or IsEmpty(_value) Or IsNull(_value) Or _value Is Nothing Then
-                                Call Me.Record.SetValue(ConstFNvaluebool, False)
-                            ElseIf _value = True Or _value = False Then
-                                Call Me.Record.SetValue(ConstFNvaluedate, CBool(_value))
-                            Else
-                                Call Me.Record.SetValue(ConstFNvaluedate, True)
-                            End If
-                            Call Me.Record.SetValue("value", CStr(_value))
-                        Case Else
-                            Call Me.Record.SetValue("value", CStr(_value))
-                            Call CoreMessageHandler(subname:="clsOTDBScheduleMilestone.persist", _
-                                                  message:="datatype not specified how to be persisted", msglog:=s_msglog, arg1:=_datatype)
-                    End Select
+                Select Case DirectCast(e.DataObject, ScheduleMilestone).Datatype
 
-                    Return True
-                End If
+                    Case otFieldDataType.Numeric
+                        If IsNumeric(avalue) Then Call Me.Record.SetValue(ConstFNvaluenumeric, CDbl(avalue))
+                        Call Me.Record.SetValue("value", CStr(avalue))
+                    Case otFieldDataType.Text, otFieldDataType.Memo
+                        Call Me.Record.SetValue("value", CStr(avalue))
+                    Case otFieldDataType.Runtime, otFieldDataType.Formula, otFieldDataType.Binary
+                        Call CoreMessageHandler(subname:="ScheduleMilestone.persist", _
+                                              message:="datatype (runtime, formular, binary) not specified how to be persisted", msglog:=s_msglog, arg1:=_datatype)
+                    Case otFieldDataType.[Date]
+                        If IsDate(avalue) Then
+                            Call Me.Record.SetValue(ConstFNvaluedate, CDate(avalue))
+                            Call Me.Record.SetValue("value", Format(avalue, "dd.mm.yyyy"))
+                        Else
+                            Call Me.Record.SetValue("value", CStr(avalue))
+                        End If
+                    Case otFieldDataType.[Long]
+                        If IsNumeric(avalue) Then Call Me.Record.SetValue(ConstFNvaluelong, CLng(avalue))
+                        Call Me.Record.SetValue("value", CStr(avalue))
+                    Case otFieldDataType.Timestamp
+                        If IsDate(avalue) Then
+                            Call Me.Record.SetValue(ConstFNvaluedate, CDate(avalue))
+                            Call Me.Record.SetValue("value", Format(avalue, "dd.mm.yyyy hh:mm:ss"))
+                        Else
+                            Call Me.Record.SetValue("value", CStr(avalue))
+                        End If
+                    Case otFieldDataType.Bool
+                        If avalue = "" Or IsEmpty(avalue) Or IsNull(avalue) Or avalue Is Nothing Then
+                            Call Me.Record.SetValue(ConstFNvaluebool, False)
+                        ElseIf avalue = True Or avalue = False Then
+                            Call Me.Record.SetValue(ConstFNvaluedate, CBool(avalue))
+                        Else
+                            Call Me.Record.SetValue(ConstFNvaluedate, True)
+                        End If
+                        Call Me.Record.SetValue("value", CStr(avalue))
+                    Case Else
+                        Call Me.Record.SetValue("value", CStr(avalue))
+                        Call CoreMessageHandler(subname:="ScheduleMilestone.persist", _
+                                              message:="datatype not specified how to be persisted", msglog:=s_msglog, arg1:=_datatype)
+                End Select
+
+
 
             Catch ex As Exception
-                Call CoreMessageHandler(subname:="clsOTDBScheduleMilestone.UpdateRecord", exception:=ex)
-                Return False
+                Call CoreMessageHandler(subname:="ScheduleMilestone.UpdateRecord", exception:=ex)
             End Try
-        End Function
+        End Sub
 
         ''' <summary>
         ''' Persist the data object to the datastore
@@ -6130,44 +6155,48 @@ error_handle:
     ''' the current schedule class links the current schedule updc to a scheduled object 
     ''' </summary>
     ''' <remarks></remarks>
+    <ormObject(id:=ScheduleLink.ConstObjectID, modulename:=constModuleScheduling, Version:=1, description:="link definitions between schedules and other business objects")> _
     Public Class ScheduleLink
         Inherits ormDataObject
         Implements iormInfusable
         Implements iormPersistable
 
+        Public Const ConstObjectID = "ScheduleLink"
+
+        '** Schema Table
         <ormSchemaTable(version:=1, addsparefields:=True, adddeletefieldbehavior:=True)> Public Const ConstTableID = "tblScheduleLinks"
 
         '** index
         <ormSchemaIndex(columnname1:=ConstFNToTagObject, columnname2:=ConstFNToTaguid, columnname3:=ConstFNFromTagObject, columnname4:=ConstFNFromTaguid)> Public Const ConstIndTag = "used"
 
         '** keys
-        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=50, primarykeyordinal:=1, _
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, primarykeyordinal:=1, _
         ID:="SL1", title:="Linked From Object", description:="object link from the scheduled object")> Public Const ConstFNFromTagObject = "tagobject"
-        <ormSchemaColumn(typeid:=otFieldDataType.Long, primarykeyordinal:=2, _
+        <ormObjectEntry(typeid:=otFieldDataType.Long, primarykeyordinal:=2, _
             ID:="SL2", title:="Linked from UID", description:="uid link from the scheduled object")> Public Const ConstFNFromTaguid = "taguid"
-        <ormSchemaColumn(referenceobjectentry:=MileStoneDefinition.ConstTableID & "." & MileStoneDefinition.ConstFNID, primarykeyordinal:=3, defaultValue:="", _
+        <ormObjectEntry(referenceobjectentry:=MileStoneDefinition.ConstObjectID & "." & MileStoneDefinition.ConstFNID, primarykeyordinal:=3, defaultValue:="", _
             ID:="SL3", title:="Linked from Milestone", description:="uid link from the scheduled object milestone")> Public Const ConstFNFromMilestone = "ms"
 
-        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=50, primarykeyordinal:=4, _
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, primarykeyordinal:=4, _
        ID:="SL4", title:="Linked to Object", description:="object link to the scheduled object")> Public Const ConstFNToTagObject = "tag2object"
-        <ormSchemaColumn(typeid:=otFieldDataType.Long, primarykeyordinal:=5, _
+        <ormObjectEntry(typeid:=otFieldDataType.Long, primarykeyordinal:=5, _
             ID:="SL5", title:="Linked to UID", description:="uid link to the scheduled object")> Public Const ConstFNToTaguid = "tag2uid"
-        <ormSchemaColumn(referenceobjectentry:=MileStoneDefinition.ConstTableID & "." & MileStoneDefinition.ConstFNID, primarykeyordinal:=6, defaultValue:="", _
+        <ormObjectEntry(referenceobjectentry:=MileStoneDefinition.ConstObjectID & "." & MileStoneDefinition.ConstFNID, primarykeyordinal:=6, defaultValue:="", _
             ID:="SL6", title:="Linked to Milestone", description:="uid link to the scheduled object milestone")> Public Const ConstFNToMilestone = "2ms"
 
-       
+
         '** fields
-        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=50, _
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, _
             ID:="SL7", title:="Linke Type", description:="object link type")> Public Const ConstFNTypeID = "typeid"
 
         '** Mapping
-        <ormColumnMapping(ColumnName:=ConstFNFromTagObject)> Private _tagObject As String
-        <ormColumnMapping(ColumnName:=ConstFNFromTaguid)> Private _tagUid As String
-        <ormColumnMapping(ColumnName:=ConstFNFromMilestone)> Private _tagMS As String
-        <ormColumnMapping(ColumnName:=ConstFNToTagObject)> Private _2tagObject As String
-        <ormColumnMapping(ColumnName:=ConstFNToTaguid)> Private _2taguid As Long
-        <ormColumnMapping(ColumnName:=ConstFNToMilestone)> Private _2tagMS As String
-        <ormColumnMapping(ColumnName:=ConstFNTypeID)> Private _type As otScheduleLinkType
+        <ormEntryMapping(EntryName:=ConstFNFromTagObject)> Private _tagObject As String
+        <ormEntryMapping(EntryName:=ConstFNFromTaguid)> Private _tagUid As String
+        <ormEntryMapping(EntryName:=ConstFNFromMilestone)> Private _tagMS As String
+        <ormEntryMapping(EntryName:=ConstFNToTagObject)> Private _2tagObject As String
+        <ormEntryMapping(EntryName:=ConstFNToTaguid)> Private _2taguid As Long
+        <ormEntryMapping(EntryName:=ConstFNToMilestone)> Private _2tagMS As String
+        <ormEntryMapping(EntryName:=ConstFNTypeID)> Private _type As otScheduleLinkType
         ''' <summary>
         ''' constructor of Current schedule
         ''' </summary>
@@ -6177,7 +6206,7 @@ error_handle:
         End Sub
 
 #Region "properties"
-       
+
         ''' <summary>
         ''' Gets or sets the type.
         ''' </summary>
@@ -6186,8 +6215,8 @@ error_handle:
             Get
                 Return Me._type
             End Get
-            Set
-                Me._type = Value
+            Set(value As otScheduleLinkType)
+                Me._type = value
             End Set
         End Property
 
@@ -6289,51 +6318,60 @@ error_handle:
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function CreateSchema(Optional ByVal silent As Boolean = True) As Boolean
-            Return ormDataObject.CreateSchema(Of CurrentSchedule)(silent:=silent)
+            Return ormDataObject.CreateDataObjectSchema(Of CurrentSchedule)(silent:=silent)
         End Function
 
     End Class
 
-    '************************************************************************************
-    '***** CLASS clsOTDBCurSchedule is the object for a OTDBRecord (which is the datastore)
-    '*****
-    '*****
+
     ''' <summary>
     ''' the current schedule class links the current schedule updc  in a given workspace
     ''' </summary>
     ''' <remarks></remarks>
+    <ormObject(id:=CurrentSchedule.ConstObjectID, modulename:=ConstModuleScheduling, Version:=1, description:="pointer declaration (updc) to the current schedule in a workspace")> _
     Public Class CurrentSchedule
         Inherits ormDataObject
         Implements iormInfusable
         Implements iormPersistable
 
+        Public Const ConstObjectID = "CurrentSchedule"
+        '** Table Schema
         <ormSchemaTable(version:=2, adddeletefieldbehavior:=True)> Public Const ConstTableID = "tblCurrSchedule"
 
         '** index
         <ormSchemaIndex(columnname1:=ConstFNTagObject, columnname2:=ConstFNTaguid, columnname3:=ConstFNUID, columnname4:=ConstFNWorkspaceID)> Public Const ConstIndTag = "tags"
 
         '** keys
-        <ormSchemaColumn(referenceobjectentry:=Workspace.ConstTableID & "." & Workspace.ConstFNID, primarykeyordinal:=1)> Public Const ConstFNWorkspaceID = Workspace.ConstFNID
-        <ormSchemaColumn(referenceobjectentry:=Schedule.ConstTableID & "." & Schedule.ConstFNUid, primarykeyordinal:=4)> Public Const ConstFNUID = Schedule.ConstFNUid
+        <ormObjectEntry(referenceObjectEntry:=Workspace.ConstObjectID & "." & Workspace.ConstFNID, primarykeyordinal:=1)> Public Const ConstFNWorkspaceID = Workspace.ConstFNID
+        <ormObjectEntry(referenceobjectentry:=Schedule.ConstObjectID & "." & Schedule.ConstFNUid, primarykeyordinal:=4)> Public Const ConstFNUID = Schedule.ConstFNUid
 
         '** fields
-        <ormSchemaColumn(referenceobjectentry:=Schedule.ConstTableID & "." & Schedule.ConstFNUpdc _
+        <ormObjectEntry(referenceobjectentry:=Schedule.ConstObjectID & "." & Schedule.ConstFNUpdc _
             )> Public Const ConstFNUPDC = Schedule.ConstFNUpdc
-        <ormSchemaColumn(typeid:=otFieldDataType.Bool, id:="CS5", title:="Is Active", description:="set if active")> _
+        <ormObjectEntry(typeid:=otFieldDataType.Bool, id:="CS5", title:="Is Active", description:="set if active")> _
         Public Const ConstFNIsActive = "isactive"
-        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=50, _
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, _
          ID:="CS2", title:="Linked Object", description:="object link to the scheduled object")> Public Const ConstFNTagObject = "tagobject"
-        <ormSchemaColumn(typeid:=otFieldDataType.Long, _
+        <ormObjectEntry(typeid:=otFieldDataType.Long, _
             ID:="CS3", title:="Linked UID", description:="uid link to the scheduled object")> Public Const ConstFNTaguid = "taguid"
 
-        '** Mapping
-        <ormColumnMapping(ColumnName:=ConstFNWorkspaceID)> Private _workspaceID As String
-        <ormColumnMapping(ColumnName:=ConstFNTagObject)> Private _tagObject As String
-        <ormColumnMapping(ColumnName:=ConstFNTaguid)> Private _tagUid As String
-        <ormColumnMapping(ColumnName:=ConstFNUID)> Private _uid As Long
+        ' change FK Action since we have the workspace as FK (leads also to domians)
+        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, _
+            title:="Domain", description:="domain of the business Object", _
+            defaultvalue:=ConstGlobalDomain, _
+            useforeignkey:=otForeignKeyImplementation.NativeDatabase, _
+            foreignkeyProperties:={ForeignKeyProperty.OnDelete & "(" & ForeignKeyActionProperty.NOOP & ")", _
+                                   ForeignKeyProperty.OnUpdate & "(" & ForeignKeyActionProperty.NOOP & ")"})> _
+        Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
-        <ormColumnMapping(ColumnName:=ConstFNUPDC)> Private _updc As Long
-        <ormColumnMapping(ColumnName:=ConstFNIsActive)> Private _isActive As Boolean
+        '** Mapping
+        <ormEntryMapping(EntryName:=ConstFNWorkspaceID)> Private _workspaceID As String
+        <ormEntryMapping(EntryName:=ConstFNTagObject)> Private _tagObject As String
+        <ormEntryMapping(EntryName:=ConstFNTaguid)> Private _tagUid As String
+        <ormEntryMapping(EntryName:=ConstFNUID)> Private _uid As Long
+
+        <ormEntryMapping(EntryName:=ConstFNUPDC)> Private _updc As Long
+        <ormEntryMapping(EntryName:=ConstFNIsActive)> Private _isActive As Boolean
         ''' <summary>
         ''' constructor of Current schedule
         ''' </summary>
@@ -6464,7 +6502,7 @@ error_handler:
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function CreateSchema(Optional ByVal silent As Boolean = True) As Boolean
-            Return ormDataObject.CreateSchema(Of CurrentSchedule)(silent:=silent)
+            Return ormDataObject.CreateDataObjectSchema(Of CurrentSchedule)(silent:=silent)
 
 
             '            Dim aFieldDesc As New ormFieldDescription
@@ -6614,11 +6652,11 @@ error_handler:
         ''' <param name="workspaceID"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function LoadBy(ByVal UID As Long, Optional ByVal workspaceID As String = "") As Boolean
+        Public Function Inject(ByVal UID As Long, Optional ByVal workspaceID As String = "") As Boolean
             '* init
             If Not Me.IsInitialized Then
                 If Not Me.Initialize() Then
-                    LoadBy = False
+                    Inject = False
                     Exit Function
                 End If
             End If
@@ -6634,7 +6672,7 @@ error_handler:
             '*
             If aWSObj Is Nothing Then
                 Call CoreMessageHandler(message:="Can't load workspaceID definition", _
-                                      subname:="clsOTDBCurrSchedule.loadby", _
+                                      subname:="clsOTDBCurrSchedule.Inject", _
                                       arg1:=workspaceID)
                 Return False
             End If
@@ -6653,7 +6691,7 @@ error_handler:
             Return False
 
         End Function
-        '**** loadby : load the object by the PrimaryKeys
+        '**** Inject : load the object by the PrimaryKeys
         '****
         ''' <summary>
         ''' load the object by the PrimaryKeys
@@ -6664,7 +6702,7 @@ error_handler:
         ''' <remarks></remarks>
         Public Function LoadUniqueBy(ByVal UID As Long, ByVal workspaceID As String) As Boolean
             Dim pkarry() As Object = {Trim(workspaceID), UID}
-            Return MyBase.LoadBy(pkArray:=pkarry)
+            Return MyBase.Inject(pkArray:=pkarry)
         End Function
 
         '**** getthe TrackDef
@@ -6675,10 +6713,10 @@ error_handler:
 
             If IsLoaded Then
                 '-> UID= ME.UID
-                If Not aCurrTarget.LoadBy(uid:=Me.UID, workspaceID:=Me.WorkspaceID) Then
+                If Not aCurrTarget.Inject(uid:=Me.UID, workspaceID:=Me.WorkspaceID) Then
                     aCurrTarget.UPDC = 0
                 End If
-                If aTrackDef.loadBy(deliverableUID:=Me.UID, _
+                If aTrackDef.Inject(deliverableUID:=Me.UID, _
                                     scheduleUID:=Me.UID, _
                                     scheduleUPDC:=Me.UPDC, _
                                     targetUPDC:=aCurrTarget.UPDC) Then

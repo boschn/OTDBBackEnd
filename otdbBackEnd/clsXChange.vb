@@ -554,7 +554,7 @@ Namespace OnTrack.XChange
         ''' <remarks></remarks>
         Overloads ReadOnly Property Aliases() As List(Of String) Implements iConfigMember.Aliases
             Get
-                If Not Me.ObjectEntryDefinition Is Nothing Then
+                If Not Me.[ObjectEntryDefinition] Is Nothing Then
                     Aliases = _EntryDefinition.Aliases.ToList
                 Else
                     Aliases = New List(Of String)
@@ -572,7 +572,7 @@ Namespace OnTrack.XChange
         ''' <remarks></remarks>
         Overloads ReadOnly Property HasAlias([alias] As String) As Boolean Implements iConfigMember.HasAlias
             Get
-                If Not Me.ObjectEntryDefinition Is Nothing Then
+                If Not Me.[ObjectEntryDefinition] Is Nothing Then
                     _aliases = _EntryDefinition.Aliases
                 Else
                     Return False
@@ -603,9 +603,9 @@ Namespace OnTrack.XChange
         ''' <remarks></remarks>
         Public Overloads ReadOnly Property IsCompound() As Boolean Implements iConfigMember.IsCompound
             Get
-                Dim aFieldDef As ObjectEntryDefinition
+                Dim aFieldDef As iObjectEntry
                 If _isAttributeEntry Then
-                    aFieldDef = Me.ObjectEntryDefinition
+                    aFieldDef = Me.[ObjectEntryDefinition]
                     If Not aFieldDef Is Nothing Then
                         IsCompound = aFieldDef.IsCompound
                         Exit Property
@@ -625,11 +625,11 @@ Namespace OnTrack.XChange
         ''' <remarks></remarks>
         Public Overloads ReadOnly Property IsField() As Boolean Implements iConfigMember.IsField
             Get
-                Dim aFieldDef As ObjectEntryDefinition
+                Dim aFieldDef As iObjectEntry
                 If Me.IsAttributeEntry Then
                     aFieldDef = Me.[ObjectEntryDefinition]
                     If Not aFieldDef Is Nothing Then
-                        IsField = aFieldDef.IsField
+                        IsField = aFieldDef.IsColumn
                         Exit Property
                     End If
                 End If
@@ -704,108 +704,110 @@ Namespace OnTrack.XChange
     ''' </summary>
     ''' <remarks></remarks>
 
-    Public MustInherit Class XConfigMember
+    <ormObject(id:=XConfigMember.ConstObjectID, Modulename:=ConstModuleXChange, Description:="member definition for X config")> _
+    Public Class XConfigMember
         Inherits ormDataObject
         Implements iormInfusable, iormPersistable, iConfigMember
 
+        Public Const ConstObjectID = "XConfigMember"
         '***
         '*** Meta Definition PErsistency
         <ormSchemaTableAttribute(version:=3)> Public Const ConstTableID = "tblXChangeConfigMembers"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Text, size:=50, primaryKeyordinal:=1,
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, primaryKeyordinal:=1,
                         title:="XChangeConfigID", description:="name of the XchangeConfiguration")>
         Public Const ConstFNID = "configname"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Long, primaryKeyordinal:=2,
+        <ormObjectEntry(typeid:=otFieldDataType.Long, primaryKeyordinal:=2,
                         title:="IndexNo", description:="position in the the XchangeConfiguration")>
         Public Const ConstFNIDNo = "idno"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Text, size:=100,
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100,
                         title:="ObjectName", description:="Name of the ObjectDefinition")>
         Public Const constFNObjectname = "objectname"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Text, size:=100,
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100,
                         title:="EntryName", description:="Name of the Entry in theObjectDefinition")>
         Public Const constFNEntryname = "entryname"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Text, size:=255,
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=255,
                         title:="Description", description:="Description of the Entry")>
         Public Const constFNDesc = "desc"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Memo, title:="Comment", description:="Comment")>
+        <ormObjectEntry(typeid:=otFieldDataType.Memo, title:="Comment", description:="Comment")>
         Public Const constFNComment = "cmt"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Text, size:=50,
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50,
                         title:="XChange ID", description:="ID  of the Attribute in theObjectDefinition")>
         Public Const constFNXID = "id"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Text, size:=250,
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=250,
                         title:="Parameter", description:="Parameter for the Attribute")>
         Public Const constFNParameter = "parameter"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Text, size:=250,
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=250,
                         title:="ordinal", description:="ordinal for the Attribute Mapping")>
         Public Const constFNordinal = "ordinal"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Text, size:=250,
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=250,
                         title:="Relation", description:="Relation for the Attribute")>
         Public Const constFNRelation = "relation"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Bool, title:="Is Object Entry", description:="Set if this is an object entry")>
+        <ormObjectEntry(typeid:=otFieldDataType.Bool, title:="Is Object Entry", description:="Set if this is an object entry")>
         Public Const constFNIsObjectEntry = "isobj"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Bool, title:="Is Attribute Entry", description:="Set if this is an compound entry")>
+        <ormObjectEntry(typeid:=otFieldDataType.Bool, title:="Is Attribute Entry", description:="Set if this is an compound entry")>
         Public Const constFNIsAttributeEntry = "isattr"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Bool, title:="Is Compound Entry", description:="Set if this is an compound entry")>
+        <ormObjectEntry(typeid:=otFieldDataType.Bool, title:="Is Compound Entry", description:="Set if this is an compound entry")>
         Public Const constFNIsCompoundEntry = "iscomp"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Bool, title:="Is Entry Read-Only", description:="Set if this entry is read-only - value in OTDB cannot be overwritten")>
+        <ormObjectEntry(typeid:=otFieldDataType.Bool, title:="Is Entry Read-Only", description:="Set if this entry is read-only - value in OTDB cannot be overwritten")>
         Public Const constFNIsReadonly = "isro"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Bool, title:="Is ordered", description:="Set if this entry is ordered")>
+        <ormObjectEntry(typeid:=otFieldDataType.Bool, title:="Is ordered", description:="Set if this entry is ordered")>
         Public Const constFNIsOrder = "isorder"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Bool, title:="Is dynamic attribute", description:="Set if this entry is dynamic")>
+        <ormObjectEntry(typeid:=otFieldDataType.Bool, title:="Is dynamic attribute", description:="Set if this entry is dynamic")>
         Public Const constFNIsDynamic = "isdynamic"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Bool, title:="Attribute is not exchanged", description:="Set if this attribute is not exchanged")>
+        <ormObjectEntry(typeid:=otFieldDataType.Bool, title:="Attribute is not exchanged", description:="Set if this attribute is not exchanged")>
         Public Const constFNIsNotXChanged = "isnxchg"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.List, size:=50, parameter:="parameter_xcmd_list",
+        <ormObjectEntry(typeid:=otFieldDataType.List, size:=50, parameter:="parameter_xcmd_list",
                         title:="XChange Command", description:="XChangeCommand to run on this")>
         Public Const constFNXCMD = "xcmd"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Long, title:="Order Number", description:="Order number in which entriy is processed")>
+        <ormObjectEntry(typeid:=otFieldDataType.Long, title:="Order Number", description:="Order number in which entriy is processed")>
         Public Const constFNOrderNo = "orderno"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Text, size:=250, title:="MessageLogTag", description:="Message Log Tag")>
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=250, title:="MessageLogTag", description:="Message Log Tag")>
         Public Const constFNMsgLogTag = "msglogtag"
 
         ' fields
-        <ormColumnMappingAttribute(ColumnName:=ConstFNID)> Protected _configname As String = ""
-        <ormColumnMappingAttribute(ColumnName:=ConstFNIDNo)> Protected _idno As Long
-        <ormColumnMappingAttribute(ColumnName:=ConstFNXID)> Protected _xid As String = ""
-        <ormColumnMappingAttribute(ColumnName:=ConstFNObjectname)> Protected _objectname As String = ""
-        <ormColumnMappingAttribute(ColumnName:=ConstFNEntryname)> Protected _entryname As String = ""
-        <ormColumnMappingAttribute(ColumnName:=ConstFNRelation)> Protected _relation As String = ""
-        <ormColumnMappingAttribute(ColumnName:=ConstFNParameter)> Protected _parameter As String = ""
+        <ormEntryMapping(EntryName:=ConstFNID)> Protected _configname As String = ""
+        <ormEntryMapping(EntryName:=ConstFNIDNo)> Protected _idno As Long
+        <ormEntryMapping(EntryName:=constFNXID)> Protected _xid As String = ""
+        <ormEntryMapping(EntryName:=constFNObjectname)> Protected _objectname As String = ""
+        <ormEntryMapping(EntryName:=constFNEntryname)> Protected _entryname As String = ""
+        <ormEntryMapping(EntryName:=constFNRelation)> Protected _relation As String = ""
+        <ormEntryMapping(EntryName:=constFNParameter)> Protected _parameter As String = ""
         '<otColumnMapping(ColumnName:=ConstFNordinal)> do not since we cannot map it
         Private _ordinal As Ordinal = New Ordinal(0)
-        <ormColumnMappingAttribute(ColumnName:=ConstFNComment)> Protected _cmt As String = ""
-        <ormColumnMappingAttribute(ColumnName:=ConstFNDesc)> Protected _desc As String = ""
-        <ormColumnMappingAttribute(ColumnName:=ConstFNIsNotXChanged)> Protected _isNotXChanged As Boolean
-        <ormColumnMappingAttribute(ColumnName:=ConstFNIsReadonly)> Protected _isReadOnly As Boolean
-        <ormColumnMappingAttribute(ColumnName:=ConstFNIsAttributeEntry)> Protected _isAttributeEntry As Boolean
-        <ormColumnMappingAttribute(ColumnName:=ConstFNIsObjectEntry)> Protected _isObjectEntry As Boolean
-        <ormColumnMappingAttribute(ColumnName:=ConstFNIsCompoundEntry)> Protected _isCompundEntry As Boolean
-        <ormColumnMappingAttribute(ColumnName:=ConstFNXCMD)> Protected _xcmd As otXChangeCommandType = 0
-        <ormColumnMappingAttribute(ColumnName:=ConstFNIsOrder)> Protected _isOrdered As Boolean
-        <ormColumnMappingAttribute(ColumnName:=ConstFNOrderNo)> Protected _orderNo As Long
-        <ormColumnMappingAttribute(ColumnName:=ConstFNIsDynamic)> Protected _isDynamicAttribute As Boolean
+        <ormEntryMapping(EntryName:=constFNComment)> Protected _cmt As String = ""
+        <ormEntryMapping(EntryName:=constFNDesc)> Protected _desc As String = ""
+        <ormEntryMapping(EntryName:=constFNIsNotXChanged)> Protected _isNotXChanged As Boolean
+        <ormEntryMapping(EntryName:=constFNIsReadonly)> Protected _isReadOnly As Boolean
+        <ormEntryMapping(EntryName:=constFNIsAttributeEntry)> Protected _isAttributeEntry As Boolean
+        <ormEntryMapping(EntryName:=constFNIsObjectEntry)> Protected _isObjectEntry As Boolean
+        <ormEntryMapping(EntryName:=constFNIsCompoundEntry)> Protected _isCompundEntry As Boolean
+        <ormEntryMapping(EntryName:=constFNXCMD)> Protected _xcmd As otXChangeCommandType = 0
+        <ormEntryMapping(EntryName:=constFNIsOrder)> Protected _isOrdered As Boolean
+        <ormEntryMapping(EntryName:=constFNOrderNo)> Protected _orderNo As Long
+        <ormEntryMapping(EntryName:=constFNIsDynamic)> Protected _isDynamicAttribute As Boolean
 
         'dynamic
-        Protected _EntryDefinition As ObjectEntryDefinition
+        Protected _EntryDefinition As iObjectEntry
         Protected _ObjectDefinition As ObjectDefinition
         Protected _aliases As String()    ' not saved !
         Protected _msglog As New ObjectLog
@@ -923,7 +925,7 @@ Namespace OnTrack.XChange
         ''' <remarks></remarks>
         ReadOnly Property Aliases() As List(Of String) Implements iConfigMember.Aliases
             Get
-                If Not Me.ObjectEntryDefinition Is Nothing Then
+                If Not Me.[ObjectEntryDefinition] Is Nothing Then
                     Aliases = _EntryDefinition.Aliases.ToList
                 Else
                     Aliases = New List(Of String)
@@ -941,7 +943,7 @@ Namespace OnTrack.XChange
         ''' <remarks></remarks>
         ReadOnly Property HasAlias([alias] As String) As Boolean Implements iConfigMember.HasAlias
             Get
-                If Not Me.ObjectEntryDefinition Is Nothing Then
+                If Not Me.[ObjectEntryDefinition] Is Nothing Then
                     _aliases = _EntryDefinition.Aliases
                 Else
                     Return False
@@ -974,9 +976,9 @@ Namespace OnTrack.XChange
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property [ObjectEntryDefinition] As ObjectEntryDefinition
+        Public Property [ObjectEntryDefinition] As iObjectEntry
             Get
-                Dim anEntryDefinition As ObjectEntryDefinition
+                Dim anEntryDefinition As iObjectEntry
                 If (Me.IsCreated Or Me.IsLoaded) And _isAttributeEntry And _EntryDefinition Is Nothing Then
 
                     If _entryname <> "" And Me.Objectname <> "" Then
@@ -995,7 +997,7 @@ Namespace OnTrack.XChange
                 ' return
                 [ObjectEntryDefinition] = Nothing
             End Get
-            Set(value As ObjectEntryDefinition)
+            Set(value As iObjectEntry)
                 _EntryDefinition = value
             End Set
         End Property
@@ -1032,7 +1034,7 @@ Namespace OnTrack.XChange
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property ordinal() As Ordinal Implements iConfigMember.ordinal
+        Public Property Ordinal() As Ordinal Implements iConfigMember.ordinal
             Get
                 ordinal = _ordinal
             End Get
@@ -1165,7 +1167,11 @@ Namespace OnTrack.XChange
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public MustOverride ReadOnly Property IsAttributeEntry() As Boolean Implements iConfigMember.IsAttributeEntry
+        Public Overridable ReadOnly Property IsAttributeEntry() As Boolean Implements iConfigMember.IsAttributeEntry
+            Get
+                Throw New NotImplementedException
+            End Get
+        End Property
 
         ''' <summary>
         ''' gets True if this is a Compound
@@ -1175,9 +1181,9 @@ Namespace OnTrack.XChange
         ''' <remarks></remarks>
         Public Overridable ReadOnly Property IsCompound() As Boolean Implements iConfigMember.IsCompound
             Get
-                Dim aFieldDef As ObjectEntryDefinition
+                Dim aFieldDef As iObjectEntry
                 If _isAttributeEntry Then
-                    aFieldDef = Me.ObjectEntryDefinition
+                    aFieldDef = Me.[ObjectEntryDefinition]
                     If Not aFieldDef Is Nothing Then
                         IsCompound = aFieldDef.IsCompound
                         Exit Property
@@ -1195,11 +1201,11 @@ Namespace OnTrack.XChange
         ''' <remarks></remarks>
         Public Overridable ReadOnly Property IsField() As Boolean Implements iConfigMember.IsField
             Get
-                Dim aFieldDef As ObjectEntryDefinition
+                Dim aFieldDef As iObjectEntry
                 If Me.IsAttributeEntry Then
                     aFieldDef = Me.[ObjectEntryDefinition]
                     If Not aFieldDef Is Nothing Then
-                        IsField = aFieldDef.IsField
+                        IsField = aFieldDef.IsColumn
                         Exit Property
                     End If
                 End If
@@ -1213,7 +1219,11 @@ Namespace OnTrack.XChange
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public MustOverride ReadOnly Property IsObjectEntry() As Boolean Implements iConfigMember.IsObjectEntry
+        Public Overridable ReadOnly Property IsObjectEntry() As Boolean Implements iConfigMember.IsObjectEntry
+            Get
+                Throw New NotImplementedException()
+            End Get
+        End Property
 
         ''' <summary>
         ''' gets or sets the OrderedBy Flag
@@ -1307,9 +1317,9 @@ Namespace OnTrack.XChange
         ''' <param name="indexno"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Function LoadBy(ByVal configname As String, ByVal indexno As Long) As Boolean
+        Public Overloads Function Inject(ByVal configname As String, ByVal indexno As Long) As Boolean
             Dim pkarry() As Object = {LCase(configname), indexno}
-            Return MyBase.LoadBy(pkarry)
+            Return MyBase.Inject(pkarry)
         End Function
         ''' <summary>
         ''' Create Persistence Schema
@@ -1318,7 +1328,7 @@ Namespace OnTrack.XChange
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overloads Shared Function CreateSchema(Optional silent As Boolean = True) As Boolean
-            Return ormDataObject.CreateSchema(Of clsOTDBXChangeMember)()
+            Return ormDataObject.CreateDataObjectSchema(Of clsOTDBXChangeMember)()
         End Function
         ''' <summary>
         ''' Persist the Xchange Member
@@ -1329,11 +1339,11 @@ Namespace OnTrack.XChange
         Public Overloads Function Persist(Optional timestamp As Date = ot.ConstNullDate) As Boolean
             Try
                 '* ordinal
-                If Me.ordinal = New Ordinal(0) And Orderno <> 0 Then
-                    Me.ordinal = New Ordinal(Orderno)
+                If Me.Ordinal = New Ordinal(0) And Orderno <> 0 Then
+                    Me.Ordinal = New Ordinal(Orderno)
                 End If
-                If Orderno = 0 And Me.ordinal <> New Ordinal(0) And Me.ordinal.Type = ordinalType.longType Then
-                    Me.Orderno = Me.ordinal.Value
+                If Orderno = 0 And Me.Ordinal <> New Ordinal(0) And Me.Ordinal.Type = OrdinalType.longType Then
+                    Me.Orderno = Me.Ordinal.Value
                 End If
                 Call Me.Record.SetValue(constFNordinal, _ordinal.Value.ToString)
                 Return MyBase.Persist(timestamp, doFeedRecord:=True)
@@ -1369,46 +1379,47 @@ Namespace OnTrack.XChange
     '*****      
     '*****
 
+    <ormObject(ID:=XConfig.constObjectID, version:=1, modulename:=ConstModuleXChange, description:="defines how data can be exchanged with the XChange Manager")> _
     Public Class XConfig
         Inherits ormDataObject
         Implements iormInfusable
         Implements iormPersistable
 
         'Implements iOTDBXChange
-
+        Public Const constObjectID = "XConfig"
         <ormSchemaTableAttribute(Version:=2)> Public Const constTableID = "tblXChangeConfigs"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Text, size:=50, primaryKeyordinal:=1,
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, primaryKeyordinal:=1,
              Title:="Name", Description:="Name of XChange Configuration")>
         Public Const constFNID = "configname"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Text, size:=255,
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=255,
              Title:="Description", Description:="Description of XChange Configuration")>
         Public Const constFNDesc = "desc"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Memo,
+        <ormObjectEntry(typeid:=otFieldDataType.Memo,
              Title:="Comments", Description:="Comments")>
         Public Const constFNTitle = "cmt"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Bool,
+        <ormObjectEntry(typeid:=otFieldDataType.Bool,
              Title:="IsDynamic", Description:="the XChange Config accepts dynamic addition of XChangeIDs")>
         Public Const constFNDynamic = "isdynamic"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Text, size:=50,
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50,
                Title:="Outline ID", Description:="ID to the associated Outline")>
         Public Const constFNOutline = "outline"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Text, size:=255,
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=255,
               Title:="Message Log Tag", Description:="Message Log Tag")>
         Public Const constFNMsgLogTag = "msglogtag"
 
 
         ' fields
-        <ormColumnMappingAttribute(ColumnName:=ConstFNID)> Private _configname As String = ""
-        <ormColumnMappingAttribute(ColumnName:=ConstFNDesc)> Private _description As String = ""
-        <ormColumnMappingAttribute(ColumnName:=ConstFNMsgLogTag)> Private _msglogtag As String = ""
-        <ormColumnMappingAttribute(ColumnName:=ConstFNDynamic)> Private _DynamicAttributes As Boolean
-        <ormColumnMappingAttribute(ColumnName:=ConstFNOutline)> Private _outlineid As String = ""
+        <ormEntryMapping(EntryName:=constFNID)> Private _configname As String = ""
+        <ormEntryMapping(EntryName:=constFNDesc)> Private _description As String = ""
+        <ormEntryMapping(EntryName:=constFNMsgLogTag)> Private _msglogtag As String = ""
+        <ormEntryMapping(EntryName:=constFNDynamic)> Private _DynamicAttributes As Boolean
+        <ormEntryMapping(EntryName:=constFNOutline)> Private _outlineid As String = ""
 
 
         Private _msglog As New ObjectLog
@@ -1462,7 +1473,7 @@ Namespace OnTrack.XChange
             Get
                 If Me._outlineid <> "" And (_IsLoaded Or Me.IsCreated) Then
                     If Not _outline.IsLoaded And Not _outline.IsCreated Then
-                        If _outline.LoadBy(Me._outlineid) Then
+                        If _outline.Inject(Me._outlineid) Then
                             Return _outline
                         Else
                             _outline = New XOutline
@@ -1502,7 +1513,7 @@ Namespace OnTrack.XChange
                 If _msglogtag = "" Then
                     _msglogtag = GetUniqueTag()
                 End If
-                msglogtag = _msglogtag
+                Msglogtag = _msglogtag
             End Get
 
         End Property
@@ -1860,7 +1871,7 @@ Namespace OnTrack.XChange
                 Exit Function
             End If
 
-            Dim anFieldEntry As ObjectEntryDefinition = CurrentSession.Objects.GetEntry(objectname:=objectname, entryname:=entryname)
+            Dim anFieldEntry As iObjectEntry = CurrentSession.Objects.GetEntry(objectname:=objectname, entryname:=entryname)
 
 
             If Not anFieldEntry Is Nothing Then
@@ -1875,7 +1886,7 @@ Namespace OnTrack.XChange
         End Function
         '*** add a Attribute by an ID
         '***
-        Public Function AddAttributeByField(ByRef objectentry As ObjectEntryDefinition,
+        Public Function AddAttributeByField(ByRef objectentry As iObjectEntry,
                                         Optional ByVal ordinal As Object = Nothing,
                                         Optional ByVal objectname As String = "",
                                         Optional ByVal isxchanged As Boolean = True,
@@ -1893,10 +1904,10 @@ Namespace OnTrack.XChange
             End If
 
             ' load
-            If Not objectentry.IsLoaded And Not objectentry.IsCreated Then
-                AddAttributeByField = False
-                Exit Function
-            End If
+            'If Not objectentry.IsLoaded And Not objectentry.IsCreated Then
+            '    AddAttributeByField = False
+            '    Exit Function
+            'End If
 
             ' if ordinal is missing -> create one
             If ordinal Is Nothing Then
@@ -1949,13 +1960,13 @@ Namespace OnTrack.XChange
             ' add the component
             aMember = New XConfigAttributeEntry
             If aMember.Create(Me.Configname, Me.GetMaxIndexNo + 1) Then
-                aMember.ID = objectentry.ID
+                aMember.ID = objectentry.XID
                 If Not TypeOf ordinal Is OnTrack.Ordinal Then
                     ordinal = New Ordinal(ordinal)
                 End If
 
                 aMember.ordinal = ordinal ' create an ordinal 
-                aMember.Entryname = objectentry.name
+                aMember.Entryname = objectentry.Entryname
                 aMember.IsXChanged = isxchanged
                 aMember.IsReadOnly = [readonly]
                 aMember.[ObjectEntryDefinition] = objectentry
@@ -2003,7 +2014,7 @@ Namespace OnTrack.XChange
                     '** compare to objects in order
                     If Me.NoObjects > 0 Then
                         For Each anObjectEntry In Me.ObjectsByOrderNo
-                            If LCase(entry.Objectname) = LCase(anObjectEntry.Objectname) Then
+                            If entry.Objectname.ToLower = anObjectEntry.Objectname.ToLower Then
                                 AddAttributeByID = AddAttributeByField(objectentry:=entry, ordinal:=ordinal,
                                                                   isxchanged:=isXChanged,
                                                                   objectname:=entry.Objectname,
@@ -2022,7 +2033,7 @@ Namespace OnTrack.XChange
 
             Else
                 For Each entry In CurrentSession.Objects.GetEntryByID(id:=id)
-                    If LCase(objectname) = LCase(entry.Objectname) Then
+                    If LCase(objectname) = entry.Objectname.ToLower Then
                         AddAttributeByID = AddAttributeByField(objectentry:=entry, ordinal:=ordinal,
                                                           isxchanged:=isXChanged,
                                                           objectname:=entry.Objectname,
@@ -2096,15 +2107,15 @@ Namespace OnTrack.XChange
         Private Function AddIDReference(ByRef attribute As XConfigAttributeEntry) As Boolean
             Dim entries As List(Of XConfigAttributeEntry)
 
-            If _attributesIDList.ContainsKey(key:=UCase(Attribute.ID)) Then
-                entries = _attributesIDList.Item(UCase(Attribute.ID))
+            If _attributesIDList.ContainsKey(key:=UCase(attribute.ID)) Then
+                entries = _attributesIDList.Item(UCase(attribute.ID))
             Else
 
                 entries = New List(Of XConfigAttributeEntry)
-                _attributesIDList.Add(UCase(Attribute.ID), entries)
+                _attributesIDList.Add(UCase(attribute.ID), entries)
             End If
-            If entries.Contains(Attribute) Then entries.Remove(Attribute)
-            entries.Add(Attribute)
+            If entries.Contains(attribute) Then entries.Remove(attribute)
+            entries.Add(attribute)
 
             Return True
         End Function
@@ -2138,11 +2149,11 @@ Namespace OnTrack.XChange
         Private Function AddObjectReference(ByRef member As iConfigMember) As Boolean
             Dim entries As List(Of XConfigAttributeEntry)
 
-            If _attributesByObjectnameDirectory.ContainsKey(key:=LCase(member.Objectname)) Then
-                entries = _attributesByObjectnameDirectory.Item(LCase(member.Objectname))
+            If _attributesByObjectnameDirectory.ContainsKey(key:=member.Objectname.ToLower) Then
+                entries = _attributesByObjectnameDirectory.Item(member.Objectname.ToLower)
             Else
                 entries = New List(Of XConfigAttributeEntry)
-                _attributesByObjectnameDirectory.Add(LCase(member.Objectname), entries)
+                _attributesByObjectnameDirectory.Add(member.Objectname.ToLower, entries)
             End If
 
             entries.Add(member)
@@ -2158,7 +2169,7 @@ Namespace OnTrack.XChange
         Private Function AddAliasReference(ByRef attribute As XConfigAttributeEntry) As Boolean
             Dim entries As List(Of XConfigAttributeEntry)
 
-            For Each [alias] As String In Attribute.Aliases
+            For Each [alias] As String In attribute.Aliases
 
                 If _aliasDirectory.ContainsKey(key:=UCase([alias])) Then
                     entries = _aliasDirectory.Item(key:=UCase([alias]))
@@ -2166,8 +2177,8 @@ Namespace OnTrack.XChange
                     entries = New List(Of XConfigAttributeEntry)
                     _aliasDirectory.Add(key:=UCase([alias]), value:=entries)
                 End If
-                If entries.Contains(Attribute) Then entries.Remove(Attribute)
-                entries.Add(Attribute)
+                If entries.Contains(attribute) Then entries.Remove(attribute)
+                entries.Add(attribute)
             Next
 
             Return True
@@ -2253,7 +2264,7 @@ Namespace OnTrack.XChange
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overrides Function Initialize() As Boolean
+        Public Overloads Function Initialize() As Boolean
             Initialize = MyBase.Initialize()
             _members = New SortedDictionary(Of Long, iConfigMember)
             _attributesIDDirectory = New Dictionary(Of String, XConfigAttributeEntry)
@@ -2443,7 +2454,7 @@ Namespace OnTrack.XChange
                 If _attributesByObjectnameDirectory.ContainsKey(key:=LCase(tablename)) Then
                     alist = _attributesByObjectnameDirectory.Item(key:=LCase(tablename))
                     aMember = alist.Find(Function(m As XConfigAttributeEntry)
-                                             Return LCase(m.Entryname) = LCase(fieldname)
+                                             Return m.Entryname.ToLower = LCase(fieldname)
                                          End Function)
 
                     If Not aMember Is Nothing Then
@@ -2457,7 +2468,7 @@ Namespace OnTrack.XChange
                         alist = _attributesByObjectnameDirectory(key:=objectdef.Objectname)
 
                         aMember = alist.Find(Function(m As XConfigAttributeEntry)
-                                                 Return LCase(m.Entryname) = LCase(fieldname)
+                                                 Return m.Entryname.ToLower = LCase(fieldname)
                                              End Function)
 
                         If Not aMember Is Nothing Then
@@ -2468,9 +2479,9 @@ Namespace OnTrack.XChange
             End If
 
             '** search also by ID and consequent by ALIAS
-            Dim anObjectEntry As ObjectEntryDefinition = CurrentSession.Objects.GetEntry(objectname:=tablename, entryname:=fieldname)
+            Dim anObjectEntry As iObjectEntry = CurrentSession.Objects.GetEntry(objectname:=tablename, entryname:=fieldname)
             If Not anObjectEntry Is Nothing Then
-                aMember = Me.AttributeByID(ID:=anObjectEntry.ID, objectname:=tablename)
+                aMember = Me.AttributeByID(ID:=anObjectEntry.XID, objectname:=tablename)
                 If Not aMember Is Nothing Then
                     Return aMember
                 End If
@@ -2500,7 +2511,7 @@ Namespace OnTrack.XChange
             If _attributesIDList.ContainsKey(UCase(ID)) Then
                 aCollection = _attributesIDList.Item(UCase(ID))
                 For Each entry As XConfigAttributeEntry In aCollection
-                    If objectname <> "" AndAlso LCase(entry.Objectname) = LCase(objectname) Then
+                    If objectname <> "" AndAlso entry.Objectname.ToLower = LCase(objectname) Then
                         Return entry
                     ElseIf objectname = "" Then
                         Return entry
@@ -2519,7 +2530,7 @@ Namespace OnTrack.XChange
                     '** check on all the XConfig Objects
                     For Each anObjectMember In Me.ObjectsByOrderNo
                         '* if ID is included as Alias Name
-                        AttributeByID = AttributeByAlias(alias:=anObjectEntry.ID, objectname:=anObjectMember.Objectname)
+                        AttributeByID = AttributeByAlias(alias:=anObjectEntry.XID, objectname:=anObjectMember.Objectname)
                         '** or the aliases are included in this XConfig
                         If AttributeByID Is Nothing Then
                             For Each aliasID In anObjectEntry.Aliases
@@ -2586,7 +2597,7 @@ Namespace OnTrack.XChange
 
                 aCollection = _aliasDirectory.Item(UCase([alias]))
                 For Each entry As XConfigAttributeEntry In aCollection
-                    If objectname <> "" AndAlso LCase(entry.Objectname) = LCase(objectname) Then
+                    If objectname <> "" AndAlso entry.Objectname.ToLower = LCase(objectname) Then
                         Return entry
                     ElseIf objectname = "" Then
                         Return entry
@@ -2622,7 +2633,7 @@ Namespace OnTrack.XChange
         ''' <param name="configname"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Function LoadBy(ByVal configname As String) As Boolean
+        Public Overloads Function Inject(ByVal configname As String) As Boolean
             Dim aTable As iormDataStore
             Dim aRecordCollection As List(Of ormRecord)
             Dim aRecord As ormRecord
@@ -2633,7 +2644,7 @@ Namespace OnTrack.XChange
             '* lazy init
             If Not Me.IsInitialized Then
                 If Not Me.Initialize() Then
-                    LoadBy = False
+                    Inject = False
                     Exit Function
                 End If
             End If
@@ -2641,7 +2652,7 @@ Namespace OnTrack.XChange
             Try
                 ' set the primaryKey
                 '** load the object itself
-                If MyBase.LoadBy(pkarry) Then
+                If MyBase.Inject(pkarry) Then
                     ' load the members
                     aTable = GetTableStore(XConfigMember.ConstTableID)
                     Dim aCommand As ormSqlSelectCommand = aTable.CreateSqlSelectCommand(id:="loadbyXConfig")
@@ -2669,12 +2680,12 @@ Namespace OnTrack.XChange
                         Else
                             anEntry = Nothing
                             CoreMessageHandler(message:="Member is not determineable if object or attribute", messagetype:=otCoreMessageType.InternalError,
-                                                subname:="Xconfig.loadby")
+                                                subname:="Xconfig.Inject")
                         End If
 
                         If anEntry IsNot Nothing AndAlso anEntry.Infuse(aRecord) Then
                             If Not Me.AddMember(anEntry) Then
-                                CoreMessageHandler(message:="couldnot add member", subname:="XConfig.loadby",
+                                CoreMessageHandler(message:="couldnot add member", subname:="XConfig.Inject",
                                                    messagetype:=otCoreMessageType.InternalError)
                             End If
                         End If
@@ -2688,7 +2699,7 @@ Namespace OnTrack.XChange
 
 
             Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="clsOTDBXchangConfig.Loadby")
+                CoreMessageHandler(exception:=ex, subname:="clsOTDBXchangConfig.Inject")
                 Me.Unload()
                 Return False
             End Try
@@ -2725,7 +2736,7 @@ Namespace OnTrack.XChange
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overloads Shared Function CreateSchema(Optional silent As Boolean = True) As Boolean
-            Return ormDataObject.CreateSchema(Of XConfig)()
+            Return ormDataObject.CreateDataObjectSchema(Of XConfig)()
         End Function
         ''' <summary>
         ''' creates a persistable object with primary key
@@ -2771,8 +2782,8 @@ Namespace OnTrack.XChange
                     Dim aNewObject As New XConfig
                     aNewObject = New XConfig
                     If aNewObject.Infuse(aRecord) Then
-                        ' loadby to get all items
-                        If aNewObject.LoadBy(aNewObject.Configname) Then
+                        ' Inject to get all items
+                        If aNewObject.Inject(aNewObject.Configname) Then
                             aList.Add(item:=aNewObject)
                         End If
                     End If
@@ -3385,7 +3396,7 @@ Namespace OnTrack.XChange
         Public Property Datatype As otFieldDataType
             Get
                 If _xattribute IsNot Nothing And _explicitDatatype = 0 Then
-                    Return _xattribute.ObjectEntryDefinition.Datatype
+                    Return _xattribute.[ObjectEntryDefinition].Datatype
                 ElseIf _explicitDatatype <> 0 Then
                     Return _explicitDatatype
                 Else
@@ -4559,7 +4570,7 @@ Namespace OnTrack.XChange
             For Each anObject In _xbag.XChangeDefaultConfig.ObjectsByOrderNo
 
                 ' special handling for special objects
-                Select Case LCase(anObject.Objectname)
+                Select Case anObject.Objectname.tolower
 
                     ' currtargets
                     Case "tblcurrtargets"
@@ -4630,17 +4641,17 @@ Namespace OnTrack.XChange
             For Each anConfigObject As XConfigObjectEntry In Me.Xchangeconfig.ObjectsByOrderNo
 
                 ' special handling for special objects
-                Select Case LCase(anConfigObject.Objectname)
+                Select Case anConfigObject.Objectname.tolower
 
                     ' currschedules
-                    Case LCase(CurrentSchedule.ConstTableID)
+                    Case CurrentSchedule.ConstTableID.tolower
                         flag = True
 
-                    Case LCase(XOutline.constTableID)
+                    Case XOutline.constTableID.tolower
                         flag = True
 
                         ' Tracks
-                    Case LCase(Track.constTableID)
+                    Case Track.constTableID.tolower
                         flag = True
 
                         ' HACK: CARTYPES
@@ -4649,7 +4660,7 @@ Namespace OnTrack.XChange
                         flag = True
 
                         ' Targets
-                    Case LCase(Target.constTableID)
+                    Case Target.constTableID.tolower
                         'flag = flag And aTarget.runXChange(Me, msglog)
                         flag = True
                 End Select
@@ -4658,7 +4669,7 @@ Namespace OnTrack.XChange
                 '**** Standards
                 If Not flag Then
                     '** check through reflection
-                    Dim anObjectType As System.Type = ot.GetDataObjectType(anConfigObject.Objectname)
+                    Dim anObjectType As System.Type = ot.GetObjectClassType(anConfigObject.Objectname)
                     If anObjectType IsNot Nothing AndAlso _
                         anObjectType.GetInterface(GetType(iotXChangeable).FullName) IsNot Nothing Then
 
@@ -4669,7 +4680,7 @@ Namespace OnTrack.XChange
                         flag = flag And RunDefaultXchange(anConfigObject, msglog)
                     End If
                 End If
-              
+
 
             Next
 
@@ -4705,8 +4716,8 @@ Namespace OnTrack.XChange
             Dim persistflag As Boolean = False
 
             '** BETTER TO CREATE A NEW OBJECT -> Default values
-            If ot.GetDataObjectType(tableid:=xobject.Objectname) IsNot Nothing Then
-                aDataObjectType = GetDataObjectType(tableid:=xobject.Objectname)
+            If ot.GetObjectClassType(objectname:=xobject.Objectname) IsNot Nothing Then
+                aDataObjectType = ot.GetObjectClassType(objectname:=xobject.Objectname)
                 aDataobject = Activator.CreateInstance(aDataObjectType)
                 aDataInfusable = aDataobject
             Else
@@ -4727,7 +4738,7 @@ Namespace OnTrack.XChange
                 If aDataobject IsNot Nothing Then
                     If Not aDataobject.Create(pkArray:=pkarray) Then
                         CoreMessageHandler(message:="Data object with same primary keys exists", messagetype:=otCoreMessageType.ApplicationError, subname:="XEnvelope.RunDefaultXChange4Object")
-                        aDataobject.LoadBy(pkArray:=pkarray)
+                        aDataobject.Inject(pkArray:=pkarray)
                     End If
                 End If
                 '** set to updateCreate
@@ -4747,7 +4758,7 @@ Namespace OnTrack.XChange
                             '* get Value from Slot
                             aValue = aSlot.DBValue
                             '* get old value
-                            If record.HasIndex(anIndex:=anAttribute.Entryname) Then
+                            If record.HasIndex(index:=anAttribute.Entryname) Then
                                 anOldValue = record.GetValue(index:=anAttribute.Entryname)
                             Else
                                 anOldValue = Nothing
@@ -4825,7 +4836,7 @@ Namespace OnTrack.XChange
                 '*** load the compounds
                 '***
                 If Not nocompounds Then
-                    Dim objectType As System.Type = ot.GetDataObjectType(tableid:=xobject.Objectname)
+                    Dim objectType As System.Type = ot.GetObjectClassType(objectname:=xobject.Objectname)
                     If objectType IsNot Nothing AndAlso objectType.GetInterface(GetType(iotHasCompounds).FullName) IsNot Nothing Then
                         Dim aHasCompounds As iotHasCompounds = Activator.CreateInstance(objectType)
                         Dim aInfusable As iormInfusable = TryCast(aHasCompounds, iormInfusable)
@@ -4862,10 +4873,10 @@ Namespace OnTrack.XChange
                 Case otXChangeCommandType.Update, otXChangeCommandType.UpdateCreate
                     '* if no primary keys then refill it with the object definition from the record
                     If pkArray Is Nothing Then
-                        ReDim pkArray(xobject.ObjectDefinition.GetNoPrimaryKeys)
+                        ReDim pkArray(xobject.ObjectDefinition.GetNoKeys)
                         '**** fill the primary key structure
                         Dim i As UShort = 0
-                        For Each aPKEntry In xobject.ObjectDefinition.GetPrimaryKeyEntries
+                        For Each aPKEntry In xobject.ObjectDefinition.GetKeyEntries
                             aValue = record.GetValue(index:=aPKEntry.Entryname)
                             If aValue Is Nothing Then
                                 '* try to load from Envelope if not in record
@@ -4972,17 +4983,17 @@ Namespace OnTrack.XChange
             End If
 
             '*** build the primary key array
-            If xobject.ObjectDefinition.GetNoPrimaryKeys = 0 Then
+            If xobject.ObjectDefinition.GetNoKeys = 0 Then
                 Call CoreMessageHandler(message:="primary key of table is Nothing in xchange config:" & xobject.Configname,
                                       arg1:=xobject.Objectname, messagetype:=otCoreMessageType.InternalError, subname:="XEnvelope.runDefaultXChange4Object")
                 Return False
             Else
-                ReDim pkarry(xobject.ObjectDefinition.GetNoPrimaryKeys)
+                ReDim pkarry(xobject.ObjectDefinition.GetNoKeys)
             End If
 
             '**** fill the primary key structure
             Dim i As UShort = 0
-            For Each aPKEntry In xobject.ObjectDefinition.GetPrimaryKeyEntries
+            For Each aPKEntry In xobject.ObjectDefinition.GetKeyEntries
                 aValue = Me.GetSlotValueByFieldname(fieldname:=aPKEntry.Entryname, tablename:=aPKEntry.Objectname, asHostValue:=False)
                 If aValue IsNot Nothing Then
                     '** convert from DB to Host
@@ -5018,13 +5029,13 @@ Namespace OnTrack.XChange
             Dim aTable As iormDataStore
             Dim aRecord As ormRecord
             Dim aCompRecordColl As New List(Of ormRecord)
-            Dim aCompTableDir As New Dictionary(Of String, Dictionary(Of String, ObjectEntryDefinition))
+            Dim aCompTableDir As New Dictionary(Of String, Dictionary(Of String, iObjectEntry))
             Dim compoundKeys As Object
             Dim aCompField As Object
             Dim aCompValue As Object
             Dim tablename As Object
-            Dim aTableEntry As ObjectEntryDefinition
-            Dim anEntryDir As New Dictionary(Of String, ObjectEntryDefinition)
+            Dim anObjectEntry As iObjectEntry
+            Dim anEntryDir As New Dictionary(Of String, iObjectEntry)
             Dim aKey As String
             Dim pkarry() As Object
             Dim i As Integer
@@ -5040,17 +5051,17 @@ Namespace OnTrack.XChange
 
             ' store each Compound
             For Each m In TABLE.Entries
-                aTableEntry = m
-                If aTableEntry.ID <> "" And aTableEntry.IsCompound Then
-                    If aCompTableDir.ContainsKey(key:=aTableEntry.CompoundTablename) Then
-                        anEntryDir = aCompTableDir.Item(key:=aTableEntry.CompoundTablename)
+                anObjectEntry = m
+                If anObjectEntry.XID <> "" And anObjectEntry.isCompound Then
+                    If aCompTableDir.ContainsKey(key:=DirectCast(anObjectEntry, ObjectCompoundEntry).CompoundTablename) Then
+                        anEntryDir = aCompTableDir.Item(key:=DirectCast(anObjectEntry, ObjectCompoundEntry).CompoundTablename)
                     Else
-                        anEntryDir = New Dictionary(Of String, ObjectEntryDefinition)
-                        Call aCompTableDir.Add(key:=aTableEntry.CompoundTablename, value:=anEntryDir)
+                        anEntryDir = New Dictionary(Of String, iObjectEntry)
+                        Call aCompTableDir.Add(key:=DirectCast(anObjectEntry, ObjectCompoundEntry).CompoundTablename, value:=anEntryDir)
                     End If
                     ' add the Entry
-                    If Not anEntryDir.ContainsKey(key:=aTableEntry.ID) Then
-                        Call anEntryDir.Add(key:=UCase(aTableEntry.ID), value:=aTableEntry)
+                    If Not anEntryDir.ContainsKey(key:=anObjectEntry.XID) Then
+                        Call anEntryDir.Add(key:=UCase(anObjectEntry.XID), value:=anObjectEntry)
                     Else
                         Assert(False)
 
@@ -5061,7 +5072,7 @@ Namespace OnTrack.XChange
             '**********************************************************
             '**** SPECIAL HANDLING OF tblschedules -> Milestones
             '**********************************************************
-            If LCase(TABLE.Name) = LCase(aSchedule.TableID) Then
+            If TABLE.ID.ToLower = aSchedule.TableID.ToLower Then
                 Dim anUID As Long
                 Dim anUPDC As Long
 
@@ -5077,7 +5088,7 @@ Namespace OnTrack.XChange
                 End If
                 ' found
                 If anUPDC <> 0 And anUID <> 0 Then
-                    If aSchedule.Loadby(UID:=anUID, updc:=anUPDC) Then
+                    If aSchedule.Inject(UID:=anUID, updc:=anUPDC) Then
                         specialHandling = True
                     Else
                         specialHandling = False
@@ -5097,14 +5108,14 @@ Namespace OnTrack.XChange
                 ' get the Entries
                 aTableName = CStr(tablename)
                 anEntryDir = aCompTableDir.Item(key:=aTableName)
-                aTableEntry = anEntryDir.First.Value      'first item
-                compIDFieldname = aTableEntry.CompoundIDFieldname
-                compValueFieldName = aTableEntry.CompoundValueFieldname
+                anObjectEntry = anEntryDir.First.Value      'first item
+                compIDFieldname = DirectCast(anObjectEntry, ObjectCompoundEntry).CompoundIDFieldname
+                compValueFieldName = DirectCast(anObjectEntry, ObjectCompoundEntry).CompoundValueFieldname
 
                 ' look up the keys
-                compoundKeys = aTableEntry.CompoundRelation
+                compoundKeys = DirectCast(anObjectEntry, ObjectCompoundEntry).CompoundRelation
                 If Not IsArrayInitialized(compoundKeys) Then
-                    Call CoreMessageHandler(arg1:=aTableEntry.Name, message:="no compound relation found for fieldname", subname:="clsOTDBXchangeConfig.fillMappingWithCompounds")
+                    Call CoreMessageHandler(arg1:=anObjectEntry.Entryname, message:="no compound relation found for fieldname", subname:="clsOTDBXchangeConfig.fillMappingWithCompounds")
                     fillMappingWithCompounds = False
                     Exit Function
                 End If
@@ -5117,12 +5128,12 @@ Namespace OnTrack.XChange
                 '**********************************************************
                 '**** SPECIAL HANDLING OF tblschedules -> Milestones
                 '**********************************************************
-                If LCase(aTableName) = LCase(ScheduleMilestone.constTableID) And specialHandling Then
+                If LCase(aTableName) = ScheduleMilestone.constTableID.ToLower And specialHandling Then
 
-                    For Each aTableEntry In TABLE.Entries
+                    For Each anObjectEntry In TABLE.Entries
                         'aTableEntry = m
-                        If aTableEntry.ID <> "" And aTableEntry.IsCompound Then
-                            aCompValue = aSchedule.GetMilestoneValue(ID:=aTableEntry.ID)
+                        If anObjectEntry.XID <> "" And anObjectEntry.isCompound Then
+                            aCompValue = aSchedule.GetMilestoneValue(ID:=anObjectEntry.XID)
                             'Set aTableEntry = anEntryDir.Item(Key:=LCase(aCompField)) -> should be the same
                             'aConfigmember = Me.AttributeByFieldName(fieldname:=aTableEntry.ID, tablename:=aTableEntry.Objectname)
                             aVAlue = Nothing
@@ -5208,37 +5219,37 @@ Namespace OnTrack.XChange
 
         <ormSchemaTableAttribute(Version:=2)> Public Const constTableID = "tblXChangeConfigs"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Text, size:=50, primaryKeyordinal:=1,
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, primaryKeyordinal:=1,
              Title:="Name", Description:="Name of XChange Configuration")>
         Public Const constFNID = "configname"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Text, size:=255,
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=255,
              Title:="Description", Description:="Description of XChange Configuration")>
         Public Const constFNDesc = "desc"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Memo,
+        <ormObjectEntry(typeid:=otFieldDataType.Memo,
              Title:="Comments", Description:="Comments")>
         Public Const constFNTitle = "cmt"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Bool,
+        <ormObjectEntry(typeid:=otFieldDataType.Bool,
              Title:="IsDynamic", Description:="the XChange Config accepts dynamic addition of XChangeIDs")>
         Public Const constFNDynamic = "isdynamic"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Text, size:=50,
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50,
                Title:="Outline ID", Description:="ID to the associated Outline")>
         Public Const constFNOutline = "outline"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Text, size:=255,
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=255,
               Title:="Message Log Tag", Description:="Message Log Tag")>
         Public Const constFNMsgLogTag = "msglogtag"
 
 
         ' fields
-        <ormColumnMappingAttribute(ColumnName:=ConstFNID)> Private _configname As String = ""
-        <ormColumnMappingAttribute(ColumnName:=ConstFNDesc)> Private _description As String = ""
-        <ormColumnMappingAttribute(ColumnName:=ConstFNMsgLogTag)> Private _msglogtag As String = ""
-        <ormColumnMappingAttribute(ColumnName:=ConstFNDynamic)> Private _DynamicAttributes As Boolean
-        <ormColumnMappingAttribute(ColumnName:=ConstFNOutline)> Private _outlineid As String = ""
+        <ormEntryMapping(EntryName:=ConstFNID)> Private _configname As String = ""
+        <ormEntryMapping(EntryName:=ConstFNDesc)> Private _description As String = ""
+        <ormEntryMapping(EntryName:=ConstFNMsgLogTag)> Private _msglogtag As String = ""
+        <ormEntryMapping(EntryName:=ConstFNDynamic)> Private _DynamicAttributes As Boolean
+        <ormEntryMapping(EntryName:=ConstFNOutline)> Private _outlineid As String = ""
 
 
         Private _msglog As New ObjectLog
@@ -5292,7 +5303,7 @@ Namespace OnTrack.XChange
             Get
                 If Me._outlineid <> "" And (_IsLoaded Or Me.IsCreated) Then
                     If Not _outline.IsLoaded And Not _outline.IsCreated Then
-                        If _outline.LoadBy(Me._outlineid) Then
+                        If _outline.Inject(Me._outlineid) Then
                             Return _outline
                         Else
                             _outline = New XOutline
@@ -5693,7 +5704,7 @@ Namespace OnTrack.XChange
                 Exit Function
             End If
 
-            Dim anFieldEntry As ObjectEntryDefinition = CurrentSession.Objects.GetEntry(objectname:=objectname, entryname:=entryname)
+            Dim anFieldEntry As iObjectEntry = CurrentSession.Objects.GetEntry(objectname:=objectname, entryname:=entryname)
 
 
             If Not anFieldEntry Is Nothing Then
@@ -5708,7 +5719,7 @@ Namespace OnTrack.XChange
         End Function
         '*** add a Attribute by an ID
         '***
-        Public Function AddAttributeByField(ByRef objectentry As ObjectEntryDefinition,
+        Public Function AddAttributeByField(ByRef objectentry As iObjectEntry,
                                         Optional ByVal ordinal As Object = Nothing,
                                         Optional ByVal objectname As String = "",
                                         Optional ByVal isxchanged As Boolean = True,
@@ -5726,10 +5737,10 @@ Namespace OnTrack.XChange
             End If
 
             ' load
-            If Not objectentry.IsLoaded And Not objectentry.IsCreated Then
-                AddAttributeByField = False
-                Exit Function
-            End If
+            'If Not objectentry.IsLoaded And Not objectentry.IsCreated Then
+            '    AddAttributeByField = False
+            '    Exit Function
+            'End If
 
             ' if ordinal is missing -> create one
             If ordinal Is Nothing Then
@@ -5782,13 +5793,13 @@ Namespace OnTrack.XChange
             ' add the component
             aMember = New clsOTDBXChangeMember
             If aMember.Create(Me.Configname, Me.GetMaxIndexNo + 1) Then
-                aMember.ID = objectentry.ID
+                aMember.ID = objectentry.XID
                 If Not TypeOf ordinal Is OnTrack.Ordinal Then
                     ordinal = New Ordinal(ordinal)
                 End If
 
                 aMember.ordinal = ordinal ' create an ordinal 
-                aMember.Entryname = objectentry.name
+                aMember.Entryname = objectentry.Entryname
                 aMember.IsXChanged = isxchanged
                 aMember.IsReadOnly = [readonly]
                 aMember.[ObjectEntryDefinition] = objectentry
@@ -5838,7 +5849,7 @@ Namespace OnTrack.XChange
                     '** compare to objects in order
                     If Me.NoObjects > 0 Then
                         For Each anObjectEntry In Me.ObjectsByOrderNo
-                            If LCase(entry.Objectname) = LCase(anObjectEntry.Objectname) Then
+                            If entry.Objectname.tolower = anObjectEntry.Objectname.tolower Then
                                 AddAttributeByID = AddAttributeByField(objectentry:=entry, ordinal:=ordinal,
                                                                   isxchanged:=isXChanged,
                                                                   objectname:=entry.Objectname,
@@ -5857,7 +5868,7 @@ Namespace OnTrack.XChange
 
             Else
                 For Each entry In CurrentSession.Objects.GetEntryByID(id:=id)
-                    If LCase(objectname) = LCase(entry.Objectname) Then
+                    If LCase(objectname) = entry.Objectname.tolower Then
                         AddAttributeByID = AddAttributeByField(objectentry:=entry, ordinal:=ordinal,
                                                           isxchanged:=isXChanged,
                                                           objectname:=entry.Objectname,
@@ -5973,11 +5984,11 @@ Namespace OnTrack.XChange
         Private Function AddObjectReference(ByRef member As clsOTDBXChangeMember) As Boolean
             Dim entries As List(Of clsOTDBXChangeMember)
 
-            If _AttributesByObjectnameDirectory.ContainsKey(key:=LCase(member.Objectname)) Then
-                entries = _AttributesByObjectnameDirectory.Item(LCase(member.Objectname))
+            If _AttributesByObjectnameDirectory.ContainsKey(key:=member.Objectname.tolower) Then
+                entries = _AttributesByObjectnameDirectory.Item(member.Objectname.tolower)
             Else
                 entries = New List(Of clsOTDBXChangeMember)
-                _AttributesByObjectnameDirectory.Add(LCase(member.Objectname), entries)
+                _AttributesByObjectnameDirectory.Add(member.Objectname.tolower, entries)
             End If
 
             entries.Add(member)
@@ -6086,7 +6097,7 @@ Namespace OnTrack.XChange
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overrides Function Initialize() As Boolean
+        Public Overloads Function Initialize() As Boolean
             Initialize = MyBase.Initialize()
             _members = New SortedDictionary(Of Long, clsOTDBXChangeMember)
             _attributesIDDirectory = New Dictionary(Of String, clsOTDBXChangeMember)
@@ -6276,7 +6287,7 @@ Namespace OnTrack.XChange
                 If _attributesByObjectnameDirectory.ContainsKey(key:=LCase(tablename)) Then
                     alist = _attributesByObjectnameDirectory.Item(key:=LCase(tablename))
                     aMember = alist.Find(Function(m As clsOTDBXChangeMember)
-                                             Return LCase(m.Entryname) = LCase(fieldname)
+                                             Return m.Entryname.tolower = LCase(fieldname)
                                          End Function)
 
                     If Not aMember Is Nothing Then
@@ -6290,7 +6301,7 @@ Namespace OnTrack.XChange
                         alist = _attributesByObjectnameDirectory(key:=objectdef.Objectname)
 
                         aMember = alist.Find(Function(m As clsOTDBXChangeMember)
-                                                 Return LCase(m.Entryname) = LCase(fieldname)
+                                                 Return m.Entryname.tolower = LCase(fieldname)
                                              End Function)
 
                         If Not aMember Is Nothing Then
@@ -6301,9 +6312,9 @@ Namespace OnTrack.XChange
             End If
 
             '** search also by ID and consequent by ALIAS
-            Dim anObjectEntry As ObjectEntryDefinition = CurrentSession.Objects.GetEntry(objectname:=tablename, entryname:=fieldname)
+            Dim anObjectEntry As iObjectEntry = CurrentSession.Objects.GetEntry(objectname:=tablename, entryname:=fieldname)
             If Not anObjectEntry Is Nothing Then
-                aMember = Me.AttributeByID(ID:=anObjectEntry.ID, objectname:=tablename)
+                aMember = Me.AttributeByID(ID:=anObjectEntry.XID, objectname:=tablename)
                 If Not aMember Is Nothing Then
                     Return aMember
                 End If
@@ -6333,7 +6344,7 @@ Namespace OnTrack.XChange
             If _attributesIDList.ContainsKey(UCase(ID)) Then
                 aCollection = _attributesIDList.Item(UCase(ID))
                 For Each entry As clsOTDBXChangeMember In aCollection
-                    If objectname <> "" AndAlso LCase(entry.Objectname) = LCase(objectname) Then
+                    If objectname <> "" AndAlso entry.Objectname.tolower = LCase(objectname) Then
                         Return entry
                     ElseIf objectname = "" Then
                         Return entry
@@ -6352,7 +6363,7 @@ Namespace OnTrack.XChange
                     '** check on all the XConfig Objects
                     For Each anObjectMember In Me.ObjectsByOrderNo
                         '* if ID is included as Alias Name
-                        AttributeByID = AttributeByAlias(alias:=anObjectEntry.ID, objectname:=anObjectMember.Objectname)
+                        AttributeByID = AttributeByAlias(alias:=anObjectEntry.XID, objectname:=anObjectMember.Objectname)
                         '** or the aliases are included in this XConfig
                         If AttributeByID Is Nothing Then
                             For Each aliasID In anObjectEntry.Aliases
@@ -6401,7 +6412,7 @@ Namespace OnTrack.XChange
 
                 aCollection = _AliasDirectory.Item(UCase([alias]))
                 For Each entry As clsOTDBXChangeMember In aCollection
-                    If objectname <> "" AndAlso LCase(entry.Objectname) = LCase(objectname) Then
+                    If objectname <> "" AndAlso entry.Objectname.tolower = LCase(objectname) Then
                         Return entry
                     ElseIf objectname = "" Then
                         Return entry
@@ -6441,14 +6452,14 @@ Namespace OnTrack.XChange
                 '** check all relations
                 If IsArrayInitialized(relationID) Then
                     If anEntry.ID <> "" And LCase(relationID(j)) = LCase(ID) Then
-                        If (tablename <> "" And LCase(anEntry.Objectname) = LCase(tablename)) Or tablename = "" Then
+                        If (tablename <> "" And anEntry.Objectname.tolower = LCase(tablename)) Or tablename = "" Then
                             AttributeByRelationID = anEntry
                             Exit Function
                         End If
                     End If
                 Else
                     If anEntry.ID <> "" And LCase(relationID) = LCase(ID) Then
-                        If (tablename <> "" And LCase(anEntry.Objectname) = LCase(tablename)) Or tablename = "" Then
+                        If (tablename <> "" And anEntry.Objectname.tolower = LCase(tablename)) Or tablename = "" Then
                             AttributeByRelationID = anEntry
                             Exit Function
                         End If
@@ -6483,7 +6494,7 @@ Namespace OnTrack.XChange
         ''' <param name="configname"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Function LoadBy(ByVal configname As String) As Boolean
+        Public Overloads Function Inject(ByVal configname As String) As Boolean
             Dim aTable As iormDataStore
             Dim aRecordCollection As List(Of ormRecord)
             Dim aRecord As ormRecord
@@ -6494,7 +6505,7 @@ Namespace OnTrack.XChange
             '* lazy init
             If Not Me.IsInitialized Then
                 If Not Me.Initialize() Then
-                    LoadBy = False
+                    Inject = False
                     Exit Function
                 End If
             End If
@@ -6504,10 +6515,10 @@ Namespace OnTrack.XChange
                 pkarry(0) = LCase(configname)
 
                 '** load
-                If MyBase.LoadBy(pkarry) Then
+                If MyBase.Inject(pkarry) Then
                     ' load the members
                     aTable = GetTableStore(anEntry.TableID)
-                    Dim aCommand As ormSqlSelectCommand = aTable.CreateSqlSelectCommand(id:="loadby")
+                    Dim aCommand As ormSqlSelectCommand = aTable.CreateSqlSelectCommand(id:="Inject")
                     If Not aCommand.Prepared Then
                         aCommand.Where = clsOTDBXChangeMember.constFNID & " = @" & clsOTDBXChangeMember.constFNID
                         aCommand.AddParameter(New ormSqlCommandParameter(ID:="@" & constFNID, columnname:=clsOTDBXChangeMember.ConstFNID, tablename:=clsOTDBXChangeMember.ConstTableID))
@@ -6528,7 +6539,7 @@ Namespace OnTrack.XChange
                         anEntry = New clsOTDBXChangeMember
                         If anEntry.Infuse(aRecord) Then
                             If Not Me.AddMember(anEntry) Then
-                                CoreMessageHandler(message:="couldnot add member", subname:="clsOTDBXChangeConfig.loadby",
+                                CoreMessageHandler(message:="couldnot add member", subname:="clsOTDBXChangeConfig.Inject",
                                                    messagetype:=otCoreMessageType.InternalError)
                             End If
                         End If
@@ -6542,7 +6553,7 @@ Namespace OnTrack.XChange
 
 
             Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="clsOTDBXchangConfig.Loadby")
+                CoreMessageHandler(exception:=ex, subname:="clsOTDBXchangConfig.Inject")
                 Me.Unload()
                 Return False
             End Try
@@ -6579,92 +6590,92 @@ Namespace OnTrack.XChange
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overloads Shared Function CreateSchema(Optional silent As Boolean = True) As Boolean
-            Return ormDataObject.CreateSchema(Of clsOTDBXChangeConfig)()
+            Return ormDataObject.CreateDataObjectSchema(Of clsOTDBXChangeConfig)()
 
-            Dim aFieldDesc As New ormFieldDescription
-            Dim PrimaryColumnNames As New Collection
-            Dim aTable As New ObjectDefinition
-
-
-            aFieldDesc.ID = ""
-            aFieldDesc.Parameter = ""
-            aFieldDesc.Tablename = constTableID
-
-            With aTable
-                .Create(constTableID)
-                .Delete()
-
-                '***
-                '*** Fields
-                '****
-
-                'Type
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = constFNID
-                aFieldDesc.ColumnName = constFNID
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
+            '            Dim aFieldDesc As New ormFieldDescription
+            '            Dim PrimaryColumnNames As New Collection
+            '            Dim aTable As New ObjectDefinition
 
 
-                'description
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "description"
-                aFieldDesc.ColumnName = "desc"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '            aFieldDesc.ID = ""
+            '            aFieldDesc.Parameter = ""
+            '            aFieldDesc.Tablename = constTableID
 
-                'comment
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "comment"
-                aFieldDesc.ColumnName = "cmt"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '            With aTable
+            '                .Create(constTableID)
+            '                .Delete()
 
-                'dynamic
-                aFieldDesc.Datatype = otFieldDataType.Bool
-                aFieldDesc.Title = "is dynamic attribute"
-                aFieldDesc.ColumnName = "isdynamic"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                '
-                'outline
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "outline id"
-                aFieldDesc.ColumnName = "outline"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                '***
+            '                '*** Fields
+            '                '****
 
-                ' msglogtag
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "message log tag"
-                aFieldDesc.ColumnName = "msglogtag"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                'Type
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = constFNID
+            '                aFieldDesc.ColumnName = constFNID
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
 
-                '***
-                '*** TIMESTAMP
-                '****
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "last Update"
-                aFieldDesc.ColumnName = ConstFNUpdatedOn
-                aFieldDesc.ID = ""
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "creation Date"
-                aFieldDesc.ColumnName = ConstFNCreatedOn
-                aFieldDesc.ID = ""
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' Index
-                Call .AddIndex("PrimaryKey", PrimaryColumnNames, isprimarykey:=True)
-                ' persist
-                .Persist()
-                ' change the database
-                .AlterSchema()
-            End With
+            '                'description
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "description"
+            '                aFieldDesc.ColumnName = "desc"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-            CreateSchema = True
-            Exit Function
+            '                'comment
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "comment"
+            '                aFieldDesc.ColumnName = "cmt"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-            ' Handle the error
-error_handle:
-            Call CoreMessageHandler(subname:="clsOTDBXChangeConfig.createSchema")
-            CreateSchema = False
+            '                'dynamic
+            '                aFieldDesc.Datatype = otFieldDataType.Bool
+            '                aFieldDesc.Title = "is dynamic attribute"
+            '                aFieldDesc.ColumnName = "isdynamic"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                '
+            '                'outline
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "outline id"
+            '                aFieldDesc.ColumnName = "outline"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                ' msglogtag
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "message log tag"
+            '                aFieldDesc.ColumnName = "msglogtag"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                '***
+            '                '*** TIMESTAMP
+            '                '****
+            '                aFieldDesc.Datatype = otFieldDataType.Timestamp
+            '                aFieldDesc.Title = "last Update"
+            '                aFieldDesc.ColumnName = ConstFNUpdatedOn
+            '                aFieldDesc.ID = ""
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                aFieldDesc.Datatype = otFieldDataType.Timestamp
+            '                aFieldDesc.Title = "creation Date"
+            '                aFieldDesc.ColumnName = ConstFNCreatedOn
+            '                aFieldDesc.ID = ""
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' Index
+            '                Call .AddIndex("PrimaryKey", PrimaryColumnNames, isprimarykey:=True)
+            '                ' persist
+            '                .Persist()
+            '                ' change the database
+            '                .CreateObjectSchema()
+            '            End With
+
+            '            CreateSchema = True
+            '            Exit Function
+
+            '            ' Handle the error
+            'error_handle:
+            '            Call CoreMessageHandler(subname:="clsOTDBXChangeConfig.createSchema")
+            '            CreateSchema = False
         End Function
         ''' <summary>
         ''' creates a persistable object with primary key
@@ -6719,14 +6730,14 @@ error_handle:
             For Each anObject In Me.ObjectsByOrderNo
 
                 ' special handling for special objects
-                Select Case LCase(anObject.Objectname)
+                Select Case anObject.Objectname.tolower
 
                     ' currschedules
-                    Case LCase(CurrentSchedule.ConstTableID)
+                    Case CurrentSchedule.ConstTableID.tolower
                         flag = True
 
                         ' Tracks
-                    Case LCase(Track.constTableID)
+                    Case Track.constTableID.tolower
                         flag = True
 
                         ' HACK: CARTYPES
@@ -6734,11 +6745,11 @@ error_handle:
                         flag = flag And aDeliverable.runCartypesXChange(aMapping, Me, msglog)
 
                         ' schedules
-                    Case LCase(Schedule.constTableID)
+                    Case Schedule.constTableID.tolower
                         flag = flag And aSchedule.runXChangeOLD(aMapping, Me, msglog)
 
                         ' Targets
-                    Case LCase(Target.constTableID)
+                    Case Target.constTableID.tolower
                         flag = flag And aTarget.runXChangeOLD(aMapping, Me, msglog)
 
                     Case Else
@@ -6761,10 +6772,10 @@ error_handle:
         Optional ByVal NoCompounds As Boolean = False) As Boolean
             Dim aTable As iormDataStore
             Dim aRecord As ormRecord
-            Dim PkFields As New Dictionary(Of String, ObjectEntryDefinition)
+            Dim PkFields As New Dictionary(Of String, iObjectEntry)
             Dim OLDVALUES As New Dictionary(Of Object, Object)
             Dim aConfigmember As clsOTDBXChangeMember
-            Dim anObjectEntry As ObjectEntryDefinition
+            Dim anObjectEntry As iObjectEntry
             Dim pkarry() As Object
             Dim m As Object
             Dim Value As Object
@@ -6803,7 +6814,7 @@ error_handle:
             End If
 
             ' save the primary fields
-            For Each m In aDefTable.GetPrimaryKeyFieldNames
+            For Each m In aDefTable.GetKeyNames
                 anObjectEntry = aDefTable.GetEntry(m)
                 Call PkFields.Add(value:=anObjectEntry, key:=m)
             Next m
@@ -6811,7 +6822,7 @@ error_handle:
             If PkFields.Count = 0 Then
                 WriteLine("??? - no primary keys")
                 Call CoreMessageHandler(message:="primary key of table is Nothing in xchange config:" & XCHANGEOBJECT.Configname,
-                                      arg1:=aDefTable.name,
+                                      arg1:=aDefTable.ID,
                                       subname:="clsOTDBXChangeConfig.runDefaultXChange4Object")
                 runDefaultXChange4Object = False
             End If
@@ -6825,7 +6836,7 @@ error_handle:
             ReDim pkarry(0 To PkFields.Count - 1)
             For Each anObjectEntry In PkFields.Values
 
-                aConfigmember = Me.AttributeByFieldName(fieldname:=anObjectEntry.name,
+                aConfigmember = Me.AttributeByFieldName(fieldname:=anObjectEntry.Entryname,
                                                         tablename:=XCHANGEOBJECT.Objectname)
                 ' if no Configmember or no value of ConfigMember -> look for aliases
                 If aConfigmember Is Nothing OrElse Not MAPPING.ContainsKey(key:=aConfigmember.ordinal.Value) Then
@@ -6841,12 +6852,12 @@ error_handle:
                 ' still nothing ?!
                 If aConfigmember Is Nothing Then
                     Call CoreMessageHandler(message:="a primary key is not a xchange config member of " & XCHANGEOBJECT.Configname,
-                                          arg1:=anObjectEntry.name, entryname:=anObjectEntry.name, tablename:=XCHANGEOBJECT.Objectname,
+                                          arg1:=anObjectEntry.Entryname, entryname:=anObjectEntry.Entryname, tablename:=XCHANGEOBJECT.Objectname,
                                           subname:="clsOTDBXChangeConfig.runDefaultXChange4Object", break:=False)
                     Return False
                 ElseIf Not MAPPING.ContainsKey(key:=aConfigmember.ordinal.Value) Then
                     Call CoreMessageHandler(message:="a primary key is a xchange config member of " & XCHANGEOBJECT.Configname & " but has no value in the mapping",
-                                          arg1:=anObjectEntry.name, entryname:=anObjectEntry.name, tablename:=XCHANGEOBJECT.Objectname,
+                                          arg1:=anObjectEntry.Entryname, entryname:=anObjectEntry.Entryname, tablename:=XCHANGEOBJECT.Objectname,
                                           subname:="clsOTDBXChangeConfig.runDefaultXChange4Object", break:=False)
                     Return False
                 Else
@@ -6861,17 +6872,17 @@ error_handle:
                             If Not OLDVALUES.ContainsKey(key:=aConfigmember.ordinal.Value) Then
                                 Call OLDVALUES.Add(key:=aConfigmember.ordinal.Value, value:=outvalue)
                             End If
-                            pkarry(anObjectEntry.IndexPosition - 1) = outvalue
+                            pkarry(DirectCast(anObjectEntry, ObjectColumnEntry).PrimaryKeyOrdinal - 1) = outvalue
                         Else
                             Call CoreMessageHandler(message:="a primary key is a xchange config member of " & XCHANGEOBJECT.Configname & " but value couldn't converted",
-                                                  arg1:=anObjectEntry.name, entryname:=anObjectEntry.name, tablename:=XCHANGEOBJECT.Objectname,
+                                                  arg1:=anObjectEntry.Entryname, entryname:=anObjectEntry.Entryname, tablename:=XCHANGEOBJECT.Objectname,
                                                   subname:="clsOTDBXChangeConfig.runDefaultXChange4Object", break:=False)
                             Return False
                         End If
                     Else
                         Call CoreMessageHandler(message:="a primary key is a xchange config member of " & XCHANGEOBJECT.Configname _
                                               & " but has no value in the mapping",
-                                              arg1:=anObjectEntry.name, entryname:=anObjectEntry.name, tablename:=XCHANGEOBJECT.Objectname,
+                                              arg1:=anObjectEntry.Entryname, entryname:=anObjectEntry.Entryname, tablename:=XCHANGEOBJECT.Objectname,
                                               subname:="clsOTDBXChangeConfig.runDefaultXChange4Object", break:=False)
                         Return False
                     End If
@@ -6951,8 +6962,8 @@ error_handle:
                     For Each m In aDefTable.Entries
                         anObjectEntry = m
 
-                        If anObjectEntry.ID <> "" And anObjectEntry.IsField Then
-                            aConfigmember = Me.AttributeByFieldName(anObjectEntry.name, tablename:=anObjectEntry.Objectname)
+                        If anObjectEntry.XID <> "" And anObjectEntry.IsColumn Then
+                            aConfigmember = Me.AttributeByFieldName(anObjectEntry.Entryname, tablename:=anObjectEntry.Objectname)
                             If Not aConfigmember Is Nothing Then
                                 If aConfigmember.IsXChanged And
                                 (aConfigmember.XChangeCmd = otXChangeCommandType.Update Or aConfigmember.XChangeCmd = otXChangeCommandType.UpdateCreate) Then
@@ -6964,7 +6975,7 @@ error_handle:
                                                                 oldValuesMap:=OLDVALUES, MSGLOG:=MSGLOG, FORCE:=CreateNewFlag) Then
                                         If aConfigmember.XChangeCmd <> otXChangeCommandType.Read And outvalue <> Nothing Then
                                             persistflag = True
-                                            Call aRecord.SetValue(anObjectEntry.name, outvalue)
+                                            Call aRecord.SetValue(DirectCast(anObjectEntry, ObjectColumnEntry).Columnname, outvalue)
                                         End If
                                     End If
                                 End If
@@ -7018,13 +7029,13 @@ error_handle:
             Dim aTable As iormDataStore
             Dim aRecord As ormRecord
             Dim aCompRecordColl As New List(Of ormRecord)
-            Dim aCompTableDir As New Dictionary(Of String, Dictionary(Of String, ObjectEntryDefinition))
+            Dim aCompTableDir As New Dictionary(Of String, Dictionary(Of String, iObjectEntry))
             Dim compoundKeys As Object
             Dim aCompField As Object
             Dim aCompValue As Object
             Dim tablename As Object
-            Dim aTableEntry As ObjectEntryDefinition
-            Dim anEntryDir As New Dictionary(Of String, ObjectEntryDefinition)
+            Dim anObjectEntry As iObjectEntry
+            Dim anEntryDir As New Dictionary(Of String, iObjectEntry)
             Dim aKey As String
             Dim pkarry() As Object
             Dim i As Integer
@@ -7040,17 +7051,17 @@ error_handle:
 
             ' store each Compound
             For Each m In TABLE.Entries
-                aTableEntry = m
-                If aTableEntry.ID <> "" And aTableEntry.IsCompound Then
-                    If aCompTableDir.ContainsKey(key:=aTableEntry.CompoundTablename) Then
-                        anEntryDir = aCompTableDir.Item(key:=aTableEntry.CompoundTablename)
+                anObjectEntry = m
+                If anObjectEntry.XID <> "" And anObjectEntry.isCompound Then
+                    If aCompTableDir.ContainsKey(key:=DirectCast(anObjectEntry, ObjectCompoundEntry).CompoundTablename) Then
+                        anEntryDir = aCompTableDir.Item(key:=DirectCast(anObjectEntry, ObjectCompoundEntry).CompoundTablename)
                     Else
-                        anEntryDir = New Dictionary(Of String, ObjectEntryDefinition)
-                        Call aCompTableDir.Add(key:=aTableEntry.CompoundTablename, value:=anEntryDir)
+                        anEntryDir = New Dictionary(Of String, iObjectEntry)
+                        Call aCompTableDir.Add(key:=DirectCast(anObjectEntry, ObjectCompoundEntry).CompoundTablename, value:=anEntryDir)
                     End If
                     ' add the Entry
-                    If Not anEntryDir.ContainsKey(key:=aTableEntry.ID) Then
-                        Call anEntryDir.Add(key:=UCase(aTableEntry.ID), value:=aTableEntry)
+                    If Not anEntryDir.ContainsKey(key:=anObjectEntry.XID) Then
+                        Call anEntryDir.Add(key:=UCase(anObjectEntry.XID), value:=anObjectEntry)
                     Else
                         Assert(False)
 
@@ -7061,7 +7072,7 @@ error_handle:
             '**********************************************************
             '**** SPECIAL HANDLING OF tblschedules -> Milestones
             '**********************************************************
-            If LCase(TABLE.name) = LCase(aSchedule.TableID) Then
+            If TABLE.ID.ToLower = aSchedule.TableID.ToLower Then
                 Dim anUID As Long
                 Dim anUPDC As Long
 
@@ -7077,7 +7088,7 @@ error_handle:
                 End If
                 ' found
                 If anUPDC <> 0 And anUID <> 0 Then
-                    If aSchedule.loadBy(UID:=anUID, updc:=anUPDC) Then
+                    If aSchedule.Inject(UID:=anUID, updc:=anUPDC) Then
                         specialHandling = True
                     Else
                         specialHandling = False
@@ -7097,14 +7108,14 @@ error_handle:
                 ' get the Entries
                 aTableName = CStr(tablename)
                 anEntryDir = aCompTableDir.Item(key:=aTableName)
-                aTableEntry = anEntryDir.First.Value      'first item
-                compIDFieldname = aTableEntry.CompoundIDFieldname
-                compValueFieldname = aTableEntry.CompoundValueFieldname
+                anObjectEntry = anEntryDir.First.Value      'first item
+                compIDFieldname = DirectCast(anObjectEntry, ObjectCompoundEntry).CompoundIDFieldname
+                compValueFieldname = DirectCast(anObjectEntry, ObjectCompoundEntry).CompoundValueFieldname
 
                 ' look up the keys
-                compoundKeys = aTableEntry.CompoundRelation
+                compoundKeys = DirectCast(anObjectEntry, ObjectCompoundEntry).CompoundRelation
                 If Not IsArrayInitialized(compoundKeys) Then
-                    Call CoreMessageHandler(arg1:=aTableEntry.name, message:="no compound relation found for fieldname", subname:="clsOTDBXchangeConfig.fillMappingWithCompounds")
+                    Call CoreMessageHandler(arg1:=anObjectEntry.Entryname, message:="no compound relation found for fieldname", subname:="clsOTDBXchangeConfig.fillMappingWithCompounds")
                     fillMappingWithCompounds = False
                     Exit Function
                 End If
@@ -7117,14 +7128,14 @@ error_handle:
                 '**********************************************************
                 '**** SPECIAL HANDLING OF tblschedules -> Milestones
                 '**********************************************************
-                If LCase(aTableName) = LCase(ScheduleMilestone.constTableID) And specialHandling Then
+                If LCase(aTableName) = ScheduleMilestone.constTableID.ToLower And specialHandling Then
 
-                    For Each aTableEntry In TABLE.Entries
+                    For Each anObjectEntry In TABLE.Entries
                         'aTableEntry = m
-                        If aTableEntry.ID <> "" And aTableEntry.IsCompound Then
-                            aCompValue = aSchedule.GetMilestoneValue(ID:=aTableEntry.ID)
+                        If anObjectEntry.XID <> "" And anObjectEntry.isCompound Then
+                            aCompValue = aSchedule.GetMilestoneValue(ID:=anObjectEntry.XID)
                             'Set aTableEntry = anEntryDir.Item(Key:=LCase(aCompField)) -> should be the same
-                            aConfigmember = Me.AttributeByFieldName(fieldname:=aTableEntry.ID, tablename:=aTableEntry.Objectname)
+                            aConfigmember = Me.AttributeByFieldName(fieldname:=anObjectEntry.XID, tablename:=anObjectEntry.Objectname)
                             aVAlue = Nothing
                             ' map it back -> set values which are not set (e.g. other keys)
                             If Not aConfigmember Is Nothing Then
@@ -7224,7 +7235,7 @@ error_handle:
             For Each anObject In Me.ObjectsByOrderNo
 
                 ' special handling for special objects
-                Select Case LCase(anObject.Objectname)
+                Select Case anObject.Objectname.tolower
 
                     ' currtargets
                     Case "tblcurrtargets"
@@ -7267,7 +7278,7 @@ error_handle:
             Dim aRecord As ormRecord
             Dim PkFields As Collection
             Dim aConfigmember As clsOTDBXChangeMember
-            Dim aFieldDef As ObjectEntryDefinition
+            Dim aFieldDef As iObjectEntry
             Dim pkarr() As Object
             Dim m As Object
             Dim Value As Object
@@ -7303,15 +7314,15 @@ error_handle:
             ' run through the definition and get the mapped value -> check on it
             For Each m In aDefTable.Entries
                 aFieldDef = m
-                If aFieldDef.ID <> "" Then
+                If aFieldDef.XID <> "" Then
 
-                    aConfigmember = Me.AttributeByFieldName(aFieldDef.Name, tablename:=aFieldDef.Objectname)
+                    aConfigmember = Me.AttributeByFieldName(aFieldDef.Entryname, tablename:=aFieldDef.Objectname)
                     If Not aConfigmember Is Nothing Then
                         If aMapping.ContainsKey(key:=aConfigmember.ordinal.Value) Then
                             Value = aMapping.Item(key:=aConfigmember.ordinal.Value)
                             ' check with the help of the FieldDef
                             If Not IsEmpty(Value) Then
-                                flag = flag And aFieldDef.CheckOnFieldType(Value, MSGLOG)
+                                'flag = flag And aFieldDef.CheckOnFieldType(Value, MSGLOG)
                             End If
                         End If
                     End If
@@ -7320,7 +7331,7 @@ error_handle:
 
             '** say checking is ok
             If flag Then
-                Call MSGLOG.AddMsg("191", Nothing, Nothing, aFieldDef.ID, aFieldDef.Datatype)
+                Call MSGLOG.AddMsg("191", Nothing, Nothing, aFieldDef.XID, aFieldDef.Datatype)
             End If
             runDefaultXPreCheck = flag
         End Function
@@ -7329,7 +7340,7 @@ error_handle:
         '****
         Public Function GetMemberValue(Optional ByVal ID As String = "",
                                         Optional ByRef changemember As clsOTDBXChangeMember = Nothing,
-                                        Optional ByRef tableentry As ObjectEntryDefinition = Nothing,
+                                        Optional ByRef tableentry As iObjectEntry = Nothing,
                                         Optional ByRef mapping As Dictionary(Of Object, Object) = Nothing,
                                         Optional ByVal objectname As String = ""
                                         ) As Object
@@ -7362,7 +7373,7 @@ error_handle:
                 IDs = IDs.Union(New String() {changemember.ID}).ToArray
                 'Call ConcatenateArrays(IDs, Array(CHANGEMEMBER.ID))
             ElseIf Not tableentry Is Nothing Then
-                IDs = IDs.Union(New String() {tableentry.ID}).ToArray
+                IDs = IDs.Union(New String() {tableentry.XID}).ToArray
                 'Call ConcatenateArrays(IDs, Array(TABLEENTRY.ID))
             End If
             '** add aliases
@@ -7387,7 +7398,7 @@ error_handle:
             For Each anID In IDs
                 aChangeMember = Me.AttributeByID(ID:=anID, objectname:=objectname)
                 If aChangeMember Is Nothing Then
-                    For Each anEntryDef As ObjectEntryDefinition In CurrentSession.Objects.GetEntryByID(id:=anID, objectname:=objectname)
+                    For Each anEntryDef As iObjectEntry In CurrentSession.Objects.GetEntryByID(id:=anID, objectname:=objectname)
                         For Each aliasid In anEntryDef.Aliases
                             aChangeMember = Me.AttributeByAlias(alias:=aliasid, objectname:=objectname)
                             '* found
@@ -7428,7 +7439,7 @@ error_handle:
         ByRef RECORD As ormRecord) As Boolean
             '*** now we copy the object
             Dim aDefTable As New ObjectDefinition
-            Dim aFieldDef As ObjectEntryDefinition
+            Dim aFieldDef As iObjectEntry
             Dim aConfigmember As clsOTDBXChangeMember
             Dim m As Object
             Dim aVAlue As Object
@@ -7448,8 +7459,8 @@ error_handle:
             ' go through the table and overwrite the Record if the rights are there
             For Each m In aDefTable.Entries
                 aFieldDef = m
-                If aFieldDef.ID <> "" Then
-                    aConfigmember = Me.AttributeByFieldName(aFieldDef.Name, tablename:=aFieldDef.Objectname)
+                If aFieldDef.XID <> "" Then
+                    aConfigmember = Me.AttributeByFieldName(aFieldDef.Entryname, tablename:=aFieldDef.Objectname)
                     If Not aConfigmember Is Nothing Then
                         ' we have a value AND update !
                         If MAPPING.ContainsKey(key:=aConfigmember.ordinal.Value) And
@@ -7459,9 +7470,9 @@ error_handle:
                             If aConfigmember.convertValue2DB(inValue:=aVAlue, outvalue:=outvalue, MSGLOG:=MSGLOG) Then
                                 persistflag = True
                                 '** set value
-                                If aFieldDef.Name <> ConstFNCreatedOn And aFieldDef.Name <> ConstFNUpdatedOn Then
+                                If aFieldDef.Entryname <> ConstFNCreatedOn And aFieldDef.Entryname <> ConstFNUpdatedOn Then
                                     '* set the record
-                                    Call RECORD.SetValue(aFieldDef.Name, outvalue)
+                                    Call RECORD.SetValue(aFieldDef.Entryname, outvalue)
                                 End If
                             Else
                                 '*** problem > msglog
@@ -7502,8 +7513,8 @@ error_handle:
                         Dim aNewObject As New clsOTDBXChangeConfig
                         aNewObject = New clsOTDBXChangeConfig
                         If aNewObject.Infuse(aRecord) Then
-                            ' loadby to get all items
-                            If aNewObject.LoadBy(aNewObject.Configname) Then
+                            ' Inject to get all items
+                            If aNewObject.Inject(aNewObject.Configname) Then
                                 aList.Add(item:=aNewObject)
                             End If
                         End If
@@ -7535,101 +7546,101 @@ error_handle:
         '*** Meta Definition PErsistency
         <ormSchemaTableAttribute(version:=3)> Public Const ConstTableID = "tblXChangeConfigMembers"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Text, size:=50, primaryKeyordinal:=1,
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, primaryKeyordinal:=1,
             title:="XChangeConfigID", description:="name of the XchangeConfiguration")>
         Public Const ConstFNID = "configname"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Long, primaryKeyordinal:=2,
+        <ormObjectEntry(typeid:=otFieldDataType.Long, primaryKeyordinal:=2,
            title:="IndexNo", description:="position in the the XchangeConfiguration")>
         Public Const ConstFNIDNo = "idno"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Text, size:=100,
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100,
            title:="ObjectName", description:="Name of the ObjectDefinition")>
         Public Const constFNObjectname = "objectname"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Text, size:=100,
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100,
           title:="EntryName", description:="Name of the Entry in theObjectDefinition")>
         Public Const constFNEntryname = "entryname"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Text, size:=255,
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=255,
          title:="Description", description:="Description of the Entry")>
         Public Const constFNDesc = "desc"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Memo, title:="Comment", description:="Comment")>
+        <ormObjectEntry(typeid:=otFieldDataType.Memo, title:="Comment", description:="Comment")>
         Public Const constFNComment = "cmt"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Text, size:=50,
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50,
          title:="XChange ID", description:="ID  of the Attribute in theObjectDefinition")>
         Public Const constFNXID = "id"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Text, size:=250,
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=250,
         title:="Parameter", description:="Parameter for the Attribute")>
         Public Const constFNParameter = "parameter"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Text, size:=250,
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=250,
         title:="ordinal", description:="ordinal for the Attribute Mapping")>
         Public Const constFNordinal = "ordinal"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Text, size:=250,
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=250,
        title:="Relation", description:="Relation for the Attribute")>
         Public Const constFNRelation = "relation"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Bool, title:="Is Object Entry", description:="Set if this is an object entry")>
+        <ormObjectEntry(typeid:=otFieldDataType.Bool, title:="Is Object Entry", description:="Set if this is an object entry")>
         Public Const constFNIsObjectEntry = "isobj"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Bool, title:="Is Attribute Entry", description:="Set if this is an compound entry")>
+        <ormObjectEntry(typeid:=otFieldDataType.Bool, title:="Is Attribute Entry", description:="Set if this is an compound entry")>
         Public Const constFNIsAttributeEntry = "isattr"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Bool, title:="Is Compound Entry", description:="Set if this is an compound entry")>
+        <ormObjectEntry(typeid:=otFieldDataType.Bool, title:="Is Compound Entry", description:="Set if this is an compound entry")>
         Public Const constFNIsCompoundEntry = "iscomp"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Bool, title:="Is Entry Read-Only", description:="Set if this entry is read-only - value in OTDB cannot be overwritten")>
+        <ormObjectEntry(typeid:=otFieldDataType.Bool, title:="Is Entry Read-Only", description:="Set if this entry is read-only - value in OTDB cannot be overwritten")>
         Public Const constFNIsReadonly = "isro"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Bool, title:="Is ordered", description:="Set if this entry is ordered")>
+        <ormObjectEntry(typeid:=otFieldDataType.Bool, title:="Is ordered", description:="Set if this entry is ordered")>
         Public Const constFNIsOrder = "isorder"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Bool, title:="Is dynamic attribute", description:="Set if this entry is dynamic")>
+        <ormObjectEntry(typeid:=otFieldDataType.Bool, title:="Is dynamic attribute", description:="Set if this entry is dynamic")>
         Public Const constFNIsDynamic = "isdynamic"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Bool, title:="Attribute is not exchanged", description:="Set if this attribute is not exchanged")>
+        <ormObjectEntry(typeid:=otFieldDataType.Bool, title:="Attribute is not exchanged", description:="Set if this attribute is not exchanged")>
         Public Const constFNIsNotXChanged = "isnxchg"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.List, size:=50, parameter:="parameter_xcmd_list",
+        <ormObjectEntry(typeid:=otFieldDataType.List, size:=50, parameter:="parameter_xcmd_list",
             title:="XChange Command", description:="XChangeCommand to run on this")>
         Public Const constFNXCMD = "xcmd"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Long, title:="Order Number", description:="Order number in which entriy is processed")>
+        <ormObjectEntry(typeid:=otFieldDataType.Long, title:="Order Number", description:="Order number in which entriy is processed")>
         Public Const constFNOrderNo = "orderno"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Text, size:=250, title:="MessageLogTag", description:="Message Log Tag")>
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=250, title:="MessageLogTag", description:="Message Log Tag")>
         Public Const constFNMsgLogTag = "msglogtag"
 
 
         ' fields
-        <ormColumnMappingAttribute(ColumnName:=ConstFNID)> Private _configname As String = ""
-        <ormColumnMappingAttribute(ColumnName:=ConstFNIDNo)> Private _idno As Long
-        <ormColumnMappingAttribute(ColumnName:=ConstFNXID)> Private _xid As String = ""
-        <ormColumnMappingAttribute(ColumnName:=ConstFNObjectname)> Private _objectname As String = ""
-        <ormColumnMappingAttribute(ColumnName:=ConstFNEntryname)> Private _entryname As String = ""
-        <ormColumnMappingAttribute(ColumnName:=ConstFNRelation)> Private _relation As String = ""
-        <ormColumnMappingAttribute(ColumnName:=ConstFNParameter)> Private _parameter As String = ""
+        <ormEntryMapping(EntryName:=ConstFNID)> Private _configname As String = ""
+        <ormEntryMapping(EntryName:=ConstFNIDNo)> Private _idno As Long
+        <ormEntryMapping(EntryName:=ConstFNXID)> Private _xid As String = ""
+        <ormEntryMapping(EntryName:=ConstFNObjectname)> Private _objectname As String = ""
+        <ormEntryMapping(EntryName:=ConstFNEntryname)> Private _entryname As String = ""
+        <ormEntryMapping(EntryName:=ConstFNRelation)> Private _relation As String = ""
+        <ormEntryMapping(EntryName:=ConstFNParameter)> Private _parameter As String = ""
         '<otColumnMapping(ColumnName:=ConstFNordinal)> do not since we cannot map it
         Private _ordinal As Ordinal = New Ordinal(0)
-        <ormColumnMappingAttribute(ColumnName:=ConstFNComment)> Private _cmt As String = ""
-        <ormColumnMappingAttribute(ColumnName:=ConstFNDesc)> Private _desc As String = ""
-        <ormColumnMappingAttribute(ColumnName:=ConstFNIsNotXChanged)> Private _isNotXChanged As Boolean
-        <ormColumnMappingAttribute(ColumnName:=ConstFNIsReadonly)> Private _isReadOnly As Boolean
-        <ormColumnMappingAttribute(ColumnName:=ConstFNIsAttributeEntry)> Private _isAttributeEntry As Boolean
-        <ormColumnMappingAttribute(ColumnName:=ConstFNIsObjectEntry)> Private _isObjectEntry As Boolean
-        <ormColumnMappingAttribute(ColumnName:=ConstFNIsCompoundEntry)> Private _isCompundEntry As Boolean
-        <ormColumnMappingAttribute(ColumnName:=ConstFNXCMD)> Private _xcmd As otXChangeCommandType
-        <ormColumnMappingAttribute(ColumnName:=ConstFNIsOrder)> Private _isOrdered As Boolean
-        <ormColumnMappingAttribute(ColumnName:=ConstFNOrderNo)> Private _orderNo As Long
-        <ormColumnMappingAttribute(ColumnName:=ConstFNIsDynamic)> Private _isDynamicAttribute As Boolean
+        <ormEntryMapping(EntryName:=ConstFNComment)> Private _cmt As String = ""
+        <ormEntryMapping(EntryName:=ConstFNDesc)> Private _desc As String = ""
+        <ormEntryMapping(EntryName:=ConstFNIsNotXChanged)> Private _isNotXChanged As Boolean
+        <ormEntryMapping(EntryName:=ConstFNIsReadonly)> Private _isReadOnly As Boolean
+        <ormEntryMapping(EntryName:=ConstFNIsAttributeEntry)> Private _isAttributeEntry As Boolean
+        <ormEntryMapping(EntryName:=ConstFNIsObjectEntry)> Private _isObjectEntry As Boolean
+        <ormEntryMapping(EntryName:=ConstFNIsCompoundEntry)> Private _isCompundEntry As Boolean
+        <ormEntryMapping(EntryName:=ConstFNXCMD)> Private _xcmd As otXChangeCommandType
+        <ormEntryMapping(EntryName:=ConstFNIsOrder)> Private _isOrdered As Boolean
+        <ormEntryMapping(EntryName:=ConstFNOrderNo)> Private _orderNo As Long
+        <ormEntryMapping(EntryName:=ConstFNIsDynamic)> Private _isDynamicAttribute As Boolean
 
         'dynamic
-        Private _EntryDefinition As ObjectEntryDefinition
+        Private _EntryDefinition As iObjectEntry
         Private _ObjectDefinition As ObjectDefinition
         Private _aliases As String()    ' not saved !
         Private _msglog As New ObjectLog
@@ -7755,7 +7766,7 @@ error_handle:
         ''' <remarks></remarks>
         ReadOnly Property Aliases() As String()
             Get
-                If Not Me.ObjectEntryDefinition Is Nothing Then
+                If Not Me.[ObjectEntryDefinition] Is Nothing Then
                     Aliases = _EntryDefinition.Aliases
                 Else
                     Aliases = New String() {}
@@ -7773,7 +7784,7 @@ error_handle:
         ''' <remarks></remarks>
         ReadOnly Property HasAlias([alias] As String) As Boolean
             Get
-                If Not Me.ObjectEntryDefinition Is Nothing Then
+                If Not Me.[ObjectEntryDefinition] Is Nothing Then
                     _aliases = _EntryDefinition.Aliases
                 Else
                     Return False
@@ -7806,9 +7817,9 @@ error_handle:
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property [ObjectEntryDefinition] As ObjectEntryDefinition
+        Public Property [ObjectEntryDefinition] As iObjectEntry
             Get
-                Dim anEntryDefinition As ObjectEntryDefinition
+                Dim anEntryDefinition As iObjectEntry
                 If (Me.IsCreated Or Me.IsLoaded) And Me.IsAttributeEntry And _EntryDefinition Is Nothing Then
 
                     If Me.Entryname <> "" And Me.Objectname <> "" Then
@@ -7827,7 +7838,7 @@ error_handle:
                 ' return
                 [ObjectEntryDefinition] = Nothing
             End Get
-            Set(value As ObjectEntryDefinition)
+            Set(value As iObjectEntry)
                 _EntryDefinition = value
             End Set
         End Property
@@ -8018,9 +8029,9 @@ error_handle:
         ''' <remarks></remarks>
         ReadOnly Property IsCompound() As Boolean
             Get
-                Dim aFieldDef As ObjectEntryDefinition
+                Dim aFieldDef As iObjectEntry
                 If Me.IsAttributeEntry Then
-                    aFieldDef = Me.ObjectEntryDefinition
+                    aFieldDef = Me.[ObjectEntryDefinition]
                     If Not aFieldDef Is Nothing Then
                         IsCompound = aFieldDef.IsCompound
                         Exit Property
@@ -8038,11 +8049,11 @@ error_handle:
         ''' <remarks></remarks>
         ReadOnly Property IsField() As Boolean
             Get
-                Dim aFieldDef As ObjectEntryDefinition
+                Dim aFieldDef As iObjectEntry
                 If Me.IsAttributeEntry Then
                     aFieldDef = Me.[ObjectEntryDefinition]
                     If Not aFieldDef Is Nothing Then
-                        IsField = aFieldDef.IsField
+                        IsField = aFieldDef.IsColumn
                         Exit Property
                     End If
                 End If
@@ -8198,9 +8209,9 @@ error_handle:
         ''' <param name="indexno"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Function LoadBy(ByVal configname As String, ByVal indexno As Long) As Boolean
+        Public Overloads Function Inject(ByVal configname As String, ByVal indexno As Long) As Boolean
             Dim pkarry() As Object = {LCase(configname), indexno}
-            Return MyBase.LoadBy(pkarry)
+            Return MyBase.Inject(pkarry)
         End Function
         ''' <summary>
         ''' Create Persistence Schema
@@ -8210,184 +8221,184 @@ error_handle:
         ''' <remarks></remarks>
         Public Overloads Shared Function CreateSchema(Optional silent As Boolean = True) As Boolean
 
-            Return ormDataObject.CreateSchema(Of clsOTDBXChangeMember)()
+            Return ormDataObject.CreateDataObjectSchema(Of clsOTDBXChangeMember)()
 
 
-            Dim aFieldDesc As New ormFieldDescription
-            Dim PrimaryColumnNames As New Collection
-            Dim aTable As New ObjectDefinition
+            '            Dim aFieldDesc As New ormFieldDescription
+            '            Dim PrimaryColumnNames As New Collection
+            '            Dim aTable As New ObjectDefinition
 
 
-            aFieldDesc.ID = ""
-            aFieldDesc.Parameter = ""
-            aFieldDesc.Tablename = constTableID
+            '            aFieldDesc.ID = ""
+            '            aFieldDesc.Parameter = ""
+            '            aFieldDesc.Tablename = constTableID
 
-            With aTable
-                .Create(constTableID)
-                .Delete()
+            '            With aTable
+            '                .Create(constTableID)
+            '                .Delete()
 
-                '***
-                '*** Fields
-                '****
+            '                '***
+            '                '*** Fields
+            '                '****
 
-                'Type
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = constFNID
-                aFieldDesc.ColumnName = constFNID
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
+            '                'Type
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = constFNID
+            '                aFieldDesc.ColumnName = constFNID
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
 
-                'index pos
-                aFieldDesc.Datatype = otFieldDataType.[Long]
-                aFieldDesc.Title = "posno in index (primary key)"
-                aFieldDesc.ColumnName = constFNIDNo
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
+            '                'index pos
+            '                aFieldDesc.Datatype = otFieldDataType.[Long]
+            '                aFieldDesc.Title = "posno in index (primary key)"
+            '                aFieldDesc.ColumnName = constFNIDNo
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
 
-                'objectname
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "objectname"
-                aFieldDesc.ColumnName = "objectname"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-
-                'Fieldnames
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "fieldname"
-                aFieldDesc.ColumnName = "fieldname"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                'objectname
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "description"
-                aFieldDesc.ColumnName = "desc"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                'objectname
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "comment"
-                aFieldDesc.ColumnName = "cmt"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                'objectname
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "objectname"
+            '                aFieldDesc.ColumnName = "objectname"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
 
-                ' id
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "xChange id"
-                aFieldDesc.ColumnName = "id"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                'Fieldnames
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "fieldname"
+            '                aFieldDesc.ColumnName = "fieldname"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                'title
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "title"
-                aFieldDesc.ColumnName = "title"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                'objectname
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "description"
+            '                aFieldDesc.ColumnName = "desc"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                'Parameter
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "Parameter"
-                aFieldDesc.ColumnName = "parameter"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                'objectname
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "comment"
+            '                aFieldDesc.ColumnName = "cmt"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                'ordinal
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "ordinal key for mapping"
-                aFieldDesc.ColumnName = "ordinal"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                'Relation
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "Relation"
-                aFieldDesc.ColumnName = "relation"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' id
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "xChange id"
+            '                aFieldDesc.ColumnName = "id"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                '
-                aFieldDesc.Datatype = otFieldDataType.Bool
-                aFieldDesc.Title = "is an ObjectEntry"
-                aFieldDesc.ColumnName = "isobj"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                'title
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "title"
+            '                aFieldDesc.ColumnName = "title"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                '
-                aFieldDesc.Datatype = otFieldDataType.Bool
-                aFieldDesc.Title = "is an Attribute"
-                aFieldDesc.ColumnName = "isattr"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                'Parameter
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "Parameter"
+            '                aFieldDesc.ColumnName = "parameter"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                'aFieldDesc.dataType = OTDBFieldDataType.bool
-                'aFieldDesc.title = "is a Compound"
-                'aFieldDesc.Name = "iscomp"
-                'Call .addFieldDesc(FIELDDESC:=aFieldDesc)
+            '                'ordinal
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "ordinal key for mapping"
+            '                aFieldDesc.ColumnName = "ordinal"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                '
-                aFieldDesc.Datatype = otFieldDataType.Bool
-                aFieldDesc.Title = "is read only"
-                aFieldDesc.ColumnName = "isro"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                'Relation
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "Relation"
+            '                aFieldDesc.ColumnName = "relation"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                'dynamic
-                aFieldDesc.Datatype = otFieldDataType.Bool
-                aFieldDesc.Title = "is dynamic attribute"
-                aFieldDesc.ColumnName = "isdynamic"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                '
-                aFieldDesc.Datatype = otFieldDataType.Bool
-                aFieldDesc.Title = "is order field"
-                aFieldDesc.ColumnName = "isorder"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                '
+            '                aFieldDesc.Datatype = otFieldDataType.Bool
+            '                aFieldDesc.Title = "is an ObjectEntry"
+            '                aFieldDesc.ColumnName = "isobj"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                aFieldDesc.Datatype = otFieldDataType.Bool
-                aFieldDesc.Title = "is not exchanged(temp)"
-                aFieldDesc.ColumnName = "isnxchg"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                '
+            '                aFieldDesc.Datatype = otFieldDataType.Bool
+            '                aFieldDesc.Title = "is an Attribute"
+            '                aFieldDesc.ColumnName = "isattr"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                '
-                aFieldDesc.Datatype = otFieldDataType.List
-                aFieldDesc.Title = "xchange command"
-                aFieldDesc.ColumnName = "xcmd"
-                aFieldDesc.Parameter = "parameter_xcmd_list"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                aFieldDesc.Parameter = ""
+            '                'aFieldDesc.dataType = OTDBFieldDataType.bool
+            '                'aFieldDesc.title = "is a Compound"
+            '                'aFieldDesc.Name = "iscomp"
+            '                'Call .addFieldDesc(FIELDDESC:=aFieldDesc)
 
-                'sort order
-                aFieldDesc.Datatype = otFieldDataType.[Long]
-                aFieldDesc.Title = "order by seq no."
-                aFieldDesc.ColumnName = "orderno"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                '
+            '                aFieldDesc.Datatype = otFieldDataType.Bool
+            '                aFieldDesc.Title = "is read only"
+            '                aFieldDesc.ColumnName = "isro"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                ' msglogtag
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "message log tag"
-                aFieldDesc.ColumnName = "msglogtag"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                'dynamic
+            '                aFieldDesc.Datatype = otFieldDataType.Bool
+            '                aFieldDesc.Title = "is dynamic attribute"
+            '                aFieldDesc.ColumnName = "isdynamic"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                '
+            '                aFieldDesc.Datatype = otFieldDataType.Bool
+            '                aFieldDesc.Title = "is order field"
+            '                aFieldDesc.ColumnName = "isorder"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                '***
-                '*** TIMESTAMP
-                '****
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "last Update"
-                aFieldDesc.ColumnName = ConstFNUpdatedOn
-                aFieldDesc.ID = ""
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                aFieldDesc.Datatype = otFieldDataType.Bool
+            '                aFieldDesc.Title = "is not exchanged(temp)"
+            '                aFieldDesc.ColumnName = "isnxchg"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "creation Date"
-                aFieldDesc.ColumnName = ConstFNCreatedOn
-                aFieldDesc.ID = ""
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' Index
-                Call .AddIndex("PrimaryKey", PrimaryColumnNames, isprimarykey:=True)
-                ' persist
-                .Persist()
-                ' change the database
-                .AlterSchema()
-            End With
+            '                '
+            '                aFieldDesc.Datatype = otFieldDataType.List
+            '                aFieldDesc.Title = "xchange command"
+            '                aFieldDesc.ColumnName = "xcmd"
+            '                aFieldDesc.Parameter = "parameter_xcmd_list"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                aFieldDesc.Parameter = ""
 
-            CreateSchema = True
-            Exit Function
+            '                'sort order
+            '                aFieldDesc.Datatype = otFieldDataType.[Long]
+            '                aFieldDesc.Title = "order by seq no."
+            '                aFieldDesc.ColumnName = "orderno"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-            ' Handle the error
-error_handle:
-            Call CoreMessageHandler(subname:="clsOTDBXChangeMember.createSchema")
-            CreateSchema = False
+            '                ' msglogtag
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "message log tag"
+            '                aFieldDesc.ColumnName = "msglogtag"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                '***
+            '                '*** TIMESTAMP
+            '                '****
+            '                aFieldDesc.Datatype = otFieldDataType.Timestamp
+            '                aFieldDesc.Title = "last Update"
+            '                aFieldDesc.ColumnName = ConstFNUpdatedOn
+            '                aFieldDesc.ID = ""
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                aFieldDesc.Datatype = otFieldDataType.Timestamp
+            '                aFieldDesc.Title = "creation Date"
+            '                aFieldDesc.ColumnName = ConstFNCreatedOn
+            '                aFieldDesc.ID = ""
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' Index
+            '                Call .AddIndex("PrimaryKey", PrimaryColumnNames, isprimarykey:=True)
+            '                ' persist
+            '                .Persist()
+            '                ' change the database
+            '                .CreateObjectSchema()
+            '            End With
+
+            '            CreateSchema = True
+            '            Exit Function
+
+            '            ' Handle the error
+            'error_handle:
+            '            Call CoreMessageHandler(subname:="clsOTDBXChangeMember.createSchema")
+            '            CreateSchema = False
         End Function
         ''' <summary>
         ''' Persist the Xchange Member
@@ -8437,11 +8448,11 @@ error_handle:
         ByRef outvalue As Object,
         Optional ByRef MSGLOG As ObjectLog = Nothing) As Boolean
 
-            Dim aFieldDef As New ObjectEntryDefinition
+            Dim aFieldDef As iObjectEntry
             Dim result As Object
             Dim index As Integer
 
-            aFieldDef = Me.ObjectEntryDefinition
+            aFieldDef = Me.[ObjectEntryDefinition]
             If aFieldDef Is Nothing Then
                 convertValue4DB = False
                 Exit Function
@@ -8473,7 +8484,7 @@ error_handle:
                     ElseIf IsNumeric(inValue) Then
                         outvalue = CLng(inValue)
                     Else
-                        Call CoreMessageHandler(subname:="clsOTDBXChangeMember.convertValue4DB", entryname:=aFieldDef.name,
+                        Call CoreMessageHandler(subname:="clsOTDBXChangeMember.convertValue4DB", entryname:=aFieldDef.Entryname,
                                               message:="OTDB data " & inValue & " is not convertible to long",
                                               arg1:=inValue)
                         convertValue4DB = False
@@ -8487,7 +8498,7 @@ error_handle:
                     ElseIf IsNumeric(inValue) Then
                         outvalue = CDbl(inValue)
                     Else
-                        Call CoreMessageHandler(subname:="clsOTDBXChangeMember.convertValue4DB", entryname:=aFieldDef.name,
+                        Call CoreMessageHandler(subname:="clsOTDBXChangeMember.convertValue4DB", entryname:=aFieldDef.Entryname,
                                               message:="OTDB data " & inValue & " is not convertible to Double",
                                               arg1:=inValue)
                         WriteLine("OTDB data " & inValue & " is not convertible to Integer")
@@ -8512,14 +8523,14 @@ error_handle:
                         '    outValue = Null
                     End If
                 Case otFieldDataType.Runtime
-                    Call CoreMessageHandler(subname:="clsOTDBXChangeMember.convertValue4DB", entryname:=aFieldDef.name,
+                    Call CoreMessageHandler(subname:="clsOTDBXChangeMember.convertValue4DB", entryname:=aFieldDef.Entryname,
                                           message:="OTDB data " & inValue & " is not convertible from/to runtime",
                                           arg1:=inValue)
 
                     outvalue = Null()
                     convertValue4DB = False
                 Case otFieldDataType.Formula
-                    Call CoreMessageHandler(subname:="clsOTDBXChangeMember.convertValue4DB", entryname:=aFieldDef.name,
+                    Call CoreMessageHandler(subname:="clsOTDBXChangeMember.convertValue4DB", entryname:=aFieldDef.Entryname,
                                           message:="OTDB data " & inValue & " is not convertible from/to formula",
                                           arg1:=inValue)
 
@@ -8537,7 +8548,7 @@ error_handle:
                         outvalue = inValue
                     Else
                         outvalue = Nothing
-                        Call CoreMessageHandler(subname:="clsOTDBXChangeMember.convertValue4DB", entryname:=aFieldDef.name,
+                        Call CoreMessageHandler(subname:="clsOTDBXChangeMember.convertValue4DB", entryname:=aFieldDef.Entryname,
                                               message:="OTDB data " & inValue & " is not convertible to Date",
                                               arg1:=inValue)
 
@@ -8575,11 +8586,11 @@ error_handle:
         Optional ByVal existingValue As Boolean = True,
         Optional ByRef MSGLOG As ObjectLog = Nothing) As Boolean
 
-            Dim aFieldDef As New ObjectEntryDefinition
+            Dim aFieldDef As iObjectEntry
             Dim result As Object
             Dim index As Integer
 
-            aFieldDef = Me.ObjectEntryDefinition
+            aFieldDef = Me.[ObjectEntryDefinition]
             If aFieldDef Is Nothing Then
                 convertValue2DB = False
                 Exit Function
@@ -8626,7 +8637,7 @@ error_handle:
                             outvalue = CLng(inValue)
                         End If
                     Else
-                        Call CoreMessageHandler(subname:="clsOTDBXChangeMember.convertValue2DB", entryname:=aFieldDef.name,
+                        Call CoreMessageHandler(subname:="clsOTDBXChangeMember.convertValue2DB", entryname:=aFieldDef.Entryname,
                                               message:="OTDB data " & inValue & " is not convertible to Double",
                                               arg1:=inValue)
                         WriteLine("OTDB data " & inValue & " is not convertible to Integer")
@@ -8652,14 +8663,14 @@ error_handle:
                         '    outValue = Null
                     End If
                 Case otFieldDataType.Runtime
-                    Call CoreMessageHandler(subname:="clsOTDBXChangeMember.convertValue2DB", entryname:=aFieldDef.name,
+                    Call CoreMessageHandler(subname:="clsOTDBXChangeMember.convertValue2DB", entryname:=aFieldDef.Entryname,
                                           message:="OTDB data " & inValue & " is not convertible from/to runtime",
                                           arg1:=inValue)
 
                     outvalue = Null()
                     convertValue2DB = False
                 Case otFieldDataType.Formula
-                    Call CoreMessageHandler(subname:="clsOTDBXChangeMember.convertValue2DB", entryname:=aFieldDef.name,
+                    Call CoreMessageHandler(subname:="clsOTDBXChangeMember.convertValue2DB", entryname:=aFieldDef.Entryname,
                                           message:="OTDB data " & inValue & " is not convertible from/to formula",
                                           arg1:=inValue)
 
@@ -8678,7 +8689,7 @@ error_handle:
                     ElseIf IsDate(inValue) Then
                         outvalue = CDate(inValue)
                     Else
-                        Call CoreMessageHandler(subname:="clsOTDBXChangeMember.convertValue2DB", entryname:=aFieldDef.name,
+                        Call CoreMessageHandler(subname:="clsOTDBXChangeMember.convertValue2DB", entryname:=aFieldDef.Entryname,
                                               message:="OTDB data " & inValue & " is not convertible to Date",
                                               arg1:=inValue)
 
@@ -8722,9 +8733,9 @@ error_handle:
         ByVal RIGHTVALUE As Object,
         Optional ByRef MSGLOG As ObjectLog = Nothing) As Integer
 
-            Dim aFieldDef As New ObjectEntryDefinition
+            Dim aFieldDef As iObjectEntry
 
-            aFieldDef = Me.ObjectEntryDefinition
+            aFieldDef = Me.[ObjectEntryDefinition]
             If aFieldDef Is Nothing Then
                 compareValues = False
                 Exit Function
@@ -8772,14 +8783,14 @@ error_handle:
                     compareValues = StrComp(LEFTVALUE, RIGHTVALUE, vbTextCompare)
                     Exit Function
                 Case otFieldDataType.Runtime
-                    Call CoreMessageHandler(subname:="clsOTDBXChangeMember.compareValues", entryname:=aFieldDef.name,
+                    Call CoreMessageHandler(subname:="clsOTDBXChangeMember.compareValues", entryname:=aFieldDef.Entryname,
                                           message:="OTDB data " & LEFTVALUE & " is not convertible from/to runtime",
                                           arg1:=LEFTVALUE)
 
                     compareValues = StrComp(CStr(LEFTVALUE), CStr(RIGHTVALUE), vbTextCompare)
                     Exit Function
                 Case otFieldDataType.Formula
-                    Call CoreMessageHandler(subname:="clsOTDBXChangeMember.compareValues", entryname:=aFieldDef.name,
+                    Call CoreMessageHandler(subname:="clsOTDBXChangeMember.compareValues", entryname:=aFieldDef.Entryname,
                                           message:="OTDB data " & LEFTVALUE & " is not convertible from/to formula",
                                           arg1:=LEFTVALUE)
 
@@ -8900,36 +8911,36 @@ error_handle:
 
     End Class
 
-    '************************************************************************************
-    '***** CLASS clsotdbXoutline is the object for a OTDBRecord (which is the datastore)
-    '*****
-    '*****
+    
     ''' <summary>
     ''' describes a XChange Outline data structure
     ''' </summary>
     ''' <remarks></remarks>
+    <ormObject(ID:=XOutline.constobjectid, version:=1, modulename:=ConstModuleXChange, description:="describes a XChange Outline data structure")> _
     Public Class XOutline
         Inherits ormDataObject
         Implements iormInfusable
         Implements iormPersistable
         Implements IEnumerable(Of XOutlineItem)
 
+        Public Const constobjectid = "XOutline"
+
         <ormSchemaTableAttribute(Version:=1)> Public Const constTableID = "tblXOutlines"
-        <ormSchemaColumnAttribute(ID:="otl1", primaryKeyordinal:=1,
+        <ormObjectEntry(ID:="otl1", primaryKeyordinal:=1,
                 typeid:=otFieldDataType.Text, size:=50,
                 description:="identifier of the outline", Title:="ID")> Public Const constFNID = "id"
-        <ormSchemaColumnAttribute(ID:="otl2",
+        <ormObjectEntry(ID:="otl2",
                typeid:=otFieldDataType.Text, size:=255,
                 description:="description of the outline", Title:="description")> Public Const constFNdesc = "desc"
-        <ormSchemaColumnAttribute(ID:="otl3",
+        <ormObjectEntry(ID:="otl3",
                        typeid:=otFieldDataType.Bool,
                         description:="True if deliverable revisions are added dynamically", Title:="DynRev")> Public Const constFNRev = "addrev"
 
 
         ' key
-        <ormColumnMappingAttribute(ColumnName:=ConstFNID)> Private _id As String = ""
-        <ormColumnMappingAttribute(ColumnName:=ConstFNdesc)> Private _desc As String = ""
-        <ormColumnMappingAttribute(ColumnName:=ConstFNRev)> Private _DynamicAddRevisions As Boolean
+        <ormEntryMapping(EntryName:=constFNID)> Private _id As String = ""
+        <ormEntryMapping(EntryName:=constFNdesc)> Private _desc As String = ""
+        <ormEntryMapping(EntryName:=constFNRev)> Private _DynamicAddRevisions As Boolean
         ' components itself per key:=posno, item:=cmid
         Private s_cmids As New OrderedDictionary()
 
@@ -9048,7 +9059,7 @@ error_handle:
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overrides Function Initialize() As Boolean
+        Public Overloads Function Initialize() As Boolean
             _IsInitialized = MyBase.Initialize
             s_cmids = New OrderedDictionary()
             Me.TableStore.SetProperty(ConstTPNCacheProperty, True)
@@ -9129,7 +9140,7 @@ error_handle:
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overloads Shared Function CreateSchema() As Boolean
-            Return ormDataObject.CreateSchema(Of XOutline)()
+            Return ormDataObject.CreateDataObjectSchema(Of XOutline)()
         End Function
         ''' <summary>
         ''' loads the X Outline from the datastore
@@ -9137,10 +9148,10 @@ error_handle:
         ''' <param name="id"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Function LoadBy(ByVal id As String) As Boolean
+        Public Overloads Function Inject(ByVal id As String) As Boolean
             Dim pkarry() As Object = {id}
 
-            If MyBase.LoadBy(pkArray:=pkarry) Then
+            If MyBase.Inject(pkArray:=pkarry) Then
                 _IsLoaded = _IsLoaded And LoadItems(id:=id)
             End If
 
@@ -9254,9 +9265,9 @@ error_handle:
 
                 '** look for Deliverable UID
                 For Each key In keys
-                    If LCase(key.ID) = "uid" Or LCase(key.ID) = "sc2" Then
+                    If key.ID.ToLower = "uid" Or key.ID.ToLower = "sc2" Then
                         aFirstRevision = New Deliverable
-                        If aFirstRevision.LoadBy(uid:=CLng(key.Value)) Then
+                        If aFirstRevision.Inject(uid:=CLng(key.Value)) Then
                             If Not aFirstRevision.IsFirstRevision Or aFirstRevision.IsDeleted Then
                                 deletedColl.Add(Item:=item)
                                 Call item.Delete()
@@ -9304,9 +9315,9 @@ error_handle:
                     returnCollection.Add(item)
                 Else
                     For Each key In keys
-                        If LCase(key.ID) = "uid" Or LCase(key.ID) = "sc2" Then
+                        If key.ID.ToLower = "uid" Or key.ID.ToLower = "sc2" Then
                             aFirstRevision = New Deliverable
-                            If Me.DynamicAddRevisions AndAlso aFirstRevision.LoadBy(uid:=CLng(key.Value)) Then
+                            If Me.DynamicAddRevisions AndAlso aFirstRevision.Inject(uid:=CLng(key.Value)) Then
                                 If aFirstRevision.IsFirstRevision And Not aFirstRevision.IsDeleted Then
                                     ' add all revisions inclusive the follow ups
                                     For Each uid As Long In Deliverable.AllRevisionUIDsBy(aFirstRevision.Uid)
@@ -9344,6 +9355,7 @@ error_handle:
     ''' </summary>
     ''' <remarks></remarks>
 
+    <ormObject(ID:=XOutlineItem.constObjectID, version:=1, modulename:=ConstModuleXChange, description:="describes a XChange Outline Item")> _
     Public Class XOutlineItem
         Inherits ormDataObject
         Implements iormInfusable
@@ -9358,7 +9370,7 @@ error_handle:
                 Return Me._text
             End Get
             Set(value As String)
-                Me._text = Value
+                Me._text = value
             End Set
         End Property
 
@@ -9371,7 +9383,7 @@ error_handle:
                 Return Me._isText
             End Get
             Set(value As Boolean)
-                Me._isText = Value
+                Me._isText = value
             End Set
         End Property
 
@@ -9384,7 +9396,7 @@ error_handle:
                 Return Me._isGroup
             End Get
             Set(value As Boolean)
-                Me._isGroup = Value
+                Me._isGroup = value
             End Set
         End Property
 
@@ -9434,53 +9446,53 @@ error_handle:
 
         End Class
 
+        Public Const constObjectID = "XOutlineItem"
         <ormSchemaTableAttribute(version:=1)> Public Const constTableID = "tblXOutlineItems"
         <ormSchemaIndexAttribute(columnname1:=constFNID, columnname2:=ConstFNordinall)> Public Const constIndexLongOutline = "longOutline"
         <ormSchemaIndexAttribute(columnname1:=ConstFNUid, columnname2:="id", columnname3:=ConstFNordinals)> Public Const constIndexUsedOutline = "UsedOutline"
 
-        <ormSchemaColumnAttribute(iD:="otl1", primaryKeyordinal:=1, typeid:=otFieldDataType.Text, size:=50,
+        <ormObjectEntry(iD:="otl1", primaryKeyordinal:=1, typeid:=otFieldDataType.Text, size:=50,
             title:="Outline ID", description:="identifier of the outline")> Public Const constFNID = "id"
 
-        <ormSchemaColumnAttribute(iD:="otli2", typeid:=otFieldDataType.Long,
+        <ormObjectEntry(iD:="otli2", typeid:=otFieldDataType.Long,
            title:="ordinal", description:="ordinal as long of the outline")> Public Const ConstFNordinall = "ordiall"
 
-        <ormSchemaColumnAttribute(iD:="otli3", primaryKeyordinal:=2, typeid:=otFieldDataType.Text, size:=255,
+        <ormObjectEntry(iD:="otli3", primaryKeyordinal:=2, typeid:=otFieldDataType.Text, size:=255,
           title:="ordinals", description:="ordinal as string of the outline item")> Public Const ConstFNordinals = "ordials"
 
-        <ormSchemaColumnAttribute(iD:="dlvuid", typeid:=otFieldDataType.Long,
+        <ormObjectEntry(iD:="dlvuid", typeid:=otFieldDataType.Long,
          title:="deliverable uid", description:="uid of the deliverable")> Public Const ConstFNUid = "uid"
 
-        <ormSchemaColumnAttribute(iD:="otli4", typeid:=otFieldDataType.Long,
+        <ormObjectEntry(iD:="otli4", typeid:=otFieldDataType.Long,
           title:="identlevel", description:="identlevel as string of the outline")> Public Const ConstFNIdent = "level"
 
-        <ormSchemaColumnAttribute(iD:="otli10", typeid:=otFieldDataType.Text, size:=255, IsArray:=True,
+        <ormObjectEntry(iD:="otli10", typeid:=otFieldDataType.Text, size:=255, innertypeid:=otFieldDataType.Text,
          title:="Types", description:="types the outline key")> Public Const ConstFNTypes = "types"
 
-        <ormSchemaColumnAttribute(iD:="otli11", typeid:=otFieldDataType.Text, size:=255, IsArray:=True,
+        <ormObjectEntry(iD:="otli11", typeid:=otFieldDataType.Text, size:=255, innertypeid:=otFieldDataType.Text,
          title:="IDs", description:="ids the outline key")> Public Const ConstFNIDs = "ids"
 
-
-        <ormSchemaColumnAttribute(iD:="otli12", typeid:=otFieldDataType.Text, size:=255, IsArray:=True,
+        <ormObjectEntry(iD:="otli12", typeid:=otFieldDataType.Text, size:=255, innertypeid:=otFieldDataType.Text,
         title:="Values", description:="values the outline key")> Public Const ConstFNValues = "values"
 
-        <ormSchemaColumnAttribute(iD:="otli13", typeid:=otFieldDataType.Bool,
+        <ormObjectEntry(iD:="otli13", typeid:=otFieldDataType.Bool,
         title:="Grouping Item", description:="check if this an grouping item")> Public Const ConstFNisgroup = "isgrouped"
 
-        <ormSchemaColumnAttribute(iD:="otli14", typeid:=otFieldDataType.Bool,
+        <ormObjectEntry(iD:="otli14", typeid:=otFieldDataType.Bool,
        title:="Text Item", description:="check if this an text item")> Public Const ConstFNisText = "istext"
 
-        <ormSchemaColumnAttribute(iD:="otli14", typeid:=otFieldDataType.Text, size:=255,
+        <ormObjectEntry(iD:="otli14", typeid:=otFieldDataType.Text, size:=255,
        title:="Text", description:="Text if a text item")> Public Const ConstFNText = "text"
 
-        <ormColumnMappingAttribute(ColumnName:=ConstFNID)> Private _id As String = ""   ' ID of the outline
+        <ormEntryMapping(EntryName:=constFNID)> Private _id As String = ""   ' ID of the outline
 
         Private _keys As New List(Of OTLineKey)    'keys and values
         Private _ordinal As Ordinal ' extramapping
 
-        <ormColumnMappingAttribute(ColumnName:=ConstFNIdent)> Private _level As Long = 0
-        <ormColumnMappingAttribute(ColumnName:=ConstFNisgroup)> Private _isGroup As Boolean
-        <ormColumnMappingAttribute(ColumnName:=ConstFNisText)> Private _isText As Boolean
-        <ormColumnMappingAttribute(ColumnName:=ConstFNText)> Private _text As String = ""
+        <ormEntryMapping(EntryName:=ConstFNIdent)> Private _level As Long = 0
+        <ormEntryMapping(EntryName:=ConstFNisgroup)> Private _isGroup As Boolean
+        <ormEntryMapping(EntryName:=ConstFNisText)> Private _isText As Boolean
+        <ormEntryMapping(EntryName:=ConstFNText)> Private _text As String = ""
 
 #Region "properties"
 
@@ -9527,16 +9539,7 @@ error_handle:
         Public Sub New()
             MyBase.New(constTableID)
         End Sub
-        ''' <summary>
-        ''' Initialize the DataObject
-        ''' </summary>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Overrides Function Initialize() As Boolean
-            _IsInitialized = MyBase.Initialize
-            Me.TableStore.SetProperty(ConstTPNCacheProperty, True)
-            Return _IsInitialized
-        End Function
+
         ''' <summary>
         ''' infuses the data object by record
         ''' </summary>
@@ -9649,7 +9652,7 @@ error_handle:
                 If Not aCommand.Prepared Then
                     aCommand.OrderBy = "[" & constTableID & "." & ConstFNordinall & "] asc"
                     aCommand.Where = "[" & constFNID & "] = @ID"
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@ID", ColumnName:=ConstFNID, tablename:=constTableID))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@ID", ColumnName:=constFNID, tablename:=constTableID))
                     aCommand.Prepare()
                 End If
 
@@ -9684,15 +9687,15 @@ error_handle:
         ''' <param name="ordinal"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Function LoadBy(ByVal id As String, ByVal ordinal As String) As Boolean
-            Return LoadBy(id, New Ordinal(ordinal))
+        Public Overloads Function Inject(ByVal id As String, ByVal ordinal As String) As Boolean
+            Return Inject(id, New Ordinal(ordinal))
         End Function
-        Public Overloads Function LoadBy(ByVal id As String, ByVal ordinal As Long) As Boolean
-            Return LoadBy(id, New Ordinal(ordinal))
+        Public Overloads Function Inject(ByVal id As String, ByVal ordinal As Long) As Boolean
+            Return Inject(id, New Ordinal(ordinal))
         End Function
-        Public Overloads Function LoadBy(ByVal id As String, ByVal ordinal As Ordinal) As Boolean
+        Public Overloads Function Inject(ByVal id As String, ByVal ordinal As Ordinal) As Boolean
             Dim pkarry() As Object = {id, ordinal.ToString}
-            Return MyBase.LoadBy(pkarry)
+            Return MyBase.Inject(pkarry)
         End Function
         ''' <summary>
         ''' create schema for persistency
@@ -9702,140 +9705,140 @@ error_handle:
         ''' <remarks></remarks>
         Public Overloads Shared Function CreateSchema(Optional silent As Boolean = True) As Boolean
 
-            Return ormDataObject.CreateSchema(Of XOutlineItem)()
+            Return ormDataObject.CreateDataObjectSchema(Of XOutlineItem)()
 
 
-            ''''''''''''''''''''''''''''
-            ''' THIS IS ONLY FOR LEGACY
-            ''' 
-            Dim UsedColumnNames As New Collection
-            Dim aFieldDesc As New ormFieldDescription
-            Dim PrimaryColumnNames As New Collection
-            Dim LongOutlineColumnNames As New Collection
-            Dim aTable As New ObjectDefinition
-            Dim aTableEntry As New ObjectEntryDefinition
+            '            ''''''''''''''''''''''''''''
+            '            ''' THIS IS ONLY FOR LEGACY
+            '            ''' 
+            '            Dim UsedColumnNames As New Collection
+            '            Dim aFieldDesc As New ormFieldDescription
+            '            Dim PrimaryColumnNames As New Collection
+            '            Dim LongOutlineColumnNames As New Collection
+            '            Dim aTable As New ObjectDefinition
+            '            Dim aTableEntry As New IObjectEntryDefinition
 
 
-            aFieldDesc.ID = ""
-            aFieldDesc.Parameter = ""
-            aFieldDesc.Relation = New String() {}
-            aFieldDesc.Aliases = New String() {}
-            aFieldDesc.Tablename = constTableID
+            '            aFieldDesc.ID = ""
+            '            aFieldDesc.Parameter = ""
+            '            aFieldDesc.Relation = New String() {}
+            '            aFieldDesc.Aliases = New String() {}
+            '            aFieldDesc.Tablename = constTableID
 
 
-            aTable = New ObjectDefinition
-            aTable.Create(constTableID)
+            '            aTable = New ObjectDefinition
+            '            aTable.Create(constTableID)
 
-            '******
-            '****** Fields
+            '            '******
+            '            '****** Fields
 
-            With aTable
-
-
-                On Error GoTo error_handle
+            '            With aTable
 
 
-                '*** TaskUID
-                '****
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "outline id"
-                aFieldDesc.ID = ""
-                aFieldDesc.Parameter = ""
-                aFieldDesc.ColumnName = "id"
-                aFieldDesc.ID = "otl1"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
-                LongOutlineColumnNames.Add(aFieldDesc.ColumnName)
+            '                On Error GoTo error_handle
 
-                'Position
-                aFieldDesc.Datatype = otFieldDataType.[Long]
-                aFieldDesc.Title = "ordinal long"
-                aFieldDesc.ColumnName = "ordinall"
-                aFieldDesc.ID = "otli2"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                LongOutlineColumnNames.Add(aFieldDesc.ColumnName)
 
-                'Position
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "ordinal string"
-                aFieldDesc.ColumnName = "ordinals"
-                aFieldDesc.ID = "otli3"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
+            '                '*** TaskUID
+            '                '****
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "outline id"
+            '                aFieldDesc.ID = ""
+            '                aFieldDesc.Parameter = ""
+            '                aFieldDesc.ColumnName = "id"
+            '                aFieldDesc.ID = "otl1"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
+            '                LongOutlineColumnNames.Add(aFieldDesc.ColumnName)
 
-                'uid
-                aFieldDesc.Datatype = otFieldDataType.[Long]
-                aFieldDesc.Title = "deliverable uid"
-                aFieldDesc.ColumnName = "uid"
-                aFieldDesc.ID = "dlvuid"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                UsedColumnNames.Add(aFieldDesc.ColumnName)
-                UsedColumnNames.Add("id")
-                UsedColumnNames.Add("ordinals")
+            '                'Position
+            '                aFieldDesc.Datatype = otFieldDataType.[Long]
+            '                aFieldDesc.Title = "ordinal long"
+            '                aFieldDesc.ColumnName = "ordinall"
+            '                aFieldDesc.ID = "otli2"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                LongOutlineColumnNames.Add(aFieldDesc.ColumnName)
 
-                ' level
-                aFieldDesc.Datatype = otFieldDataType.[Long]
-                aFieldDesc.Title = "identlevel"
-                aFieldDesc.ColumnName = "level"
-                aFieldDesc.ID = "otli4"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                'Position
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "ordinal string"
+            '                aFieldDesc.ColumnName = "ordinals"
+            '                aFieldDesc.ID = "otli3"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
 
-                ' typeid
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "types of the outline key"
-                aFieldDesc.ColumnName = "types"
-                aFieldDesc.ID = "otli10"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                'uid
+            '                aFieldDesc.Datatype = otFieldDataType.[Long]
+            '                aFieldDesc.Title = "deliverable uid"
+            '                aFieldDesc.ColumnName = "uid"
+            '                aFieldDesc.ID = "dlvuid"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                UsedColumnNames.Add(aFieldDesc.ColumnName)
+            '                UsedColumnNames.Add("id")
+            '                UsedColumnNames.Add("ordinals")
 
-                ' id
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "ids of the outline key"
-                aFieldDesc.ColumnName = "ids"
-                aFieldDesc.ID = "otli11"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' level
+            '                aFieldDesc.Datatype = otFieldDataType.[Long]
+            '                aFieldDesc.Title = "identlevel"
+            '                aFieldDesc.ColumnName = "level"
+            '                aFieldDesc.ID = "otli4"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                ' value #1
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "values of the outline key"
-                aFieldDesc.ColumnName = "values"
-                aFieldDesc.ID = "otli12"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' typeid
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "types of the outline key"
+            '                aFieldDesc.ColumnName = "types"
+            '                aFieldDesc.ID = "otli10"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                aFieldDesc.ID = ""
-                aFieldDesc.Parameter = ""
-                aFieldDesc.Relation = New String() {}
-                aFieldDesc.Aliases = New String() {}
+            '                ' id
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "ids of the outline key"
+            '                aFieldDesc.ColumnName = "ids"
+            '                aFieldDesc.ID = "otli11"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                '***
-                '*** TIMESTAMP
-                '****
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "last Update"
-                aFieldDesc.ColumnName = ConstFNUpdatedOn
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' value #1
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "values of the outline key"
+            '                aFieldDesc.ColumnName = "values"
+            '                aFieldDesc.ID = "otli12"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "creation Date"
-                aFieldDesc.ColumnName = ConstFNCreatedOn
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                aFieldDesc.ID = ""
+            '                aFieldDesc.Parameter = ""
+            '                aFieldDesc.Relation = New String() {}
+            '                aFieldDesc.Aliases = New String() {}
 
-                ' Index
-                Call .AddIndex("PrimaryKey", PrimaryColumnNames, isprimarykey:=True)
-                Call .AddIndex("longOutline", LongOutlineColumnNames, isprimarykey:=False)
-                Call .AddIndex("UsedOutline", UsedColumnNames, isprimarykey:=False)
-                ' persist
-                .Persist()
-                ' change the database
-                .AlterSchema()
-            End With
+            '                '***
+            '                '*** TIMESTAMP
+            '                '****
+            '                aFieldDesc.Datatype = otFieldDataType.Timestamp
+            '                aFieldDesc.Title = "last Update"
+            '                aFieldDesc.ColumnName = ConstFNUpdatedOn
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-            CreateSchema = True
-            Exit Function
+            '                aFieldDesc.Datatype = otFieldDataType.Timestamp
+            '                aFieldDesc.Title = "creation Date"
+            '                aFieldDesc.ColumnName = ConstFNCreatedOn
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-            ' Handle the error
-error_handle:
-            Call CoreMessageHandler(subname:="clsOTDBXOutlineItem.createSchema", tablename:=constTableID)
-            CreateSchema = False
+            '                ' Index
+            '                Call .AddIndex("PrimaryKey", PrimaryColumnNames, isprimarykey:=True)
+            '                Call .AddIndex("longOutline", LongOutlineColumnNames, isprimarykey:=False)
+            '                Call .AddIndex("UsedOutline", UsedColumnNames, isprimarykey:=False)
+            '                ' persist
+            '                .Persist()
+            '                ' change the database
+            '                .CreateObjectSchema()
+            '            End With
+
+            '            CreateSchema = True
+            '            Exit Function
+
+            '            ' Handle the error
+            'error_handle:
+            '            Call CoreMessageHandler(subname:="clsOTDBXOutlineItem.createSchema", tablename:=constTableID)
+            '            CreateSchema = False
         End Function
         ''' <summary>
         ''' Persist the data object to the datastore
@@ -9857,7 +9860,7 @@ error_handle:
             Try
                 Call Me.Record.SetValue(constFNID, _id)
                 '** own feed record
-                If _ordinal.Type = ordinalType.longType Then
+                If _ordinal.Type = OrdinalType.longType Then
                     Call Me.Record.SetValue(ConstFNordinall, _ordinal.Value)
                 Else
                     Call Me.Record.SetValue(ConstFNordinall, 0)
@@ -9873,7 +9876,7 @@ error_handle:
 
                 For Each key As OTLineKey In _keys
                     idstr &= key.ID & ConstDelimiter
-                    If LCase(key.ID) = "uid" Then
+                    If key.ID.ToLower = "uid" Then
                         Me.Record.SetValue(ConstFNUid, CLng(key.Value))
                     End If
                     typestr &= CLng(key.Type) & ConstDelimiter

@@ -167,7 +167,7 @@ Namespace OnTrack.Scheduling
             anEntry = New clsOTDBDependMember
             posno = Me.GetMaxPosNo(TYPEID) + 1
             If Not anEntry.Create(typeid:=TYPEID, partid:=s_pnid, posno:=posno, dependfromPartID:=PartID) Then
-                Call anEntry.LoadBy(typeid:=TYPEID, partid:=s_pnid, posno:=posno)
+                Call anEntry.Inject(typeid:=TYPEID, partid:=s_pnid, posno:=posno)
             End If
             ' set it
             anEntry.dependfromPartID = PartID
@@ -205,7 +205,7 @@ Namespace OnTrack.Scheduling
             ' create new list with header
             dependFromList = New Dictionary(Of Long, clsOTDBDependMember)
             If Not anEntry.Create(typeid:=TYPEID, partid:=Me.PartID, posno:=0, dependfromPartID:="") Then
-                Call anEntry.LoadBy(typeid:=TYPEID, partid:=Me.PartID, posno:=0)
+                Call anEntry.Inject(typeid:=TYPEID, partid:=Me.PartID, posno:=0)
                 anEntry.dependfromPartID = ""
             End If
 
@@ -355,7 +355,7 @@ Namespace OnTrack.Scheduling
             ' create new list with header
             dependFromList = New Dictionary(Of Long, clsOTDBDependCheck)
             If Not anEntry.create(TYPEID:=TYPEID, PARTID:=Me.PartID, POSNO:=0, UID:=0, UPDC:=0, dependfromPartID:="") Then
-                Call anEntry.LoadBy(typeid:=TYPEID, partid:=Me.PartID, posno:=0, uid:=0, updc:=0)
+                Call anEntry.Inject(typeid:=TYPEID, partid:=Me.PartID, posno:=0, uid:=0, updc:=0)
                 anEntry.dependfromPartID = ""
             End If
 
@@ -678,7 +678,7 @@ Namespace OnTrack.Scheduling
             infuse = False
         End Function
 
-        '**** loadby : load the object by the PrimaryKeys
+        '**** Inject : load the object by the PrimaryKeys
         '****
         ''' <summary>
         ''' Load by Dependant to by partid
@@ -727,7 +727,7 @@ Namespace OnTrack.Scheduling
 
         End Function
 
-        '**** loadby : load the object by the PrimaryKeys
+        '**** Inject : load the object by the PrimaryKeys
         '****
         ''' <summary>
         ''' Loads Dependency outgoing from a partid
@@ -1002,7 +1002,7 @@ errorhandle:
             ' generate TopLevel Status
             aDependCheck = New clsOTDBDependCheck
             If autopersist Then
-                If Not aDependCheck.LoadBy(typeid:=headentry.TypeID, partid:=headentry.PartID, _
+                If Not aDependCheck.Inject(typeid:=headentry.TypeID, partid:=headentry.PartID, _
                                            posno:=headentry.PosNo, uid:=0, updc:=0) Then
                     Call aDependCheck.create(TYPEID:=headentry.TypeID, PARTID:=headentry.PartID, _
                                              POSNO:=headentry.PosNo, UID:=0, UPDC:=0)
@@ -1056,7 +1056,7 @@ errorhandle:
             Dim aDependCheck As New clsOTDBDependCheck
 
             ' get TopLevel Status
-            If aDependCheck.LoadBy(typeid:=TYPEID, partid:=Me.PartID, _
+            If aDependCheck.Inject(typeid:=TYPEID, partid:=Me.PartID, _
                                    posno:=0, uid:=0, updc:=0) Then
 
                 getlastStatus = aDependCheck.status
@@ -1135,7 +1135,7 @@ errorhandle:
             ' go thorugh each
             For Each Key In keys
                 ' better reload
-                If anEntry.LoadBy(atypeid, Me.PartID, posno:=Key) Then
+                If anEntry.Inject(atypeid, Me.PartID, posno:=Key) Then
                     System.Diagnostics.Debug.WriteLine(aClusterID, aLevel, Me.PartID & " -> " & anEntry.dependfromPartID)
                     'Set anEntry = dependFromList.Item(key)
                     ' check the head -> we have been here already !
@@ -1179,7 +1179,7 @@ errorhandle:
                                     generateCluster = aDependency.generateCluster(atypeid:=atypeid, aClusterID:=aClusterID, aLevel:=aLevel + 1)
                                 Else
                                     ' a leaf
-                                    If anSubHead.LoadBy(atypeid, partid:=anEntry.dependfromPartID, posno:=0) Then
+                                    If anSubHead.Inject(atypeid, partid:=anEntry.dependfromPartID, posno:=0) Then
                                         If anSubHead.clusterid = "" Then
                                             anSubHead.clusterid = aClusterID
                                             anSubHead.clusterlevel = aLevel
@@ -1203,7 +1203,7 @@ errorhandle:
                         ElseIf anEntry.clusterid <> aClusterID Then
                             ' mark it as same cluster
                             Call MarkClusterID(atypeid, anEntry.clusterid, aClusterID)
-                            If anSubHead.LoadBy(atypeid, partid:=anEntry.dependfromPartID, posno:=0) Then
+                            If anSubHead.Inject(atypeid, partid:=anEntry.dependfromPartID, posno:=0) Then
                                 If anSubHead.clusterid <> aClusterID Then
                                     Call MarkClusterID(atypeid, anSubHead.clusterid, aClusterID)
                                 End If
@@ -1262,7 +1262,7 @@ errorhandle:
             ' go thorugh each
             For Each Key In keys
                 ' better reload
-                If anEntry.LoadBy(typeid:=typeid, partid:=Me.PartID, posno:=Key) Then
+                If anEntry.Inject(typeid:=typeid, partid:=Me.PartID, posno:=Key) Then
                     ' Get the Dependency Check
                     aDCColl = anEntry.GetDependCheck(workspaceID)
                     ' run or check
@@ -1331,7 +1331,7 @@ errorhandle:
                                 Else
                                     '*a leaf
                                     '*
-                                    If anSubHead.LoadBy(typeid, partid:=anEntry.dependfromPartID, posno:=0) Then
+                                    If anSubHead.Inject(typeid, partid:=anEntry.dependfromPartID, posno:=0) Then
                                         ' create or get
                                         aDCColl = anSubHead.GetDependCheck(workspaceID)
                                         If aDCColl Is Nothing Or aDCColl.Count = 0 Then
@@ -1364,7 +1364,7 @@ errorhandle:
                         ElseIf aDependCheck.clusterid <> clusterid Then
                             ' mark it as same cluster
                             Call MarkClusterID(typeid, anEntry.clusterid, clusterid)
-                            If anSubHead.LoadBy(typeid, partid:=anEntry.dependfromPartID, posno:=0) Then
+                            If anSubHead.Inject(typeid, partid:=anEntry.dependfromPartID, posno:=0) Then
                                 aDCColl = anSubHead.GetDependCheck(workspaceID)
                                 If aDCColl Is Nothing Or aDCColl.Count = 0 Then
                                     aSubDependCheck = New clsOTDBDependCheck
@@ -1773,7 +1773,7 @@ errorhandle:
 
         End Function
 
-        '**** loadby : load the object by the PrimaryKeys
+        '**** Inject : load the object by the PrimaryKeys
         '****
         ''' <summary>
         ''' Loads a Depend Member by Primary Key
@@ -1783,9 +1783,9 @@ errorhandle:
         ''' <param name="POSNO"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Function LoadBy(ByVal typeid As String, ByVal partid As String, ByVal posno As Long) As Boolean
+        Public Overloads Function Inject(ByVal typeid As String, ByVal partid As String, ByVal posno As Long) As Boolean
             Dim pkarry() As Object = {TYPEID, PARTID, POSNO}
-            Return MyBase.LoadBy(pkArray:=pkarry)
+            Return MyBase.Inject(pkArray:=pkarry)
         End Function
 
         '**** allHeadsByTypeID returns all Dependency Heads by TypeID
@@ -1855,200 +1855,200 @@ error_handler:
         ''' <remarks></remarks>
         Public Shared Function CreateSchema(Optional silent As Boolean = True) As Boolean
 
-            Dim aFieldDesc As New ormFieldDescription
-            Dim PrimaryColumnNames As New Collection
-            Dim aTable As New ObjectDefinition
-            Dim UsedKeyColumnNames As New Collection
-            Dim ClusterColumnNames As New Collection
+            '            Dim aFieldDesc As New ormFieldDescription
+            '            Dim PrimaryColumnNames As New Collection
+            '            Dim aTable As New ObjectDefinition
+            '            Dim UsedKeyColumnNames As New Collection
+            '            Dim ClusterColumnNames As New Collection
 
-            aFieldDesc.Relation = New String() {}
-            aFieldDesc.Size = 0
-            aFieldDesc.Parameter = ""
-            aFieldDesc.Tablename = constTableID
+            '            aFieldDesc.Relation = New String() {}
+            '            aFieldDesc.Size = 0
+            '            aFieldDesc.Parameter = ""
+            '            aFieldDesc.Tablename = constTableID
 
-            With aTable
-                .Create(constTableID)
-                .Delete()
-
-
-                ' typeid
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "type of dependencies"
-                aFieldDesc.ColumnName = constfntypeid
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
-                ClusterColumnNames.Add(aFieldDesc.ColumnName)
-
-                'component id
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "dependend from part-id"
-                aFieldDesc.ColumnName = constFNDepFromId
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                UsedKeyColumnNames.Add(aFieldDesc.ColumnName)
-
-                aFieldDesc.Title = "part-id"
-                aFieldDesc.ColumnName = constFNPartID
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
-                UsedKeyColumnNames.Add(aFieldDesc.ColumnName)
-
-                'Position
-                aFieldDesc.Datatype = otFieldDataType.[Long]
-                aFieldDesc.Title = "posno"
-                aFieldDesc.ColumnName = "posno"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
-
-                'no Position
-                aFieldDesc.Datatype = otFieldDataType.[Long]
-                aFieldDesc.Title = "number of positions "
-                aFieldDesc.ColumnName = "nopos"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                ' condition
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "condition"
-                aFieldDesc.ColumnName = "cond"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                ' categorie
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "categorie"
-                aFieldDesc.ColumnName = "cat"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                ' parameter_txt 1
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "parameter_txt 1 of condition"
-                aFieldDesc.ColumnName = "param_txt1"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                ' parameter_txt 2
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "parameter_txt 2 of condition"
-                aFieldDesc.ColumnName = "param_txt2"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' parameter_txt 2
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "parameter_txt 3 of condition"
-                aFieldDesc.ColumnName = "param_txt3"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                ' parameter_num 1
-                aFieldDesc.Datatype = otFieldDataType.Numeric
-                aFieldDesc.Title = "parameter numeric 1 of condition"
-                aFieldDesc.ColumnName = "param_num1"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                ' parameter_num 2
-                aFieldDesc.Datatype = otFieldDataType.Numeric
-                aFieldDesc.Title = "parameter numeric 2 of condition"
-                aFieldDesc.ColumnName = "param_num2"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                ' parameter_num 2
-                aFieldDesc.Datatype = otFieldDataType.Numeric
-                aFieldDesc.Title = "parameter numeric 3 of condition"
-                aFieldDesc.ColumnName = "param_num3"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                ' parameter_date 1
-                aFieldDesc.Datatype = otFieldDataType.[Date]
-                aFieldDesc.Title = "parameter date 1 of condition"
-                aFieldDesc.ColumnName = "param_date1"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                ' parameter_date 2
-                aFieldDesc.Datatype = otFieldDataType.[Date]
-                aFieldDesc.Title = "parameter date 2 of condition"
-                aFieldDesc.ColumnName = "param_date2"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                ' parameter_date 3
-                aFieldDesc.Datatype = otFieldDataType.[Date]
-                aFieldDesc.Title = "parameter date 3 of condition"
-                aFieldDesc.ColumnName = "param_date3"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                ' parameter_flag 1
-                aFieldDesc.Datatype = otFieldDataType.Bool
-                aFieldDesc.Title = "parameter flag 1 of condition"
-                aFieldDesc.ColumnName = "param_flag1"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                ' parameter_flag 2
-                aFieldDesc.Datatype = otFieldDataType.Bool
-                aFieldDesc.Title = "parameter flag 2 of condition"
-                aFieldDesc.ColumnName = "param_flag2"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                ' parameter_flag 3
-                aFieldDesc.Datatype = otFieldDataType.Bool
-                aFieldDesc.Title = "parameter flag 3 of condition"
-                aFieldDesc.ColumnName = "param_flag3"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                ' cluster
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "cluster id"
-                aFieldDesc.ColumnName = "clusterid"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ClusterColumnNames.Add(aFieldDesc.ColumnName)
-
-                ' clusterlevel
-                aFieldDesc.Datatype = otFieldDataType.[Long]
-                aFieldDesc.Title = "cluster level"
-                aFieldDesc.ColumnName = "clusterlevel"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ClusterColumnNames.Add(aFieldDesc.ColumnName)
-                ClusterColumnNames.Add(constFNPartID)
-
-                ' isLeaf
-                aFieldDesc.Datatype = otFieldDataType.Bool
-                aFieldDesc.Title = "is entry a leaf"
-                aFieldDesc.ColumnName = "isleaf"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                ' isNode
-                aFieldDesc.Datatype = otFieldDataType.Bool
-                aFieldDesc.Title = "is entry a node"
-                aFieldDesc.ColumnName = "isnode"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                '***
-                '*** TIMESTAMP
-                '****
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "last Update"
-                aFieldDesc.ColumnName = ConstFNUpdatedOn
-                aFieldDesc.ID = ""
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "creation Date"
-                aFieldDesc.ColumnName = ConstFNCreatedOn
-                aFieldDesc.ID = ""
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' Index
-                Call .AddIndex("PrimaryKey", PrimaryColumnNames, isprimarykey:=True)
-                Call .AddIndex("UsedByKey", UsedKeyColumnNames, isprimarykey:=False)
-                Call .AddIndex("cluster", ClusterColumnNames, isprimarykey:=False)
+            '            With aTable
+            '                .Create(constTableID)
+            '                .Delete()
 
 
-                ' persist
-                .Persist()
-                ' change the database
-                .AlterSchema()
-            End With
+            '                ' typeid
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "type of dependencies"
+            '                aFieldDesc.ColumnName = constfntypeid
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
+            '                ClusterColumnNames.Add(aFieldDesc.ColumnName)
 
-            ' Handle the error
-            createSchema = True
-            Exit Function
+            '                'component id
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "dependend from part-id"
+            '                aFieldDesc.ColumnName = constFNDepFromId
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                UsedKeyColumnNames.Add(aFieldDesc.ColumnName)
 
-            ' Handle the error
-error_handle:
-            Call CoreMessageHandler(subname:="clsOTDBDependMember.createSchema", tablename:=constTableID)
-            createSchema = False
+            '                aFieldDesc.Title = "part-id"
+            '                aFieldDesc.ColumnName = constFNPartID
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
+            '                UsedKeyColumnNames.Add(aFieldDesc.ColumnName)
+
+            '                'Position
+            '                aFieldDesc.Datatype = otFieldDataType.[Long]
+            '                aFieldDesc.Title = "posno"
+            '                aFieldDesc.ColumnName = "posno"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
+
+            '                'no Position
+            '                aFieldDesc.Datatype = otFieldDataType.[Long]
+            '                aFieldDesc.Title = "number of positions "
+            '                aFieldDesc.ColumnName = "nopos"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                ' condition
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "condition"
+            '                aFieldDesc.ColumnName = "cond"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                ' categorie
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "categorie"
+            '                aFieldDesc.ColumnName = "cat"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                ' parameter_txt 1
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "parameter_txt 1 of condition"
+            '                aFieldDesc.ColumnName = "param_txt1"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                ' parameter_txt 2
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "parameter_txt 2 of condition"
+            '                aFieldDesc.ColumnName = "param_txt2"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' parameter_txt 2
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "parameter_txt 3 of condition"
+            '                aFieldDesc.ColumnName = "param_txt3"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                ' parameter_num 1
+            '                aFieldDesc.Datatype = otFieldDataType.Numeric
+            '                aFieldDesc.Title = "parameter numeric 1 of condition"
+            '                aFieldDesc.ColumnName = "param_num1"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                ' parameter_num 2
+            '                aFieldDesc.Datatype = otFieldDataType.Numeric
+            '                aFieldDesc.Title = "parameter numeric 2 of condition"
+            '                aFieldDesc.ColumnName = "param_num2"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                ' parameter_num 2
+            '                aFieldDesc.Datatype = otFieldDataType.Numeric
+            '                aFieldDesc.Title = "parameter numeric 3 of condition"
+            '                aFieldDesc.ColumnName = "param_num3"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                ' parameter_date 1
+            '                aFieldDesc.Datatype = otFieldDataType.[Date]
+            '                aFieldDesc.Title = "parameter date 1 of condition"
+            '                aFieldDesc.ColumnName = "param_date1"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                ' parameter_date 2
+            '                aFieldDesc.Datatype = otFieldDataType.[Date]
+            '                aFieldDesc.Title = "parameter date 2 of condition"
+            '                aFieldDesc.ColumnName = "param_date2"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                ' parameter_date 3
+            '                aFieldDesc.Datatype = otFieldDataType.[Date]
+            '                aFieldDesc.Title = "parameter date 3 of condition"
+            '                aFieldDesc.ColumnName = "param_date3"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                ' parameter_flag 1
+            '                aFieldDesc.Datatype = otFieldDataType.Bool
+            '                aFieldDesc.Title = "parameter flag 1 of condition"
+            '                aFieldDesc.ColumnName = "param_flag1"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                ' parameter_flag 2
+            '                aFieldDesc.Datatype = otFieldDataType.Bool
+            '                aFieldDesc.Title = "parameter flag 2 of condition"
+            '                aFieldDesc.ColumnName = "param_flag2"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                ' parameter_flag 3
+            '                aFieldDesc.Datatype = otFieldDataType.Bool
+            '                aFieldDesc.Title = "parameter flag 3 of condition"
+            '                aFieldDesc.ColumnName = "param_flag3"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                ' cluster
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "cluster id"
+            '                aFieldDesc.ColumnName = "clusterid"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ClusterColumnNames.Add(aFieldDesc.ColumnName)
+
+            '                ' clusterlevel
+            '                aFieldDesc.Datatype = otFieldDataType.[Long]
+            '                aFieldDesc.Title = "cluster level"
+            '                aFieldDesc.ColumnName = "clusterlevel"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ClusterColumnNames.Add(aFieldDesc.ColumnName)
+            '                ClusterColumnNames.Add(constFNPartID)
+
+            '                ' isLeaf
+            '                aFieldDesc.Datatype = otFieldDataType.Bool
+            '                aFieldDesc.Title = "is entry a leaf"
+            '                aFieldDesc.ColumnName = "isleaf"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                ' isNode
+            '                aFieldDesc.Datatype = otFieldDataType.Bool
+            '                aFieldDesc.Title = "is entry a node"
+            '                aFieldDesc.ColumnName = "isnode"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                '***
+            '                '*** TIMESTAMP
+            '                '****
+            '                aFieldDesc.Datatype = otFieldDataType.Timestamp
+            '                aFieldDesc.Title = "last Update"
+            '                aFieldDesc.ColumnName = ConstFNUpdatedOn
+            '                aFieldDesc.ID = ""
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                aFieldDesc.Datatype = otFieldDataType.Timestamp
+            '                aFieldDesc.Title = "creation Date"
+            '                aFieldDesc.ColumnName = ConstFNCreatedOn
+            '                aFieldDesc.ID = ""
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' Index
+            '                Call .AddIndex("PrimaryKey", PrimaryColumnNames, isprimarykey:=True)
+            '                Call .AddIndex("UsedByKey", UsedKeyColumnNames, isprimarykey:=False)
+            '                Call .AddIndex("cluster", ClusterColumnNames, isprimarykey:=False)
+
+
+            '                ' persist
+            '                .Persist()
+            '                ' change the database
+            '                .CreateObjectSchema()
+            '            End With
+
+            '            ' Handle the error
+            '            createSchema = True
+            '            Exit Function
+
+            '            ' Handle the error
+            'error_handle:
+            '            Call CoreMessageHandler(subname:="clsOTDBDependMember.createSchema", tablename:=constTableID)
+            '            createSchema = False
         End Function
 
         ''' <summary>
@@ -2571,9 +2571,9 @@ error_handle:
         ''' <param name="updc"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Function LoadBy(ByVal typeid As String, ByVal partid As String, ByVal posno As Long, ByVal uid As Long, ByVal updc As Long) As Boolean
+        Public Overloads Function Inject(ByVal typeid As String, ByVal partid As String, ByVal posno As Long, ByVal uid As Long, ByVal updc As Long) As Boolean
             Dim pkarry() As Object = {typeid, partid, posno, uid, updc}
-            Return MyBase.LoadBy(pkArray:=pkarry)
+            Return MyBase.Inject(pkArray:=pkarry)
         End Function
 
         '********** all Head by ClusterID
@@ -2687,223 +2687,223 @@ error_handle:
         Public Shared Function CreateSchema(Optional silent As Boolean = True) As Boolean
 
 
-            Dim PrimaryColumnNames As New Collection
-            Dim UsedKeyColumnNames As New Collection
-            Dim ClusterColumnNames As New Collection
-            Dim aFieldDesc As New ormFieldDescription
-            Dim aTable As New ObjectDefinition
+            '            Dim PrimaryColumnNames As New Collection
+            '            Dim UsedKeyColumnNames As New Collection
+            '            Dim ClusterColumnNames As New Collection
+            '            Dim aFieldDesc As New ormFieldDescription
+            '            Dim aTable As New ObjectDefinition
 
 
-            aFieldDesc.ID = ""
-            aFieldDesc.Parameter = ""
-            aFieldDesc.Relation = New String() {}
-            aFieldDesc.Aliases = New String() {}
-            aFieldDesc.Tablename = constTableID
+            '            aFieldDesc.ID = ""
+            '            aFieldDesc.Parameter = ""
+            '            aFieldDesc.Relation = New String() {}
+            '            aFieldDesc.Aliases = New String() {}
+            '            aFieldDesc.Tablename = constTableID
 
-            With aTable
-                .Create(constTableID)
-                .Delete()
-                ' typeid
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "type of dependencies"
-                aFieldDesc.ColumnName = "typeid"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
+            '            With aTable
+            '                .Create(constTableID)
+            '                .Delete()
+            '                ' typeid
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "type of dependencies"
+            '                aFieldDesc.ColumnName = "typeid"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
 
-                'component id
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "dependend from part-id"
-                aFieldDesc.ColumnName = "depfromid"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                UsedKeyColumnNames.Add(aFieldDesc.ColumnName)
+            '                'component id
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "dependend from part-id"
+            '                aFieldDesc.ColumnName = "depfromid"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                UsedKeyColumnNames.Add(aFieldDesc.ColumnName)
 
-                aFieldDesc.Title = "part-id"
-                aFieldDesc.ColumnName = constFNPartid
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
-                UsedKeyColumnNames.Add(aFieldDesc.ColumnName)
+            '                aFieldDesc.Title = "part-id"
+            '                aFieldDesc.ColumnName = constFNPartid
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
+            '                UsedKeyColumnNames.Add(aFieldDesc.ColumnName)
 
-                'Position
-                aFieldDesc.Datatype = otFieldDataType.[Long]
-                aFieldDesc.Title = "posno"
-                aFieldDesc.ColumnName = "posno"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
+            '                'Position
+            '                aFieldDesc.Datatype = otFieldDataType.[Long]
+            '                aFieldDesc.Title = "posno"
+            '                aFieldDesc.ColumnName = "posno"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
 
-                'Position
-                aFieldDesc.Datatype = otFieldDataType.[Long]
-                aFieldDesc.Title = "uid of schedule"
-                aFieldDesc.ColumnName = "suid"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
+            '                'Position
+            '                aFieldDesc.Datatype = otFieldDataType.[Long]
+            '                aFieldDesc.Title = "uid of schedule"
+            '                aFieldDesc.ColumnName = "suid"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
 
-                'Position
-                aFieldDesc.Datatype = otFieldDataType.[Long]
-                aFieldDesc.Title = "schedule update counter"
-                aFieldDesc.ColumnName = "supdc"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
+            '                'Position
+            '                aFieldDesc.Datatype = otFieldDataType.[Long]
+            '                aFieldDesc.Title = "schedule update counter"
+            '                aFieldDesc.ColumnName = "supdc"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
 
-                'Position
-                aFieldDesc.Datatype = otFieldDataType.[Long]
-                aFieldDesc.Title = "uid of dependant schedule"
-                aFieldDesc.ColumnName = "depsuid"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                'PrimaryColumnNames.add aFieldDesc.Name
+            '                'Position
+            '                aFieldDesc.Datatype = otFieldDataType.[Long]
+            '                aFieldDesc.Title = "uid of dependant schedule"
+            '                aFieldDesc.ColumnName = "depsuid"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                'PrimaryColumnNames.add aFieldDesc.Name
 
-                'Position
-                aFieldDesc.Datatype = otFieldDataType.[Long]
-                aFieldDesc.Title = "dependant schedule update counter"
-                aFieldDesc.ColumnName = "depsupdc"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                'PrimaryColumnNames.add aFieldDesc.Name
+            '                'Position
+            '                aFieldDesc.Datatype = otFieldDataType.[Long]
+            '                aFieldDesc.Title = "dependant schedule update counter"
+            '                aFieldDesc.ColumnName = "depsupdc"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                'PrimaryColumnNames.add aFieldDesc.Name
 
-                ' status
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "status"
-                aFieldDesc.ColumnName = "status"
-                aFieldDesc.Size = 20
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' status
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "status"
+            '                aFieldDesc.ColumnName = "status"
+            '                aFieldDesc.Size = 20
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
 
-                ' condition
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "condition"
-                aFieldDesc.ColumnName = "cond"
-                aFieldDesc.Size = 0
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' condition
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "condition"
+            '                aFieldDesc.ColumnName = "cond"
+            '                aFieldDesc.Size = 0
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                ' msg
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "msgno"
-                aFieldDesc.ColumnName = "msgno"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' msg
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "msgno"
+            '                aFieldDesc.ColumnName = "msgno"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                ' cmt
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "comments"
-                aFieldDesc.ColumnName = "cmt"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' parameter_txt 1
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "parameter_txt 1 of condition"
-                aFieldDesc.ColumnName = "param_txt1"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' cmt
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "comments"
+            '                aFieldDesc.ColumnName = "cmt"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' parameter_txt 1
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "parameter_txt 1 of condition"
+            '                aFieldDesc.ColumnName = "param_txt1"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                ' parameter_txt 2
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "parameter_txt 2 of condition"
-                aFieldDesc.ColumnName = "param_txt2"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' parameter_txt 2
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "parameter_txt 2 of condition"
+            '                aFieldDesc.ColumnName = "param_txt2"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                ' parameter_txt 2
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "parameter_txt 3 of condition"
-                aFieldDesc.ColumnName = "param_txt3"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' parameter_txt 2
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "parameter_txt 3 of condition"
+            '                aFieldDesc.ColumnName = "param_txt3"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                ' parameter_num 1
-                aFieldDesc.Datatype = otFieldDataType.Numeric
-                aFieldDesc.Title = "parameter numeric 1 of condition"
-                aFieldDesc.ColumnName = "param_num1"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' parameter_num 1
+            '                aFieldDesc.Datatype = otFieldDataType.Numeric
+            '                aFieldDesc.Title = "parameter numeric 1 of condition"
+            '                aFieldDesc.ColumnName = "param_num1"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                ' parameter_num 2
-                aFieldDesc.Datatype = otFieldDataType.Numeric
-                aFieldDesc.Title = "parameter numeric 2 of condition"
-                aFieldDesc.ColumnName = "param_num2"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' parameter_num 2
-                aFieldDesc.Datatype = otFieldDataType.Numeric
-                aFieldDesc.Title = "parameter numeric 3 of condition"
-                aFieldDesc.ColumnName = "param_num3"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' parameter_num 2
+            '                aFieldDesc.Datatype = otFieldDataType.Numeric
+            '                aFieldDesc.Title = "parameter numeric 2 of condition"
+            '                aFieldDesc.ColumnName = "param_num2"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' parameter_num 2
+            '                aFieldDesc.Datatype = otFieldDataType.Numeric
+            '                aFieldDesc.Title = "parameter numeric 3 of condition"
+            '                aFieldDesc.ColumnName = "param_num3"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                ' parameter_date 1
-                aFieldDesc.Datatype = otFieldDataType.[Date]
-                aFieldDesc.Title = "parameter date 1 of condition"
-                aFieldDesc.ColumnName = "param_date1"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' parameter_date 1
+            '                aFieldDesc.Datatype = otFieldDataType.[Date]
+            '                aFieldDesc.Title = "parameter date 1 of condition"
+            '                aFieldDesc.ColumnName = "param_date1"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                ' parameter_date 2
-                aFieldDesc.Datatype = otFieldDataType.[Date]
-                aFieldDesc.Title = "parameter date 2 of condition"
-                aFieldDesc.ColumnName = "param_date2"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' parameter_date 3
-                aFieldDesc.Datatype = otFieldDataType.[Date]
-                aFieldDesc.Title = "parameter date 3 of condition"
-                aFieldDesc.ColumnName = "param_date3"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' parameter_flag 1
-                aFieldDesc.Datatype = otFieldDataType.Bool
-                aFieldDesc.Title = "parameter flag 1 of condition"
-                aFieldDesc.ColumnName = "param_flag1"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' parameter_date 2
+            '                aFieldDesc.Datatype = otFieldDataType.[Date]
+            '                aFieldDesc.Title = "parameter date 2 of condition"
+            '                aFieldDesc.ColumnName = "param_date2"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' parameter_date 3
+            '                aFieldDesc.Datatype = otFieldDataType.[Date]
+            '                aFieldDesc.Title = "parameter date 3 of condition"
+            '                aFieldDesc.ColumnName = "param_date3"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' parameter_flag 1
+            '                aFieldDesc.Datatype = otFieldDataType.Bool
+            '                aFieldDesc.Title = "parameter flag 1 of condition"
+            '                aFieldDesc.ColumnName = "param_flag1"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                ' parameter_flag 2
-                aFieldDesc.Datatype = otFieldDataType.Bool
-                aFieldDesc.Title = "parameter flag 2 of condition"
-                aFieldDesc.ColumnName = "param_flag2"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' parameter_flag 3
-                aFieldDesc.Datatype = otFieldDataType.Bool
-                aFieldDesc.Title = "parameter flag 3 of condition"
-                aFieldDesc.ColumnName = "param_flag3"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' parameter_flag 2
+            '                aFieldDesc.Datatype = otFieldDataType.Bool
+            '                aFieldDesc.Title = "parameter flag 2 of condition"
+            '                aFieldDesc.ColumnName = "param_flag2"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' parameter_flag 3
+            '                aFieldDesc.Datatype = otFieldDataType.Bool
+            '                aFieldDesc.Title = "parameter flag 3 of condition"
+            '                aFieldDesc.ColumnName = "param_flag3"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                ' cluster
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "cluster id"
-                aFieldDesc.ColumnName = "clusterid"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ClusterColumnNames.Add("clusterid")
+            '                ' cluster
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "cluster id"
+            '                aFieldDesc.ColumnName = "clusterid"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ClusterColumnNames.Add("clusterid")
 
-                ' clusterlevel
-                aFieldDesc.Datatype = otFieldDataType.[Long]
-                aFieldDesc.Title = "cluster level"
-                aFieldDesc.ColumnName = "clusterlevel"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ClusterColumnNames.Add("clusterlevel")
-                ClusterColumnNames.Add(constFNPartid)
+            '                ' clusterlevel
+            '                aFieldDesc.Datatype = otFieldDataType.[Long]
+            '                aFieldDesc.Title = "cluster level"
+            '                aFieldDesc.ColumnName = "clusterlevel"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ClusterColumnNames.Add("clusterlevel")
+            '                ClusterColumnNames.Add(constFNPartid)
 
-                '***
-                '*** TIMESTAMP
-                '****
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "last Update"
-                aFieldDesc.ColumnName = ConstFNUpdatedOn
-                aFieldDesc.ID = ""
-                aFieldDesc.Aliases = New String() {}
-                aFieldDesc.Relation = New String() {}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                '***
+            '                '*** TIMESTAMP
+            '                '****
+            '                aFieldDesc.Datatype = otFieldDataType.Timestamp
+            '                aFieldDesc.Title = "last Update"
+            '                aFieldDesc.ColumnName = ConstFNUpdatedOn
+            '                aFieldDesc.ID = ""
+            '                aFieldDesc.Aliases = New String() {}
+            '                aFieldDesc.Relation = New String() {}
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "creation Date"
-                aFieldDesc.ColumnName = ConstFNCreatedOn
-                aFieldDesc.ID = ""
-                aFieldDesc.Aliases = New String() {}
-                aFieldDesc.Relation = New String() {}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' Index
-                Call .AddIndex("PrimaryKey", PrimaryColumnNames, isprimarykey:=True)
-                Call .AddIndex("UsedByKey", UsedKeyColumnNames, isprimarykey:=False)
-                Call .AddIndex("cluster", ClusterColumnNames, isprimarykey:=False)
+            '                aFieldDesc.Datatype = otFieldDataType.Timestamp
+            '                aFieldDesc.Title = "creation Date"
+            '                aFieldDesc.ColumnName = ConstFNCreatedOn
+            '                aFieldDesc.ID = ""
+            '                aFieldDesc.Aliases = New String() {}
+            '                aFieldDesc.Relation = New String() {}
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' Index
+            '                Call .AddIndex("PrimaryKey", PrimaryColumnNames, isprimarykey:=True)
+            '                Call .AddIndex("UsedByKey", UsedKeyColumnNames, isprimarykey:=False)
+            '                Call .AddIndex("cluster", ClusterColumnNames, isprimarykey:=False)
 
-                ' persist
-                .Persist()
-                ' change the database
-                .AlterSchema()
-            End With
+            '                ' persist
+            '                .Persist()
+            '                ' change the database
+            '                .CreateObjectSchema()
+            '            End With
 
-            '
-            createSchema = True
-            Exit Function
+            '            '
+            '            createSchema = True
+            '            Exit Function
 
-            ' Handle the error
-error_handle:
-            Call CoreMessageHandler(subname:="clsOTDBDependCheck.createSchema", tablename:=constTableID)
-            createSchema = False
+            '            ' Handle the error
+            'error_handle:
+            '            Call CoreMessageHandler(subname:="clsOTDBDependCheck.createSchema", tablename:=constTableID)
+            '            createSchema = False
         End Function
 
         ''' <summary>
@@ -3029,12 +3029,12 @@ errorhandle:
         '****************
         Private Function runIFC1(DEPENDMEMBER As clsOTDBDependMember, _
                              DELIVERABLE As Deliverable, _
-                             PART As clsOTDBPart, _
+                             PART As Part, _
                              SCHEDULE As Schedule, _
                              Optional workspaceID As String = "") As Boolean
-            Dim aDependPart As New clsOTDBPart
+            Dim aDependPart As New Part
             Dim aDependDeliv As New Deliverable
-            Dim aDependDelivColl As New Collection
+            Dim aDependDelivColl As New List(Of Deliverable)
             Dim aDependSchedule As New Schedule
             Dim UID As Long
             Dim anInterface As New clsOTDBInterface
@@ -3072,7 +3072,7 @@ errorhandle:
 
 
             ' check the interface first
-            If Not anInterface.loadBy(DEPENDMEMBER.parameter_num1) Then
+            If Not anInterface.Inject(DEPENDMEMBER.parameter_num1) Then
                 Me.status = OTDBConst_DependStatus_r2
                 Me.msgno = Me.msgno & ":0003"
                 Me.comment = "no interface for uid " & anInterface.UID & " could be loaded ->  no status to reflect"
@@ -3128,7 +3128,7 @@ errorhandle:
                 'Exit Function
             End If
             ' get a the other Schedule to compare
-            If aDependPart.LoadBy(DEPENDMEMBER.dependfromPartID) And Not aDependPart.IsDeleted Then
+            If aDependPart.Inject(DEPENDMEMBER.dependfromPartID) And Not aDependPart.IsDeleted Then
                 aDependDelivColl = aDependPart.GetDeliverables
 
                 '** go through each delivarble of the other member (multiple deliverables per part)
@@ -3246,8 +3246,8 @@ errorhandle:
                             Optional workspaceID As String = "", _
                             Optional ByVal autopersist As Boolean = False) As Boolean
             'Dim aDependMember As New clsOTDBDependMember
-            Dim aDelivColl As New Collection
-            Dim aPart As New clsOTDBPart
+            Dim aDelivColl As New List(Of Deliverable)
+            Dim aPart As New Part
             Dim aDeliverable As New Deliverable
             Dim aSchedule As New Schedule
 
@@ -3261,7 +3261,7 @@ errorhandle:
             End If
 
             ' get a Schedule
-            If aPart.LoadBy(DEPENDMEMBER.PARTID) And Not aPart.IsDeleted Then
+            If aPart.Inject(DEPENDMEMBER.PARTID) And Not aPart.IsDeleted Then
                 aDelivColl = aPart.GetDeliverables
                 If aDelivColl Is Nothing Then
                     Call CoreMessageHandler(message:="no deliverables for part", arg1:=DEPENDMEMBER.PARTID, break:=False)
@@ -3530,9 +3530,9 @@ errorhandle:
 
         End Function
 
-        '**** loadby : load the object by the PrimaryKeys
+        '**** Inject : load the object by the PrimaryKeys
         '****
-        Public Function loadBy(ByVal TYPEID As String, ByVal clusterid As String) As Boolean
+        Public Function Inject(ByVal TYPEID As String, ByVal clusterid As String) As Boolean
             Dim aTable As iormDataStore
             Dim pkarry(2) As Object
             Dim aRecord As ormRecord
@@ -3540,7 +3540,7 @@ errorhandle:
             '* lazy init
             If Not Me.IsInitialized Then
                 If Not Me.initialize() Then
-                    loadBy = False
+                    Inject = False
                     Exit Function
                 End If
             End If
@@ -3554,17 +3554,17 @@ errorhandle:
 
             If aRecord Is Nothing Then
                 Me.Unload()
-                loadBy = Me.IsLoaded
+                Inject = Me.IsLoaded
                 Exit Function
             Else
                 Me.Record = aRecord
                 _IsLoaded = Me.infuse(Me.Record)
-                loadBy = Me.IsLoaded
+                Inject = Me.IsLoaded
                 Exit Function
             End If
 
 error_handler:
-            loadBy = True
+            Inject = True
             Exit Function
         End Function
 
@@ -3572,102 +3572,102 @@ error_handler:
         '**********
         Public Function createSchema(Optional silent As Boolean = True) As Boolean
 
-            Dim aFieldDesc As New ormFieldDescription
-            Dim PrimaryColumnNames As New Collection
-            Dim aTable As New ObjectDefinition
+            '            Dim aFieldDesc As New ormFieldDescription
+            '            Dim PrimaryColumnNames As New Collection
+            '            Dim aTable As New ObjectDefinition
 
-            With aTable
-                .Create(ourTableName)
-                .Delete()
+            '            With aTable
+            '                .Create(ourTableName)
+            '                .Delete()
 
-                aFieldDesc.Tablename = ourTableName
-                aFieldDesc.ID = ""
-                aFieldDesc.Parameter = ""
+            '                aFieldDesc.Tablename = ourTableName
+            '                aFieldDesc.ID = ""
+            '                aFieldDesc.Parameter = ""
 
-                '***
-                '*** Fields
-                '****
+            '                '***
+            '                '*** Fields
+            '                '****
 
-                ' typeid
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "type of dependencies"
-                aFieldDesc.ColumnName = "typeid"
-                aFieldDesc.ID = "DT1"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
+            '                ' typeid
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "type of dependencies"
+            '                aFieldDesc.ColumnName = "typeid"
+            '                aFieldDesc.ID = "DT1"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
 
-                'cluster id
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "cluster id"
-                aFieldDesc.ColumnName = "clusterid"
-                aFieldDesc.ID = "CL1"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
+            '                'cluster id
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "cluster id"
+            '                aFieldDesc.ColumnName = "clusterid"
+            '                aFieldDesc.ID = "CL1"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
 
-                'clustertype
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "cluster type"
-                aFieldDesc.ColumnName = "ctype"
-                aFieldDesc.ID = "CL2"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' status
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "status"
-                aFieldDesc.ColumnName = "status"
-                aFieldDesc.ID = "CL3"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                'clustertype
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "cluster type"
+            '                aFieldDesc.ColumnName = "ctype"
+            '                aFieldDesc.ID = "CL2"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' status
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "status"
+            '                aFieldDesc.ColumnName = "status"
+            '                aFieldDesc.ID = "CL3"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                ' clusterlevel
-                aFieldDesc.Datatype = otFieldDataType.[Long]
-                aFieldDesc.Title = "max cluster level"
-                aFieldDesc.ColumnName = "clusterlevel"
-                aFieldDesc.ID = "CL4"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' clusterlevel
+            '                aFieldDesc.Datatype = otFieldDataType.[Long]
+            '                aFieldDesc.Title = "max cluster level"
+            '                aFieldDesc.ColumnName = "clusterlevel"
+            '                aFieldDesc.ID = "CL4"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                aFieldDesc.Datatype = otFieldDataType.[Long]
-                aFieldDesc.Title = "size size"
-                aFieldDesc.ColumnName = "size"
-                aFieldDesc.ID = "CL5"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                aFieldDesc.Datatype = otFieldDataType.[Long]
+            '                aFieldDesc.Title = "size size"
+            '                aFieldDesc.ColumnName = "size"
+            '                aFieldDesc.ID = "CL5"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                '***
-                '*** TIMESTAMP
-                '****
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "last Update"
-                aFieldDesc.ColumnName = ConstFNUpdatedOn
-                aFieldDesc.ID = ""
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                '***
+            '                '*** TIMESTAMP
+            '                '****
+            '                aFieldDesc.Datatype = otFieldDataType.Timestamp
+            '                aFieldDesc.Title = "last Update"
+            '                aFieldDesc.ColumnName = ConstFNUpdatedOn
+            '                aFieldDesc.ID = ""
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "creation Date"
-                aFieldDesc.ColumnName = ConstFNCreatedOn
-                aFieldDesc.ID = ""
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' Index
-                Call .AddIndex("PrimaryKey", PrimaryColumnNames, isprimarykey:=True)
-
-
-                ' persist
-                .Persist()
-                ' change the database
-                .AlterSchema()
-            End With
-            ' reset the Table description
-            If Not Me.Record.SetTable(ourTableName, forceReload:=True) Then
-                Call CoreMessageHandler(subname:="clsDependency.createSchema", tablename:=ourTableName, _
-                                      message:="Error while setTable in createSchema")
-            End If
-
-            '
-            createSchema = True
-            Exit Function
+            '                aFieldDesc.Datatype = otFieldDataType.Timestamp
+            '                aFieldDesc.Title = "creation Date"
+            '                aFieldDesc.ColumnName = ConstFNCreatedOn
+            '                aFieldDesc.ID = ""
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' Index
+            '                Call .AddIndex("PrimaryKey", PrimaryColumnNames, isprimarykey:=True)
 
 
-            ' Handle the error
-error_handle:
-            Call CoreMessageHandler(subname:="clsOTDBBOM.createSchema", tablename:=ourTableName)
-            createSchema = False
+            '                ' persist
+            '                .Persist()
+            '                ' change the database
+            '                .CreateObjectSchema()
+            '            End With
+            '            ' reset the Table description
+            '            If Not Me.Record.SetTable(ourTableName, forceReload:=True) Then
+            '                Call CoreMessageHandler(subname:="clsDependency.createSchema", tablename:=ourTableName, _
+            '                                      message:="Error while setTable in createSchema")
+            '            End If
+
+            '            '
+            '            createSchema = True
+            '            Exit Function
+
+
+            '            ' Handle the error
+            'error_handle:
+            '            Call CoreMessageHandler(subname:="clsOTDBBOM.createSchema", tablename:=ourTableName)
+            '            createSchema = False
         End Function
 
         '**** persist

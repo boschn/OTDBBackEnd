@@ -329,9 +329,9 @@ errorhandle:
 
         End Function
 
-        '**** loadby : load the object by the PrimaryKeys
+        '**** Inject : load the object by the PrimaryKeys
         '****
-        Public Function loadBy(ByVal TYPEID As String, ByVal snapdate As Date, ByRef dims() As Object) As Boolean
+        Public Function Inject(ByVal TYPEID As String, ByVal snapdate As Date, ByRef dims() As Object) As Boolean
             Dim aTable As iormDataStore
             Dim pkarry(nodims + 2)
             Dim aRecord As ormRecord
@@ -340,7 +340,7 @@ errorhandle:
             '* init
             If Not Me.IsInitialized Then
                 If Not Me.initialize() Then
-                    loadBy = False
+                    Inject = False
                     Exit Function
                 End If
             End If
@@ -357,17 +357,17 @@ errorhandle:
 
             If aRecord Is Nothing Then
                 Me.Unload()
-                loadBy = Me.IsLoaded
+                Inject = Me.IsLoaded
                 Exit Function
             Else
                 Me.Record = aRecord
                 _IsLoaded = Me.Infuse(Me.Record)
-                loadBy = Me.IsLoaded
+                Inject = Me.IsLoaded
                 Exit Function
             End If
 
 error_handler:
-            loadBy = True
+            Inject = True
             Exit Function
         End Function
 
@@ -375,251 +375,251 @@ error_handler:
         '**********
         Public Function createSchema(Optional silent As Boolean = True) As Boolean
 
-            Dim PrimaryColumnNames As New Collection
-            Dim aFieldDesc As New ormFieldDescription
-            Dim aTable As New ObjectDefinition
+'            Dim PrimaryColumnNames As New Collection
+'            Dim aFieldDesc As New ormFieldDescription
+'            Dim aTable As New ObjectDefinition
 
-            With aTable
-                .Create(ourTableName)
+'            With aTable
+'                .Create(ourTableName)
 
-                aFieldDesc.Tablename = ourTableName
-                aFieldDesc.ID = ""
-                aFieldDesc.Parameter = ""
-
-
-                ' typeid
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "type of entry"
-                aFieldDesc.ColumnName = "typeid"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
-
-                ' Snapdate
-                aFieldDesc.Datatype = otFieldDataType.[Date]
-                aFieldDesc.Title = "snapdate"
-                aFieldDesc.ColumnName = "snapdate"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
-
-                ' dimension 1
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "dimension 1"
-                aFieldDesc.ColumnName = "dim1"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
-                ' dimension 2
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "dimension 2"
-                aFieldDesc.ColumnName = "dim2"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
-                ' dimension 3
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "dimension 3"
-                aFieldDesc.ColumnName = "dim3"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
-                ' dimension 4
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "dimension 4"
-                aFieldDesc.ColumnName = "dim4"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
-                ' dimension 5
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "dimension 5"
-                aFieldDesc.ColumnName = "dim5"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
-                ' dimension 6
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "dimension 6"
-                aFieldDesc.ColumnName = "dim6"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                'PrimaryColumnNames.add aFieldDesc.Name
-                ' dimension 7
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "dimension 7"
-                aFieldDesc.ColumnName = "dim7"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                'PrimaryColumnNames.add aFieldDesc.Name
-                ' dimension 8
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "dimension 8"
-                aFieldDesc.ColumnName = "dim8"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                'PrimaryColumnNames.add aFieldDesc.Name
-                ' dimension 9
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "dimension 9"
-                aFieldDesc.ColumnName = "dim9"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                'PrimaryColumnNames.add aFieldDesc.Name
-                ' dimension 10
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "dimension 10"
-                aFieldDesc.ColumnName = "dim10"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                'PrimaryColumnNames.add aFieldDesc.Name
+'                aFieldDesc.Tablename = ourTableName
+'                aFieldDesc.ID = ""
+'                aFieldDesc.Parameter = ""
 
 
-                ' Value 1
-                aFieldDesc.Datatype = otFieldDataType.Numeric
-                aFieldDesc.Title = "value #1"
-                aFieldDesc.ColumnName = "value1"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' Value 2
-                aFieldDesc.Datatype = otFieldDataType.Numeric
-                aFieldDesc.Title = "value #2"
-                aFieldDesc.ColumnName = "value2"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' Value 3
-                aFieldDesc.Datatype = otFieldDataType.Numeric
-                aFieldDesc.Title = "value #3"
-                aFieldDesc.ColumnName = "value3"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' Value 4
-                aFieldDesc.Datatype = otFieldDataType.Numeric
-                aFieldDesc.Title = "value #4"
-                aFieldDesc.ColumnName = "value4"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' Value 5
-                aFieldDesc.Datatype = otFieldDataType.Numeric
-                aFieldDesc.Title = "value #5"
-                aFieldDesc.ColumnName = "value5"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' Value 6
-                aFieldDesc.Datatype = otFieldDataType.Numeric
-                aFieldDesc.Title = "value #6"
-                aFieldDesc.ColumnName = "value6"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' Value 7
-                aFieldDesc.Datatype = otFieldDataType.Numeric
-                aFieldDesc.Title = "value #7"
-                aFieldDesc.ColumnName = "value7"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' Value 8
-                aFieldDesc.Datatype = otFieldDataType.Numeric
-                aFieldDesc.Title = "value #8"
-                aFieldDesc.ColumnName = "value8"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' Value 9
-                aFieldDesc.Datatype = otFieldDataType.Numeric
-                aFieldDesc.Title = "value #9"
-                aFieldDesc.ColumnName = "value9"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' Value 10
-                aFieldDesc.Datatype = otFieldDataType.Numeric
-                aFieldDesc.Title = "value #10"
-                aFieldDesc.ColumnName = "value10"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                ' typeid
+'                aFieldDesc.Datatype = otFieldDataType.Text
+'                aFieldDesc.Title = "type of entry"
+'                aFieldDesc.ColumnName = "typeid"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
+
+'                ' Snapdate
+'                aFieldDesc.Datatype = otFieldDataType.[Date]
+'                aFieldDesc.Title = "snapdate"
+'                aFieldDesc.ColumnName = "snapdate"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
+
+'                ' dimension 1
+'                aFieldDesc.Datatype = otFieldDataType.Text
+'                aFieldDesc.Title = "dimension 1"
+'                aFieldDesc.ColumnName = "dim1"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
+'                ' dimension 2
+'                aFieldDesc.Datatype = otFieldDataType.Text
+'                aFieldDesc.Title = "dimension 2"
+'                aFieldDesc.ColumnName = "dim2"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
+'                ' dimension 3
+'                aFieldDesc.Datatype = otFieldDataType.Text
+'                aFieldDesc.Title = "dimension 3"
+'                aFieldDesc.ColumnName = "dim3"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
+'                ' dimension 4
+'                aFieldDesc.Datatype = otFieldDataType.Text
+'                aFieldDesc.Title = "dimension 4"
+'                aFieldDesc.ColumnName = "dim4"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
+'                ' dimension 5
+'                aFieldDesc.Datatype = otFieldDataType.Text
+'                aFieldDesc.Title = "dimension 5"
+'                aFieldDesc.ColumnName = "dim5"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
+'                ' dimension 6
+'                aFieldDesc.Datatype = otFieldDataType.Text
+'                aFieldDesc.Title = "dimension 6"
+'                aFieldDesc.ColumnName = "dim6"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                'PrimaryColumnNames.add aFieldDesc.Name
+'                ' dimension 7
+'                aFieldDesc.Datatype = otFieldDataType.Text
+'                aFieldDesc.Title = "dimension 7"
+'                aFieldDesc.ColumnName = "dim7"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                'PrimaryColumnNames.add aFieldDesc.Name
+'                ' dimension 8
+'                aFieldDesc.Datatype = otFieldDataType.Text
+'                aFieldDesc.Title = "dimension 8"
+'                aFieldDesc.ColumnName = "dim8"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                'PrimaryColumnNames.add aFieldDesc.Name
+'                ' dimension 9
+'                aFieldDesc.Datatype = otFieldDataType.Text
+'                aFieldDesc.Title = "dimension 9"
+'                aFieldDesc.ColumnName = "dim9"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                'PrimaryColumnNames.add aFieldDesc.Name
+'                ' dimension 10
+'                aFieldDesc.Datatype = otFieldDataType.Text
+'                aFieldDesc.Title = "dimension 10"
+'                aFieldDesc.ColumnName = "dim10"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                'PrimaryColumnNames.add aFieldDesc.Name
 
 
-                ' parameter_txt 1
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "parameter_txt 1 of condition"
-                aFieldDesc.ColumnName = "param_txt1"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' parameter_txt 2
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "parameter_txt 2 of condition"
-                aFieldDesc.ColumnName = "param_txt2"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' parameter_txt 3
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "parameter_txt 3 of condition"
-                aFieldDesc.ColumnName = "param_txt3"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' parameter_num 1
-                aFieldDesc.Datatype = otFieldDataType.Numeric
-                aFieldDesc.Title = "parameter numeric 1 of condition"
-                aFieldDesc.ColumnName = "param_num1"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' parameter_num 2
-                aFieldDesc.Datatype = otFieldDataType.Numeric
-                aFieldDesc.Title = "parameter numeric 2 of condition"
-                aFieldDesc.ColumnName = "param_num2"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' parameter_num 3
-                aFieldDesc.Datatype = otFieldDataType.Numeric
-                aFieldDesc.Title = "parameter numeric 3 of condition"
-                aFieldDesc.ColumnName = "param_num3"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                ' parameter_date 1
-                aFieldDesc.Datatype = otFieldDataType.[Date]
-                aFieldDesc.Title = "parameter date 1 of condition"
-                aFieldDesc.ColumnName = "param_date1"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                ' parameter_date 2
-                aFieldDesc.Datatype = otFieldDataType.[Date]
-                aFieldDesc.Title = "parameter date 2 of condition"
-                aFieldDesc.ColumnName = "param_date2"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' parameter_date 3
-                aFieldDesc.Datatype = otFieldDataType.[Date]
-                aFieldDesc.Title = "parameter date 3 of condition"
-                aFieldDesc.ColumnName = "param_date3"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                ' parameter_flag 1
-                aFieldDesc.Datatype = otFieldDataType.Bool
-                aFieldDesc.Title = "parameter flag 1 of condition"
-                aFieldDesc.ColumnName = "param_flag1"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                ' parameter_flag 2
-                aFieldDesc.Datatype = otFieldDataType.Bool
-                aFieldDesc.Title = "parameter flag 2 of condition"
-                aFieldDesc.ColumnName = "param_flag2"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' parameter_flag 3
-                aFieldDesc.Datatype = otFieldDataType.Bool
-                aFieldDesc.Title = "parameter flag 3 of condition"
-                aFieldDesc.ColumnName = "param_flag3"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                ' Value 1
+'                aFieldDesc.Datatype = otFieldDataType.Numeric
+'                aFieldDesc.Title = "value #1"
+'                aFieldDesc.ColumnName = "value1"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                ' Value 2
+'                aFieldDesc.Datatype = otFieldDataType.Numeric
+'                aFieldDesc.Title = "value #2"
+'                aFieldDesc.ColumnName = "value2"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                ' Value 3
+'                aFieldDesc.Datatype = otFieldDataType.Numeric
+'                aFieldDesc.Title = "value #3"
+'                aFieldDesc.ColumnName = "value3"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                ' Value 4
+'                aFieldDesc.Datatype = otFieldDataType.Numeric
+'                aFieldDesc.Title = "value #4"
+'                aFieldDesc.ColumnName = "value4"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                ' Value 5
+'                aFieldDesc.Datatype = otFieldDataType.Numeric
+'                aFieldDesc.Title = "value #5"
+'                aFieldDesc.ColumnName = "value5"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                ' Value 6
+'                aFieldDesc.Datatype = otFieldDataType.Numeric
+'                aFieldDesc.Title = "value #6"
+'                aFieldDesc.ColumnName = "value6"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                ' Value 7
+'                aFieldDesc.Datatype = otFieldDataType.Numeric
+'                aFieldDesc.Title = "value #7"
+'                aFieldDesc.ColumnName = "value7"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                ' Value 8
+'                aFieldDesc.Datatype = otFieldDataType.Numeric
+'                aFieldDesc.Title = "value #8"
+'                aFieldDesc.ColumnName = "value8"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                ' Value 9
+'                aFieldDesc.Datatype = otFieldDataType.Numeric
+'                aFieldDesc.Title = "value #9"
+'                aFieldDesc.ColumnName = "value9"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                ' Value 10
+'                aFieldDesc.Datatype = otFieldDataType.Numeric
+'                aFieldDesc.Title = "value #10"
+'                aFieldDesc.ColumnName = "value10"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
 
-                '***
-                '*** TIMESTAMP
-                '****
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "last Update"
-                aFieldDesc.ColumnName = ot.ConstFNUpdatedOn
-                aFieldDesc.ID = ""
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                ' parameter_txt 1
+'                aFieldDesc.Datatype = otFieldDataType.Text
+'                aFieldDesc.Title = "parameter_txt 1 of condition"
+'                aFieldDesc.ColumnName = "param_txt1"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                ' parameter_txt 2
+'                aFieldDesc.Datatype = otFieldDataType.Text
+'                aFieldDesc.Title = "parameter_txt 2 of condition"
+'                aFieldDesc.ColumnName = "param_txt2"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                ' parameter_txt 3
+'                aFieldDesc.Datatype = otFieldDataType.Text
+'                aFieldDesc.Title = "parameter_txt 3 of condition"
+'                aFieldDesc.ColumnName = "param_txt3"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                ' parameter_num 1
+'                aFieldDesc.Datatype = otFieldDataType.Numeric
+'                aFieldDesc.Title = "parameter numeric 1 of condition"
+'                aFieldDesc.ColumnName = "param_num1"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                ' parameter_num 2
+'                aFieldDesc.Datatype = otFieldDataType.Numeric
+'                aFieldDesc.Title = "parameter numeric 2 of condition"
+'                aFieldDesc.ColumnName = "param_num2"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                ' parameter_num 3
+'                aFieldDesc.Datatype = otFieldDataType.Numeric
+'                aFieldDesc.Title = "parameter numeric 3 of condition"
+'                aFieldDesc.ColumnName = "param_num3"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "creation Date"
-                aFieldDesc.ColumnName = ot.ConstFNCreatedOn
-                aFieldDesc.ID = ""
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' Index
-                Call .AddIndex("PrimaryKey", PrimaryColumnNames, isprimarykey:=True)
+'                ' parameter_date 1
+'                aFieldDesc.Datatype = otFieldDataType.[Date]
+'                aFieldDesc.Title = "parameter date 1 of condition"
+'                aFieldDesc.ColumnName = "param_date1"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+'                ' parameter_date 2
+'                aFieldDesc.Datatype = otFieldDataType.[Date]
+'                aFieldDesc.Title = "parameter date 2 of condition"
+'                aFieldDesc.ColumnName = "param_date2"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                ' parameter_date 3
+'                aFieldDesc.Datatype = otFieldDataType.[Date]
+'                aFieldDesc.Title = "parameter date 3 of condition"
+'                aFieldDesc.ColumnName = "param_date3"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+'                ' parameter_flag 1
+'                aFieldDesc.Datatype = otFieldDataType.Bool
+'                aFieldDesc.Title = "parameter flag 1 of condition"
+'                aFieldDesc.ColumnName = "param_flag1"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+'                ' parameter_flag 2
+'                aFieldDesc.Datatype = otFieldDataType.Bool
+'                aFieldDesc.Title = "parameter flag 2 of condition"
+'                aFieldDesc.ColumnName = "param_flag2"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                ' parameter_flag 3
+'                aFieldDesc.Datatype = otFieldDataType.Bool
+'                aFieldDesc.Title = "parameter flag 3 of condition"
+'                aFieldDesc.ColumnName = "param_flag3"
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
 
-                ' persist
-                .Persist()
-                ' change the database
-                .AlterSchema()
-            End With
+'                '***
+'                '*** TIMESTAMP
+'                '****
+'                aFieldDesc.Datatype = otFieldDataType.Timestamp
+'                aFieldDesc.Title = "last Update"
+'                aFieldDesc.ColumnName = ot.ConstFNUpdatedOn
+'                aFieldDesc.ID = ""
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-            ' reset the Table description
-            If Not Me.Record.SetTable(ourTableName, forceReload:=True) Then
-                Call ot.CoreMessageHandler(subname:="clsDependency.createSchema", tablename:=ourTableName, _
-                                      message:="Error while setTable in createSchema")
-            End If
-
-            '
-            createSchema = True
-            Exit Function
+'                aFieldDesc.Datatype = otFieldDataType.Timestamp
+'                aFieldDesc.Title = "creation Date"
+'                aFieldDesc.ColumnName = ot.ConstFNCreatedOn
+'                aFieldDesc.ID = ""
+'                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+'                ' Index
+'                Call .AddIndex("PrimaryKey", PrimaryColumnNames, isprimarykey:=True)
 
 
-            ' Handle the error
-error_handle:
-            Call ot.CoreMessageHandler(subname:="clsOTDBBOM.createSchema", tablename:=ourTableName)
-            createSchema = False
+'                ' persist
+'                .Persist()
+'                ' change the database
+'                .CreateObjectSchema()
+'            End With
+
+'            ' reset the Table description
+'            If Not Me.Record.SetTable(ourTableName, forceReload:=True) Then
+'                Call ot.CoreMessageHandler(subname:="clsDependency.createSchema", tablename:=ourTableName, _
+'                                      message:="Error while setTable in createSchema")
+'            End If
+
+'            '
+'            createSchema = True
+'            Exit Function
+
+
+'            ' Handle the error
+'error_handle:
+'            Call ot.CoreMessageHandler(subname:="clsOTDBBOM.createSchema", tablename:=ourTableName)
+'            createSchema = False
         End Function
 
         '**** persist

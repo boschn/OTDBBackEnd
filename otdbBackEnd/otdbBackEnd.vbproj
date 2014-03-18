@@ -94,7 +94,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Cache.vb" />
-    <None Include="clsADODB.vb" />
     <Compile Include="clsADOMSSQL.vb" />
     <Compile Include="clsADONET.vb" />
     <Compile Include="clsADOOLEDB.vb" />
@@ -105,7 +104,12 @@
     <Compile Include="clsCore.vb" />
     <Compile Include="clsCoreDef.vb" />
     <Compile Include="clsCoreHelper.vb" />
+    <Compile Include="clsCoreObjectRepository.vb" />
     <Compile Include="clsCoreORM.vb" />
+    <Compile Include="clsCoreORMAttributes.vb" />
+    <Compile Include="clsCoreClassRepository.vb" />
+    <Compile Include="clsCoreORMDataObject.vb" />
+    <Compile Include="clsCorePropertyFunctions.vb" />
     <Compile Include="clsCoreUI.vb" />
     <Compile Include="clsDefCore.vb" />
     <Compile Include="clsDeliverable.vb" />

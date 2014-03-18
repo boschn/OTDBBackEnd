@@ -194,7 +194,7 @@ Namespace OnTrack.Scheduling
 
             For Each aKey In keys
 
-                If Not aCluster.loadBy(TYPEID:=aDependTypeId, clusterid:=aKey) Then
+                If Not aCluster.Inject(TYPEID:=aDependTypeId, clusterid:=aKey) Then
                     Call aCluster.create(aDependTypeId, clusterid:=aKey)
                 End If
 
@@ -263,10 +263,10 @@ Namespace OnTrack.Scheduling
         '*****
         Public Sub testme()
             Dim aDependency As New clsOTDBDependency
-            Dim aPart As New clsOTDBPart
+            Dim aPart As New Part
             Dim clusterid As String
 
-            Call aPart.LoadBy("3H03-391025-000")
+            Call aPart.Inject("3H03-391025-000")
 
             aDependency = New clsOTDBDependency
             If Not aDependency.loadbyDependant(aPart.PartID) Then
@@ -294,13 +294,13 @@ Namespace OnTrack.Scheduling
         ''' </summary>
         ''' <remarks></remarks>
         Public Function BuildDependencyNet(Optional workerthread As BackgroundWorker = Nothing) As Boolean
-            Dim aPartsColl As New Collection
-            Dim aPart As New clsOTDBPart
+            Dim aPartsColl As New List(Of Part)
+            Dim aPart As New Part
             'Dim aProgressBar As New clsUIProgressBarForm
             Dim aSenderColl As New Collection
             Dim aReceiverColl As New Collection
-            Dim aSenderPart As New clsOTDBPart
-            Dim aReceiverPart As New clsOTDBPart
+            Dim aSenderPart As New Part
+            Dim aReceiverPart As New Part
             Dim aDependency As New clsOTDBDependency
             Dim flag As Boolean
 
@@ -366,12 +366,12 @@ Namespace OnTrack.Scheduling
 
         Public Sub BuildDependencyCluster()
             Dim aDepColl As New Collection
-            Dim aPart As New clsOTDBPart
+            Dim aPart As New Part
             'Dim aProgressBar As New clsUIProgressBarForm
             Dim aSenderColl As New Collection
             Dim aReceiverColl As New Collection
-            Dim aSenderPart As New clsOTDBPart
-            Dim aReceiverPart As New clsOTDBPart
+            Dim aSenderPart As New Part
+            Dim aReceiverPart As New Part
             Dim aDependency As New clsOTDBDependency
             Dim aDepMember As New clsOTDBDependMember
             Dim clusterid As String
@@ -429,11 +429,11 @@ Namespace OnTrack.Scheduling
         ''' <remarks></remarks>
         Public Function BuildDynamicDependencyCluster(Optional ByVal workspaceID As String = "", Optional workerthread As BackgroundWorker = Nothing) As Boolean
             Dim aDepColl As New Collection
-            Dim aPart As New clsOTDBPart
+            Dim aPart As New Part
             Dim aSenderColl As New Collection
             Dim aReceiverColl As New Collection
-            Dim aSenderPart As New clsOTDBPart
-            Dim aReceiverPart As New clsOTDBPart
+            Dim aSenderPart As New Part
+            Dim aReceiverPart As New Part
             Dim aDependency As New clsOTDBDependency
             Dim aDepMember As New clsOTDBDependMember
             Dim clusterid As String
@@ -527,13 +527,13 @@ Namespace OnTrack.Scheduling
         ''' <param name="workspaceID"></param>
         ''' <remarks></remarks>
         Public Function CheckAllDependencies(Optional ByVal workspaceID As String = "", Optional workerthread As BackgroundWorker = Nothing) As Boolean
-            Dim aPartsColl As New Collection
-            Dim aPart As New clsOTDBPart
+            Dim aPartsColl As New List(Of Part)
+            Dim aPart As New Part
             'Dim aProgressBar As New clsUIProgressBarForm
             Dim aSenderColl As New Collection
             Dim aReceiverColl As New Collection
-            Dim aSenderPart As New clsOTDBPart
-            Dim aReceiverPart As New clsOTDBPart
+            Dim aSenderPart As New Part
+            Dim aReceiverPart As New Part
             Dim aDependency As New clsOTDBDependency
             Dim flag As Boolean
 
@@ -620,17 +620,17 @@ Namespace OnTrack.Scheduling
                                              ByRef dependency As clsOTDBDependency, _
                                              Optional workspaceID As String = "") As Boolean
 
-            Dim aPart As New clsOTDBPart
+            Dim aPart As New Part
 
             Dim aSenderColl As New Collection
             Dim aReceiverColl As New Collection
-            Dim aSenderPart As New clsOTDBPart
-            Dim aReceiverPart As New clsOTDBPart
+            Dim aSenderPart As New Part
+            Dim aReceiverPart As New Part
             ' Dim aDependency As New clsOTDBDependency
             Dim flag As Boolean
 
             ' load the part
-            If Not aPart.LoadBy(partID) Then
+            If Not aPart.Inject(partID) Then
                 CheckDependenciesFor = False
                 Exit Function
             End If

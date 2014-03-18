@@ -93,14 +93,14 @@ Namespace OnTrack.Database
 
                 aScheduleDef = New ScheduleDefinition
                 With aScheduleDef
-                    If Not .Create("full") Then .LoadBy("full")
+                    If Not .Create("full") Then .Inject("full")
                     .description = "full engineering cycle (3D Design)"
                     .Persist()
 
                 End With
                 aScheduleDef = New ScheduleDefinition
                 With aScheduleDef
-                    If Not .Create("pdm") Then .LoadBy("pdm")
+                    If Not .Create("pdm") Then .Inject("pdm")
                     .description = "pdm entry cycle for non 3D Design items"
                     .Persist()
 
@@ -114,7 +114,7 @@ Namespace OnTrack.Database
                 End With
                 aScheduleDef = New ScheduleDefinition
                 With aScheduleDef
-                    If Not .Create("nocad") Then .LoadBy("nocad")
+                    If Not .Create("nocad") Then .Inject("nocad")
                     .description = "design for non-mechanical (3D) design"
                     .Persist()
 
@@ -136,7 +136,7 @@ Namespace OnTrack.Database
 
                 aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
-                    If Not .Create("full", "bp11") Then .LoadBy("full", "bp11")
+                    If Not .Create("full", "bp11") Then .Inject("full", "bp11")
                     .ActualOfFC = ""
                     .IsForecast = True
                     .IsMandatory = True
@@ -147,7 +147,7 @@ Namespace OnTrack.Database
                 End With
                 aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
-                    If Not .Create("full", "bp12") Then .LoadBy("full", "bp12")
+                    If Not .Create("full", "bp12") Then .Inject("full", "bp12")
                     .ActualOfFC = "bp11"
                     .IsForecast = False
                     .IsMandatory = True
@@ -158,7 +158,7 @@ Namespace OnTrack.Database
                 End With
                 aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
-                    If Not .Create("full", "bp1") Then .LoadBy("full", "bp1")
+                    If Not .Create("full", "bp1") Then .Inject("full", "bp1")
                     .ActualOfFC = ""
                     .IsForecast = True
                     .IsFacultative = True
@@ -168,7 +168,7 @@ Namespace OnTrack.Database
                 End With
                 aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
-                    If Not .Create("full", "bp2") Then .LoadBy("full", "bp2")
+                    If Not .Create("full", "bp2") Then .Inject("full", "bp2")
                     .ActualOfFC = "bp1"
                     .IsForecast = False
                     .IsMandatory = True
@@ -179,7 +179,7 @@ Namespace OnTrack.Database
                 End With
                 aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
-                    If Not .Create("full", "bp13") Then .LoadBy("full", "bp13")
+                    If Not .Create("full", "bp13") Then .Inject("full", "bp13")
                     .ActualOfFC = ""
                     .IsForecast = True
                     .IsFacultative = True
@@ -190,7 +190,7 @@ Namespace OnTrack.Database
                 End With
                 aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
-                    If Not .Create("full", "bp3") Then .LoadBy("full", "bp3")
+                    If Not .Create("full", "bp3") Then .Inject("full", "bp3")
                     .ActualOfFC = ""
                     .IsForecast = True
                     .IsMandatory = True
@@ -200,7 +200,7 @@ Namespace OnTrack.Database
                 End With
                 aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
-                    If Not .Create("full", "bp4") Then .LoadBy("full", "bp4")
+                    If Not .Create("full", "bp4") Then .Inject("full", "bp4")
                     .ActualOfFC = "bp3"
                     .IsForecast = False
                     .IsMandatory = True
@@ -211,7 +211,7 @@ Namespace OnTrack.Database
                 End With
                 aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
-                    If Not .Create("full", "bp5") Then .LoadBy("full", "bp5")
+                    If Not .Create("full", "bp5") Then .Inject("full", "bp5")
                     .ActualOfFC = ""
                     .IsForecast = False
                     .IsMandatory = True
@@ -222,7 +222,7 @@ Namespace OnTrack.Database
                 End With
                 aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
-                    If Not .Create("full", "bp6") Then .LoadBy("full", "bp6")
+                    If Not .Create("full", "bp6") Then .Inject("full", "bp6")
                     .ActualOfFC = ""
                     .IsForecast = False
                     .IsMandatory = True
@@ -233,7 +233,7 @@ Namespace OnTrack.Database
                 End With
                 aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
-                    If Not .Create("full", "bp20") Then .LoadBy("full", "bp20")
+                    If Not .Create("full", "bp20") Then .Inject("full", "bp20")
                     .ActualOfFC = ""
                     .IsForecast = True
                     .IsFacultative = True
@@ -244,7 +244,7 @@ Namespace OnTrack.Database
                 End With
                 aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
-                    If Not .Create("full", "bp21") Then .LoadBy("full", "bp21")
+                    If Not .Create("full", "bp21") Then .Inject("full", "bp21")
                     .ActualOfFC = ""
                     .IsForecast = False
                     .IsMandatory = True
@@ -255,7 +255,7 @@ Namespace OnTrack.Database
                 End With
                 aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
-                    If Not .Create("full", "bp22") Then .LoadBy("full", "bp22")
+                    If Not .Create("full", "bp22") Then .Inject("full", "bp22")
                     .ActualOfFC = "bp20"
                     .IsForecast = False
                     .IsMandatory = True
@@ -265,7 +265,7 @@ Namespace OnTrack.Database
                 End With
                 aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
-                    If Not .Create("full", "bp7") Then .LoadBy("full", "bp7")
+                    If Not .Create("full", "bp7") Then .Inject("full", "bp7")
                     .ActualOfFC = ""
                     .IsForecast = True
                     .IsMandatory = True
@@ -276,7 +276,7 @@ Namespace OnTrack.Database
                 End With
                 aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
-                    If Not .Create("full", "bp8") Then .LoadBy("full", "bp8")
+                    If Not .Create("full", "bp8") Then .Inject("full", "bp8")
                     .ActualOfFC = "bp7"
                     .IsForecast = False
                     .IsMandatory = True
@@ -288,7 +288,7 @@ Namespace OnTrack.Database
                 aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
 
-                    If Not .Create("full", "bp9") Then .LoadBy("full", "bp9")
+                    If Not .Create("full", "bp9") Then .Inject("full", "bp9")
                     .ActualOfFC = ""
                     .IsForecast = True
                     .IsMandatory = True
@@ -299,7 +299,7 @@ Namespace OnTrack.Database
                 End With
                 aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
-                    If Not .Create("full", "bp10") Then .LoadBy("full", "bp10")
+                    If Not .Create("full", "bp10") Then .Inject("full", "bp10")
                     .ActualOfFC = "bp9"
                     .IsForecast = False
                     .IsMandatory = True
@@ -310,7 +310,7 @@ Namespace OnTrack.Database
                 End With
                 aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
-                    If Not .Create("full", "bp80") Then .LoadBy("full", "bp80")
+                    If Not .Create("full", "bp80") Then .Inject("full", "bp80")
                     .ActualOfFC = "bp9"
                     .IsForecast = False
                     .IsMandatory = True
@@ -327,7 +327,7 @@ Namespace OnTrack.Database
 
                 aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
-                    If Not .Create("nocad", "bp11") Then .LoadBy("nocad", "bp11")
+                    If Not .Create("nocad", "bp11") Then .Inject("nocad", "bp11")
                     .ActualOfFC = ""
                     .IsForecast = True
                     .IsFacultative = False
@@ -337,7 +337,7 @@ Namespace OnTrack.Database
                 End With
                 aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
-                    If Not .Create("nocad", "bp12") Then .LoadBy("nocad", "bp12")
+                    If Not .Create("nocad", "bp12") Then .Inject("nocad", "bp12")
                     .ActualOfFC = "bp11"
                     .IsForecast = False
                     .IsFacultative = False
@@ -348,7 +348,7 @@ Namespace OnTrack.Database
                 End With
                 aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
-                    If Not .Create("nocad", "bp1") Then .LoadBy("nocad", "bp1")
+                    If Not .Create("nocad", "bp1") Then .Inject("nocad", "bp1")
                     .ActualOfFC = ""
                     .IsForecast = True
                     .IsForbidden = True
@@ -359,7 +359,7 @@ Namespace OnTrack.Database
                 End With
                 aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
-                    If Not .Create("nocad", "bp2") Then .LoadBy("nocad", "bp2")
+                    If Not .Create("nocad", "bp2") Then .Inject("nocad", "bp2")
                     .ActualOfFC = "bp3"
                     .IsForecast = False
                     .IsForbidden = True
@@ -370,7 +370,7 @@ Namespace OnTrack.Database
                 End With
                 aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
-                    If Not .Create("nocad", "bp3") Then .LoadBy("nocad", "bp3")
+                    If Not .Create("nocad", "bp3") Then .Inject("nocad", "bp3")
                     .ActualOfFC = ""
                     .IsForecast = True
                     .IsFacultative = True
@@ -381,7 +381,7 @@ Namespace OnTrack.Database
                 End With
                 aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
-                    If Not .Create("nocad", "bp4") Then .LoadBy("nocad", "bp4")
+                    If Not .Create("nocad", "bp4") Then .Inject("nocad", "bp4")
                     .ActualOfFC = "bp3"
                     .IsForecast = False
                     .IsFacultative = True
@@ -393,7 +393,7 @@ Namespace OnTrack.Database
 
                 aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
-                    If Not .Create("nocad", "bp7") Then .LoadBy("nocad", "bp7")
+                    If Not .Create("nocad", "bp7") Then .Inject("nocad", "bp7")
                     .ActualOfFC = ""
                     .IsForecast = True
                     .IsFacultative = True
@@ -404,7 +404,7 @@ Namespace OnTrack.Database
                 End With
                 aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
-                    If Not .Create("nocad", "bp8") Then .LoadBy("nocad", "bp8")
+                    If Not .Create("nocad", "bp8") Then .Inject("nocad", "bp8")
                     .ActualOfFC = "bp7"
                     .IsForecast = False
                     .IsFacultative = True
@@ -415,7 +415,7 @@ Namespace OnTrack.Database
                 End With
                 aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
-                    If Not .Create("nocad", "bp9") Then .LoadBy("nocad", "bp9")
+                    If Not .Create("nocad", "bp9") Then .Inject("nocad", "bp9")
                     .ActualOfFC = ""
                     .IsForecast = True
                     .IsMandatory = False
@@ -426,7 +426,7 @@ Namespace OnTrack.Database
                 End With
                 aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
-                    If Not .Create("nocad", "bp10") Then .LoadBy("nocad", "bp10")
+                    If Not .Create("nocad", "bp10") Then .Inject("nocad", "bp10")
                     .ActualOfFC = "bp9"
                     .IsForecast = False
                     .IsMandatory = True
@@ -437,7 +437,7 @@ Namespace OnTrack.Database
                 End With
                 aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
-                    If Not .Create("nocad", "bp80") Then .LoadBy("nocad", "bp80")
+                    If Not .Create("nocad", "bp80") Then .Inject("nocad", "bp80")
                     .ActualOfFC = "bp9"
                     .IsForecast = False
                     .IsMandatory = True
@@ -453,7 +453,7 @@ Namespace OnTrack.Database
 
                 aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
-                    If Not .Create("pdm", "bp11") Then .LoadBy("pdm", "bp11")
+                    If Not .Create("pdm", "bp11") Then .Inject("pdm", "bp11")
                     .ActualOfFC = ""
                     .IsForecast = True
                     .IsFacultative = True
@@ -464,7 +464,7 @@ Namespace OnTrack.Database
                 End With
                 aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
-                    If Not .Create("pdm", "bp12") Then .LoadBy("pdm", "bp12")
+                    If Not .Create("pdm", "bp12") Then .Inject("pdm", "bp12")
                     .ActualOfFC = "bp11"
                     .IsForecast = False
                     .IsFacultative = True
@@ -475,7 +475,7 @@ Namespace OnTrack.Database
                 End With
                 aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
-                    If Not .Create("pdm", "bp1") Then .LoadBy("pdm", "bp1")
+                    If Not .Create("pdm", "bp1") Then .Inject("pdm", "bp1")
                     .ActualOfFC = ""
                     .IsForecast = True
                     .IsForbidden = True
@@ -486,7 +486,7 @@ Namespace OnTrack.Database
                 End With
                 aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
-                    If Not .Create("pdm", "bp2") Then .LoadBy("pdm", "bp2")
+                    If Not .Create("pdm", "bp2") Then .Inject("pdm", "bp2")
                     .ActualOfFC = "bp3"
                     .IsForecast = False
                     .IsForbidden = True
@@ -497,7 +497,7 @@ Namespace OnTrack.Database
                 End With
                 aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
-                    If Not .Create("pdm", "bp3") Then .LoadBy("pdm", "bp3")
+                    If Not .Create("pdm", "bp3") Then .Inject("pdm", "bp3")
                     .ActualOfFC = ""
                     .IsForecast = True
                     .IsForbidden = True
@@ -508,7 +508,7 @@ Namespace OnTrack.Database
                 End With
                 aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
-                    If Not .Create("pdm", "bp4") Then .LoadBy("pdm", "bp4")
+                    If Not .Create("pdm", "bp4") Then .Inject("pdm", "bp4")
                     .ActualOfFC = "bp3"
                     .IsForecast = False
                     .IsForbidden = True
@@ -520,7 +520,7 @@ Namespace OnTrack.Database
 
                 aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
-                    If Not .Create("pdm", "bp7") Then .LoadBy("pdm", "bp7")
+                    If Not .Create("pdm", "bp7") Then .Inject("pdm", "bp7")
                     .ActualOfFC = ""
                     .IsForecast = True
                     .IsFacultative = True
@@ -531,7 +531,7 @@ Namespace OnTrack.Database
                 End With
                 aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
-                    If Not .Create("pdm", "bp8") Then .LoadBy("pdm", "bp8")
+                    If Not .Create("pdm", "bp8") Then .Inject("pdm", "bp8")
                     .ActualOfFC = "bp7"
                     .IsForecast = False
                     .IsFacultative = True
@@ -542,7 +542,7 @@ Namespace OnTrack.Database
                 End With
                 aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
-                    If Not .Create("pdm", "bp9") Then .LoadBy("pdm", "bp9")
+                    If Not .Create("pdm", "bp9") Then .Inject("pdm", "bp9")
                     .ActualOfFC = ""
                     .IsForecast = True
                     .IsMandatory = True
@@ -553,7 +553,7 @@ Namespace OnTrack.Database
                 End With
                 aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
-                    If Not .Create("pdm", "bp10") Then .LoadBy("pdm", "bp10")
+                    If Not .Create("pdm", "bp10") Then .Inject("pdm", "bp10")
                     .ActualOfFC = "bp9"
                     .IsForecast = False
                     .IsMandatory = True
@@ -564,7 +564,7 @@ Namespace OnTrack.Database
                 End With
                 aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
-                    If Not .Create("pdm", "bp80") Then .LoadBy("pdm", "bp80")
+                    If Not .Create("pdm", "bp80") Then .Inject("pdm", "bp80")
                     .ActualOfFC = "bp9"
                     .IsForecast = False
                     .IsMandatory = True
@@ -578,7 +578,7 @@ Namespace OnTrack.Database
 
                 aScheduleDefM = New ScheduleMilestoneDefinition
                 With aScheduleDefM
-                    If Not .Create("none", "bp80") Then .LoadBy("none", "bp80")
+                    If Not .Create("none", "bp80") Then .Inject("none", "bp80")
                     .ActualOfFC = ""
                     .IsForecast = False
                     .IsFacultative = True
@@ -603,7 +603,7 @@ Namespace OnTrack.Database
 
                 aScheduleTaskDef = New clsOTDBDefScheduleTask
                 With aScheduleTaskDef
-                    If Not .Create("full", "synchro") Then .LoadBy("full", "synchro")
+                    If Not .Create("full", "synchro") Then .Inject("full", "synchro")
                     .Description = "task for synchronization"
                     .StartID = "bp11"
                     .ActstartID = "bp12"
@@ -619,7 +619,7 @@ Namespace OnTrack.Database
                 End With
                 aScheduleTaskDef = New clsOTDBDefScheduleTask
                 With aScheduleTaskDef
-                    If Not .Create("full", "development") Then .LoadBy("full", "development")
+                    If Not .Create("full", "development") Then .Inject("full", "development")
                     .Description = "3D Development"
                     .StartID = "bp11"
                     .ActstartID = "bp12"
@@ -634,7 +634,7 @@ Namespace OnTrack.Database
                 End With
                 aScheduleTaskDef = New clsOTDBDefScheduleTask
                 With aScheduleTaskDef
-                    If Not .Create("full", "approve") Then .LoadBy("full", "approve")
+                    If Not .Create("full", "approve") Then .Inject("full", "approve")
                     .Description = "approval"
                     .StartID = "bp7"
                     .ActstartID = "bp8"
@@ -648,7 +648,7 @@ Namespace OnTrack.Database
                 End With
                 aScheduleTaskDef = New clsOTDBDefScheduleTask
                 With aScheduleTaskDef
-                    If Not .Create("pdm", "approve") Then .LoadBy("pdm", "approve")
+                    If Not .Create("pdm", "approve") Then .Inject("pdm", "approve")
                     .Description = "approval"
                     .StartID = "bp7"
                     .ActstartID = "bp8"
@@ -674,7 +674,7 @@ Namespace OnTrack.Database
 
                 aDefMilestone = New MileStoneDefinition
                 With aDefMilestone
-                    If Not .Create("bp11") Then .LoadBy("bp11")
+                    If Not .Create("bp11") Then .Inject("bp11")
                     .Description = "FC start work"
                     .Datatype = otFieldDataType.[Date]
                     .IsForecast = True
@@ -683,7 +683,7 @@ Namespace OnTrack.Database
                 End With
                 aDefMilestone = New MileStoneDefinition
                 With aDefMilestone
-                    If Not .Create("bp12") Then .LoadBy("bp12")
+                    If Not .Create("bp12") Then .Inject("bp12")
                     .Description = "start work"
                     .IsForecast = False
                     .Datatype = otFieldDataType.[Date]
@@ -693,7 +693,7 @@ Namespace OnTrack.Database
                 End With
                 aDefMilestone = New MileStoneDefinition
                 With aDefMilestone
-                    If Not .Create("bp1") Then .LoadBy("bp1")
+                    If Not .Create("bp1") Then .Inject("bp1")
                     .Description = "FC IFM freeze gate"
                     .IsForecast = True
                     .Datatype = otFieldDataType.[Date]
@@ -703,7 +703,7 @@ Namespace OnTrack.Database
                 End With
                 aDefMilestone = New MileStoneDefinition
                 With aDefMilestone
-                    If Not .Create("bp2") Then .LoadBy("bp2")
+                    If Not .Create("bp2") Then .Inject("bp2")
                     .Description = "IFM freeze gate"
                     .IsForecast = False
                     .Datatype = otFieldDataType.[Date]
@@ -713,7 +713,7 @@ Namespace OnTrack.Database
                 End With
                 aDefMilestone = New MileStoneDefinition
                 With aDefMilestone
-                    If Not .Create("bp13") Then .LoadBy("bp13")
+                    If Not .Create("bp13") Then .Inject("bp13")
                     .Description = "current IFM freeze status"
                     .IsForecast = False
                     .IsOfStatus = True
@@ -725,7 +725,7 @@ Namespace OnTrack.Database
                 End With
                 aDefMilestone = New MileStoneDefinition
                 With aDefMilestone
-                    If Not .Create("bp15") Then .LoadBy("bp15")
+                    If Not .Create("bp15") Then .Inject("bp15")
                     .Description = "current IFM freeze status date"
                     .IsForecast = False
                     .Datatype = otFieldDataType.[Date]
@@ -736,7 +736,7 @@ Namespace OnTrack.Database
                 End With
                 aDefMilestone = New MileStoneDefinition
                 With aDefMilestone
-                    If Not .Create("bp3") Then .LoadBy("bp3")
+                    If Not .Create("bp3") Then .Inject("bp3")
                     .Description = "FC FAP / Design Freeze status date"
                     .Datatype = otFieldDataType.[Date]
                     .IsForecast = True
@@ -746,7 +746,7 @@ Namespace OnTrack.Database
                 End With
                 aDefMilestone = New MileStoneDefinition
                 With aDefMilestone
-                    If Not .Create("bp4") Then .LoadBy("bp4")
+                    If Not .Create("bp4") Then .Inject("bp4")
                     .Description = "FAP / Design Freeze gate"
                     .Datatype = otFieldDataType.[Date]
                     .IsForecast = False
@@ -756,7 +756,7 @@ Namespace OnTrack.Database
                 End With
                 aDefMilestone = New MileStoneDefinition
                 With aDefMilestone
-                    If Not .Create("bp5") Then .LoadBy("bp5")
+                    If Not .Create("bp5") Then .Inject("bp5")
                     .Description = "dmu status"
                     .Datatype = otFieldDataType.Text
                     .IsForecast = False
@@ -768,7 +768,7 @@ Namespace OnTrack.Database
                 End With
                 aDefMilestone = New MileStoneDefinition
                 With aDefMilestone
-                    If Not .Create("bp6") Then .LoadBy("bp6")
+                    If Not .Create("bp6") Then .Inject("bp6")
                     .Description = "dmu status date"
                     .Datatype = otFieldDataType.[Date]
                     .IsForecast = False
@@ -779,7 +779,7 @@ Namespace OnTrack.Database
                 End With
                 aDefMilestone = New MileStoneDefinition
                 With aDefMilestone
-                    If Not .Create("bp20") Then .LoadBy("bp20")
+                    If Not .Create("bp20") Then .Inject("bp20")
                     .Description = "FC FEM result date"
                     .Datatype = otFieldDataType.[Date]
                     .IsForecast = False
@@ -789,7 +789,7 @@ Namespace OnTrack.Database
                 End With
                 aDefMilestone = New MileStoneDefinition
                 With aDefMilestone
-                    If Not .Create("bp22") Then .LoadBy("bp22")
+                    If Not .Create("bp22") Then .Inject("bp22")
                     .Description = "FEM status date"
                     .Datatype = otFieldDataType.[Date]
                     .IsForecast = False
@@ -800,7 +800,7 @@ Namespace OnTrack.Database
                 End With
                 aDefMilestone = New MileStoneDefinition
                 With aDefMilestone
-                    If Not .Create("bp21") Then .LoadBy("bp21")
+                    If Not .Create("bp21") Then .Inject("bp21")
                     .Description = "FEM Status"
                     .Datatype = otFieldDataType.Text
                     .IsForecast = False
@@ -812,7 +812,7 @@ Namespace OnTrack.Database
                 End With
                 aDefMilestone = New MileStoneDefinition
                 With aDefMilestone
-                    If Not .Create("bp7") Then .LoadBy("bp7")
+                    If Not .Create("bp7") Then .Inject("bp7")
                     .Description = "FC PDM entry date (outgoing ENG)"
                     .Datatype = otFieldDataType.[Date]
                     .IsForecast = True
@@ -822,7 +822,7 @@ Namespace OnTrack.Database
                 End With
                 aDefMilestone = New MileStoneDefinition
                 With aDefMilestone
-                    If Not .Create("bp8") Then .LoadBy("bp8")
+                    If Not .Create("bp8") Then .Inject("bp8")
                     .Description = "entry PDM date"
                     .Datatype = otFieldDataType.[Date]
                     .IsForecast = False
@@ -832,7 +832,7 @@ Namespace OnTrack.Database
                 End With
                 aDefMilestone = New MileStoneDefinition
                 With aDefMilestone
-                    If Not .Create("bp14") Then .LoadBy("bp14")
+                    If Not .Create("bp14") Then .Inject("bp14")
                     .Description = "outgoing PDM DRL date"
                     .Datatype = otFieldDataType.[Date]
                     .IsForecast = False
@@ -842,7 +842,7 @@ Namespace OnTrack.Database
                 End With
                 aDefMilestone = New MileStoneDefinition
                 With aDefMilestone
-                    If Not .Create("bp9") Then .LoadBy("bp9")
+                    If Not .Create("bp9") Then .Inject("bp9")
                     .Description = "FC PDM approval date"
                     .Datatype = otFieldDataType.[Date]
                     .IsForecast = True
@@ -852,7 +852,7 @@ Namespace OnTrack.Database
                 End With
                 aDefMilestone = New MileStoneDefinition
                 With aDefMilestone
-                    If Not .Create("bp10") Then .LoadBy("bp10")
+                    If Not .Create("bp10") Then .Inject("bp10")
                     .Description = "PDM approval date"
                     .Datatype = otFieldDataType.[Date]
                     .IsForecast = False
@@ -862,7 +862,7 @@ Namespace OnTrack.Database
                 End With
                 aDefMilestone = New MileStoneDefinition
                 With aDefMilestone
-                    If Not .Create("bp80") Then .LoadBy("bp80")
+                    If Not .Create("bp80") Then .Inject("bp80")
                     .Description = "first PDM approval date"
                     .Datatype = otFieldDataType.[Date]
                     .IsForecast = False
@@ -938,7 +938,7 @@ Namespace OnTrack.Database
             Dim i As Integer
 
             With aDefConfiguration
-                If .loadBy(CONFIGNAME:="CTUSAGE") Then
+                If .Inject(CONFIGNAME:="CTUSAGE") Then
                     .delete()
                 End If
                 Call .create(CONFIGNAME:="CTUSAGE")
@@ -1061,7 +1061,7 @@ Namespace OnTrack.Database
                 Exit Sub
             End If
 
-           
+
             ' create
             Dim aDefLogMsg As New ObjectLogMessageDef
 
@@ -1083,123 +1083,35 @@ Namespace OnTrack.Database
 
             End If
 
-            ' DomainSetting
-            If Not DomainSetting.CreateSchema() Then
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", _
-                                      message:="Schema domain setting couldn't be created", messagetype:=otCoreMessageType.ApplicationError, _
-                                      tablename:=DomainSetting.ConstTableID)
-
+            '***
+            If Not Group.CreateSchema() Then
+                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", message:="dataobject  couldn't be created", _
+                                             messagetype:=otCoreMessageType.InternalError, objectname:=Group.ConstObjectID, tablename:=Group.ConstTableID)
             Else
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", _
-                                                            message:="Schema domains settings could be created", messagetype:=otCoreMessageType.ApplicationInfo, _
-                                                            tablename:=DomainSetting.ConstTableID)
-            End If
-            ' Domains
-            Dim aDomain As New Domain
-            If Not Domain.CreateSchema() Then
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", _
-                                       message:="Schema domains couldn't be created", messagetype:=otCoreMessageType.ApplicationError, tablename:=Domain.constTableID)
-
-            Else
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", _
-                                                            message:="Schema domains could be created", messagetype:=otCoreMessageType.ApplicationInfo, _
-                                                            tablename:=Domain.constTableID)
-                '*** 
-                If Not aDomain.Create(domainID:=ConstGlobalDomain) Then
-                    aDomain.LoadBy(domainID:=ConstGlobalDomain)
-                End If
-
-                aDomain.Description = "global domain for all Ontrack data in this database"
-                aDomain.IsGlobal = True
-                aDomain.MinDeliverableUID = 1
-                aDomain.MaxDeliverableUID = 999999999
-                aDomain.SetSetting(id:=Session.ConstCPDefaultWorkspace, datatype:=otFieldDataType.Text, value:="@")
-                aDomain.SetSetting(id:=Session.ConstCDefaultScheduleTypeID, datatype:=otFieldDataType.Text, value:="full")
-                aDomain.SetSetting(id:=Session.ConstCPDefaultCalendarName, datatype:=otFieldDataType.Text, value:="default")
-                aDomain.SetSetting(id:=Session.ConstCPDefaultTodayLatency, datatype:=otFieldDataType.Long, value:=7)
-                aDomain.SetSetting(id:=Session.ConstCPDependencySynchroMinOverlap, datatype:=otFieldDataType.Long, value:=-14)
-                aDomain.Persist()
-
-            End If
-
-            ' workspaceID
-            Dim aDefWorkspace As New Workspace
-            If Not Workspace.CreateSchema() Then
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", _
-                                             message:="Schema workspaces couldn't be created", messagetype:=otCoreMessageType.ApplicationError, tablename:=aDefWorkspace.TableID)
-            Else
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", _
-                                             message:="Schema workspaces could be created", messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aDefWorkspace.TableID)
-                '*** Project Base workspaceID
-                If aDefWorkspace.Create("@") Then
-                    aDefWorkspace.Description = "base workspaceID for SBB ENG Planning"
-                    aDefWorkspace.IsBasespace = True
-                    aDefWorkspace.FCRelyingOn = New String() {"@"}
-                    aDefWorkspace.ACTRelyingOn = New String() {"@"}
-                    aDefWorkspace.AccesslistIDs = New String() {"PrjPlanner"}
-                    aDefWorkspace.HasActuals = True
-                    aDefWorkspace.Min_schedule_updc = 1
-                    aDefWorkspace.Max_schedule_updc = 999
-                    aDefWorkspace.Min_target_updc = 1
-                    aDefWorkspace.Max_target_updc = 999
-                    aDefWorkspace.Persist()
-
-                    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", _
-                                                 message:="base workspaceID @ created", messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aDefWorkspace.TableID)
-                End If
-                '*** workspaceID
-                aDefWorkspace = New Workspace
-                If aDefWorkspace.Create("PSIM01") Then
-                    aDefWorkspace.Description = "Project Simulation workspaceID"
-                    aDefWorkspace.IsBasespace = False
-                    aDefWorkspace.FCRelyingOn = New String() {"@", "PSIM01"}
-                    aDefWorkspace.ACTRelyingOn = New String() {"@"}
-                    aDefWorkspace.HasActuals = False
-                    aDefWorkspace.AccesslistIDs = New String() {"PrjPlanner"}
-                    aDefWorkspace.Min_schedule_updc = 1000
-                    aDefWorkspace.Max_schedule_updc = 1099
-                    aDefWorkspace.Min_target_updc = 1000
-                    aDefWorkspace.Max_target_updc = 1099
-                    aDefWorkspace.Persist()
-                    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", _
-                                                 message:="workspaceID PSIM01 created", messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aDefWorkspace.TableID)
-
-                End If
-                '*** workspaceID
-                aDefWorkspace = New Workspace
-                If aDefWorkspace.Create("APQ") Then
-                    aDefWorkspace.Description = "Approval Queue workspaceID"
-                    aDefWorkspace.IsBasespace = False
-                    aDefWorkspace.FCRelyingOn = New String() {"@", "APQ"}
-                    aDefWorkspace.ACTRelyingOn = New String() {"@"}
-                    aDefWorkspace.HasActuals = False
-                    aDefWorkspace.AccesslistIDs = New String() {"PrjPlanner"}
-                    aDefWorkspace.Min_schedule_updc = 2000
-                    aDefWorkspace.Max_schedule_updc = 2099
-                    aDefWorkspace.Min_target_updc = 2000
-                    aDefWorkspace.Max_target_updc = 2099
-                    aDefWorkspace.Persist()
-                    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", _
-                                                 message:="base workspaceID APQ created", messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aDefWorkspace.TableID)
+                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", message:="data object could be created", _
+                                                           messagetype:=otCoreMessageType.ApplicationInfo, objectname:=Group.ConstObjectID, tablename:=Group.ConstTableID)
+                Dim aGroup As Group = Group.Create(groupname:="admin")
+                If aGroup IsNot Nothing Then
+                    aGroup.Description = "Administratio group"
+                    aGroup.HasAlterSchemaRights = True
+                    aGroup.HasReadRights = True
+                    aGroup.HasUpdateRights = True
+                    aGroup.HasNoRights = False
+                    If aGroup.Persist() Then
+                        Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", objectname:=Group.ConstObjectID, _
+                                                    message:="Group Admin created", messagetype:=otCoreMessageType.ApplicationInfo)
+                    End If
 
                 End If
 
             End If
 
-            Dim anAccessList As New clsOTDBDefUserAccessList
-            If Not clsOTDBDefUserAccessList.CreateSchema() Then
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", _
-                                             message:="Schema DefUserAccessList couldn't be created", messagetype:=otCoreMessageType.ApplicationError, tablename:=anAccessList.TableID)
+            If Not GroupMember.CreateSchema() Then
+                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", message:="dataobject  couldn't be created", _
+                                             messagetype:=otCoreMessageType.InternalError, objectname:=GroupMember.ConstObjectID, tablename:=GroupMember.ConstTableID)
             Else
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", _
-                                             message:="Schema DefUserAccessList up-to-date", messagetype:=otCoreMessageType.ApplicationInfo, tablename:=anAccessList.TableID)
-
-                anAccessList = New clsOTDBDefUserAccessList
-                If anAccessList.Create(id:="PrjPlanner", username:="boschnei") Then
-                    anAccessList.HasUpdateRights = True
-                    anAccessList.Description = "Project Planner List Member"
-                    anAccessList.Persist()
-                End If
+                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", message:="data object could be created", _
+                                                           messagetype:=otCoreMessageType.ApplicationInfo, objectname:=GroupMember.ConstObjectID, tablename:=GroupMember.ConstTableID)
             End If
             '** User Setting
             If Not UserSetting.CreateSchema() Then
@@ -1209,348 +1121,310 @@ Namespace OnTrack.Database
                 Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", message:="UserSettings could be created", _
                                                            messagetype:=otCoreMessageType.ApplicationInfo, tablename:=UserSetting.ConstTableID)
             End If
-            Dim anUser As New User
-            If Not User.CreateSchema() Then
+            '*** Create Default Users
+            Dim anUser As User = User.Create(username:="Admin")
+            If anUser IsNot Nothing Then
+                anUser.Description = "Administrator"
+                anUser.DefaultWorkspaceID = "@"
+                anUser.GroupNames = {"admin"}
+                anUser.Password = "Admin"
+                anUser.HasAlterSchemaRights = True
+                anUser.HasNoRights = False
+                anUser.HasReadRights = True
+                anUser.HasUpdateRights = True
+                anUser.IsAnonymous = False
+                anUser.Persist()
                 Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", tablename:=anUser.TableID, _
-                                             message:="Schema DefUser couldn't be created", messagetype:=otCoreMessageType.ApplicationError)
-            Else
+                                             message:="User Admin created", messagetype:=otCoreMessageType.ApplicationInfo)
+            End If
+            anUser = User.Create(username:="boschnei")
+            If anUser IsNot Nothing Then
+                anUser.Description = "Boris Schneider"
+                anUser.GroupNames = {"admin"}
+                anUser.DefaultWorkspaceID = "@"
+                anUser.Password = "zulu4Hart"
+                anUser.HasAlterSchemaRights = True
+                anUser.HasNoRights = False
+                anUser.HasReadRights = True
+                anUser.HasUpdateRights = True
+                anUser.IsAnonymous = False
+                anUser.PersonName = "Boris Schneider"
+                anUser.Persist()
+            End If
+            anUser = User.Create(username:="anonymous")
+            If anUser IsNot Nothing Then
+                anUser.Description = "anonymous"
+                anUser.GroupNames = {"anon"}
+                anUser.DefaultWorkspaceID = "@"
+                anUser.Password = ""
+                anUser.HasAlterSchemaRights = False
+                anUser.HasNoRights = False
+                anUser.HasReadRights = True
+                anUser.HasUpdateRights = False
+                anUser.IsAnonymous = True
+                anUser.PersonName = ""
+                anUser.Persist()
                 Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", tablename:=anUser.TableID, _
-                                             message:="Schema DefUser up-to-date", messagetype:=otCoreMessageType.ApplicationInfo)
-                anUser = New User
-                If anUser.Create("Admin") Then
-                    anUser.Description = "Administrator"
-                    anUser.DefaultWorkspaceID = "@"
-                    anUser.Group = "admin"
-                    anUser.Password = "Admin"
-                    anUser.HasAlterSchemaRights = True
-                    anUser.HasNoRights = False
-                    anUser.HasReadRights = True
-                    anUser.HasUpdateRights = True
-                    anUser.IsAnonymous = False
-                    anUser.Persist()
-                    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", tablename:=anUser.TableID, _
-                                                 message:="User Admin created", messagetype:=otCoreMessageType.ApplicationInfo)
-                End If
-                anUser = New User
-                If anUser.Create("boschnei") Then
-                    anUser.Description = "Boris Schneider"
-                    anUser.Group = "admin"
-                    anUser.DefaultWorkspaceID = "@"
-                    anUser.Password = "zulu4Hart"
-                    anUser.HasAlterSchemaRights = True
-                    anUser.HasNoRights = False
-                    anUser.HasReadRights = True
-                    anUser.HasUpdateRights = True
-                    anUser.IsAnonymous = False
-                    anUser.PersonName = "Boris Schneider"
-                    anUser.Persist()
-                End If
-                anUser = New User
-                If anUser.Create("anonymous") Then
-                    anUser.Description = "anonymous"
-                    anUser.Group = "anon"
-                    anUser.DefaultWorkspaceID = "@"
-                    anUser.Password = ""
-                    anUser.HasAlterSchemaRights = False
-                    anUser.HasNoRights = False
-                    anUser.HasReadRights = True
-                    anUser.HasUpdateRights = False
-                    anUser.IsAnonymous = True
-                    anUser.PersonName = ""
-                    anUser.Persist()
-                    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", tablename:=anUser.TableID, _
-                                                 message:="User anonymous for read created", messagetype:=otCoreMessageType.ApplicationInfo)
-                End If
+                                             message:="User anonymous for read created", messagetype:=otCoreMessageType.ApplicationInfo)
             End If
+            
 
-
-            Dim aPerson As New Person
-            If Not Person.CreateSchema() Then
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", tablename:=aPerson.TableID, _
-                                             message:="Schema DefPerson couldn't be created", messagetype:=otCoreMessageType.ApplicationError)
-            Else
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", tablename:=aPerson.TableID, _
-                                             message:="Schema DefPerson up-to-date", messagetype:=otCoreMessageType.ApplicationInfo)
-            End If
-            ' create
-            Dim aOrgUnit As New OrgUnit
-            If Not OrgUnit.CreateSchema() Then
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", tablename:=aOrgUnit.TableID, _
-                                             message:="Schema OrgUnit couldn't be created", messagetype:=otCoreMessageType.ApplicationError)
-            Else
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", tablename:=aOrgUnit.TableID, _
-                                             message:="Schema OrgUnit upt-to-date", messagetype:=otCoreMessageType.ApplicationInfo)
-            End If
-
-
-            ' create
-            Dim aSite As New Site
-            If Not Site.CreateSchema() Then
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", tablename:=aSite.TableID, _
-                                             message:="Schema DefSite couldn't be created", messagetype:=otCoreMessageType.ApplicationError)
-
-            Else
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", tablename:=aSite.TableID, _
-                                             message:="Schema DefSite up-to-date", messagetype:=otCoreMessageType.ApplicationInfo)
-
-                If aSite.Create("GO") Then
-                    aSite.Description = "Görlitz"
-                    aSite.Persist()
+                Dim aPerson As New Person
+                If Not Person.CreateSchema() Then
+                    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", tablename:=aPerson.TableID, _
+                                                 message:="Schema DefPerson couldn't be created", messagetype:=otCoreMessageType.ApplicationError)
+                Else
+                    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", tablename:=aPerson.TableID, _
+                                                 message:="Schema DefPerson up-to-date", messagetype:=otCoreMessageType.ApplicationInfo)
                 End If
-                If aSite.Create("HE") Then
-                    aSite.Description = "Hennigsdorf"
-                    aSite.Persist()
+                ' create
+                Dim aOrgUnit As New OrgUnit
+                If Not OrgUnit.CreateSchema() Then
+                    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", tablename:=aOrgUnit.TableID, _
+                                                 message:="Schema OrgUnit couldn't be created", messagetype:=otCoreMessageType.ApplicationError)
+                Else
+                    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", tablename:=aOrgUnit.TableID, _
+                                                 message:="Schema OrgUnit upt-to-date", messagetype:=otCoreMessageType.ApplicationInfo)
                 End If
-                If aSite.Create("BR") Then
-                    aSite.Description = "Bruegge"
-                    aSite.Persist()
-                End If
-                If aSite.Create("KAS") Then
-                    aSite.Description = "Kassel"
-                    aSite.Persist()
-                End If
-                If aSite.Create("DER") Then
-                    aSite.Description = "Derby"
-                    aSite.Persist()
-                End If
-                If aSite.Create("VIL") Then
-                    aSite.Description = "Villeneuve"
-                    aSite.Persist()
-                End If
-                If aSite.Create("AM") Then
-                    aSite.Description = "Ammendorf"
-                    aSite.Persist()
-                End If
-                If aSite.Create("VL") Then
-                    aSite.Description = "Vado Ligure"
-                    aSite.Persist()
-                End If
-            End If
-
-            Dim aCalEntry As New CalendarEntry
-            If Not CalendarEntry.CreateSchema() Then
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", tablename:=aCalEntry.TableID, _
-                                             message:="Schema " & aCalEntry.TableID & " couldn't be created", messagetype:=otCoreMessageType.ApplicationError)
-            Else
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", tablename:=aCalEntry.TableID, _
-                                             message:="Schema " & aCalEntry.TableID & " up-to-date", messagetype:=otCoreMessageType.ApplicationInfo)
-                aCalEntry = New CalendarEntry
-                With aCalEntry
-                    Call .GenerateDays(fromdate:=CDate("01.01.2011"), untildate:=CDate("01.01.2016"), name:=ot.CurrentSession.DefaultCalendarName)
-                    ' additional
-
-                    If .Create() Then
-                        .Datevalue = CDate("29.03.2013")
-                        .entrytype = otCalendarEntryType.DayEntry
-                        .notAvailable = True
-                        .description = "Karfreitag (Eastern)"
-                        .Persist()
-                    End If
-                End With
-                aCalEntry = New CalendarEntry
-                With aCalEntry
-                    If .Create() Then
-                        .Datevalue = CDate("01.04.2013")
-                        .entrytype = otCalendarEntryType.DayEntry
-                        .notAvailable = True
-                        .description = "EasterMonday (Eastern)"
-                        .Persist()
-                    End If
-                End With
-                aCalEntry = New CalendarEntry
-                With aCalEntry
-                    If .Create() Then
-                        .Datevalue = CDate("09.05.2013")
-                        .entrytype = otCalendarEntryType.DayEntry
-                        .notAvailable = True
-                        .description = "Christi Himmelfahrt"
-                        .Persist()
-                    End If
-                End With
-
-                aCalEntry = New CalendarEntry
-                With aCalEntry
-                    If .Create() Then
-                        .Datevalue = CDate("10.05.2013")
-                        .entrytype = otCalendarEntryType.DayEntry
-                        .notAvailable = True
-                        .description = "Christi Himmelfahrt Brückentag"
-                        .Persist()
-                    End If
-                End With
-                aCalEntry = New CalendarEntry
-                With aCalEntry
-                    If .Create() Then
-                        .Datevalue = CDate("20.05.2013")
-                        .entrytype = otCalendarEntryType.DayEntry
-                        .notAvailable = True
-                        .description = "Pfingsten"
-                        .Persist()
-                    End If
-                End With
-                aCalEntry = New CalendarEntry
-                With aCalEntry
-                    If .Create() Then
-                        .Datevalue = CDate("31.10.2013")
-                        .entrytype = otCalendarEntryType.DayEntry
-                        .notAvailable = True
-                        .description = "Reformationstag (Sachsen)"
-                        .Persist()
-                    End If
-                End With
-                aCalEntry = New CalendarEntry
-                With aCalEntry
-                    If .Create() Then
-                        .Datevalue = CDate("20.11.2013")
-                        .entrytype = otCalendarEntryType.DayEntry
-                        .notAvailable = True
-                        .description = "Buß- und Bettag (Sachsen)"
-                        .Persist()
-                    End If
-                End With
-                aCalEntry = New CalendarEntry
-                With aCalEntry
-                    If .Create() Then
-                        .Datevalue = CDate("18.04.2014")
-                        .entrytype = otCalendarEntryType.DayEntry
-                        .notAvailable = True
-                        .description = "Karfreitag (Eastern)"
-                        .Persist()
-                    End If
-                End With
-                aCalEntry = New CalendarEntry
-                With aCalEntry
-                    If .Create() Then
-                        .Datevalue = CDate("01.04.2014")
-                        .entrytype = otCalendarEntryType.DayEntry
-                        .notAvailable = True
-                        .description = "EasterMonday (Eastern)"
-                        .Persist()
-                    End If
-                End With
-                aCalEntry = New CalendarEntry
-                With aCalEntry
-                    If .Create() Then
-                        .Datevalue = CDate("29.05.2013")
-                        .entrytype = otCalendarEntryType.DayEntry
-                        .notAvailable = True
-                        .description = "Christi Himmelfahrt"
-                        .Persist()
-                    End If
-                End With
-                aCalEntry = New CalendarEntry
-                With aCalEntry
-                    If .Create() Then
-                        .Datevalue = CDate("20.05.2014")
-                        .entrytype = otCalendarEntryType.DayEntry
-                        .notAvailable = True
-                        .description = "Pfingsten"
-                        .Persist()
-                    End If
-                End With
-                aCalEntry = New CalendarEntry
-                With aCalEntry
-                    If .Create() Then
-                        .Datevalue = CDate("31.10.2014")
-                        .entrytype = otCalendarEntryType.DayEntry
-                        .notAvailable = True
-                        .description = "Reformationstag (Sachsen)"
-                        .Persist()
-                    End If
-                End With
-                aCalEntry = New CalendarEntry
-                With aCalEntry
-                    If .Create() Then
-                        .Datevalue = CDate("19.11.2014")
-                        .entrytype = otCalendarEntryType.DayEntry
-                        .notAvailable = True
-                        .description = "Buß- und Bettag (Sachsen)"
-                        .Persist()
-                    End If
-                End With
-                aCalEntry = New CalendarEntry
-                With aCalEntry
-                    If .Create() Then
-                        .Datevalue = CDate("03.04.2015")
-                        .entrytype = otCalendarEntryType.DayEntry
-                        .notAvailable = True
-                        .description = "Karfreitag (Eastern)"
-                        .Persist()
-                    End If
-                End With
-                aCalEntry = New CalendarEntry
-                With aCalEntry
-                    If .Create() Then
-                        .Datevalue = CDate("06.04.2015")
-                        .entrytype = otCalendarEntryType.DayEntry
-                        .notAvailable = True
-                        .description = "EasterMonday (Eastern)"
-                        .Persist()
-                    End If
-                End With
-                aCalEntry = New CalendarEntry
-                With aCalEntry
-                    If .Create() Then
-                        .Datevalue = CDate("14.05.2015")
-                        .entrytype = otCalendarEntryType.DayEntry
-                        .notAvailable = True
-                        .description = "Christi Himmelfahrt"
-                        .Persist()
-                    End If
-                End With
-                aCalEntry = New CalendarEntry
-                With aCalEntry
-                    If .Create() Then
-                        .Datevalue = CDate("25.05.2015")
-                        .entrytype = otCalendarEntryType.DayEntry
-                        .notAvailable = True
-                        .description = "Pfingsten"
-                        .Persist()
-                    End If
-                End With
-                aCalEntry = New CalendarEntry
-                With aCalEntry
-                    If .Create() Then
-                        .Datevalue = CDate("31.10.2015")
-                        .entrytype = otCalendarEntryType.DayEntry
-                        .notAvailable = True
-                        .description = "Reformationstag (Sachsen)"
-                        .Persist()
-                    End If
-                End With
-                aCalEntry = New CalendarEntry
-                With aCalEntry
-                    If .Create() Then
-                        .Datevalue = CDate("18.11.2015")
-                        .entrytype = otCalendarEntryType.DayEntry
-                        .notAvailable = True
-                        .description = "Buß- und Bettag (Sachsen)"
-                        .Persist()
-                    End If
-                End With
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", tablename:=aCalEntry.TableID, _
-                                             message:="Calendar until 31.12.2016 created", messagetype:=otCoreMessageType.ApplicationInfo)
-            End If
-
-            Dim aStatusItem As New StatusItem
-            If Not StatusItem.CreateSchema() Then
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", tablename:=aStatusItem.TableID, _
-                                             message:="Schema " & aStatusItem.TableID & " couldn't be created", messagetype:=otCoreMessageType.ApplicationError)
-            Else
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", tablename:=aStatusItem.TableID, _
-                                             message:="Schema " & aStatusItem.TableID & " up-to-date", messagetype:=otCoreMessageType.ApplicationInfo)
-            End If
 
 
-            Dim aDBWareHouse As New clsOTDBDataWareHouse
-            If Not aDBWareHouse.createSchema() Then
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", message:="datawarehouse couldn't be created", _
-                                             tablename:=aDBWareHouse.TableID, messagetype:=otCoreMessageType.ApplicationError)
-            Else
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", _
-                                             message:="schema datawarehouse up-to-date", _
-                                             tablename:=aDBWareHouse.TableID, messagetype:=otCoreMessageType.ApplicationInfo)
-            End If
+                ' create
+                Dim aSite As New Site
+                If Not Site.CreateSchema() Then
+                    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", tablename:=aSite.TableID, _
+                                                 message:="Schema DefSite couldn't be created", messagetype:=otCoreMessageType.ApplicationError)
+
+                Else
+                    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", tablename:=aSite.TableID, _
+                                                 message:="Schema DefSite up-to-date", messagetype:=otCoreMessageType.ApplicationInfo)
+
+                   
+                End If
+
+                Dim aCalEntry As New CalendarEntry
+                If Not CalendarEntry.CreateSchema() Then
+                    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", tablename:=aCalEntry.TableID, _
+                                                 message:="Schema " & aCalEntry.TableID & " couldn't be created", messagetype:=otCoreMessageType.ApplicationError)
+                Else
+                    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", tablename:=aCalEntry.TableID, _
+                                                 message:="Schema " & aCalEntry.TableID & " up-to-date", messagetype:=otCoreMessageType.ApplicationInfo)
+                    aCalEntry = New CalendarEntry
+                    With aCalEntry
+                        Call .GenerateDays(fromdate:=CDate("01.01.2011"), untildate:=CDate("01.01.2016"), name:=ot.CurrentSession.DefaultCalendarName)
+                        ' additional
+
+                        If .Create() Then
+                            .Datevalue = CDate("29.03.2013")
+                            .entrytype = otCalendarEntryType.DayEntry
+                            .notAvailable = True
+                            .description = "Karfreitag (Eastern)"
+                            .Persist()
+                        End If
+                    End With
+                    aCalEntry = New CalendarEntry
+                    With aCalEntry
+                        If .Create() Then
+                            .Datevalue = CDate("01.04.2013")
+                            .entrytype = otCalendarEntryType.DayEntry
+                            .notAvailable = True
+                            .description = "EasterMonday (Eastern)"
+                            .Persist()
+                        End If
+                    End With
+                    aCalEntry = New CalendarEntry
+                    With aCalEntry
+                        If .Create() Then
+                            .Datevalue = CDate("09.05.2013")
+                            .entrytype = otCalendarEntryType.DayEntry
+                            .notAvailable = True
+                            .description = "Christi Himmelfahrt"
+                            .Persist()
+                        End If
+                    End With
+
+                    aCalEntry = New CalendarEntry
+                    With aCalEntry
+                        If .Create() Then
+                            .Datevalue = CDate("10.05.2013")
+                            .entrytype = otCalendarEntryType.DayEntry
+                            .notAvailable = True
+                            .description = "Christi Himmelfahrt Brückentag"
+                            .Persist()
+                        End If
+                    End With
+                    aCalEntry = New CalendarEntry
+                    With aCalEntry
+                        If .Create() Then
+                            .Datevalue = CDate("20.05.2013")
+                            .entrytype = otCalendarEntryType.DayEntry
+                            .notAvailable = True
+                            .description = "Pfingsten"
+                            .Persist()
+                        End If
+                    End With
+                    aCalEntry = New CalendarEntry
+                    With aCalEntry
+                        If .Create() Then
+                            .Datevalue = CDate("31.10.2013")
+                            .entrytype = otCalendarEntryType.DayEntry
+                            .notAvailable = True
+                            .description = "Reformationstag (Sachsen)"
+                            .Persist()
+                        End If
+                    End With
+                    aCalEntry = New CalendarEntry
+                    With aCalEntry
+                        If .Create() Then
+                            .Datevalue = CDate("20.11.2013")
+                            .entrytype = otCalendarEntryType.DayEntry
+                            .notAvailable = True
+                            .description = "Buß- und Bettag (Sachsen)"
+                            .Persist()
+                        End If
+                    End With
+                    aCalEntry = New CalendarEntry
+                    With aCalEntry
+                        If .Create() Then
+                            .Datevalue = CDate("18.04.2014")
+                            .entrytype = otCalendarEntryType.DayEntry
+                            .notAvailable = True
+                            .description = "Karfreitag (Eastern)"
+                            .Persist()
+                        End If
+                    End With
+                    aCalEntry = New CalendarEntry
+                    With aCalEntry
+                        If .Create() Then
+                            .Datevalue = CDate("01.04.2014")
+                            .entrytype = otCalendarEntryType.DayEntry
+                            .notAvailable = True
+                            .description = "EasterMonday (Eastern)"
+                            .Persist()
+                        End If
+                    End With
+                    aCalEntry = New CalendarEntry
+                    With aCalEntry
+                        If .Create() Then
+                            .Datevalue = CDate("29.05.2013")
+                            .entrytype = otCalendarEntryType.DayEntry
+                            .notAvailable = True
+                            .description = "Christi Himmelfahrt"
+                            .Persist()
+                        End If
+                    End With
+                    aCalEntry = New CalendarEntry
+                    With aCalEntry
+                        If .Create() Then
+                            .Datevalue = CDate("20.05.2014")
+                            .entrytype = otCalendarEntryType.DayEntry
+                            .notAvailable = True
+                            .description = "Pfingsten"
+                            .Persist()
+                        End If
+                    End With
+                    aCalEntry = New CalendarEntry
+                    With aCalEntry
+                        If .Create() Then
+                            .Datevalue = CDate("31.10.2014")
+                            .entrytype = otCalendarEntryType.DayEntry
+                            .notAvailable = True
+                            .description = "Reformationstag (Sachsen)"
+                            .Persist()
+                        End If
+                    End With
+                    aCalEntry = New CalendarEntry
+                    With aCalEntry
+                        If .Create() Then
+                            .Datevalue = CDate("19.11.2014")
+                            .entrytype = otCalendarEntryType.DayEntry
+                            .notAvailable = True
+                            .description = "Buß- und Bettag (Sachsen)"
+                            .Persist()
+                        End If
+                    End With
+                    aCalEntry = New CalendarEntry
+                    With aCalEntry
+                        If .Create() Then
+                            .Datevalue = CDate("03.04.2015")
+                            .entrytype = otCalendarEntryType.DayEntry
+                            .notAvailable = True
+                            .description = "Karfreitag (Eastern)"
+                            .Persist()
+                        End If
+                    End With
+                    aCalEntry = New CalendarEntry
+                    With aCalEntry
+                        If .Create() Then
+                            .Datevalue = CDate("06.04.2015")
+                            .entrytype = otCalendarEntryType.DayEntry
+                            .notAvailable = True
+                            .description = "EasterMonday (Eastern)"
+                            .Persist()
+                        End If
+                    End With
+                    aCalEntry = New CalendarEntry
+                    With aCalEntry
+                        If .Create() Then
+                            .Datevalue = CDate("14.05.2015")
+                            .entrytype = otCalendarEntryType.DayEntry
+                            .notAvailable = True
+                            .description = "Christi Himmelfahrt"
+                            .Persist()
+                        End If
+                    End With
+                    aCalEntry = New CalendarEntry
+                    With aCalEntry
+                        If .Create() Then
+                            .Datevalue = CDate("25.05.2015")
+                            .entrytype = otCalendarEntryType.DayEntry
+                            .notAvailable = True
+                            .description = "Pfingsten"
+                            .Persist()
+                        End If
+                    End With
+                    aCalEntry = New CalendarEntry
+                    With aCalEntry
+                        If .Create() Then
+                            .Datevalue = CDate("31.10.2015")
+                            .entrytype = otCalendarEntryType.DayEntry
+                            .notAvailable = True
+                            .description = "Reformationstag (Sachsen)"
+                            .Persist()
+                        End If
+                    End With
+                    aCalEntry = New CalendarEntry
+                    With aCalEntry
+                        If .Create() Then
+                            .Datevalue = CDate("18.11.2015")
+                            .entrytype = otCalendarEntryType.DayEntry
+                            .notAvailable = True
+                            .description = "Buß- und Bettag (Sachsen)"
+                            .Persist()
+                        End If
+                    End With
+                    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", tablename:=aCalEntry.TableID, _
+                                                 message:="Calendar until 31.12.2016 created", messagetype:=otCoreMessageType.ApplicationInfo)
+                End If
+
+                Dim aStatusItem As New StatusItem
+                If Not StatusItem.CreateSchema() Then
+                    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", tablename:=aStatusItem.TableID, _
+                                                 message:="Schema " & aStatusItem.TableID & " couldn't be created", messagetype:=otCoreMessageType.ApplicationError)
+                Else
+                    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", tablename:=aStatusItem.TableID, _
+                                                 message:="Schema " & aStatusItem.TableID & " up-to-date", messagetype:=otCoreMessageType.ApplicationInfo)
+                End If
+
+
+                Dim aDBWareHouse As New clsOTDBDataWareHouse
+                If Not aDBWareHouse.createSchema() Then
+                    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", message:="datawarehouse couldn't be created", _
+                                                 tablename:=aDBWareHouse.TableID, messagetype:=otCoreMessageType.ApplicationError)
+                Else
+                    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", _
+                                                 message:="schema datawarehouse up-to-date", _
+                                                 tablename:=aDBWareHouse.TableID, messagetype:=otCoreMessageType.ApplicationInfo)
+                End If
 
 
         End Sub
@@ -1602,8 +1476,8 @@ Namespace OnTrack.Database
 
             End If
 
-            Dim aPart As New clsOTDBPart
-            If Not clsOTDBPart.CreateSchema() Then
+            Dim aPart As New Part
+            If Not Part.CreateSchema() Then
                 Call ot.CoreMessageHandler(showmsgbox:=False, subname:="createDatabase", _
                                              message:="Schema Parts couldn't be created")
             Else
@@ -1635,8 +1509,8 @@ Namespace OnTrack.Database
                 Exit Sub
             End If
 
-            Dim aPart As New clsOTDBPart
-            If Not clsOTDBPart.CreateSchema() Then
+            Dim aPart As New Part
+            If Not Part.CreateSchema() Then
                 Call ot.CoreMessageHandler(showmsgbox:=False, subname:="createDatabase", _
                                              message:="Schema Parts couldn't be created")
             Else
@@ -1649,97 +1523,641 @@ Namespace OnTrack.Database
 
 
         End Sub
+
         ''' <summary>
-        ''' Creates or updates all the Database Schema for all object
+        ''' creates the schema and persist for a list of objects
+        ''' </summary>
+        ''' <param name="objects"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Private Function CreateAndPersist(objects As IEnumerable(Of String), Optional force As Boolean = False) As Boolean
+            Dim theObjects As New List(Of ObjectDefinition)
+            Dim result As Boolean = True
+
+            For Each anObjectID In objects
+                Dim anObjectDefinition = ot.CurrentSession.Objects.GetObject(objectname:=anObjectID, runtimeOnly:=CurrentSession.IsBootstrappingInstallationRequested)
+                If anObjectDefinition IsNot Nothing Then
+                    theObjects.Add(anObjectDefinition)
+                End If
+            Next
+
+            '*** create all the schema for the objects
+            For Each anobjectdefinition In theObjects
+                result = result And anobjectdefinition.CreateObjectSchema(silent:=True)
+                If result Then
+                    Call ot.CoreMessageHandler(subname:="createDatabase.CreateAndPersist", _
+                                                           message:="Schema for  Object " & anobjectdefinition.ID & " updated or created to version " & anobjectdefinition.Version & ". Tables created or updated:" & Converter.Enumerable2String(anobjectdefinition.Tablenames), _
+                                                           messagetype:=otCoreMessageType.ApplicationInfo, _
+                                                           objectname:=anobjectdefinition.ID, noOtdbAvailable:=True)
+                Else
+                    Call ot.CoreMessageHandler(subname:="createDatabase.CreateAndPersist", showmsgbox:=True, _
+                                                             message:="Schema for  Object " & anobjectdefinition.ID & " could not be updated nor created ! - Contact your administrator ", _
+                                                             messagetype:=otCoreMessageType.InternalError, _
+                                                             noOtdbAvailable:=True, objectname:=anobjectdefinition.ID)
+                    Return result
+                End If
+            Next
+
+            '** persist the objectdefinition
+            For Each anobjectdefinition In theObjects
+                '** switch off RuntimeMode
+                If Not anobjectdefinition.SwitchRuntimeOff() Then
+                    Call ot.CoreMessageHandler(subname:="createDatabase.CreateAndPersist", showmsgbox:=True, _
+                                                           message:="Runtime for  Object " & anobjectdefinition.ID & " could not be switched off ! - Contact your administrator ", _
+                                                           messagetype:=otCoreMessageType.InternalError, _
+                                                          noOtdbAvailable:=True, objectname:=anobjectdefinition.ID)
+                    Return result
+                End If
+                result = result And anobjectdefinition.Persist()
+                If result Then
+                    Call ot.CoreMessageHandler(subname:="createDatabase.CreateAndPersist", _
+                                                           message:="Schema for  Object " & anobjectdefinition.ID & " persisted.", _
+                                                           messagetype:=otCoreMessageType.ApplicationInfo, _
+                                                           objectname:=anobjectdefinition.ID, noOtdbAvailable:=True)
+                Else
+                    Call ot.CoreMessageHandler(subname:="createDatabase.CreateAndPersist", showmsgbox:=True, _
+                                                             message:="Schema for  Object " & anobjectdefinition.ID & " could not be peristed ! - Contact your administrator ", _
+                                                             messagetype:=otCoreMessageType.InternalError, _
+                                                            noOtdbAvailable:=True, objectname:=anobjectdefinition.ID)
+                    Return result
+                End If
+            Next
+
+            Return result
+        End Function
+        ''' <summary>
+        ''' Creates or updates all the Database Schema for all objects or a subset
         ''' </summary>
         ''' <remarks></remarks>
-        Public Sub Run()
+        Public Sub Run(Optional modules As IEnumerable(Of String) = Nothing, Optional force As Boolean = False)
 
             Dim aNativeConnection = CurrentDBDriver.CurrentConnection.NativeConnection
-            CurrentDBDriver.CreateDBParameterTable(nativeConnection:=aNativeConnection)
-            '** User ?!
-            If Not CurrentDBDriver.HasTable(User.ConstTableID, nativeConnection:=aNativeConnection) Then
-                '** Create SuperUser
-                If Not CurrentDBDriver.CreateDBUserDefTable(nativeConnection:=aNativeConnection) Then
-                    Call CoreMessageHandler(message:="User Table could not be created", messagetype:=otCoreMessageType.InternalError, _
-                                                 subname:="clsADONETDBDriver.getUserValidation", _
-                                                 break:=False, showmsgbox:=True, noOtdbAvailable:=True)
+            Dim repersistnecessary As Boolean = False
+            Dim result As Boolean = True
+            '** verify database bootstrap in detail to check if bootstrap is needed
+            If Not CurrentSession.IsBootstrappingInstallationRequested Then
+                CurrentDBDriver.VerifyOnTrackDatabase(install:=False, modules:=Nothing, verifySchema:=True) 'this will not ask to install but check on bootstrapping necessary
+            End If
+            '** create the db table
+            result = result And CurrentDBDriver.CreateDBParameterTable(nativeConnection:=aNativeConnection)
+
+            '*** get the current schema version
+            Dim schemaversion = CurrentDBDriver.GetDBParameter(parametername:=ConstPNBSchemaVersion, silent:=True)
+            If schemaversion Is Nothing OrElse Not IsNumeric(schemaversion) Then
+                Call CoreMessageHandler(message:="No schema version for database available - assuming first time installation", messagetype:=otCoreMessageType.InternalInfo, _
+                                               subname:="createDatabase.RUN")
+            ElseIf Convert.ToUInt64(schemaversion) < ot.SchemaVersion Then
+                Call CoreMessageHandler(message:="Schema version for database available - assuming upgrade installation", messagetype:=otCoreMessageType.InternalInfo, _
+                                               subname:="createDatabase.RUN", arg1:=schemaversion)
+            ElseIf Convert.ToUInt64(schemaversion) > ot.SchemaVersion Then
+                Call CoreMessageHandler(message:="Schema version for database available but higher ( " & schemaversion & " ) - downgrading ?!", messagetype:=otCoreMessageType.InternalInfo, _
+                                               subname:="createDatabase.RUN", arg1:=ot.SchemaVersion)
+            Else
+                Call CoreMessageHandler(message:="Schema version for database available - assuming repair installation", messagetype:=otCoreMessageType.InternalInfo, _
+                                               subname:="createDatabase.RUN", arg1:=schemaversion)
+            End If
+
+            '** create the bootstrapping 
+            '**
+            Dim descriptions = ot.GetBootStrapObjectClassDescriptions
+            Dim objectids As New List(Of String)
+
+            For Each description In descriptions
+                Dim addflag As Boolean = False
+
+                For Each tablename In description.Tables
+                    Dim value = GetDBParameter(ConstPNBSchemaVersion_TableHeader & tablename, silent:=True)
+                    If value Is Nothing OrElse Not IsNumeric(value) OrElse Not CurrentDBDriver.HasTable(tablename) Then
+                        addflag = True
+                    ElseIf Convert.ToUInt64(value) > description.GetSchemaTableAttribute(tablename).Version Then
+                        CoreMessageHandler(message:="WARNING ! Version of Bootstrapping Table in database is higher ( " & value & ") than in class description ( " & description.GetSchemaTableAttribute(tablename).Version & "). Downgrading ?!", messagetype:=otCoreMessageType.InternalWarning, _
+                                            subname:="createDatabase.RUN", tablename:=tablename, objectname:=description.ID, arg1:=description.GetSchemaTableAttribute(tablename).Version)
+                    ElseIf force OrElse Convert.ToUInt64(value) < description.GetSchemaTableAttribute(tablename).Version Then
+                        addflag = True
+                    End If
+                Next
+
+                '** add it
+                If addflag Then
+                    objectids.Add(description.ID)
+                End If
+            Next
+
+            '*** create it
+            If objectids.Count > 0 Then
+                result = result And CreateAndPersist(objectids, force:=force)
+                repersistnecessary = True
+            Else
+                result = result And True
+            End If
+
+            '** Create SuperUser
+            If Not CurrentSession.CurrentDBDriver.HasAdminUserValidation Then
+                result = result And CurrentDBDriver.CreateDBUserDefTable(nativeConnection:=aNativeConnection)
+                If result Then
+                    Call CoreMessageHandler(message:="Administrator account created - please use it to log into the OnTrack Database for further schema setup", messagetype:=otCoreMessageType.InternalInfo, _
+                                                 subname:="createDatabase.RUN", break:=False, showmsgbox:=True, noOtdbAvailable:=True)
 
                 Else
-                    Call CoreMessageHandler(message:="User Table could not be created", messagetype:=otCoreMessageType.InternalInfo, _
-                                                subname:="clsADONETDBDriver.getUserValidation", _
+                    Call CoreMessageHandler(message:="Administrator Account could not be created - Please see your system administrator.", messagetype:=otCoreMessageType.InternalInfo, _
+                                                subname:="modCreateDB.createDatabase_CoreData", _
                                                 break:=False, showmsgbox:=True, noOtdbAvailable:=True)
+                    Return
                 End If
-
             End If
 
-            ' Create the SchemaDirectory
-            If Not ObjectEntryDefinition.CreateSchema() Then
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="createDatabase", message:="Schema Directory couldn't be created")
+            '*** create global domain
+            If CurrentDBDriver.CreateGlobalDomain(nativeConnection:=aNativeConnection) Then
+                Call CoreMessageHandler(message:="global domain created", arg1:=ConstGlobalDomain, messagetype:=otCoreMessageType.InternalInfo, _
+                                                subname:="createDatabase.RUN")
             End If
-            ' DomainSetting
-            If Not DomainSetting.CreateSchema() Then
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", _
-                                      message:="Schema domain setting couldn't be created", messagetype:=otCoreMessageType.ApplicationError, _
-                                      tablename:=DomainSetting.ConstTableID)
 
-            Else
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", _
-                                                            message:="Schema domains settings could be created", messagetype:=otCoreMessageType.ApplicationInfo, _
-                                                            tablename:=DomainSetting.ConstTableID)
-            End If
-            ' Domains
-            Dim aDomain As New Domain
-            If Not Domain.CreateSchema() Then
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", _
-                                       message:="Schema domains couldn't be created", messagetype:=otCoreMessageType.ApplicationError, tablename:=Domain.ConstTableID)
+            '*** set objects to load
+            CurrentDBDriver.SetDBParameter(ConstPNObjectsLoad, value:="", silent:=True)
+            '*** bootstrap checksum
+            CurrentDBDriver.SetDBParameter(ConstPNBootStrapSchemaChecksum, value:=ot.GetBootStrapSchemaChecksum, silent:=True)
 
-            Else
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", _
-                                                            message:="Schema domains could be created", messagetype:=otCoreMessageType.ApplicationInfo, _
-                                                            tablename:=Domain.ConstTableID)
-                '*** 
-                If Not aDomain.Create(domainID:=ConstGlobalDomain) Then
-                    aDomain.LoadBy(domainID:=ConstGlobalDomain)
+            '**** Create the core objects first
+            '****
+            If modules.Contains(ConstModuleCore.ToUpper) Then
+                descriptions = ot.GetObjectClassDescriptionsForModule(ConstModuleCore)
+                objectids = New List(Of String)
+
+                For Each description In descriptions
+                    Dim addflag As Boolean = False
+
+                    For Each tablename In description.Tables
+                        Dim value = GetDBParameter(ConstPNBSchemaVersion_TableHeader & tablename, silent:=True)
+                        If value Is Nothing OrElse Not IsNumeric(value) OrElse Not CurrentDBDriver.HasTable(tablename) Then
+                            addflag = True
+                        ElseIf Convert.ToUInt64(value) > description.GetSchemaTableAttribute(tablename).Version Then
+                            CoreMessageHandler(message:="WARNING ! Version of Table in database is higher ( " & value & ") than in class description ( " & description.GetSchemaTableAttribute(tablename).Version & "). Downgrading ?!", messagetype:=otCoreMessageType.InternalWarning, _
+                                                subname:="createDatabase.RUN", tablename:=tablename, objectname:=description.ID, arg1:=description.GetSchemaTableAttribute(tablename).Version)
+                        ElseIf force OrElse Convert.ToUInt64(value) < description.GetSchemaTableAttribute(tablename).Version Then
+                            addflag = True
+                        End If
+                    Next
+
+                    '** add it
+                    If (repersistnecessary OrElse addflag) AndAlso Not ot.GetBootStrapObjectClassIDs.Contains(description.ID) Then
+                        objectids.Add(description.ID)
+                    End If
+                Next
+
+                '*** create it
+                If objectids.Count > 0 Then
+                    result = result And CreateAndPersist(objectids, force:=force)
+                Else
+                    result = result And True
                 End If
-
-                aDomain.Description = "global domain for all Ontrack data in this database"
-                aDomain.IsGlobal = True
-                aDomain.MinDeliverableUID = 1
-                aDomain.MaxDeliverableUID = 999999999
-                aDomain.SetSetting(id:=Session.ConstCPDefaultWorkspace, datatype:=otFieldDataType.Text, value:="@")
-                aDomain.SetSetting(id:=Session.ConstCDefaultDeliverableTypeID, datatype:=otFieldDataType.Text, value:="")
-                aDomain.SetSetting(id:=Session.ConstCPDefaultCalendarName, datatype:=otFieldDataType.Text, value:="default")
-                aDomain.SetSetting(id:=Session.ConstCPDefaultTodayLatency, datatype:=otFieldDataType.Long, value:=7)
-                aDomain.SetSetting(id:=Session.ConstCPDependencySynchroMinOverlap, datatype:=otFieldDataType.Long, value:=-14)
-                aDomain.Persist()
-
             End If
 
-            ' Create the Session ErrorLog
-            If Not CoreError.CreateSchema() Then
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="createDatabase", message:="Schema ErrorLog couldn't be created")
+            '**** Create the other modules
+            '****
+            For Each modulename In modules
+                If modulename <> ConstModuleCore Then
+                    descriptions = ot.GetObjectClassDescriptionsForModule(modulename)
+                    objectids = New List(Of String)
+
+                    For Each description In descriptions
+                        Dim addflag As Boolean = False
+
+                        For Each tablename In description.Tables
+                            Dim value = GetDBParameter(ConstPNBSchemaVersion_TableHeader & tablename, silent:=True)
+                            If value Is Nothing OrElse Not IsNumeric(value) OrElse Not CurrentDBDriver.HasTable(tablename) Then
+                                addflag = True
+                            ElseIf Convert.ToUInt64(value) > description.GetSchemaTableAttribute(tablename).Version Then
+                                CoreMessageHandler(message:="WARNING ! Version of Table in database is higher ( " & value & ") than in class description ( " & description.GetSchemaTableAttribute(tablename).Version & "). Downgrading ?!", messagetype:=otCoreMessageType.InternalWarning, _
+                                                    subname:="createDatabase.RUN", tablename:=tablename, objectname:=description.ID, arg1:=description.GetSchemaTableAttribute(tablename).Version)
+                            ElseIf force OrElse Convert.ToUInt64(value) < description.GetSchemaTableAttribute(tablename).Version Then
+                                addflag = True
+                            End If
+                        Next
+
+                        '** add it
+                        If (repersistnecessary OrElse addflag) AndAlso Not ot.GetBootStrapObjectClassIDs.Contains(description.ID) Then
+                            objectids.Add(description.ID)
+                        End If
+
+                    Next
+
+                    '*** create it
+                    If objectids.Count > 0 Then
+                        result = result And CreateAndPersist(objectids, force:=force)
+                    Else
+                        result = result And True
+                    End If
+                End If
+            Next
+
+            '*** create all foreign keys
+            '***
+           
+            For Each aTable In CurrentSession.Objects.TableDefinitions
+                If aTable.AlterSchemaForeignRelations() Then
+                    Call ot.CoreMessageHandler(subname:="modCreateDB.createDatabase_RUN", _
+                                                      message:="foreign keys created for table " & aTable.Name, _
+                                                      tablename:=aTable.Name, _
+                                                      messagetype:=otCoreMessageType.ApplicationInfo)
+                Else
+                    Call ot.CoreMessageHandler(subname:="modCreateDB.createDatabase_RUN", _
+                                                     message:="Error while creating foreign keys for table " & aTable.Name, _
+                                                     tablename:=aTable.Name, _
+                                                     messagetype:=otCoreMessageType.InternalError)
+                End If
+            Next
+            '*** set the current schema version
+            CurrentDBDriver.SetDBParameter(parametername:=ConstPNBSchemaVersion, value:=ot.SchemaVersion, silent:=True)
+
+            '*** request end of bootstrap
+            '***
+            If Not CurrentSession.RequestEndofBootstrap() Then
+                Call ot.CoreMessageHandler(showmsgbox:=True, subname:="modCreateDB.createDatabase_RUN", _
+                                                       message:="failed to create tables for object repository - abort the installation", _
+                                                       messagetype:=otCoreMessageType.InternalError)
+                Return
             End If
-            ' Create the MSOTask
-            'Dim aMSPTask As New clsOTDBMSPTask
-            'If Not aMSPTask.createSchema() Then
-            'Call OTDBErrorHandler(SHOWMSGBOX:=False, SUBNAME:="createDatabase", message:="Schema MSPTasks couldn't be created")
+
+            '*** start a session
+            If Not CurrentSession.IsRunning Then
+                CurrentSession.StartUp(otAccessRight.AlterSchema, messagetext:="Please start up a Session to setup initial data")
+            End If
+
+            '***
+            '*** Initialize Data
+
+            If Not InitialCoreData() Then
+                Call ot.CoreMessageHandler(showmsgbox:=True, subname:="modCreateDB.createDatabase_RUN", _
+                                                      message:="failed to write initial core data - core might not be working correctly", _
+                                                      messagetype:=otCoreMessageType.InternalError)
+            Else
+                ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_RUN", _
+                                                      message:="core objects with data instanced and persisted", _
+                                                      messagetype:=otCoreMessageType.InternalInfo)
+            End If
+
+            If Not InitializeCalendar() Then
+                Call ot.CoreMessageHandler(showmsgbox:=True, subname:="modCreateDB.createDatabase_RUN", _
+                                                          message:="failed to write initial calendar data - calendar might not be working correctly", _
+                                                          messagetype:=otCoreMessageType.InternalError)
+            Else
+                ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_RUN", _
+                                                     message:="calendar instanced and persisted", _
+                                                     messagetype:=otCoreMessageType.InternalInfo)
+            End If
+
+            '*** shutdown a session
+            If CurrentSession.IsRunning Then
+                CurrentSession.ShutDown(force:=True)
+            End If
+        End Sub
+        ''' <summary>
+        ''' Initialize the Calendar
+        ''' </summary>
+        ''' <remarks></remarks>
+        Public Function InitializeCalendar() As Boolean
+
+            ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_RUN", _
+                                                     message:="creating calendar - please stand by ...", _
+                                                     messagetype:=otCoreMessageType.InternalInfo)
+
+            Dim acalentry As CalendarEntry
+            acalentry = New CalendarEntry
+            With acalentry
+                Call .GenerateDays(fromdate:=CDate("01.01.2013"), untildate:=CDate("01.01.2016"), name:=ot.CurrentSession.DefaultCalendarName)
+                ' additional
+
+                If .Create() Then
+                    .Datevalue = CDate("29.03.2013")
+                    .entrytype = otCalendarEntryType.DayEntry
+                    .notAvailable = True
+                    .description = "Karfreitag (Eastern)"
+                    .Persist()
+                End If
+            End With
+            acalentry = New CalendarEntry
+            With acalentry
+                If .Create() Then
+                    .Datevalue = CDate("01.04.2013")
+                    .entrytype = otCalendarEntryType.DayEntry
+                    .notAvailable = True
+                    .description = "EasterMonday (Eastern)"
+                    .Persist()
+                End If
+            End With
+            acalentry = New CalendarEntry
+            With acalentry
+                If .Create() Then
+                    .Datevalue = CDate("09.05.2013")
+                    .entrytype = otCalendarEntryType.DayEntry
+                    .notAvailable = True
+                    .description = "Christi Himmelfahrt"
+                    .Persist()
+                End If
+            End With
+
+            acalentry = New CalendarEntry
+            With acalentry
+                If .Create() Then
+                    .Datevalue = CDate("10.05.2013")
+                    .entrytype = otCalendarEntryType.DayEntry
+                    .notAvailable = True
+                    .description = "Christi Himmelfahrt Brückentag"
+                    .Persist()
+                End If
+            End With
+            acalentry = New CalendarEntry
+            With acalentry
+                If .Create() Then
+                    .Datevalue = CDate("20.05.2013")
+                    .entrytype = otCalendarEntryType.DayEntry
+                    .notAvailable = True
+                    .description = "Pfingsten"
+                    .Persist()
+                End If
+            End With
+            acalentry = New CalendarEntry
+            With acalentry
+                If .Create() Then
+                    .Datevalue = CDate("31.10.2013")
+                    .entrytype = otCalendarEntryType.DayEntry
+                    .notAvailable = True
+                    .description = "Reformationstag (Sachsen)"
+                    .Persist()
+                End If
+            End With
+            acalentry = New CalendarEntry
+            With acalentry
+                If .Create() Then
+                    .Datevalue = CDate("20.11.2013")
+                    .entrytype = otCalendarEntryType.DayEntry
+                    .notAvailable = True
+                    .description = "Buß- und Bettag (Sachsen)"
+                    .Persist()
+                End If
+            End With
+            acalentry = New CalendarEntry
+            With acalentry
+                If .Create() Then
+                    .Datevalue = CDate("18.04.2014")
+                    .entrytype = otCalendarEntryType.DayEntry
+                    .notAvailable = True
+                    .description = "Karfreitag (Eastern)"
+                    .Persist()
+                End If
+            End With
+            acalentry = New CalendarEntry
+            With acalentry
+                If .Create() Then
+                    .Datevalue = CDate("01.04.2014")
+                    .entrytype = otCalendarEntryType.DayEntry
+                    .notAvailable = True
+                    .description = "EasterMonday (Eastern)"
+                    .Persist()
+                End If
+            End With
+            acalentry = New CalendarEntry
+            With acalentry
+                If .Create() Then
+                    .Datevalue = CDate("29.05.2013")
+                    .entrytype = otCalendarEntryType.DayEntry
+                    .notAvailable = True
+                    .description = "Christi Himmelfahrt"
+                    .Persist()
+                End If
+            End With
+            acalentry = New CalendarEntry
+            With acalentry
+                If .Create() Then
+                    .Datevalue = CDate("20.05.2014")
+                    .entrytype = otCalendarEntryType.DayEntry
+                    .notAvailable = True
+                    .description = "Pfingsten"
+                    .Persist()
+                End If
+            End With
+            acalentry = New CalendarEntry
+            With acalentry
+                If .Create() Then
+                    .Datevalue = CDate("31.10.2014")
+                    .entrytype = otCalendarEntryType.DayEntry
+                    .notAvailable = True
+                    .description = "Reformationstag (Sachsen)"
+                    .Persist()
+                End If
+            End With
+            acalentry = New CalendarEntry
+            With acalentry
+                If .Create() Then
+                    .Datevalue = CDate("19.11.2014")
+                    .entrytype = otCalendarEntryType.DayEntry
+                    .notAvailable = True
+                    .description = "Buß- und Bettag (Sachsen)"
+                    .Persist()
+                End If
+            End With
+            acalentry = New CalendarEntry
+            With acalentry
+                If .Create() Then
+                    .Datevalue = CDate("03.04.2015")
+                    .entrytype = otCalendarEntryType.DayEntry
+                    .notAvailable = True
+                    .description = "Karfreitag (Eastern)"
+                    .Persist()
+                End If
+            End With
+            acalentry = New CalendarEntry
+            With acalentry
+                If .Create() Then
+                    .Datevalue = CDate("06.04.2015")
+                    .entrytype = otCalendarEntryType.DayEntry
+                    .notAvailable = True
+                    .description = "EasterMonday (Eastern)"
+                    .Persist()
+                End If
+            End With
+            acalentry = New CalendarEntry
+            With acalentry
+                If .Create() Then
+                    .Datevalue = CDate("14.05.2015")
+                    .entrytype = otCalendarEntryType.DayEntry
+                    .notAvailable = True
+                    .description = "Christi Himmelfahrt"
+                    .Persist()
+                End If
+            End With
+            acalentry = New CalendarEntry
+            With acalentry
+                If .Create() Then
+                    .Datevalue = CDate("25.05.2015")
+                    .entrytype = otCalendarEntryType.DayEntry
+                    .notAvailable = True
+                    .description = "Pfingsten"
+                    .Persist()
+                End If
+            End With
+            acalentry = New CalendarEntry
+            With acalentry
+                If .Create() Then
+                    .Datevalue = CDate("31.10.2015")
+                    .entrytype = otCalendarEntryType.DayEntry
+                    .notAvailable = True
+                    .description = "Reformationstag (Sachsen)"
+                    .Persist()
+                End If
+            End With
+            acalentry = New CalendarEntry
+            With acalentry
+                If .Create() Then
+                    .Datevalue = CDate("18.11.2015")
+                    .entrytype = otCalendarEntryType.DayEntry
+                    .notAvailable = True
+                    .description = "Buß- und Bettag (Sachsen)"
+                    .Persist()
+                End If
+            End With
+            Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", tablename:=acalentry.TableID, _
+                                         message:="Calendar until 31.12.2016 created", messagetype:=otCoreMessageType.ApplicationInfo)
+
+            Return True
+        End Function
+        ''' <summary>
+        '''  Initial Core Data
+        ''' </summary>
+        ''' <remarks></remarks>
+        Public Function InitialCoreData() As Boolean
+            Dim aWorkspace As Workspace
+
+            '*** Project Base workspaceID
+            aWorkspace = Workspace.Create("@")
+            If aWorkspace IsNot Nothing Then
+                aWorkspace.Description = "base workspaceID for SBB ENG Planning"
+                aWorkspace.IsBasespace = True
+                aWorkspace.FCRelyingOn = New String() {"@"}
+                aWorkspace.ACTRelyingOn = New String() {"@"}
+                aWorkspace.AccesslistIDs = New String() {"PrjPlanner"}
+                aWorkspace.HasActuals = True
+                aWorkspace.Min_schedule_updc = 1
+                aWorkspace.Max_schedule_updc = 999
+                aWorkspace.Min_target_updc = 1
+                aWorkspace.Max_target_updc = 999
+                aWorkspace.Persist()
+
+                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.InitialCoreData", _
+                                             message:="base workspaceID @ created", messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aWorkspace.TableID)
+            End If
+            '*** workspaceID
+            'aWorkspace = Workspace.Create("PSIM01")
+            'If aWorkspace IsNot Nothing Then
+            '    aWorkspace.Description = "Project Simulation workspaceID"
+            '    aWorkspace.IsBasespace = False
+            '    aWorkspace.FCRelyingOn = New String() {"@", "PSIM01"}
+            '    aWorkspace.ACTRelyingOn = New String() {"@"}
+            '    aWorkspace.HasActuals = False
+            '    aWorkspace.AccesslistIDs = New String() {"PrjPlanner"}
+            '    aWorkspace.Min_schedule_updc = 1000
+            '    aWorkspace.Max_schedule_updc = 1099
+            '    aWorkspace.Min_target_updc = 1000
+            '    aWorkspace.Max_target_updc = 1099
+            '    aWorkspace.Persist()
+            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.InitialCoreData", _
+            '                                 message:="workspaceID PSIM01 created", messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aWorkspace.TableID)
+
             'End If
 
-            If Not ot.CurrentSession.RequireAccessRight(accessRequest:=otAccessRight.AlterSchema, reLogin:=True) Then
-                Call ot.CoreMessageHandler(message:="Access right couldnot be set to AlterSchema", subname:="modCreateDB.createDatabase", _
-                                             messagetype:=otCoreMessageType.ApplicationInfo, break:=False)
-                Exit Sub
+            '*** Create Group
+            Dim aGroup As Group = Group.Create(groupname:="admin")
+            If aGroup IsNot Nothing Then
+                aGroup.Description = "Administratio group"
+                aGroup.HasAlterSchemaRights = True
+                aGroup.HasReadRights = True
+                aGroup.HasUpdateRights = True
+                aGroup.HasNoRights = False
+                If aGroup.Persist() Then
+                    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.InitialCoreData", objectname:=Group.ConstObjectID, _
+                                                message:="Group Admin created", messagetype:=otCoreMessageType.ApplicationInfo)
+                End If
+
+            End If
+            '*** Create Group
+            aGroup = Group.Create(groupname:="readers")
+            If aGroup IsNot Nothing Then
+                aGroup.Description = "anonymous group"
+                aGroup.HasAlterSchemaRights = False
+                aGroup.HasReadRights = True
+                aGroup.HasUpdateRights = False
+                aGroup.HasNoRights = False
+                If aGroup.Persist() Then
+                    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.InitialCoreData", objectname:=Group.ConstObjectID, _
+                                                message:="Group Readers created", messagetype:=otCoreMessageType.ApplicationInfo)
+                End If
+
+            End If
+            '*** Create Default Users
+            '***
+            Dim anUser As User = User.Create(username:="admin")
+            If anUser IsNot Nothing Then
+                anUser.Description = "Administrator"
+                anUser.DefaultWorkspaceID = "@"
+                anUser.DefaultDomainID = ConstGlobalDomain
+                anUser.GroupNames = {"admin"}
+                anUser.Password = "axs2ontrack"
+                anUser.HasAlterSchemaRights = True
+                anUser.HasNoRights = False
+                anUser.HasReadRights = True
+                anUser.HasUpdateRights = True
+                anUser.IsAnonymous = False
+                anUser.Persist()
+                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", tablename:=anUser.TableID, _
+                                             message:="User Admin created", messagetype:=otCoreMessageType.ApplicationInfo)
+            End If
+            anUser = User.Create(username:="boschnei")
+            If anUser IsNot Nothing Then
+                anUser.Description = "Boris Schneider"
+                anUser.GroupNames = {"admin"}
+                anUser.DefaultWorkspaceID = "@"
+                anUser.DefaultDomainID = ConstGlobalDomain
+                anUser.Password = "zulu4Hart"
+                anUser.HasAlterSchemaRights = True
+                anUser.HasNoRights = False
+                anUser.HasReadRights = True
+                anUser.HasUpdateRights = True
+                anUser.IsAnonymous = False
+                anUser.PersonName = "Boris Schneider"
+                anUser.Persist()
+            End If
+            anUser = User.Create(username:="anonymous")
+            If anUser IsNot Nothing Then
+                anUser.Description = "anonymous"
+                anUser.GroupNames = {"readers"}
+                anUser.DefaultWorkspaceID = "@"
+                anUser.DefaultDomainID = ConstGlobalDomain
+                anUser.Password = ""
+                anUser.HasAlterSchemaRights = False
+                anUser.HasNoRights = False
+                anUser.HasReadRights = True
+                anUser.HasUpdateRights = False
+                anUser.IsAnonymous = True
+                anUser.PersonName = ""
+                anUser.Persist()
+                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", tablename:=anUser.TableID, _
+                                             message:="User anonymous for read created", messagetype:=otCoreMessageType.ApplicationInfo)
             End If
 
-            '** create the different Object Types
-            CoreDefinition()
-            'Call createDatabase_CONFIG() not finished coding
-            'Deliverables()
-            'Parts()
-            'XChange()
-            Scheduling()
-        End Sub
+            '*** different Sites
+            Dim aSite As Site
+            aSite = Site.Create("GO")
+            If aSite IsNot Nothing Then
+                aSite.Description = "Görlitz"
+                aSite.Persist()
+            End If
+            aSite = Site.Create("HE")
+            If aSite IsNot Nothing Then
+                aSite.Description = "Hennigsdorf"
+                aSite.Persist()
+            End If
 
+            Return True
+        End Function
     End Module
 End Namespace

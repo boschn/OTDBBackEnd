@@ -356,7 +356,7 @@ Namespace OnTrack.Xchange
                 rowno = Me.Size + 1
             End If
             If Not anEntry.create(Me.TAG, rowno) Then
-                Call anEntry.LoadBy(Me.TAG, rowno)
+                Call anEntry.Inject(Me.TAG, rowno)
             End If
             anEntry._queue = Me
             '* add it
@@ -402,7 +402,7 @@ Namespace OnTrack.Xchange
                 '** Infuse the subenries
                 Dim aRecordCollection As New List(Of ormRecord)
                 Dim aTable As iormDataStore = GetTableStore(clsOTDBMessageQueueEntry.ConstTableID)
-                Dim aCommand As ormSqlSelectCommand = aTable.CreateSqlSelectCommand(id:="loadby")
+                Dim aCommand As ormSqlSelectCommand = aTable.CreateSqlSelectCommand(id:="Inject")
                 If Not aCommand.Prepared Then
                     aCommand.Where = clsOTDBMessageQueueEntry.ConstTableID & ".[" & clsOTDBMessageQueueEntry.ConstFNTag & "] = @tag"
                     aCommand.OrderBy = clsOTDBMessageQueueEntry.ConstTableID & ".[" & clsOTDBMessageQueueEntry.ConstFNRowno & "] asc"
@@ -437,19 +437,19 @@ Namespace OnTrack.Xchange
         ''' <param name="TAG"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Function Loadby(ByVal TAG As String) As Boolean
+        Public Overloads Function Inject(ByVal TAG As String) As Boolean
             Dim pkarry() As Object = {LCase(TAG)}
 
             '* lazy init
             If Not Me.IsInitialized Then
                 If Not Me.Initialize() Then
-                    loadBy = False
+                    Inject = False
                     Exit Function
                 End If
             End If
 
 
-            If MyBase.LoadBy(pkArray:=pkarry) Then
+            If MyBase.Inject(pkArray:=pkarry) Then
                 s_tag = TAG
                 ' set msglog
                 Me.ContextIdentifier = s_tag
@@ -512,146 +512,146 @@ Namespace OnTrack.Xchange
         ''' <remarks></remarks>
         Public Shared Function CreateSchema(Optional silent As Boolean = True) As Boolean
 
-            Dim aFieldDesc As New ormFieldDescription
-            Dim PrimaryColumnNames As New Collection
-            Dim aTable As New ObjectDefinition
+            '            Dim aFieldDesc As New ormFieldDescription
+            '            Dim PrimaryColumnNames As New Collection
+            '            Dim aTable As New ObjectDefinition
 
 
-            aFieldDesc.ID = ""
-            aFieldDesc.Parameter = ""
-            aFieldDesc.Tablename = ConstTableID
+            '            aFieldDesc.ID = ""
+            '            aFieldDesc.Parameter = ""
+            '            aFieldDesc.Tablename = ConstTableID
 
-            With aTable
-                .Create(ConstTableID)
-                .Delete()
-
-
-
-                '***
-                '*** Fields
-                '****
-
-                'Type
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "message queue tag"
-                aFieldDesc.ID = "mqf1"
-                aFieldDesc.ColumnName = ConstFNTag
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
+            '            With aTable
+            '                .Create(ConstTableID)
+            '                .Delete()
 
 
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "requested by"
-                aFieldDesc.ColumnName = "reqby"
-                aFieldDesc.ID = "mqf2"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                ' msgid
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "requested by OU"
-                aFieldDesc.ColumnName = "reqbyou"
-                aFieldDesc.ID = "mqf3"
-                aFieldDesc.Relation = New String() {}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                '***
+            '                '*** Fields
+            '                '****
 
-                ' id
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "workspaceID"
-                aFieldDesc.ColumnName = "wspace"
-                aFieldDesc.ID = "mqf4"
-                aFieldDesc.Relation = New String() {}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "xchange config name"
-                aFieldDesc.ColumnName = "xchg"
-                aFieldDesc.ID = "mqf5"
-                aFieldDesc.Relation = New String() {}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "status"
-                aFieldDesc.ColumnName = "status"
-                aFieldDesc.ID = "mqf6"
-                aFieldDesc.Relation = New String() {}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "title"
-                aFieldDesc.ColumnName = "desc"
-                aFieldDesc.ID = "mqf7"
-                aFieldDesc.Relation = New String() {}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "cmt"
-                aFieldDesc.ColumnName = "cmt"
-                aFieldDesc.ID = "mqf8"
-                aFieldDesc.Relation = New String() {}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                'Type
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "message queue tag"
+            '                aFieldDesc.ID = "mqf1"
+            '                aFieldDesc.ColumnName = ConstFNTag
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
 
 
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "last processed timestamp"
-                aFieldDesc.ColumnName = "timestamp"
-                aFieldDesc.ID = "mqf9"
-                aFieldDesc.Relation = New String() {}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "requested by"
+            '                aFieldDesc.ColumnName = "reqby"
+            '                aFieldDesc.ID = "mqf2"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "processed by username"
-                aFieldDesc.ColumnName = "procuser"
-                aFieldDesc.ID = "mqf10"
-                aFieldDesc.Relation = New String() {}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                aFieldDesc.Relation = New String() {}
+            '                ' msgid
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "requested by OU"
+            '                aFieldDesc.ColumnName = "reqbyou"
+            '                aFieldDesc.ID = "mqf3"
+            '                aFieldDesc.Relation = New String() {}
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                aFieldDesc.Datatype = otFieldDataType.[Date]
-                aFieldDesc.Title = "requested on"
-                aFieldDesc.ColumnName = "reqon"
-                aFieldDesc.ID = "mqf11"
-                aFieldDesc.Relation = New String() {}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                aFieldDesc.Relation = New String() {}
+            '                ' id
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "workspaceID"
+            '                aFieldDesc.ColumnName = "wspace"
+            '                aFieldDesc.ID = "mqf4"
+            '                aFieldDesc.Relation = New String() {}
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "msglog"
-                aFieldDesc.ColumnName = "msglogtag"
-                aFieldDesc.ID = "mqf12"
-                aFieldDesc.Relation = New String() {}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                aFieldDesc.Relation = New String() {}
-                '***
-                '*** TIMESTAMP
-                '****
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "last Update"
-                aFieldDesc.ColumnName = ConstFNUpdatedOn
-                aFieldDesc.ID = ""
-                aFieldDesc.Relation = New String() {}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "xchange config name"
+            '                aFieldDesc.ColumnName = "xchg"
+            '                aFieldDesc.ID = "mqf5"
+            '                aFieldDesc.Relation = New String() {}
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "creation Date"
-                aFieldDesc.ColumnName = ConstFNCreatedOn
-                aFieldDesc.ID = ""
-                aFieldDesc.Relation = New String() {}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' Index
-                Call .AddIndex("PrimaryKey", PrimaryColumnNames, isprimarykey:=True)
-                ' persist
-                .Persist()
-                ' change the database
-                .AlterSchema()
-            End With
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "status"
+            '                aFieldDesc.ColumnName = "status"
+            '                aFieldDesc.ID = "mqf6"
+            '                aFieldDesc.Relation = New String() {}
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-            createSchema = True
-            Exit Function
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "title"
+            '                aFieldDesc.ColumnName = "desc"
+            '                aFieldDesc.ID = "mqf7"
+            '                aFieldDesc.Relation = New String() {}
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-            ' Handle the error
-error_handle:
-            Call CoreMessageHandler(subname:="clsOTDBMessageQueue.createSchema")
-            createSchema = False
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "cmt"
+            '                aFieldDesc.ColumnName = "cmt"
+            '                aFieldDesc.ID = "mqf8"
+            '                aFieldDesc.Relation = New String() {}
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+
+            '                aFieldDesc.Datatype = otFieldDataType.Timestamp
+            '                aFieldDesc.Title = "last processed timestamp"
+            '                aFieldDesc.ColumnName = "timestamp"
+            '                aFieldDesc.ID = "mqf9"
+            '                aFieldDesc.Relation = New String() {}
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "processed by username"
+            '                aFieldDesc.ColumnName = "procuser"
+            '                aFieldDesc.ID = "mqf10"
+            '                aFieldDesc.Relation = New String() {}
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                aFieldDesc.Relation = New String() {}
+
+            '                aFieldDesc.Datatype = otFieldDataType.[Date]
+            '                aFieldDesc.Title = "requested on"
+            '                aFieldDesc.ColumnName = "reqon"
+            '                aFieldDesc.ID = "mqf11"
+            '                aFieldDesc.Relation = New String() {}
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                aFieldDesc.Relation = New String() {}
+
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "msglog"
+            '                aFieldDesc.ColumnName = "msglogtag"
+            '                aFieldDesc.ID = "mqf12"
+            '                aFieldDesc.Relation = New String() {}
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                aFieldDesc.Relation = New String() {}
+            '                '***
+            '                '*** TIMESTAMP
+            '                '****
+            '                aFieldDesc.Datatype = otFieldDataType.Timestamp
+            '                aFieldDesc.Title = "last Update"
+            '                aFieldDesc.ColumnName = ConstFNUpdatedOn
+            '                aFieldDesc.ID = ""
+            '                aFieldDesc.Relation = New String() {}
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                aFieldDesc.Datatype = otFieldDataType.Timestamp
+            '                aFieldDesc.Title = "creation Date"
+            '                aFieldDesc.ColumnName = ConstFNCreatedOn
+            '                aFieldDesc.ID = ""
+            '                aFieldDesc.Relation = New String() {}
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' Index
+            '                Call .AddIndex("PrimaryKey", PrimaryColumnNames, isprimarykey:=True)
+            '                ' persist
+            '                .Persist()
+            '                ' change the database
+            '                .CreateObjectSchema()
+            '            End With
+
+            '            createSchema = True
+            '            Exit Function
+
+            '            ' Handle the error
+            'error_handle:
+            '            Call CoreMessageHandler(subname:="clsOTDBMessageQueue.createSchema")
+            '            createSchema = False
         End Function
         ''' <summary>
         ''' create a persistble message queue
@@ -1113,7 +1113,7 @@ error_handle:
                 ' load the members
                 Dim aTable As iormDataStore = GetTableStore(clsOTDBMessageQueueMember.constTableID)
 
-                Dim aCommand As ormSqlSelectCommand = aTable.CreateSqlSelectCommand(id:="loadby")
+                Dim aCommand As ormSqlSelectCommand = aTable.CreateSqlSelectCommand(id:="Inject")
                 If Not aCommand.Prepared Then
                     aCommand.Where = clsOTDBMessageQueueMember.constTableID & ".[" & ConstFNTag & "] = @tag and " & _
                                      clsOTDBMessageQueueMember.constTableID & ".[" & ConstFNRowno & "] = @rowno"
@@ -1154,18 +1154,18 @@ error_handle:
         ''' <param name=constFNRowno></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Function LoadBy(ByVal tag As String, ByVal rowno As Long) As Boolean
+        Public Overloads Function Inject(ByVal tag As String, ByVal rowno As Long) As Boolean
             Dim pkarry() As Object = {LCase(tag), rowno}
 
             '* lazy init
             If Not Me.IsInitialized Then
                 If Not Me.Initialize() Then
-                    LoadBy = False
+                    Inject = False
                     Exit Function
                 End If
             End If
 
-            Return MyBase.LoadBy(pkArray:=pkarry)
+            Return MyBase.Inject(pkArray:=pkarry)
         End Function
         ''' <summary>
         ''' creates a member
@@ -1179,7 +1179,7 @@ error_handle:
             aMember = New clsOTDBMessageQueueMember
             ID = Me.Size + 1
             If Not aMember.Create(Me.Tag, Me.Rowno, ID) Then
-                Call aMember.LoadBy(Me.Tag, Rowno, ID)
+                Call aMember.Inject(Me.Tag, Rowno, ID)
             End If
             aMember._entry = Me
             '* add it
@@ -1233,151 +1233,151 @@ error_handle:
         ''' <remarks></remarks>
         Public Shared Function CreateSchema(Optional silent As Boolean = True) As Boolean
 
-            Dim aFieldDesc As New ormFieldDescription
-            Dim PrimaryColumnNames As New Collection
-            Dim aTable As New ObjectDefinition
+            '            Dim aFieldDesc As New ormFieldDescription
+            '            Dim PrimaryColumnNames As New Collection
+            '            Dim aTable As New ObjectDefinition
 
 
-            aFieldDesc.ID = ""
-            aFieldDesc.Parameter = ""
-            aFieldDesc.Tablename = ConstTableID
-            aFieldDesc.Aliases = New String() {}
+            '            aFieldDesc.ID = ""
+            '            aFieldDesc.Parameter = ""
+            '            aFieldDesc.Tablename = ConstTableID
+            '            aFieldDesc.Aliases = New String() {}
 
-            With aTable
-                .Create(ConstTableID)
-                .Delete()
+            '            With aTable
+            '                .Create(ConstTableID)
+            '                .Delete()
 
-                '***
-                '*** Fields
-                '****
+            '                '***
+            '                '*** Fields
+            '                '****
 
-                'Type
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "message queue tag"
-                aFieldDesc.ID = "mqfe1"
-                aFieldDesc.ColumnName = ConstFNTag
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
+            '                'Type
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "message queue tag"
+            '                aFieldDesc.ID = "mqfe1"
+            '                aFieldDesc.ColumnName = ConstFNTag
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
 
-                'index pos
-                aFieldDesc.Datatype = otFieldDataType.[Long]
-                aFieldDesc.Title = "rowno index (primary key)"
-                aFieldDesc.ColumnName = constFNRowno
-                aFieldDesc.ID = "mqfe2"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
-
-
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "action"
-                aFieldDesc.ColumnName = "action"
-                aFieldDesc.ID = "mqfe4"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                'index pos
+            '                aFieldDesc.Datatype = otFieldDataType.[Long]
+            '                aFieldDesc.Title = "rowno index (primary key)"
+            '                aFieldDesc.ColumnName = constFNRowno
+            '                aFieldDesc.ID = "mqfe2"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
 
 
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "message log tag"
-                aFieldDesc.ColumnName = "msglogtag"
-                aFieldDesc.ID = "mqfe10"
-                aFieldDesc.Relation = New String() {}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "status of message"
-                aFieldDesc.ColumnName = "status"
-                aFieldDesc.ID = "mqfe11"
-                aFieldDesc.Relation = New String() {}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "last processed timestamp"
-                aFieldDesc.ColumnName = "timestamp"
-                aFieldDesc.ID = "mqfe12"
-                aFieldDesc.Relation = New String() {}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                aFieldDesc.Datatype = otFieldDataType.Bool
-                aFieldDesc.Title = "successful processed"
-                aFieldDesc.ColumnName = "issuccess"
-                aFieldDesc.ID = "mqfe13"
-                aFieldDesc.Relation = New String() {}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                aFieldDesc.Relation = New String() {}
-
-                aFieldDesc.Datatype = otFieldDataType.Bool
-                aFieldDesc.Title = "is to be approved"
-                aFieldDesc.ColumnName = "istobeappr"
-                aFieldDesc.ID = "mqfe14"
-                aFieldDesc.Relation = New String() {}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                aFieldDesc.Relation = New String() {}
-
-                aFieldDesc.Datatype = otFieldDataType.Bool
-                aFieldDesc.Title = "is to be approved"
-                aFieldDesc.ColumnName = "isapproved"
-                aFieldDesc.ID = "mqfe15"
-                aFieldDesc.Relation = New String() {}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                aFieldDesc.Relation = New String() {}
-
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "approved timestamp"
-                aFieldDesc.ColumnName = "approvedon"
-                aFieldDesc.ID = "mqfe16"
-                aFieldDesc.Relation = New String() {}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "filed for approval timestamp"
-                aFieldDesc.ColumnName = "filedon"
-                aFieldDesc.ID = "mqfe17"
-                aFieldDesc.Relation = New String() {}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-                aFieldDesc.Datatype = otFieldDataType.Bool
-                aFieldDesc.Title = "is processable"
-                aFieldDesc.ColumnName = "isprocessable"
-                aFieldDesc.ID = "mqfe18"
-                aFieldDesc.Relation = New String() {}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                aFieldDesc.Relation = New String() {}
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "action"
+            '                aFieldDesc.ColumnName = "action"
+            '                aFieldDesc.ID = "mqfe4"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
 
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "message log tag"
+            '                aFieldDesc.ColumnName = "msglogtag"
+            '                aFieldDesc.ID = "mqfe10"
+            '                aFieldDesc.Relation = New String() {}
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                '***
-                '***
-                '*** TIMESTAMP
-                '****
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "last Update"
-                aFieldDesc.ColumnName = ConstFNUpdatedOn
-                aFieldDesc.ID = ""
-                aFieldDesc.Relation = New String() {}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "status of message"
+            '                aFieldDesc.ColumnName = "status"
+            '                aFieldDesc.ID = "mqfe11"
+            '                aFieldDesc.Relation = New String() {}
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "creation Date"
-                aFieldDesc.ColumnName = ConstFNCreatedOn
-                aFieldDesc.ID = ""
-                aFieldDesc.Relation = New String() {}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' Index
-                Call .AddIndex("PrimaryKey", PrimaryColumnNames, isprimarykey:=True)
-                ' persist
-                .Persist()
-                ' change the database
-                .AlterSchema()
-            End With
+            '                aFieldDesc.Datatype = otFieldDataType.Timestamp
+            '                aFieldDesc.Title = "last processed timestamp"
+            '                aFieldDesc.ColumnName = "timestamp"
+            '                aFieldDesc.ID = "mqfe12"
+            '                aFieldDesc.Relation = New String() {}
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                aFieldDesc.Datatype = otFieldDataType.Bool
+            '                aFieldDesc.Title = "successful processed"
+            '                aFieldDesc.ColumnName = "issuccess"
+            '                aFieldDesc.ID = "mqfe13"
+            '                aFieldDesc.Relation = New String() {}
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                aFieldDesc.Relation = New String() {}
+
+            '                aFieldDesc.Datatype = otFieldDataType.Bool
+            '                aFieldDesc.Title = "is to be approved"
+            '                aFieldDesc.ColumnName = "istobeappr"
+            '                aFieldDesc.ID = "mqfe14"
+            '                aFieldDesc.Relation = New String() {}
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                aFieldDesc.Relation = New String() {}
+
+            '                aFieldDesc.Datatype = otFieldDataType.Bool
+            '                aFieldDesc.Title = "is to be approved"
+            '                aFieldDesc.ColumnName = "isapproved"
+            '                aFieldDesc.ID = "mqfe15"
+            '                aFieldDesc.Relation = New String() {}
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                aFieldDesc.Relation = New String() {}
+
+            '                aFieldDesc.Datatype = otFieldDataType.Timestamp
+            '                aFieldDesc.Title = "approved timestamp"
+            '                aFieldDesc.ColumnName = "approvedon"
+            '                aFieldDesc.ID = "mqfe16"
+            '                aFieldDesc.Relation = New String() {}
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                aFieldDesc.Datatype = otFieldDataType.Timestamp
+            '                aFieldDesc.Title = "filed for approval timestamp"
+            '                aFieldDesc.ColumnName = "filedon"
+            '                aFieldDesc.ID = "mqfe17"
+            '                aFieldDesc.Relation = New String() {}
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                aFieldDesc.Datatype = otFieldDataType.Bool
+            '                aFieldDesc.Title = "is processable"
+            '                aFieldDesc.ColumnName = "isprocessable"
+            '                aFieldDesc.ID = "mqfe18"
+            '                aFieldDesc.Relation = New String() {}
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                aFieldDesc.Relation = New String() {}
 
 
-            createSchema = True
-            Exit Function
+
+            '                '***
+            '                '***
+            '                '*** TIMESTAMP
+            '                '****
+            '                aFieldDesc.Datatype = otFieldDataType.Timestamp
+            '                aFieldDesc.Title = "last Update"
+            '                aFieldDesc.ColumnName = ConstFNUpdatedOn
+            '                aFieldDesc.ID = ""
+            '                aFieldDesc.Relation = New String() {}
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+
+            '                aFieldDesc.Datatype = otFieldDataType.Timestamp
+            '                aFieldDesc.Title = "creation Date"
+            '                aFieldDesc.ColumnName = ConstFNCreatedOn
+            '                aFieldDesc.ID = ""
+            '                aFieldDesc.Relation = New String() {}
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' Index
+            '                Call .AddIndex("PrimaryKey", PrimaryColumnNames, isprimarykey:=True)
+            '                ' persist
+            '                .Persist()
+            '                ' change the database
+            '                .CreateObjectSchema()
+            '            End With
 
 
-            ' Handle the error
-error_handle:
-            Call CoreMessageHandler(subname:="clsOTDBMessageQueue.createSchema")
-            createSchema = False
+            '            createSchema = True
+            '            Exit Function
+
+
+            '            ' Handle the error
+            'error_handle:
+            '            Call CoreMessageHandler(subname:="clsOTDBMessageQueue.createSchema")
+            '            createSchema = False
         End Function
         ''' <summary>
         ''' Create Persistable Object
@@ -1965,9 +1965,9 @@ error_handle:
         ''' <param name="ID"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Function LoadBy(ByVal TAG As String, ByVal rowno As Long, ByVal ID As Long) As Boolean
+        Public Overloads Function Inject(ByVal TAG As String, ByVal rowno As Long, ByVal ID As Long) As Boolean
             Dim pkarry() As Object = {LCase(TAG), rowno, ID}
-            Return MyBase.LoadBy(pkArray:=pkarry)
+            Return MyBase.Inject(pkArray:=pkarry)
         End Function
         ''' <summary>
         ''' create persistency schema
@@ -1977,205 +1977,205 @@ error_handle:
         ''' <remarks></remarks>
         Public Shared Function CreateSchema(Optional silent As Boolean = True) As Boolean
 
-            Dim aFieldDesc As New ormFieldDescription
-            Dim PrimaryColumnNames As New Collection
-            Dim aTable As New ObjectDefinition
+            '            Dim aFieldDesc As New ormFieldDescription
+            '            Dim PrimaryColumnNames As New Collection
+            '            Dim aTable As New ObjectDefinition
 
 
-            aFieldDesc.ID = ""
-            aFieldDesc.Parameter = ""
-            aFieldDesc.Tablename = constTableID
-            aFieldDesc.Aliases = New String() {}
+            '            aFieldDesc.ID = ""
+            '            aFieldDesc.Parameter = ""
+            '            aFieldDesc.Tablename = constTableID
+            '            aFieldDesc.Aliases = New String() {}
 
-            With aTable
-                .Create(constTableID)
-                .Delete()
-                '***
-                '*** Fields
-                '****
+            '            With aTable
+            '                .Create(constTableID)
+            '                .Delete()
+            '                '***
+            '                '*** Fields
+            '                '****
 
-                'Type
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "message queue tag"
-                aFieldDesc.ID = "mqfm1"
-                aFieldDesc.ColumnName = ConstFNTag
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
+            '                'Type
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "message queue tag"
+            '                aFieldDesc.ID = "mqfm1"
+            '                aFieldDesc.ColumnName = ConstFNTag
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
 
-                'index pos
-                aFieldDesc.Datatype = otFieldDataType.[Long]
-                aFieldDesc.Title = "rowno index (primary key)"
-                aFieldDesc.ColumnName = constFNRowno
-                aFieldDesc.ID = "mqfm2"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
+            '                'index pos
+            '                aFieldDesc.Datatype = otFieldDataType.[Long]
+            '                aFieldDesc.Title = "rowno index (primary key)"
+            '                aFieldDesc.ColumnName = constFNRowno
+            '                aFieldDesc.ID = "mqfm2"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
 
-                'index pos
-                aFieldDesc.Datatype = otFieldDataType.[Long]
-                aFieldDesc.Title = "posno in index (primary key)"
-                aFieldDesc.ColumnName = constFNIdNo
-                aFieldDesc.ID = "mqfm3"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
+            '                'index pos
+            '                aFieldDesc.Datatype = otFieldDataType.[Long]
+            '                aFieldDesc.Title = "posno in index (primary key)"
+            '                aFieldDesc.ColumnName = constFNIdNo
+            '                aFieldDesc.ID = "mqfm3"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
 
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "xcmd"
-                aFieldDesc.ColumnName = "xcmd"
-                aFieldDesc.Size = 50
-                aFieldDesc.ID = "mqfm4"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "xcmd"
+            '                aFieldDesc.ColumnName = "xcmd"
+            '                aFieldDesc.Size = 50
+            '                aFieldDesc.ID = "mqfm4"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                ' msgid
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "id"
-                aFieldDesc.ColumnName = "xid"
-                aFieldDesc.Size = 20
-                aFieldDesc.ID = "mqfm5"
-                aFieldDesc.Relation = New String() {}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' msgid
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "id"
+            '                aFieldDesc.ColumnName = "xid"
+            '                aFieldDesc.Size = 20
+            '                aFieldDesc.ID = "mqfm5"
+            '                aFieldDesc.Relation = New String() {}
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                ' id
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "objectname"
-                aFieldDesc.ColumnName = "objectname"
-                aFieldDesc.ID = "mqfm6"
-                aFieldDesc.Size = 100
-                aFieldDesc.Relation = New String() {}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' id
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "objectname"
+            '                aFieldDesc.ColumnName = "objectname"
+            '                aFieldDesc.ID = "mqfm6"
+            '                aFieldDesc.Size = 100
+            '                aFieldDesc.Relation = New String() {}
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "fieldname"
-                aFieldDesc.ColumnName = "fieldname"
-                aFieldDesc.ID = "mqfm7"
-                aFieldDesc.Size = 50
-                aFieldDesc.Relation = New String() {}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "fieldname"
+            '                aFieldDesc.ColumnName = "fieldname"
+            '                aFieldDesc.ID = "mqfm7"
+            '                aFieldDesc.Size = 50
+            '                aFieldDesc.Relation = New String() {}
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "data"
-                aFieldDesc.ColumnName = "data"
-                aFieldDesc.ID = "mqfm8"
-                aFieldDesc.Size = 0
-                aFieldDesc.Relation = New String() {}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "data"
+            '                aFieldDesc.ColumnName = "data"
+            '                aFieldDesc.ID = "mqfm8"
+            '                aFieldDesc.Size = 0
+            '                aFieldDesc.Relation = New String() {}
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                aFieldDesc.Datatype = otFieldDataType.[Long]
-                aFieldDesc.Title = "datatype"
-                aFieldDesc.ColumnName = "datatype"
-                aFieldDesc.ID = "mqfm9"
-                aFieldDesc.Relation = New String() {}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                aFieldDesc.Datatype = otFieldDataType.[Long]
+            '                aFieldDesc.Title = "datatype"
+            '                aFieldDesc.ColumnName = "datatype"
+            '                aFieldDesc.ID = "mqfm9"
+            '                aFieldDesc.Relation = New String() {}
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "message log tag"
-                aFieldDesc.ColumnName = "msglogtag"
-                aFieldDesc.ID = "mqfm10"
-                aFieldDesc.Size = 100
-                aFieldDesc.Relation = New String() {}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "message log tag"
+            '                aFieldDesc.ColumnName = "msglogtag"
+            '                aFieldDesc.ID = "mqfm10"
+            '                aFieldDesc.Size = 100
+            '                aFieldDesc.Relation = New String() {}
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "status of message"
-                aFieldDesc.ColumnName = "status"
-                aFieldDesc.ID = "mqfm11"
-                aFieldDesc.Relation = New String() {}
-                aFieldDesc.Size = 100
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "status of message"
+            '                aFieldDesc.ColumnName = "status"
+            '                aFieldDesc.ID = "mqfm11"
+            '                aFieldDesc.Relation = New String() {}
+            '                aFieldDesc.Size = 100
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "last processed timestamp"
-                aFieldDesc.ColumnName = "timestamp"
-                aFieldDesc.ID = "mqfm12"
-                aFieldDesc.Relation = New String() {}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                aFieldDesc.Datatype = otFieldDataType.Timestamp
+            '                aFieldDesc.Title = "last processed timestamp"
+            '                aFieldDesc.ColumnName = "timestamp"
+            '                aFieldDesc.ID = "mqfm12"
+            '                aFieldDesc.Relation = New String() {}
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                aFieldDesc.Datatype = otFieldDataType.Bool
-                aFieldDesc.Title = "successful processed"
-                aFieldDesc.ColumnName = "issuccess"
-                aFieldDesc.ID = "mqfm13"
-                aFieldDesc.Relation = New String() {}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                aFieldDesc.Relation = New String() {}
+            '                aFieldDesc.Datatype = otFieldDataType.Bool
+            '                aFieldDesc.Title = "successful processed"
+            '                aFieldDesc.ColumnName = "issuccess"
+            '                aFieldDesc.ID = "mqfm13"
+            '                aFieldDesc.Relation = New String() {}
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                aFieldDesc.Relation = New String() {}
 
-                aFieldDesc.Datatype = otFieldDataType.Bool
-                aFieldDesc.Title = "is to be approved"
-                aFieldDesc.ColumnName = "istobeappr"
-                aFieldDesc.ID = "mqfm14"
-                aFieldDesc.Relation = New String() {}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                aFieldDesc.Relation = New String() {}
+            '                aFieldDesc.Datatype = otFieldDataType.Bool
+            '                aFieldDesc.Title = "is to be approved"
+            '                aFieldDesc.ColumnName = "istobeappr"
+            '                aFieldDesc.ID = "mqfm14"
+            '                aFieldDesc.Relation = New String() {}
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                aFieldDesc.Relation = New String() {}
 
-                aFieldDesc.Datatype = otFieldDataType.Bool
-                aFieldDesc.Title = "is to be approved"
-                aFieldDesc.ColumnName = "isapproved"
-                aFieldDesc.ID = "mqfm15"
-                aFieldDesc.Relation = New String() {}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                aFieldDesc.Relation = New String() {}
+            '                aFieldDesc.Datatype = otFieldDataType.Bool
+            '                aFieldDesc.Title = "is to be approved"
+            '                aFieldDesc.ColumnName = "isapproved"
+            '                aFieldDesc.ID = "mqfm15"
+            '                aFieldDesc.Relation = New String() {}
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                aFieldDesc.Relation = New String() {}
 
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "approved timestamp"
-                aFieldDesc.ColumnName = "approvedon"
-                aFieldDesc.ID = "mqfm16"
-                aFieldDesc.Relation = New String() {}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                aFieldDesc.Datatype = otFieldDataType.Timestamp
+            '                aFieldDesc.Title = "approved timestamp"
+            '                aFieldDesc.ColumnName = "approvedon"
+            '                aFieldDesc.ID = "mqfm16"
+            '                aFieldDesc.Relation = New String() {}
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "filed for approval timestamp"
-                aFieldDesc.ColumnName = "filedon"
-                aFieldDesc.ID = "mqfm17"
-                aFieldDesc.Relation = New String() {}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                aFieldDesc.Datatype = otFieldDataType.Timestamp
+            '                aFieldDesc.Title = "filed for approval timestamp"
+            '                aFieldDesc.ColumnName = "filedon"
+            '                aFieldDesc.ID = "mqfm17"
+            '                aFieldDesc.Relation = New String() {}
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                aFieldDesc.Datatype = otFieldDataType.Bool
-                aFieldDesc.Title = "is processable"
-                aFieldDesc.ColumnName = "isprocessable"
-                aFieldDesc.ID = "mqfm18"
-                aFieldDesc.Relation = New String() {}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                aFieldDesc.Relation = New String() {}
+            '                aFieldDesc.Datatype = otFieldDataType.Bool
+            '                aFieldDesc.Title = "is processable"
+            '                aFieldDesc.ColumnName = "isprocessable"
+            '                aFieldDesc.ID = "mqfm18"
+            '                aFieldDesc.Relation = New String() {}
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                aFieldDesc.Relation = New String() {}
 
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "ordinal"
-                aFieldDesc.ColumnName = "ordinal"
-                aFieldDesc.ID = "mqfm19"
-                aFieldDesc.Relation = New String() {}
-                aFieldDesc.Size = 100
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                aFieldDesc.Relation = New String() {}
-                '***
-                '*** TIMESTAMP
-                '****
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "last Update"
-                aFieldDesc.ColumnName = ConstFNUpdatedOn
-                aFieldDesc.ID = ""
-                aFieldDesc.Relation = New String() {}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "ordinal"
+            '                aFieldDesc.ColumnName = "ordinal"
+            '                aFieldDesc.ID = "mqfm19"
+            '                aFieldDesc.Relation = New String() {}
+            '                aFieldDesc.Size = 100
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                aFieldDesc.Relation = New String() {}
+            '                '***
+            '                '*** TIMESTAMP
+            '                '****
+            '                aFieldDesc.Datatype = otFieldDataType.Timestamp
+            '                aFieldDesc.Title = "last Update"
+            '                aFieldDesc.ColumnName = ConstFNUpdatedOn
+            '                aFieldDesc.ID = ""
+            '                aFieldDesc.Relation = New String() {}
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "creation Date"
-                aFieldDesc.ColumnName = ConstFNCreatedOn
-                aFieldDesc.ID = ""
-                aFieldDesc.Relation = New String() {}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                aFieldDesc.Datatype = otFieldDataType.Timestamp
+            '                aFieldDesc.Title = "creation Date"
+            '                aFieldDesc.ColumnName = ConstFNCreatedOn
+            '                aFieldDesc.ID = ""
+            '                aFieldDesc.Relation = New String() {}
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
 
-                ' Index
-                Call .AddIndex("PrimaryKey", PrimaryColumnNames, isprimarykey:=True)
-                ' persist
-                .Persist()
-                ' change the database
-                .AlterSchema()
-            End With
+            '                ' Index
+            '                Call .AddIndex("PrimaryKey", PrimaryColumnNames, isprimarykey:=True)
+            '                ' persist
+            '                .Persist()
+            '                ' change the database
+            '                .CreateObjectSchema()
+            '            End With
 
-            createSchema = True
-            Exit Function
+            '            createSchema = True
+            '            Exit Function
 
-            ' Handle the error
-error_handle:
-            Call CoreMessageHandler(subname:="clsOTDBMessageQueueMember.createSchema")
-            createSchema = False
+            '            ' Handle the error
+            'error_handle:
+            '            Call CoreMessageHandler(subname:="clsOTDBMessageQueueMember.createSchema")
+            '            createSchema = False
         End Function
 
         ''' <summary>

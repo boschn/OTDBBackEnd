@@ -31,32 +31,47 @@ Namespace OnTrack.Deliverables
     ''' Current target object points to the current clsOTDBDeliverableTarget 
     ''' </summary>
     ''' <remarks></remarks>
+    <ormObject(id:=CurrentTarget.ConstObjectID, modulename:=constModuleDeliverables, Version:=1)> _
     Public Class CurrentTarget
         Inherits ormDataObject
         Implements iormInfusable
         Implements iormPersistable
         Implements iotCloneable(Of CurrentTarget)
 
-        <ormSchemaTable(Version:=2, adddeletefieldbehavior:=True, addDomainBehavior:=True, addspareFields:=True)> Public Const ConstTableID = "tblCurrTargets"
+        Public Const ConstObjectID = "CurrentTarget"
+        '** Schema Table
+        <ormSchemaTable(Version:=3, adddeletefieldbehavior:=True, addDomainBehavior:=True, addspareFields:=True)> Public Const ConstTableID = "tblCurrTargets"
 
-        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=50, primarykeyordinal:=1, _
-            title:="Workspace ID", description:="ID of the workspace", ID:="WS")> Const ConstFNWorkspace = Schedule.ConstFNWorkspace
-        <ormSchemaColumn(typeid:=otFieldDataType.Long, primarykeyordinal:=2, _
-                         title:="UID", description:="Deliverable UID", ID:="CDT1", aliases:={"UID"})> Public Const ConstFNUid = Deliverable.constFNUid
+        '** PrimaryKey
+        <ormObjectEntry(referenceObjectEntry:=Workspace.ConstObjectID & "." & Workspace.ConstFNID, primarykeyordinal:=1, _
+                       useforeignkey:=otForeignKeyImplementation.NativeDatabase)> Public Const ConstFNWorkspace = Schedule.ConstFNWorkspace
 
-        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=100, _
+        <ormObjectEntry(referenceObjectEntry:=Deliverable.ConstObjectID & "." & Deliverable.constFNUid, primarykeyordinal:=2, _
+                        useforeignkey:=otForeignKeyImplementation.NativeDatabase, _
+                        ID:="CDT1", aliases:={"UID"})> Public Const ConstFNUid = Deliverable.constFNUid
+
+        '** other columns
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, _
            title:="Revision", description:="revision of the target", ID:="T9")> Public Const ConstFNRevision = "rev"
-        <ormSchemaColumn(typeid:=otFieldDataType.Long, size:=100, _
+        <ormObjectEntry(typeid:=otFieldDataType.Long, size:=100, _
          title:="UpdateCount", description:="update number of the target", ID:="T10")> Public Const ConstFNUpdc = "updc"
-        <ormSchemaColumn(typeid:=otFieldDataType.Bool, _
+        <ormObjectEntry(typeid:=otFieldDataType.Bool, _
           title:="is active", description:="is the target active", ID:="DT4")> Public Const ConstFNIsActive = "isactive"
-       
 
-        <ormColumnMapping(ColumnName:=ConstFNWorkspace)> Private _workspace As String = ""
-        <ormColumnMapping(ColumnName:=ConstFNUid)> Private _uid As Long
-        <ormColumnMapping(ColumnName:=ConstFNRevision)> Private _rev As String = ""
-        <ormColumnMapping(ColumnName:=ConstFNUpdc)> Private _updc As Long    ' UPDC of target
-        <ormColumnMapping(ColumnName:=ConstFNIsActive)> Private _isActive As Boolean
+        ' change FK Action since we have the workspace as FK (leads also to domians)
+        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, _
+            title:="Domain", description:="domain of the business Object", _
+            defaultvalue:=ConstGlobalDomain, _
+            useforeignkey:=otForeignKeyImplementation.NativeDatabase, _
+            foreignkeyProperties:={ForeignKeyProperty.OnDelete & "(" & ForeignKeyActionProperty.NOOP & ")", _
+                                   ForeignKeyProperty.OnUpdate & "(" & ForeignKeyActionProperty.NOOP & ")"})> _
+        Public Const ConstFNDomainID = Domain.ConstFNDomainID
+        '** mappings
+        <ormEntryMapping(EntryName:=ConstFNWorkspace)> Private _workspace As String = ""
+        <ormEntryMapping(EntryName:=ConstFNUid)> Private _uid As Long
+        <ormEntryMapping(EntryName:=ConstFNRevision)> Private _rev As String = ""
+        <ormEntryMapping(EntryName:=ConstFNUpdc)> Private _updc As Long    ' UPDC of target
+        <ormEntryMapping(EntryName:=ConstFNIsActive)> Private _isActive As Boolean
 
         ''' <summary>
         ''' constructor
@@ -69,15 +84,6 @@ Namespace OnTrack.Deliverables
 
 
 
-        ''' <summary>
-        ''' initialize the Current Target Object
-        ''' </summary>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Overrides Function Initialize() As Boolean
-            Me.TableStore.SetProperty(ConstTPNCacheProperty, True)
-            Return MyBase.Initialize()
-        End Function
 
 #Region "Properties"
 
@@ -245,95 +251,95 @@ Namespace OnTrack.Deliverables
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function CreateSchema(Optional silent As Boolean = True) As Boolean
-            Return ormDataObject.CreateSchema(Of CurrentTarget)(silent:=silent)
+            Return ormDataObject.CreateDataObjectSchema(Of CurrentTarget)(silent:=silent)
 
-            '*** legacy code
-            Dim aFieldDesc As New ormFieldDescription
-            Dim primaryColumnNames As New Collection
-            Dim aTable As New ObjectDefinition
+            ''*** legacy code
+            'Dim aFieldDesc As New ormFieldDescription
+            'Dim primaryColumnNames As New Collection
+            'Dim aTable As New ObjectDefinition
 
-            With aTable
-                .Create(ConstTableID)
-                .Delete()
+            'With aTable
+            '    .Create(ConstTableID)
+            '    .Delete()
 
-                aFieldDesc.Tablename = ConstTableID
-                aFieldDesc.ID = ""
-                aFieldDesc.Parameter = ""
+            '    aFieldDesc.Tablename = ConstTableID
+            '    aFieldDesc.ID = ""
+            '    aFieldDesc.Parameter = ""
 
-                '*** UID
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "workspaceID"
-                aFieldDesc.ID = "ws"
-                aFieldDesc.ColumnName = ConstFNWorkspace
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                primaryColumnNames.Add(aFieldDesc.ColumnName)
+            '    '*** UID
+            '    aFieldDesc.Datatype = otFieldDataType.Text
+            '    aFieldDesc.Title = "workspaceID"
+            '    aFieldDesc.ID = "ws"
+            '    aFieldDesc.ColumnName = ConstFNWorkspace
+            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '    primaryColumnNames.Add(aFieldDesc.ColumnName)
 
-                '**** UID
-                aFieldDesc.Datatype = otFieldDataType.[Long]
-                aFieldDesc.Title = "uid"
-                aFieldDesc.ID = "uid"
-                aFieldDesc.ColumnName = "uid"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                primaryColumnNames.Add(aFieldDesc.ColumnName)
+            '    '**** UID
+            '    aFieldDesc.Datatype = otFieldDataType.[Long]
+            '    aFieldDesc.Title = "uid"
+            '    aFieldDesc.ID = "uid"
+            '    aFieldDesc.ColumnName = "uid"
+            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '    primaryColumnNames.Add(aFieldDesc.ColumnName)
 
 
-                '**** rev
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "revision of the target"
-                aFieldDesc.ID = "t9"
-                aFieldDesc.ColumnName = "rev"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '    '**** rev
+            '    aFieldDesc.Datatype = otFieldDataType.Text
+            '    aFieldDesc.Title = "revision of the target"
+            '    aFieldDesc.ID = "t9"
+            '    aFieldDesc.ColumnName = "rev"
+            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                '**** updc
-                aFieldDesc.Datatype = otFieldDataType.[Long]
-                aFieldDesc.Title = "update count of target"
-                aFieldDesc.ID = "t10"
-                aFieldDesc.ColumnName = "updc"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '    '**** updc
+            '    aFieldDesc.Datatype = otFieldDataType.[Long]
+            '    aFieldDesc.Title = "update count of target"
+            '    aFieldDesc.ID = "t10"
+            '    aFieldDesc.ColumnName = "updc"
+            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                '***** isactive
-                aFieldDesc.Datatype = otFieldDataType.Bool
-                aFieldDesc.Title = "is an active setting"
-                aFieldDesc.Aliases = New String() {}
-                aFieldDesc.ID = "t11"
-                aFieldDesc.ColumnName = "isactive"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '    '***** isactive
+            '    aFieldDesc.Datatype = otFieldDataType.Bool
+            '    aFieldDesc.Title = "is an active setting"
+            '    aFieldDesc.Aliases = New String() {}
+            '    aFieldDesc.ID = "t11"
+            '    aFieldDesc.ColumnName = "isactive"
+            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                '***** message log tag
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "message log tag"
-                aFieldDesc.Aliases = New String() {}
-                aFieldDesc.ID = ""
-                aFieldDesc.ColumnName = "msglogtag"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '    '***** message log tag
+            '    aFieldDesc.Datatype = otFieldDataType.Text
+            '    aFieldDesc.Title = "message log tag"
+            '    aFieldDesc.Aliases = New String() {}
+            '    aFieldDesc.ID = ""
+            '    aFieldDesc.ColumnName = "msglogtag"
+            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                '***
-                '*** TIMESTAMP
-                '****
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "last Update"
-                aFieldDesc.ColumnName = ConstFNUpdatedOn
-                aFieldDesc.ID = ""
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '    '***
+            '    '*** TIMESTAMP
+            '    '****
+            '    aFieldDesc.Datatype = otFieldDataType.Timestamp
+            '    aFieldDesc.Title = "last Update"
+            '    aFieldDesc.ColumnName = ConstFNUpdatedOn
+            '    aFieldDesc.ID = ""
+            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "creation Date"
-                aFieldDesc.ColumnName = ConstFNCreatedOn
-                aFieldDesc.ID = ""
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' Index
-                Call .AddIndex("PrimaryKey", primaryColumnNames, isprimarykey:=True)
+            '    aFieldDesc.Datatype = otFieldDataType.Timestamp
+            '    aFieldDesc.Title = "creation Date"
+            '    aFieldDesc.ColumnName = ConstFNCreatedOn
+            '    aFieldDesc.ID = ""
+            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '    ' Index
+            '    Call .AddIndex("PrimaryKey", primaryColumnNames, isprimarykey:=True)
 
-                ' persist
-                .Persist()
-                ' change the database
-                .AlterSchema()
+            '    ' persist
+            '    .Persist()
+            '    ' change the database
+            '    .CreateObjectSchema()
 
-            End With
+            'End With
 
-            '
-            CreateSchema = True
-            Exit Function
+            ''
+            'CreateSchema = True
+            'Exit Function
 
 
         End Function
@@ -345,14 +351,14 @@ Namespace OnTrack.Deliverables
         ''' <param name="workspaceID">the workspaceID to look into - default workspaceID used</param>
         ''' <returns>true if successful</returns>
         ''' <remarks></remarks>
-        Public Function LoadBy(ByVal uid As Long, Optional ByVal workspaceID As String = "") As Boolean
+        Public Function Inject(ByVal uid As Long, Optional ByVal workspaceID As String = "") As Boolean
             Dim anID As String
             Dim aWS As Object
 
             '* init
             If Not Me.IsInitialized Then
                 If Not Me.Initialize() Then
-                    LoadBy = False
+                    Inject = False
                     Exit Function
                 End If
             End If
@@ -366,8 +372,8 @@ Namespace OnTrack.Deliverables
             Dim aWSObj As Workspace = Workspace.Retrieve(id:=anID)
             '*
             If aWSObj Is Nothing Then
-                Call CoreMessageHandler(message:="Can't load workspaceID definition", subname:="clsOTDBCurrTarget.loadby", arg1:=anID)
-                LoadBy = False
+                Call CoreMessageHandler(message:="Can't load workspaceID definition", subname:="clsOTDBCurrTarget.Inject", arg1:=anID)
+                Inject = False
                 Exit Function
             End If
 
@@ -376,7 +382,7 @@ Namespace OnTrack.Deliverables
                 ' check if in workspaceID any data -> fall back to default (should be base)
                 If Me.LoadUniqueBy(uid:=uid, workspaceID:=Trim(CStr(aWS))) Then
                     If Me.IsActive And Not Me.IsDeleted Then
-                        LoadBy = True
+                        Inject = True
                         Exit Function
                     End If
                 End If
@@ -384,7 +390,7 @@ Namespace OnTrack.Deliverables
 
 
             ' return nothing
-            LoadBy = False
+            Inject = False
 
         End Function
         ''' <summary>
@@ -396,7 +402,7 @@ Namespace OnTrack.Deliverables
         ''' <remarks></remarks>
         Public Function LoadUniqueBy(ByVal uid As Long, ByVal workspaceID As String) As Boolean
             Dim pkarry() As Object = {workspaceID, uid}
-            Return MyBase.LoadBy(pkarry)
+            Return MyBase.Inject(pkarry)
         End Function
 
         ''' <summary>
@@ -436,6 +442,7 @@ Namespace OnTrack.Deliverables
     ''' </summary>
     ''' <remarks></remarks>
 
+    <ormObject(id:=OnTrack.Deliverables.Target.ConstObjectID, modulename:=constModuleDeliverables, Version:=1)> _
     Public Class Target
         Inherits ormDataObject
         Implements iotXChangeable
@@ -443,65 +450,79 @@ Namespace OnTrack.Deliverables
         Implements iormPersistable
         Implements iotCloneable(Of Target)
 
-
+        Public Const ConstObjectID As String = "Target"
+        '** Schema Table
         <ormSchemaTableAttribute(version:=2)> Public Const constTableID = "tblDeliverableTargets"
+        '** Index
         <ormSchemaIndexAttribute(columnname1:=constFNUid)> Public Const constIndexUID = "uid"
 
-        <ormSchemaColumnAttribute(referenceObjectEntry:=Deliverable.ConstTableID & "." & Deliverable.constFNUid, _
-            defaultValue:="0", primaryKeyordinal:=1, _
-            description:="Deliverable unique ID", title:="UID", id:="DT1", aliases:={"UID"})> Public Const constFNUid = Deliverable.constFNUid
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Long, defaultValue:="0", primaryKeyordinal:=2, _
+        '** Keys
+        <ormObjectEntry(referenceobjectentry:=Deliverable.ConstObjectID & "." & Deliverable.constFNUid, _
+            defaultValue:="0", primaryKeyordinal:=1, useforeignkey:=otForeignKeyImplementation.NativeDatabase, _
+            id:="DT1", aliases:={"UID"})> Public Const constFNUid = Deliverable.constFNUid
+
+        <ormObjectEntry(typeid:=otFieldDataType.Long, defaultValue:="0", primaryKeyordinal:=2, _
             description:="update count of the target date", title:="Update count", id:="DT2", aliases:={"UPDC"})> Public Const constFNUpdc = "updc"
 
-        <ormSchemaColumnAttribute(referenceObjectEntry:=Workspace.ConstTableID & "." & Workspace.ConstFNID, _
+        <ormObjectEntry(referenceobjectentry:=Workspace.ConstObjectID & "." & Workspace.ConstFNID, _
+            useforeignkey:=otForeignKeyImplementation.NativeDatabase, _
             Description:="workspaceID ID of the schedule")> Public Const ConstFNWorkspace = Schedule.ConstFNWorkspace
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Date, _
+        <ormObjectEntry(typeid:=otFieldDataType.Date, _
             description:="current target date", title:="target date", id:="DT6", aliases:={"T2"})> Public Const constFNTarget = "targetdate"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Date, _
+        <ormObjectEntry(typeid:=otFieldDataType.Date, _
             description:="previous target date", title:="previous target date", id:="DT5", aliases:={"T1"})> Public Const constFNPrevTarget = "pvtd"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Text, size:=50, title:="target revision", Description:="revision of the target", _
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, title:="target revision", Description:="revision of the target", _
            id:="DT4", aliases:={"t9"}, Defaultvalue:="")> Public Const ConstFNRevision = "rev"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Timestamp, _
+        <ormObjectEntry(typeid:=otFieldDataType.Timestamp, _
           description:="target change timestamp", title:="target change", id:="DT7", aliases:={"A6"})> Public Const constFNTargetChanged = "tchg"
 
-        <ormSchemaColumn(typeid:=otFieldDataType.Bool, _
+        <ormObjectEntry(typeid:=otFieldDataType.Bool, _
           title:="No Target", description:="no target by intention", ID:="DT2")> Const ConstFNNoTarget = "notarget"
 
-        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=100, _
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, _
           title:="Type", description:="type of the target", ID:="DT3")> Const ConstFNType = "typeid"
 
-        <ormSchemaColumn(referenceobjectEntry:=OrgUnit.ConstTableID & "." & OrgUnit.ConstFNID, defaultValue:="", _
+        <ormObjectEntry(referenceobjectentry:=OrgUnit.ConstObjectID & "." & OrgUnit.ConstFNID, defaultValue:="", _
            title:="Responsible OrgUnit", description:=" organization unit responsible for the target", ID:="DT5")> Public Const constFNRespOU = "respou"
 
-        <ormSchemaColumn(referenceobjectEntry:=Person.constTableID & "." & Person.constFNID, defaultValue:="", _
+        <ormObjectEntry(referenceobjectentry:=Person.ConstObjectID & "." & Person.constFNID, defaultValue:="", _
             title:="Responsible Person", description:="responsible person for the target", ID:="DT6")> Public Const constFNResp = "resp"
 
-        <ormSchemaColumn(typeid:=otFieldDataType.Memo, _
+        <ormObjectEntry(typeid:=otFieldDataType.Memo, _
             title:="Comment", Description:="comment of the target", id:="DT7", Defaultvalue:="")> Public Const ConstFNComment = "cmt"
 
-        <ormSchemaColumnAttribute(referenceObjectEntry:=ObjectLogMessage.ConstTableID & "." & ObjectLogMessage.ConstFNTag)> _
-       Public Const ConstFNmsglogtag = ObjectLogMessage.ConstFNTag
+        <ormObjectEntry(referenceobjectentry:=ObjectLogMessage.ConstObjectID & "." & ObjectLogMessage.ConstFNTag)> _
+        Public Const ConstFNmsglogtag = ObjectLogMessage.ConstFNTag
+
+        ' change FK Action since we have the workspace as FK (leads also to domians)
+        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, _
+            title:="Domain", description:="domain of the business Object", _
+            defaultvalue:=ConstGlobalDomain, _
+            useforeignkey:=otForeignKeyImplementation.NativeDatabase, _
+            foreignkeyProperties:={ForeignKeyProperty.OnDelete & "(" & ForeignKeyActionProperty.NOOP & ")", _
+                                   ForeignKeyProperty.OnUpdate & "(" & ForeignKeyActionProperty.NOOP & ")"})> _
+        Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
         '*** variables
-        <ormColumnMappingAttribute(ColumnName:=ConstFNUid)> Private _uid As Long
-        <ormColumnMappingAttribute(ColumnName:=ConstFNUpdc)> Private _updc As Long
+        <ormEntryMapping(EntryName:=constFNUid)> Private _uid As Long
+        <ormEntryMapping(EntryName:=constFNUpdc)> Private _updc As Long
 
-        <ormColumnMappingAttribute(ColumnName:=ConstFNWorkspace)> Private _workspace As String = ""
-        <ormColumnMappingAttribute(ColumnName:=ConstFNTarget)> Private _targetdate As Date = ConstNullDate
-        <ormColumnMappingAttribute(ColumnName:=ConstFNPrevTarget)> Private _prevTarget As Date = ConstNullDate
-        <ormColumnMappingAttribute(ColumnName:=ConstFNTargetChanged)> Private _changedDate As Date = ConstNullDate
-        <ormColumnMappingAttribute(ColumnName:=ConstFNRevision)> Private _rev As String = ""
-        <ormColumnMappingAttribute(ColumnName:=ConstFNmsglogtag)> Private _msglogtag As String = ""
-        <ormColumnMapping(ColumnName:=ConstFNNoTarget)> Private _notargetByItention As Boolean
-        <ormColumnMapping(ColumnName:=ConstFNType)> Private _typeid As String
-        <ormColumnMapping(ColumnName:=ConstFNRespOU)> Private _respOU As String = ""
-        <ormColumnMapping(ColumnName:=ConstFNResp)> Private _resp As String = ""
-        <ormColumnMapping(ColumnName:=ConstFNComment)> Private _cmt As String = ""
+        <ormEntryMapping(EntryName:=ConstFNWorkspace)> Private _workspace As String = ""
+        <ormEntryMapping(EntryName:=constFNTarget)> Private _targetdate As Date = ConstNullDate
+        <ormEntryMapping(EntryName:=constFNPrevTarget)> Private _prevTarget As Date = ConstNullDate
+        <ormEntryMapping(EntryName:=constFNTargetChanged)> Private _changedDate As Date = ConstNullDate
+        <ormEntryMapping(EntryName:=ConstFNRevision)> Private _rev As String = ""
+        <ormEntryMapping(EntryName:=ConstFNmsglogtag)> Private _msglogtag As String = ""
+        <ormEntryMapping(EntryName:=ConstFNNoTarget)> Private _notargetByItention As Boolean
+        <ormEntryMapping(EntryName:=ConstFNType)> Private _typeid As String
+        <ormEntryMapping(EntryName:=constFNRespOU)> Private _respOU As String = ""
+        <ormEntryMapping(EntryName:=constFNResp)> Private _resp As String = ""
+        <ormEntryMapping(EntryName:=ConstFNComment)> Private _cmt As String = ""
         'dynamic
         Private s_msglog As New ObjectLog
         ''' <summary>
@@ -677,7 +698,7 @@ Namespace OnTrack.Deliverables
                     s_msglog = New ObjectLog
                 End If
                 If Not s_msglog.IsCreated And Not s_msglog.IsLoaded Then
-                    'If Not s_msglog.loadBy(Me.msglogtag()) Then
+                    'If Not s_msglog.Inject(Me.msglogtag()) Then
                     s_msglog.Create(Me.Msglogtag())
                     'End If
                 End If
@@ -699,140 +720,128 @@ Namespace OnTrack.Deliverables
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function CreateSchema(Optional silent As Boolean = True) As Boolean
-            Return ormDataObject.CreateSchema(Of Target)()
-            ''' legacy code
-            Dim PrimaryColumnNames As New Collection
-            Dim UsedKeyColumnNames As New Collection
-            Dim uidkeycolumnnames As New Collection
-            Dim aFieldDesc As New ormFieldDescription
-            Dim aTable As New ObjectDefinition
+            Return ormDataObject.CreateDataObjectSchema(Of Target)()
+            '            ''' legacy code
+            '            Dim PrimaryColumnNames As New Collection
+            '            Dim UsedKeyColumnNames As New Collection
+            '            Dim uidkeycolumnnames As New Collection
+            '            Dim aFieldDesc As New ormFieldDescription
+            '            Dim aTable As New ObjectDefinition
 
 
-            aFieldDesc.ID = ""
-            aFieldDesc.Parameter = ""
-            aFieldDesc.Relation = New String() {}
-            aFieldDesc.Aliases = New String() {}
-            aFieldDesc.Tablename = constTableID
+            '            aFieldDesc.ID = ""
+            '            aFieldDesc.Parameter = ""
+            '            aFieldDesc.Relation = New String() {}
+            '            aFieldDesc.Aliases = New String() {}
+            '            aFieldDesc.Tablename = constTableID
 
-            With aTable
-                .Create(constTableID)
-                .Delete()
-                '*** workspaceID
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "workspaceID"
-                aFieldDesc.ID = "dt10"
-                aFieldDesc.Aliases = New String() {"ws"}
-                aFieldDesc.ColumnName = ConstFNWorkspace
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                'PrimaryColumnNames.ADD "wspace"
+            '            With aTable
+            '                .Create(constTableID)
+            '                .Delete()
+            '                '*** workspaceID
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "workspaceID"
+            '                aFieldDesc.ID = "dt10"
+            '                aFieldDesc.Aliases = New String() {"ws"}
+            '                aFieldDesc.ColumnName = ConstFNWorkspace
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                'PrimaryColumnNames.ADD "wspace"
 
-                '**** UID
-                aFieldDesc.Datatype = otFieldDataType.[Long]
-                aFieldDesc.Title = "uid"
-                aFieldDesc.ID = "dt1"
-                aFieldDesc.ColumnName = "uid"
-                aFieldDesc.Aliases = New String() {"uid"}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
-                uidkeycolumnnames.Add(aFieldDesc.ColumnName)
-                '**** updc
-                aFieldDesc.Datatype = otFieldDataType.[Long]
-                aFieldDesc.Title = "update count of target"
-                aFieldDesc.ID = "dt2"
-                aFieldDesc.ColumnName = "updc"
-                aFieldDesc.Aliases = New String() {"t10"}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
+            '                '**** UID
+            '                aFieldDesc.Datatype = otFieldDataType.[Long]
+            '                aFieldDesc.Title = "uid"
+            '                aFieldDesc.ID = "dt1"
+            '                aFieldDesc.ColumnName = "uid"
+            '                aFieldDesc.Aliases = New String() {"uid"}
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
+            '                uidkeycolumnnames.Add(aFieldDesc.ColumnName)
+            '                '**** updc
+            '                aFieldDesc.Datatype = otFieldDataType.[Long]
+            '                aFieldDesc.Title = "update count of target"
+            '                aFieldDesc.ID = "dt2"
+            '                aFieldDesc.ColumnName = "updc"
+            '                aFieldDesc.Aliases = New String() {"t10"}
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
 
-                '**** rev
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "revision of the target"
-                aFieldDesc.ID = "dt4"
-                aFieldDesc.ColumnName = "rev"
-                aFieldDesc.Aliases = New String() {"t9"}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                '**** rev
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "revision of the target"
+            '                aFieldDesc.ID = "dt4"
+            '                aFieldDesc.ColumnName = "rev"
+            '                aFieldDesc.Aliases = New String() {"t9"}
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                '***** previous target
-                aFieldDesc.Datatype = otFieldDataType.[Date]
-                aFieldDesc.Title = "previous target date (statistic)"
-                aFieldDesc.ID = "dt5"
-                aFieldDesc.ColumnName = "pvtd"
-                aFieldDesc.Aliases = New String() {"t1"}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                '***** previous target
+            '                aFieldDesc.Datatype = otFieldDataType.[Date]
+            '                aFieldDesc.Title = "previous target date (statistic)"
+            '                aFieldDesc.ID = "dt5"
+            '                aFieldDesc.ColumnName = "pvtd"
+            '                aFieldDesc.Aliases = New String() {"t1"}
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                '***** target date
-                aFieldDesc.Datatype = otFieldDataType.[Date]
-                aFieldDesc.Title = "target date"
-                aFieldDesc.ID = "dt6"
-                aFieldDesc.ColumnName = constFNTarget
-                aFieldDesc.Aliases = New String() {"t2"}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                '***** target date
+            '                aFieldDesc.Datatype = otFieldDataType.[Date]
+            '                aFieldDesc.Title = "target date"
+            '                aFieldDesc.ID = "dt6"
+            '                aFieldDesc.ColumnName = constFNTarget
+            '                aFieldDesc.Aliases = New String() {"t2"}
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                '***** tchg
-                aFieldDesc.Datatype = otFieldDataType.[Date]
-                aFieldDesc.Title = "last change to target date"
-                aFieldDesc.ID = "dt7"
-                aFieldDesc.ColumnName = "tchg"
-                aFieldDesc.Aliases = New String() {"a6"}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                '***** tchg
+            '                aFieldDesc.Datatype = otFieldDataType.[Date]
+            '                aFieldDesc.Title = "last change to target date"
+            '                aFieldDesc.ID = "dt7"
+            '                aFieldDesc.ColumnName = "tchg"
+            '                aFieldDesc.Aliases = New String() {"a6"}
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                ' msglogtag
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "message log tag"
-                aFieldDesc.ColumnName = "msglogtag"
-                aFieldDesc.ID = ""
-                aFieldDesc.Aliases = New String() {}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' msglogtag
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "message log tag"
+            '                aFieldDesc.ColumnName = "msglogtag"
+            '                aFieldDesc.ID = ""
+            '                aFieldDesc.Aliases = New String() {}
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                '***
-                '*** TIMESTAMP
-                '****
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "last Update"
-                aFieldDesc.ColumnName = ConstFNUpdatedOn
-                aFieldDesc.ID = ""
-                aFieldDesc.Aliases = New String() {}
-                aFieldDesc.Relation = New String() {}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                '***
+            '                '*** TIMESTAMP
+            '                '****
+            '                aFieldDesc.Datatype = otFieldDataType.Timestamp
+            '                aFieldDesc.Title = "last Update"
+            '                aFieldDesc.ColumnName = ConstFNUpdatedOn
+            '                aFieldDesc.ID = ""
+            '                aFieldDesc.Aliases = New String() {}
+            '                aFieldDesc.Relation = New String() {}
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "creation Date"
-                aFieldDesc.ColumnName = ConstFNCreatedOn
-                aFieldDesc.ID = ""
-                aFieldDesc.Aliases = New String() {}
-                aFieldDesc.Relation = New String() {}
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                ' Index
-                Call .AddIndex("PrimaryKey", PrimaryColumnNames, isprimarykey:=True)
-                Call .AddIndex("uid", uidkeycolumnnames, isprimarykey:=False)
-                ' persist
-                .Persist()
-                ' change the database
-                .AlterSchema()
-            End With
+            '                aFieldDesc.Datatype = otFieldDataType.Timestamp
+            '                aFieldDesc.Title = "creation Date"
+            '                aFieldDesc.ColumnName = ConstFNCreatedOn
+            '                aFieldDesc.ID = ""
+            '                aFieldDesc.Aliases = New String() {}
+            '                aFieldDesc.Relation = New String() {}
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                ' Index
+            '                Call .AddIndex("PrimaryKey", PrimaryColumnNames, isprimarykey:=True)
+            '                Call .AddIndex("uid", uidkeycolumnnames, isprimarykey:=False)
+            '                ' persist
+            '                .Persist()
+            '                ' change the database
+            '                .CreateObjectSchema()
+            '            End With
 
-            '
-            CreateSchema = True
-            Exit Function
+            '            '
+            '            CreateSchema = True
+            '            Exit Function
 
-            ' Handle the error
-error_handle:
-            Call CoreMessageHandler(subname:="clsOTDBDeliverableTarget.createSchema", tablename:=constTableID)
-            CreateSchema = False
+            '            ' Handle the error
+            'error_handle:
+            '            Call CoreMessageHandler(subname:="clsOTDBDeliverableTarget.createSchema", tablename:=constTableID)
+            '            CreateSchema = False
         End Function
-        ''' <summary>
-        ''' initialize the object
-        ''' </summary>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Overrides Function Initialize() As Boolean Implements iormPersistable.Initialize
 
-            Me.TableStore.SetProperty(ConstTPNCacheProperty, True)
-            _prevTarget = ConstNullDate
-            _targetdate = ConstNullDate
-            _changedDate = ConstNullDate
-            Return MyBase.Initialize()
-        End Function
 
         ''' <summary>
         ''' returns all Targets by Deliverable UID
@@ -969,9 +978,9 @@ error_handle:
         ''' <param name="updc"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function LoadBy(uid As Long, updc As Long) As Boolean
+        Public Function Inject(uid As Long, updc As Long) As Boolean
             Dim pkarray() As Object = {uid, updc}
-            Return MyBase.LoadBy(pkarray)
+            Return MyBase.Inject(pkarray)
         End Function
         ''' <summary>
         ''' publish a new Target to the database from a Date
@@ -1018,7 +1027,7 @@ error_handle:
                 anOldTarget = Me
                 anUID = anOldTarget.UID
                 anUPDC = Me.UPDC
-                If Not aCurrTarget.LoadBy(uid:=anUID, workspaceID:=workspaceID) Then
+                If Not aCurrTarget.Inject(uid:=anUID, workspaceID:=workspaceID) Then
                     Call aCurrTarget.Create(uid:=anUID, workspaceID:=workspaceID)
                 End If
                 '*** only if loaded and not created get an new updc key and clone !
@@ -1034,7 +1043,7 @@ error_handle:
                 '** if UID is provided than load oldTargetObject or create Target
             Else
                 '** load the current UID of the current Target object
-                If aCurrTarget.LoadBy(anUID, workspaceID) Then
+                If aCurrTarget.Inject(anUID, workspaceID) Then
                     anUPDC = aCurrTarget.UPDC
                 Else
                     Call aCurrTarget.Create(uid:=anUID, workspaceID:=workspaceID)
@@ -1042,7 +1051,7 @@ error_handle:
                 End If
 
                 ' no Target exists ?!
-                If anOldTarget.LoadBy(anUID, anUPDC) Then
+                If anOldTarget.Inject(anUID, anUPDC) Then
                     anUPDC = 0   ' create by clone
                     ' clone
                     aNewTarget = anOldTarget.Clone(uid:=anUID, updc:=anUPDC)
@@ -1074,7 +1083,7 @@ error_handle:
 
             ' set the current Target
             ' save the object above
-            'If Not aCurrTarget.loadBy(UID:=anUID, workspaceID:=workspaceID) Then
+            'If Not aCurrTarget.Inject(UID:=anUID, workspaceID:=workspaceID) Then
             '    Call aCurrTarget.create(UID:=anUID, workspaceID:=workspaceID)
             'End If
             aCurrTarget.UPDC = anUPDC
@@ -1083,7 +1092,7 @@ error_handle:
 
             '***
             '***
-            Call aTrack.UpdateFromTarget(Me, workspaceID:=workspaceID, PERSIST:=True, checkGAP:=True)
+            Call aTrack.UpdateFromTarget(Me, workspaceID:=workspaceID, persist:=True, checkGAP:=True)
 
             ' TODO: create track ?!
             '
@@ -1285,7 +1294,7 @@ error_handle:
                 End If
 
                 ' get the updc
-                If aCurrTarget.LoadBy(uid:=anUID, workspaceID:=aWorkspace) Then
+                If aCurrTarget.Inject(uid:=anUID, workspaceID:=aWorkspace) Then
                     anUPDC = aCurrTarget.UPDC
                     setCurrTarget = True
                     'aCurrTarget.initialize
@@ -1316,7 +1325,7 @@ error_handle:
             End If
 
             '** load the target
-            If Not aTarget.LoadBy(uid:=anUID, updc:=anUPDC) Then
+            If Not aTarget.Inject(uid:=anUID, updc:=anUPDC) Then
                 If anObjectDef.XChangeCmd <> otXChangeCommandType.UpdateCreate Then
                     Call MSGLOG.AddMsg("203", Nothing, Nothing, "DT2", CHANGECONFIG.Configname, anUID & "," & anUPDC)
                     runXChangeOLD = False
@@ -1516,116 +1525,149 @@ error_handle:
     ''' </summary>
     ''' <remarks></remarks>
 
-    Public Class Track
+    <ormObject(id:=Track.ConstObjectID, modulename:=constModuleDeliverables, Version:=1)> Public Class Track
         Inherits ormDataObject
         Implements iormPersistable
         Implements iormInfusable
         Implements iotCloneable(Of Track)
 
-        'Implements iOTDBXChange
 
+        Public Const ConstObjectID = "Track"
         '** Table
         <ormSchemaTable(version:=2, addDomainBehavior:=True, addsparefields:=True)> Public Const ConstTableID = "tblDeliverableTracks"
         '** Index
-        <ormSchemaIndex(columnname1:=ConstFNWorkspace, columnname2:=constFNDeliverableUid, columnname3:=constFNScheduleUID, columnname4:=constFNScheduleUPDC, columnname5:=constFNTargetUPDC)> _
+        <ormSchemaIndex(columnname1:=ConstFNWorkspace, columnname2:=constFNDeliverableUid, columnname3:=constFNScheduleUid, columnname4:=constFNScheduleUpdc, columnname5:=constFNTargetUpdc)> _
         Public Const constIndWSpace = "indWorkspace"
 
         '** primary keys
-        <ormSchemaColumn(referenceobjectEntry:=Deliverable.ConstTableID & "." & Deliverable.constFNUid, primarykeyordinal:=1, _
+        <ormObjectEntry(referenceobjectentry:=Deliverable.ConstObjectID & "." & Deliverable.constFNUid, primarykeyordinal:=1, _
             ID:="DTR2", aliases:={"UID"})> Public Const constFNDeliverableUid = Deliverable.constFNUid
-        <ormSchemaColumn(referenceobjectEntry:=Schedule.ConstTableID & "." & Schedule.ConstFNUid, primarykeyordinal:=2, _
+
+        <ormObjectEntry(referenceobjectentry:=Schedule.ConstObjectID & "." & Schedule.ConstFNUid, primarykeyordinal:=2, _
              ID:="DTR3", aliases:={"SC2"})> Public Const constFNScheduleUid = "suid"
-        <ormSchemaColumn(referenceobjectEntry:=Schedule.ConstTableID & "." & Schedule.ConstFNUpdc, primarykeyordinal:=3, _
+        <ormObjectEntry(referenceobjectentry:=Schedule.ConstObjectID & "." & Schedule.ConstFNUpdc, primarykeyordinal:=3, _
            ID:="DTR4", aliases:={"SC2"})> Public Const constFNScheduleUpdc = "supdc"
-        <ormSchemaColumn(referenceobjectEntry:=Target.constTableID & "." & Target.constFNUpdc, primarykeyordinal:=4, _
+        '**
+        <ormSchemaForeignKey(useforeignkey:=otForeignKeyImplementation.NativeDatabase, _
+            entrynames:={constFNScheduleUid, constFNScheduleUpdc}, _
+            foreignkeyreferences:={Schedule.ConstObjectID & "." & Schedule.ConstFNUid, _
+            Schedule.ConstObjectID & "." & Schedule.ConstFNUpdc})> _
+        Public Const constFKSchedule = "fkschedule"
+
+        <ormObjectEntry(referenceobjectentry:=Target.ConstObjectID & "." & Target.constFNUpdc, primarykeyordinal:=4, _
            ID:="DTR5", aliases:={"DT2"})> Public Const constFNTargetUpdc = "tupdc"
 
-        '** fields
-        <ormSchemaColumnAttribute(referenceobjectEntry:=Workspace.ConstTableID & "." & Workspace.ConstFNID, _
-             id:="DTR1", aliases:={"WS"})> Public Const ConstFNWorkspace = Workspace.ConstFNID
-        <ormSchemaColumnAttribute(referenceobjectEntry:=ScheduleDefinition.ConstTableID & "." & ScheduleDefinition.ConstFNType, _
-             id:="DTR6", aliases:={"SC14"}, Defaultvalue:="")> Public Const ConstFNTypeid = Schedule.ConstFNTypeid
-        <ormSchemaColumnAttribute(referenceobjectEntry:=Schedule.ConstTableID & "." & Schedule.ConstFNPlanRev, _
-          id:="DTR7", aliases:={"SC5"}, Defaultvalue:="")> Public Const ConstFNScheduleRevision = Schedule.ConstFNPlanRev
-        <ormSchemaColumnAttribute(referenceobjectEntry:=Target.constTableID & "." & Target.ConstFNRevision, title:="target revision", Description:="revision of the target", _
-          id:="DTR8", aliases:={"DT4"}, Defaultvalue:="")> Public Const ConstFNTargetRevision = "trev"
-        <ormSchemaColumnAttribute(referenceobjectEntry:=ScheduleMilestone.constTableID & "." & ScheduleMilestone.ConstFNID, title:="milestone ID delivered", Description:="schedule definition milestone ID for fc delivered", _
-         id:="DTR9", Defaultvalue:="")> Public Const ConstFNMSIDDelivered = "msfinid"
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Date, title:="current forecast", Description:="forecast date for deliverable delivered", _
-            id:="DTR10", Defaultvalue:="")> Public Const ConstFNForecast = "fcdate"
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Date, title:="current target", Description:="target date for deliverable", _
-            id:="DTR11", Defaultvalue:="")> Public Const ConstFNTarget = "targetdate"
+        <ormSchemaForeignKey(useforeignkey:=otForeignKeyImplementation.NativeDatabase, _
+            entrynames:={constFNDeliverableUid, constFNTargetUpdc}, _
+            foreignkeyreferences:={Target.ConstObjectID & "." & Target.constFNUid, _
+            Target.ConstObjectID & "." & Target.constFNUpdc})> _
+        Public Const constFKTarget = "fkTarget"
 
-        <ormSchemaColumnAttribute(referenceobjectEntry:=Schedule.ConstTableID & "." & Schedule.ConstFNlcstatus, _
+        '** fields
+        <ormObjectEntry(referenceobjectentry:=Workspace.ConstObjectID & "." & Workspace.ConstFNID, _
+            useforeignkey:=otForeignKeyImplementation.NativeDatabase, _
+                        foreignkeyproperties:={ForeignKeyProperty.OnDelete & "(" & ForeignKeyActionProperty.NOOP & ")", _
+                            ForeignKeyProperty.OnUpdate & "(" & ForeignKeyActionProperty.NOOP & ")"}, _
+                        id:="DTR1", aliases:={"WS"})> Public Const ConstFNWorkspace = Workspace.ConstFNID
+
+        <ormObjectEntry(referenceobjectentry:=ScheduleDefinition.ConstObjectID & "." & ScheduleDefinition.ConstFNType, _
+            useforeignkey:=otForeignKeyImplementation.ORM, _
+             foreignkeyProperties:={ForeignKeyProperty.OnUpdate & "(" & ForeignKeyActionProperty.NOOP & ")", _
+                                   ForeignKeyProperty.OnDelete & "(" & ForeignKeyActionProperty.SetDefault & ")"}, _
+             id:="DTR6", aliases:={"SC14"}, Defaultvalue:="none")> Public Const ConstFNTypeid = Schedule.ConstFNTypeid
+
+        <ormObjectEntry(referenceobjectentry:=Schedule.ConstObjectID & "." & Schedule.ConstFNPlanRev, _
+          id:="DTR7", aliases:={"SC5"}, Defaultvalue:="0")> Public Const ConstFNScheduleRevision = Schedule.ConstFNPlanRev
+        <ormObjectEntry(referenceobjectentry:=Target.ConstObjectID & "." & Target.ConstFNRevision, title:="target revision", Description:="revision of the target", _
+          id:="DTR8", aliases:={"DT4"}, Defaultvalue:="0")> Public Const ConstFNTargetRevision = "trev"
+        <ormObjectEntry(referenceobjectentry:=ScheduleMilestone.ConstObjectID & "." & ScheduleMilestone.ConstFNID, _
+            title:="milestone ID delivered", Description:="schedule definition milestone ID for fc delivered", _
+            id:="DTR9", Defaultvalue:="")> Public Const ConstFNMSIDDelivered = "msfinid"
+        <ormObjectEntry(typeid:=otFieldDataType.Date, title:="current forecast", Description:="forecast date for deliverable delivered", _
+            id:="DTR10", isnullable:=True)> Public Const ConstFNForecast = "fcdate"
+        <ormObjectEntry(typeid:=otFieldDataType.Date, title:="current target", Description:="target date for deliverable", _
+            id:="DTR11", isnullable:=True)> Public Const ConstFNTarget = "targetdate"
+
+        <ormObjectEntry(referenceobjectentry:=Schedule.ConstObjectID & "." & Schedule.ConstFNlcstatus, _
             id:="DTR12", aliases:={"SC7"}, Defaultvalue:="")> Public Const ConstFNLCStatus = Schedule.ConstFNlcstatus
-        <ormSchemaColumnAttribute(referenceobjectEntry:=Schedule.ConstTableID & "." & Schedule.ConstFNpstatus, _
+        <ormObjectEntry(referenceobjectentry:=Schedule.ConstObjectID & "." & Schedule.ConstFNpstatus, _
             id:="DTR13", aliases:={"SC8"}, Defaultvalue:="")> Public Const ConstFNPStatus = Schedule.ConstFNpstatus
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Text, size:=50, title:="Synchro status", Description:="schedule synchro status", _
+
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, title:="Synchro status", Description:="schedule synchro status", _
             id:="DTR14", aliases:={}, Defaultvalue:="")> Public Const ConstFNSyncStatus = "sync"
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Date, title:="Synchro check date", Description:="date of last synchro check status", _
+        <ormObjectEntry(typeid:=otFieldDataType.Date, title:="Synchro check date", Description:="date of last synchro check status", _
             id:="DTR15", Defaultvalue:="")> Public Const ConstFNSyncDate = "syncchkon"
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Date, title:="Going Alive Date", Description:="date of schedule going alive", _
+        <ormObjectEntry(typeid:=otFieldDataType.Date, title:="Going Alive Date", Description:="date of schedule going alive", _
            id:="DTR16", Defaultvalue:="")> Public Const ConstFNGoingAliveDate = "goal"
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Bool, title:="Delivered", Description:="True if deliverable is delivered", _
+        <ormObjectEntry(typeid:=otFieldDataType.Bool, title:="Delivered", Description:="True if deliverable is delivered", _
           id:="DTR17", Defaultvalue:="")> Public Const constFNIsDelivered = "isfinished"
-        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=100, defaultValue:="", _
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, defaultValue:="", _
                          title:="Blocking Item Reference", description:="Blocking Item Reference id for the deliverable", id:="DTR18", aliases:={"DLV17"})> _
         Public Const constFNBlockingItemReference = Deliverable.constFNBlockingItemReference
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Date, title:="Delivery Date", Description:="date for deliverable to be delivered / finished", _
+        <ormObjectEntry(typeid:=otFieldDataType.Date, title:="Delivery Date", Description:="date for deliverable to be delivered / finished", _
           id:="DTR19", Defaultvalue:="")> Public Const constFNDelivery = "finish"
 
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Long, title:="Forecast Gap", Description:="gap in working days between forecast and target", _
+        <ormObjectEntry(typeid:=otFieldDataType.Long, title:="Forecast Gap", Description:="gap in working days between forecast and target", _
          id:="DTR20")> Public Const constFNFCGap = "fcgap"
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Long, title:="BaseLine Gap", Description:="gap in working days between forecast and target", _
+        <ormObjectEntry(typeid:=otFieldDataType.Long, title:="BaseLine Gap", Description:="gap in working days between forecast and target", _
          id:="DTR21")> Public Const constFNBLGap = "blgap"
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Date, title:="Schedule Change Date", Description:="forecast last changed on", _
+        <ormObjectEntry(typeid:=otFieldDataType.Date, title:="Schedule Change Date", Description:="forecast last changed on", _
           id:="DTR23")> Public Const constFNFcChanged = "fcchanged"
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Date, title:="Baseline Delivery Date", Description:="delivery date from the baseline", _
+        <ormObjectEntry(typeid:=otFieldDataType.Date, title:="Baseline Delivery Date", Description:="delivery date from the baseline", _
           id:="DTR24")> Public Const constFNBaseDelivery = "basefinish"
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Bool, title:="Schedule Frozen", Description:="True if schedule is frozen / a baseline exists", _
+        <ormObjectEntry(typeid:=otFieldDataType.Bool, title:="Schedule Frozen", Description:="True if schedule is frozen / a baseline exists", _
          id:="DTR25", aliases:={"SC6"})> Public Const constFNIsFrozen = Schedule.ConstFNisfrozen
-        <ormSchemaColumn(typeid:=otFieldDataType.Long, title:="Schedule UpdateCount", description:="update count of the schedule", _
+        <ormObjectEntry(typeid:=otFieldDataType.Long, title:="Schedule UpdateCount", description:="update count of the schedule", _
             ID:="DTR26", aliases:={"SC17"})> Public Const constFNBaselineUPDC = Schedule.ConstFNBlUpdc
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Date, title:="Baseline Reference Date", Description:="reference date for baseline", _
+        <ormObjectEntry(typeid:=otFieldDataType.Date, title:="Baseline Reference Date", Description:="reference date for baseline", _
          id:="DTR27", Defaultvalue:="")> Public Const ConstFNBLFrom = Schedule.ConstFNBlDate
-        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=255, defaultValue:="", _
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=255, defaultValue:="", _
             title:="ActivityTag", description:="activity tag for the deliverable", ID:="DTR31")> _
         Public Const constFNActiveTag = "acttag"
-        <ormSchemaColumnAttribute(referenceObjectEntry:=ObjectLogMessage.ConstTableID & "." & ObjectLogMessage.ConstFNTag)> _
-       Public Const ConstFNmsglogtag = ObjectLogMessage.ConstFNTag
 
+        <ormObjectEntry(referenceobjectentry:=ObjectLogMessage.ConstObjectID & "." & ObjectLogMessage.ConstFNTag)> _
+ Public Const ConstFNmsglogtag = ObjectLogMessage.ConstFNTag
+
+        ' change FK Action since we have the workspace as FK (leads also to domians)
+        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, _
+            title:="Domain", description:="domain of the business Object", _
+            defaultvalue:=ConstGlobalDomain, _
+            useforeignkey:=otForeignKeyImplementation.NativeDatabase, _
+            foreignkeyProperties:={ForeignKeyProperty.OnDelete & "(" & ForeignKeyActionProperty.NOOP & ")", _
+                                   ForeignKeyProperty.OnUpdate & "(" & ForeignKeyActionProperty.NOOP & ")"})> _
+        Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
         '*** MAPPING
-        <ormColumnMapping(ColumnName:=ConstFNDeliverableUid)> Private _deliverableUID As Long
-        <ormColumnMapping(ColumnName:=ConstFNTargetUpdc)> Private _targetUPDC As Long
-        <ormColumnMapping(ColumnName:=ConstFNScheduleUid)> Private _scheduleUID As Long
-        <ormColumnMapping(ColumnName:=ConstFNScheduleUpdc)> Private _scheduleUPDC As Long
+        <ormEntryMapping(EntryName:=constFNDeliverableUid)> Private _deliverableUID As Long
+        <ormEntryMapping(EntryName:=constFNTargetUpdc)> Private _targetUPDC As Long
+        <ormEntryMapping(EntryName:=constFNScheduleUid)> Private _scheduleUID As Long
+        <ormEntryMapping(EntryName:=constFNScheduleUpdc)> Private _scheduleUPDC As Long
 
-        <ormColumnMapping(ColumnName:=ConstFNWorkspace)> Private _workspaceID As String = ""
-        <ormColumnMapping(ColumnName:=ConstFNMSIDDelivered)> Private _MSIDFinish As String = ""
-        <ormColumnMapping(ColumnName:=ConstFNForecast)> Private s_currFC As Date = ConstNullDate
-        <ormColumnMapping(ColumnName:=ConstFNTarget)> Private s_currTarget As Date = ConstNullDate
-        <ormColumnMapping(ColumnName:=ConstFNBlockingItemReference)> Private s_blockingitemID As String = ""
-        <ormColumnMapping(ColumnName:=ConstFNLCStatus)> Private s_FCLCStatus As String = ""
-        <ormColumnMapping(ColumnName:=ConstFNTypeid)> Private s_scheduletype As String = ""
-        <ormColumnMapping(ColumnName:=ConstFNScheduleRevision)> Private s_ScheduleRevision As String = ""
-        <ormColumnMapping(ColumnName:=ConstFNTargetRevision)> Private s_TargetRevision As String = ""
-        <ormColumnMapping(ColumnName:=ConstFNGoingAliveDate)> Private s_GoingAliveDate As Date = ConstNullDate
-        <ormColumnMapping(ColumnName:=ConstFNBaseDelivery)> Private s_BaseLineFinishDate As Date = ConstNullDate
-        <ormColumnMapping(ColumnName:=ConstFNBLFrom)> Private s_BaseLineFinishDateFrom As Date = ConstNullDate
-        <ormColumnMapping(ColumnName:=ConstFNFcChanged)> Private s_FClastchangeDate As Date = ConstNullDate
-        <ormColumnMapping(ColumnName:=ConstFNIsFrozen)> Private s_isFrozen As Boolean
-        <ormColumnMapping(ColumnName:=ConstFNDelivery)> Private s_finishedOn As Date = ConstNullDate
-        <ormColumnMapping(ColumnName:=ConstFNIsDelivered)> Private s_isFinished As Boolean
-        <ormColumnMapping(ColumnName:=ConstFNBaselineUPDC)> Private s_BaselineUPDC As Long
-        <ormColumnMapping(ColumnName:=ConstFNSyncStatus)> Private s_SyncStatus As String = ""
-        <ormColumnMapping(ColumnName:=ConstFNPStatus)> Private s_pstatus As String = ""
-        <ormColumnMapping(ColumnName:=ConstFNSyncDate)> Private s_syncFrom As Date = ConstNullDate
-        <ormColumnMapping(ColumnName:=ConstFNFCGap)> Private s_FCgapToTarget As Long
-        <ormColumnMapping(ColumnName:=ConstFNBLGap)> Private s_BaselineGapToTarget As Long
+        <ormEntryMapping(EntryName:=ConstFNWorkspace)> Private _workspaceID As String = ""
+        <ormEntryMapping(EntryName:=ConstFNMSIDDelivered)> Private _MSIDFinish As String = ""
+        <ormEntryMapping(EntryName:=ConstFNForecast)> Private s_currFC As Date = ConstNullDate
+        <ormEntryMapping(EntryName:=ConstFNTarget)> Private s_currTarget As Date = ConstNullDate
+        <ormEntryMapping(EntryName:=constFNBlockingItemReference)> Private s_blockingitemID As String = ""
+        <ormEntryMapping(EntryName:=ConstFNLCStatus)> Private s_FCLCStatus As String = ""
+        <ormEntryMapping(EntryName:=ConstFNTypeid)> Private s_scheduletype As String = ""
+        <ormEntryMapping(EntryName:=ConstFNScheduleRevision)> Private s_ScheduleRevision As String = ""
+        <ormEntryMapping(EntryName:=ConstFNTargetRevision)> Private s_TargetRevision As String = ""
+        <ormEntryMapping(EntryName:=ConstFNGoingAliveDate)> Private s_GoingAliveDate As Date = ConstNullDate
+        <ormEntryMapping(EntryName:=constFNBaseDelivery)> Private s_BaseLineFinishDate As Date = ConstNullDate
+        <ormEntryMapping(EntryName:=ConstFNBLFrom)> Private s_BaseLineFinishDateFrom As Date = ConstNullDate
+        <ormEntryMapping(EntryName:=constFNFcChanged)> Private s_FClastchangeDate As Date = ConstNullDate
+        <ormEntryMapping(EntryName:=constFNIsFrozen)> Private s_isFrozen As Boolean
+        <ormEntryMapping(EntryName:=constFNDelivery)> Private s_finishedOn As Date = ConstNullDate
+        <ormEntryMapping(EntryName:=constFNIsDelivered)> Private s_isFinished As Boolean
+        <ormEntryMapping(EntryName:=constFNBaselineUPDC)> Private s_BaselineUPDC As Long
+        <ormEntryMapping(EntryName:=ConstFNSyncStatus)> Private s_SyncStatus As String = ""
+        <ormEntryMapping(EntryName:=ConstFNPStatus)> Private s_pstatus As String = ""
+        <ormEntryMapping(EntryName:=ConstFNSyncDate)> Private s_syncFrom As Date = ConstNullDate
+        <ormEntryMapping(EntryName:=constFNFCGap)> Private s_FCgapToTarget As Long
+        <ormEntryMapping(EntryName:=constFNBLGap)> Private s_BaselineGapToTarget As Long
 
-        <ormColumnMapping(ColumnName:=ConstFNActiveTag)> Private s_activetag As String = ""
-        <ormColumnMapping(ColumnName:=ConstFNMsgLogTag)> Private s_msglogtag As String = ""
+        <ormEntryMapping(EntryName:=constFNActiveTag)> Private s_activetag As String = ""
+        <ormEntryMapping(EntryName:=ConstFNmsglogtag)> Private s_msglogtag As String = ""
 
 
         '********* dynamic
@@ -1676,7 +1718,7 @@ error_handle:
                 MSIDFinish = _MSIDFinish
             End Get
             Set(value As String)
-                If LCase(value) <> _MSIDFinish Then
+                If value.tolower <> _MSIDFinish Then
                     _MSIDFinish = value
                     Me.IsChanged = True
                 End If
@@ -1688,7 +1730,7 @@ error_handle:
                 Scheduletype = s_scheduletype
             End Get
             Set(value As String)
-                If LCase(value) <> _workspaceID Then
+                If value.tolower <> _workspaceID Then
                     s_scheduletype = value
                     Me.IsChanged = True
                 End If
@@ -1772,7 +1814,7 @@ error_handle:
                 FCLCStatus = s_FCLCStatus
             End Get
             Set(value As String)
-                If LCase(value) <> s_FCLCStatus Then
+                If value.tolower <> s_FCLCStatus Then
                     s_FCLCStatus = value
                     Me.IsChanged = True
                 End If
@@ -1784,7 +1826,7 @@ error_handle:
                 ProcessStatus = s_pstatus
             End Get
             Set(value As String)
-                If LCase(value) <> value Then
+                If value.tolower <> value Then
                     s_pstatus = value
                     Me.IsChanged = True
                 End If
@@ -1904,7 +1946,7 @@ error_handle:
                 SyncStatus = s_SyncStatus
             End Get
             Set(value As String)
-                If LCase(value) <> LCase(SyncStatus) Then
+                If value.tolower <> SyncStatus.tolower Then
                     s_SyncStatus = value
                     Me.IsChanged = True
                 End If
@@ -1925,7 +1967,7 @@ error_handle:
 
         '****** getUniqueTag
         Public Function getUniqueTag()
-            getUniqueTag = ConstDelimiter & constTableID & ConstDelimiter & _
+            getUniqueTag = ConstDelimiter & ConstTableID & ConstDelimiter & _
             _deliverableUID & ConstDelimiter
         End Function
         ReadOnly Property msglogtag() As String
@@ -1949,7 +1991,7 @@ error_handle:
 
         '** initialize
         Public Sub New()
-            Call MyBase.New(constTableID)
+            Call MyBase.New(ConstTableID)
 
         End Sub
 
@@ -2048,7 +2090,7 @@ error_handle:
                             ' check on Target actual
                             If aTarget.IsLoaded Or aTarget.IsCreated Then
                                 If aTrack.TargetUPDC <> aTarget.UPDC Then
-                                    Call aTrack.UpdateFromTarget(aTarget, workspaceID:=workspaceID, PERSIST:=True, checkGAP:=True)
+                                    Call aTrack.UpdateFromTarget(aTarget, workspaceID:=workspaceID, persist:=True, checkGAP:=True)
                                 End If
                             End If
 
@@ -2129,8 +2171,8 @@ error_handle:
                                 aTrack.Scheduletype = aSchedule.Typeid
 
                                 Call aTrack.Create(aDeliverable.Uid, aSchedule.Uid, aSchedule.Updc, aTarget.UPDC)
-                                Call aTrack.UpdateFromTarget(aTarget, workspaceID:=workspaceID, PERSIST:=True, checkGAP:=True)
-                                Call aTrack.UpdateFromSchedule(aSchedule, workspaceID:=workspaceID, PERSIST:=True, checkGAP:=True)
+                                Call aTrack.UpdateFromTarget(aTarget, workspaceID:=workspaceID, persist:=True, checkGAP:=True)
+                                Call aTrack.UpdateFromSchedule(aSchedule, workspaceID:=workspaceID, persist:=True, checkGAP:=True)
                             End If
                         End If
 
@@ -2164,7 +2206,7 @@ error_handle:
         ''' <remarks></remarks>
 
         Public Shared Function CreateSchema() As Boolean
-            Return ormDataObject.CreateSchema(Of Track)()
+            Return ormDataObject.CreateDataObjectSchema(Of Track)()
 
             '            Dim PrimaryColumnNames As New Collection
             '            Dim WorkspaceColumnNames As New Collection
@@ -2573,28 +2615,6 @@ error_handle:
 
         End Function
 
-        '*** init
-        Public Overrides Function Initialize() As Boolean
-            Initialize = MyBase.Initialize()
-            Me.TableStore.SetProperty(ConstTPNCacheProperty, True)
-            s_finishedOn = ConstNullDate
-
-            s_syncFrom = ConstNullDate
-            s_GoingAliveDate = ConstNullDate
-            s_BaseLineFinishDate = ConstNullDate
-            s_BaseLineFinishDateFrom = ConstNullDate
-            s_currFC = ConstNullDate
-            s_currTarget = ConstNullDate
-            s_syncFrom = ConstNullDate
-            s_FClastchangeDate = ConstNullDate
-
-
-            s_dlvTarget = Nothing
-            s_deliverable = Nothing
-            s_schedule = Nothing
-
-            Return _IsInitialized
-        End Function
 
         ''' <summary>
         ''' create the data object by primary key
@@ -2657,12 +2677,12 @@ error_handle:
         ''' <param name="targetUPDC"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Function loadBy(ByVal deliverableUID As Long, _
+        Public Overloads Function Inject(ByVal deliverableUID As Long, _
         ByVal scheduleUID As Long, _
         ByVal scheduleUPDC As Long, _
         ByVal targetUPDC As Long) As Boolean
             Dim pkarray() As Object = {deliverableUID, scheduleUID, scheduleUPDC, targetUPDC}
-            Return MyBase.LoadBy(pkarray)
+            Return MyBase.Inject(pkarray)
         End Function
 
 
@@ -2735,7 +2755,7 @@ error_handle:
             Else
                 sUID = aCurrSCHEDULE.UID
                 sUPDC = aCurrSCHEDULE.UPDC
-                If aSchedule.Loadby(UID:=sUID, updc:=sUPDC) Then
+                If aSchedule.Inject(UID:=sUID, updc:=sUPDC) Then
                     aNewSchedule = aSchedule
 
                 Else
@@ -2746,7 +2766,7 @@ error_handle:
             ' load or create
             If Not Me.IsCreated And Not _IsLoaded Then
                 If Not Me.Create(deliverableUID:=dlvUID, scheduleUID:=sUID, scheduleUPDC:=sUPDC, targetUPDC:=tUPDC) Then
-                    Call Me.loadBy(deliverableUID:=dlvUID, scheduleUID:=sUID, scheduleUPDC:=sUPDC, targetUPDC:=tUPDC)
+                    Call Me.Inject(deliverableUID:=dlvUID, scheduleUID:=sUID, scheduleUPDC:=sUPDC, targetUPDC:=tUPDC)
                 End If
             End If
 
@@ -2791,7 +2811,7 @@ error_handle:
 
             End With
 
-            If PERSIST And Me.IsChanged Then
+            If persist And Me.IsChanged Then
                 UpdateFromTarget = Me.Persist
             Else
                 UpdateFromTarget = True
@@ -2864,12 +2884,12 @@ error_handle:
 
             '*** Target is the Current if not specified otherwise
             If targetUPDC = -1 Then
-                If Not aCurrTarget.LoadBy(uid:=dlvUID, workspaceID:=workspaceID) Then
+                If Not aCurrTarget.Inject(uid:=dlvUID, workspaceID:=workspaceID) Then
                     tUPDC = 0
                     aNewTarget = Nothing
                 Else
                     tUPDC = aCurrTarget.UPDC
-                    If aTarget.LoadBy(uid:=dlvUID, updc:=tUPDC) Then
+                    If aTarget.Inject(uid:=dlvUID, updc:=tUPDC) Then
                         aNewTarget = aTarget
                     Else
                         aNewTarget = Nothing
@@ -2877,7 +2897,7 @@ error_handle:
                 End If
             Else
                 tUPDC = targetUPDC
-                If aTarget.LoadBy(uid:=dlvUID, updc:=tUPDC) Then
+                If aTarget.Inject(uid:=dlvUID, updc:=tUPDC) Then
                     aNewTarget = aTarget
                 Else
                     aNewTarget = Nothing
@@ -2887,11 +2907,11 @@ error_handle:
             ' load or create
             If Not Me.IsCreated And Not _IsLoaded Then
                 If Not Me.Create(deliverableUID:=dlvUID, scheduleUID:=sUID, scheduleUPDC:=sUPDC, targetUPDC:=tUPDC) Then
-                    Call Me.loadBy(deliverableUID:=dlvUID, scheduleUID:=sUID, scheduleUPDC:=sUPDC, targetUPDC:=tUPDC)
+                    Call Me.Inject(deliverableUID:=dlvUID, scheduleUID:=sUID, scheduleUPDC:=sUPDC, targetUPDC:=tUPDC)
                 End If
             End If
 
-            '** initialize in create/loadby !!
+            '** initialize in create/Inject !!
             _deliverableUID = dlvUID
             _scheduleUID = sUID
             _scheduleUPDC = sUPDC
@@ -2945,7 +2965,7 @@ error_handle:
                         .BaseLineFinishDateFrom = s_schedule.BaselineRefDate
                     End If
                     Dim aBaseline As New Schedule
-                    If aBaseline.Loadby(UID:=s_schedule.Uid, updc:=s_schedule.BaselineUPDC) Then
+                    If aBaseline.Inject(UID:=s_schedule.Uid, updc:=s_schedule.BaselineUPDC) Then
                         .BaseLineFinishDate = aBaseline.GetMilestoneValue(.MSIDFinish)
                         If checkGAP Then .CheckOnBaselineGap()
                     End If
@@ -2970,7 +2990,7 @@ error_handle:
 
             End With
 
-            If PERSIST And Me.IsChanged Then
+            If persist And Me.IsChanged Then
                 UpdateFromSchedule = Me.Persist
             Else
                 UpdateFromSchedule = True
@@ -3040,7 +3060,7 @@ error_handle:
             Else
                 sUID = aCurrSCHEDULE.UID
                 sUPDC = aCurrSCHEDULE.UPDC
-                If aSchedule.Loadby(UID:=sUID, updc:=sUPDC) Then
+                If aSchedule.Inject(UID:=sUID, updc:=sUPDC) Then
                     s_schedule = aSchedule
                     If s_schedule.workspaceID <> aWorkspace Then
                         aWorkspace = s_schedule.workspaceID
@@ -3056,7 +3076,7 @@ error_handle:
                 s_dlvTarget = Nothing
             Else
                 tUPDC = aCurrTarget.UPDC
-                If aTarget.LoadBy(uid:=dlvUID, updc:=tUPDC) Then
+                If aTarget.Inject(uid:=dlvUID, updc:=tUPDC) Then
                     s_dlvTarget = aTarget
                 Else
                     s_dlvTarget = Nothing
@@ -3065,7 +3085,7 @@ error_handle:
 
             ' load or create
             If Not Me.IsCreated And Not _IsLoaded Then
-                If Not Me.loadBy(deliverableUID:=dlvUID, scheduleUID:=sUID, scheduleUPDC:=sUPDC, targetUPDC:=tUPDC) Then
+                If Not Me.Inject(deliverableUID:=dlvUID, scheduleUID:=sUID, scheduleUPDC:=sUPDC, targetUPDC:=tUPDC) Then
                     Call Me.Create(deliverableUID:=dlvUID, scheduleUID:=sUID, scheduleUPDC:=sUPDC, targetUPDC:=tUPDC)
                 End If
             End If
@@ -3073,20 +3093,20 @@ error_handle:
             With Me
                 .workspaceID = aWorkspace
                 '*** should come out of config -> hardcoded
-                If LCase(.MSIDFinish) <> "bp9" Then
+                If .MSIDFinish.tolower <> "bp9" Then
                     .MSIDFinish = "bp9"
                 End If
                 If aTarget.IsLoaded Or aTarget.IsCreated Then
-                    Call .UpdateFromTarget(TARGET:=aTarget, workspaceID:=aWorkspace, PERSIST:=False, checkGAP:=False)
+                    Call .UpdateFromTarget(target:=aTarget, workspaceID:=aWorkspace, persist:=False, checkGAP:=False)
                 End If
                 If aSchedule.IsLoaded Or aSchedule.IsCreated Then
-                    Call .UpdateFromSchedule(SCHEDULE:=aSchedule, workspaceID:=aWorkspace, PERSIST:=False, checkGAP:=False)
+                    Call .UpdateFromSchedule(schedule:=aSchedule, workspaceID:=aWorkspace, persist:=False, checkGAP:=False)
                 End If
                 If checkGAP Then Call .CheckOnGap()
                 If checkGAP Then Call .CheckOnBaselineGap()
             End With
 
-            If PERSIST And Me.IsChanged Then
+            If persist And Me.IsChanged Then
                 UpdateFromDeliverable = Me.Persist
             Else
                 UpdateFromDeliverable = True
@@ -3114,7 +3134,7 @@ error_handle:
                 End If
             End If
 
-            If Not aTarget.LoadBy(uid:=Me.DeliverableUID, updc:=Me.TargetUPDC) Then
+            If Not aTarget.Inject(uid:=Me.DeliverableUID, updc:=Me.TargetUPDC) Then
                 s_dlvTarget = Nothing
                 SetTarget = False
                 Exit Function
@@ -3145,7 +3165,7 @@ error_handle:
                 End If
             End If
 
-            If Not aSchedule.Loadby(UID:=Me.ScheduleUID, updc:=Me.ScheduleUPDC) Then
+            If Not aSchedule.Inject(UID:=Me.ScheduleUID, updc:=Me.ScheduleUPDC) Then
                 s_schedule = Nothing
                 SetSchedule = False
                 Exit Function
@@ -3276,56 +3296,57 @@ error_handle:
     ''' Definition class for Deliverables
     ''' </summary>
     ''' <remarks></remarks>
-    Public Class DeliverableType
+    <ormObject(id:=DeliverableType.ConstObjectID, modulename:=constModuleDeliverables, Version:=1)> Public Class DeliverableType
         Inherits ormDataObject
         Implements iormInfusable
         Implements iormPersistable
         Implements iotCloneable(Of DeliverableType)
 
+        Public Const ConstObjectID = "DeliverableType"
         '** Table
         <ormSchemaTable(version:=2, adddeletefieldbehavior:=True, addDomainBehavior:=True, addsparefields:=True)> _
         Public Const ConstTableID = "tblDefDeliverableTypes"
 
         '** indexes
         <ormSchemaIndex(columnName1:=ConstFNDomainID, columnname2:=constFNTypeID, columnname3:=ConstFNIsDeleted)> Public Const constIndexDomain = "indDomains"
-       
+
         '*** Fields
-        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=100, primarykeyordinal:=1, defaultValue:="", _
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, primarykeyordinal:=1, defaultValue:="", _
            title:="Type", description:="type of the deliverable", ID:="DLVT1")> Public Const constFNTypeID = "id"
 
-        <ormSchemaColumn(referenceobjectEntry:=ScheduleDefinition.ConstTableID & "." & ScheduleDefinition.ConstFNType, defaultValue:="", _
+        <ormObjectEntry(referenceobjectentry:=ScheduleDefinition.ConstObjectID & "." & ScheduleDefinition.ConstFNType, defaultValue:="", _
             title:="Schedule Type", description:="default schedule type of the deliverable", ID:="DLVT21")> _
         Public Const constFNDefScheduleType = "defscheduletype"
 
-        <ormSchemaColumn(referenceobjectEntry:=OrgUnit.ConstTableID & "." & OrgUnit.ConstFNID, defaultValue:="", _
+        <ormObjectEntry(referenceobjectentry:=OrgUnit.ConstObjectID & "." & OrgUnit.ConstFNID, defaultValue:="", _
             title:="Organization Unit", description:="default organization unit responsible of the deliverable", ID:="DLVT22")> _
         Public Const constFNDefRespOU = "defrespOU"
 
-        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=50, defaultValue:="", _
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, defaultValue:="", _
            title:="Function", description:="default function type of the deliverable", ID:="DLVT23")> _
         Public Const constFNDefFunction = "deffunction"
 
-        <ormSchemaColumn(referenceobjectEntry:=OrgUnit.ConstTableID & "." & OrgUnit.ConstFNID, defaultValue:="", _
+        <ormObjectEntry(referenceobjectentry:=OrgUnit.ConstObjectID & "." & OrgUnit.ConstFNID, defaultValue:="", _
           title:="Function", description:="default target responsible organization Unit", ID:="DLVT24")> _
         Public Const constFNTargetOU = "deftargetOu"
 
-        <ormSchemaColumn(typeid:=otFieldDataType.Bool, size:=50, defaultValue:="0", _
+        <ormObjectEntry(typeid:=otFieldDataType.Bool, size:=50, defaultValue:="0", _
           title:="Target Necessary", description:="has mandatory target data", ID:="DLVT25")> _
         Public Const constFNhastarget = "hastargetdata"
 
 
-        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=255, defaultValue:="", _
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=255, defaultValue:="", _
          title:="Description", description:="description of the deliverable type", ID:="DLVT3")> _
         Public Const constFNDescription = "desc"
 
-        <ormSchemaColumn(typeid:=otFieldDataType.Memo, defaultValue:="", _
+        <ormObjectEntry(typeid:=otFieldDataType.Memo, defaultValue:="", _
         title:="comment", description:="comments of the deliverable", ID:="DLVT10")> Public Const constFNComment = "cmt"
 
         '*** Mapping
-        <ormColumnMapping(ColumnName:=ConstFNTypeID)> Private _typeid As String = ""
-        <ormColumnMapping(ColumnName:=ConstFNDescription)> Private _description As String = ""
-        <ormColumnMapping(ColumnName:=ConstFNComment)> Private _comment As String = ""
-        <ormColumnMapping(ColumnName:=ConstFNDefScheduleType)> Private _defScheduleType As String = ""
+        <ormEntryMapping(EntryName:=constFNTypeID)> Private _typeid As String = ""
+        <ormEntryMapping(EntryName:=constFNDescription)> Private _description As String = ""
+        <ormEntryMapping(EntryName:=constFNComment)> Private _comment As String = ""
+        <ormEntryMapping(EntryName:=constFNDefScheduleType)> Private _defScheduleType As String = ""
 
         ''' <summary>
         ''' constructor
@@ -3345,8 +3366,8 @@ error_handle:
             Get
                 Return Me._defScheduleType
             End Get
-            Set
-                Me._defScheduleType = Value
+            Set(value As String)
+                Me._defScheduleType = value
             End Set
         End Property
 
@@ -3359,7 +3380,7 @@ error_handle:
                 Return Me._comment
             End Get
             Set(value As String)
-                Me._comment = Value
+                Me._comment = value
             End Set
         End Property
 
@@ -3372,7 +3393,7 @@ error_handle:
                 Return Me._description
             End Get
             Set(value As String)
-                Me._description = Value
+                Me._description = value
             End Set
         End Property
 
@@ -3387,16 +3408,7 @@ error_handle:
 
         End Property
 #End Region
-        ''' <summary>
-        ''' initialize the dataobject
-        ''' </summary>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Overrides Function Initialize() As Boolean
 
-            Me.TableStore.SetProperty(ConstTPNCacheProperty, True)
-            Return MyBase.Initialize()
-        End Function
         ''' <summary>
         ''' creates with this object a new persistable Def workspaceID
         ''' </summary>
@@ -3421,16 +3433,16 @@ error_handle:
         ''' <param name="UID"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Function LoadBy(typeid As String, Optional domainID As String = "") As Boolean
+        Public Overloads Function Inject(typeid As String, Optional domainID As String = "") As Boolean
 
             If domainID = "" Then domainID = CurrentSession.CurrentDomainID
             Dim pkarray() As Object = {typeid, domainID}
 
-            If MyBase.LoadBy(pkarray) Then
+            If MyBase.Inject(pkarray) Then
                 Return True
             Else
                 Dim pkarrayGlobal() As Object = {typeid, ConstGlobalDomain}
-                Return MyBase.LoadBy(pkarrayGlobal)
+                Return MyBase.Inject(pkarrayGlobal)
             End If
         End Function
         ''' <summary>
@@ -3445,7 +3457,7 @@ error_handle:
             Dim aType As DeliverableType = Retrieve(Of DeliverableType)(pkArray:=pkarray, forceReload:=forcereload)
             If aType Is Nothing Then
                 Dim pkGlobalArray() As Object = {typeid, ConstGlobalDomain}
-                Return Retrieve(Of DeliverableType)(pkarray:=pkGlobalArray, forcereload:=forcereload)
+                Return Retrieve(Of DeliverableType)(pkArray:=pkGlobalArray, forceReload:=forcereload)
             End If
         End Function
         ''' <summary>
@@ -3503,7 +3515,7 @@ error_handle:
         ''' <remarks></remarks>
 
         Public Shared Function CreateSchema(Optional silent As Boolean = True) As Boolean
-            Return ormDataObject.CreateSchema(Of DeliverableType)(silent:=silent)
+            Return ormDataObject.CreateDataObjectSchema(Of DeliverableType)(silent:=silent)
         End Function
 
 #Region "static routines"
@@ -3519,7 +3531,7 @@ error_handle:
             Dim aStore As iormDataStore
 
             '** set the domain
-            If DomainID = "" Then DomainID = CurrentSession.CurrentDomainID
+            If domainID = "" Then domainID = CurrentSession.CurrentDomainID
 
             Try
                 aStore = GetTableStore(ConstTableID)
@@ -3535,7 +3547,7 @@ error_handle:
                 End If
 
                 aCommand.SetParameterValue(ID:="@deleted", value:=False)
-                aCommand.SetParameterValue(ID:="@domainID", value:=DomainID)
+                aCommand.SetParameterValue(ID:="@domainID", value:=domainID)
                 aCommand.SetParameterValue(ID:="@globalID", value:=ConstGlobalDomain)
                 aRecordCollection = aCommand.RunSelect
 
@@ -3559,7 +3571,7 @@ error_handle:
 
             Catch ex As Exception
 
-                Call CoreMessageHandler(exception:=ex, subname:="clsotdbdeliverable.All")
+                Call CoreMessageHandler(exception:=ex, subname:="Deliverable.All")
                 Return aCollection
 
             End Try
@@ -3568,7 +3580,7 @@ error_handle:
 #End Region
     End Class
     '************************************************************************************
-    '***** CLASS clsOTDBDeliverable is the object for a OTDBRecord (which is the datastore)
+    '***** CLASS Deliverable is the object for a OTDBRecord (which is the datastore)
     '*****
     '*****
     ''' <summary>
@@ -3576,12 +3588,13 @@ error_handle:
     ''' </summary>
     ''' <remarks></remarks>
 
-    Public Class Deliverable
+    <ormObject(id:=Deliverable.ConstObjectID, modulename:=ConstModuleDeliverables, Version:=1)> Public Class Deliverable
         Inherits ormDataObject
         Implements iormInfusable
         Implements iormPersistable
         Implements iotCloneable(Of Deliverable)
 
+        Public Const ConstObjectID = "Deliverable"
         '** Table
         <ormSchemaTable(version:=2, adddeletefieldbehavior:=True, addDomainBehavior:=False, addsparefields:=True)> _
         Public Const ConstTableID = "tblDeliverables"
@@ -3594,105 +3607,125 @@ error_handle:
         <ormSchemaIndex(columnName1:=constFNConfigTag, columnname2:=ConstFNIsDeleted)> Public Const constIndexConfigTags = "indConfigTag"
         <ormSchemaIndex(columnName1:=constFNActiveTag, columnname2:=ConstFNIsDeleted)> Public Const constIndexACtiveTags = "indActiveTag"
         <ormSchemaIndex(columnName1:=constFNWBSID, columnname2:=constFNWBSCode, columnname3:=constFNUid, columnname4:=ConstFNIsDeleted)> Public Const constIndexWBS = "indWBS"
+        <ormSchemaIndex(columnname1:=constFNMatchCode, columnname2:=constFNUid, columnname3:=ConstFNIsDeleted)> Public Const ConstIndexMatchcode = "indmatchcode"
+        <ormSchemaIndex(columnname1:=constFNCategory, columnname2:=constFNUid, columnname3:=ConstFNIsDeleted)> Public Const ConstIndexcategory = "indcategory"
+        <ormSchemaIndex(columnname1:=constFNFunction, columnname2:=constFNUid, columnname3:=ConstFNIsDeleted)> Public Const ConstIndexFunction = "indFunction"
+        <ormSchemaIndex(columnname1:=constFNTypeID, columnname2:=constFNUid, columnname3:=ConstFNIsDeleted)> Public Const ConstIndexType = "indType"
 
         '*** primary key
-        <ormSchemaColumn(typeid:=otFieldDataType.Long, primarykeyordinal:=1, _
+        <ormObjectEntry(typeid:=otFieldDataType.Long, primarykeyordinal:=1, _
             title:="Unique ID", description:="unique id of the deliverable", ID:="DLV1", aliases:={"UID"})> _
         Public Const constFNUid = "uid"
 
         '** fields
-        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=100, _
-           title:="category", description:="category of the deliverable", ID:="DLV2")> Public Const constFNCategory = "cat"
-        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=255, defaultValue:="", _
-          title:="id", description:="id of the deliverable", ID:="DLV3")> Public Const constFNDeliverableID = "id"
-        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=100, defaultValue:="", _
-         title:="id", description:="id of the deliverable", ID:="DLV4")> Public Const constFNMatchCode = "matchcode"
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, _
+            title:="category", description:="category of the deliverable", ID:="DLV2")> Public Const constFNCategory = "cat"
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=255, defaultValue:="", _
+            title:="id", description:="id of the deliverable", ID:="DLV3")> Public Const constFNDeliverableID = "id"
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, defaultValue:="", _
+            title:="Matchcode", description:="match code of the deliverable", ID:="DLV4")> Public Const constFNMatchCode = "matchcode"
 
-        'Public Const constFNCustomerOU = "cust" outdated
-        <ormSchemaColumnAttribute(referenceobjectentry:=Workspace.ConstTableID & "." & Workspace.ConstFNID, _
-            Description:="workspaceID ID of the deliverable")> Public Const ConstFNWorkspace = Workspace.ConstFNID
 
-        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=100, defaultValue:="", _
-        title:="Revision", description:="revision of the deliverable", ID:="DLV6")> Public Const constFNRevision = "drev"
+        ' change FK Action since we have the workspace as FK (leads also to domians)
+        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, _
+            title:="Domain", description:="domain of the business Object", _
+            defaultvalue:=ConstGlobalDomain, _
+            useforeignkey:=otForeignKeyImplementation.NativeDatabase, _
+            foreignkeyProperties:={ForeignKeyProperty.OnDelete & "(" & ForeignKeyActionProperty.NOOP & ")", _
+                                   ForeignKeyProperty.OnUpdate & "(" & ForeignKeyActionProperty.NOOP & ")"})> _
+        Public Const ConstFNDomainID = Domain.ConstFNDomainID
+        '
+        <ormObjectEntry(referenceobjectentry:=Workspace.ConstObjectID & "." & Workspace.ConstFNID, _
+            Description:="workspaceID ID of the deliverable", defaultvalue:="@", _
+            useforeignkey:=otForeignKeyImplementation.ORM, _
+            foreignkeyProperties:={ForeignKeyProperty.OnDelete & "(" & ForeignKeyActionProperty.SetDefault & ")", _
+                                   ForeignKeyProperty.OnUpdate & "(" & ForeignKeyActionProperty.SetDefault & ")"})> Public Const ConstFNWorkspace = Workspace.ConstFNID
 
-        <ormSchemaColumn(referenceobjectentry:=constFNUid, title:="First Revision UID", description:="unique id of the first revision deliverable", _
-           ID:="DLV7")> Public Const constFNfuid = "fuid"
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, defaultValue:="", _
+            title:="Revision", description:="revision of the deliverable", ID:="DLV6")> Public Const constFNRevision = "drev"
 
-        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=100, defaultValue:="", _
-        title:="Change Reference", description:="change reference of the deliverable", ID:="DLV8")> Public Const constFNChangeRef = "chref"
+        <ormObjectEntry(referenceobjectentry:=ConstObjectID & "." & constFNUid, title:="First Revision UID", description:="unique id of the first revision deliverable", _
+            ID:="DLV7", isnullable:=True)> Public Const constFNfuid = "fuid"
 
-        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=100, defaultValue:="", _
-        title:="Format", description:="format of the deliverable", ID:="DLV9")> Public Const constFNFormat = "frmt"
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, defaultValue:="", _
+            title:="Change Reference", description:="change reference of the deliverable", ID:="DLV8")> Public Const constFNChangeRef = "chref"
 
-        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=255, defaultValue:="", _
-         title:="Description", description:="description of the deliverable", ID:="DLV10")> Public Const constFNDescription = "desc"
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, defaultValue:="", _
+            title:="Format", description:="format of the deliverable", ID:="DLV9")> Public Const constFNFormat = "frmt"
 
-        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=100, defaultValue:="", _
-        title:="Responsible OrgUnit", description:=" organization unit responsible for the deliverable", ID:="DLV11")> _
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=255, defaultValue:="", _
+            title:="Description", description:="description of the deliverable", ID:="DLV10")> Public Const constFNDescription = "desc"
+
+        <ormObjectEntry(referenceobjectentry:=OrgUnit.ConstObjectID & "." & OrgUnit.ConstFNID, _
+            title:="Responsible OrgUnit", description:=" organization unit responsible for the deliverable", ID:="DLV11")> _
         Public Const constFNRespOU = "respou"
 
-        <ormSchemaColumn(referenceobjectentry:=clsOTDBPart.constTableID & "." & clsOTDBPart.constFNPartID, _
-         isnullable:=True, description:="part id of the deliverable", ID:="DLV12")> Public Const constFNPartID = clsOTDBPart.constFNPartID
+        <ormObjectEntry(referenceobjectentry:=Part.ConstObjectID & "." & Part.ConstFNPartID, _
+            isnullable:=True, description:="part id of the deliverable", ID:="DLV12", useforeignkey:=otForeignKeyImplementation.NativeDatabase)> Public Const constFNPartID = Part.ConstFNPartID
 
-        <ormSchemaColumn(referenceobjectentry:=DeliverableType.ConstTableID & "." & DeliverableType.constFNTypeID, _
-        title:="Type", description:="type of the deliverable", ID:="DLV13")> Public Const constFNTypeID = "typeid"
+        <ormObjectEntry(referenceobjectentry:=DeliverableType.ConstObjectID & "." & DeliverableType.constFNTypeID, _
+            title:="Type", description:="type of the deliverable", ID:="DLV13")> Public Const constFNTypeID = "typeid"
 
-        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=100, defaultValue:="", _
-        title:="Responsible", description:="responsible person for the deliverable", ID:="DLV16")> Public Const constFNResponsiblePerson = "resp"
+        <ormObjectEntry(referenceobjectentry:=Person.ConstObjectID & "." & Person.constFNID, _
+            title:="Responsible", description:="responsible person for the deliverable", ID:="DLV16")> Public Const constFNResponsiblePerson = "resp"
 
-        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=100, defaultValue:="", _
-        title:="blocking item reference", description:="blocking item reference id for the deliverable", ID:="DLV17")> Public Const constFNBlockingItemReference = "blitemid"
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, defaultValue:="", _
+            title:="blocking item reference", description:="blocking item reference id for the deliverable", ID:="DLV17")> Public Const constFNBlockingItemReference = "blitemid"
 
-        <ormSchemaColumn(referenceobjectentry:=Domain.ConstTableID & "." & Domain.ConstFNDomainID)> Public Shadows Const ConstFNDomainID = Domain.ConstFNDomainID
+        <ormObjectEntry(typeid:=otFieldDataType.Memo, defaultValue:="", _
+            title:="comment", description:="comments of the deliverable", ID:="DLV18")> Public Const constFNComment = "cmt"
 
-        <ormSchemaColumn(typeid:=otFieldDataType.Memo, defaultValue:="", _
-        title:="comment", description:="comments of the deliverable", ID:="DLV18")> Public Const constFNComment = "cmt"
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=255, defaultValue:="", _
+        title:="ConfigTag", description:="config tag for the deliverable", ID:="DLV19")> Public Const constFNConfigTag = "cnftag"
 
-        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=255, defaultValue:="", _
-        title:="ConfigTag", description:="config tag for the deliverable", ID:="DLV19")> _
-        Public Const constFNConfigTag = "cnftag"
-        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=255, defaultValue:="", _
-        title:="ActivityTag", description:="activity tag for the deliverable", ID:="DLV20")> _
-        Public Const constFNActiveTag = "acttag"
-        <ormSchemaColumnAttribute(referenceObjectEntry:=ObjectLogMessage.ConstTableID & "." & ObjectLogMessage.ConstFNTag)>
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=255, defaultValue:="", _
+        title:="ActivityTag", description:="activity tag for the deliverable", ID:="DLV20")> Public Const constFNActiveTag = "acttag"
+
+        <ormObjectEntry(referenceobjectentry:=ObjectLogMessage.ConstObjectID & "." & ObjectLogMessage.ConstFNTag)>
         Public Const ConstFNmsglogtag = ObjectLogMessage.ConstFNTag
 
-        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=100, defaultValue:="", _
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, defaultValue:="", _
         title:="wbs reference", description:="work break down structure for the deliverable", ID:="DLV22")> _
         Public Const constFNWBSID = "wbs"
 
-        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=100, defaultValue:="", _
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, defaultValue:="", _
         title:="wbscode reference", description:="wbscode for the deliverable", ID:="DLV23")> _
         Public Const constFNWBSCode = "wbscode"
 
-        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=50, defaultValue:="", _
-        title:="Function", description:="function of the deliverable", ID:="DLV30")> Public Const constFNFunction = "function"
-        'Public Const constFNDepartment = "dept"
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, defaultValue:="", _
+            title:="Function", description:="function of the deliverable", ID:="DLV30")> Public Const constFNFunction = "function"
 
-        <ormColumnMapping(ColumnName:=ConstFNUid)> Private _uid As Long
-        <ormColumnMapping(ColumnName:=ConstFNfuid)> Private _firstrevUID As Long
-        <ormColumnMapping(ColumnName:=ConstFNDeliverableID)> Private _deliverableID As String = ""
-        <ormColumnMapping(ColumnName:=ConstFNRevision)> Private _revision As String = ""
-        <ormColumnMapping(ColumnName:=ConstFNFormat)> Private _format As String = ""
-        <ormColumnMapping(ColumnName:=ConstFNCategory)> Private _category As String = ""
-        <ormColumnMapping(ColumnName:=ConstFNDescription)> Private _description As String = ""
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=150, _
+           ID:="DLV31", Title:="Workpackage", description:="workpackage of the deliverable")> Public Const ConstFNWorkpackage = "wkpk"
+
+        
+
+        '*** mappings
+        <ormEntryMapping(EntryName:=constFNUid)> Private _uid As Long
+        <ormEntryMapping(EntryName:=constFNfuid)> Private _firstrevUID As Long?
+        <ormEntryMapping(EntryName:=constFNDeliverableID)> Private _deliverableID As String = ""
+        <ormEntryMapping(EntryName:=constFNRevision)> Private _revision As String = ""
+        <ormEntryMapping(EntryName:=constFNFormat)> Private _format As String = ""
+        <ormEntryMapping(EntryName:=constFNCategory)> Private _category As String = ""
+        <ormEntryMapping(EntryName:=constFNDescription)> Private _description As String = ""
         'Private s_customerID As String = "" outdated movved to targets
-        <ormColumnMapping(ColumnName:=ConstFNRespOU)> Private _respOUID As String = ""
-        <ormColumnMapping(ColumnName:=ConstFNMatchCode)> Private _matchcode As String = ""
+        <ormEntryMapping(EntryName:=constFNRespOU)> Private _respOUID As String = ""
+        <ormEntryMapping(EntryName:=constFNMatchCode)> Private _matchcode As String = ""
         'Private s_assycode As String = "" obsolete
-        <ormColumnMapping(ColumnName:=ConstFNPartID)> Private _partID As String = ""
-        <ormColumnMapping(ColumnName:=ConstFNChangeRef)> Private _changerefID As String = ""
-        <ormColumnMapping(ColumnName:=ConstFNTypeID)> Private _typeid As String = ""
-        <ormColumnMapping(ColumnName:=ConstFNResponsiblePerson)> Private _responsibleID As String = ""
-        <ormColumnMapping(ColumnName:=ConstFNBlockingItemReference)> Private _blockingitemID As String = ""
-        <ormColumnMapping(ColumnName:=ConstFNComment)> Private _comment As String = ""
-        <ormColumnMapping(ColumnName:=ConstFNMsgLogTag)> Private _msglogtag As String = ""
-        <ormColumnMapping(ColumnName:=ConstFNConfigTag)> Private _configtag As String = ""
-        <ormColumnMapping(ColumnName:=ConstFNActiveTag)> Private _activetag As String = ""
-        <ormColumnMapping(ColumnName:=ConstFNWBSID)> Private _wbsid As String = ""
-        <ormColumnMapping(ColumnName:=ConstFNWBSCode)> Private _wbscode As String = ""
-        <ormColumnMapping(ColumnName:=ConstFNFunction)> Private _function As String = ""
-        <ormColumnMapping(ColumnName:=ConstFNWorkspace)> Private _wspaceID As String = ""
+        <ormEntryMapping(EntryName:=constFNPartID)> Private _partID As String = ""
+        <ormEntryMapping(EntryName:=constFNChangeRef)> Private _changerefID As String = ""
+        <ormEntryMapping(EntryName:=constFNTypeID)> Private _typeid As String = ""
+        <ormEntryMapping(EntryName:=constFNResponsiblePerson)> Private _responsibleID As String = ""
+        <ormEntryMapping(EntryName:=constFNBlockingItemReference)> Private _blockingitemID As String = ""
+        <ormEntryMapping(EntryName:=constFNComment)> Private _comment As String = ""
+        <ormEntryMapping(EntryName:=ConstFNmsglogtag)> Private _msglogtag As String = ""
+        <ormEntryMapping(EntryName:=constFNConfigTag)> Private _configtag As String = ""
+        <ormEntryMapping(EntryName:=constFNActiveTag)> Private _activetag As String = ""
+        <ormEntryMapping(EntryName:=constFNWBSID)> Private _wbsid As String = ""
+        <ormEntryMapping(EntryName:=constFNWBSCode)> Private _wbscode As String = ""
+        <ormEntryMapping(EntryName:=constFNFunction)> Private _function As String = ""
+        <ormEntryMapping(EntryName:=ConstFNWorkspace)> Private _wspaceID As String = ""
+        <ormEntryMapping(EntryName:=ConstFNWorkpackage)> Private _workpackage As String = ""
         ''' <summary>
         ''' constructor
         ''' </summary>
@@ -3700,35 +3733,33 @@ error_handle:
         Public Sub New()
             Call MyBase.New(ConstTableID)
         End Sub
-        ''' <summary>
-        ''' initialize the dataobject
-        ''' </summary>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Overrides Function Initialize() As Boolean
 
-            Me.TableStore.SetProperty(ConstTPNCacheProperty, True)
-            Return MyBase.Initialize()
-        End Function
 
 #Region "properties"
 
-
+        ''' <summary>
+        ''' gets the UID of the deliverable (unique)
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
         ReadOnly Property Uid() As Long
             Get
                 Uid = _uid
             End Get
         End Property
-
-        Public Property FirstRevisionUID() As Long
+        ''' <summary>
+        ''' set or gets the first revision uid - might be null
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Property FirstRevisionUID() As Long?
             Get
-                FirstRevisionUID = _firstrevUID
+                Return _firstrevUID
             End Get
-            Set(value As Long)
-                If value <> _firstrevUID Then
-                    _firstrevUID = value
-                    Me.IsChanged = True
-                End If
+            Set(value As Long?)
+                SetValue(entryname:=constFNfuid, value:=value)
             End Set
         End Property
         ''' <summary>
@@ -3986,6 +4017,23 @@ error_handle:
             End Set
         End Property
         ''' <summary>
+        ''' gets or sets the workpackage code
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Property Workpackage() As String
+            Get
+                Workpackage = _workpackage
+            End Get
+            Set(value As String)
+                If _workpackage <> value Then
+                    _workpackage = value
+                    Me.IsChanged = True
+                End If
+            End Set
+        End Property
+        ''' <summary>
         ''' gets or sets the wbs code
         ''' </summary>
         ''' <value></value>
@@ -4018,6 +4066,14 @@ error_handle:
                     Me.IsChanged = True
                 End If
             End Set
+        End Property
+        ReadOnly Property MsglogTag() As String
+            Get
+                If _msglogtag = "" Then
+                    _msglogtag = GetUniqueTag()
+                End If
+                MsglogTag = _msglogtag
+            End Get
         End Property
         ''' <summary>
         ''' gets or sets the blocking item reference ID
@@ -4086,14 +4142,7 @@ error_handle:
         Public Function GetUniqueTag()
             GetUniqueTag = ConstDelimiter & ConstTableID & ConstDelimiter & _uid & ConstDelimiter
         End Function
-        ReadOnly Property MsglogTag() As String
-            Get
-                If _msglogtag = "" Then
-                    _msglogtag = GetUniqueTag()
-                End If
-                MsglogTag = _msglogtag
-            End Get
-        End Property
+
 
         ''' <summary>
         ''' create the persistency schema
@@ -4103,7 +4152,7 @@ error_handle:
         ''' <remarks></remarks>
 
         Public Shared Function CreateSchema(Optional silent As Boolean = True) As Boolean
-            Return ormDataObject.CreateSchema(Of Deliverable)(silent:=silent)
+            Return ormDataObject.CreateDataObjectSchema(Of Deliverable)(silent:=silent)
             'Dim aFieldDesc As New ormFieldDescription
             'Dim primaryColumnNames As New Collection
             'Dim aTable As New ObjectDefinition
@@ -4457,9 +4506,9 @@ error_handle:
         ''' <param name="UID"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Function LoadBy(uid As Long) As Boolean
+        Public Overloads Function Inject(uid As Long) As Boolean
             Dim pkarray() As Object = {uid}
-            Return MyBase.LoadBy(pkarray)
+            Return MyBase.Inject(pkarray)
         End Function
 
 #Region "Static"
@@ -4511,7 +4560,7 @@ error_handle:
 
             Catch ex As Exception
 
-                Call CoreMessageHandler(exception:=ex, subname:="clsotdbdeliverable.All")
+                Call CoreMessageHandler(exception:=ex, subname:="Deliverable.All")
                 Return aCollection
 
             End Try
@@ -4541,7 +4590,7 @@ error_handle:
                     aCommand.Where &= " AND ([" & ConstFNDomainID & "] = @domainID OR [" & ConstFNDomainID & "] = @globalID)"
                     aCommand.OrderBy = "[" & constFNUid & "] asc"
                     aCommand.AddParameter(New ormSqlCommandParameter(ID:="@deleted", ColumnName:=ConstFNIsDeleted, tablename:=ConstTableID))
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@mcod", ColumnName:=ConstFNMatchCode, tablename:=ConstTableID))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@mcod", ColumnName:=constFNMatchCode, tablename:=ConstTableID))
                     aCommand.AddParameter(New ormSqlCommandParameter(ID:="@domainID", ColumnName:=ConstFNDomainID, tablename:=ConstTableID))
                     aCommand.AddParameter(New ormSqlCommandParameter(ID:="@globalID", ColumnName:=ConstFNDomainID, tablename:=ConstTableID))
                     aCommand.Prepare()
@@ -4556,7 +4605,7 @@ error_handle:
                 For Each aRecord As ormRecord In aRecordCollection
                     Dim aNewDeliverable As New Deliverable
                     If aNewDeliverable.Infuse(aRecord) Then
-                        aCollection.Add(Item:=aNewDeliverable)
+                        aCollection.Add(item:=aNewDeliverable)
                     End If
                 Next
 
@@ -4565,7 +4614,7 @@ error_handle:
 
             Catch ex As Exception
 
-                Call CoreMessageHandler(exception:=ex, subname:="clsotdbdeliverable.AllByMatchCode")
+                Call CoreMessageHandler(exception:=ex, subname:="Deliverable.AllByMatchCode")
                 Return aCollection
 
             End Try
@@ -4595,8 +4644,8 @@ error_handle:
 
             For Each aRecord As ormRecord In aRecordCollection
                 value = aRecord.GetValue(1)
-                cvtvalue = aStore.Convert2ObjectData(constFNUid, value, abostrophNecessary)
-                aCollection.Add(Item:=cvtvalue)
+                aStore.Convert2ObjectData(constFNUid, invalue:=value, outvalue:=cvtvalue, abostrophNecessary:=abostrophNecessary)
+                aCollection.Add(item:=cvtvalue)
             Next
 
             Return aCollection
@@ -4608,8 +4657,8 @@ error_handle:
         ''' <param name="partid"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Shared Function AllByPnid(ByVal partid As String, Optional domainID As String = "") As Collection
-            Dim aCollection As New Collection
+        Public Shared Function AllByPnid(ByVal partid As String, Optional domainID As String = "") As List(Of Deliverable)
+            Dim aCollection As New List(Of Deliverable)
             Dim aRecordCollection As List(Of ormRecord)
             Dim aStore As iormDataStore
             '** set the domain
@@ -4638,7 +4687,7 @@ error_handle:
                 For Each aRecord As ormRecord In aRecordCollection
                     Dim aNewDeliverable As New Deliverable
                     If aNewDeliverable.Infuse(aRecord) Then
-                        aCollection.Add(Item:=aNewDeliverable)
+                        aCollection.Add(item:=aNewDeliverable)
                     End If
                 Next
 
@@ -4647,7 +4696,7 @@ error_handle:
 
             Catch ex As Exception
 
-                Call CoreMessageHandler(exception:=ex, subname:="clsotdbdeliverable.AllByPNID")
+                Call CoreMessageHandler(exception:=ex, subname:="Deliverable.AllByPNID")
                 Return aCollection
 
             End Try
@@ -4700,7 +4749,7 @@ error_handle:
 
             Catch ex As Exception
 
-                Call CoreMessageHandler(exception:=ex, subname:="clsotdbdeliverable.allrevisionUIDsby")
+                Call CoreMessageHandler(exception:=ex, subname:="Deliverable.allrevisionUIDsby")
                 Return aCollection
 
             End Try
@@ -4712,10 +4761,10 @@ error_handle:
         ''' </summary>
         ''' <returns>clsOTDBPart or nothing if load failed</returns>
         ''' <remarks></remarks>
-        Public Function GetPart() As clsOTDBPart
+        Public Function GetPart() As Part
             Dim pkarray() As Object = {Me.PartID}
             If _IsLoaded Then
-                Return clsOTDBPart.Retrieve(Of clsOTDBPart)(pkarray)
+                Return Part.Retrieve(Of Part)(pkarray)
             Else
                 Return Nothing
             End If
@@ -4738,7 +4787,7 @@ error_handle:
                     scheduleUPDC = aCurrSCHEDULE.UPDC
                 End If
                 If targetUPDC = 0 Then
-                    If Not aCurrTarget.LoadBy(uid:=Me.Uid, workspaceID:=workspaceID) Then
+                    If Not aCurrTarget.Inject(uid:=Me.Uid, workspaceID:=workspaceID) Then
                         targetUPDC = 0
                     Else
                         targetUPDC = aCurrTarget.UPDC
@@ -4746,7 +4795,7 @@ error_handle:
                 End If
                 If scheduleUPDC > 0 Then
                     aTrackDef = New Track
-                    If aTrackDef.loadBy(Me.Uid, scheduleUID:=Me.Uid, scheduleUPDC:=scheduleUPDC, targetUPDC:=targetUPDC) Then
+                    If aTrackDef.Inject(Me.Uid, scheduleUID:=Me.Uid, scheduleUPDC:=scheduleUPDC, targetUPDC:=targetUPDC) Then
                         GetTrack = aTrackDef
                         Exit Function
                     End If
@@ -4800,7 +4849,7 @@ error_handle:
 
             Catch ex As Exception
 
-                Call CoreMessageHandler(exception:=ex, subname:="clsotdbdeliverable.GetPrecodes")
+                Call CoreMessageHandler(exception:=ex, subname:="Deliverable.GetPrecodes")
                 list = aCollection
                 Return False
 
@@ -4826,7 +4875,7 @@ error_handle:
             '*
             If _IsLoaded Or Me.IsCreated Then
                 ' check if in workspaceID any data -> fall back to default (should be base)
-                If aCurrTarget.LoadBy(Me.Uid, workspaceID:=aWorkspace) Then
+                If aCurrTarget.Inject(Me.Uid, workspaceID:=aWorkspace) Then
                     GetCurrTarget = aCurrTarget
                     Exit Function
                 Else
@@ -4870,7 +4919,7 @@ error_handle:
         ''' <remarks></remarks>
         Public Function GetSchedule(Optional ByVal workspaceID As String = "") As Schedule
             If workspaceID = "" Then workspaceID = CurrentSession.CurrentWorkspaceID
-            
+
             '*
             If _IsLoaded Or Me.IsCreated Then
                 ' get
@@ -4906,7 +4955,7 @@ error_handle:
                     aTarget = New Target
                     ' load the current schedule
                     If aCurrTarget.UPDC > 0 Then
-                        If aTarget.LoadBy(uid:=Me.Uid, updc:=aCurrTarget.UPDC) Then
+                        If aTarget.Inject(uid:=Me.Uid, updc:=aCurrTarget.UPDC) Then
                             GetTarget = aTarget
                             Exit Function
                         End If
@@ -4989,7 +5038,7 @@ error_handle:
             End If
 
             '** load the deliverable
-            If Not aDeliverable.LoadBy(uid:=anUID) Then
+            If Not aDeliverable.Inject(uid:=anUID) Then
                 Call MSGLOG.AddMsg("203", Nothing, Nothing, "UID", CHANGECONFIG.Configname, anUID)
                 runCartypesXChange = False
                 Exit Function
@@ -5008,7 +5057,7 @@ error_handle:
 
             For Each anAttribute In CHANGECONFIG.AttributesByObjectName(objectname:="tblconfigs")
                 ' get the value
-                aCarName = LCase(anAttribute.Entryname)
+                aCarName = anAttribute.Entryname.ToLower
                 If aCarName Like "ct*" Then
                     aCarNo = CInt(Mid(aCarName, 3, 2))
                     aValue = CHANGECONFIG.GetMemberValue(changemember:=anAttribute, objectname:="tblconfigs", _
@@ -5237,7 +5286,7 @@ error_handle:
             ' get NEW UID
             If uid = 0 Then
                 If Not Me.GetNewUID(uid, domainID:=domainID) Then
-                    Call CoreMessageHandler(message:="could not generate new UID", subname:="clsOTDBDeliverable.create", _
+                    Call CoreMessageHandler(message:="could not generate new UID", subname:="Deliverable.create", _
                                             arg1:=uid, messagetype:=otCoreMessageType.InternalError)
                     Return False
                 End If
@@ -5284,7 +5333,7 @@ error_handle:
 
 
             If Not newDeliverable.Create Then
-                Call CoreMessageHandler(subname:="clsOTDBDeliverable.createFirstRevision", message:=" clone failed", arg1:=uid)
+                Call CoreMessageHandler(subname:="Deliverable.createFirstRevision", message:=" clone failed", arg1:=uid)
                 CreateFirstRevision = Nothing
                 Exit Function
             End If
@@ -5314,7 +5363,7 @@ error_handle:
             Dim anewCurrSchedule As New CurrentSchedule
             Call anewCurrSchedule.Create(newDeliverable.Uid)
             anewCurrSchedule.UPDC = 0
-            anewCurrSchedule.workspaceID = CurrentSession.CurrentWorkspaceID
+            anewCurrSchedule.WorkspaceID = CurrentSession.CurrentWorkspaceID
             anewCurrSchedule.Persist()
 
             '*** Targetarget
@@ -5332,7 +5381,7 @@ error_handle:
             Dim aNewTrack As New Track
             aNewTrack.workspaceID = CurrentSession.CurrentWorkspaceID
             aNewTrack.Scheduletype = aTrack.Scheduletype
-            Call aNewTrack.UpdateFromDeliverable(DELIVERABLE:=newDeliverable)
+            Call aNewTrack.UpdateFromDeliverable(deliverable:=newDeliverable)
             aNewTrack.Persist()
 
             CreateFirstRevision = newDeliverable
@@ -5366,7 +5415,7 @@ error_handle:
 
             newDeliverable = Me.Clone(UID)
             If newDeliverable Is Nothing Then
-                Call CoreMessageHandler(subname:="clsOTDBDeliverable.addRevision", message:=" clone failed", arg1:=UID)
+                Call CoreMessageHandler(subname:="Deliverable.addRevision", message:=" clone failed", arg1:=UID)
                 AddRevision = Nothing
                 Exit Function
             End If
@@ -5378,7 +5427,7 @@ error_handle:
                 aFirstRevision = Me
             Else
                 newDeliverable.FirstRevisionUID = Me.FirstRevisionUID
-                If aFirstRevision.LoadBy(Me.FirstRevisionUID) Then
+                If aFirstRevision.Inject(Me.FirstRevisionUID) Then
                     aFirstSchedule = aFirstRevision.GetSchedule
                 End If
             End If
@@ -5424,7 +5473,7 @@ error_handle:
                 Dim anewCurrSchedule As New CurrentSchedule
                 Call anewCurrSchedule.Create(newDeliverable.Uid)
                 anewCurrSchedule.UPDC = 0
-                anewCurrSchedule.workspaceID = aFirstSchedule.workspaceID
+                anewCurrSchedule.WorkspaceID = aFirstSchedule.workspaceID
                 anewCurrSchedule.Persist()
 
                 '*** Targetarget
@@ -5442,7 +5491,7 @@ error_handle:
                 Dim aNewTrack As New Track
                 aNewTrack.workspaceID = aFirstSchedule.workspaceID
                 aNewTrack.Scheduletype = aTrack.Scheduletype
-                Call aNewTrack.UpdateFromDeliverable(DELIVERABLE:=newDeliverable)
+                Call aNewTrack.UpdateFromDeliverable(deliverable:=newDeliverable)
                 aNewTrack.Persist()
             End If
 

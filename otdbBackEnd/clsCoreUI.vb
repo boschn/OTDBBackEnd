@@ -362,7 +362,7 @@ Namespace OnTrack.UI
         Private _enableAccess As Boolean = False
         Private _configset As String = ""
 
-        Private _databasedriver As iormDBDriver
+        Private _databasedriver As iormDatabaseDriver
         Private _session As Session
 
         Private _possibleRights As New List(Of String)
@@ -401,7 +401,7 @@ Namespace OnTrack.UI
         ''' Gets or sets the databasedriver.
         ''' </summary>
         ''' <value>The databasedriver.</value>
-        Public Property Databasedriver() As iormDBDriver
+        Public Property Databasedriver() As iormDatabaseDriver
             Get
                 Return Me._databasedriver
             End Get

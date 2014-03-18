@@ -28,15 +28,15 @@ Imports System.Threading
 
 Imports OnTrack
 Imports OnTrack.Database
+Imports System.Reflection
 
 Namespace OnTrack
 
-
-    '************************************************************************************
-    '***** Session Class holds all the Session based Data for On Track Database
-    '***** 
-    '*****
-
+    
+    ''' <summary>
+    ''' Session Class holds all the Session based Data for On Track Database
+    ''' </summary>
+    ''' <remarks></remarks>
     Public Class Session
 
         Private _SessionID As String
@@ -61,18 +61,22 @@ Namespace OnTrack
 
         ' initialized Flag
         Private _IsInitialized As Boolean = False
+        Private _IsStartupRunning As Boolean = False
         Private _IsRunning As Boolean = False
+        Private _IsBootstrappingInstallRequested As Boolean = False ' BootstrappingInstall ?
+        Private _IsInstallationRunning As Boolean = False ' actual Installallation running ?
 
         ' the environments
-        Private WithEvents _primaryDBDriver As iormDBDriver
+        Private WithEvents _primaryDBDriver As iormDatabaseDriver
         Private WithEvents _primaryConnection As iormConnection
-
 
         Private _CurrentDomain As Domain
         Private _UILogin As UI.clsCoreUILogin
         Private _AccessLevel As otAccessRight    ' access
 
         Private _DomainObjectsDir As New Dictionary(Of String, ObjectRepository)
+        Private _ObjectPermissionCache As New Dictionary(Of String, Boolean)
+
         'shadow Reference for Events
         ' our Events
         Public Event OnDomainChanging As EventHandler(Of SessionEventArgs)
@@ -81,6 +85,8 @@ Namespace OnTrack
         Public Event OnEnding As EventHandler(Of SessionEventArgs)
         Public Event OnConfigSetChange As EventHandler(Of SessionEventArgs)
         Public Event ObjectDefinitionChanged As EventHandler(Of ObjectDefintionEventArgs)
+        Public Event StartOfBootStrapInstallation As EventHandler(Of SessionEventArgs)
+        Public Event EndOfBootStrapInstallation As EventHandler(Of SessionEventArgs)
 
         '*** const
         Public Const ConstCPDependencySynchroMinOverlap = "DependencySynchroMinOverlap"
@@ -141,7 +147,7 @@ Namespace OnTrack
             End Get
             Set(value As String)
 
-                Call switchToDomain(value)
+                Call SwitchToDomain(value)
             End Set
         End Property
         ''' <summary>
@@ -153,10 +159,9 @@ Namespace OnTrack
                 Return Me._DefaultDeliverableTypeID
             End Get
             Set(value As String)
-                Me._DefaultDeliverableTypeID = Value
+                Me._DefaultDeliverableTypeID = value
             End Set
         End Property
-
 
         ''' <summary>
         ''' Gets or sets the access level.
@@ -167,7 +172,7 @@ Namespace OnTrack
                 Return Me._AccessLevel
             End Get
             Set(value As otAccessRight)
-                Me._AccessLevel = Value
+                Me._AccessLevel = value
             End Set
         End Property
         ''' <summary>
@@ -176,6 +181,7 @@ Namespace OnTrack
         ''' <value>The Objects.</value>
         Public ReadOnly Property Objects() As ObjectRepository
             Get
+
                 If _DomainObjectsDir.ContainsKey(key:=_CurrentDomainID) Then
                     Return _DomainObjectsDir.Item(key:=_CurrentDomainID)
                 Else
@@ -291,6 +297,43 @@ Namespace OnTrack
             End Set
         End Property
         ''' <summary>
+        ''' Gets or sets the is bootstrapping mode.
+        ''' </summary>
+        ''' <value>The is bootstrapping installation.</value>
+        Public Property IsBootstrappingInstallationRequested() As Boolean
+            Get
+                Return Me._IsBootstrappingInstallRequested
+            End Get
+            Private Set(value As Boolean)
+                Me._IsBootstrappingInstallRequested = value
+            End Set
+        End Property
+        ''' <summary>
+        ''' Gets or sets the is installation Mode
+        ''' </summary>
+        ''' <value>The is bootstrapping installation.</value>
+        Public Property IsInstallationRunning() As Boolean
+            Get
+                Return Me._IsInstallationRunning
+            End Get
+            Private Set(value As Boolean)
+                Me._IsInstallationRunning = value
+            End Set
+        End Property
+        ''' <summary>
+        ''' Gets or sets the is statup Mode
+        ''' </summary>
+        ''' <value></value>
+        Public Property IsStartingUp() As Boolean
+            Get
+                Return Me._IsStartupRunning
+            End Get
+            Private Set(value As Boolean)
+                Me._IsStartupRunning = value
+            End Set
+        End Property
+
+        ''' <summary>
         ''' Gets or sets the default workspaceID.
         ''' </summary>
         ''' <value>The default workspaceID.</value>
@@ -357,7 +400,7 @@ Namespace OnTrack
         ''' Gets the primary DB driver.
         ''' </summary>
         ''' <value>The primary DB driver.</value>
-        Public Property CurrentDBDriver() As iormDBDriver
+        Public Property CurrentDBDriver() As iormDatabaseDriver
             Get
                 If Me.IsInitialized OrElse Me.Initialize Then
                     Return Me._primaryDBDriver
@@ -365,7 +408,7 @@ Namespace OnTrack
                     Return Nothing
                 End If
             End Get
-            Protected Set(value As iormDBDriver)
+            Protected Set(value As iormDatabaseDriver)
                 Me._primaryDBDriver = value
                 Me._primaryConnection = value.CurrentConnection
                 Me.IsInitialized = True
@@ -388,7 +431,7 @@ Namespace OnTrack
         ''' <param name="DBDriver">DBDriver to be provided</param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Private Function Initialize(Optional dbDriver As iormDBDriver = Nothing, Optional useConfigsetName As String = "") As Boolean
+        Private Function Initialize(Optional dbDriver As iormDatabaseDriver = Nothing, Optional useConfigsetName As String = "") As Boolean
             Dim aValue As Object
 
             ' set the configuration set to be used
@@ -419,8 +462,8 @@ Namespace OnTrack
                     _primaryDBDriver = dbDriver
                 End If
                 Call CoreMessageHandler(message:="The Database Driver is set to " & UCase(_primaryDBDriver.ID), _
-                                       noOtdbAvailable:=True, subname:="Session.Initialize", _
-                                       messagetype:=otCoreMessageType.InternalInfo)
+                                        noOtdbAvailable:=True, subname:="Session.Initialize", _
+                                        messagetype:=otCoreMessageType.InternalInfo)
 
                 '** set the connection for events
                 _primaryConnection = _primaryDBDriver.CurrentConnection
@@ -452,12 +495,37 @@ Namespace OnTrack
 
         End Function
         ''' <summary>
+        ''' EventHandler for BootstrapInstall requested by primaryDBDriver
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Private Sub OnRequestBootstrapInstall(sender As Object, e As SessionBootstrapEventArgs) Handles _primaryDBDriver.RequestBootstrapInstall
+            If Not _IsInitialized AndAlso Not Initialize() Then Return
+
+            If Not _IsBootstrappingInstallRequested Then
+                If _primaryDBDriver IsNot Nothing Then
+                    _IsBootstrappingInstallRequested = True
+                    RaiseEvent StartOfBootStrapInstallation(Me, New SessionEventArgs(Me))
+                    Call CoreMessageHandler(subname:="Session.OnRequestBootstrapInstall", message:="bootstrapping mode started", _
+                                               arg1:=Me.SessionID, messagetype:=otCoreMessageType.InternalInfo)
+                End If
+            End If
+
+            If Not _IsInstallationRunning AndAlso e.Install Then
+                Call CoreMessageHandler(subname:="Session.OnRequestBootstrapInstall", message:="bootstrapping installation started", _
+                                                arg1:=Me.SessionID, messagetype:=otCoreMessageType.InternalInfo)
+                '** issue an installation
+                e.InstallationResult = _primaryDBDriver.InstallOnTrackDatabase(askBefore:=e.AskBefore, modules:=e.Modules)
+            End If
+        End Sub
+        ''' <summary>
         ''' initialize on Connection Event
         ''' </summary>
         ''' <value>The session ID.</value>
 
         Private Sub OnConnecting(sender As Object, e As ormConnectionEventArgs) Handles _primaryConnection.OnConnection
-            Me.StartUpSessionEnviorment(FORCE:=True, domainID:=e.DomainID)
+            Me.StartUpSessionEnviorment(force:=True, domainID:=e.DomainID)
         End Sub
 
         ''' <summary>
@@ -468,16 +536,78 @@ Namespace OnTrack
         Private Sub OnDisConnecting(sender As Object, e As ormConnectionEventArgs) Handles _primaryConnection.OnDisconnection
             Me.ShutDownSessionEnviorment()
         End Sub
-
         ''' <summary>
-        ''' requires from OTDB the Access Rights
+        ''' Install the Ontrack database
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function InstallOnTrackDatabase(Optional sequence As ConfigSequence = ConfigSequence.primary) As Boolean
+            '** lazy initialize
+            If Not Me.IsInitialized AndAlso Not Me.Initialize() Then
+                CoreMessageHandler(subname:="Session.InstallOnTrackDatabase", message:="failed to initialize session", _
+                                        arg1:=Me.SessionID, messagetype:=otCoreMessageType.InternalError)
+                Return False
+            End If
+
+            '** install
+            If sequence = ConfigSequence.primary Then
+                If _primaryDBDriver.InstallOnTrackDatabase(askBefore:=True, modules:={}) Then
+                    Return True
+                Else
+                    CoreMessageHandler(subname:="Session.InstallOnTrackDatabase", message:="installation failed", _
+                                        arg1:=Me.SessionID, messagetype:=otCoreMessageType.InternalError)
+                End If
+            Else
+                CoreMessageHandler(subname:="Session.InstallOnTrackDatabase", message:="other sequences not implemented", _
+                                        arg1:=Me.SessionID, messagetype:=otCoreMessageType.InternalError)
+                Return False
+            End If
+
+
+        End Function
+        ''' <summary>
+        ''' requests and checks if an end of bootstrap is possible 
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function RequestEndofBootstrap() As Boolean
+            '** lazy initialize
+            If Not Me.IsInitialized AndAlso Not Me.Initialize() Then
+                Call CoreMessageHandler(subname:="Session.RequestEndofBootstrap", message:="failed to initialize session", _
+                                        arg1:=Me.SessionID, messagetype:=otCoreMessageType.InternalError)
+                Return False
+            End If
+            
+
+            If Me.IsBootstrappingInstallationRequested Then
+                '** check should not only be on existence also on the columns
+                If Not CurrentDBDriver.VerifyOnTrackDatabase Then
+                    Return False
+                End If
+                '** raise event
+                RaiseEvent EndOfBootStrapInstallation(Me, New SessionEventArgs(Me))
+
+                Call CoreMessageHandler(subname:="Session.RequestEndofBootstrap", message:="bootstrapping ended", _
+                                        arg1:=Me.SessionID, messagetype:=otCoreMessageType.InternalInfo)
+                Me.IsBootstrappingInstallationRequested = False
+                Me.IsInstallationRunning = False
+
+                
+                Return True
+            Else
+                Return True
+            End If
+        End Function
+        ''' <summary>
+        ''' requires from OTDB the Access Rights - starts a session if not running otherwise just validates
         ''' </summary>
         ''' <param name="AccessRequest">otAccessRight</param>
         ''' <returns>True if successfull</returns>
         ''' <remarks></remarks>
         Public Function RequireAccessRight(accessRequest As otAccessRight, _
-        Optional domainID As String = "", _
-        Optional reLogin As Boolean = True) As Boolean
+                                            Optional domainID As String = "", _
+                                            Optional installIfnecessary As Boolean = False, _
+                                            Optional reLogin As Boolean = True) As Boolean
             Dim anUsername As String
             '** lazy initialize
             If Not Me.IsInitialized AndAlso Not Me.Initialize() Then
@@ -494,12 +624,12 @@ Namespace OnTrack
 
             If Me.IsRunning Then
                 If domainID = "" Then domainID = Me.CurrentDomainID
-                anUsername = _primaryConnection.OTDBUser.Username
-                Return _primaryConnection.VerifyUserAccess(accessRequest:=accessRequest, username:=anUsername, domainID:=domainID, loginOnDemand:=True)
+                anUsername = Me.OTdbUser.Username
+                Return Me.RequestUserAccess(accessRequest:=accessRequest, username:=anUsername, domainID:=domainID, loginOnFailed:=reLogin)
             Else
                 If domainID = "" Then domainID = ConstGlobalDomain
-                Me.StartUp(AccessRequest:=accessRequest, domainID:=domainID)
-                Return _primaryConnection.ValidateAccessRequest(accessRequest:=accessRequest, domainID:=domainID)
+                Me.StartUp(AccessRequest:=accessRequest, domainID:=domainID, installIfNecessary:=installIfnecessary)
+                Return Me.ValidateAccessRights(accessrequest:=accessRequest, domainid:=domainID)
             End If
 
         End Function
@@ -514,8 +644,10 @@ Namespace OnTrack
                 _DomainObjectsDir.Item(key:=_CurrentDomainID).OnObjectDefinitionChanged(sender, e)
             End If
         End Sub
+        
+
         ''' <summary>
-        ''' Returns a List of Higher Access Rights then the one selected
+        ''' Validate the Access Request against the current OnTrack DB Access Level of the user
         ''' </summary>
         ''' <param name="accessrequest"></param>
         ''' <param name="domain" >Domain to validate for</param>
@@ -523,63 +655,69 @@ Namespace OnTrack
         ''' <returns>eturns false if reverification of User is needed or true if currentAccessLevel includes this new request Level</returns>
         ''' <remarks></remarks>
 
-        Private Function HigherAccessRequest(ByVal accessrequest As otAccessRight) As List(Of String)
+        Public Function ValidateAccessRights(accessrequest As otAccessRight, _
+                                                Optional domainid As String = "", _
+                                                Optional ByRef objectoperations As String() = Nothing) As Boolean
+            Dim result As Boolean = False
 
-            Dim aResult As New List(Of String)
-
-            If accessrequest = otAccessRight.AlterSchema Then
-                aResult.Add(otAccessRight.AlterSchema.ToString)
-            End If
-
-            If accessrequest = otAccessRight.ReadUpdateData Then
-                aResult.Add(otAccessRight.AlterSchema.ToString)
-                aResult.Add(otAccessRight.ReadUpdateData.ToString)
-            End If
-
-            If accessrequest = otAccessRight.ReadOnly Then
-                aResult.Add(otAccessRight.AlterSchema.ToString)
-                aResult.Add(otAccessRight.ReadUpdateData.ToString)
-                aResult.Add(otAccessRight.ReadOnly.ToString)
-            End If
-
-            Return aResult
-        End Function
-
-        ''' <summary>
-        ''' Validate the Access Request against the current Access Level of the user
-        ''' </summary>
-        ''' <param name="accessrequest"></param>
-        ''' <param name="domain" >Domain to validate for</param>
-        ''' <param name="Objects" >list of Obejectnames to validate in the domain</param>
-        ''' <returns>eturns false if reverification of User is needed or true if currentAccessLevel includes this new request Level</returns>
-        ''' <remarks></remarks>
-
-        Public Function ValidateAccessRequest(accessrequest As otAccessRight, _
-        Optional domain As String = "", _
-        Optional ByRef [Objectnames] As List(Of String) = Nothing) As Boolean
-
-            ' if we have no user -> reverification
-            If _OTDBUser Is Nothing OrElse Not _OTDBUser.IsLoaded Then
+            '** during startup we might not have a otdbuser
+            If Me.IsStartingUp AndAlso (_OTDBUser Is Nothing OrElse Not _OTDBUser.IsAlive) Then
+                Return True
+            ElseIf _OTDBUser Is Nothing OrElse Not _OTDBUser.IsAlive Then
+                CoreMessageHandler(message:="no otdb user is loaded into the session -failed to validate accessrights", messagetype:=otCoreMessageType.InternalError, _
+                                                  subname:="Session.validateAccessRights")
                 Return False
             End If
 
-            If accessrequest = _AccessLevel Then
-                Return True
-            ElseIf accessrequest = otAccessRight.[ReadOnly] And _
-            (_AccessLevel = otAccessRight.ReadUpdateData Or _AccessLevel = otAccessRight.AlterSchema) Then
-                Return True
-            ElseIf accessrequest = otAccessRight.ReadUpdateData And _AccessLevel = otAccessRight.AlterSchema Then
-                Return True
-                ' will never be reached !
-            ElseIf accessrequest = otAccessRight.AlterSchema And _AccessLevel = otAccessRight.AlterSchema Then
-                Return True
-            End If
+            '** check on the ontrackdatabase request
+            result = AccessRightProperty.CoverRights(rights:=_AccessLevel, covers:=accessrequest)
+            If Not result Then Return result
 
-            Return False
+            'exit 
+            If objectoperations Is Nothing OrElse objectoperations.Count = 0 OrElse Me.IsBootstrappingInstallationRequested Then Return result
+
+            '** check all objectoperations if level iss sufficent
+            For Each opname In objectoperations
+                '** check cache
+                If _ObjectPermissionCache.ContainsKey(opname.ToUpper) Then
+                    result = result And True
+                Else
+                    Dim anObjectname As String
+                    Dim anOperationname As String
+                    Converter.SplitFullName(opname, anObjectname, anOperationname)
+                    If anObjectname = "" Then
+                        CoreMessageHandler(message:="ObjectID is missing in operation name", arg1:=opname, subname:="Session.validateOTDBAccessLevel", messagetype:=otCoreMessageType.InternalError)
+                        result = result And False
+                    ElseIf anOperationname = "" Then
+                        CoreMessageHandler(message:="Operation Name is missing in operation name", arg1:=opname, subname:="Session.validateOTDBAccessLevel", messagetype:=otCoreMessageType.InternalError)
+                        result = result And False
+                    Else
+                        Dim aObjectDefinition = Me.Objects.GetObject(objectname:=anObjectname, runtimeOnly:=Me.IsBootstrappingInstallationRequested)
+                        If aObjectDefinition Is Nothing And Not Me.IsBootstrappingInstallationRequested Then
+                            CoreMessageHandler(message:="Object is missing in object repository", arg1:=opname, subname:="Session.validateOTDBAccessLevel", messagetype:=otCoreMessageType.InternalError)
+                            result = result And False
+                        Else
+                            '** get the ObjectDefinition's effective permissions
+                            result = result And aObjectDefinition.GetEffectivePermission(user:=_OTDBUser, domainid:=domainid, operationname:=anOperationname)
+                            '** put it in cache
+                            If _ObjectPermissionCache.ContainsKey(opname.ToUpper) Then
+                                _ObjectPermissionCache.Remove(opname.ToUpper)
+                            Else
+                                _ObjectPermissionCache.Add(key:=opname.ToUpper, value:=result)
+                            End If
+                        End If
+
+                    End If
+                End If
+
+
+            Next
+
+            Return result
         End Function
 
         ''' <summary>
-        ''' verify the user access to OnTrack Database - if necessary start a Login with Loginwindow. Check on user rights.
+        ''' request the user access to OnTrack Database (running or not) - if necessary start a Login with Loginwindow. Check on user rights.
         ''' </summary>
         ''' <param name="accessRequest">needed User right</param>
         ''' <param name="username">default username to use</param>
@@ -588,20 +726,32 @@ Namespace OnTrack
         ''' <param name="loginOnDemand">do a Login window and reconnect if right is not necessary</param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function VerifyUserAccess(accessRequest As otAccessRight, _
-        Optional ByRef username As String = "", _
-        Optional ByRef password As String = "", _
-        Optional ByRef domainID As String = "", _
-        Optional ByRef [Objectnames] As List(Of String) = Nothing, _
-        Optional loginOnDisConnected As Boolean = False, _
-        Optional loginOnFailed As Boolean = False) As Boolean
+        Public Function RequestUserAccess(accessRequest As otAccessRight, _
+                                            Optional ByRef username As String = "", _
+                                            Optional ByRef password As String = "", _
+                                            Optional ByRef domainID As String = "", _
+                                            Optional ByRef [objectoperations] As String() = Nothing, _
+                                            Optional loginOnDisConnected As Boolean = False, _
+                                            Optional loginOnFailed As Boolean = False, _
+                                            Optional messagetext As String = "") As Boolean
+
             Dim userValidation As UserValidation
-            userValidation.validEntry = False
+            userValidation.ValidEntry = False
+
 
             '****
-            '**** no connection -> login
+            '**** rights during bootstrapping
             '****
-            If Not Me.IsRunning Then
+
+
+            If Me.IsBootstrappingInstallationRequested Then
+
+                Return True
+                '****
+                '**** no connection -> login
+                '****
+
+            ElseIf Not Me.IsRunning Then
 
                 If domainID = "" Then domainID = ConstGlobalDomain
                 '*** OTDBUsername supplied
@@ -616,14 +766,14 @@ Namespace OnTrack
                     Me.UILogin.Configset = ot.CurrentConfigSetName
                     Me.UILogin.PossibleConfigSets = ot.ConfigSetNamesToSelect
                     Me.UILogin.EnableConfigSet = True
-
+                    If messagetext <> "" Then Me.UILogin.Messagetext = messagetext
                     Me.UILogin.Domain = domainID
                     Me.UILogin.EnableDomain = False
                     Me.UILogin.Session = Me
 
                     Me.UILogin.Accessright = accessRequest
                     Me.UILogin.enableAccess = True
-                    Me.UILogin.PossibleRights = Me.HigherAccessRequest(accessrequest:=accessRequest)
+                    Me.UILogin.PossibleRights = AccessRightProperty.GetHigherAccessRequests(accessrequest:=accessRequest)
 
                     Me.UILogin.Show()
 
@@ -639,26 +789,29 @@ Namespace OnTrack
                             _UseConfigSetName = UILogin.Configset
                         End If
                         If Me.CurrentDomainID <> Me.UILogin.Domain Then
-                            switchToDomain(Me.UILogin.Domain)
+                            SwitchToDomain(Me.UILogin.Domain)
                         End If
                         '* validate
                         userValidation = _primaryDBDriver.GetUserValidation(username)
                     End If
 
                     ' just check the provided username
-                ElseIf username <> "" And password <> "" And accessRequest <> ConstDefaultAccessRight Then
+                ElseIf username <> "" Then
                     userValidation = _primaryDBDriver.GetUserValidation(username)
+                    If userValidation.ValidEntry AndAlso password = "" Then
+                        password = userValidation.Password
+                    End If
                     '* no username but default accessrequest then look for the anonymous user
                 ElseIf accessRequest = ConstDefaultAccessRight Then
                     userValidation = _primaryDBDriver.GetUserValidation(username:="", selectAnonymous:=True)
-                    If userValidation.validEntry Then
+                    If userValidation.ValidEntry Then
                         username = userValidation.Username
                         password = userValidation.Password
                     End If
                 End If
 
                 ' if user is still nothing -> not verified
-                If Not userValidation.validEntry Then
+                If Not userValidation.ValidEntry Then
                     Call CoreMessageHandler(showmsgbox:=True, _
                                             message:=" Access to OnTrack Database is prohibited - User not found", _
                                             arg1:=userValidation.Username, noOtdbAvailable:=True, break:=False)
@@ -688,22 +841,26 @@ Namespace OnTrack
 
                 '** validate the current user with the request if it is failing then
                 '** do check again
-                If Me.ValidateAccessRequest(accessrequest:=accessRequest, domain:=domainID) Then
+                If Me.ValidateAccessRights(accessrequest:=accessRequest, domainid:=domainID, objectoperations:=[objectoperations]) Then
                     Return True
                     '* change the current user if anonymous
                     '*
-                ElseIf loginOnFailed And ot.CurrentConnection.OTDBUser.IsAnonymous Then
+                ElseIf loginOnFailed And OTdbUser.IsAnonymous Then
                     '** check if new OTDBUsername is valid
                     'LoginWindow
                     Me.UILogin.Domain = domainID
                     Me.UILogin.EnableDomain = False
                     Me.UILogin.PossibleDomains = New List(Of String)
                     Me.UILogin.enableAccess = True
-                    Me.UILogin.PossibleRights = HigherAccessRequest(accessRequest)
+                    Me.UILogin.PossibleRights = AccessRightProperty.GetHigherAccessRequests(accessRequest)
                     Me.UILogin.Configset = _UseConfigSetName
                     Me.UILogin.EnableConfigSet = False
                     Me.UILogin.Accessright = accessRequest
-                    Me.UILogin.Messagetext = "<html><strong>Welcome !</strong><br />Please change to a valid user and password for the needed access right.</html>"
+                    If messagetext <> "" Then
+                        Me.UILogin.Messagetext = messagetext
+                    Else
+                        Me.UILogin.Messagetext = "<html><strong>Welcome !</strong><br />Please change to a valid user and password for the needed access right.</html>"
+                    End If
                     Me.UILogin.EnableUsername = True
                     Me.UILogin.Username = ""
                     Me.UILogin.Password = ""
@@ -732,7 +889,7 @@ Namespace OnTrack
                                                 message:="User change verified successfully on domain '" & domainID & "'", _
                                                 arg1:=username, noOtdbAvailable:=True, messagetype:=otCoreMessageType.ApplicationInfo)
                         If Me.CurrentDomainID <> Me.UILogin.Domain Then
-                            switchToDomain(Me.UILogin.Domain)
+                            SwitchToDomain(Me.UILogin.Domain)
                         End If
 
                         '* set the new access level
@@ -764,21 +921,24 @@ Namespace OnTrack
 
                     '* the current access level is not for this request
                     '*
-                ElseIf loginOnFailed And Not ot.CurrentConnection.OTDBUser.IsAnonymous Then
+                ElseIf loginOnFailed And Not Me.OTdbUser.IsAnonymous Then
                     '** check if new OTDBUsername is valid
                     'LoginWindow
                     Me.UILogin.Domain = domainID
                     Me.UILogin.EnableDomain = False
                     Me.UILogin.PossibleDomains = New List(Of String)
                     Me.UILogin.enableAccess = True
-                    Me.UILogin.PossibleRights = HigherAccessRequest(accessRequest)
+                    Me.UILogin.PossibleRights = AccessRightProperty.GetHigherAccessRequests(accessRequest)
                     Me.UILogin.Configset = _UseConfigSetName
                     Me.UILogin.EnableConfigSet = False
                     Me.UILogin.Accessright = accessRequest
-
-                    Me.UILogin.Messagetext = "<html><strong>Attention !</strong><br />Please confirm by your password to obtain the access right.</html>"
+                    If messagetext <> "" Then
+                        Me.UILogin.Messagetext = messagetext
+                    Else
+                        Me.UILogin.Messagetext = "<html><strong>Attention !</strong><br />Please confirm by your password to obtain the access right.</html>"
+                    End If
                     Me.UILogin.EnableUsername = False
-                    Me.UILogin.Username = ot.CurrentConnection.OTDBUser.Username
+                    Me.UILogin.Username = Me.OTdbUser.Username
                     Me.UILogin.Password = password
                     Me.UILogin.Session = Me
 
@@ -793,17 +953,18 @@ Namespace OnTrack
                     username = UILogin.Username
                     password = UILogin.Password
                     If Me.CurrentDomainID <> Me.UILogin.Domain Then
-                        switchToDomain(Me.UILogin.Domain)
+                        SwitchToDomain(Me.UILogin.Domain)
                     End If
                     If Me.CurrentDomainID <> Me.UILogin.Domain Then
-                        switchToDomain(Me.UILogin.Domain)
+                        SwitchToDomain(Me.UILogin.Domain)
                     End If
                     userValidation = _primaryDBDriver.GetUserValidation(username)
                     '* check password
                     If ot.ValidateUser(accessRequest:=accessRequest, username:=username, password:=password, _
                                        domainID:=domainID, databasedriver:=_primaryDBDriver) Then
-                        Call CoreMessageHandler(subname:="Session.verifyUserAccess", break:=False, message:="User change verified successfully", _
-                                                arg1:=username, noOtdbAvailable:=True, messagetype:=otCoreMessageType.ApplicationInfo)
+                        '** not again
+                        'Call CoreMessageHandler(subname:="Session.verifyUserAccess", break:=False, message:="User change verified successfully", _
+                        '                        arg1:=username, noOtdbAvailable:=True, messagetype:=otCoreMessageType.ApplicationInfo)
                         '* set the new access level
                         _AccessLevel = accessRequest
                     Else
@@ -892,8 +1053,16 @@ Namespace OnTrack
         Public Function StartUp(AccessRequest As otAccessRight, Optional useconfigsetname As String = "", _
         Optional domainID As String = "", _
         Optional OTDBUsername As String = "", _
-        Optional OTDBPassword As String = "") As Boolean
+        Optional OTDBPassword As String = "", _
+        Optional installIfNecessary As Boolean = True, _
+        Optional ByVal messagetext As String = "") As Boolean
             Dim aConfigsetname As String
+            Dim aValue As Object
+            Dim result As Boolean
+
+            '** set statup
+            Me.IsStartingUp = True
+
             If useconfigsetname <> "" AndAlso ot.HasConfigSetName(useconfigsetname, ConfigSequence.primary) Then
                 _UseConfigSetName = useconfigsetname
             End If
@@ -907,22 +1076,58 @@ Namespace OnTrack
             If _primaryDBDriver Is Nothing Then
                 CoreMessageHandler(message:="primary database driver is not set", messagetype:=otCoreMessageType.InternalError, _
                                    subname:="Session.Startup")
+                Me.IsStartingUp = False
                 Return False
             End If
             '** domain
             If domainID = "" Then Me.CurrentDomainID = ConstGlobalDomain ' set the current domain (_domainID)
 
-            If VerifyUserAccess(accessRequest:=AccessRequest, username:=OTDBUsername, _
-                                password:=OTDBPassword, domainID:=_CurrentDomainID, loginOnDisConnected:=True, loginOnFailed:=True) Then
+            '*** get the Schema Version
+            aValue = _primaryDBDriver.GetDBParameter(ConstPNBSchemaVersion, silent:=True)
+            If aValue Is Nothing OrElse Not IsNumeric(aValue) Then
+                result = _primaryDBDriver.VerifyOnTrackDatabase(install:=installIfNecessary, modules:=ot.InstalledModules, verifySchema:=False)
+            ElseIf ot.SchemaVersion < Convert.ToUInt64(aValue) Then
+                CoreMessageHandler(showmsgbox:=True, message:="Verifying the OnTrack Database failed. The Tooling schema version of # " & ot.SchemaVersion & _
+                                   " is less than the database schema version of #" & aValue & " - Session could not start up", _
+                                   messagetype:=otCoreMessageType.InternalError, subname:="Session.Startup")
+                Return False
+            ElseIf ot.SchemaVersion > Convert.ToUInt64(aValue) Then
+                result = _primaryDBDriver.VerifyOnTrackDatabase(install:=installIfNecessary, modules:=ot.InstalledModules, verifySchema:=False)
+            Else
+                '** check also the bootstrap version
+                aValue = _primaryDBDriver.GetDBParameter(ConstPNBootStrapSchemaChecksum, silent:=True)
+                If aValue Is Nothing OrElse Not IsNumeric(aValue) OrElse ot.GetBootStrapSchemaChecksum <> Convert.ToUInt64(aValue) Then
+                    result = _primaryDBDriver.VerifyOnTrackDatabase(install:=installIfNecessary, modules:=ot.InstalledModules, verifySchema:=False)
+                Else
+                    result = True
+                End If
+            End If
+
+            '** the installation failed
+            If Not result And installIfNecessary Then
+                CoreMessageHandler(showmsgbox:=True, message:="Verifying and Installing the OnTrack Database failed - Session could not start up", _
+                                   messagetype:=otCoreMessageType.InternalError, subname:="Session.Startup")
+                Return False
+            ElseIf Not installIfNecessary And Not result Then
+                CoreMessageHandler(showmsgbox:=True, message:="Verifying  the OnTrack Database failed - Session will be started anyway on demand", _
+                                                  messagetype:=otCoreMessageType.InternalWarning, subname:="Session.Startup")
+            End If
+
+            '** request access
+            If RequestUserAccess(accessRequest:=AccessRequest, username:=OTDBUsername, _
+                                password:=OTDBPassword, domainID:=_CurrentDomainID, loginOnDisConnected:=True, loginOnFailed:=True, messagetext:=messagetext.Clone) Then
                 '** Connect 
                 Return _primaryConnection.Connect(FORCE:=True, _
-                                                  access:=AccessRequest, domainID:=domainID, _
+                                                  access:=AccessRequest, _
+                                                  domainID:=domainID, _
                                                   OTDBUsername:=OTDBUsername, _
-                                                  OTDBPassword:=OTDBPassword, doLogin:=True)
+                                                  OTDBPassword:=OTDBPassword, _
+                                                  doLogin:=True)
                 '** Initialize through events
             Else
                 CoreMessageHandler(message:="user could not be verified", messagetype:=otCoreMessageType.InternalInfo, _
                                    subname:="Session.Startup")
+                Me.IsStartingUp = False
                 Return False
             End If
 
@@ -961,7 +1166,7 @@ Namespace OnTrack
                 'anObjectstore.reset()
             Next
             _DomainObjectsDir.Clear()
-            _errorLog.clear()
+            _errorLog.Clear()
             Return True
         End Function
 
@@ -971,7 +1176,7 @@ Namespace OnTrack
         ''' <param name="newDomainID"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Private Function switchToDomain(newDomainID As String) As Boolean
+        Private Function SwitchToDomain(newDomainID As String) As Boolean
             Dim newDomain As Domain
 
             '* return if not running -> me.running might be false but connection is there since
@@ -989,21 +1194,15 @@ Namespace OnTrack
             End If
 
             '** if table exists -> no bootstrap
-            If _primaryDBDriver.HasTable(OnTrack.Domain.ConstTableID) Then
-                newDomain = Domain.Retrieve(id:=newDomainID, dbdriver:=Me._primaryDBDriver)
-                If newDomain Is Nothing Then
-                    CoreMessageHandler(message:="domain does not exist", arg1:=newDomainID, subname:="Session.SetDomain", messagetype:=otCoreMessageType.ApplicationError)
-                    Return False
-                End If
-                newDomain.RegisterSession(Me)
-                If Not _DomainObjectsDir.ContainsKey(key:=newDomainID) Then
-                    Dim aStore = New ObjectRepository(Me)
-                    _DomainObjectsDir.Add(key:=newDomainID, value:=aStore)
-                End If
-                RaiseEvent OnDomainChanging(Me, New SessionEventArgs(Me, newDomain))
 
-            Else
+            newDomain = Domain.Retrieve(id:=newDomainID, dbdriver:=Me._primaryDBDriver, runtimeOnly:=Me.IsBootstrappingInstallationRequested)
+            Dim saveDomain As Boolean = False
 
+            '** check on bootstrapping 
+            If newDomain Is Nothing And Not Me.IsBootstrappingInstallationRequested Then
+                CoreMessageHandler(message:="domain does not exist", arg1:=newDomainID, subname:="Session.SetDomain", messagetype:=otCoreMessageType.ApplicationError)
+                Return False
+            ElseIf newDomain Is Nothing And Me.IsBootstrappingInstallationRequested Then
                 '** bootstrapping database install
                 newDomainID = ConstGlobalDomain
                 'newDomain = New Domain()
@@ -1014,46 +1213,55 @@ Namespace OnTrack
                 RaiseEvent OnDomainChanging(Me, New SessionEventArgs(Me, Nothing))
 
                 Return True
-            End If
+            Else
 
+                '** we have a domain
+                newDomain.RegisterSession(Me)
+                If Not _DomainObjectsDir.ContainsKey(key:=newDomainID) Then
+                    Dim aStore = New ObjectRepository(Me)
+                    _DomainObjectsDir.Add(key:=newDomainID, value:=aStore)
+                End If
+                '* reset cache
+                _ObjectPermissionCache.Clear()
+                '** raise event
+                RaiseEvent OnDomainChanging(Me, New SessionEventArgs(Me, newDomain))
 
-            '*** read the Domain Settings
-            '***
-            If newDomain IsNot Nothing Then
-                '* change event
+                '*** read the Domain Settings
+                '***
 
-                If newDomain.hasSetting(id:=ConstCPDependencySynchroMinOverlap) Then
+                If newDomain.HasSetting(id:=ConstCPDependencySynchroMinOverlap) Then
                     _DependencySynchroMinOverlap = newDomain.GetSetting(id:=ConstCPDependencySynchroMinOverlap).value
                 Else
                     _DependencySynchroMinOverlap = 7
                 End If
 
-                If newDomain.hasSetting(id:=ConstCPDefaultWorkspace) Then
+                If newDomain.HasSetting(id:=ConstCPDefaultWorkspace) Then
                     _DefaultWorkspace = newDomain.GetSetting(id:=ConstCPDefaultWorkspace).value
                     _CurrentWorkspaceID = _DefaultWorkspace
                 Else
                     _DefaultWorkspace = ""
                 End If
 
-                If newDomain.hasSetting(id:=ConstCPDefaultCalendarName) Then
+                If newDomain.HasSetting(id:=ConstCPDefaultCalendarName) Then
                     _DefaultCalendarName = newDomain.GetSetting(id:=ConstCPDefaultCalendarName).value
                 Else
                     _DefaultCalendarName = "default"
                 End If
 
-                If newDomain.hasSetting(id:=ConstCPDefaultTodayLatency) Then
+                If newDomain.HasSetting(id:=ConstCPDefaultTodayLatency) Then
                     _TodayLatency = newDomain.GetSetting(id:=ConstCPDefaultTodayLatency).value
                 Else
                     _TodayLatency = -14
                 End If
 
-                If newDomain.hasSetting(id:=ConstCDefaultScheduleTypeID) Then
+                If newDomain.HasSetting(id:=ConstCDefaultScheduleTypeID) Then
                     _DefaultScheduleTypeID = newDomain.GetSetting(id:=ConstCDefaultScheduleTypeID).value
                 Else
                     _DefaultScheduleTypeID = "none"
+                  
                 End If
 
-                If newDomain.hasSetting(id:=ConstCDefaultDeliverableTypeID) Then
+                If newDomain.HasSetting(id:=ConstCDefaultDeliverableTypeID) Then
                     _DefaultDeliverableTypeID = newDomain.GetSetting(id:=ConstCDefaultDeliverableTypeID).value
                 Else
                     _DefaultDeliverableTypeID = ""
@@ -1064,6 +1272,7 @@ Namespace OnTrack
             Me._CurrentDomain = newDomain
             Me._CurrentDomainID = newDomainID
             _loadDomainReqeusted = False
+
 
             RaiseEvent OnDomainChanged(Me, New SessionEventArgs(Me))
 
@@ -1078,13 +1287,14 @@ Namespace OnTrack
         Private Function StartUpSessionEnviorment(Optional ByVal force As Boolean = False, Optional domainID As String = "") As Boolean
             Dim aValue As Object
 
-            If Not IsRunning Or FORCE Then
+            If Not IsRunning Or force Then
+                
 
                 '** start the Agent
                 If Not _logagent Is Nothing Then
                     aValue = ot.GetConfigProperty(constCPNUseLogAgent)
                     If CBool(aValue) Then
-                        _logagent.Start()
+                        '_logagent.Start()
                         '***
                         Call CoreMessageHandler(showmsgbox:=False, message:=" LogAgent for Session started ", arg1:=_SessionID, _
                                                 break:=True, noOtdbAvailable:=True, messagetype:=otCoreMessageType.ApplicationInfo, _
@@ -1103,15 +1313,25 @@ Namespace OnTrack
                     Call CoreMessageHandler(showmsgbox:=False, message:=" Session cannot initiated no DBDriver set ", _
                                             break:=True, noOtdbAvailable:=True, messagetype:=otCoreMessageType.InternalError, _
                                             subname:="Session.startupSesssionEnviorment")
+                    Me.IsStartingUp = False
                     IsRunning = False
                     Return False
                 End If
 
                 '*** Parameters
                 '***
-                _OTDBUser = _primaryDBDriver.CurrentConnection.OTDBUser
+                _Username = _primaryDBDriver.CurrentConnection.Dbuser
+                _OTDBUser = User.Retrieve(username:=_primaryDBDriver.CurrentConnection.Dbuser)
                 If Not _OTDBUser Is Nothing AndAlso _OTDBUser.IsLoaded Then
                     _Username = _OTDBUser.Username
+                    _AccessLevel = _OTDBUser.AccessRight
+                Else
+                    Call CoreMessageHandler(showmsgbox:=True, message:=" Session could not initiate - user could not be retrieved from database", _
+                                           break:=False, arg1:=_primaryDBDriver.CurrentConnection.Dbuser, noOtdbAvailable:=True, messagetype:=otCoreMessageType.InternalError, _
+                                           subname:="Session.startupSesssionEnviorment")
+                    IsRunning = False
+                    Me.IsStartingUp = False
+                    Return False
                 End If
 
                 '** load Domain
@@ -1123,21 +1343,26 @@ Namespace OnTrack
                                             messagetype:=otCoreMessageType.InternalInfo, _
                                             subname:="Session.startupSesssionEnviorment")
                 End If
+                '*** get the Schema Version
+                aValue = _primaryDBDriver.GetDBParameter(ConstPNBootStrapSchemaChecksum, silent:=True)
+                If aValue Is Nothing OrElse Not IsNumeric(aValue) Then
+                    _primaryDBDriver.VerifyOnTrackDatabase()
+                ElseIf ot.GetBootStrapSchemaChecksum <> Convert.ToUInt64(aValue) Then
+                    _primaryDBDriver.VerifyOnTrackDatabase()
+                End If
 
                 '*** Object to load initially
                 aValue = _primaryDBDriver.GetDBParameter(ConstPNObjectsLoad, silent:=True)
                 If aValue Is Nothing OrElse aValue = "" Then
                     Call _primaryDBDriver.SetDBParameter(ConstPNObjectsLoad, _
-                                                         User.ConstTableID & "," & _
-                                                         Scheduling.Schedule.ConstTableID & ", " & _
-                                                         Scheduling.ScheduleMilestone.constTableID & ", " & _
-                                                         Deliverables.Deliverable.ConstTableID & ", " & _
-                                                         Parts.clsOTDBPart.constTableID _
-                                                         , silent:=True)
+                                                         Scheduling.Schedule.ConstObjectID & ", " & _
+                                                         Scheduling.ScheduleMilestone.ConstObjectID & ", " & _
+                                                         Deliverables.Deliverable.ConstObjectID, silent:=True)
 
                 End If
 
                 '*** set started
+                Me.IsStartingUp = False
                 IsRunning = True
                 '*** we are started
                 RaiseEvent OnStarted(Me, New SessionEventArgs(Me))
@@ -1182,6 +1407,7 @@ Namespace OnTrack
             End If
             '*** Parameters
             '***
+            _ObjectPermissionCache.Clear()
             _OTDBUser = Nothing
             IsRunning = False
             Call CoreMessageHandler(showmsgbox:=False, message:="Session ended ", arg1:=_SessionID, _
@@ -1193,8 +1419,6 @@ Namespace OnTrack
 
         End Function
 
-
-
         ''' <summary>
         ''' changes the session user to a new object
         ''' </summary>
@@ -1204,6 +1428,11 @@ Namespace OnTrack
         Public Sub UserChangedEvent(newuser As User)
             _OTDBUser = newuser
             _Username = _OTDBUser.Username
+            _ObjectPermissionCache.Clear()
+        End Sub
+
+        Private Sub Session_EndOfBootStrapInstallation(sender As Object, e As SessionEventArgs) Handles Me.EndOfBootStrapInstallation
+
         End Sub
 
         Private Sub Session_OnStarted(sender As Object, e As SessionEventArgs) Handles Me.OnStarted
@@ -1216,7 +1445,7 @@ Namespace OnTrack
     ''' <remarks></remarks>
 
     Public Class ObjectDefintionEventArgs
-        Inherits EventArgs
+    Inherits EventArgs
 
         Private _objectname As String
 
@@ -1244,7 +1473,7 @@ Namespace OnTrack
     ''' <remarks></remarks>
 
     Public Class SessionEventArgs
-        Inherits EventArgs
+    Inherits EventArgs
 
         Private _Session As Session
         Private _NewDomain As Domain
@@ -1284,13 +1513,13 @@ Namespace OnTrack
     ''' <remarks></remarks>
 
     Public Class DomainEventArgs
-        Inherits EventArgs
+    Inherits EventArgs
 
         Private _Session As Session
         Private _Domain As Domain
 
         Public Sub New(domain As Domain, Optional session As Session = Nothing)
-            _Session = Session
+            _Session = session
             _Domain = domain
         End Sub
         ''' <summary>
@@ -1400,7 +1629,7 @@ Namespace OnTrack
     ''' </summary>
     ''' <remarks></remarks>
 
-    Public Class CoreError
+    <ormObject(id:=CoreError.ConstObjectID, modulename:=constModuleCore, Version:=1)> Public Class CoreError
         Inherits ormDataObject
         Implements iormPersistable
         Implements iormInfusable
@@ -1408,62 +1637,71 @@ Namespace OnTrack
         Implements ICloneable
 
         '*** CONST Schema
+        Public Const ConstObjectID = "CoreError"
         '** Table
         <ormSchemaTableAttribute(Version:=4)> Public Const ConstTableID = "tblSessionErrorlog"
 
         '*** Schema Field Definitions
-        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=100, _
-        title:="session", Description:="sessiontag", primaryKeyordinal:=1)> Public Const ConstFNTag As String = "tag"
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, _
+                         title:="Session", Description:="sessiontag", primaryKeyordinal:=1)> Public Const ConstFNTag As String = "tag"
 
-        <ormSchemaColumn(typeid:=otFieldDataType.Long, _
-            title:="no", Description:="number of entry", primaryKeyordinal:=2)> Public Const ConstFNno As String = "no"
+        <ormObjectEntry(typeid:=otFieldDataType.Long, _
+                         title:="no", Description:="number of entry", primaryKeyordinal:=2)> Public Const ConstFNno As String = "no"
 
-        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=100, isnullable:=True, _
-        title:="message id", Description:="id of the message")> Public Const ConstFNID As String = "id"
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, isnullable:=True, _
+                         title:="Message ID", Description:="id of the message")> Public Const ConstFNID As String = "id"
 
-        <ormSchemaColumn(typeid:=otFieldDataType.Memo, isnullable:=True, _
-        title:="message", Description:="message text")> Public Const ConstFNmessage As String = "message"
+        <ormObjectEntry(typeid:=otFieldDataType.Memo, isnullable:=True, _
+                         title:="Message", Description:="message text")> Public Const ConstFNmessage As String = "message"
 
-        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=100, isnullable:=True, _
-        title:="routine", Description:="routine name")> Public Const ConstFNsubname As String = "subname"
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, isnullable:=True, _
+                         title:="Routine", Description:="routine name")> Public Const ConstFNsubname As String = "subname"
 
-        <ormSchemaColumn(typeid:=otFieldDataType.Timestamp, isnullable:=True, _
-        title:="timestamp", Description:="timestamp of entry")> Public Const ConstFNtimestamp As String = "timestamp"
+        <ormObjectEntry(typeid:=otFieldDataType.Timestamp, isnullable:=True, _
+                         title:="Timestamp", Description:="timestamp of entry")> Public Const ConstFNtimestamp As String = "timestamp"
 
-        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=100, isnullable:=True, _
-        title:="tablename", Description:="tablename")> Public Const ConstFNtablename As String = "tablename"
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, isnullable:=True, _
+                         title:="Object", Description:="object name")> Public Const ConstFNObjectname As String = "object"
 
-        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=100, isnullable:=True, _
-        title:="fieldname", Description:="fieldname")> Public Const ConstFNfieldname As String = "fieldname"
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, isnullable:=True, _
+                         title:="ObjectEntry", Description:="object entry")> Public Const ConstFNObjectentry As String = "objectentry"
 
-        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=255, isnullable:=True, _
-        title:="argument", Description:="argument of the message")> Public Const ConstFNarg As String = "arg"
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, isnullable:=True, _
+                         title:="Table", Description:="tablename")> Public Const ConstFNtablename As String = "table"
 
-        <ormSchemaColumn(typeid:=otFieldDataType.Long, isnullable:=True, _
-        title:="message type id", Description:="id of the message type")> Public Const ConstFNtype As String = "typeid"
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, isnullable:=True, _
+                         title:="Column", Description:="columnname in the table")> Public Const ConstFNColumn As String = "column"
 
-        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=50, isnullable:=True, title:="Username of the session", Description:="name of the user for this session")> _
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=255, isnullable:=True, _
+                         title:="Argument", Description:="argument of the message")> Public Const ConstFNarg As String = "arg"
+
+        <ormObjectEntry(typeid:=otFieldDataType.Long, isnullable:=True, _
+                         title:="message type id", Description:="id of the message type")> Public Const ConstFNtype As String = "typeid"
+
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, isnullable:=True, title:="Username of the session", Description:="name of the user for this session")> _
         Public Const ConstFNUsername As String = "username"
 
-        <ormSchemaColumn(typeid:=otFieldDataType.Memo, isnullable:=True, title:="stack trace", Description:="caller stack trace")> _
+        <ormObjectEntry(typeid:=otFieldDataType.Memo, isnullable:=True, title:="stack trace", Description:="caller stack trace")> _
         Public Const ConstFNStack As String = "stack"
 
         ' fields
-        <ormColumnMappingAttribute(fieldname:=ConstFNTag)> Private _tag As String = ""
-        <ormColumnMappingAttribute(fieldname:=ConstFNID)> Private _id As String = ""
-        <ormColumnMappingAttribute(fieldname:=ConstFNno)> Private _entryno As Long = 0
-        <ormColumnMappingAttribute(fieldname:=ConstFNmessage)> Private _Message As String = ""
-        <ormColumnMappingAttribute(fieldname:=ConstFNsubname)> Private _Subname As String = ""
-        <ormColumnMappingAttribute(fieldname:=ConstFNtimestamp)> Private _Timestamp As Date = ConstNullDate
-        <ormColumnMappingAttribute(fieldname:=ConstFNtablename)> Private _Tablename As String = ""
-        <ormColumnMappingAttribute(fieldname:=ConstFNfieldname)> Private _EntryName As String = ""
-        <ormColumnMappingAttribute(fieldname:=ConstFNtype)> Private _ErrorType As otCoreMessageType
-        <ormColumnMappingAttribute(fieldname:=ConstFNUsername)> Private _Username As String = ""
-        <ormColumnMappingAttribute(fieldname:=ConstFNStack)> Private _StackTrace As String = ""
+        <ormEntryMapping(EntryName:=ConstFNTag)> Private _tag As String = ""
+        <ormEntryMapping(EntryName:=ConstFNID)> Private _id As String = ""
+        <ormEntryMapping(EntryName:=ConstFNno)> Private _entryno As Long = 0
+        <ormEntryMapping(EntryName:=ConstFNmessage)> Private _Message As String = ""
+        <ormEntryMapping(EntryName:=ConstFNsubname)> Private _Subname As String = ""
+        <ormEntryMapping(EntryName:=ConstFNtimestamp)> Private _Timestamp As Date = ConstNullDate
+        <ormEntryMapping(EntryName:=ConstFNObjectname)> Private _Objectname As String = ""
+        <ormEntryMapping(EntryName:=ConstFNObjectentry)> Private _Entryname As String = ""
+        <ormEntryMapping(EntryName:=ConstFNtablename)> Private _Tablename As String = ""
+        <ormEntryMapping(EntryName:=ConstFNColumn)> Private _Columnname As String = ""
+        <ormEntryMapping(EntryName:=ConstFNtype)> Private _ErrorType As otCoreMessageType
+        <ormEntryMapping(EntryName:=ConstFNUsername)> Private _Username As String = ""
+        <ormEntryMapping(EntryName:=ConstFNStack)> Private _StackTrace As String = ""
 
         Private _processed As Boolean = False
         Private _Exception As Exception
-        <ormColumnMappingAttribute(fieldname:=ConstFNarg)> Private _Arguments As String = ""
+        <ormEntryMapping(EntryName:=ConstFNarg)> Private _Arguments As String = ""
 
         Public Sub New()
             Call MyBase.New(ConstTableID)
@@ -1482,8 +1720,8 @@ Namespace OnTrack
             Get
                 Return Me._StackTrace
             End Get
-            Set
-                Me._StackTrace = Value
+            Set(value As String)
+                Me._StackTrace = value
             End Set
         End Property
 
@@ -1556,12 +1794,12 @@ Namespace OnTrack
         ''' Gets or sets the name of the entry.
         ''' </summary>
         ''' <value>The name of the entry.</value>
-        Public Property EntryName() As String
+        Public Property Columnname() As String
             Get
-                Return Me._EntryName
+                Return Me._Columnname
             End Get
             Set(value As String)
-                Me._EntryName = value
+                Me._Columnname = value
             End Set
         End Property
 
@@ -1588,6 +1826,30 @@ Namespace OnTrack
             End Get
             Set(value As String)
                 Me._Tablename = value
+            End Set
+        End Property
+        ''' <summary>
+        ''' Gets or sets the name of the object.
+        ''' </summary>
+        ''' <value>The name of the entry.</value>
+        Public Property Objectname() As String
+            Get
+                Return Me._Objectname
+            End Get
+            Set(value As String)
+                Me._Objectname = value
+            End Set
+        End Property
+        ''' <summary>
+        ''' Gets or sets the name of the object entry.
+        ''' </summary>
+        ''' <value>The name of the entry.</value>
+        Public Property ObjectEntry() As String
+            Get
+                Return Me._Entryname
+            End Get
+            Set(value As String)
+                Me._Entryname = value
             End Set
         End Property
 
@@ -1666,7 +1928,7 @@ Namespace OnTrack
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function CreateSchema(Optional silent As Boolean = True) As Boolean
-            Return ormDataObject.CreateSchema(Of CoreError)(addToSchema:=True)
+            Return ormDataObject.CreateDataObjectSchema(Of CoreError)()
         End Function
 
         ''' <summary>
@@ -1677,7 +1939,7 @@ Namespace OnTrack
         Public Overloads Function Create(ByVal sessiontag As String, ByVal entryno As Long) As Boolean
             Dim primarykey() As Object = {sessiontag, entryno}
             ' create
-            If MyBase.Create(primarykey, checkUnique:=False, noInitialize:=True) Then
+            If MyBase.Create(primarykey, checkUnique:=False, runtimeOnly:=True) Then
                 _tag = sessiontag
                 _entryno = entryno
                 Return Me.IsCreated
@@ -1685,15 +1947,7 @@ Namespace OnTrack
                 Return False
             End If
         End Function
-        ''' <summary>
-        ''' Initialize
-        ''' </summary>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Overrides Function Initialize() As Boolean
-            _IsInitialized = MyBase.Initialize()
-            Return _IsInitialized
-        End Function
+
         ''' <summary>
         ''' load and infuse the object by primary key
         ''' </summary>
@@ -1701,9 +1955,9 @@ Namespace OnTrack
         ''' <param name="entryname"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Function LoadBy(ByVal sessiontag As String, ByVal entryno As Long) As Boolean
+        Public Overloads Function Inject(ByVal sessiontag As String, ByVal entryno As Long) As Boolean
             Dim primarykey() As Object = {sessiontag, entryno}
-            Return MyBase.LoadBy(primarykey)
+            Return MyBase.Inject(primarykey)
         End Function
         ''' <summary>
         ''' Persist the data object to the datastore
@@ -1730,11 +1984,13 @@ Namespace OnTrack
                 .Username = Me.Username.Clone
                 .Entryno = Me.Entryno
                 .Tablename = Me.Tablename.Clone
-                .EntryName = Me.EntryName.Clone
+                .Columnname = Me.Columnname.Clone
                 .Message = Me.Message.Clone
                 .messagetype = Me.messagetype
                 .Timestamp = Me.Timestamp
                 .StackTrace = Me.StackTrace
+                .Objectname = Me.Objectname.Clone
+                .ObjectEntry = Me.ObjectEntry.Clone
             End With
 
             Return aClone
@@ -1742,9 +1998,52 @@ Namespace OnTrack
     End Class
 
     ''' <summary>
+    ''' Event Arguments for Request Bootstrapping Installation
+    ''' </summary>
+    ''' <remarks></remarks>
+    Public Class SessionBootstrapEventArgs
+        Inherits EventArgs
+
+        Private _install As Boolean = False
+        Private _askbefore As Boolean = True
+        Private _modules As String()
+        Private _installationResult As Boolean = False
+
+        Public Sub New(install As Boolean, modules As String(), Optional AskBefore As Boolean = True)
+            _install = install
+            _modules = modules
+            _askbefore = AskBefore
+        End Sub
+
+        Public ReadOnly Property Install As Boolean
+            Get
+                Return _install
+            End Get
+        End Property
+        Public ReadOnly Property AskBefore As Boolean
+            Get
+                Return _askbefore
+            End Get
+        End Property
+        Public ReadOnly Property Modules As String()
+            Get
+                Return _modules
+            End Get
+        End Property
+        Public Property InstallationResult As Boolean
+            Get
+                Return _installationResult
+            End Get
+            Set(value As Boolean)
+                _installationResult = value
+            End Set
+        End Property
+    End Class
+    ''' <summary>
     ''' Event arguments for Ontrack error Events
     ''' </summary>
     ''' <remarks></remarks>
+
     Public Class OTErrorEventArgs
         Inherits EventArgs
 
@@ -1774,8 +2073,8 @@ Namespace OnTrack
         Implements IEnumerable
         Implements ICloneable
 
-        Public Event onErrorRaised As EventHandler(Of otErrorEventArgs)
-        Public Event onLogClear As EventHandler(Of otErrorEventArgs)
+        Public Event onErrorRaised As EventHandler(Of OTErrorEventArgs)
+        Public Event onLogClear As EventHandler(Of OTErrorEventArgs)
         '*** log
         Private _log As New SortedList(Of Long, CoreError)
         Private _queue As New ConcurrentQueue(Of CoreError)
@@ -1825,7 +2124,7 @@ Namespace OnTrack
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function Clear()
-            RaiseEvent onLogClear(Me, New otErrorEventArgs(Nothing))
+            RaiseEvent onLogClear(Me, New OTErrorEventArgs(Nothing))
             _log.Clear()
             '_queue = Nothing leave it for flush
             Return True
@@ -1887,7 +2186,7 @@ Namespace OnTrack
 
             End SyncLock
 
-            RaiseEvent onErrorRaised(Me, New otErrorEventArgs(aClone))
+            RaiseEvent onErrorRaised(Me, New OTErrorEventArgs(aClone))
         End Sub
         ''' <summary>
         ''' returns the size of the log
@@ -1951,6 +2250,7 @@ Namespace OnTrack
     ''' OrdinalType identifies the data type of the ordinal
     ''' </summary>
     ''' <remarks></remarks>
+
     Public Enum OrdinalType
         longType
         stringType
@@ -1969,24 +2269,24 @@ Namespace OnTrack
         Implements IComparer(Of Ordinal)
 
         Private _ordinalvalue As Object
-        Private _ordinalType As ordinalType
+        Private _ordinalType As OrdinalType
 
         Public Sub New(ByVal value As Object)
             ' return depending on the type
 
             If TypeOf value Is Long Or TypeOf value Is Integer Or TypeOf value Is UShort _
             Or TypeOf value Is Short Or TypeOf value Is UInteger Or TypeOf value Is ULong Then
-                _ordinalType = ordinalType.longType
+                _ordinalType = OrdinalType.longType
                 _ordinalvalue = CLng(value)
             ElseIf IsNumeric(value) Then
-                _ordinalType = ordinalType.longType
+                _ordinalType = OrdinalType.longType
                 _ordinalvalue = CLng(value)
             ElseIf TypeOf value Is Ordinal Then
                 _ordinalType = CType(value, Ordinal).Type
                 _ordinalvalue = CType(value, Ordinal).Value
 
             ElseIf value.ToString Then
-                _ordinalType = ordinalType.stringType
+                _ordinalType = OrdinalType.stringType
                 _ordinalvalue = String.Copy(value.ToString)
             Else
                 Throw New Exception("value is not casteable to a XMAPordinalType")
@@ -1994,11 +2294,11 @@ Namespace OnTrack
             End If
 
         End Sub
-        Public Sub New(ByVal value As Object, ByVal type As ordinalType)
+        Public Sub New(ByVal value As Object, ByVal type As OrdinalType)
             _ordinalType = type
             Me.Value = value
         End Sub
-        Public Sub New(ByVal type As ordinalType)
+        Public Sub New(ByVal type As OrdinalType)
             _ordinalType = type
             _ordinalvalue = Nothing
         End Sub
@@ -2014,9 +2314,9 @@ Namespace OnTrack
         ''' <returns></returns>
         Public Function [Equals](x As Ordinal, y As Ordinal) As Boolean Implements IEqualityComparer(Of Ordinal).[Equals]
             Select Case x._ordinalType
-                Case ordinalType.longType
+                Case OrdinalType.longType
                     Return x.Value.Equals(y.Value)
-                Case ordinalType.stringType
+                Case OrdinalType.stringType
                     If String.Compare(x.Value, y.Value, False) = 0 Then
                         Return True
                     Else
@@ -2047,7 +2347,7 @@ Namespace OnTrack
 
             '** depend on the type
             Select Case x.Type
-                Case ordinalType.longType
+                Case OrdinalType.longType
                     ' try to compare numeric
                     If IsNumeric(y.Value) Then
                         If Me.Value > CLng(y.Value) Then
@@ -2061,7 +2361,7 @@ Namespace OnTrack
                     Else
                         Return -1
                     End If
-                Case ordinalType.stringType
+                Case OrdinalType.stringType
                     Return String.Compare(y.Value, y.Value.ToString)
 
             End Select
@@ -2093,18 +2393,18 @@ Namespace OnTrack
         Public Property Value As Object
             Get
                 Select Case Me.Type
-                    Case ordinalType.longType
+                    Case OrdinalType.longType
                         Return CLng(_ordinalvalue)
-                    Case ordinalType.stringType
+                    Case OrdinalType.stringType
                         Return CStr(_ordinalvalue)
                 End Select
                 Return Nothing
             End Get
             Set(value As Object)
                 Select Case Me.Type
-                    Case ordinalType.longType
+                    Case OrdinalType.longType
                         _ordinalvalue = CLng(value)
-                    Case ordinalType.stringType
+                    Case OrdinalType.stringType
                         _ordinalvalue = CStr(value)
                 End Select
 
@@ -2118,7 +2418,7 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        ReadOnly Property Type As ordinalType
+        ReadOnly Property Type As OrdinalType
             Get
                 Return _ordinalType
             End Get
@@ -2129,9 +2429,9 @@ Namespace OnTrack
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function GetTypeCode() As TypeCode Implements IConvertible.GetTypeCode
-            If _ordinalType = ordinalType.longType Then
+            If _ordinalType = OrdinalType.longType Then
                 Return TypeCode.UInt64
-            ElseIf _ordinalType = ordinalType.stringType Then
+            ElseIf _ordinalType = OrdinalType.stringType Then
                 Return TypeCode.String
             Else
                 Return TypeCode.Object
@@ -2235,2916 +2535,11 @@ Namespace OnTrack
 
     End Class
 
-    '************************************************************************************
-    '***** CLASS Objects is the central store for all the OTDB Meta Object Definitions
-    '*****
-    '*****
-    ''' <summary>
-    ''' store for all the  OTDB object information - loaded on connecting with the 
-    ''' session
-    ''' </summary>
-    ''' <remarks></remarks>
-
-    Public Class ObjectRepository
-
-        Private _IsInitialized As Boolean = False
-
-        '** cache of the table objects
-        Private _objectDirectory As New Dictionary(Of String, ObjectDefinition)
-        '** cache on the columns object 
-        Private _entryDirectory As New Dictionary(Of String, ObjectEntryDefinition)
-
-        '** reference to all the XChange IDs
-        Private _IDsDirectory As New Dictionary(Of String, List(Of ObjectEntryDefinition))
-        '** reference to all the aliases
-        Private _aliasDirectory As New Dictionary(Of String, List(Of ObjectEntryDefinition))
-
-        '** reference to the session 
-        Private _DomainID As String = ""
-        Private WithEvents _Domain As Domain
-        Private WithEvents _Session As Session
-
-        Private _lock As New Object
-        ''' <summary>
-        ''' construction with link to the connection
-        ''' </summary>
-        ''' <param name="connection"></param>
-        ''' <remarks></remarks>
-
-        Sub New(ByRef Session As Session)
-            _Session = Session
-
-        End Sub
-        ''' <summary>
-        ''' Gets or sets the is initialiazed.
-        ''' </summary>
-        ''' <value>The is initialiazed.</value>
-        Public Property IsInitialized() As Boolean
-            Get
-                Return Me._IsInitialized
-            End Get
-            Private Set(value As Boolean)
-                Me._IsInitialized = value
-            End Set
-        End Property
-        ''' <summary>
-        ''' if an Object Definition changes
-        ''' </summary>
-        ''' <param name="sender"></param>
-        ''' <param name="e"></param>
-        ''' <remarks></remarks>
-        Public Sub OnObjectDefinitionChanged(sender As Object, ent As OnTrack.ObjectDefintionEventArgs)
-            Dim anObjectDef As ObjectDefinition = New ObjectDefinition
-
-            If anObjectDef.LoadBy(ent.Objectname, domainID:=_DomainID) Then
-                If LoadObjectDefinition(anObjectDef) Then
-                    CoreMessageHandler(message:="object definition of " & ent.Objectname & " was reloaded in the Objects store", messagetype:=otCoreMessageType.InternalInfo)
-                End If
-            End If
-        End Sub
-        ''' <summary>
-        ''' initialize on Connection Event
-        ''' </summary>
-        ''' <value>The session ID.</value>
-
-        Private Sub OnDomainInitialize(sender As Object, e As DomainEventArgs) Handles _Domain.OnInitialize
-            If _DomainID = "" And Not IsInitialized Then
-                If e.Domain IsNot Nothing Then
-                    _DomainID = e.Domain.DomainID
-                End If
-
-            End If
-        End Sub
-
-        ''' <summary>
-        ''' initialize on Connection Event
-        ''' </summary>
-        ''' <value>The session ID.</value>
-
-        Private Sub OnDomainReset(sender As Object, e As DomainEventArgs) Handles _Domain.OnReset
-
-        End Sub
-        ''' <summary>
-        ''' initialize on Connection Event
-        ''' </summary>
-        ''' <value>The session ID.</value>
-
-        Private Sub OnSessionStart(sender As Object, e As SessionEventArgs) Handles _Session.OnStarted
-            If Not Me.IsInitialized Then
-                IsInitialized = Me.Initialize
-            End If
-        End Sub
-
-        ''' <summary>
-        ''' initialize on Connection Event
-        ''' </summary>
-        ''' <value>The session ID.</value>
-
-        Private Sub OnSessionEnd(sender As Object, e As SessionEventArgs) Handles _Session.OnEnding
-
-            If Me.IsInitialized Then
-                IsInitialized = Not Reset()
-            End If
-        End Sub
-
-        ''' <summary>
-        ''' Add an Entry by ID
-        ''' </summary>
-        ''' <param name="entry"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Private Function AddID(ByRef entry As ObjectEntryDefinition) As Boolean
-            Dim entries As List(Of ObjectEntryDefinition)
-
-            If _IDsDirectory.ContainsKey(key:=UCase(entry.ID)) Then
-                entries = _IDsDirectory.Item(key:=UCase(entry.ID))
-            Else
-                entries = New List(Of ObjectEntryDefinition)
-                SyncLock Me
-                    _IDsDirectory.Add(key:=UCase(entry.ID), value:=entries)
-                End SyncLock
-            End If
-
-            SyncLock Me
-                entries.Add(entry)
-            End SyncLock
-
-            Return True
-        End Function
-        ''' <summary>
-        ''' Add an Entry by ID
-        ''' </summary>
-        ''' <param name="entry"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Private Function AddAlias(ByRef entry As ObjectEntryDefinition) As Boolean
-            Dim entries As List(Of ObjectEntryDefinition)
-
-            For Each [alias] As String In entry.Aliases
-
-                If _aliasDirectory.ContainsKey(key:=UCase([alias])) Then
-                    entries = _aliasDirectory.Item(key:=UCase([alias]))
-                Else
-                    entries = New List(Of ObjectEntryDefinition)
-                    SyncLock Me
-                        _aliasDirectory.Add(key:=UCase([alias]), value:=entries)
-                    End SyncLock
-                End If
-
-                SyncLock Me
-                    entries.Add(entry)
-                End SyncLock
-            Next
-
-            Return True
-        End Function
-        ''' <summary>
-        ''' reset all the data of the meta store
-        ''' </summary>
-        ''' <returns>True if successful</returns>
-        ''' <remarks></remarks>
-        Private Function Reset() As Boolean
-            SyncLock _lock
-                _aliasDirectory.Clear()
-                _IDsDirectory.Clear()
-                _objectDirectory.Clear()
-                _entryDirectory.Clear()
-                _Domain = Nothing
-                _DomainID = ""
-                _IsInitialized = False
-                _Session = Nothing
-            End SyncLock
-            Return True
-        End Function
-
-        Public Sub OnDomainChanging(sender As Object, e As SessionEventArgs) Handles _Session.OnDomainChanging
-            If Not IsInitialized Then
-                SyncLock _lock
-                    If e.NewDomain IsNot Nothing Then
-                        _DomainID = e.NewDomain.DomainID
-                    Else
-                        _DomainID = DirectCast(sender, Session).CurrentDomainID
-                    End If
-
-                End SyncLock
-
-            End If
-        End Sub
-        Public Sub OnDomainChanged(sender As Object, e As SessionEventArgs) Handles _Session.OnDomainChanged
-            If Not IsInitialized Then
-                SyncLock _lock
-                    _DomainID = DirectCast(sender, Session).CurrentDomainID
-                End SyncLock
-
-                Initialize()
-            End If
-        End Sub
-        ''' <summary>
-        ''' Initialize
-        ''' </summary>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Function Initialize() As Boolean
-            Dim aTablestore As iormDataStore
-
-            '* donot doe it again
-            If Me.IsInitialized Then Return False
-
-            If _DomainID = "" Then
-                CoreMessageHandler(message:="DomainID is not set in objectStore", arg1:=Me._Session.SessionID, messagetype:=otCoreMessageType.InternalError, subname:="ObjectStore.Initialize")
-                Return False
-            End If
-
-            '* too eaarly
-            If _Session Is Nothing OrElse _Session.CurrentDBDriver Is Nothing _
-                OrElse Not _Session.CurrentDBDriver.CurrentConnection.IsConnected Then
-                Return False
-            End If
-
-            If _Session IsNot Nothing AndAlso _Session.IsRunning Then
-                aTablestore = _Session.CurrentDBDriver.GetTableStore(ObjectEntryDefinition.ConstTableID)
-            Else
-                aTablestore = GetTableStore(ObjectEntryDefinition.ConstTableID)
-            End If
-
-            Dim theObjectnames() As String
-            Dim objectsToLoad As Object = ot.GetDBParameter(ot.ConstPNObjectsLoad)
-            Dim delimiters() As Char = {",", ";", ConstDelimiter}
-
-            If objectsToLoad IsNot Nothing Then
-                SyncLock _lock
-                    If objectsToLoad.ToString = "*" Then
-                        theObjectnames = ObjectDefinition.AllObjectnames(tablestore:=aTablestore).ToArray
-                    Else
-                        theObjectnames = objectsToLoad.ToString.Split(delimiters)
-                    End If
-
-                    CoreMessageHandler(message:="Initialize OnTrack Objects ....", messagetype:=otCoreMessageType.ApplicationInfo, subname:="Objects.Initialize")
-                    '** load all objects with entries and aliases
-                    For Each name In theObjectnames
-                        name = Trim(LCase(name)) ' for some reasons bette to trim
-                        Dim anObject As New ObjectDefinition
-                        If anObject.LoadBy(objectname:=name, tablestore:=aTablestore, domainID:=_DomainID) Then
-                            Me.LoadObjectDefinition(anObject)
-                        Else
-                            CoreMessageHandler(message:="could not load object '" & name & "'", messagetype:=otCoreMessageType.ApplicationError, _
-                                               subname:="Objects.Initialize")
-                        End If
-                    Next
-                End SyncLock
-            End If
-
-            SyncLock _lock
-                Me.IsInitialized = True
-            End SyncLock
-
-            CoreMessageHandler(message:="Objects initialized for Domain '" & _DomainID & " in Session " & CurrentSession.SessionID & "' - " & _objectDirectory.Count & " objects loaded", _
-                               messagetype:=otCoreMessageType.ApplicationInfo, subname:="Objects.Initialize")
-
-            Return Me.IsInitialized
-        End Function
-
-        ''' <summary>
-        ''' Load Object into Store of Objects
-        ''' </summary>
-        ''' <param name="object"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Private Function LoadObjectDefinition(ByRef [object] As ObjectDefinition) As Boolean
-
-            If Not [object].IsLoaded And Not [object].IsCreated Then
-                Call CoreMessageHandler(message:="object is neither created nor loaded", tablename:=[object].Name, messagetype:=otCoreMessageType.InternalError)
-
-                Return False
-            End If
-            '*** check if version is the same as in code
-
-            Dim aDatatype As System.Type = ot.GetDataObjectType([object].Name)
-
-            If aDatatype IsNot Nothing Then
-                Dim aDataobject As iormPersistable = Activator.CreateInstance(aDatatype)
-                Dim aVersion = aDataobject.GetVersion(dataobject:=aDataobject)
-
-                If [object].Version <> aVersion Then
-                    '_Session.CurrentDBDriver.VerifyOnTrackDatabase(verifyOnly:=False, createOnMissing:=True)
-                    CoreMessageHandler(message:="Attention ! Version of object in object store V" & [object].Version & " is different from version in code V" & aVersion, _
-                                        messagetype:=otCoreMessageType.InternalWarning, tablename:=[object].Name, subname:="ObjectStore.LoadObjectDefintion")
-                End If
-            End If
-
-
-            If _objectDirectory.ContainsKey([object].Name) Then
-                _objectDirectory.Remove([object].Name)
-            End If
-            SyncLock _lock
-                _objectDirectory.Add(key:=[object].Name, value:=[object])
-            End SyncLock
-
-            For Each anEntry As ObjectEntryDefinition In [object].Entries
-                ' save the entry
-                If _entryDirectory.ContainsKey(key:=[object].Name & "." & anEntry.Name) Then
-                    SyncLock Me
-                        _entryDirectory.Remove(key:=[object].Name & "." & anEntry.Name)
-                    End SyncLock
-                End If
-                SyncLock Me
-                    _entryDirectory.Add(key:=[object].Name & "." & anEntry.Name, value:=anEntry)
-                End SyncLock
-
-                '** cross references
-                Me.AddID(entry:=anEntry)
-                Me.AddAlias(entry:=anEntry)
-
-            Next
-
-
-            Return True
-        End Function
-
-        ''' <summary>
-        ''' retrieves an Entry by name
-        ''' </summary>
-        ''' <param name="Alias"></param>
-        ''' <returns>an Entry object or nothing </returns>
-        ''' <remarks></remarks>
-        Public Function GetEntry(entryname As String, Optional objectname As String = "") As ObjectEntryDefinition
-
-            Dim anObject As New ObjectDefinition
-
-
-            If objectname <> "" Then
-                If HasEntry(objectname:=objectname, entryname:=entryname) Then
-                    Return _entryDirectory.Item(key:=objectname & "." & entryname)
-                    ' try to load
-                ElseIf Not HasObject(objectname:=objectname) AndAlso _
-                    anObject.LoadBy(objectname:=objectname, domainID:=_DomainID) Then
-                    SyncLock Me
-                        LoadObjectDefinition(anObject)
-                        If HasEntry(objectname:=objectname, entryname:=entryname) Then
-                            Return _entryDirectory.Item(key:=objectname & "." & entryname)
-                        Else
-                            Return Nothing
-                        End If
-                    End SyncLock
-                    ' nothing
-                Else
-                    Return Nothing
-                End If
-            Else
-                Dim aName As String = _entryDirectory.Keys.ToList.Find(Function(n As String)
-                                                                           Return LCase(entryname) = LCase(Split(n, ".").Last)
-                                                                       End Function)
-                If Not aName Is Nothing AndAlso aName <> "" Then
-                    Return _entryDirectory.Item(key:=aName)
-                End If
-
-            End If
-
-
-
-            Return Nothing
-        End Function
-
-        ''' <summary>
-        ''' retrieves an Entry by name
-        ''' </summary>
-        ''' <param name="objectname">name of the object</param>
-        ''' <returns>an Entry object or nothing </returns>
-        ''' <remarks></remarks>
-        Public Function HasObject(objectname As String) As Boolean
-
-            If _objectDirectory.ContainsKey(key:=objectname) Then
-                Return True
-            Else
-                Return False
-            End If
-
-        End Function
-        ''' <summary>
-        ''' retrieves an Entry by name
-        ''' </summary>
-        ''' <param name="objectname">name of the object</param>
-        ''' <returns>an Entry object or nothing </returns>
-        ''' <remarks></remarks>
-        Public Function GetObject(objectname As String) As ObjectDefinition
-            Dim anObject As New ObjectDefinition
-
-            SyncLock Me
-                If _objectDirectory.ContainsKey(key:=objectname) Then
-                    Return _objectDirectory.Item(key:=objectname)
-                    ' try to reload
-                ElseIf anObject.LoadBy(objectname:=objectname, domainID:=_DomainID) Then
-                    LoadObjectDefinition(anObject)
-                    If HasObject(objectname:=objectname) Then
-                        Return _objectDirectory.Item(key:=objectname)
-                    Else
-                        Return Nothing
-                    End If
-                    ' nothing
-                Else
-                    Return Nothing
-                End If
-            End SyncLock
-
-
-        End Function
-
-        ''' <summary>
-        ''' retrieves an Entry by name
-        ''' </summary>
-        ''' <param name="objectname">name of the object</param>
-        ''' <returns>an Entry object or nothing </returns>
-        ''' <remarks></remarks>
-        Public Function HasEntry(objectname As String, entryname As String) As Boolean
-            If _entryDirectory.ContainsKey(key:=objectname & "." & entryname) Then
-                Return True
-            Else
-                Return False
-            End If
-
-        End Function
-        ''' <summary>
-        ''' retrieves an Entry by name
-        ''' </summary>
-        ''' <param name="objectname">name of the object</param>
-        ''' <returns>an Entry object or nothing </returns>
-        ''' <remarks></remarks>
-        Public Function GetEntries(objectname As String) As List(Of ObjectEntryDefinition)
-            If _objectDirectory.ContainsKey(key:=objectname) Then
-                Return _objectDirectory.Item(key:=objectname).Entries
-            Else
-                Return New List(Of ObjectEntryDefinition)
-            End If
-
-        End Function
-
-        ''' <summary>
-        ''' retrieves an Entry by Alias ID
-        ''' </summary>
-        ''' <param name="Alias"></param>
-        ''' <returns>an Entry object or nothing </returns>
-        ''' <remarks></remarks>
-        Public Function GetEntryByID([id] As String, Optional objectname As String = "") As List(Of ObjectEntryDefinition)
-            If _IDsDirectory.ContainsKey(UCase([id])) Then
-                If objectname = "" Then
-                    Return _IDsDirectory.Item(key:=UCase([id]))
-                Else
-                    Dim aList As New List(Of ObjectEntryDefinition)
-                    For Each objectdef In _IDsDirectory.Item(key:=UCase(id))
-                        If LCase(objectname) = LCase(objectdef.Objectname) Then
-                            aList.Add(objectdef)
-                        End If
-                    Next
-                    Return aList
-                End If
-            Else
-                Return GetEntryByAlias(alias:=id, objectname:=objectname)
-            End If
-
-        End Function
-        ''' <summary>
-        ''' retrieves an Entry by Alias ID
-        ''' </summary>
-        ''' <param name="Alias"></param>
-        ''' <returns>an Entry object or nothing </returns>
-        ''' <remarks></remarks>
-        Public Function GetEntryByAlias([alias] As String, Optional objectname As String = "") As List(Of ObjectEntryDefinition)
-            If _aliasDirectory.ContainsKey(UCase([alias])) Then
-                If objectname = "" Then
-                    Return _aliasDirectory.Item(key:=UCase([alias]))
-                Else
-                    Dim aList As New List(Of ObjectEntryDefinition)
-                    For Each objectdef In _aliasDirectory.Item(key:=UCase([alias]))
-                        If LCase(objectname) = LCase(objectdef.Objectname) Then
-                            aList.Add(objectdef)
-                        End If
-                    Next
-                    Return aList
-                End If
-
-            Else
-                Return New List(Of ObjectEntryDefinition)
-            End If
-
-        End Function
-        ''' <summary>
-        ''' retrieves an Entry by Alias ID
-        ''' </summary>
-        ''' <param name="Alias"></param>
-        ''' <returns>an Entry object or nothing </returns>
-        ''' <remarks></remarks>
-        Public Function GetEntryByAlias([aliases]() As String, Optional objectname As String = "") As List(Of ObjectEntryDefinition)
-            Dim theEntries As New List(Of ObjectEntryDefinition)
-
-            For Each [alias] In aliases
-                theEntries.AddRange(Me.GetEntryByAlias([alias], objectname:=objectname))
-            Next
-
-            Return theEntries
-        End Function
-    End Class
-
-    '************************************************************************************
-    '***** CLASS clsOTDBSchemaDefTable is the object for a OTDBRecord (which is the datastore)
-    '*****
-    '*****
-    ''' <summary>
-    ''' Meta data for an OTDB data object 
-    ''' </summary>
-    ''' <remarks></remarks>
-
-    Public Class ObjectDefinition
-        Inherits ormDataObject
-        Implements iormInfusable
-        Implements iormPersistable
-
-        Public Const ConstTableID = ObjectEntryDefinition.ConstTableID
-
-        Public Const ConstFNTablename = ObjectEntryDefinition.ConstFNTableName
-        Public Const ConstFNPrimaryKey = ObjectEntryDefinition.ConstFNPrimaryKey
-        Public Const ConstFNUseCache = ObjectEntryDefinition.ConstFNUseCache
-        Public Const ConstFNDeletePerFlag = ObjectEntryDefinition.ConstFNDeletePerFlag
-        Public Const ConstFNSpareFieldsFLAG = ObjectEntryDefinition.ConstFNSpareFieldsFlag
-        'Public Const ConstFNVersion = ObjectEntryDefinition.constFNVersion ?? doesnot exists -> BUG
-
-        ' key
-        Private _tablename As String = ""
-        ' components itself per key:=posno, value:=cmid
-        Private _entries As New Dictionary(Of String, ObjectEntryDefinition)
-        Private _entriesordinalPos As New SortedDictionary(Of Long, ObjectEntryDefinition) ' sorted to ordinal position in the record
-        Private _indices As New Dictionary(Of String, List(Of String))    ' save the indices as <key, collection of fields>
-        Private _pkname As String = ""   ' name of Primary Key
-        Private _useCache As Boolean
-        Private _CacheSelect As String = ""
-        Private _deletePerFlagBehavior As Boolean = False
-        Private _domainBehavior As Boolean = False
-        Private _SpareFieldsFlagBehavior As Boolean = False
-        Private _Version As Long = 0
-        Private _parameter As String = ""
-
-        Public Event ObjectDefinitionChanged As EventHandler(Of ObjectDefintionEventArgs)
-
-        '** runtime
-        Private _runtimeOnly As Boolean
-
-        '** initialize
-        Public Sub New()
-            Call MyBase.New(ConstTableID)
-
-        End Sub
-#Region "Properties"
-
-        ''' <summary>
-        ''' gets the tablename of the defintion
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        ReadOnly Property Name() As String
-            Get
-                Name = _tablename
-            End Get
-        End Property
-
-        ''' <summary>
-        ''' retrieves number of entries
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        ReadOnly Property Count() As Long
-            Get
-                Count = _entries.Count - 1
-            End Get
-
-        End Property
-        ''' <summary>
-        ''' Gets or sets the parameters.
-        ''' </summary>
-        ''' <value>The parameters.</value>
-        Public Property Parameters() As String
-            Get
-                Return Me._parameter
-            End Get
-            Set(value As String)
-                Me._parameter = Value
-            End Set
-        End Property
-
-        ''' <summary>
-        ''' use Cache on this object
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Property UseCache As Boolean
-            Set(value As Boolean)
-                _useCache = value
-            End Set
-            Get
-                Return _useCache
-            End Get
-        End Property
-        ''' <summary>
-        ''' gets or sets the cache selection string
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Property CacheSelect As String
-            Set(value As String)
-                _CacheSelect = value
-            End Set
-            Get
-                Return _CacheSelect
-            End Get
-        End Property
-
-        ''' <summary>
-        ''' Gets or sets the domain behavior.
-        ''' </summary>
-        ''' <value>The domain behavior.</value>
-        Public Property DomainBehavior() As Boolean
-            Get
-                Return Me._DomainBehavior
-            End Get
-            Set(value As Boolean)
-                Me._DomainBehavior = Value
-            End Set
-        End Property
-        ''' <summary>
-        ''' gets or set the version
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Property Version As Long
-            Get
-                Return _Version
-            End Get
-            Set(value As Long)
-                _Version = value
-            End Set
-        End Property
-        ''' <summary>
-        ''' gets or set the the spare fields behavior. Means extra fields are available.
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Property SpareFieldsBehavior
-            Set(value)
-                Me._SpareFieldsFlagBehavior = value
-            End Set
-            Get
-                Return _SpareFieldsFlagBehavior
-            End Get
-        End Property
-        ''' <summary>
-        ''' sets or gets the delete per flag behavior. If true a deleteflag and a delete date are available.
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Property DeletePerFlagBehavior As Boolean
-            Set(value As Boolean)
-                Me._deletePerFlagBehavior = value
-            End Set
-            Get
-                Return _deletePerFlagBehavior
-            End Get
-        End Property
-        ''' <summary>
-        ''' returns true if this object is not persisted
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        ReadOnly Property RuntimeOnly As Boolean
-            Get
-                Return _runtimeOnly
-            End Get
-        End Property
-        ''' <summary>
-        ''' returns a list of entrynames
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public ReadOnly Property Entrynames() As List(Of String)
-            Get
-                If Not Me.IsCreated And Not _IsLoaded Then
-                    Entrynames = Nothing
-                    Exit Property
-                End If
-                Return _entries.Keys.ToList()
-            End Get
-        End Property
-
-        ''' <summary>
-        ''' gets a collection of object Entry definitions
-        ''' </summary>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public ReadOnly Property Entries() As List(Of ObjectEntryDefinition)
-            Get
-                Dim aCollection As New List(Of ObjectEntryDefinition)
-
-                If Me.IsCreated Or Me.IsLoaded Then
-                    For Each anEntry As ObjectEntryDefinition In _entries.Values
-                        If anEntry.Name <> "" Then aCollection.Add(anEntry)
-                    Next
-                End If
-
-                Return aCollection
-            End Get
-        End Property
-#End Region
-
-        '*** add a Component by cls OTDB
-        '***
-        ''' <summary>
-        ''' add a Component by cls OTDB
-        ''' </summary>
-        ''' <param name="fielddesc"></param>
-        ''' <param name="reset"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Function AddFieldDesc(ByRef fielddesc As ormFieldDescription, Optional ByVal reset As Boolean = True) As Boolean
-            Dim anEntry As New ObjectEntryDefinition
-            Dim posno As Long
-
-            SyncLock Me
-                ' check Members
-                If Me.HasEntry(LCase(fielddesc.ColumnName)) Then
-                    Call CoreMessageHandler(message:=" Entry containsKey in Schema", subname:="ObjectDefinition.AddFieldDesc", _
-                                            messagetype:=otCoreMessageType.InternalError, _
-                                            arg1:=fielddesc.ColumnName, tablename:=ConstTableID)
-                    Return False
-                End If
-
-                ' create new Member
-                anEntry = New ObjectEntryDefinition
-                fielddesc.ColumnName = LCase(Regex.Replace(fielddesc.ColumnName, "\s", "")) ' no white chars allowed
-                If fielddesc.ordinalPosition = 0 Then
-                    fielddesc.ordinalPosition = Me.GetMaxPosNo + 1
-                End If
-
-                If Not anEntry.Create(Me.Name, entryname:=fielddesc.ColumnName, runtimeOnly:=Me.RuntimeOnly) Then
-                    Call anEntry.LoadBy(Me.Name, entryname:=fielddesc.ColumnName)
-                End If
-                Call anEntry.SetByFieldDesc(fielddesc)
-                ' add the component
-                AddFieldDesc = Me.AddEntry(anEntry)
-
-                If reset Then
-                    With fielddesc
-                        .Aliases = New String() {}
-                        .ID = ""
-                        '.Name = ""
-                        '.dataType = 0
-                        .Size = 0
-                        .Parameter = ""
-                        .Relation = New String() {}
-                        .Title = ""
-                        .SpareFieldTag = False
-
-                        .ordinalPosition = 0
-                        '.tablename = ""
-                    End With
-                End If
-            End SyncLock
-
-
-        End Function
-        ''' <summary>
-        ''' add a Compound description to field
-        ''' </summary>
-        ''' <param name="COMPOUNDDESC"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Function AddCompoundDesc(compounddesc As ormCompoundDesc) As Boolean
-            Dim anEntry As New ObjectEntryDefinition
-
-
-            ' Nothing
-            If Not _IsLoaded And Not Me.IsCreated Then
-                AddCompoundDesc = False
-                Exit Function
-            End If
-            SyncLock Me
-                ' check Members
-                If Me.HasEntry(LCase(compounddesc.ID)) Then
-                    Call CoreMessageHandler(message:=" compound already in object definition", subname:="ObjectDefinition.AddCompoundDesc", _
-                                            messagetype:=otCoreMessageType.InternalError, _
-                                            arg1:=compounddesc.ID, tablename:=ConstTableID)
-                    Return False
-                End If
-
-                ' create new Member
-                anEntry = New ObjectEntryDefinition
-                If compounddesc.ordinalPosition = 0 Then
-                    compounddesc.ordinalPosition = Me.GetMaxPosNo + 1
-                End If
-                If Not anEntry.Create(Me.Name, entryname:=LCase(compounddesc.ID)) Then
-                    Call anEntry.LoadBy(Me.Name, entryname:=LCase(compounddesc.ID))
-                End If
-                Call anEntry.SetByCompoundDesc(compounddesc)
-
-
-                ' add the component
-                AddCompoundDesc = Me.AddEntry(anEntry)
-
-                '* TODO: Automatically create the Index CompoundNameIndex
-            End SyncLock
-
-
-        End Function
-
-        '**** alterSchema changes the Database according the information here
-        '****
-        ''' <summary>
-        ''' alterSchema changes the Database according the information here
-        ''' </summary>
-        ''' <param name="addToSchema"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Function AlterSchema(Optional ByVal addToSchema As Boolean = False) As Boolean
-            Dim anEntry As New ObjectEntryDefinition
-            Dim aTimestamp As Date
-            Dim aName As Object
-            Dim flag As Boolean
-            Dim tblInfo As Object
-            Dim aCollection As New List(Of String)
-            Dim aFieldDesc As New ormFieldDescription
-            Dim aOTDBrecord As New ormRecord
-            Dim process As Boolean
-
-
-            If Not IsLoaded And Not IsCreated Then
-                AlterSchema = False
-                Exit Function
-            End If
-
-            ' set Timestamp
-            aTimestamp = Now
-            ' get the table
-            ' free lunch for OTDBSchemaDefTable and UserDefinition -> Bootstrap
-            If LCase(User.ConstTableID) <> LCase(Me.Name) And LCase(Me.Name) <> LCase(Me.TableID) Then
-                If Not CurrentSession.RequireAccessRight(accessRequest:=otAccessRight.AlterSchema) Then
-                    Return False
-                End If
-            End If
-
-            Try
-                '** call to get object
-                tblInfo = CurrentDBDriver.GetTable(Me.Name, createOrAlter:=True, addToSchemaDir:=addToSchema)
-
-                Dim entrycoll As List(Of ObjectEntryDefinition)
-                '** check which entries to use
-                If _entries.Count = _entriesordinalPos.Count Then
-                    entrycoll = _entriesordinalPos.Values.ToList
-                Else
-                    entrycoll = _entries.Values.ToList
-                End If
-                ' create fields each entry
-                For Each anEntry In entrycoll
-                    '*** delete flags
-
-                    If anEntry.Name <> "" And anEntry.Typeid = otObjectEntryDefinitiontype.Field Then
-                        process = True ' default
-                        '*** check some behavior and rules
-                        If (anEntry.Name = ormDataObject.ConstFNDeletedOn Or anEntry.Name = ConstFNIsDeleted) _
-                        And Not Me.DeletePerFlagBehavior Then
-                            process = False
-                        ElseIf anEntry.SpareFieldTag And Not Me.SpareFieldsBehavior Then
-                            process = False
-                        End If
-                        '** move data to field description structure
-                        aFieldDesc.Datatype = anEntry.Datatype
-                        aFieldDesc.ID = anEntry.ID
-                        aFieldDesc.ColumnName = anEntry.Name
-                        aFieldDesc.Parameter = anEntry.Parameter
-                        aFieldDesc.Title = anEntry.Title
-                        aFieldDesc.Tablename = anEntry.Objectname
-                        aFieldDesc.Aliases = anEntry.Aliases
-                        aFieldDesc.Relation = anEntry.Relation
-                        aFieldDesc.Size = anEntry.Size
-                        aFieldDesc.IsNullable = anEntry.IsNullable
-                        aFieldDesc.Version = anEntry.Version
-                        'anEntry.getByFieldDesc (aFieldDesc)
-                        '** add column
-                        If process Then
-                            Call CurrentDBDriver.GetColumn(tblInfo, aFieldDesc, createOrAlter:=True, addToSchemaDir:=addToSchema)
-                        End If
-
-                    End If
-                Next
-
-                '** call again to create
-                tblInfo = CurrentDBDriver.GetTable(Me.Name, createOrAlter:=True, _
-                                                   addToSchemaDir:=addToSchema, tableNativeObject:=tblInfo)
-
-                ' create index
-                For Each aName In _indices.Keys
-                    aCollection = _indices.Item(key:=aName)
-                    If Not aCollection Is Nothing And aCollection.Count > 0 Then
-                        If LCase(aName) = LCase(_pkname) Then
-                            flag = True
-                        Else
-                            flag = False
-                        End If
-                        Call CurrentDBDriver.GetIndex(tblInfo, indexname:=CStr(aName), columnNames:=aCollection, _
-                                                      primaryKey:=flag, addToSchemaDir:=addToSchema)
-                    End If
-                Next aName
-
-                ' reset the Table description
-                ' only if we are connected -> bootstrapping problem
-                If CurrentSession.IsRunning Then
-                    If ot.CurrentConnection.DatabaseDriver.GetTableSchema(tableID:=Me.Name, force:=True) Is Nothing Then
-                        Call CoreMessageHandler(subname:="clsOTDBSchemaDefTable.alterSchema", tablename:=tblInfo.Name, _
-                                                message:="Error while setTable in alterSchema")
-                    End If
-                    'RaiseEvent ObjectDefinitionChanged(Me, New ObjectDefintionEventArgs(objectname:=Me.name)) in persist
-                End If
-
-
-                Return True
-            Catch ex As Exception
-                Call CoreMessageHandler(subname:="clsOTDBSchemaDefTable.alterSchema", exception:=ex)
-                Return False
-            End Try
-
-        End Function
-        ''' <summary>
-        ''' add Index description to table
-        ''' </summary>
-        ''' <param name="anIndexName"></param>
-        ''' <param name="aFieldCollection"></param>
-        ''' <param name="PrimaryKey"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Function AddIndex(ByVal indexname As String, ByRef fieldnames As Collection, Optional ByVal isprimarykey As Boolean = False) As Boolean
-
-            Dim existEntry As New List(Of String)
-            Dim fieldList As New List(Of String)
-            Dim anEntry As New ObjectEntryDefinition
-            Dim i As Long = 1
-
-
-            ' Nothing
-            If Not _IsLoaded And Not Me.IsCreated Then
-                AddIndex = False
-                Exit Function
-            End If
-
-            ' get the existing collection
-            If _indices.ContainsKey(LCase(indexname)) Then
-                existEntry = _indices.Item(LCase(indexname))
-            End If
-
-            ' check fields -> should be defined to be an index
-            For Each aName In fieldnames
-                ' check
-                If Not _entries.ContainsKey(LCase(aName)) Then
-                    AddIndex = False
-                    Call CoreMessageHandler(arg1:=aName, subname:="clsOTDBSchemaDefTable.addIndex", _
-                                            tablename:=Me.TableID, message:=" field doesnot exist in table for building index")
-                    Exit Function
-                Else
-                    If isprimarykey Then
-                        anEntry = _entries.Item(LCase(aName))
-                        anEntry.Indexname = indexname
-                        anEntry.IndexPosition = i
-                        i += 1
-                    End If
-
-                    fieldList.Add(LCase(aName))
-                End If
-            Next aName
-
-            ' remove
-            If _indices.ContainsKey(LCase(indexname)) Then
-                _indices.Remove(LCase((indexname)))
-            End If
-
-            ' add index
-            Call _indices.Add(key:=LCase(indexname), value:=fieldList)
-            If isprimarykey Then
-                _pkname = LCase(indexname)
-            End If
-
-            ' return
-            AddIndex = True
-
-        End Function
-        ''' <summary>
-        ''' retrieve the List of Primary Key Fieldnames
-        ''' </summary>
-        ''' <returns>List(of String)</returns>
-        ''' <remarks></remarks>
-        Public Function GetNoPrimaryKeys() As UShort
-            ' Nothing
-            If Not _IsLoaded And Not Me.IsCreated And _pkname = "" Then
-                Return 0
-            End If
-
-            Return GetNoIndexFields(_pkname)
-        End Function
-        ''' <summary>
-        ''' retrieve the List of Primary Key Fieldnames
-        ''' </summary>
-        ''' <returns>List(of String)</returns>
-        ''' <remarks></remarks>
-        Public Function GetPrimaryKeyFieldNames() As List(Of String)
-            ' Nothing
-            If Not _IsLoaded And Not Me.IsCreated And _pkname = "" Then
-                Return New List(Of String)
-            End If
-
-            Return GetIndexFieldNames(_pkname)
-        End Function
-        ''' <summary>
-        ''' retrieve the List of Primary Key Fieldnames
-        ''' </summary>
-        ''' <returns>List(of String)</returns>
-        ''' <remarks></remarks>
-        Public Function GetPrimaryKeyEntries() As List(Of ObjectEntryDefinition)
-            ' Nothing
-            If Not _IsLoaded And Not Me.IsCreated And _pkname = "" Then
-                Return New List(Of ObjectEntryDefinition)
-            End If
-
-            Return GetIndexEntries(_pkname)
-        End Function
-        ''' <summary>
-        ''' retrieves a list of Fieldnames of an Index
-        ''' </summary>
-        ''' <param name="IndexName">name of the Index</param>
-        ''' <returns>List (of String)</returns>
-        ''' <remarks></remarks>
-        Public Function GetIndexFieldNames(ByVal indexname As String) As List(Of String)
-            ' Nothing
-            If Not _IsLoaded And Not Me.IsCreated Then
-                Return New List(Of String)
-            End If
-
-            ' get the existing collection
-            If _indices.ContainsKey(LCase(indexname)) Then
-                Return _indices.Item(LCase(indexname))
-            End If
-
-            Return New List(Of String)
-        End Function
-        ''' <summary>
-        ''' retrieves a list of Fieldnames of an Index
-        ''' </summary>
-        ''' <param name="IndexName">name of the Index</param>
-        ''' <returns>List (of String)</returns>
-        ''' <remarks></remarks>
-        Public Function GetNoIndexFields(ByVal indexname As String) As UShort
-            ' Nothing
-            If Not _IsLoaded And Not Me.IsCreated Then
-                Return 0
-            End If
-
-            ' get the existing collection
-            If _indices.ContainsKey(LCase(indexname)) Then
-                Return _indices.Item(LCase(indexname)).Count
-            End If
-
-            Return 0
-        End Function
-        ''' <summary>
-        ''' retrieves a list of Fieldnames of an Index
-        ''' </summary>
-        ''' <param name="IndexName">name of the Index</param>
-        ''' <returns>List (of String)</returns>
-        ''' <remarks></remarks>
-        Public Function GetIndexEntries(ByVal indexname As String) As List(Of ObjectEntryDefinition)
-            Dim aFieldCollection As New List(Of ObjectEntryDefinition)
-
-            ' Nothing
-            If Not _IsLoaded And Not Me.IsCreated Then
-                Return aFieldCollection
-            End If
-
-            For Each anEntryname In Me.GetIndexFieldNames(indexname)
-                aFieldCollection.Add(Me.GetEntry(anEntryname))
-            Next
-
-            Return aFieldCollection
-        End Function
-        ''' <summary>
-        ''' Add a Component by Table Entry
-        ''' </summary>
-        ''' <param name="entry"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Function AddEntry(entry As ObjectEntryDefinition) As Boolean
-
-            ' remove and overwrite
-            If _entries.ContainsKey(key:=LCase(entry.Name)) Then
-                Call _entries.Remove(key:=LCase(entry.Name))
-            End If
-            ' add entry
-            _entries.Add(key:=LCase(entry.Name), value:=entry)
-
-            If _entriesordinalPos.ContainsKey(entry.Position) Then
-                Call _entriesordinalPos.Remove(key:=entry.Position)
-            End If
-            Call _entriesordinalPos.Add(key:=entry.Position, value:=entry)
-            '
-            Return True
-
-        End Function
-
-        ''' <summary>
-        ''' Delete the record and all members
-        ''' </summary>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Function Delete() As Boolean
-            Dim anEntry As New ObjectEntryDefinition
-            Dim initialEntry As New ObjectEntryDefinition
-
-            '* init
-            If Not IsInitialized Then
-                If Not Me.Initialize() Then
-                    Delete = False
-                    Exit Function
-                End If
-            End If
-            If Me.IsCreated Then
-                Me.LoadBy(Me.Name)
-            End If
-            If Not _IsLoaded And Not Me.IsCreated Then
-                Delete = False
-                Exit Function
-            End If
-
-            ' delete each entry
-            For Each entry As ObjectEntryDefinition In _entries.Values
-                entry.Delete()
-            Next
-
-            ' reset it
-            _entries.Clear()
-            _entriesordinalPos.Clear()
-            anEntry = New ObjectEntryDefinition
-            If Not anEntry.Create(objectname:=Me.Name, entryname:="", typeid:=otObjectEntryDefinitiontype.Table) Then
-                Call anEntry.LoadBy(objectname:=Me.Name, entryname:="")
-                anEntry.Name = ""
-            End If
-
-            _entries.Add(key:="", value:=anEntry)
-
-            _IsCreated = True
-            IsDeleted = True
-            _IsLoaded = False
-
-        End Function
-
-        ''' <summary>
-        ''' gets an entry by entryname or nothing
-        ''' </summary>
-        ''' <param name="entryname">name of the entry</param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Function HasEntry(entryname As String) As Boolean
-
-            If Not Me.IsCreated And Not _IsLoaded Then
-                Return False
-            End If
-
-            If _entries.ContainsKey(key:=entryname) Then
-                Return True
-            Else
-                Return False
-            End If
-
-        End Function
-        ''' <summary>
-        ''' gets an entry by entryname or nothing
-        ''' </summary>
-        ''' <param name="entryname">name of the entry</param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Function GetEntry(entryname As String) As ObjectEntryDefinition
-
-            If Not Me.IsCreated And Not _IsLoaded Then
-                Return Nothing
-            End If
-
-            If _entries.ContainsKey(key:=entryname) Then
-                Return _entries.Item(key:=entryname)
-            Else
-                Return Nothing
-            End If
-
-        End Function
-        ''' <summary>
-        ''' Initialize
-        ''' </summary>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Overrides Function Initialize() As Boolean
-            _IsInitialized = MyBase.Initialize()
-            If Not Me.TableStore Is Nothing Then
-                Me.TableStore.SetProperty(ConstTPNCacheProperty, True)
-            End If
-            Return _IsInitialized
-        End Function
-        ''' <summary>
-        ''' Infuse
-        ''' </summary>
-        ''' <param name="aRecord"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Function Infuse(ByRef aRecord As ormRecord) As Boolean
-            ' not implemented
-            Infuse = False
-        End Function
-        ''' <summary>
-        ''' loadBy a SchemaDefTable with primary key
-        ''' </summary>
-        ''' <param name="tablename">the tablename</param>
-        ''' <returns>True if successfull</returns>
-        ''' <remarks></remarks>
-        Public Shared Function AllObjectnames(Optional ByRef tablestore As iormDataStore = Nothing) As List(Of String)
-            Dim aRecordCollection As New List(Of ormRecord)
-            Dim theTablenames As New List(Of String)
-
-            ' run the sql statement
-            If tablestore Is Nothing Then
-                tablestore = ot.GetTableStore(ObjectEntryDefinition.ConstTableID)
-            End If
-
-            Try
-                Dim aCommand As ormSqlSelectCommand = tablestore.CreateSqlSelectCommand(id:="AllTablenames")
-                If Not aCommand.Prepared Then
-                    aCommand.select = "DISTINCT " & ObjectEntryDefinition.ConstFNTableName
-                    aCommand.Where = ObjectEntryDefinition.ConstFNType & " = 'TABLE'"
-
-                    aCommand.Prepare()
-                End If
-
-                aRecordCollection = aCommand.RunSelect
-
-                ' records read
-                For Each aRecord As ormRecord In aRecordCollection
-                    theTablenames.Add(aRecord.GetValue(1))
-                Next
-
-                '
-                Return theTablenames
-
-            Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="clsOTDBSchemaDefTable.AllTablenames")
-
-                Return theTablenames
-            End Try
-
-        End Function
-
-        ''' <summary>
-        ''' loadBy a SchemaDefTable with primary key
-        ''' </summary>
-        ''' <param name="tablename">the table name</param>
-        ''' <returns>True if successful</returns>
-        ''' <remarks></remarks>
-        Public Function LoadBy(ByVal objectname As String, _
-                               Optional domainID As String = "", _
-                               Optional ByRef tablestore As iormDataStore = Nothing) As Boolean
-            Dim aRecordCollection As New List(Of ormRecord)
-            Dim aIndexCollection As New Collection
-
-            '* init
-            If Not IsInitialized Then
-                If Not Me.Initialize() Then
-                    LoadBy = False
-                    Exit Function
-                End If
-            End If
-
-            ' run the sql statement
-            If tablestore Is Nothing Then
-                tablestore = Me.TableStore
-            End If
-
-            If domainID = "" Then domainID = CurrentSession.CurrentDomainID
-
-            Try
-                Dim aCommand As ormSqlSelectCommand = tablestore.CreateSqlSelectCommand(id:="AllByTablename")
-                If Not aCommand.Prepared Then
-                    aCommand.AddTable(ConstTableID)
-                    If aCommand.DatabaseDriver.DatabaseType = otDBServerType.SQLServer Then
-                        aCommand.Where = "LOWER(" & ConstTableID & ".[" & ConstFNTablename & "]) = @tablename"
-                    Else
-                        aCommand.Where = "LCASE(" & ConstTableID & ".[" & ConstFNTablename & "]) = @tablename"
-                    End If
-                    aCommand.Where &= " AND ([" & ConstFNDomainID & "] = @domainID OR [" & ConstFNDomainID & "] = @globalID)"
-                    aCommand.Where &= " AND " & ConstFNIsDeleted & " = @deleted "
-                    aCommand.OrderBy = "[" & ObjectEntryDefinition.ConstFNFieldname & "] , [" & ObjectEntryDefinition.ConstFNDomainID & "]"
-                    '* use datatype since object definition is not described itself
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@tablename", fieldname:=ConstFNTablename, tablename:=ConstTableID, datatype:=otFieldDataType.Text))
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@domainID", notColumn:=True, datatype:=otFieldDataType.Text))
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@globalID", notColumn:=True, datatype:=otFieldDataType.Text))
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@deleted", fieldname:=ConstFNIsDeleted, tablename:=ConstTableID, datatype:=otFieldDataType.Bool))
-                    aCommand.Prepare()
-                End If
-
-                aCommand.SetParameterValue("@tablename", LCase(objectname))
-                aCommand.SetParameterValue(ID:="@domainID", value:=domainID)
-                aCommand.SetParameterValue(ID:="@globalID", value:=ConstGlobalDomain)
-                aCommand.SetParameterValue(ID:="@deleted", value:=False)
-                aRecordCollection = aCommand.RunSelect
-
-                If aRecordCollection.Count = 0 Then
-                    _IsLoaded = False
-                    LoadBy = False
-                    Exit Function
-                Else
-                    _tablename = objectname
-                    _IsLoaded = True
-                    Dim aFieldDir As New Dictionary(Of String, ObjectEntryDefinition)
-
-                    ' records read
-                    For Each aRecord As ormRecord In aRecordCollection
-
-                        ' add the Entry as Component
-                        Dim anEntry As ObjectEntryDefinition = New ObjectEntryDefinition
-                        If anEntry.Infuse(aRecord) Then
-                            If aFieldDir.ContainsKey(key:=anEntry.Entryname) Then
-                                Dim anexistingItem As ObjectEntryDefinition = aFieldDir.Item(key:=anEntry.Entryname)
-                                If anEntry.DomainID = domainID And anexistingItem.DomainID = ConstGlobalDomain Then
-                                    aFieldDir.Remove(key:=anEntry.Entryname)
-                                    aFieldDir.Add(key:=anEntry.Entryname, value:=anEntry)
-                                End If
-                            ElseIf anEntry.DomainID = domainID Or anEntry.DomainID = ConstGlobalDomain Then
-                                aFieldDir.Add(key:=anEntry.Entryname, value:=anEntry)
-                            End If
-
-                        End If
-                    Next aRecord
-
-                    '** the remainin mix is per Domain
-                    For Each anEntry In aFieldDir.Values
-                        If anEntry.IsTable Then
-                            _CacheSelect = anEntry.CacheSelect
-                            _useCache = anEntry.UseCache
-                            _Version = anEntry.Version
-                            _deletePerFlagBehavior = anEntry.DeleteFlagBehavior
-                            _SpareFieldsFlagBehavior = anEntry.SpareFieldsBehavior
-                            _domainBehavior = anEntry.DomainBehavior
-                            _domainID = anEntry.DomainID
-                            _parameter = anEntry.Parameter
-                        End If
-                        If Not Me.AddEntry(anEntry) Then
-                        End If
-                        ' set primary key
-                        If anEntry.IsPrimaryKey And anEntry.Indexname <> "" Then
-                            _pkname = anEntry.Indexname
-                            aIndexCollection.Add(anEntry.Name)
-                        End If
-                    Next
-                    ' add primary key
-                    If aIndexCollection.Count > 0 Then
-                        Call Me.AddIndex(_pkname, aIndexCollection, isprimarykey:=True)
-                    End If
-
-                    '
-                    _IsLoaded = True
-                    LoadBy = True
-                    Exit Function
-                End If
-            Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="clsOTDBSchemaDefTable.LoadBy")
-                _IsLoaded = False
-                Return False
-            End Try
-
-        End Function
-
-        ''' <summary>
-        ''' Persist the Object to the data store
-        ''' </summary>
-        ''' <returns>True if successfull</returns>
-        ''' <remarks></remarks>
-        Public Function Persist(Optional timestamp As Date = ot.ConstNullDate) As Boolean
-            Dim anEntry As New ObjectEntryDefinition
-            Dim headentry As New ObjectEntryDefinition
-            Dim anIndexColl As List(Of String)
-            Dim i As Integer
-            Dim flag As Boolean
-            Dim changed As Boolean
-            Dim m As Object
-            Dim n As Object
-
-            '*
-            If _runtimeOnly Then
-                Call CoreMessageHandler(message:="Object is runtime Only and will not be persisted", subname:="clsOTDBSchemaDefTable.Persist", _
-                                        messagetype:=otCoreMessageType.InternalWarning, break:=False, arg1:=Me.Name)
-
-                Return False
-            End If
-            '* init
-            If Not IsInitialized Then
-                If Not Me.Initialize() Then
-                    Persist = False
-                    Exit Function
-                End If
-            End If
-            If Not IsLoaded And Not IsCreated Then
-                Persist = False
-                Exit Function
-            End If
-
-            If timestamp = ConstNullDate Then
-                timestamp = Date.Now
-            End If
-            ' persist each entry
-            For Each anEntry In _entries.Values
-
-                If anEntry.Name <> "" Then
-                    If anEntry.IsChanged Then
-                        changed = True
-                    End If
-                    ' inprimary ?
-                    i = 0
-                    flag = False
-                    If _indices.ContainsKey(_pkname) Then
-                        anIndexColl = _indices.Item(_pkname)
-                        For i = 0 To anIndexColl.Count - 1
-                            If LCase(anEntry.Name) = LCase(anIndexColl.ElementAt(i)) Then
-                                flag = True
-                                Exit For
-                            End If
-                        Next i
-                        If flag Then
-                            anEntry.IsPrimaryKey = True
-                            anEntry.IndexPosition = i
-                        Else
-                            anEntry.IsPrimaryKey = False
-                            anEntry.IndexPosition = 0
-                        End If
-                    Else
-                        anEntry.IsPrimaryKey = False
-                        anEntry.IndexPosition = 0
-                    End If
-
-
-                    ' persist member first
-                    anEntry.Persist(timestamp)
-                Else
-                    headentry = anEntry
-                End If
-            Next
-            ' persist head
-            If changed Then
-                headentry.Version = _Version
-                headentry.UseCache = _useCache
-                headentry.CacheSelect = _CacheSelect
-                headentry.SpareFieldsBehavior = _SpareFieldsFlagBehavior
-                headentry.DeleteFlagBehavior = _deletePerFlagBehavior
-                headentry.domainBehavior = _domainBehavior
-            End If
-
-            headentry.Typeid = otObjectEntryDefinitiontype.Table
-            Persist = headentry.Persist(timestamp)
-
-            '** raise my change
-            RaiseEvent ObjectDefinitionChanged(Me, New ObjectDefintionEventArgs(objectname:=Me.Name)) ' in persist
-            '** announce to session
-            Me.TableStore.Connection.Session.RaiseObjectChangedDefinitionEvent(Me, New ObjectDefintionEventArgs(objectname:=Me.TableID))
-
-            Exit Function
-
-errorhandle:
-
-            Persist = False
-
-        End Function
-
-        '**** create : create a new Object with primary keys
-        '****
-        ''' <summary>
-        ''' create a new data object of that type
-        ''' </summary>
-        ''' <param name="tablename">tablename of the table</param>
-        ''' <param name="runTimeOnly">if no save is possible -> bootstrapping</param>
-        ''' <returns>True if successfull</returns>
-        ''' <remarks></remarks>
-        Public Function Create(ByVal tablename As String, _
-        Optional runTimeOnly As Boolean = False, _
-        Optional checkunique As Boolean = False, _
-        Optional version As UShort = 1) As Boolean
-            Dim anEntry As New ObjectEntryDefinition
-
-            '* init
-            If Not IsInitialized And Not runTimeOnly Then
-                If Not Me.Initialize() Then
-                    Create = False
-                    Exit Function
-                End If
-            End If
-
-            If IsLoaded Then
-                Create = False
-                Exit Function
-            End If
-
-            ' set the primaryKey
-            _tablename = LCase(tablename)
-            _entries = New Dictionary(Of String, ObjectEntryDefinition)
-
-            ' abort create if containsKey
-            If Not anEntry.Create(objectname:=LCase(tablename), _
-                                  typeid:=otObjectEntryDefinitiontype.Table, _
-                                  checkunique:=checkunique, _
-                                  runtimeOnly:=runTimeOnly) Then
-                Create = False
-                Exit Function
-            End If
-
-            anEntry.Version = version ' set the version for the head entry
-            _entries.Add(key:="", value:=anEntry) ' headentry
-
-            _runtimeOnly = runTimeOnly
-            _IsCreated = True
-            Create = IsCreated
-
-        End Function
-
-        ''' <summary>
-        ''' retrieves the max posno / entry index
-        ''' </summary>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Function GetMaxPosNo() As UShort
-            If _entriesordinalPos.Count = 0 Then
-                Return 0
-            Else
-                Return _entriesordinalPos.Keys.Max
-            End If
-
-        End Function
-
-    End Class
-
-    '************************************************************************************
-    '***** CLASS clsOTDBSchemaDefTableEntry describes additional database schema information
-    '*****
-
-    Public Class ObjectEntryDefinition
-        Inherits ormDataObject
-        Implements iormPersistable
-        Implements iormInfusable
-
-
-        '*** CONST Schema
-        '** Table
-        <ormSchemaTableAttribute(Version:=5, adddeletefieldbehavior:=True, adddomainID:=True)> Public Const ConstTableID = "tblSchemaDirectory"
-        '** Index
-        <ormSchemaIndexAttribute(ColumnName1:=ConstFNxid, columnname2:=ConstFNTableName)> Public Const ConstIndexXID = "ID"
-        <ormSchemaIndexAttribute(columnName1:=ConstFNDomainID, ColumnName2:=ConstFNxid, columnname3:=ConstFNTableName)> Public Const ConstIndDomain = "Domain"
-
-        '*** Columns
-        <ormSchemaColumnAttribute(defaultvalue:="", typeid:=otFieldDataType.Text, size:=100, _
-                                  title:="Table Name", Description:="tablename in the datastore", primaryKeyordinal:=1)> _
-        Public Const ConstFNTableName As String = "tblname"
-
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Text, size:=100, defaultvalue:="", _
-                                  title:="Column Name", Description:="column name in the datastore", primaryKeyordinal:=2)> _
-        Public Const ConstFNFieldname As String = "fieldname"
-
-        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=100, primarykeyordinal:=3, _
-               title:="Domain", description:="domain of the entry")> Public Const ConstFNDomainID = Domain.ConstFNDomainID
-
-        <ormSchemaColumnAttribute(defaultvalue:="0", typeid:=otFieldDataType.[Long], title:="Pos", Description:="position number in record")> _
-        Public Const ConstFNPosition As String = "pos"
-
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Text, size:=50, defaultvalue:="", _
-                                  title:="XChangeID", Description:="ID for XChange manager")> _
-        Public Const ConstFNxid As String = "id"
-
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Text, size:=50, defaultvalue:="", _
-                                  title:="Title", Description:="title for column headers of the field")> _
-        Public Const ConstFNTitle As String = "title"
-
-        <ormSchemaColumnAttribute(defaultvalue:="", typeid:=otFieldDataType.Memo, isnullable:=True, _
-                                  title:="Description", Description:="Description of the field")> _
-        Public Const ConstFNDescription As String = "desc"
-
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Text, defaultvalue:="", isarray:=True, _
-                                  title:="XChange alias ID", Description:="aliases ID for XChange manager")> _
-        Public Const ConstFNalias As String = "alias"
-
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Text, size:=50, defaultvalue:="FIELD", _
-                                  title:="Type", Description:="OTDB schema entry type")> _
-        Public Const ConstFNType As String = "typeid"
-
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Text, defaultvalue:="", isarray:=True, _
-                                  title:="Parameter", Description:="parameters")> _
-        Public Const ConstFNParameter As String = "parameter"
-
-        <ormSchemaColumnAttribute(defaultvalue:="1", typeid:=otFieldDataType.[Long], _
-                                  title:="Datatype", Description:="OTDB field data type")> _
-        Public Const ConstFNDatatype As String = "datatype"
-
-        <ormSchemaColumnAttribute(defaultvalue:="", typeid:=otFieldDataType.Text, isnullable:=True, isarray:=True, _
-                                  title:="DefaultValue", Description:="default value of the field")> _
-        Public Const ConstFNDefaultValue As String = "default"
-
-        <ormSchemaColumnAttribute(defaultvalue:="0", typeid:=otFieldDataType.[Long], _
-                                  title:="UpdateCount", Description:="version counter of updating")> _
-        Public Const ConstFNUPDC As String = "updc"
-
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.[Long], defaultvalue:="0", _
-                                  title:="Size", Description:="max Length of the Column")> _
-        Public Const ConstFNSize As String = "size"
-
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Text, isarray:=True, title:="Relation", Description:="relation information")> _
-        Public Const ConstFNRelation As String = "relation"
-
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Text, size:=50, defaultvalue:="", title:="Index", Description:="index name")> _
-        Public Const ConstFNIndex As String = "index"
-
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.[Long], defaultvalue:="0", _
-                                  title:="IndexPosition", Description:="position number in index")> _
-        Public Const ConstFNIndexPosition As String = "posin"
-
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Bool, defaultvalue:="0", title:="Is Key", Description:="set if the entry is a key")> _
-        Public Const ConstFNKey As String = "key"
-
-        <ormSchemaColumnAttribute(defaultvalue:="0", typeid:=otFieldDataType.Bool, _
-                                  title:="Is primary Key", Description:="set if the entry is a primary key")> _
-        Public Const ConstFNPrimaryKey As String = "pkey"
-
-        <ormSchemaColumnAttribute( _
-        typeid:=otFieldDataType.Bool, defaultvalue:="0", title:="Is Nullable", Description:="set if the entry is a nullable")> _
-        Public Const ConstFNIsNullable As String = "isnull"
-
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Bool, defaultvalue:="0", _
-                                  title:="Is Array", Description:="set if the entry value is an array of values")> _
-        Public Const ConstFNIsArray As String = "isarray"
-
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Bool, title:="use cache", defaultvalue:="", Description:="set if the entry is cached")> _
-        Public Const ConstFNUseCache As String = "cache"
-
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Memo, title:="Cache", defaultvalue:="", Description:="selection what to cache")> _
-        Public Const ConstFNCacheSelection As String = "cacheselect"
-
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Text, defaultvalue:="", size:=50, _
-        title:="Compound Table", Description:="name of the compound table")> _
-        Public Const ConstFNCompoundTable As String = "ctblname"
-
-        <ormSchemaColumnAttribute( _
-        typeid:=otFieldDataType.Text, defaultvalue:="", isarray:=True, _
-        title:="Compound Relation", Description:="relation column names of the compound table")> _
-        Public Const ConstFNCompoundRelation As String = "crelation"
-
-        <ormSchemaColumnAttribute( _
-        typeid:=otFieldDataType.Text, defaultvalue:="", size:=50, _
-        title:="compound id field", Description:="name of the compound id field")> _
-        Public Const ConstFNCompoundIDField As String = "cidfield"
-
-        <ormSchemaColumnAttribute( _
-        typeid:=otFieldDataType.Text, defaultvalue:="", size:=255, _
-        title:="compound value field", Description:="name of the compound value field")> _
-        Public Const ConstFNCompoundValueField As String = "cvalfield"
-
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Bool, defaultvalue:="0", title:="TableDeleteFlagBehaviour", Description:="set if the table runs the delete per flag behavior")> _
-        Public Const ConstFNDeletePerFlag As String = "RecordDeletePerFlag"
-
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Bool, defaultvalue:="0", title:="TableSpareFieldsBehaviour", Description:="set if the table has additional spare fields behavior")> _
-        Public Const ConstFNSpareFieldsFlag As String = "RecordSpareFieldsFlag"
-
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Bool, defaultvalue:="0", title:="SpareFieldTag", Description:="set if the field is a spare field")> _
-        Public Const ConstFNSpareFieldTag As String = "SpareFieldTag"
-
-        <ormSchemaColumnAttribute(typeid:=otFieldDataType.Bool, defaultvalue:="0", title:="DomainBehaviour", Description:="set if the table entries are belong to a domain")> _
-        Public Const ConstFNDomainFlag As String = "DomainBehaviorFlag"
-
-        ' fields
-        <ormColumnMappingAttribute(fieldname:=ConstFNxid)> Private _xid As String = ""
-        <ormColumnMappingAttribute(fieldname:=ConstFNTableName)> Private _objectname As String = ""
-        <ormColumnMappingAttribute(fieldname:=ConstFNFieldname)> Private _entryname As String = ""
-        <ormColumnMappingAttribute(fieldname:=ConstFNRelation)> Private _relation As String = ""
-        <ormColumnMappingAttribute(fieldname:=ConstFNParameter)> Private _parameter As String = ""
-        <ormColumnMappingAttribute(fieldname:=ConstFNalias)> Private _aliases As String = ""
-        <ormColumnMappingAttribute(fieldname:=ConstFNTitle)> Private _title As String = ""
-        <ormColumnMappingAttribute(fieldname:=ConstFNDatatype)> Private _datatype As otFieldDataType
-        <ormColumnMappingAttribute(fieldname:=ConstFNUPDC)> Private _version As Long = 0
-        <ormColumnMappingAttribute(fieldname:=ConstFNSize)> Private _size As Long = 0
-        <ormColumnMappingAttribute(fieldname:=ConstFNIsNullable)> Private _isNullable As Boolean = False
-        <ormColumnMappingAttribute(fieldname:=ConstFNIsArray)> Private _isArray As Boolean = False
-        <ormColumnMappingAttribute(fieldname:=ConstFNDefaultValue)> Private _DefaultValue As String = ""
-        <ormColumnMappingAttribute(fieldname:=ConstFNDescription)> Private _Description As String = ""
-        <ormColumnMappingAttribute(fieldname:=ConstFNPosition)> Private _Position As Long = 0
-        <ormColumnMapping(fieldname:=ConstFNDeletePerFlag)> Private _deletePerFlagBehavior As Boolean = False
-        <ormColumnMapping(fieldname:=ConstFNSpareFieldsFlag)> Private _SpareFieldsFlagBehavior As Boolean = False
-        <ormColumnMapping(fieldname:=ConstFNDomainFlag)> Private _domainFlagBehavior As Boolean = False
-        <ormColumnMapping(fieldname:=ConstFNSpareFieldTag)> Private _SpareFieldTag As Boolean = False
-        '<otColumnMapping(fieldname:=ConstFNType)> exclude from mapping since Type conversion must be handled
-        Private _typeid As otObjectEntryDefinitiontype
-
-        <ormColumnMappingAttribute(fieldname:=ConstFNIndex)> Private _indexname As String = ""
-        <ormColumnMappingAttribute(fieldname:=ConstFNIndexPosition)> Private _posin As Long
-        <ormColumnMappingAttribute(fieldname:=ConstFNPrimaryKey)> Private _isPrimaryKey As Boolean = False
-        <ormColumnMappingAttribute(fieldname:=ConstFNKey)> Private _isKey As Boolean = False
-
-        <ormColumnMappingAttribute(fieldname:=ConstFNUseCache)> Private _useCache As Boolean = False
-        <ormColumnMappingAttribute(fieldname:=ConstFNCacheSelection)> Private _CacheSelect As String = ""
-
-        '** compound settings
-        <ormColumnMappingAttribute(fieldname:=ConstFNCompoundTable)> Private _cTablename As String = ""
-        <ormColumnMappingAttribute(fieldname:=ConstFNCompoundRelation)> Private _cRelation As String = ""
-        <ormColumnMappingAttribute(fieldname:=ConstFNCompoundIDField)> Private _cIDFieldname As String = ""
-        <ormColumnMappingAttribute(fieldname:=ConstFNCompoundValueField)> Private _cValueFieldname As String = ""
-
-        ' further internals
-        Private _runTimeOnly As Boolean = False
-        Private _hasListofValues As Boolean = False ' has defined list of values
-        Private _listOfValues As List(Of Object) = New List(Of Object)
-        Private _hasLowerRangeValue As Boolean = False
-        Private _lowerRangeValue As Object = Nothing
-        Private _hasUpperRangeValue As Boolean = False
-        Private _upperRangeValue As Object = Nothing
-
-        ''' <summary>
-        ''' constructor of a SchemaDefTableEntry
-        ''' </summary>
-        ''' <remarks></remarks>
-        Public Sub New()
-            Call MyBase.New(ConstTableID)
-
-        End Sub
-
-#Region "Properties"
-        ''' <summary>
-        ''' True if ObjectEntry has a defined lower value
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public ReadOnly Property HasLowerRangeValue As Boolean
-            Get
-                Return _hasLowerRangeValue
-            End Get
-        End Property
-        ''' <summary>
-        ''' gets the lower range Value
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public ReadOnly Property LowerRangeValue As Object
-            Get
-                Return New Object
-            End Get
-        End Property
-        ''' <summary>
-        ''' True if ObjectEntry has a defined upper value
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public ReadOnly Property HasUpperRangeValue As Boolean
-            Get
-                Return _hasUpperRangeValue
-            End Get
-        End Property
-        ''' <summary>
-        ''' gets the upper range Value
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public ReadOnly Property UpperRangeValue As Object
-            Get
-                Return New Object
-            End Get
-        End Property
-        ''' <summary>
-        ''' gets the list of possible values
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public ReadOnly Property HasPossibleValues As Boolean
-            Get
-                Return _hasListofValues
-            End Get
-        End Property
-        ''' <summary>
-        ''' gets the list of possible values
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public ReadOnly Property PossibleValues As List(Of Object)
-            Get
-                Return _listOfValues
-            End Get
-        End Property
-        ''' <summary>
-        ''' Gets or sets the position.
-        ''' </summary>
-        ''' <value>The position.</value>
-        Public Property Position() As Long
-            Get
-                Return Me._Position
-            End Get
-            Set(value As Long)
-                Me._Position = value
-            End Set
-        End Property
-
-        ''' <summary>
-        ''' Gets or sets the description.
-        ''' </summary>
-        ''' <value>The description.</value>
-        Public Property Description() As String
-            Get
-                Return Me._Description
-            End Get
-            Set(value As String)
-                Me._Description = value
-            End Set
-        End Property
-        ''' <summary>
-        ''' gets the default value as object representation
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public ReadOnly Property DefaultValue() As Object
-            Get
-                Select Case Me.Datatype
-                    Case otFieldDataType.Bool
-                        If _DefaultValue Is Nothing Then
-                            Return False
-                        ElseIf IsNumeric(_DefaultValue) Then
-                            If CLng(_DefaultValue) = 0 Then
-                                Return False
-                            Else
-                                Return True
-                            End If
-                        ElseIf String.IsNullOrWhiteSpace(_DefaultValue) Then
-                            Return False
-                        ElseIf LCase(CStr(_DefaultValue)) = "true" OrElse LCase(CStr(_DefaultValue)) = "yes" Then
-                            Return True
-                        ElseIf LCase(CStr(_DefaultValue)) = "false" OrElse LCase(CStr(_DefaultValue)) = "no" Then
-                            Return False
-                        Else
-                            Return CBool(_DefaultValue)
-                        End If
-
-                    Case otFieldDataType.Long
-                        If _DefaultValue Is Nothing Then
-                            Return CLng(0)
-                        ElseIf IsNumeric(_DefaultValue) Then
-                            Return CLng(_DefaultValue)
-                        Else
-                            Return CLng(0)
-                        End If
-
-                    Case otFieldDataType.Numeric
-                        If _DefaultValue Is Nothing Then
-                            Return CDbl(0)
-                        ElseIf IsNumeric(_DefaultValue) Then
-                            Return CDbl(_DefaultValue)
-                        Else
-                            Return CDbl(0)
-                        End If
-
-                    Case otFieldDataType.List, otFieldDataType.Memo, otFieldDataType.Text
-                        If _DefaultValue Is Nothing Then
-                            Return ""
-                        Else
-                            Return _DefaultValue
-                        End If
-
-                    Case otFieldDataType.Date, otFieldDataType.Timestamp
-                        If _DefaultValue Is Nothing OrElse Not IsDate(_DefaultValue) Then
-                            Return ConstNullDate
-                        Else
-                            Return CDate(_DefaultValue)
-                        End If
-
-                    Case otFieldDataType.Time
-                        If _DefaultValue Is Nothing OrElse Not IsDate(_DefaultValue) Then
-                            Return ConstNullTime
-                        Else
-                            Return CDate(_DefaultValue)
-                        End If
-
-                    Case Else
-                        Return Nothing
-                End Select
-
-            End Get
-        End Property
-        ''' <summary>
-        ''' Gets or sets the default value in string presentation
-        ''' </summary>
-        ''' <value>The default value.</value>
-        Public Property DefaultValueString() As String
-            Get
-                Return Me._DefaultValue
-            End Get
-            Set(value As String)
-                Me._DefaultValue = value
-            End Set
-        End Property
-
-        ''' <summary>
-        ''' sets or gets the tablename of the entry
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Property Objectname() As String
-            Get
-                Objectname = _objectname
-            End Get
-            Set(value As String)
-                If LCase(_objectname) <> LCase(value) Then
-                    _objectname = value
-                    IsChanged = True
-                End If
-            End Set
-        End Property
-        ''' <summary>
-        ''' use Cache on this object
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Property UseCache As Boolean
-            Set(value As Boolean)
-                _useCache = value
-            End Set
-            Get
-                Return _useCache
-            End Get
-        End Property
-        ''' <summary>
-        ''' sets or gets the cache selection
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Property CacheSelect As String
-            Set(value As String)
-                _CacheSelect = value
-            End Set
-            Get
-                Return _CacheSelect
-            End Get
-        End Property
-        ''' <summary>
-        ''' Object cannot be persisted only.
-        ''' </summary>
-        ''' <value>The run tim only.</value>
-        Public ReadOnly Property RunTimeOnly() As Boolean
-            Get
-                Return Me._runTimeOnly
-            End Get
-        End Property
-        ''' <summary>
-        ''' sets or gets the XchangeManager ID for the field 
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Property ID() As String
-            Get
-                ID = _xid
-            End Get
-            Set(avalue As String)
-                If LCase(_xid) <> LCase(avalue) Then
-                    _xid = avalue
-                    IsChanged = True
-                End If
-            End Set
-
-        End Property
-        Public Property Entryname As String
-            Get
-                Return Name
-            End Get
-            Set(value As String)
-                Me.Name = value
-            End Set
-        End Property
-        ''' <summary>
-        ''' sets or gets the name of the columns
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Property Name() As String
-            Get
-                Name = _entryname
-            End Get
-            Set(value As String)
-                If LCase(_entryname) <> LCase(value) Then
-                    _entryname = value
-                    IsChanged = True
-                End If
-            End Set
-        End Property
-        ''' <summary>
-        ''' sets or gets the type OTDBSchemaDefTableEntryType of the field
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Property Typeid() As otObjectEntryDefinitiontype
-            Get
-                Typeid = Me._typeid
-
-            End Get
-            Set(value As otObjectEntryDefinitiontype)
-                If _typeid <> value Then
-                    _typeid = value
-                    IsChanged = True
-                End If
-            End Set
-        End Property
-        ''' <summary>
-        ''' Gets or sets the is nullable.
-        ''' </summary>
-        ''' <value>The is nullable.</value>
-        Public Property IsNullable() As Boolean
-            Get
-                Return Me._isNullable
-            End Get
-            Set(value As Boolean)
-                Me._isNullable = value
-            End Set
-        End Property
-        ''' <summary>
-        ''' Gets or sets the is array flag. Field will be transformed to and from an array
-        ''' </summary>
-        ''' <value>The is array.</value>
-        Public Property IsArray() As Boolean
-            Get
-                Return Me._isArray
-            End Get
-            Set(value As Boolean)
-                Me._isArray = value
-            End Set
-        End Property
-        ''' <summary>
-        ''' sets or gets true if this field is a spare field
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Property SpareFieldTag()
-            Get
-                Return Me._SpareFieldTag
-            End Get
-            Set(value)
-                Me._SpareFieldTag = value
-            End Set
-        End Property
-
-        ''' <summary>
-        ''' IsField ?
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        ReadOnly Property IsField() As Boolean
-            Get
-                If _typeid = otObjectEntryDefinitiontype.Field Then IsField = True
-            End Get
-        End Property
-        ''' <summary>
-        ''' returns true if entry is a compound
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        ReadOnly Property IsCompound() As Boolean
-            Get
-                If _typeid = otObjectEntryDefinitiontype.Compound Then IsCompound = True
-            End Get
-        End Property
-        ''' <summary>
-        ''' returns true if entry is a Table
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        ReadOnly Property IsTable() As Boolean
-            Get
-                If _typeid = otObjectEntryDefinitiontype.Table Then IsTable = True
-            End Get
-        End Property
-        ''' <summary>
-        ''' returns the field data type
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Property Datatype() As otFieldDataType
-            Get
-                Datatype = _datatype
-            End Get
-            Set(avalue As otFieldDataType)
-                If _datatype <> avalue Then
-                    _datatype = avalue
-                    IsChanged = True
-                End If
-            End Set
-        End Property
-        ''' <summary>
-        ''' returns version
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Property Version() As Long
-            Get
-                Version = _version
-            End Get
-            Set(value As Long)
-                _version = value
-                IsChanged = True
-            End Set
-        End Property
-        ''' <summary>
-        ''' returns the size
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Property Size() As Long
-            Get
-                Size = _size
-            End Get
-            Set(value As Long)
-                If _size <> value Then
-                    _size = value
-                    IsChanged = True
-                End If
-            End Set
-        End Property
-        ''' <summary>
-        ''' returns a array of aliases
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Property Aliases() As String()
-            Get
-                Return Converter.String2Array(UCase(_aliases))
-            End Get
-            Set(avalue As String())
-                If Not Array.Equals(avalue, _aliases) Then
-                    _aliases = Converter.Array2String(avalue)
-                    IsChanged = True
-                End If
-            End Set
-        End Property
-        ''' <summary>
-        ''' returns the relation ob the entry
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Property Relation() As Object
-            Get
-                Relation = SplitMultbyChar(text:=_relation, DelimChar:=ConstDelimiter)
-                If Not IsArrayInitialized(Relation) Then
-                    Relation = New String() {}
-                End If
-            End Get
-            Set(avalue As Object)
-                Dim i As Integer
-                If IsArrayInitialized(avalue) Then
-                    Dim aStrValue As String
-                    For i = LBound(avalue) To UBound(avalue)
-                        If i = LBound(avalue) Then
-                            aStrValue = ConstDelimiter & UCase(avalue(i)) & ConstDelimiter
-                        Else
-                            aStrValue = aStrValue & avalue(i) & ConstDelimiter
-                        End If
-                    Next i
-                    _relation = aStrValue
-                    IsChanged = True
-                    'ElseIf Not IsNothing(Trim(aVAlue)) And Trim(aVAlue) <> "" And Not isNull(aVAlue) Then
-                    '   s_relation = ConstDelimiter & CStr(Trim(avalue)) & ConstDelimiter
-                Else
-                    _relation = ""
-                End If
-            End Set
-        End Property
-        ''' <summary>
-        ''' returns the parameter for the object entry
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Property Parameter() As String
-            Get
-                Parameter = _parameter
-            End Get
-            Set(value As String)
-                If LCase(_parameter) <> LCase(value) Then
-                    _parameter = value
-                    IsChanged = True
-                End If
-            End Set
-        End Property
-        ''' <summary>
-        ''' returns Title (Column Header)
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Property Title() As String
-            Get
-                Title = _title
-            End Get
-            Set(value As String)
-                If _title <> value Then
-                    _title = value
-                    IsChanged = True
-                End If
-            End Set
-        End Property
-        ''' <summary>
-        ''' returns the Position in the index
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Property IndexPosition() As Long
-            Get
-                IndexPosition = _posin
-            End Get
-            Set(avalue As Long)
-                If _posin <> avalue Then
-                    _posin = avalue
-                    IsChanged = True
-                End If
-            End Set
-        End Property
-        ''' <summary>
-        ''' return the IndexName if entry belongs to an index
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Property Indexname() As String
-            Get
-                Indexname = _indexname
-            End Get
-            Set(value As String)
-                If LCase(_indexname) <> LCase(value) Then
-                    _indexname = value
-                    IsChanged = True
-                End If
-            End Set
-        End Property
-        ''' <summary>
-        ''' returns true if Entry has a Primary Key
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Property IsPrimaryKey() As Boolean
-            Get
-                IsPrimaryKey = _isPrimaryKey
-            End Get
-            Set(value As Boolean)
-                If _isPrimaryKey <> value Then
-                    _isPrimaryKey = value
-                    IsChanged = True
-                End If
-            End Set
-        End Property
-        ''' <summary>
-        ''' returns True if the Entry belongs to a Key
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Property IsKey() As Boolean
-            Get
-                IsKey = _isKey
-            End Get
-            Set(value As Boolean)
-                If _isKey <> value Then
-                    _isKey = value
-                    IsChanged = True
-                End If
-            End Set
-        End Property
-        ''' <summary>
-        ''' returns the CompoundTablename
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Property CompoundTablename() As String
-            Get
-                CompoundTablename = _cTablename
-            End Get
-            Set(value As String)
-                If LCase(_cTablename) <> LCase(value) Then
-                    _cTablename = value
-                    IsChanged = True
-                End If
-            End Set
-        End Property
-        ''' <summary>
-        ''' returns the fieldname of the compound ID
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Property CompoundIDFieldname() As String
-            Get
-                CompoundIDFieldname = _cIDFieldname
-            End Get
-            Set(value As String)
-                If LCase(_cIDFieldname) <> LCase(value) Then
-                    _cIDFieldname = value
-                    IsChanged = True
-                End If
-            End Set
-        End Property
-        ''' <summary>
-        ''' returns the fieldname of the compounds value
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Property CompoundValueFieldname() As String
-            Get
-                CompoundValueFieldname = _cValueFieldname
-            End Get
-            Set(value As String)
-                If LCase(_cValueFieldname) <> LCase(value) Then
-                    _cValueFieldname = value
-                    IsChanged = True
-                End If
-            End Set
-        End Property
-        ''' <summary>
-        ''' returns the array of relations of a compound
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Property CompoundRelation() As String()
-            Get
-                CompoundRelation = SplitMultbyChar(text:=_cRelation, DelimChar:=ConstDelimiter)
-                If Not IsArrayInitialized(CompoundRelation) Then
-                    CompoundRelation = New String() {}
-                End If
-            End Get
-            Set(avalue As String())
-                Dim i As Integer
-                If IsArrayInitialized(avalue) Then
-                    Dim aStrValue As String
-                    For i = LBound(avalue) To UBound(avalue)
-                        If i = LBound(avalue) Then
-                            aStrValue = ConstDelimiter & UCase(avalue(i)) & ConstDelimiter
-                        Else
-                            aStrValue = aStrValue & avalue(i) & ConstDelimiter
-                        End If
-                    Next i
-                    _cRelation = aStrValue
-                    IsChanged = True
-                    'ElseIf Not IsNothing(Trim(avalue)) And Trim(avalue) <> "" And Not isNull(avalue) Then
-                    '   s_cRelation = ConstDelimiter & CStr(Trim(avalue)) & ConstDelimiter
-                Else
-                    _cRelation = ""
-                End If
-            End Set
-        End Property
-        ''' <summary>
-        ''' Gets or sets the behavior of the table to delete per flag (if true) not per purge the record.
-        ''' </summary>
-        ''' <value></value>
-        Public Property DeleteFlagBehavior() As Boolean
-            Get
-                Return Me._deletePerFlagBehavior
-            End Get
-            Set(value As Boolean)
-                Me._deletePerFlagBehavior = value
-            End Set
-        End Property
-        ''' <summary>
-        ''' Gets or sets the behavior of the table to run with additional (spare) fields.
-        ''' </summary>
-        ''' <value></value>
-        Public Property SpareFieldsBehavior() As Boolean
-            Get
-                Return Me._SpareFieldsFlagBehavior
-            End Get
-            Set(value As Boolean)
-                Me._SpareFieldsFlagBehavior = value
-            End Set
-        End Property
-        ''' <summary>
-        ''' Gets or sets the behavior of the table entries to belong to a domain
-        ''' </summary>
-        ''' <value></value>
-        Public Property DomainBehavior() As Boolean
-            Get
-                Return Me._domainFlagBehavior
-            End Get
-            Set(value As Boolean)
-                Me._domainFlagBehavior = value
-            End Set
-        End Property
-#End Region
-
-        ''' <summary>
-        ''' Initialize
-        ''' </summary>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Overrides Function Initialize() As Boolean
-            _IsInitialized = MyBase.Initialize()
-            If Not Me.TableStore Is Nothing Then
-                Me.TableStore.SetProperty(ConstTPNCacheProperty, True)
-            End If
-            Return _IsInitialized
-        End Function
-        ''' <summary>
-        ''' Increase the version
-        ''' </summary>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Function IncVersion() As Long
-            _version = _version + 1
-            IncVersion = _version
-        End Function
-
-        '**** set the values by CompoundDesc
-        '****
-        ''' <summary>
-        ''' sets the values of this schemadefTableEntry by a FieldDescription
-        ''' </summary>
-        ''' <param name="FIELDDESC"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Function SetByFieldDesc(ByRef fielddesc As ormFieldDescription) As Boolean
-            If Not IsLoaded And Not IsCreated Then
-                SetByFieldDesc = False
-                Exit Function
-            End If
-
-            Me.ID = UCase(fielddesc.ID)
-            Me.Parameter = fielddesc.Parameter
-            Me.Title = fielddesc.Title
-            Me.Datatype = fielddesc.Datatype
-            Me.Objectname = fielddesc.Tablename
-            Me.Size = fielddesc.Size
-            Me.Typeid = otObjectEntryDefinitiontype.Field
-            Me.Relation = fielddesc.Relation
-            Me.Aliases = fielddesc.Aliases
-            Me.IsNullable = fielddesc.IsNullable
-            Me.DefaultValueString = fielddesc.DefaultValue
-            Me.IsArray = fielddesc.IsArray
-            Me.Description = fielddesc.Description
-            Me.Version = fielddesc.Version
-            Me.Position = fielddesc.ordinalPosition
-            Me.SpareFieldTag = fielddesc.SpareFieldTag
-
-            SetByFieldDesc = Me.IsChanged
-        End Function
-        '**** set the values by CompoundDesc
-        '****
-        ''' <summary>
-        ''' sets the values of this schemadefTableEntry by a CompoundDescription
-        ''' </summary>
-        ''' <param name="compounddesc"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Function SetByCompoundDesc(ByRef compounddesc As ormCompoundDesc) As Boolean
-            If Not IsLoaded And Not IsCreated Then
-                SetByCompoundDesc = False
-                Exit Function
-            End If
-
-            If Me.SetByFieldDesc(compounddesc) Then
-                Me.Typeid = otObjectEntryDefinitiontype.Compound
-                Me.CompoundIDFieldname = compounddesc.compound_IDFieldname
-                Me.CompoundTablename = compounddesc.compound_Tablename
-                Me.CompoundValueFieldname = compounddesc.compound_ValueFieldname
-                Me.CompoundRelation = compounddesc.compound_Relation
-                'Me.name = COMPOUNDDESC.name
-
-                SetByCompoundDesc = Me.IsChanged
-            End If
-        End Function
-        '**** get the values by FieldDesc
-        '****
-        ''' <summary>
-        ''' fills a compound description out of this SchemaDefTableentry
-        ''' </summary>
-        ''' <param name="compounddesc"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Function GetByCompoundDesc(ByRef compounddesc As ormCompoundDesc) As Boolean
-            If Not IsLoaded And Not IsCreated Then
-                GetByCompoundDesc = False
-                Exit Function
-            End If
-
-            If Me.GetByFieldDesc(compounddesc) Then
-                compounddesc.compound_IDFieldname = Me.CompoundIDFieldname
-                compounddesc.compound_Relation = Me.CompoundRelation
-                compounddesc.compound_Tablename = Me.CompoundTablename
-                compounddesc.compound_ValueFieldname = Me.CompoundValueFieldname
-
-                GetByCompoundDesc = True
-            End If
-        End Function
-        '**** get the values by FieldDesc
-        '****
-        ''' <summary>
-        ''' fills a field description out of this SchemaDefTableEntry
-        ''' </summary>
-        ''' <param name="fielddesc"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Function GetByFieldDesc(ByRef fielddesc As ormFieldDescription) As Boolean
-            If Not IsLoaded And Not IsCreated Then
-                GetByFieldDesc = False
-                Exit Function
-            End If
-
-            fielddesc.ID = UCase(Me.ID)
-            fielddesc.Parameter = Me.Parameter
-            fielddesc.Title = Me.Title
-            fielddesc.Datatype = Me.Datatype
-            fielddesc.Tablename = Me.Objectname
-            fielddesc.Version = Me.Version
-            fielddesc.Aliases = Me.Aliases
-            fielddesc.Relation = Me.Relation
-            fielddesc.Size = Me.Size
-            fielddesc.IsNullable = Me.IsNullable
-            fielddesc.IsArray = Me.IsArray
-            fielddesc.Description = Me.Description
-            fielddesc.DefaultValue = Me.DefaultValueString
-            'FIELDDESC.Name = Me.Name
-
-            GetByFieldDesc = True
-        End Function
-
-        ''' <summary>
-        ''' infuses the object from a record
-        ''' </summary>
-        ''' <param name="aRecord"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Overrides Function Infuse(ByRef record As ormRecord) As Boolean
-            Dim aVAlue As String
-
-            '* init
-            If Not IsInitialized Then
-                If Not Me.Initialize() Then
-                    Infuse = False
-                    Exit Function
-                End If
-            End If
-
-            Try
-                '*** infuse all and then special handling
-                If MyBase.Infuse(record) Then
-
-                    aVAlue = CStr(record.GetValue("typeid"))
-                    Select Case LCase(aVAlue)
-                        Case "field"
-                            _typeid = otObjectEntryDefinitiontype.Field
-                        Case "compound"
-                            _typeid = otObjectEntryDefinitiontype.Compound
-                        Case "table"
-                            _typeid = otObjectEntryDefinitiontype.Table
-                        Case Else
-                            Call CoreMessageHandler(arg1:=aVAlue, subname:="clsOTDBSchemaDefTableEntry.infuse", _
-                                                    entryname:="typeid", tablename:=ConstTableID, message:=" type id has a unknown value")
-                            _typeid = 0
-                    End Select
-                End If
-
-                Return Me.IsLoaded
-
-            Catch ex As Exception
-                Call CoreMessageHandler(subname:="clsOTDBSchemaDefTableEntry.Infuse", exception:=ex)
-                Return False
-            End Try
-
-        End Function
-
-        '**** allByID
-        '****
-        Public Function AllByID(ByVal ID As String, Optional ByVal tablename As String = "") As Collection
-            Dim aCollection As New Collection
-            Dim aRecordCollection As List(Of ormRecord)
-            Dim returnCollection As New Collection
-            Dim aTable As iormDataStore
-            Dim aRecord As ormRecord
-            Dim wherestr As String
-            Dim aNew As New ObjectEntryDefinition
-
-            '* lazy init
-            If Not IsInitialized Then
-                If Not Me.Initialize() Then
-                    AllByID = Nothing
-                    Exit Function
-                End If
-            End If
-
-            On Error GoTo error_handler
-
-            aTable = GetTableStore(Me.TableID)
-            wherestr = " ( ID = '" & UCase(ID) & "' or alias like '%" & ConstDelimiter & UCase(ID) & ConstDelimiter & "%' )"
-            If tablename <> "" Then
-                wherestr = wherestr & " and tblname = '" & tablename & "'"
-            End If
-            aRecordCollection = aTable.GetRecordsBySql(wherestr:=wherestr)
-
-            If aRecordCollection Is Nothing Then
-                _IsLoaded = False
-                AllByID = Nothing
-                Exit Function
-            Else
-                For Each aRecord In aRecordCollection
-
-                    aNew = New ObjectEntryDefinition
-                    If aNew.Infuse(aRecord) Then
-                        aCollection.Add(Item:=aNew)
-                    End If
-                Next aRecord
-                AllByID = aCollection
-                Exit Function
-            End If
-
-error_handler:
-
-            AllByID = Nothing
-            Exit Function
-        End Function
-
-        '**** loadByID
-        '****
-        ''' <summary>
-        ''' load data from datastore
-        ''' </summary>
-        ''' <param name="ID"></param>
-        ''' <param name="objectname"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Function LoadByID(ByVal ID As String, Optional ByVal objectname As String = "") As Boolean
-            Dim aCollection As New Collection
-            Dim aRecordCollection As List(Of ormRecord)
-            Dim aTable As iormDataStore
-            Dim aRecord As ormRecord
-            Dim wherestr As String
-
-            '* lazy init
-            If Not IsInitialized Then
-                If Not Me.Initialize() Then
-                    LoadByID = False
-                    Exit Function
-                End If
-            End If
-
-            On Error GoTo error_handler
-
-            aTable = GetTableStore(Me.TableID)
-            wherestr = " ( ID = '" & UCase(ID) & "' or alias like '%" & ConstDelimiter & UCase(ID) & ConstDelimiter & "%' )"
-            If objectname <> "" Then
-                wherestr = wherestr & " and tblname = '" & LCase(objectname) & "'"
-            End If
-            aRecordCollection = aTable.GetRecordsBySql(wherestr:=wherestr)
-
-            If aRecordCollection Is Nothing Then
-                _IsLoaded = False
-                LoadByID = False
-                Exit Function
-            Else
-                For Each aRecord In aRecordCollection
-                    ' take the first
-                    If Infuse(aRecord) Then
-                        LoadByID = True
-                        Exit Function
-                    End If
-                Next aRecord
-                LoadByID = False
-                Exit Function
-            End If
-
-error_handler:
-
-            LoadByID = False
-            Exit Function
-        End Function
-        ''' <summary>
-        ''' load and infuse the object by primary key
-        ''' </summary>
-        ''' <param name="tablename"></param>
-        ''' <param name="entryname"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Overloads Function LoadBy(ByVal objectname As String, _
-                                         Optional ByVal entryname As String = "", _
-                                         Optional ByVal domainID As String = "") As Boolean
-            If domainID = "" Then domainID = CurrentSession.CurrentDomainID
-            Dim primarykey() As Object = {LCase(objectname), entryname, domainID}
-            If MyBase.LoadBy(primarykey) Then
-                Return False
-            Else
-                Dim primarykeyGlobal() As Object = {LCase(objectname), entryname, ConstGlobalDomain}
-                Return MyBase.LoadBy(primarykeyGlobal)
-            End If
-        End Function
-
-        ''' <summary>
-        ''' create the schema for this object
-        ''' </summary>
-        ''' <param name="silent"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Shared Function CreateSchema(Optional silent As Boolean = True) As Boolean
-            Return ormDataObject.CreateSchema(Of ObjectEntryDefinition)(addToSchema:=False)
-        End Function
-
-        ''' <summary>
-        ''' Persist the data object to the datastore
-        ''' </summary>
-        ''' <param name="timestamp"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Overloads Function Persist(Optional timestamp As Date = ot.ConstNullDate) As Boolean
-            Dim aVAlue As Object
-
-            '* init
-            If _runTimeOnly Then
-                Call CoreMessageHandler(subname:="clsOTDBSchemaDefTableEntry.Persist", message:="object is runtimeOnly and not persisted", _
-                                        arg1:=Me.Objectname, break:=False, messagetype:=otCoreMessageType.InternalWarning)
-                Return False
-            End If
-
-            'On Error GoTo errorhandle
-            If _typeid = otObjectEntryDefinitiontype.Table Then
-                _entryname = ""
-                _xid = ""
-                _aliases = ""
-                IsPrimaryKey = False
-                IsKey = False
-                _indexname = ""
-                _posin = 0
-                _Position = -1
-            End If
-            Try
-                ' feed to record and special type conversion
-                If ormDataObject.FeedRecord(Me, Record) Then
-
-                    Select Case _typeid
-                        Case otObjectEntryDefinitiontype.Field
-                            aVAlue = "FIELD"
-                        Case otObjectEntryDefinitiontype.Compound
-                            aVAlue = "COMPOUND"
-                        Case otObjectEntryDefinitiontype.Table
-                            aVAlue = "TABLE"
-                        Case Else
-                            Call CoreMessageHandler(arg1:=aVAlue, subname:="clsOTDBSchemaDefTableEntry.persist", _
-                                                    entryname:="typeid", tablename:=ConstTableID, message:=" type id has a unknown value")
-                            aVAlue = "??"
-                    End Select
-                    Record.SetValue(ConstFNType, aVAlue)
-                    ' persist with update timestamp
-                    Return MyBase.Persist(timestamp, doFeedRecord:=False)
-                End If
-                Return False
-            Catch ex As Exception
-                Call CoreMessageHandler(exception:=ex, subname:="clsOTDBSchemaDefTableEntry.Persist")
-                Return False
-            End Try
-
-        End Function
-
-        ''' <summary>
-        ''' create a new dataobject with primary keys
-        ''' </summary>
-        ''' <param name="tablename"></param>
-        ''' <param name="entryname"></param>
-        ''' <param name="typeid"></param>
-        ''' <param name="runtimeOnly"></param>
-        ''' <returns>True if successfull</returns>
-        ''' <remarks></remarks>
-        Public Overloads Function Create(ByVal objectname As String, _
-        Optional ByVal entryname As String = "", _
-        Optional ByVal domainID As String = "", _
-        Optional ByVal typeid As otObjectEntryDefinitiontype = Nothing, _
-        Optional ByVal runtimeOnly As Boolean = False, _
-        Optional ByVal checkunique As Boolean = True) As Boolean
-            If domainID = "" Then domainID = CurrentSession.CurrentDomainID
-            Dim primarykey() As Object = {LCase(objectname), entryname, domainID}
-
-            ' create
-            If MyBase.Create(primarykey, checkUnique:=checkunique, noInitialize:=runtimeOnly) Then
-                ' set the primaryKey
-                _objectname = LCase(objectname)
-                _entryname = entryname
-                _typeid = typeid
-                _runTimeOnly = runtimeOnly
-                _domainID = domainID
-                Return Me.IsCreated
-            Else
-                Return False
-            End If
-
-        End Function
-
-        '***  checkOnFieldList
-        Public Function CheckonFieldList(Value As Object, Optional MSGLOG As ObjectLog = Nothing) As Boolean
-            ' TODO:
-            Throw New NotImplementedException
-        End Function
-        '***  checkOnFieldType checks the field values on Integrity
-
-        Public Function CheckOnFieldType(Value As Object, Optional MSGLOG As ObjectLog = Nothing) As Boolean
-
-            ' default
-            CheckOnFieldType = True
-
-            '** check on Datatypes
-            Select Case Me.Datatype
-
-                Case otFieldDataType.Numeric
-                    If Not IsNumeric(Value) Then
-                        'Call MSGLOG.addMsg("100", Nothing, Nothing, Me.ID, Value)
-                        CheckOnFieldType = False
-                    End If
-                Case otFieldDataType.List
-                    If Not CheckonFieldList(Value, MSGLOG) Then
-                        'Call msglog.addMsg("101", Me.id, -1, Value, Me.parameter)
-                        CheckOnFieldType = False
-                    End If
-                Case otFieldDataType.Text
-
-                Case otFieldDataType.Runtime
-
-                Case otFieldDataType.Formula
-
-                Case otFieldDataType.[Date], otFieldDataType.[Time], otFieldDataType.Timestamp
-                    If Not IsDate(Value) Then
-                        'Call MSGLOG.addMsg("104", Nothing, Nothing, Me.ID, Value)
-                        CheckOnFieldType = False
-                    End If
-                Case otFieldDataType.[Long]
-                    If Not IsNumeric(Value) Then
-                        'Call MSGLOG.addMsg("102", Nothing, Nothing, Me.ID, Value)
-                        CheckOnFieldType = False
-                    End If
-                Case otFieldDataType.Timestamp
-
-                Case otFieldDataType.Bool
-
-                Case otFieldDataType.Memo
-
-                Case otFieldDataType.Binary
-
-                Case Else
-
-                    'Call MSGLOG.addMsg("105", Nothing, Nothing, Me.ID, Me.DATATYPE)
-                    CheckOnFieldType = False
-
-            End Select
-
-            '** say checking is ok
-            If CheckOnFieldType Then
-                'Call MSGLOG.addMsg("190", Nothing, Nothing, Me.ID, Me.DATATYPE)
-            End If
-
-        End Function
-
-    End Class
-
-
-    '************************************************************************************
-    '***** CLASS clsOTDBMessageLog is a representation class for a Log as Messages
-    '*****
     ''' <summary>
     ''' ObjectLog for Messages for Business Objects 
     ''' </summary>
     ''' <remarks></remarks>
+
     Public Class ObjectLog
         Inherits ormDataObject
         Implements otLoggable
@@ -5231,7 +2626,7 @@ error_handler:
 
             s_members = New Collection
             'If Not anEntry.create(tag:=Me.tag, id:=0) Then
-            '    Call anEntry.loadBy(tag:=Me.tag, id:=0)
+            '    Call anEntry.Inject(tag:=Me.tag, id:=0)
             'End If
             's_members.add value:=anEntry
 
@@ -5271,7 +2666,7 @@ error_handler:
             Dim aMember As New ObjectLogMessage
 
             ' get the Table
-            If Not aMSGDef.LoadBy(ID:=msgid) Then
+            If Not aMSGDef.Inject(id:=msgid) Then
                 Call CoreMessageHandler(showmsgbox:=True, arg1:=msgid, subname:="clsOTDBMessageLog.addmsg", message:=" Message ID couldn't be found")
                 AddMsg = False
                 Exit Function
@@ -5480,7 +2875,7 @@ error_handler:
                     '** per TypeID
                     If Not IsNothing(TYPEID) Then
                         code = aDefMSG.GetStatusCodeOf(TYPEID)
-                        If aStatus.LoadBy(TYPEID, code) Then
+                        If aStatus.Inject(TYPEID, code) Then
                             GetStatus = aStatus
                         Else
                             GetStatus = Nothing
@@ -5492,17 +2887,17 @@ error_handler:
                         Dim status2 As New StatusItem
                         Dim status3 As New StatusItem
 
-                        If status1.LoadBy(aDefMSG.Statustype1, aDefMSG.Statuscode1) Then
+                        If status1.Inject(aDefMSG.Statustype1, aDefMSG.Statuscode1) Then
                             weight1 = status1.Weight
                         Else
                             weight1 = 0
                         End If
-                        If status2.LoadBy(aDefMSG.Statustype2, aDefMSG.Statuscode2) Then
+                        If status2.Inject(aDefMSG.Statustype2, aDefMSG.Statuscode2) Then
                             weight2 = status2.Weight
                         Else
                             weight2 = 0
                         End If
-                        If status3.LoadBy(aDefMSG.Statustype3, aDefMSG.Statuscode3) Then
+                        If status3.Inject(aDefMSG.Statustype3, aDefMSG.Statuscode3) Then
                             weight3 = status3.Weight
                         Else
                             weight3 = 0
@@ -5545,7 +2940,7 @@ error_handler:
                     aDefMSG = aMember.Msgdef
                     code = aDefMSG.GetStatusCodeOf(TYPEID)
                     aStatus = New StatusItem
-                    If aStatus.LoadBy(TYPEID, code) Then
+                    If aStatus.Inject(TYPEID, code) Then
                         GetStatus = aStatus
                     Else
                         GetStatus = Nothing
@@ -5600,7 +2995,7 @@ error_handler:
         ''' <param name="TAG"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function LoadBy(ByVal TAG As String) As Boolean
+        Public Function Inject(ByVal TAG As String) As Boolean
             Dim aTable As iormDataStore
             Dim aRecordCollection As List(Of ormRecord)
             Dim aRecord As ormRecord
@@ -5614,13 +3009,13 @@ error_handler:
             '* lazy init
             If Not IsInitialized Then
                 If Not Me.Initialize() Then
-                    LoadBy = False
+                    Inject = False
                     Exit Function
                 End If
             End If
 
             ' set the primaryKey
-            pkarry(0) = LCase(TAG)
+            pkarry(0) = TAG.ToUpper
             ' try to load it from cache
             'Set aRecord = loadFromCache(ourTableName, PKArry)
             'If aRecord Is Nothing Then
@@ -5630,12 +3025,12 @@ error_handler:
 
             'If aRecord Is Nothing Then
             '    isLoaded = False
-            '    loadBy = isLoaded
+            '    Inject = isLoaded
             '    Exit Function
             'Else
             'Set me.record = aRecord
             'isLoaded = Me.infuse(me.record)
-            'loadBy = isLoaded
+            'Inject = isLoaded
             'Call addToCache(ourTableName, Key:=PKArry, Object:=aRecord)
             ' load the members
             Dim wherestr As String
@@ -5644,7 +3039,7 @@ error_handler:
             ' record collection
             If aRecordCollection Is Nothing Then
                 _IsLoaded = False
-                LoadBy = False
+                Inject = False
                 Exit Function
             Else
                 s_tag = TAG
@@ -5660,7 +3055,7 @@ error_handler:
                 Next aRecord
                 '
                 _IsLoaded = True
-                LoadBy = True
+                Inject = True
                 Exit Function
             End If
             Exit Function
@@ -5669,7 +3064,7 @@ error_handler:
 
 error_handler:
             _IsLoaded = False
-            LoadBy = True
+            Inject = True
             Exit Function
         End Function
 
@@ -5745,7 +3140,7 @@ errorhandle:
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overloads Function Create(ByVal tag As String) As Boolean
-            Dim primarykey() As Object = {LCase(tag)}
+            Dim primarykey() As Object = {tag.ToUpper}
 
             '* lazy init
             If Not IsInitialized Then
@@ -5762,7 +3157,7 @@ errorhandle:
 
             ' set the primaryKey
             If MyBase.Create(primarykey, checkUnique:=False) Then
-                s_tag = LCase(tag)
+                s_tag = tag.ToUpper
                 s_members = New Collection
                 Return True
             Else
@@ -5820,52 +3215,61 @@ errorhandle:
     End Class
 
 
-    '************************************************************************************
-    '***** CLASS lsOTDBMessageLogMember is a helper for the FieldDesc Attributes
-    '*****
-    '*****
+
     ''' <summary>
     ''' Message Entries of a Object Log 
     ''' </summary>
     ''' <remarks></remarks>
-    Public Class ObjectLogMessage
-    Inherits ormDataObject
-    Implements iormInfusable
-    Implements iormPersistable
+
+    <ormObject(version:=1, id:=ObjectLogMessage.ConstObjectID, modulename:=ConstModuleCore)> Public Class ObjectLogMessage
+        Inherits ormDataObject
+        Implements iormInfusable
+        Implements iormPersistable
 
         '* schema
+        Public Const ConstObjectID = "ObjectLogMessage"
+
         <ormSchemaTable(version:=1, addsparefields:=True)> Public Const ConstTableID As String = "tblObjectMessages"
 
         '* primary keys
-        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=100, PrimarykeyOrdinal:=1, _
-            ID:="olog1", title:="Tag", description:="tag to the object message log")> Public Shadows Const ConstFNTag = "msglogtag"
-        <ormSchemaColumn(typeid:=otFieldDataType.Long, PrimarykeyOrdinal:=2, _
-           ID:="olog2", title:="Number", description:="number of the object message")> Public Const ConstFNNo = "idno"
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, PrimarykeyOrdinal:=1, _
+                         ID:="olog1", title:="Tag", description:="tag to the object message log")> Public Shadows Const ConstFNTag = "msglogtag"
+        <ormObjectEntry(typeid:=otFieldDataType.Long, PrimarykeyOrdinal:=2, _
+                         ID:="olog2", title:="Number", description:="number of the object message")> Public Const ConstFNNo = "idno"
         '* fields
-        <ormSchemaColumn(referenceObjectEntry:=ObjectLogMessageDef.ConstTableID & "." & ObjectLogMessageDef.ConstFNMessageID, _
-            ID:="olog3")> Public Const ConstFNMessageID = ObjectLogMessageDef.ConstFNMessageID
+        <ormObjectEntry(referenceObjectEntry:=ObjectLogMessageDef.ConstObjectID & "." & ObjectLogMessageDef.ConstFNMessageID, _
+                         ID:="olog3")> Public Const ConstFNMessageID = ObjectLogMessageDef.ConstFNMessageID
 
-        <ormSchemaColumn(typeid:=otFieldDataType.Memo, _
-            ID:="olog4", title:="Message", description:="the object message")> Public Const ConstFNMessage = "msgtxt"
-        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=100, _
-           ID:="olog5", title:="ContextID", description:="context of the object message")> Public Const ConstFNContextID = "contextid"
-        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=100, _
-           ID:="olog6", title:="TupleID", description:="tuple of the object message")> Public Const ConstFNTupleID = "tupleid"
-        <ormSchemaColumn(typeid:=otFieldDataType.Text, size:=100, _
-          ID:="olog7", title:="EntityID", description:="entity of the object message")> Public Const ConstFNEntityID = "entityid"
+        <ormObjectEntry(typeid:=otFieldDataType.Memo, _
+                         ID:="olog4", title:="Message", description:="the object message")> Public Const ConstFNMessage = "msgtxt"
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, _
+                         ID:="olog5", title:="ContextID", description:="context of the object message")> Public Const ConstFNContextID = "contextid"
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, _
+                         ID:="olog6", title:="TupleID", description:="tuple of the object message")> Public Const ConstFNTupleID = "tupleid"
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, _
+                         ID:="olog7", title:="EntityID", description:="entity of the object message")> Public Const ConstFNEntityID = "entityid"
 
         '* mapping
-        <ormColumnMapping (fieldname:=constFNTag)> Private _tag As String = ""
-        <ormColumnMapping(fieldname:=ConstFNNo)> Private _id As Long
-        <ormColumnMapping(fieldname:=ConstFNMessageID)> Private _msgid As String = ""
-        <ormColumnMapping(fieldname:=ConstFNMessage)> Private _message As String = ""
+        <ormEntryMapping(EntryName:=ConstFNTag)> Private _tag As String = ""
+        <ormEntryMapping(EntryName:=ConstFNNo)> Private _id As Long
+        <ormEntryMapping(EntryName:=ConstFNMessageID)> Private _msgid As String = ""
+        <ormEntryMapping(EntryName:=ConstFNMessage)> Private _message As String = ""
 
-        <ormColumnMapping(fieldname:=ConstFNContextID)> Private _ContextID As String = ""
-        <ormColumnMapping(fieldname:=ConstFNTupleID)> Private _TupleID As String = ""
-        <ormColumnMapping(fieldname:=ConstFNEntityID)> Private _EntitityID As String = ""
+        <ormEntryMapping(EntryName:=ConstFNContextID)> Private _ContextID As String = ""
+        <ormEntryMapping(EntryName:=ConstFNTupleID)> Private _TupleID As String = ""
+        <ormEntryMapping(EntryName:=ConstFNEntityID)> Private _EntitityID As String = ""
 
         '* dynamic
         Private s_msgdef As New ObjectLogMessageDef
+        Public Event ObjectDefinitionChanged As EventHandler(Of ObjectDefintionEventArgs)
+
+        '** runtime
+        Private _runtimeOnly As Boolean
+        Private _entries As New Dictionary(Of String, AbstractEntryDefinition)
+        Private _entriesordinalPos As New SortedDictionary(Of Long, AbstractEntryDefinition) ' sorted to ordinal position in the record
+        Private _indices As New Dictionary(Of String, List(Of String))    ' save the indices as <key, collection of fields>
+
+        Private _lock As New Object
         ''' <summary>
         ''' constructor of a message log member
         ''' </summary>
@@ -5899,7 +3303,7 @@ errorhandle:
                 Msgid = _msgid
             End Get
             Set(avalue As String)
-                If LCase(_msgid) <> LCase(avalue) Then
+                If _msgid.ToUpper <> avalue.ToUpper Then
                     _msgid = avalue
                     IsChanged = True
                 End If
@@ -5911,7 +3315,7 @@ errorhandle:
                 Message = _message
             End Get
             Set(value As String)
-                If LCase(Message) <> LCase(value) Then
+                If Message.ToUpper <> value.ToUpper Then
                     _message = value
                     IsChanged = True
                 End If
@@ -5936,7 +3340,7 @@ errorhandle:
                 ContextIdentifier = _ContextID
             End Get
             Set(value As Object)
-                If LCase(_ContextID) <> LCase(value) Then
+                If _ContextID.ToUpper <> value.toupper Then
                     _ContextID = value
                     IsChanged = True
                 End If
@@ -5948,7 +3352,7 @@ errorhandle:
                 TupleIdentifier = _TupleID
             End Get
             Set(avalue As Object)
-                If LCase(_TupleID) <> LCase(avalue) Then
+                If _TupleID.ToUpper <> avalue.toupper Then
                     _TupleID = avalue
                     IsChanged = True
                 End If
@@ -5961,7 +3365,7 @@ errorhandle:
 
             End Get
             Set(value As Object)
-                If LCase(_EntitityID) <> LCase(value) Then
+                If _EntitityID.ToUpper <> value.toupper Then
                     _EntitityID = value
                     IsChanged = True
                 End If
@@ -5976,10 +3380,10 @@ errorhandle:
         ''' <param name="aRecord"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Private Function OnInfused(sender As Object, e As ormDataObjectEventArgs) As Boolean Handles MyBase.OnInfused
+        Private Function OnInfused(sender As Object, e As ormDataObjectEventArgs) As Boolean Handles MyBase.OnColumnMappingInfused
 
             Try
-                s_msgdef = ObjectLogMessageDef.Retrieve(ID:=_msgid)
+                s_msgdef = ObjectLogMessageDef.Retrieve(id:=_msgid)
                 If s_msgdef Is Nothing Then
                     Call CoreMessageHandler(arg1:=_msgid, message:="message id not defined - valid object message id ?", _
                                             tablename:=ConstTableID, entryname:=ConstFNMessageID, messagetype:=otCoreMessageType.ApplicationError, subname:="ObjectLogMessage.onInfused")
@@ -6002,9 +3406,9 @@ errorhandle:
         ''' <param name="ID"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Function LoadBy(ByVal msglogtag As String, ByVal ID As Long) As Boolean
-            Dim primarykey() As Object = {LCase(msglogtag), ID}
-            Return MyBase.LoadBy(primarykey)
+        Public Overloads Function Inject(ByVal msglogtag As String, ByVal ID As Long) As Boolean
+            Dim primarykey() As Object = {msglogtag.ToUpper, ID}
+            Return MyBase.Inject(primarykey)
         End Function
 
         ''' <summary>
@@ -6014,7 +3418,7 @@ errorhandle:
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function CreateSchema(Optional silent As Boolean = True) As Boolean
-            Return ormDataObject.CreateSchema(Of ObjectLogMessage)(silent:=silent)
+            Return ormDataObject.CreateDataObjectSchema(Of ObjectLogMessage)(silent:=silent)
 
             'Dim aFieldDesc As New ormFieldDescription
             'Dim PrimaryColumnNames As New Collection
@@ -6115,7 +3519,6 @@ errorhandle:
             'Exit Function
         End Function
 
-        
         ''' <summary>
         ''' Create a persistable Message Log Member by primary key
         ''' </summary>
@@ -6124,10 +3527,10 @@ errorhandle:
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overloads Function Create(ByVal msglogtag As String, ByVal ID As Long) As Boolean
-            Dim primarykey() As Object = {LCase(msglogtag), ID}
+            Dim primarykey() As Object = {msglogtag.ToUpper, ID}
             If MyBase.Create(primarykey, checkUnique:=False) Then
                 ' set the primaryKey
-                _tag = LCase(msglogtag)
+                _tag = msglogtag.ToUpper
                 _id = ID
 
                 Return Me.IsCreated

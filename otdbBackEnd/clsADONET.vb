@@ -28,26 +28,37 @@ Namespace OnTrack.Database
 
 
     '************************************************************************************
-    '***** CLASS clsADONETDBDriver describes the  Database Driver  to OnTrack
+    '***** CLASS adonetDBDriver describes the  Database Driver  to OnTrack
     '*****       based on ADO.NET OLEDB
     '*****
 
-    Public MustInherit Class clsADONETDBDriver
+    Public MustInherit Class adonetDBDriver
         Inherits ormDatabaseDriver
-        Implements iormDBDriver
+        Implements iormDatabaseDriver
 
+        Protected _currentUserValidation As New UserValidation
         'Protected Friend Shadows WithEvents _primaryConnection As iOTDBConnection '-> in clsOTDBDriver
-        Protected _OnTrackDataSet As New DataSet
+        Protected _OnTrackDataSet As DataSet
 
         Protected _ParametersTableAdapter As System.Data.IDbDataAdapter
-        Protected _ParametersTable As New DataTable
+        Protected _ParametersTable As DataTable = Nothing 'initialize must assign this - important to determine if parameters will be written to cache or to table
         Protected _parametersTableName As String = ConstParameterTableName
 
         Protected _IsInitialized As Boolean = False
         Protected _ErrorLogPersistCommand As IDbCommand = Nothing
         Protected _ErrorLogPersistTableschema As iotDataSchema = Nothing
 
+        Protected _BootStrapParameterCache As New Dictionary(Of String, Object) ' during bootstrap use this 
+
+        Protected _isInstalling As Boolean = False ' flag to see if we are in Install-Mode
         Protected _lock As New Object 'lockObject for driver instance
+        Shadows Event RequestBootstrapInstall(sender As Object, e As SessionBootstrapEventArgs) Implements iormDatabaseDriver.RequestBootstrapInstall
+
+        '** Field names of parameter table
+        Public Const ConstFNID = "ID"
+        Public Const ConstFNValue = "VALUE"
+        Public Const ConstFNChangedOn = "CHANGEDON"
+        Public Const constFNDescription = "DESCRIPTION"
         ''' <summary>
         ''' Constructor
         ''' </summary>
@@ -68,9 +79,9 @@ Namespace OnTrack.Database
         End Property
 
         ''' <summary>
-        ''' Gets the is initialized.
+        ''' returns True if driver is initialized.
         ''' </summary>
-        ''' <value>The is initialized.</value>
+        ''' <value></value>
         Public Property IsInitialized() As Boolean
             Get
                 Return Me._IsInitialized
@@ -80,11 +91,21 @@ Namespace OnTrack.Database
             End Set
         End Property
 
+        ''' <summary>
+        ''' gets the native connection
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
 
         Public Overloads Property NativeConnection As IDbConnection
 
-        '***
-        '*** Initialize Driver
+        ''' <summary>
+        ''' initialize driver
+        ''' </summary>
+        ''' <param name="Force"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
         Protected Friend Overridable Function Initialize(Optional Force As Boolean = False) As Boolean
 
             If Me.IsInitialized And Not Force Then
@@ -92,7 +113,24 @@ Namespace OnTrack.Database
             End If
             Return False
         End Function
+        ''' <summary>
+        ''' Start of Bootstrap of the session
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Public Sub OnStartofBootstrap(sender As Object, e As SessionEventArgs) Handles _session.StartOfBootStrapInstallation
 
+        End Sub
+        ''' <summary>
+        ''' handle the end of bootstrap
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Public Sub OnEndOfBootstrap(sender As Object, e As SessionEventArgs) Handles _session.EndOfBootStrapInstallation
+            Initialize(Force:=True) ' reinitialize and save
+        End Sub
         ''' <summary>
         ''' reset the Driver
         ''' </summary>
@@ -109,7 +147,7 @@ Namespace OnTrack.Database
                 Return True
             Catch ex As Exception
                 Me.IsInitialized = False
-                Call CoreMessageHandler(subname:="clsADONETDBDriver.reset", message:="couldnot de-Initialize Driver", _
+                Call CoreMessageHandler(subname:="adonetDBDriver.reset", message:="couldnot de-Initialize Driver", _
                                       exception:=ex)
                 Me.IsInitialized = False
                 Return True
@@ -134,7 +172,62 @@ Namespace OnTrack.Database
         ''' <param name="nativeConnection"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overrides Function HasTable(tablename As String, Optional ByRef nativeConnection As Object = Nothing) As Boolean
+        Public Overrides Function VerifyTableSchema(tabledefinition As TableDefinition, Optional ByRef connection As iormConnection = Nothing, Optional nativeConnection As Object = Nothing) As Boolean
+            Dim result As Boolean = True
+            If Not tabledefinition.IsAlive(subname:="adonetDBDriver.hastable") Then Return False
+            '** check if we have the table ?!
+            If Not Me.HasTable(tablename:=tabledefinition.Name, connection:=connection, nativeConnection:=nativeConnection) Then
+                CoreMessageHandler(message:="table schema does not exist in database", tablename:=tabledefinition.Name, _
+                                    subname:="adonetDBDriver.verifytableSchema", messagetype:=otCoreMessageType.InternalError)
+                Return False
+            End If
+
+            '** check each column
+            For Each aColumndefinition In tabledefinition.Columns
+                result = result And Me.VerifyColumnSchema(columndefinition:=aColumndefinition)
+            Next
+
+            If Not result Then
+                CoreMessageHandler(message:="table schema in database differs from definition", tablename:=tabledefinition.Name, _
+                                    subname:="adonetDBDriver.verifytableSchema", messagetype:=otCoreMessageType.InternalError)
+            End If
+            Return result
+        End Function
+        ''' <summary>
+        ''' returns True if data store has the table described by the table attribute
+        ''' </summary>
+        ''' <param name="tablename"></param>
+        ''' <param name="nativeConnection"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Overrides Function VerifyTableSchema(tableattribute As ormSchemaTableAttribute, Optional ByRef connection As iormConnection = Nothing, Optional nativeConnection As Object = Nothing) As Boolean
+            Dim result As Boolean = True
+
+            '** check if we have the table ?!
+            If Not Me.HasTable(tablename:=tableattribute.TableName, connection:=connection, nativeConnection:=nativeConnection) Then
+                CoreMessageHandler(message:="table schema does not exist in database", tablename:=tableattribute.TableName, _
+                                    subname:="adonetDBDriver.verifytableSchema", messagetype:=otCoreMessageType.InternalError)
+                Return False
+            End If
+
+            '** check each column
+            For Each aColumn In tableattribute.ColumnAttributes
+                result = result and  Me.VerifyColumnSchema(aColumn) 
+            Next
+            If Not result Then
+                CoreMessageHandler(message:="table schema in database differs from table attributes", tablename:=tableattribute.TableName, _
+                                    subname:="adonetDBDriver.verifytableSchema", messagetype:=otCoreMessageType.InternalError)
+            End If
+            Return True
+        End Function
+        ''' <summary>
+        ''' returns True if data store has the table name
+        ''' </summary>
+        ''' <param name="tablename"></param>
+        ''' <param name="nativeConnection"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Overrides Function HasTable(tablename As String, Optional ByRef connection As iormConnection = Nothing, Optional nativeConnection As Object = Nothing) As Boolean
             Throw New NotImplementedException()
         End Function
 
@@ -147,30 +240,31 @@ Namespace OnTrack.Database
         ''' <param name="NativeConnection">The native connection.</param>
         ''' <returns></returns>
         Public Overrides Function GetTable(tablename As String, _
-                                           Optional createOnMissing As Boolean = True, _
-                                           Optional addToSchemaDir As Boolean = True, _
-                                           Optional ByRef nativeConnection As Object = Nothing, _
+                                           Optional createOrAlter As Boolean = False, _
+                                           Optional ByRef connection As iormConnection = Nothing, _
                                             Optional ByRef nativeTableObject As Object = Nothing) As Object
             ' TODO: Implement this method
             Throw New NotImplementedException()
         End Function
 
         ''' <summary>
-        ''' Gets the index.
+        ''' gets or creates a native index object out of a indexdefinition
         ''' </summary>
-        ''' <param name="nativeTABLE">The native TABLE.</param>
-        ''' <param name="indexname">The indexname.</param>
-        ''' <param name="ColumnNames">The column names.</param>
-        ''' <param name="PrimaryKey">The primary key.</param>
-        ''' <param name="forceCreation">The force creation.</param>
-        ''' <param name="createOnMissing">The create on missing.</param>
-        ''' <param name="addToSchemaDir">The add to schema dir.</param>
+        ''' <param name="nativeTable"></param>
+        ''' <param name="indexdefinition"></param>
+        ''' <param name="forceCreation"></param>
+        ''' <param name="createOrAlter"></param>
+        ''' <param name="connection"></param>
         ''' <returns></returns>
-        Public Overrides Function GetIndex(ByRef nativeTABLE As Object, ByRef indexname As String, ByRef ColumnNames As List(Of String), Optional PrimaryKey As Boolean = False, Optional forceCreation As Boolean = False, Optional createOnMissing As Boolean = True, Optional addToSchemaDir As Boolean = True) As Object
+        ''' <remarks></remarks>
+
+        Public Overrides Function GetIndex(ByRef nativeTable As Object, ByRef indexdefinition As IndexDefinition, _
+          Optional ByVal forceCreation As Boolean = False, _
+          Optional ByVal createOrAlter As Boolean = False, _
+           Optional ByRef connection As iormConnection = Nothing) As Object Implements iormDatabaseDriver.GetIndex
             ' TODO: Implement this method
             Throw New NotImplementedException()
         End Function
-
         ''' <summary>
         ''' returns True if tablename has the column
         ''' </summary>
@@ -179,7 +273,29 @@ Namespace OnTrack.Database
         ''' <param name="nativeConnection"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overrides Function HasColumn(tablename As String, columnname As String, Optional ByRef nativeConnection As Object = Nothing) As Boolean
+        Public Overrides Function HasColumn(tablename As String, columnname As String, Optional ByRef connection As iormConnection = Nothing) As Boolean
+            Throw New NotImplementedException()
+        End Function
+        ''' <summary>
+        ''' returns True if tablename has the column
+        ''' </summary>
+        ''' <param name="tablename"></param>
+        ''' <param name="columnname"></param>
+        ''' <param name="nativeConnection"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Overrides Function VerifyColumnSchema(columndefinition As ColumnDefinition, Optional ByRef connection As iormConnection = Nothing, Optional silent As Boolean = False) As Boolean
+            Throw New NotImplementedException()
+        End Function
+        ''' <summary>
+        ''' returns True if tablename has the column
+        ''' </summary>
+        ''' <param name="tablename"></param>
+        ''' <param name="columnname"></param>
+        ''' <param name="nativeConnection"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Overrides Function VerifyColumnSchema(columnattribute As ormSchemaTableColumnAttribute, Optional ByRef connection As iormConnection = Nothing, Optional silent As Boolean = False) As Boolean
             Throw New NotImplementedException()
         End Function
         ''' <summary>
@@ -190,7 +306,20 @@ Namespace OnTrack.Database
         ''' <param name="createOnMissing">The create on missing.</param>
         ''' <param name="addToSchemaDir">The add to schema dir.</param>
         ''' <returns></returns>
-        Public Overrides Function GetColumn(nativeTABLE As Object, aDBDesc As ormFieldDescription, Optional createOnMissing As Boolean = True, Optional addToSchemaDir As Boolean = True) As Object
+        Public Overrides Function GetColumn(nativeTable As Object, columndefinition As ColumnDefinition, Optional createOrAlter As Boolean = False, Optional ByRef connection As iormConnection = Nothing) As Object Implements iormDatabaseDriver.GetColumn
+            ' TODO: Implement this method
+            Throw New NotImplementedException()
+        End Function
+
+        ''' <summary>
+        ''' Gets or creates the foreign key for a columndefinition
+        ''' </summary>
+        ''' <param name="nativeTable">The native table.</param>
+        ''' <param name="columndefinition">The columndefinition.</param>
+        ''' <param name="createOrAlter">The create or alter.</param>
+        ''' <param name="connection">The connection.</param>
+        ''' <returns></returns>
+        Public Overrides Function GetForeignKeys(nativeTable As Object, foreignkeydefinition As ForeignKeyDefinition, Optional createOrAlter As Boolean = False, Optional ByRef connection As iormConnection = Nothing) As IEnumerable(Of Object) Implements iormDatabaseDriver.GetForeignKeys
             ' TODO: Implement this method
             Throw New NotImplementedException()
         End Function
@@ -200,7 +329,7 @@ Namespace OnTrack.Database
         ''' <param name="type"></param>
         ''' <remarks></remarks>
         ''' <returns></returns>
-        Public Overrides Function GetTargetTypeFor(type As otFieldDataType) As Long Implements iormDBDriver.GetTargetTypeFor
+        Public Overrides Function GetTargetTypeFor(type As otFieldDataType) As Long Implements iormDatabaseDriver.GetTargetTypeFor
             ' TODO: Implement this method
             Throw New NotImplementedException()
         End Function
@@ -213,19 +342,19 @@ Namespace OnTrack.Database
         ''' <param name="nativeConnection"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overrides Function CreateDBParameterTable(Optional ByRef nativeConnection As Object = Nothing) As Boolean Implements iormDBDriver.CreateDBParameterTable
+        Public Overrides Function CreateDBParameterTable(Optional ByRef nativeConnection As Object = Nothing) As Boolean Implements iormDatabaseDriver.CreateDBParameterTable
             Dim anativeConnection As IDbConnection
 
             '*** get the native Connection 
             If nativeConnection Is Nothing Then
                 If Not Me.CurrentConnection Is Nothing Then
-                    anativeConnection = DirectCast(Me.CurrentConnection, clsADONETConnection).NativeInternalConnection
+                    anativeConnection = DirectCast(Me.CurrentConnection, adonetConnection).NativeInternalConnection
                     If anativeConnection Is Nothing Then
-                        Call CoreMessageHandler(subname:="clsADONETDBDriver.CreateDBParameterTable", message:="Native internal Connection not available")
+                        Call CoreMessageHandler(subname:="adonetDBDriver.CreateDBParameterTable", message:="Native internal Connection not available")
                         Return Nothing
                     End If
                 Else
-                    Call CoreMessageHandler(subname:="clsADONETDBDriver.CreateDBParameterTable", message:="Connection not available")
+                    Call CoreMessageHandler(subname:="adonetDBDriver.CreateDBParameterTable", message:="Connection not available")
                     Return Nothing
                 End If
             Else
@@ -234,14 +363,19 @@ Namespace OnTrack.Database
 
             '*** create
             If Not Me.HasTable(ConstParameterTableName) Then
-                Me.RunSqlStatement("create table " & ConstParameterTableName & _
-                                  "( ID nvarchar(50) not null, [Value] nvarchar(255) null, changedOn DATETIME  null,	Description nvarchar(255) null ," & _
-                                  "CONSTRAINT [tblParametersGlobal_primaryKey] PRIMARY KEY NONCLUSTERED ([ID] Asc ) " & _
+                Me.RunSqlStatement(String.Format("create table {0} " & _
+                                  "( [{1}] nvarchar(255) not null, [{2}] nvarchar(255) null, [{3}] DATETIME  null,	[{4}] nvarchar(255) null ," & _
+                                  "CONSTRAINT [{0}_primaryKey] PRIMARY KEY NONCLUSTERED ([{1}] Asc ) " & _
                                   "WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY] " & _
-                                  ") ON [PRIMARY] ;", _
+                                  ") ON [PRIMARY] ;", ConstParameterTableName, ConstFNID, ConstFNValue, ConstFNChangedOn, constFNDescription), _
                                   nativeConnection:=nativeConnection)
                 'Me.RunSQLCommand("create unique index primaryKey on " & ConstParameterTableName & "(ID);", nativeConnection:=nativeConnection)
             End If
+
+            ' reinitialize
+            Me.Initialize(Force:=True)
+
+            Return True
         End Function
 
 
@@ -254,20 +388,20 @@ Namespace OnTrack.Database
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overrides Function CreateDBUserDefTable(Optional ByRef nativeConnection As Object = Nothing) As Boolean _
-            Implements iormDBDriver.CreateDBUserDefTable
+            Implements iormDatabaseDriver.CreateDBUserDefTable
             Dim anativeConnection As IDbConnection
 
             Try
                 '*** get the native Connection 
                 If nativeConnection Is Nothing Then
                     If Not Me.CurrentConnection Is Nothing Then
-                        anativeConnection = DirectCast(Me.CurrentConnection, clsADONETConnection).NativeInternalConnection
+                        anativeConnection = DirectCast(Me.CurrentConnection, adonetConnection).NativeInternalConnection
                         If anativeConnection Is Nothing Then
-                            Call CoreMessageHandler(subname:="clsADONETDBDriver.CreateDBUserDefTable", message:="Native internal Connection not available")
+                            Call CoreMessageHandler(subname:="adonetDBDriver.CreateDBUserDefTable", message:="Native internal Connection not available")
                             Return Nothing
                         End If
                     Else
-                        Call CoreMessageHandler(subname:="clsADONETDBDriver.CreateDBUserDefTable", message:="Connection not available")
+                        Call CoreMessageHandler(subname:="adonetDBDriver.CreateDBUserDefTable", message:="Connection not available")
                         Return Nothing
                     End If
                 Else
@@ -277,38 +411,30 @@ Namespace OnTrack.Database
                 '*** create
                 If Not Me.HasTable(User.ConstTableID) Then
                     Me.RunSqlStatement(User.GetCreateSqlString, nativeConnection:=nativeConnection)
-                    'Me.RunSQLCommand("create unique index primaryKey on " & anUser.TableID & "(username);", nativeConnection:=nativeConnection)
-
-                    Dim anInsertStr As String = User.GetInsertInitalUserSQLString(username:="Admin", password:="axs2ontrack", desc:="Administrator", _
-                                                                                  group:="Admins", defaultworkspace:="", person:="")
-                    Me.RunSqlStatement(anInsertStr, nativeConnection:=nativeConnection)
-                    '* old
-                    'Me.RunSqlStatement("insert into " & User.ConstTableID & " ( [username], person, [password], [desc], [group], defws, isanon, alterschema, readdata, updatedata, noright, UpdatedOn, CreatedOn) " & _
-                    '                        "values ('Admin','', 'Admin', 'Administrator', 'admins', '', 0, 1,1,1,0, '" & Date.Now.ToString("yyyyMMdd hh:mm:ss") & "','" & Date.Now.ToString("yyyyMMdd hh:mm:ss") & "' )", _
-                    '                        nativeConnection:=anativeConnection)
-                    With New UI.clsCoreUIMessageBox
-                        .type = UI.clsCoreUIMessageBox.MessageType.Info
-                        .Message = "An administrator user 'Admin' with password 'axs2ontrack' was created. Please change the password as soon as possible"
-                        .buttons = UI.clsCoreUIMessageBox.ButtonType.OK
-                        .Show()
-                    End With
-                    Call CoreMessageHandler(message:="An administrator user 'Admin' with password 'axs2ontrack' was created. Please change the password as soon as possible", _
-                                            subname:="clsADONETDBDriver.CreateDBUserDefTable", messagetype:=otCoreMessageType.InternalInfo)
-                    Return True
-                Else
-                    Call CoreMessageHandler(message:="Table for Users exists - no entries generated", tablename:=User.ConstTableID, _
-                                            subname:="clsADONETDBDriver.CreateDBUserDefTable", messagetype:=otCoreMessageType.InternalInfo)
-                    Return True
                 End If
+                Dim anInsertStr As String = User.GetInsertInitalUserSQLString(username:="admin", password:="axs2ontrack", desc:="Administrator", _
+                                                                              group:="admins", defaultworkspace:="", person:="")
+                Me.RunSqlStatement(anInsertStr, nativeConnection:=nativeConnection)
+
+                With New UI.clsCoreUIMessageBox
+                    .type = UI.clsCoreUIMessageBox.MessageType.Info
+                    .Message = "An administrator user 'Admin' with password 'axs2ontrack' was created. Please change the password as soon as possible"
+                    .buttons = UI.clsCoreUIMessageBox.ButtonType.OK
+                    .Show()
+                End With
+                Call CoreMessageHandler(message:="An administrator user 'Admin' with password 'axs2ontrack' was created. Please change the password as soon as possible", _
+                                        subname:="adonetDBDriver.CreateDBUserDefTable", messagetype:=otCoreMessageType.InternalInfo)
+                Return True
+
 
             Catch ex As SqlException
-                Call CoreMessageHandler(exception:=ex, subname:="clsADONETDBDriver.CreateDBUserDefTable", messagetype:=otCoreMessageType.InternalException)
+                Call CoreMessageHandler(exception:=ex, subname:="adonetDBDriver.CreateDBUserDefTable", messagetype:=otCoreMessageType.InternalException)
                 Return False
             Catch ex As OleDb.OleDbException
-                Call CoreMessageHandler(exception:=ex, subname:="clsADONETDBDriver.CreateDBUserDefTable", messagetype:=otCoreMessageType.InternalException)
+                Call CoreMessageHandler(exception:=ex, subname:="adonetDBDriver.CreateDBUserDefTable", messagetype:=otCoreMessageType.InternalException)
                 Return False
             Catch ex As Exception
-                Call CoreMessageHandler(exception:=ex, subname:="clsADONETDBDriver.CreateDBUserDefTable", messagetype:=otCoreMessageType.InternalException)
+                Call CoreMessageHandler(exception:=ex, subname:="adonetDBDriver.CreateDBUserDefTable", messagetype:=otCoreMessageType.InternalException)
                 Return False
             End Try
 
@@ -316,55 +442,334 @@ Namespace OnTrack.Database
         End Function
 
         ''' <summary>
+        ''' Install the schema of Ontrack Database
+        ''' </summary>
+        ''' <param name="askBefore"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Overrides Function InstallOnTrackDatabase(askBefore As Boolean, modules As String()) As Boolean Implements iormDatabaseDriver.InstallOnTrackDatabase
+            Dim result As OnTrack.UI.clsCoreUIMessageBox.ResultType
+
+            '** check
+            If _isInstalling Then Return False
+
+
+
+            '** ask
+            If askBefore Then
+                With New clsCoreUIMessageBox
+                    .Title = "IMPORTANT QUESTION"
+                    .Message = "The OnTrack database detected missing installation data." & vbLf & _
+                        "Should the database schema be (re) created ? This means that all data might be lost ..." & vbLf & _
+                        "If this is a repair or upgrade of the schema - an Administrator Account might be necessary for this operation."
+                    .buttons = clsCoreUIMessageBox.ButtonType.YesNo
+                    .Show()
+                    result = .result
+                End With
+            Else
+                result = clsCoreUIMessageBox.ResultType.Yes
+            End If
+
+            '** check rights
+            If Me.CurrentConnection.IsConnected OrElse Me.HasAdminUserValidation() Then
+                If Not Me.CurrentConnection.VerifyUserAccess(accessRequest:=otAccessRight.AlterSchema, useLoginWindow:=True, messagetext:="Please enter an administrator account to continue schema upgrade") Then
+                    CoreMessageHandler(message:="User access for alter or repair the database schema could NOT be granted - installation aborted", messagetype:=otCoreMessageType.InternalInfo, _
+                                        subname:="adonetDBDriver.InstallOnTrackDatabase")
+                    Return False
+                End If
+            End If
+
+            '*** create
+            '***
+            If result = clsCoreUIMessageBox.ResultType.Yes Then
+                _isInstalling = True
+                '** send message to the session
+                RaiseEvent RequestBootstrapInstall(Me, New SessionBootstrapEventArgs(install:=False, modules:=modules, AskBefore:=False))
+                '***
+                '*** create the database
+                Call createDatabase.Run(modules) ' startups also a session and login
+                '** sets the total schema version parameter
+                _isInstalling = False
+                Return True
+            End If
+
+        End Function
+
+        ''' <summary>
         ''' Checks if the most important objects are here
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overrides Function VerifyOnTrackDatabase(verifyOnly As Boolean, createOnMissing As Boolean) As Boolean Implements iormDBDriver.VerifyOnTrackDatabase
-            Dim anUser As New User
-            Dim aNativeConnection = DirectCast(Me.CurrentConnection, clsADONETConnection).NativeInternalConnection
+        Public Overrides Function VerifyOnTrackDatabase(Optional modules As String() = Nothing,
+                                                        Optional install As Boolean = False,
+                                                        Optional verifySchema As Boolean = False) As Boolean Implements iormDatabaseDriver.VerifyOnTrackDatabase
+            Dim result As Boolean = True
+            Dim hasParameterTable As Boolean = False
+            Dim aValue As String = ""
 
-            If Not Me.HasTable(tablename:=_parametersTableName, nativeConnection:=aNativeConnection) OrElse _
-                Not Me.HasTable(tablename:=anUser.TableID, nativeConnection:=aNativeConnection) Then
-
-                If Not createOnMissing Then
-
-                    Call CoreMessageHandler(showmsgbox:=True, message:="Table for Parameters not defined in Database.", arg1:=Me.CurrentConnection.Connectionstring, _
-                                          tablename:=anUser.TableID, noOtdbAvailable:=True, messagetype:=otCoreMessageType.InternalError, subname:="clsADONETDBDriver.VerifyOnTrackDatabase")
-                    Return False
-                Else
-
-                    Call CoreMessageHandler(message:="Table for Parameters not defined in Database.", arg1:=Me.CurrentConnection.Connectionstring, _
-                                          tablename:=anUser.TableID, noOtdbAvailable:=True, messagetype:=otCoreMessageType.ApplicationWarning, subname:="clsADONETDBDriver.VerifyOnTrackDatabase")
-                    Dim result As clsCoreUIMessageBox.ResultType
-                    With New clsCoreUIMessageBox
-                        .Title = "IMPORTANT QUESTION"
-                        .Message = "The Parameters Table is not existing in the database. Either the database is not set up properly or the connection has a problem." & vbLf & _
-                            "Should the database schema be created ? This means that all data might be lost ..."
-                        .buttons = clsCoreUIMessageBox.ButtonType.YesNo
-                        .Show()
-                        result = .result
-                    End With
-                    '*** create
-                    '***
-                    If result = clsCoreUIMessageBox.ResultType.Yes Then
-                        '***
-                        '*** create the database
-                        Call createDatabase.Run() ' startups also a session and login
-
-                    End If
-
-
-                End If
-
+            If Not Me.HasTable(tablename:=_parametersTableName, connection:=Me.CurrentConnection) Then
+                result = result And False
+                CoreMessageHandler(message:="Database table " & _parametersTableName & " missing in database ", noOtdbAvailable:=True, _
+                                   messagetype:=otCoreMessageType.InternalError, arg1:=Me._primaryConnection.Connectionstring, tablename:=_parametersTableName)
+            Else
+                'CoreMessageHandler(message:="Database table " & _parametersTableName & " exists in database ", noOtdbAvailable:=True, _
+                '                    messagetype:=otCoreMessageType.InternalInfo, arg1:=Me._primaryConnection.Connectionstring, tablename:=_parametersTableName)
+                result = result And True
+                hasParameterTable = True
             End If
 
+            '** check overall schema version
+            If hasParameterTable Then
+                aValue = GetDBParameter(ConstPNBSchemaVersion, silent:=True)
+                If aValue Is Nothing OrElse Not IsNumeric(aValue) Then
+                    result = result And False
+                ElseIf ot.SchemaVersion < Convert.ToUInt64(aValue) Then
+                    CoreMessageHandler(showmsgbox:=True, message:="Verifying the OnTrack Database failed. The Tooling schema version of # " & ot.SchemaVersion & _
+                                       " is less than the database schema version of #" & aValue & " - Session could not start up", _
+                                       messagetype:=otCoreMessageType.InternalError, subname:="Session.Startup")
+                    Return False
+                ElseIf ot.SchemaVersion > Convert.ToUInt64(aValue) Then
+                    result = result And False
+                End If
+            End If
 
-            Return True
+            '** BOOTSTRAP TABLE CHECKING
+            '**
+            For Each anObjectClassDescription In ot.GetBootStrapObjectClassDescriptions
+                For Each aTablename In anObjectClassDescription.Tables
+
+                    If Not Me.HasTable(aTablename) Then
+                        CoreMessageHandler(message:="Database table " & aTablename & " missing in database ", noOtdbAvailable:=True, _
+                                           messagetype:=otCoreMessageType.InternalError, arg1:=Me._primaryConnection.Connectionstring, tablename:=aTablename)
+                        result = result And False
+                    Else
+
+                        If hasParameterTable Then aValue = Me.GetDBParameter(ConstPNBSchemaVersion_TableHeader & aTablename.ToUpper, silent:=True)
+                        If aValue Is Nothing OrElse Not IsNumeric(aValue) Then
+                            CoreMessageHandler(message:="Database table " & aTablename & " has no version in database parameters - schema will be recreated", noOtdbAvailable:=True, _
+                                      messagetype:=otCoreMessageType.InternalError, tablename:=aTablename)
+
+                            result = result And False
+                        Else
+                            Dim anAttribute = ot.GetSchemaTableAttribute(aTablename)
+                            If anAttribute.Version <> Convert.ToInt64(aValue) Then
+                                CoreMessageHandler(message:="Database table " & aTablename & " has different version in database parameters ( " & aValue & " ) than in SchemaAttribute", noOtdbAvailable:=True, _
+                                      messagetype:=otCoreMessageType.InternalError, arg1:=anAttribute.Version, tablename:=aTablename)
+
+                                result = result And False
+                            Else
+                                result = result And True
+                            End If
+                        End If
+
+                        '*** check additionally the schema
+                        If verifySchema Then
+                            '** build an ObjectDefinition out of the attributes
+                            Dim anTableAttribute = ot.GetSchemaTableAttribute(aTablename)
+                            If anTableAttribute IsNot Nothing Then
+                                result = result And Me.VerifyTableSchema(anTableAttribute)
+                            End If
+                            '** check on the table definition
+                            If Not result Then
+                                CoreMessageHandler(message:="Database table " & aTablename & " exists in database but has different same schema", noOtdbAvailable:=True, _
+                                             messagetype:=otCoreMessageType.InternalInfo, arg1:=Me._primaryConnection.Connectionstring, tablename:=aTablename)
+                            End If
+                        End If
+
+                    End If
+                Next
+
+            Next
+
+            '**** Check the modules
+            '****
+            If result AndAlso modules IsNot Nothing Then
+                For Each modulename In modules
+                    '**Module Checking
+                    '**
+                    For Each anObjectClassDescription In GetObjectClassDescriptionsForModule(modulename)
+                        For Each aTablename In anObjectClassDescription.Tables
+
+                            If Not Me.HasTable(aTablename) Then
+                                CoreMessageHandler(message:="Database table " & aTablename & " missing in database module " & modulename, noOtdbAvailable:=True, _
+                                                   messagetype:=otCoreMessageType.InternalError, arg1:=Me._primaryConnection.Connectionstring, tablename:=aTablename)
+                                result = result And False
+                            Else
+
+                                If hasParameterTable Then aValue = Me.GetDBParameter(ConstPNBSchemaVersion_TableHeader & aTablename.ToUpper, silent:=True)
+                                If aValue Is Nothing OrElse Not IsNumeric(aValue) Then
+                                    CoreMessageHandler(message:="Database table " & aTablename & " for module " & modulename & " has no version in database parameters", noOtdbAvailable:=True, _
+                                              messagetype:=otCoreMessageType.InternalError, tablename:=aTablename)
+
+                                    result = result And False
+                                Else
+                                    Dim anAttribute = ot.GetSchemaTableAttribute(aTablename)
+                                    If anAttribute.Version <> Convert.ToInt64(aValue) Then
+                                        CoreMessageHandler(message:="Database table " & aTablename & " for module " & modulename & " has different version in database parameters ( " & aValue & " ) than in SchemaAttribute", noOtdbAvailable:=True, _
+                                              messagetype:=otCoreMessageType.InternalError, arg1:=anAttribute.Version, tablename:=aTablename)
+
+                                        result = result And False
+                                    Else
+                                        result = result And True
+                                    End If
+                                End If
+
+                                '*** check additionally the schema
+                                If verifySchema Then
+                                    '** build an ObjectDefinition out of the attributes
+                                    Dim anTableAttribute = ot.GetSchemaTableAttribute(aTablename)
+                                    If anTableAttribute IsNot Nothing Then
+                                        result = result And Me.VerifyTableSchema(anTableAttribute)
+                                    End If
+                                    '** check on the table definition
+                                    If Not result Then
+                                        CoreMessageHandler(message:="Database table " & aTablename & " for module " & modulename & " exists in database but has different same schema", noOtdbAvailable:=True, _
+                                                     messagetype:=otCoreMessageType.InternalInfo, arg1:=Me._primaryConnection.Connectionstring, tablename:=aTablename)
+                                    End If
+                                End If
+
+                            End If
+                        Next
+
+                    Next
+
+                Next
+            End If
+
+            '*** Raise request to bootstrap install
+            Dim args = New SessionBootstrapEventArgs(install:=install, modules:=modules, AskBefore:=True)
+            If Not result And install Then RaiseRequestBootstrapInstall(Me, args)
+            If install Then result = args.InstallationResult
+            Return result
         End Function
+        ''' <summary>
+        '''  raise the RequestBootStrapInstall Event
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Protected Overridable Sub RaiseRequestBootstrapInstall(sender As Object, ByRef e As EventArgs)
+            RaiseEvent RequestBootstrapInstall(sender, e)
+
+        End Sub
 
         ''' <summary>
-        ''' Gets the def user.
+        ''' creates the entry for the global domain in bootstrapping
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Overrides Function CreateGlobalDomain(Optional ByRef nativeConnection As Object = Nothing) As Boolean Implements iormDatabaseDriver.CreateGlobalDomain
+            Dim anativeConnection As IDbConnection
+
+            Try
+                '*** get the native Connection 
+                If nativeConnection Is Nothing Then
+                    If Not Me.CurrentConnection Is Nothing Then
+                        anativeConnection = DirectCast(Me.CurrentConnection, adonetConnection).NativeInternalConnection
+                        If anativeConnection Is Nothing Then
+                            Call CoreMessageHandler(subname:="adonetDBDriver.CreateGlobalDomain", message:="Native internal Connection not available", messagetype:=otCoreMessageType.InternalError)
+                            Return False
+                        End If
+                    Else
+                        Call CoreMessageHandler(subname:="adonetDBDriver.CreateGlobalDomain", message:="Connection not available", messagetype:=otCoreMessageType.InternalError)
+                        Return False
+                    End If
+                Else
+                    anativeConnection = nativeConnection
+                End If
+
+                '*** check
+                If Me.HasTable(Domain.ConstTableID) Then
+                    Dim cmdstr As String
+
+                    cmdstr = "SELECT {0} FROM {1} WHERE {0} = '{2}' "
+                    cmdstr = String.Format(cmdstr, Domain.ConstFNDomainID, Domain.ConstTableID, ConstGlobalDomain)
+
+                    Dim aCommand As IDbCommand = Me.CreateNativeDBCommand(cmdstr, anativeConnection)
+                    Dim aDataReader As IDataReader = aCommand.ExecuteReader
+
+                    If aDataReader.Read Then
+                        aDataReader.Close()
+                        Return True
+                    Else
+                        aDataReader.Close()
+                        cmdstr = Domain.GetInsertGlobalDomainSQLString(domainid:=ConstGlobalDomain, description:="global domain", mindeliverableuid:=0, maxdeliverableuid:=100000)
+                        Dim result = RunSqlStatement(sqlcmdstr:=cmdstr, nativeConnection:=anativeConnection)
+                        Return result
+                    End If
+                Else
+                    Call CoreMessageHandler(subname:="adonetDBDriver.CreateGlobalDomain", message:="table for domain object doesnot exist", _
+                                            tablename:=Domain.ConstTableID, objectname:=Domain.ConstObjectID, messagetype:=otCoreMessageType.InternalError)
+
+                    Return False
+                End If
+
+            Catch ex As Exception
+                Call CoreMessageHandler(exception:=ex, subname:="adonetDBDriver.CreateGlobalDomain", messagetype:=otCoreMessageType.InternalException)
+                Return False
+            End Try
+        End Function
+        ''' <summary>
+        ''' returns true if there is a Admin User in the user definition of this database
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Overrides Function HasAdminUserValidation(Optional ByRef nativeConnection As Object = Nothing) As Boolean Implements iormDatabaseDriver.HasAdminUserValidation
+            Dim anativeConnection As IDbConnection
+
+            Try
+                '*** get the native Connection 
+                If nativeConnection Is Nothing Then
+                    If Not Me.CurrentConnection Is Nothing Then
+                        anativeConnection = DirectCast(Me.CurrentConnection, adonetConnection).NativeInternalConnection
+                        If anativeConnection Is Nothing Then
+                            Call CoreMessageHandler(subname:="adonetDBDriver.HasAdminUserValidation", message:="Native internal Connection not available", messagetype:=otCoreMessageType.InternalError)
+                            Return False
+                        End If
+                    Else
+                        Call CoreMessageHandler(subname:="adonetDBDriver.HasAdminUserValidation", message:="Connection not available", messagetype:=otCoreMessageType.InternalError)
+                        Return False
+                    End If
+                Else
+                    anativeConnection = nativeConnection
+                End If
+
+                '*** check
+                If Me.HasTable(User.ConstTableID) Then
+                    Dim cmdstr As String
+                    If Me.Type = otDbDriverType.ADONETSQL Then
+                        cmdstr = "SELECT {0}, {1}, {2}, {3} , {4}, {5}, {6} FROM {7} WHERE {2} = 1 "
+                    ElseIf Me.Type = otDbDriverType.ADONETOLEDB Then
+                        cmdstr = "SELECT {0}, {1}, {2}, {3} , {4}, {5}, {6} FROM {7} WHERE {2} <> 0 "
+                    Else
+                        CoreMessageHandler(message:="unknown database driver type - implementation missing", subname:="adonetDBDriver.HasAdminUserValidation", messagetype:=otCoreMessageType.InternalError)
+                        Return False
+                    End If
+                    cmdstr = String.Format(cmdstr, User.ConstFNPassword, User.ConstFNUsername, User.ConstFNAlterSchema, User.ConstFNIsAnonymous, User.ConstFNReadData, User.ConstFNUpdateData, User.ConstFNNoAccess, _
+                                                         User.ConstTableID)
+
+                    Dim aCommand As IDbCommand = Me.CreateNativeDBCommand(cmdstr, anativeConnection)
+                    Dim aDataReader As IDataReader = aCommand.ExecuteReader
+
+
+                    If aDataReader.Read Then
+                        aDataReader.Close()
+                        Return True
+                    End If
+
+                    aDataReader.Close()
+                    Return False
+                Else
+                    Return False
+                End If
+
+            Catch ex As Exception
+                Call CoreMessageHandler(exception:=ex, subname:="adonetDBDriver.HasAdminUserValidation", messagetype:=otCoreMessageType.InternalException)
+                Return False
+            End Try
+        End Function
+        ''' <summary>
+        ''' Gets the def user validation structure from the database.
         ''' </summary>
         ''' <param name="Username">The username.</param>
         ''' <param name="SelectAnonymous"></param>
@@ -374,7 +779,6 @@ Namespace OnTrack.Database
                                                     Optional ByRef nativeConnection As Object = Nothing) As UserValidation
             Dim anUser As New User
             Dim aCollection As New Collection
-            Dim anUserValidation As New UserValidation
             Dim aNativeConnection As IDbConnection
             Dim cmdstr As String
 
@@ -382,13 +786,13 @@ Namespace OnTrack.Database
             '*** get the native Connection 
             If nativeConnection Is Nothing Then
                 If _primaryConnection IsNot Nothing Then
-                    aNativeConnection = DirectCast(_primaryConnection, clsADONETConnection).NativeInternalConnection
+                    aNativeConnection = DirectCast(_primaryConnection, adonetConnection).NativeInternalConnection
                     If aNativeConnection Is Nothing Then
-                        Call CoreMessageHandler(subname:="clsADONETDBDriver.getUserValidation", message:="Native internal Connection not available")
+                        Call CoreMessageHandler(subname:="adonetDBDriver.getUserValidation", message:="Native internal Connection not available")
                         Return Nothing
                     End If
                 Else
-                    Call CoreMessageHandler(subname:="clsADONETDBDriver.getUserValidation", message:="Connection not available")
+                    Call CoreMessageHandler(subname:="adonetDBDriver.getUserValidation", message:="Connection not available")
                     Return Nothing
                 End If
             Else
@@ -402,9 +806,14 @@ Namespace OnTrack.Database
                     Me.Initialize()
                 End If
 
-                If Not Me.HasTable(tablename:=User.ConstTableID) Then
-                    If Not Me.VerifyOnTrackDatabase(verifyOnly:=True, createOnMissing:=True) Then
-                        Call CoreMessageHandler(subname:="clsADONETDBDriver.getUserValidation", message:="Database is not installed - Setup of schema failed")
+                '** on multiple enquiries
+                If _currentUserValidation.ValidEntry AndAlso username = _currentUserValidation.Username Then
+                    Return _currentUserValidation
+                End If
+
+                If Not Me.HasTable(User.ConstTableID) Then
+                    If Not Me.VerifyOnTrackDatabase(install:=False) Then
+                        Call CoreMessageHandler(subname:="adonetDBDriver.getUserValidation", message:="Database is not installed - Setup of schema failed")
                         Return Nothing
                     End If
                 End If
@@ -417,7 +826,7 @@ Namespace OnTrack.Database
                     ElseIf Me.Type = otDbDriverType.ADONETOLEDB Then
                         cmdstr = "select * from " & User.ConstTableID & " where  " & User.ConstFNIsAnonymous & " <> false order by " & User.ConstFNUsername & " desc"
                     Else
-                        Call CoreMessageHandler(message:="DriverType is not implemented", subname:="clsADONETDBDriver.GetUserValidation", messagetype:=otCoreMessageType.InternalError)
+                        Call CoreMessageHandler(message:="DriverType is not implemented", subname:="adonetDBDriver.GetUserValidation", messagetype:=otCoreMessageType.InternalError)
                         Return Nothing
                     End If
 
@@ -429,49 +838,49 @@ Namespace OnTrack.Database
 
                 If aDataReader.Read Then
                     Try
-                        anUserValidation.Password = aDataReader("password")
-                        anUserValidation.Username = aDataReader("username")
-                        anUserValidation.IsAnonymous = aDataReader("isanon")
-                        anUserValidation.HasAlterSchemaRights = aDataReader("alterschema")
-                        anUserValidation.HasReadRights = aDataReader("readdata")
-                        anUserValidation.HasUpdateRights = aDataReader("updatedata")
-                        anUserValidation.HasNoRights = aDataReader("noright")
-                        anUserValidation.validEntry = True
+                        _currentUserValidation.Password = aDataReader(User.ConstFNPassword)
+                        _currentUserValidation.Username = aDataReader(User.ConstFNUsername)
+                        _currentUserValidation.IsAnonymous = aDataReader(User.ConstFNIsAnonymous)
+                        _currentUserValidation.HasAlterSchemaRights = aDataReader(User.ConstFNAlterSchema)
+                        _currentUserValidation.HasReadRights = aDataReader(User.ConstFNReadData)
+                        _currentUserValidation.HasUpdateRights = aDataReader(User.ConstFNUpdateData)
+                        _currentUserValidation.HasNoRights = aDataReader(User.ConstFNNoAccess)
+                        _currentUserValidation.ValidEntry = True
 
                     Catch ex As Exception
-                        Call CoreMessageHandler(exception:=ex, subname:="clsADONETDBDriver.getUserValidation", message:="Couldn't read User Validation", _
+                        Call CoreMessageHandler(exception:=ex, subname:="adonetDBDriver.getUserValidation", message:="Couldn't read User Validation", _
                                               break:=False, noOtdbAvailable:=True)
-                        anUserValidation.validEntry = False
+                        _currentUserValidation.ValidEntry = False
                         aDataReader.Close()
-                        Return anUserValidation
+                        Return _currentUserValidation
 
                     End Try
 
                     ' return successfull
                     aDataReader.Close()
-                    Return anUserValidation
+                    Return _currentUserValidation
 
                 End If
 
                 aDataReader.Close()
                 ' return
-                anUserValidation.validEntry = False
-                Return anUserValidation
+                _currentUserValidation.ValidEntry = False
+                Return _currentUserValidation
 
             Catch ex As OleDbException
-                Call CoreMessageHandler(showmsgbox:=True, message:="OLEDB Database not available", subname:="clsADONETDBDriver.getUserValidation", exception:=ex)
+                Call CoreMessageHandler(showmsgbox:=True, message:="OLEDB Database not available", subname:="adonetDBDriver.getUserValidation", exception:=ex)
 
                 Return Nothing
 
             Catch ex As SqlException
-                Call CoreMessageHandler(showmsgbox:=True, message:="SQL Server Database not available", subname:="clsADONETDBDriver.getUserValidation", exception:=ex)
+                Call CoreMessageHandler(showmsgbox:=True, message:="SQL Server Database not available", subname:="adonetDBDriver.getUserValidation", exception:=ex)
 
                 Return Nothing
 
 
                 ' Handle the error
             Catch ex As Exception
-                Call CoreMessageHandler(showmsgbox:=True, subname:="clsADONETDBDriver.getUserValidation", exception:=ex)
+                Call CoreMessageHandler(showmsgbox:=True, subname:="adonetDBDriver.getUserValidation", exception:=ex)
 
                 Return Nothing
 
@@ -490,7 +899,7 @@ Namespace OnTrack.Database
         Public Overrides Function RunSqlSelectCommand(id As String, _
                                                        Optional ByRef parametervalues As Dictionary(Of String, Object) = Nothing, _
                                                       Optional nativeConnection As Object = Nothing) As List(Of ormRecord) _
-                                                    Implements iormDBDriver.RunSqlSelectCommand
+                                                    Implements iormDatabaseDriver.RunSqlSelectCommand
             Try
                 Dim aSqlCommand As iormSqlCommand
 
@@ -500,12 +909,12 @@ Namespace OnTrack.Database
                     aSqlCommand = Me.RetrieveSqlCommand(id)
                     Return Me.RunSqlSelectCommand(sqlcommand:=aSqlCommand, parametervalues:=parametervalues, nativeConnection:=nativeConnection)
                 Else
-                    Call CoreMessageHandler(message:="SQL command with this ID is not in store", subname:="clsADONETDBDriver.RunSqlSelectCommand", _
+                    Call CoreMessageHandler(message:="SQL command with this ID is not in store", subname:="adonetDBDriver.RunSqlSelectCommand", _
                                           messagetype:=otCoreMessageType.InternalError, arg1:=id)
                     Return New List(Of ormRecord)
                 End If
             Catch ex As Exception
-                Call CoreMessageHandler(exception:=ex, message:="Exception", subname:="clsADONETDBDriver.RunSqlSelectCommand", _
+                Call CoreMessageHandler(exception:=ex, message:="Exception", subname:="adonetDBDriver.RunSqlSelectCommand", _
                                           messagetype:=otCoreMessageType.InternalError, arg1:=id)
                 Return New List(Of ormRecord)
             End Try
@@ -521,7 +930,7 @@ Namespace OnTrack.Database
         Public Overrides Function RunSqlSelectCommand(ByRef sqlcommand As ormSqlSelectCommand, _
                                            Optional ByRef parametervalues As Dictionary(Of String, Object) = Nothing, _
                                            Optional nativeConnection As Object = Nothing) As List(Of ormRecord) _
-                                       Implements iormDBDriver.RunSqlSelectCommand
+                                       Implements iormDatabaseDriver.RunSqlSelectCommand
 
 
             Dim cvtvalue As Object
@@ -534,7 +943,7 @@ Namespace OnTrack.Database
                 If Not sqlcommand.Prepared Then
                     If Not sqlcommand.Prepare Then
                         Call CoreMessageHandler(message:="SqlCommand couldn't be prepared", arg1:=sqlcommand.ID, _
-                                               subname:="clsADONETDBDriver.runsqlselectCommand", messagetype:=otCoreMessageType.InternalError)
+                                               subname:="adonetDBDriver.runsqlselectCommand", messagetype:=otCoreMessageType.InternalError)
                         Return New List(Of ormRecord)
                     End If
                 End If
@@ -547,11 +956,21 @@ Namespace OnTrack.Database
                 For Each aParameter In sqlcommand.Parameters
                     If Not aParameter.NotColumn AndAlso (aParameter.Fieldname <> "" And aParameter.Tablename <> "") Then
                         Dim aTablestore As iormDataStore = Me.GetTableStore(aParameter.Tablename)
-                        cvtvalue = aTablestore.Convert2ColumnData(aParameter.Fieldname, aParameter.Value)
+                        If aTablestore.Convert2ColumnData(aParameter.Fieldname, invalue:=aParameter.Value, outvalue:=cvtvalue) Then
+                            aNativeCommand.Parameters(aParameter.ID).value = cvtvalue
+                        Else
+                            CoreMessageHandler(message:=" parameter value could not be converted", arg1:=aParameter.Value, columnname:=aParameter.Fieldname, tablename:=aParameter.Tablename, _
+                                                subname:="adonetdbdriver.RunSqlSelectCommand", messagetype:=otCoreMessageType.InternalError)
+                        End If
                     Else
-                        cvtvalue = Convert2DBData(aParameter.Value, GetTargetTypeFor(aParameter.Datatype))
+                        If Convert2DBData(invalue:=aParameter.Value, outvalue:=cvtvalue, targetType:=GetTargetTypeFor(aParameter.Datatype)) Then
+                            aNativeCommand.Parameters(aParameter.ID).value = cvtvalue
+                        Else
+                            CoreMessageHandler(message:=" parameter value could not be converted", arg1:=aParameter.Value, _
+                                                subname:="adonetdbdriver.RunSqlSelectCommand", messagetype:=otCoreMessageType.InternalError)
+                        End If
                     End If
-                    aNativeCommand.Parameters(aParameter.ID).value = cvtvalue
+
                 Next
                 '** Input Parameters 
                 If Not parametervalues Is Nothing Then
@@ -562,11 +981,21 @@ Namespace OnTrack.Database
 
                             If Not aParameter.NotColumn And aParameter.Fieldname <> "" And aParameter.Tablename <> "" Then
                                 Dim aTablestore As iormDataStore = Me.GetTableStore(aParameter.Tablename)
-                                cvtvalue = aTablestore.Convert2ColumnData(aParameter.Fieldname, kvp.Value)
+                                If aTablestore.Convert2ColumnData(aParameter.Fieldname, invalue:=kvp.Value, outvalue:=cvtvalue) Then
+                                    aNativeCommand.Parameters(aParameter.ID).value = cvtvalue
+                                Else
+                                    CoreMessageHandler(message:=" parameter value could not be converted", arg1:=kvp.Value, columnname:=aParameter.Fieldname, tablename:=aParameter.Tablename, _
+                                                        subname:="adonetdbdriver.RunSqlSelectCommand", messagetype:=otCoreMessageType.InternalError)
+                                End If
                             Else
-                                cvtvalue = Convert2DBData(kvp.Value, GetTargetTypeFor(aParameter.Datatype))
+                                If Convert2DBData(invalue:=kvp.Value, outvalue:=cvtvalue, targetType:=GetTargetTypeFor(aParameter.Datatype)) Then
+                                    aNativeCommand.Parameters(aParameter.ID).value = cvtvalue
+                                Else
+                                    CoreMessageHandler(message:=" parameter value could not be converted", arg1:=kvp.Value, _
+                                                        subname:="adonetdbdriver.RunSqlSelectCommand", messagetype:=otCoreMessageType.InternalError)
+                                End If
+
                             End If
-                            aNativeCommand.Parameters(aParameter.ID).value = cvtvalue
 
                         End If
                     Next
@@ -592,15 +1021,15 @@ Namespace OnTrack.Database
                 Return theResults
 
             Catch ex As OleDb.OleDbException
-                Call CoreMessageHandler(exception:=ex, subname:="clsADONETDBDriver.runSqlSelectCommand", arg1:=sqlcommand.SqlText, messagetype:=otCoreMessageType.InternalException)
+                Call CoreMessageHandler(exception:=ex, subname:="adonetDBDriver.runSqlSelectCommand", arg1:=sqlcommand.SqlText, messagetype:=otCoreMessageType.InternalException)
                 If Not aDataReader Is Nothing Then aDataReader.Close()
                 Return New List(Of ormRecord)
             Catch ex As SqlException
-                Call CoreMessageHandler(exception:=ex, subname:="clsADONETDBDriver.runSqlSelectCommand", arg1:=sqlcommand.SqlText, messagetype:=otCoreMessageType.InternalException)
+                Call CoreMessageHandler(exception:=ex, subname:="adonetDBDriver.runSqlSelectCommand", arg1:=sqlcommand.SqlText, messagetype:=otCoreMessageType.InternalException)
                 If Not aDataReader Is Nothing Then aDataReader.Close()
                 Return New List(Of ormRecord)
             Catch ex As Exception
-                Call CoreMessageHandler(exception:=ex, subname:="clsADONETDBDriver.runSqlSelectCommand", arg1:=sqlcommand.SqlText, messagetype:=otCoreMessageType.InternalException)
+                Call CoreMessageHandler(exception:=ex, subname:="adonetDBDriver.runSqlSelectCommand", arg1:=sqlcommand.SqlText, messagetype:=otCoreMessageType.InternalException)
                 If Not aDataReader Is Nothing Then aDataReader.Close()
                 Return New List(Of ormRecord)
             End Try
@@ -614,7 +1043,7 @@ Namespace OnTrack.Database
         ''' <param name="TableID"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Protected Friend Overrides Function PersistLog(ByRef log As ErrorLog) As Boolean Implements iormDBDriver.PersistLog
+        Protected Friend Overrides Function PersistLog(ByRef log As ErrorLog) As Boolean Implements iormDatabaseDriver.PersistLog
 
 
             '** we need a valid connection also nativeInternal could work also
@@ -623,11 +1052,11 @@ Namespace OnTrack.Database
             End If
 
             Try
-                If DirectCast(_primaryConnection, clsADONETConnection).IsNativeInternalLocked Then
+                If DirectCast(_primaryConnection, adonetConnection).IsNativeInternalLocked Then
                     Return False
                 End If
 
-                'DirectCast(_primaryConnection, clsADONETConnection).IsNativeInternalLocked = True
+                'DirectCast(_primaryConnection, adonetConnection).IsNativeInternalLocked = True
 
                 '** build the command
                 If _ErrorLogPersistCommand Is Nothing Then
@@ -638,19 +1067,19 @@ Namespace OnTrack.Database
                     End If
 
                     '** we need just the insert
-                    _ErrorLogPersistCommand = DirectCast(_ErrorLogPersistTableschema, clsADONETTableSchema). _
+                    _ErrorLogPersistCommand = DirectCast(_ErrorLogPersistTableschema, adonetTableSchema). _
                         BuildCommand(_ErrorLogPersistTableschema.PrimaryKeyIndexName, _
-                                     clsADONETTableSchema.CommandType.InsertType, _
-                                     nativeconnection:=DirectCast(_primaryConnection, clsADONETConnection).NativeInternalConnection)
+                                     adonetTableSchema.CommandType.InsertType, _
+                                     nativeconnection:=DirectCast(_primaryConnection, adonetConnection).NativeInternalConnection)
                     '** take it on the internal 
                     If _ErrorLogPersistCommand Is Nothing Then
-                        'DirectCast(_primaryConnection, clsADONETConnection).IsNativeInternalLocked = False
+                        'DirectCast(_primaryConnection, adonetConnection).IsNativeInternalLocked = False
                         Return False
                     End If
                 End If
 
                 '** flush the messages
-                SyncLock DirectCast(_primaryConnection, clsADONETConnection).NativeInternalConnection
+                SyncLock DirectCast(_primaryConnection, adonetConnection).NativeInternalConnection
                     If _ErrorLogPersistCommand.Connection.State = ConnectionState.Open Then
                         PersistLog = False
                         Dim anError As CoreError
@@ -658,7 +1087,7 @@ Namespace OnTrack.Database
                             anError = log.Retain
                             If anError IsNot Nothing AndAlso Not anError.Processed Then
                                 'get all fields -> update
-                                For Each fieldname As String In _ErrorLogPersistTableschema.fieldnames
+                                For Each fieldname As String In _ErrorLogPersistTableschema.Fieldnames
                                     ' assign values
                                     If fieldname <> "" Then
                                         With _ErrorLogPersistCommand.Parameters.Item("@" & fieldname)
@@ -686,8 +1115,8 @@ Namespace OnTrack.Database
                                                     .value = anError.Tablename
                                                 Case CoreError.ConstFNStack
                                                     .value = anError.StackTrace
-                                                Case CoreError.ConstFNfieldname
-                                                    .value = anError.EntryName
+                                                Case CoreError.ConstFNColumn
+                                                    .value = anError.Columnname
                                                 Case CoreError.ConstFNarg
                                                     .value = anError.Arguments
                                                 Case CoreError.ConstFNUpdatedOn, CoreError.ConstFNCreatedOn
@@ -698,6 +1127,10 @@ Namespace OnTrack.Database
                                                     .value = ConstNullDate
                                                 Case CoreError.ConstFNUsername
                                                     .value = anError.Username
+                                                Case CoreError.ConstFNObjectname
+                                                    .value = anError.Objectname
+                                                Case CoreError.ConstFNObjectentry
+                                                    .value = anError.ObjectEntry
                                                 Case Else
                                                     .value = DBNull.Value
                                             End Select
@@ -717,18 +1150,21 @@ Namespace OnTrack.Database
                             End If
                         Loop Until anError Is Nothing
 
-                        'DirectCast(_primaryConnection, clsADONETConnection).IsNativeInternalLocked = False
+                        'DirectCast(_primaryConnection, adonetConnection).IsNativeInternalLocked = False
                         Return PersistLog
                     End If
                 End SyncLock
             Catch ex As Exception
                 Console.WriteLine(Date.Now.ToLocalTime & ": could not flush error log to database")
-                'DirectCast(_primaryConnection, clsADONETConnection).IsNativeInternalLocked = False
+                'DirectCast(_primaryConnection, adonetConnection).IsNativeInternalLocked = False
                 Return False
             End Try
 
         End Function
 
+        Private Sub adonetDBDriver_RequestBootstrapInstall(sender As Object, e As SessionBootstrapEventArgs) Handles Me.RequestBootstrapInstall
+
+        End Sub
     End Class
 
 
@@ -768,11 +1204,11 @@ Namespace OnTrack.Database
     End Class
 
     '************************************************************************************
-    '***** CLASS clsADONETConnection describes the Connection description to OnTrack
+    '***** CLASS adonetConnection describes the Connection description to OnTrack
     '*****        based on ADO.NET  Driver
     '*****
 
-    Public MustInherit Class clsADONETConnection
+    Public MustInherit Class adonetConnection
         Inherits ormConnection
         Implements iormConnection
 
@@ -792,7 +1228,7 @@ Namespace OnTrack.Database
         Public Shadows Event OnDisconnection As EventHandler(Of ormConnectionEventArgs) Implements iormConnection.OnDisconnection
         Public Event OnInternalConnected As EventHandler(Of InternalConnectionEventArgs)
 
-        Public Sub New(ByVal id As String, ByRef DatabaseDriver As iormDBDriver, ByRef session As Session, sequence As ot.ConfigSequence)
+        Public Sub New(ByVal id As String, ByRef DatabaseDriver As iormDatabaseDriver, ByRef session As Session, sequence As ot.ConfigSequence)
             MyBase.New(id, DatabaseDriver, session, sequence)
             _useseek = False
             _nativeConnection = Nothing
@@ -808,7 +1244,7 @@ Namespace OnTrack.Database
                     _nativeConnection.Close()
                 End If
             Catch ex As Exception
-                Call CoreMessageHandler(exception:=ex, subname:="clsADONETConnection.finalize", messagetype:=otCoreMessageType.InternalException _
+                Call CoreMessageHandler(exception:=ex, subname:="adonetConnection.finalize", messagetype:=otCoreMessageType.InternalException _
                                        )
 
             End Try
@@ -819,7 +1255,7 @@ Namespace OnTrack.Database
                     _nativeinternalConnection.Close()
                 End If
             Catch ex As Exception
-                Call CoreMessageHandler(exception:=ex, subname:="clsADONETConnection.finalize", messagetype:=otCoreMessageType.InternalException _
+                Call CoreMessageHandler(exception:=ex, subname:="adonetConnection.finalize", messagetype:=otCoreMessageType.InternalException _
                                        )
             End Try
 
@@ -927,8 +1363,8 @@ Namespace OnTrack.Database
                     Try
                         '**** retrieve ConfigParameters
                         If Not Me.SetConnectionConfigParameters() Then
-                            Call CoreMessageHandler(showmsgbox:=True, message:="Configuration Parameters couldnot be retrieved from a data source", _
-                                                  subname:="clsADONETConnection.Connect")
+                            Call CoreMessageHandler(showmsgbox:=True, message:="Configuration Parameters could not be retrieved from a data source", _
+                                                  subname:="adonetConnection.Connect")
                             Return Nothing
                         End If
                         ' connect 
@@ -941,16 +1377,16 @@ Namespace OnTrack.Database
                             Return _nativeinternalConnection
                         Else
                             Call CoreMessageHandler(showmsgbox:=False, message:="internal connection couldnot be established", _
-                                                  subname:="clsADONETConnection.NativeInternalConnection")
+                                                  subname:="adonetConnection.NativeInternalConnection")
                             Return Nothing
                         End If
                     Catch ex As SqlException
                         Call CoreMessageHandler(showmsgbox:=True, message:="internal connection to database could not be established", _
-                                              subname:="clsADONETConnection.NativeInternalConnection", exception:=ex)
+                                              subname:="adonetConnection.NativeInternalConnection", exception:=ex)
                         Return Nothing
                     Catch ex As Exception
                         Call CoreMessageHandler(showmsgbox:=True, message:="internal connection couldnot be established", _
-                                              subname:="clsADONETConnection.NativeInternalConnection", exception:=ex)
+                                              subname:="adonetConnection.NativeInternalConnection", exception:=ex)
                         Return Nothing
                     End Try
                 Else
@@ -983,7 +1419,7 @@ Namespace OnTrack.Database
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Protected Friend MustOverride Function createNewNativeConnection() As IDbConnection
+        Protected Friend MustOverride Function CreateNewNativeConnection() As IDbConnection
 
 
         ''' <summary>
@@ -1023,17 +1459,17 @@ Namespace OnTrack.Database
                 End If
             End If
 
-            '*** check On Track
-            If Not Me.DatabaseDriver.VerifyOnTrackDatabase(False, True) Then
-                Call CoreMessageHandler(showmsgbox:=True, message:="OnTrack is not UpToDate - Contact your System Administrator", _
-                                     subname:="clsADONETConnection.Connect", noOtdbAvailable:=True, messagetype:=otCoreMessageType.InternalError)
+            '*** check On Track and just the kernel
+            If Not Me.DatabaseDriver.VerifyOnTrackDatabase(install:=False) Then
+                Call CoreMessageHandler(showmsgbox:=True, message:="OnTrack Database isnot setup - start session to install it", _
+                                     subname:="adonetConnection.Connect", noOtdbAvailable:=True, messagetype:=otCoreMessageType.InternalError)
                 Return False
             End If
 
             '**** retrieve ConfigParameters
             If Not Me.SetConnectionConfigParameters() Then
                 Call CoreMessageHandler(showmsgbox:=True, message:="Configuration Parameters couldnot be retrieved from a data source", _
-                                      subname:="clsADONETConnection.Connect", noOtdbAvailable:=True, messagetype:=otCoreMessageType.InternalError)
+                                      subname:="adonetConnection.Connect", noOtdbAvailable:=True, messagetype:=otCoreMessageType.InternalError)
                 Return False
             End If
 
@@ -1041,7 +1477,7 @@ Namespace OnTrack.Database
             If Not ot.ValidateUser(accessRequest:=accessRequest, username:=OTDBUsername, _
                                            password:=OTDBPassword, domainID:=domainID) Then
                 Call CoreMessageHandler(showmsgbox:=True, message:="Connect not possible - user could not be validated", arg1:=OTDBUsername, _
-                                    subname:="clsADONETConnection.Connect", noOtdbAvailable:=True, messagetype:=otCoreMessageType.ApplicationError)
+                                    subname:="adonetConnection.Connect", noOtdbAvailable:=True, messagetype:=otCoreMessageType.ApplicationError)
                 If Me.IsConnected Then
                     Me.Disconnect()
                 End If
@@ -1054,25 +1490,17 @@ Namespace OnTrack.Database
                 Me.Disconnect()
             End If
             '*** create the connection
-            _nativeConnection = createNewNativeConnection()
+            _nativeConnection = CreateNewNativeConnection()
 
             Try
                 If Me.Connectionstring = "" Then
                     Call CoreMessageHandler(messagetype:=otCoreMessageType.InternalError, message:="Connection String to Database is empty", _
-                                           subname:="clsADONETConnection.Connect", arg1:=Me.Connectionstring)
+                                           subname:="adonetConnection.Connect", arg1:=Me.Connectionstring)
                     ResetFromConnection()
                     Return False
                 End If
                 ' set dbpassword
                 _nativeConnection.ConnectionString = Me.Connectionstring
-
-
-                If Me.Access = otAccessRight.[ReadOnly] Then
-                    '_nativeConnection. = ConnectModeEnum.adModeRead
-                Else
-                    '_nativeConnection.Mode = ConnectModeEnum.adModeReadWrite
-                End If
-
 
                 ' open again
                 _nativeConnection.Open()
@@ -1083,16 +1511,9 @@ Namespace OnTrack.Database
                     _IsConnected = True ' even with no valid User Defintion we are Connection (otherwise we cannot load)
                     _OTDBDatabaseDriver.SetDBParameter("lastLogin_user", OTDBUsername)
                     _OTDBDatabaseDriver.SetDBParameter("lastLogin_timestamp", Date.Now.ToString)
-
-                    _OTDBUser = User.Retrieve(username:=OTDBUsername)
-                    If _OTDBUser Is Nothing Then
-                        Call CoreMessageHandler(message:="User Definition could not be loaded from the database", _
-                                              subname:="clsADONETConnection.connect", arg1:=OTDBUsername, _
-                                              messagetype:=otCoreMessageType.InternalError)
-                        ResetFromConnection()
-                        Return False
-
-                    End If
+                    _Dbuser = OTDBUsername
+                    _Dbpassword = OTDBPassword
+                    
 
                     ' raise Connected Event
                     RaiseEvent OnConnection(Me, New ormConnectionEventArgs(Me, domainID))
@@ -1102,7 +1523,7 @@ Namespace OnTrack.Database
 
             Catch ex As System.Data.DataException
                 Call CoreMessageHandler(showmsgbox:=True, message:="internal connection to database could not be established" & vbLf, _
-                                      subname:="clsADONETConnection.Connect", exception:=ex)
+                                      subname:="adonetConnection.Connect", exception:=ex)
                 If Not _nativeConnection Is Nothing AndAlso _nativeConnection.State <> ConnectionState.Closed Then
                     _nativeConnection.Close()
                 End If
@@ -1111,7 +1532,7 @@ Namespace OnTrack.Database
                 Return False
 
             Catch ex As Exception
-                Call CoreMessageHandler(showmsgbox:=True, subname:="clsADONETConnection.Connect", exception:=ex, _
+                Call CoreMessageHandler(showmsgbox:=True, subname:="adonetConnection.Connect", exception:=ex, _
                                       arg1:=_Connectionstring, noOtdbAvailable:=True, break:=False)
                 If Not _nativeConnection Is Nothing AndAlso _nativeConnection.State <> ConnectionState.Closed Then
                     _nativeConnection.Close()
@@ -1137,13 +1558,13 @@ Namespace OnTrack.Database
     ''' CLASS describes the schema per table of the database itself
     ''' </summary>
     ''' <remarks></remarks>
-    Public MustInherit Class clsADONETTableSchema
+    Public MustInherit Class adonetTableSchema
         Inherits ormTableSchema
         Implements iotDataSchema
 
         '** own ColumnDescription
         '**
-        Class ColumnDescription
+        Class adoNetColumnDescription
             Private _Description As String
             Private _ColumnName As String
             Private _IsNullable As Boolean
@@ -1363,7 +1784,7 @@ Namespace OnTrack.Database
         Protected _Connection As iormConnection
         Protected _ColumnsTable As DataTable
         Protected _IndexTable As DataTable
-        Protected _Columns() As ColumnDescription
+        Protected _Columns() As adoNetColumnDescription
 
 
 
@@ -1417,20 +1838,43 @@ Namespace OnTrack.Database
         ''' <remarks></remarks>
         Public Overrides Function GetDefaultValue(index As Object) As Object Implements iotDataSchema.GetDefaultValue
             Dim i As Integer = Me.GetFieldordinal(index:=index)
-            Dim aDesc As ColumnDescription
+            Dim result As Object
+            Dim aDesc As adoNetColumnDescription
 
             If i >= 0 Then
                 aDesc = Me.GetColumnDescription(i)
-                If aDesc IsNot Nothing Then
+                If aDesc IsNot Nothing AndAlso aDesc.HasDefault Then
                     Dim aTablestore As iormDataStore = _Connection.DatabaseDriver.GetTableStore(Me.TableID)
-                    Return aTablestore.Convert2ObjectData(i, aDesc.Default)
+                    If aTablestore.Convert2ObjectData(i, invalue:=aDesc.Default, outvalue:=result, isnullable:=False, defaultvalue:=aDesc.Default) Then
+                        Return result
+                    Else
+                        Return Nothing
+                    End If
                 End If
             End If
 
             Return Nothing
 
         End Function
-       
+        ''' <summary>
+        ''' returns the nullable property for a fieldname
+        ''' </summary>
+        ''' <param name="fieldname"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Overrides Function GetNullable(index As Object) As Boolean Implements iotDataSchema.GetNullable
+            Dim i As Integer = Me.GetFieldordinal(index:=index)
+            Dim result As Object
+            Dim aDesc As adoNetColumnDescription
+
+            If i >= 0 Then
+                aDesc = Me.GetColumnDescription(i)
+                Return aDesc.IsNullable
+            End If
+
+            Return False
+
+        End Function
         ''' <summary>
         ''' returns true if default value exists for fieldname by index
         ''' </summary>
@@ -1439,7 +1883,7 @@ Namespace OnTrack.Database
         ''' <remarks></remarks>
         Public Overrides Function HasDefaultValue(index As Object) As Boolean Implements iotDataSchema.HasDefaultValue
             Dim i As Integer = Me.GetFieldordinal(index:=index)
-            Dim aDesc As ColumnDescription
+            Dim aDesc As adoNetColumnDescription
 
             If i >= 0 Then
                 aDesc = Me.GetColumnDescription(i)
@@ -1457,7 +1901,7 @@ Namespace OnTrack.Database
         ''' <param name="Index">Index no</param>
         ''' <returns>ColumnDescription</returns>
         ''' <remarks>Returns Nothing on range bound exception</remarks>
-        Public Function GetColumnDescription(index As UShort) As ColumnDescription
+        Public Function GetColumnDescription(index As UShort) As adoNetColumnDescription
             If Index > 0 And Index <= _Columns.Length Then
                 Return _Columns(Index - 1)
             Else
@@ -1538,8 +1982,18 @@ Namespace OnTrack.Database
 
                 Dim aCommand As IDbCommand = createNativeDBCommand()
 
-                If nativeconnection Is Nothing Then
+                If nativeconnection Is Nothing And _Connection.NativeConnection IsNot Nothing Then
                     nativeconnection = DirectCast(Me._Connection.NativeConnection, IDbConnection)
+                    '** build on internal
+                ElseIf _Connection.NativeConnection Is Nothing And _Connection.Session.IsBootstrappingInstallationRequested Then
+                    nativeconnection = DirectCast(DirectCast(_Connection, adonetConnection).NativeInternalConnection, IDbConnection)
+                    'CoreMessageHandler(message:="note: native internal connection used to build and drive commands during bootstrap", arg1:=_Connection.ID, _
+                    '                   subname:="adonetTableSchema.buildCommand", _
+                    '                  messagetype:=otCoreMessageType.InternalInfo, tablename:=_TableID)
+                Else
+                    CoreMessageHandler(message:="no internal connection in the connection", arg1:=_Connection.ID, subname:="adonetTableSchema.buildCommand", _
+                                       messagetype:=otCoreMessageType.InternalError, tablename:=_TableID)
+                    Return Nothing
                 End If
 
 
@@ -1552,7 +2006,7 @@ Namespace OnTrack.Database
                     '*********
                     '********* SELECT
                     '*********
-                    Case clsADONETTableSchema.CommandType.SelectType
+                    Case adonetTableSchema.CommandType.SelectType
                         ' set the IndxColumns
                         If Not _indexDictionary.ContainsKey(indexname) Then
                             Call CoreMessageHandler(subname:="clsADONETTableSchema.buildcommand", message:="indexname not in IndexDictionary", _
@@ -1600,7 +2054,7 @@ Namespace OnTrack.Database
                         '*********
                         '********* INSERT
                         '*********
-                    Case clsADONETTableSchema.CommandType.InsertType
+                    Case adonetTableSchema.CommandType.InsertType
 
                         commandstr = "INSERT INTO " & _TableID & "( "
                         For i = 0 To _Fieldnames.GetUpperBound(0)
@@ -1642,7 +2096,7 @@ Namespace OnTrack.Database
                         '*********
                         '********* UPDATE
                         '*********
-                    Case clsADONETTableSchema.CommandType.UpdateType
+                    Case adonetTableSchema.CommandType.UpdateType
                         ' set the IndxColumns
                         If Not _indexDictionary.ContainsKey(indexname) Then
                             Call CoreMessageHandler(subname:="clsADONETTableSchema.buildcommand", message:="index name not in IndexDictionary", _
@@ -1705,7 +2159,7 @@ Namespace OnTrack.Database
                         '*********
                         '********* DELETE
                         '*********
-                    Case clsADONETTableSchema.CommandType.DeleteType
+                    Case adonetTableSchema.CommandType.DeleteType
                         ' set the IndxColumns
                         If Not _indexDictionary.ContainsKey(indexname) Then
                             Call CoreMessageHandler(subname:="clsADONETTableSchema.buildcommand", message:="indexname not in IndexDictionary", _
@@ -1748,7 +2202,7 @@ Namespace OnTrack.Database
 
             Catch ex As Exception
                 Call CoreMessageHandler(subname:="clsADONETTableSchema.buildcommand", message:="exception for " & indexname, _
-                                      arg1:=commandtype, messagetype:=otCoreMessageType.InternalError, exception:=ex)
+                                      arg1:=commandtype.ToString & ":" & commandstr, messagetype:=otCoreMessageType.InternalError, exception:=ex)
                 Return Nothing
             End Try
         End Function
@@ -1758,11 +2212,11 @@ Namespace OnTrack.Database
 
 
     '************************************************************************************
-    '***** CLASS clsADONETTableStore describes the per Table reference and Helper Class
+    '***** CLASS adonetTableStore describes the per Table reference and Helper Class
     '*****                    ORM Mapping Class and Table Access Workhorse
     '*****
 
-    Public MustInherit Class clsADONETTableStore
+    Public MustInherit Class adonetTableStore
         Inherits ormTableStore
         Implements iormDataStore
 
@@ -1785,20 +2239,23 @@ Namespace OnTrack.Database
         ''' <param name="abostrophNecessary"></param>
         ''' <returns>the converted object</returns>
         ''' <remarks></remarks>
-        Public Overloads Function Convert2ColumnData(ByVal index As Object, ByVal value As Object, _
-        Optional ByRef abostrophNecessary As Boolean = False) As Object Implements iormDataStore.Convert2ColumnData
-            Dim aSchema As clsADONETTableSchema = Me.TableSchema
-            Dim aDBColumn As clsADONETTableSchema.ColumnDescription
+        Public Overloads Function Convert2ColumnData(ByVal index As Object, _
+                                                     ByVal invalue As Object, _
+                                                     ByRef outvalue As Object, _
+                                                    Optional ByRef abostrophNecessary As Boolean = False, _
+                                                    Optional isnullable As Boolean? = Nothing, _
+                                                    Optional defaultvalue As Object = Nothing) As Boolean Implements iormDataStore.Convert2ColumnData
+            Dim aSchema As adonetTableSchema = Me.TableSchema
+            Dim aDBColumn As adonetTableSchema.adoNetColumnDescription
             Dim result As Object
             Dim fieldno As Integer
 
             result = Nothing
             ' check if schema is initialized
             If Not Me.TableSchema.IsInitialized Then
-                Call CoreMessageHandler(subname:="clsADONETTableStore.convert2ColumnData", messagetype:=otCoreMessageType.InternalError, _
+                Call CoreMessageHandler(subname:="adonetTableStore.convert2ColumnData", messagetype:=otCoreMessageType.InternalError, _
                                       message:="tableschema couldnot be initialized - loaded to fail ?", tablename:=Me.TableID)
-                Convert2ColumnData = DBNull.Value
-                Exit Function
+                Return False
             End If
 
 
@@ -1806,48 +2263,58 @@ Namespace OnTrack.Database
 
                 fieldno = aSchema.GetFieldordinal(index)
                 If fieldno < 0 Then
-                    Call CoreMessageHandler(subname:="clsOLEDBTableStoreStore.cvt2ColumnData", _
+                    Call CoreMessageHandler(subname:="adonetTableStore.cvt2ColumnData", _
                                           message:="iOTDBTableStore " & Me.TableID & " anIndex for " & index & " not found", _
                                           tablename:=Me.TableID, arg1:=index, messagetype:=otCoreMessageType.InternalError)
-                    System.Diagnostics.Debug.WriteLine("iOTDBTableStore " & Me.TableID & " anIndex for " & index & " not found")
+                    Return False
 
-                    Convert2ColumnData = DBNull.Value
-                    Exit Function
                 Else
                     aDBColumn = aSchema.GetColumnDescription(fieldno)
                 End If
-                abostrophNecessary = False
-
-                '*
-                '*
-                If IsError(value) Then
-                    Call CoreMessageHandler(subname:="clsADONETTablestore.cvt2ColumnData", _
-                                          message:="Error in Formular of field value " & value & " while updating OTDB", _
-                                          arg1:=value, entryname:=aDBColumn.ColumnName, tablename:=aSchema.TableID, messagetype:=otCoreMessageType.InternalError)
-                    System.Diagnostics.Debug.WriteLine("Error in Formular of field value " & value & " while updating OTDB")
-                    value = ""
+                If Not isnullable.HasValue Then
+                    isnullable = aDBColumn.IsNullable
                 End If
+                If defaultvalue Is Nothing And aDBColumn.HasDefault Then
+                    defaultvalue = aDBColumn.Default
+                End If
+
+                abostrophNecessary = False
 
                 '***
                 '*** convert
-                Return Connection.DatabaseDriver.Convert2DBData(value:=value, targetType:=aDBColumn.DataType, maxsize:=aDBColumn.CharacterMaxLength, _
-                                          abostrophNecessary:=abostrophNecessary, fieldname:=aDBColumn.ColumnName)
+                Return Connection.DatabaseDriver.Convert2DBData(invalue:=invalue, outvalue:=outvalue, _
+                                                                targetType:=aDBColumn.DataType, _
+                                                                maxsize:=aDBColumn.CharacterMaxLength, _
+                                                                  abostrophNecessary:=abostrophNecessary,
+                                                                  isnullable:=isnullable, defaultvalue:=defaultvalue, _
+                                                                  fieldname:=aDBColumn.ColumnName)
 
 
             Catch ex As Exception
-                Call CoreMessageHandler(showmsgbox:=False, subname:="clsADONETTablestore.cvt2ColumnData", messagetype:=otCoreMessageType.InternalError, _
-                                      tablename:=Me.TableID, entryname:=aDBColumn.ColumnName, exception:=ex, arg1:=index & ": '" & value & "'")
+                Call CoreMessageHandler(showmsgbox:=False, subname:="adonetTableStore.cvt2ColumnData", messagetype:=otCoreMessageType.InternalError, _
+                                      tablename:=Me.TableID, entryname:=aDBColumn.ColumnName, exception:=ex, arg1:=index & ": '" & invalue & "'")
                 Return Nothing
 
             End Try
 
 
         End Function
-        '*********
-        '********* cvt2ObjData returns a object from the Datatype of the column to XLS nterpretation
-        '*********
-
-        Public MustOverride Function Convert2ObjectData(ByVal index As Object, ByVal value As Object, Optional ByRef abostrophNecessary As Boolean = False) As Object
+       
+        ''' <summary>
+        ''' converts data to object data
+        ''' </summary>
+        ''' <param name="index"></param>
+        ''' <param name="invalue"></param>
+        ''' <param name="outvalue"></param>
+        ''' <param name="abostrophNecessary"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public MustOverride Function Convert2ObjectData(ByVal index As Object, _
+                                                        ByVal invalue As Object, _
+                                                        ByRef outvalue As Object, _
+                                                        Optional isnullable As Boolean? = Nothing, _
+                                                        Optional defaultvalue As Object = Nothing, _
+                                                        Optional ByRef abostrophNecessary As Boolean = False) As Boolean
 
         ''' <summary>
         ''' if Cache is Initialized and running 
@@ -1886,7 +2353,6 @@ Namespace OnTrack.Database
         ''' <remarks></remarks>
         Public Overrides Function DelRecordByPrimaryKey(ByRef primaryKeyArray() As Object, Optional silent As Boolean = False) As Boolean _
         Implements iormDataStore.DelRecordByPrimaryKey
-            Dim otdbcn As IDbConnection
             Dim aSQLDeleteCommand As IDbCommand
 
             Dim j As Integer
@@ -1898,33 +2364,31 @@ Namespace OnTrack.Database
 
             ' check if schema is initialized
             If Not Me.TableSchema.IsInitialized Then
-                Call CoreMessageHandler(subname:="clsADONETTableStore.DelRecordByPrimaryKey", messagetype:=otCoreMessageType.InternalError, _
+                Call CoreMessageHandler(subname:="adonetTableStore.DelRecordByPrimaryKey", messagetype:=otCoreMessageType.InternalError, _
                                       message:="tableschema couldnot be initialized - loaded to fail ?", tablename:=Me.TableID)
                 Return False
             End If
 
 
             If Not IsArray(primaryKeyArray) Then
-                Call CoreMessageHandler(subname:="clsADONETTableStore.delRecordByPrimaryKey", message:="Empty Key Array")
+                Call CoreMessageHandler(subname:="adonetTableStore.delRecordByPrimaryKey", message:="Empty Key Array")
                 WriteLine("uups - no Array as primaryKey")
                 Return False
             ElseIf primaryKeyArray.GetUpperBound(0) > (Me.TableSchema.NoPrimaryKeyFields - 1) Then
-                Call CoreMessageHandler(subname:="clsADONETTableStore.delRecordByPrimaryKey", message:="Size of Primary Key Array less than the number of primary keys", _
+                Call CoreMessageHandler(subname:="adonetTableStore.delRecordByPrimaryKey", message:="Size of Primary Key Array less than the number of primary keys", _
                                       arg1:=Me.TableID, messagetype:=otCoreMessageType.InternalError)
                 Return False
             End If
 
             ' Connection
             Try
-                If Me.Connection.isConnected Then
-                    otdbcn = DirectCast(Me.Connection.NativeConnection, IDbConnection)
-                Else
-                    Call CoreMessageHandler(subname:="clsADONETTableStore.delRecordByPrimaryKey", message:="Connection is not available")
+                If Not Me.Connection.IsConnected AndAlso Not Me.Connection.Session.IsBootstrappingInstallationRequested Then
+                    Call CoreMessageHandler(subname:="adonetTableStore.delRecordByPrimaryKey", message:="Connection is not available", messagetype:=otCoreMessageType.InternalError)
                     Return False
                 End If
 
             Catch ex As Exception
-                Call CoreMessageHandler(subname:="clsADONETTableStore.delRecordByPrimaryKey", exception:=ex)
+                Call CoreMessageHandler(subname:="adonetTableStore.delRecordByPrimaryKey", exception:=ex)
                 Return False
             End Try
 
@@ -1937,10 +2401,10 @@ Namespace OnTrack.Database
 
             '* get PrimaryKeys and their value -> build the criteria
             '*
-            aSQLDeleteCommand = TryCast(Me.TableSchema, clsADONETTableSchema).GetCommand(Me.TableSchema.PrimaryKeyIndexName, _
-                                                                                               clsADONETTableSchema.CommandType.DeleteType)
+            aSQLDeleteCommand = TryCast(Me.TableSchema, adonetTableSchema).GetCommand(Me.TableSchema.PrimaryKeyIndexName, _
+                                                                                               adonetTableSchema.CommandType.DeleteType)
             If aSQLDeleteCommand Is Nothing Then
-                Call CoreMessageHandler(subname:="clsADONETTableStore.delRecordByPrimaryKey", message:="DeleteCommand is not in Store", _
+                Call CoreMessageHandler(subname:="adonetTableStore.delRecordByPrimaryKey", message:="DeleteCommand is not in Store", _
                                       arg1:=Me.TableSchema.PrimaryKeyIndexName, messagetype:=otCoreMessageType.InternalError)
                 Return False
             End If
@@ -1960,8 +2424,7 @@ Namespace OnTrack.Database
                             wherestr &= String.Format(" [{0}]", fieldname)
                         End If
                         If fieldname <> "" Then
-                            acvtvalue = Me.Convert2ColumnData(fieldname, aValue, abostrophNecessary)
-                            If Not DBNull.Value.Equals(acvtvalue) Then
+                            If Me.Convert2ColumnData(fieldname, invalue:=aValue, outvalue:=acvtvalue, abostrophNecessary:=abostrophNecessary) Then
                                 aSQLDeleteCommand.Parameters(j).Value = acvtvalue
                                 If abostrophNecessary Then
                                     wherestr &= " = '" & acvtvalue.ToString & "'"
@@ -1969,17 +2432,17 @@ Namespace OnTrack.Database
                                     wherestr &= " = " & acvtvalue.ToString
                                 End If
                             Else
-                                Call CoreMessageHandler(subname:="clsADONETTableStore.getRecordByPrimaryKey", message:="Value for primary key couldnot be converted to ColumnData", _
+                                Call CoreMessageHandler(subname:="adonetTableStore.getRecordByPrimaryKey", message:="Value for primary key couldnot be converted to ColumnData", _
                                                       arg1:=aValue, messagetype:=otCoreMessageType.InternalError, entryname:=fieldname, tablename:=Me.TableID)
                                 Return Nothing
-
                             End If
+                            
                         End If
 
                     Next j
 
                 Catch ex As Exception
-                    Call CoreMessageHandler(subname:="clsADONETTableStore.delRecordByPrimaryKey", message:="Exception", exception:=ex)
+                    Call CoreMessageHandler(subname:="adonetTableStore.delRecordByPrimaryKey", message:="Exception", exception:=ex)
                     Return False
                 End Try
 
@@ -2031,7 +2494,7 @@ Namespace OnTrack.Database
 
 
                 Catch ex As Exception
-                    Call CoreMessageHandler(showmsgbox:=silent, subname:="clsADONETTableStore.delRecordByPrimaryKeys", _
+                    Call CoreMessageHandler(showmsgbox:=silent, subname:="adonetTableStore.delRecordByPrimaryKeys", _
                                           tablename:=Me.TableID, entryname:=fieldname, exception:=ex)
                     Return False
                 End Try
@@ -2060,11 +2523,11 @@ Namespace OnTrack.Database
 
 
             If Not IsArray(primaryKeyArray) Then
-                Call CoreMessageHandler(subname:="clsADONETTableStore.getRecordsByPrimaryKey", message:="Empty Key Array")
+                Call CoreMessageHandler(subname:="adonetTableStore.getRecordsByPrimaryKey", message:="Empty Key Array")
                 WriteLine("uups - no Array as primaryKey")
                 Return Nothing
             ElseIf primaryKeyArray.GetUpperBound(0) < (Me.TableSchema.NoPrimaryKeyFields - 1) Then
-                Call CoreMessageHandler(subname:="clsADONETTableStore.getRecordsByPrimaryKey", message:="Size of Primary Key Array less than the number of primary keys", _
+                Call CoreMessageHandler(subname:="adonetTableStore.getRecordsByPrimaryKey", message:="Size of Primary Key Array less than the number of primary keys", _
                                       arg1:=Me.TableID, messagetype:=otCoreMessageType.InternalError)
                 Return Nothing
 
@@ -2072,22 +2535,20 @@ Namespace OnTrack.Database
 
             ' Connection
             Try
-                If Me.Connection.isConnected Then
-                    'aConnection = DirectCast(Me.Connection.NativeConnection, IDbConnection)
-                Else
-                    Call CoreMessageHandler(subname:="clsADONETTableStore.getRecordsByPrimaryKey", message:="Connection is not available")
+                If Not Me.Connection.IsConnected AndAlso Not Me.Connection.Session.IsBootstrappingInstallationRequested Then
+                    Call CoreMessageHandler(subname:="adonetTableStore.getRecordsByPrimaryKey", message:="Connection is not available")
                     Return Nothing
                 End If
 
             Catch ex As Exception
-                Call CoreMessageHandler(subname:="clsADONETTableStore.getRecordsByPrimaryKey", exception:=ex)
+                Call CoreMessageHandler(subname:="adonetTableStore.getRecordsByPrimaryKey", exception:=ex)
                 Return Nothing
             End Try
 
             ''' check if schema is initialized
             ''' 
             If Not Me.TableSchema.IsInitialized Then
-                Call CoreMessageHandler(subname:="clsADONETTableStore.getRecordsByPrimaryKey", messagetype:=otCoreMessageType.InternalError, _
+                Call CoreMessageHandler(subname:="adonetTableStore.getRecordsByPrimaryKey", messagetype:=otCoreMessageType.InternalError, _
                                       message:="tableschema couldnot be initialized - loaded to fail ?", tablename:=Me.TableID)
                 Return Nothing
             End If
@@ -2097,15 +2558,13 @@ Namespace OnTrack.Database
                 If Not Me.IsCacheInitialized Then
                     Me.InitializeCache()
                 End If
-
-
             End If
 
             '* get PrimaryKeys and their value -> build the criteria
             '*
-            aSqlSelectCommand = TryCast(Me.TableSchema, clsADONETTableSchema).GetCommand(Me.TableSchema.PrimaryKeyIndexName, clsADONETTableSchema.CommandType.SelectType)
+            aSqlSelectCommand = TryCast(Me.TableSchema, adonetTableSchema).GetCommand(Me.TableSchema.PrimaryKeyIndexName, adonetTableSchema.CommandType.SelectType)
             If aSqlSelectCommand Is Nothing Then
-                Call CoreMessageHandler(subname:="clsADONETTableStore.getRecordByPrimaryKey", message:="Select Command is not in Store", _
+                Call CoreMessageHandler(subname:="adonetTableStore.getRecordByPrimaryKey", message:="Select Command is not in Store", _
                                       arg1:=Me.TableSchema.PrimaryKeyIndexName, messagetype:=otCoreMessageType.InternalError)
                 Return Nothing
             End If
@@ -2125,8 +2584,7 @@ Namespace OnTrack.Database
                             wherestr &= String.Format(" [{0}]", afieldname)
                         End If
                         If afieldname <> "" Then
-                            aCvtValue = Me.Convert2ColumnData(afieldname, aValue, abostrophNecessary)
-                            If Not DBNull.Value.Equals(aCvtValue) And Not aCvtValue Is Nothing Then
+                            If Convert2ColumnData(afieldname, invalue:=aValue, outvalue:=aCvtValue, abostrophNecessary:=abostrophNecessary) Then
                                 ' build parameter
                                 aSqlSelectCommand.Parameters(j).Value = aCvtValue
                                 ' and build wherestring for cache
@@ -2136,17 +2594,17 @@ Namespace OnTrack.Database
                                     wherestr &= " = " & aCvtValue.ToString
                                 End If
                             Else
-                                Call CoreMessageHandler(subname:="clsADONETTableStore.getRecordByPrimaryKey", message:="Value for primary key couldnot be converted to ColumnData", _
+                                Call CoreMessageHandler(subname:="adonetTableStore.getRecordByPrimaryKey", message:="Value for primary key couldnot be converted to ColumnData", _
                                                       arg1:=aValue, messagetype:=otCoreMessageType.InternalError, entryname:=afieldname, tablename:=Me.TableID)
                                 Return Nothing
-
                             End If
+
                         End If
 
                     Next j
 
                 Catch ex As Exception
-                    Call CoreMessageHandler(subname:="clsADONETTableStore.getRecordByPrimaryKey", message:="Exception", exception:=ex)
+                    Call CoreMessageHandler(subname:="adonetTableStore.getRecordByPrimaryKey", message:="Exception", exception:=ex)
                     Return Nothing
                 End Try
 
@@ -2197,9 +2655,9 @@ Namespace OnTrack.Database
                     '*****
                     '***** Error Handling
                     '*****
-              
+
                 Catch ex As Exception
-                    Call CoreMessageHandler(showmsgbox:=silent, subname:="clsADONETTableStore.getRecordByPrimaryKey", _
+                    Call CoreMessageHandler(showmsgbox:=silent, subname:="adonetTableStore.getRecordByPrimaryKey", _
                                           tablename:=Me.TableID, arg1:=primaryKeyArray, exception:=ex)
 
                     Return Nothing
@@ -2213,7 +2671,6 @@ Namespace OnTrack.Database
         '******
         Public Overrides Function GetRecordsByIndex(indexname As String, ByRef keyArray() As Object, Optional silent As Boolean = False) As List(Of ormRecord) _
         Implements iormDataStore.GetRecordsByIndex
-            'Dim aConnection As IDbConnection
             Dim aSqlSelectCommand As IDbCommand
             Dim j As Integer
             Dim fieldname As String
@@ -2227,7 +2684,7 @@ Namespace OnTrack.Database
 
             ' check if schema is initialized
             If Not Me.TableSchema.IsInitialized Then
-                Call CoreMessageHandler(subname:="clsADONETTableStore.DelRecordsByPrimaryKey", messagetype:=otCoreMessageType.InternalError, _
+                Call CoreMessageHandler(subname:="adonetTableStore.DelRecordsByPrimaryKey", messagetype:=otCoreMessageType.InternalError, _
                                       message:="tableschema couldnot be initialized - loaded to fail ?", tablename:=Me.TableID)
                 Return Nothing
             End If
@@ -2248,13 +2705,13 @@ Namespace OnTrack.Database
             End If
 
             If Not IsArray(keyArray) Then
-                Call CoreMessageHandler(subname:="clsADONETTableStore.getRecordsByIndex", message:="Empty Key Array", _
+                Call CoreMessageHandler(subname:="adonetTableStore.getRecordsByIndex", message:="Empty Key Array", _
                                       messagetype:=otCoreMessageType.InternalError, _
                                       tablename:=Me.TableID)
                 WriteLine("uups - no Array as primaryKey")
                 Return Nothing
             ElseIf keyArray.GetUpperBound(0) > (anIndexColumnList.Count - 1) Then
-                Call CoreMessageHandler(subname:="clsADONETTableStore.getRecordsByIndex", message:="Size of Primary Key Array less than the number of primary keys", _
+                Call CoreMessageHandler(subname:="adonetTableStore.getRecordsByIndex", message:="Size of Primary Key Array less than the number of primary keys", _
                                       arg1:=Me.TableID, messagetype:=otCoreMessageType.InternalError)
                 Return Nothing
 
@@ -2262,15 +2719,13 @@ Namespace OnTrack.Database
 
             ' Connection
             Try
-                If Me.Connection.IsConnected Then
-                    'aConnection = DirectCast(Me.Connection.NativeConnection, IDbConnection)
-                Else
-                    Call CoreMessageHandler(subname:="clsADONETTableStore.getRecordsByIndex", message:="Connection is not available")
+                If Not Me.Connection.IsConnected AndAlso Not Me.Connection.Session.IsBootstrappingInstallationRequested Then
+                    Call CoreMessageHandler(subname:="adonetTableStore.getRecordsByIndex", message:="Connection is not available")
                     Return Nothing
                 End If
 
             Catch ex As Exception
-                Call CoreMessageHandler(subname:="clsADONETTableStore.getRecordsByIndex", exception:=ex)
+                Call CoreMessageHandler(subname:="adonetTableStore.getRecordsByIndex", exception:=ex)
                 Return Nothing
             End Try
 
@@ -2283,9 +2738,9 @@ Namespace OnTrack.Database
 
             '* get PrimaryKeys and their value -> build the criteria
             '*
-            aSqlSelectCommand = TryCast(Me.TableSchema, clsADONETTableSchema).GetCommand(indexname, clsADONETTableSchema.CommandType.SelectType)
+            aSqlSelectCommand = TryCast(Me.TableSchema, adonetTableSchema).GetCommand(indexname, adonetTableSchema.CommandType.SelectType)
             If aSqlSelectCommand Is Nothing Then
-                Call CoreMessageHandler(subname:="clsADONETTableStore.getRecordsByIndex", message:="Select Command is not in Store", _
+                Call CoreMessageHandler(subname:="adonetTableStore.getRecordsByIndex", message:="Select Command is not in Store", _
                                       arg1:=Me.TableSchema.PrimaryKeyIndexName, messagetype:=otCoreMessageType.InternalError)
                 Return Nothing
             End If
@@ -2304,8 +2759,7 @@ Namespace OnTrack.Database
                             wherestr &= "[" & fieldname & "]"
                         End If
                         If fieldname <> "" Then
-                            aCvtValue = Me.Convert2ColumnData(fieldname, aValue, abostrophNecessary)
-                            If Not DBNull.Value.Equals(aCvtValue) Then
+                            If Me.Convert2ColumnData(fieldname, invalue:=aValue, outvalue:=aCvtValue, abostrophNecessary:=abostrophNecessary) Then
                                 ' set parameter
                                 aSqlSelectCommand.Parameters(j).Value = aCvtValue
                                 ' and build wherestring for cache
@@ -2315,17 +2769,18 @@ Namespace OnTrack.Database
                                     wherestr &= " = " & aCvtValue.ToString
                                 End If
                             Else
-                                Call CoreMessageHandler(subname:="clsADONETTableStore.getRecordsByIndex", message:="Value for primary key couldnot be converted to ColumnData", _
+                                Call CoreMessageHandler(subname:="adonetTableStore.getRecordsByIndex", message:="Value for primary key couldnot be converted to ColumnData", _
                                                       arg1:=aValue, messagetype:=otCoreMessageType.InternalError, entryname:=fieldname, tablename:=Me.TableID)
                                 Return Nothing
 
                             End If
+
                         End If
 
                     Next j
 
                 Catch ex As Exception
-                    Call CoreMessageHandler(subname:="clsADONETTableStore.getRecordsByIndex", message:="Exception", exception:=ex)
+                    Call CoreMessageHandler(subname:="adonetTableStore.getRecordsByIndex", message:="Exception", exception:=ex)
                     Return New List(Of ormRecord)
                 End Try
 
@@ -2353,7 +2808,7 @@ Namespace OnTrack.Database
                                 If InfuseRecord(anewEnt, row) Then
                                     aCollection.Add(Item:=anewEnt)
                                 Else
-                                    Call CoreMessageHandler(subname:="clsADONETTableStore.getRecordsBySQL", message:="couldnot infuse a record", _
+                                    Call CoreMessageHandler(subname:="adonetTableStore.getRecordsBySQL", message:="couldnot infuse a record", _
                                                           arg1:=anewEnt, tablename:=Me.TableID, break:=False)
                                 End If
                             Next
@@ -2369,7 +2824,7 @@ Namespace OnTrack.Database
                             If InfuseRecord(anewEnt, aDataReader) Then
                                 aCollection.Add(Item:=anewEnt)
                             Else
-                                Call CoreMessageHandler(subname:="clsADONETTableStore.getRecordsBySQL", message:="couldnot infuse a record", _
+                                Call CoreMessageHandler(subname:="adonetTableStore.getRecordsBySQL", message:="couldnot infuse a record", _
                                                       arg1:=anewEnt, tablename:=Me.TableID, break:=False)
                             End If
 
@@ -2382,7 +2837,7 @@ Namespace OnTrack.Database
                     '***** Error Handling
                     '*****
                 Catch ex As Exception
-                    Call CoreMessageHandler(showmsgbox:=silent, subname:="clsADONETTableStore.getRecordsByIndex", _
+                    Call CoreMessageHandler(showmsgbox:=silent, subname:="adonetTableStore.getRecordsByIndex", _
                                           tablename:=Me.TableID, arg1:=keyArray, exception:=ex)
 
                     Return New List(Of ormRecord)
@@ -2426,21 +2881,27 @@ Namespace OnTrack.Database
 
             ' Connection
             Try
-                If Me.Connection.IsConnected Then
+                If Me.Connection.IsConnected OrElse Me.Connection.Session.IsBootstrappingInstallationRequested Then
                     aConnection = DirectCast(Me.Connection.NativeConnection, IDbConnection)
+                    If aConnection Is Nothing And Me.Connection.Session.IsBootstrappingInstallationRequested Then
+                        aConnection = DirectCast(DirectCast(Me.Connection, adonetConnection).NativeInternalConnection, IDbConnection)
+                    Else
+                        CoreMessageHandler(message:="No Internal connection available", subname:="adnoetTablestore.getrecordsbysql", _
+                                            messagetype:=otCoreMessageType.InternalError)
+                    End If
                 Else
-                    Call CoreMessageHandler(subname:="clsADONETTableStore.getRecordsBySQL", message:="Connection is not available")
+                    Call CoreMessageHandler(subname:="adonetTableStore.getRecordsBySQL", message:="Connection is not available", messagetype:=otCoreMessageType.InternalError)
                     Return Nothing
                 End If
 
             Catch ex As Exception
-                Call CoreMessageHandler(subname:="clsADONETTableStore.getRecordsBySQL", exception:=ex)
+                Call CoreMessageHandler(subname:="adonetTableStore.getRecordsBySQL", exception:=ex)
                 Return Nothing
             End Try
 
             ' check if schema is initialized
             If Not Me.TableSchema.IsInitialized Then
-                Call CoreMessageHandler(subname:="clsADONETTableStore.getRecordBySQL", messagetype:=otCoreMessageType.InternalError, _
+                Call CoreMessageHandler(subname:="adonetTableStore.getRecordBySQL", messagetype:=otCoreMessageType.InternalError, _
                                       message:="tableschema couldnot be initialized - loaded to fail ?", tablename:=Me.TableID)
                 Return Nothing
             End If
@@ -2494,7 +2955,7 @@ Namespace OnTrack.Database
                             If InfuseRecord(aNewEnt, row) Then
                                 aCollection.Add(Item:=aNewEnt)
                             Else
-                                Call CoreMessageHandler(subname:="clsADONETTableStore.getRecordsBySQL", message:="couldnot infuse a record", _
+                                Call CoreMessageHandler(subname:="adonetTableStore.getRecordsBySQL", message:="couldnot infuse a record", _
                                                       arg1:=aNewEnt, tablename:=Me.TableID, break:=False)
                             End If
                         Next
@@ -2511,7 +2972,7 @@ Namespace OnTrack.Database
                             If InfuseRecord(aNewEnt, aDataReader) Then
                                 aCollection.Add(item:=aNewEnt)
                             Else
-                                Call CoreMessageHandler(subname:="clsADONETTableStore.getRecordsBySQL", message:="couldnot infuse a record", _
+                                Call CoreMessageHandler(subname:="adonetTableStore.getRecordsBySQL", message:="couldnot infuse a record", _
                                                       arg1:=aNewEnt, tablename:=Me.TableID, break:=False)
                             End If
 
@@ -2537,7 +2998,7 @@ Namespace OnTrack.Database
                 '******** error handling
             Catch ex As Exception
 
-                Call CoreMessageHandler(showmsgbox:=silent, subname:="clsADONETTableStore.getRecordsBySQL", tablename:=Me.TableID, _
+                Call CoreMessageHandler(showmsgbox:=silent, subname:="adonetTableStore.getRecordsBySQL", tablename:=Me.TableID, _
                                       arg1:="Where :" & wherestr & " inner join: " & innerjoin & " full: " & fullsqlstr, _
                                       exception:=ex)
 
@@ -2582,7 +3043,7 @@ Namespace OnTrack.Database
 
             ' check if schema is initialized
             If Not Me.TableSchema.IsInitialized Then
-                Call CoreMessageHandler(subname:="clsADONETTableStore.GetRecordBySQLCommand", messagetype:=otCoreMessageType.InternalError, _
+                Call CoreMessageHandler(subname:="adonetTableStore.GetRecordBySQLCommand", messagetype:=otCoreMessageType.InternalError, _
                                       message:="table schema could not be initialized - loaded to fail ?", tablename:=Me.TableID)
                 Return Nothing
             End If
@@ -2605,7 +3066,7 @@ Namespace OnTrack.Database
                         End If
 
                         If Not aCommand.Prepare Then
-                            Call CoreMessageHandler(message:="couldnot prepare command", subname:="clsADONETTableStore.getRecordsBySQLCommand", _
+                            Call CoreMessageHandler(message:="couldnot prepare command", subname:="adonetTableStore.getRecordsBySQLCommand", _
                                                    messagetype:=otCoreMessageType.InternalError, arg1:=aCommand.SqlText)
                             Return New List(Of ormRecord)
                         End If
@@ -2648,7 +3109,7 @@ Namespace OnTrack.Database
                                 If InfuseRecord(aNewEnt, row) Then
                                     aCollection.Add(item:=aNewEnt)
                                 Else
-                                    Call CoreMessageHandler(subname:="clsADONETTableStore.getRecordsBySQLCommand", message:="couldnot infuse a record", _
+                                    Call CoreMessageHandler(subname:="adonetTableStore.getRecordsBySQLCommand", message:="couldnot infuse a record", _
                                                           arg1:=aNewEnt, tablename:=Me.TableID, break:=False)
                                 End If
                             Next
@@ -2667,7 +3128,7 @@ Namespace OnTrack.Database
                 '******** error handling
             Catch ex As Exception
 
-                Call CoreMessageHandler(showmsgbox:=silent, subname:="clsADONETTableStore.getRecordsBySQLCommand", tablename:=Me.TableID, _
+                Call CoreMessageHandler(showmsgbox:=silent, subname:="adonetTableStore.getRecordsBySQLCommand", tablename:=Me.TableID, _
                                       arg1:="Where :" & wherestr & " inner join: " & innerjoin & " full: " & fullsqlstr, _
                                       exception:=ex)
 
@@ -2690,7 +3151,7 @@ Namespace OnTrack.Database
         ByRef dataobject As Object, _
         Optional ByVal silent As Boolean = False) As Boolean _
         Implements iormDataStore.InfuseRecord
-            Dim aDBColumn As clsADONETTableSchema.ColumnDescription
+            Dim aDBColumn As adonetTableSchema.adoNetColumnDescription
             Dim cvtvalue, Value As Object
             Dim j As Integer
             Dim abostrophNecessary As Boolean
@@ -2700,7 +3161,7 @@ Namespace OnTrack.Database
 
             ' check if schema is initialized
             If Not Me.TableSchema.IsInitialized Then
-                Call CoreMessageHandler(subname:="clsADONETTableStore.InfuseRecord", messagetype:=otCoreMessageType.InternalError, _
+                Call CoreMessageHandler(subname:="adonetTableStore.InfuseRecord", messagetype:=otCoreMessageType.InternalError, _
                                       message:="tableschema couldnot be initialized - loaded to fail ?", tablename:=Me.TableID)
                 Return Nothing
             End If
@@ -2712,13 +3173,13 @@ Namespace OnTrack.Database
                 ElseIf dataobject.GetType() = GetType(DataRow) Then
                     aRow = DirectCast(dataobject, DataRow)
                 Else
-                    Call CoreMessageHandler(subname:="clsADONETTableStore.infuseRecord", message:="Data object has no known type", _
+                    Call CoreMessageHandler(subname:="adonetTableStore.infuseRecord", message:="Data object has no known type", _
                                           arg1:=dataobject.GetType.ToString)
                     Return False
 
                 End If
             Catch ex As Exception
-                Call CoreMessageHandler(subname:="clsADONETTableStore.infuseRecord", exception:=ex, message:="Exception", _
+                Call CoreMessageHandler(subname:="adonetTableStore.infuseRecord", exception:=ex, message:="Exception", _
                                       arg1:=dataobject.GetType.ToString)
                 Return False
             End Try
@@ -2731,7 +3192,7 @@ Namespace OnTrack.Database
 
                 For j = 1 To Me.TableSchema.NoFields
                     ' get fields
-                    aDBColumn = DirectCast(Me.TableSchema, clsADONETTableSchema).GetColumnDescription(j)
+                    aDBColumn = DirectCast(Me.TableSchema, adonetTableSchema).GetColumnDescription(j)
                     If aDBColumn IsNot Nothing Then
                         Try
                             If Not aDatareader Is Nothing Then
@@ -2741,7 +3202,7 @@ Namespace OnTrack.Database
                             Try
                                 ordinal = aDatareader.GetOrdinal(String.Format("{0}.{1}", Me.TableID, aDBColumn.ColumnName))
                             Catch ex2 As Exception
-                                Call CoreMessageHandler(exception:=ex2, message:="Exception", subname:="clsADONETTableStore.infuseRecord", _
+                                Call CoreMessageHandler(exception:=ex2, message:="Exception", subname:="adonetTableStore.infuseRecord", _
                                                       arg1:=Me.TableID, messagetype:=otCoreMessageType.InternalError)
                             Finally
                                 ordinal = Nothing
@@ -2751,20 +3212,29 @@ Namespace OnTrack.Database
                         If aDatareader IsNot Nothing Then
                             If ordinal IsNot Nothing AndAlso ordinal >= 0 Then
                                 Value = aDatareader.GetValue(ordinal)
-                                cvtvalue = Me.Convert2ObjectData(j, Value, abostrophNecessary)
-                                Call record.SetValue(j, cvtvalue)
+                                If Me.Convert2ObjectData(j, invalue:=Value, outvalue:=cvtvalue, abostrophNecessary:=abostrophNecessary) Then
+                                    Call record.SetValue(j, cvtvalue)
+                                Else
+                                    Call CoreMessageHandler(subname:="adonetTableStore.infuseRecord", message:="could not convert db value", arg1:=Value, _
+                                                      columnname:=aDBColumn.ColumnName, tablename:=Me.TableID, messagetype:=otCoreMessageType.InternalError)
+                                End If
                             Else
-                                Call CoreMessageHandler(subname:="clsADONETTableStore.infuseRecord", message:="ordinal missing - Field not in DataReader", _
+                                Call CoreMessageHandler(subname:="adonetTableStore.infuseRecord", message:="ordinal missing - Field not in DataReader", _
                                                       entryname:=aDBColumn.ColumnName, tablename:=Me.TableID, messagetype:=otCoreMessageType.InternalError)
                             End If
                         Else
                             '** aRow
                             Value = aRow.Item(j - 1)
-                            cvtvalue = Me.Convert2ObjectData(j, Value, abostrophNecessary)
-                            Call record.SetValue(j, cvtvalue)
+                            If Me.Convert2ObjectData(j, invalue:=Value, outvalue:=cvtvalue, abostrophNecessary:=abostrophNecessary) Then
+                                Call record.SetValue(j, cvtvalue)
+                            Else
+                                Call CoreMessageHandler(subname:="adonetTableStore.infuseRecord", message:="could not convert db value", arg1:=Value, _
+                                                  columnname:=aDBColumn.ColumnName, tablename:=Me.TableID, messagetype:=otCoreMessageType.InternalError)
+                            End If
+                           
                         End If
                     Else
-                        Call CoreMessageHandler(subname:="clsADONETTableStore.infuseRecord", message:="DBColumn missing - Field not in DataReader", _
+                        Call CoreMessageHandler(subname:="adonetTableStore.infuseRecord", message:="DBColumn missing - Field not in DataReader", _
                                               arg1:=j, tablename:=Me.TableID, messagetype:=otCoreMessageType.InternalError)
                     End If
                 Next j
@@ -2772,7 +3242,7 @@ Namespace OnTrack.Database
                 Return True
 
             Catch ex As Exception
-                Call CoreMessageHandler(exception:=ex, subname:="clsADONETTableStore.infuseRecord")
+                Call CoreMessageHandler(exception:=ex, subname:="adonetTableStore.infuseRecord")
                 Return False
             End Try
         End Function
@@ -2793,7 +3263,6 @@ Namespace OnTrack.Database
             Dim aCVTValue, aValue As Object
             Dim j As Integer
             Dim abostrophNecessary As Boolean
-            Dim otdbcn As IDbConnection
             Dim wherestr As String = ""
             Dim changedRecord As Boolean
             Dim dataRows() As DataRow
@@ -2806,15 +3275,13 @@ Namespace OnTrack.Database
             ' Connection
 
             Try
-                If Me.Connection.isConnected Then
-                    otdbcn = DirectCast(Me.Connection.NativeConnection, IDbConnection)
-                Else
-                    Call CoreMessageHandler(subname:="clsADONETTableStore.PersistRecord", message:="Connection is not available")
+                If Not Me.Connection.IsConnected AndAlso Not Me.Connection.Session.IsBootstrappingInstallationRequested Then
+                    Call CoreMessageHandler(subname:="adonetTableStore.PersistCache", message:="Connection is not available")
                     Return Nothing
                 End If
 
             Catch ex As Exception
-                Call CoreMessageHandler(subname:="clsADONETTableStore.PersistRecord", exception:=ex)
+                Call CoreMessageHandler(subname:="adonetTableStore.PersistCache", exception:=ex)
                 Return Nothing
             End Try
 
@@ -2848,20 +3315,18 @@ Namespace OnTrack.Database
                         End If
                         aValue = record.GetValue(fieldname)
                         If fieldname <> "" Then
-                            aCVTValue = Me.Convert2ColumnData(fieldname, aValue, abostrophNecessary)
-                            If Not DBNull.Value.Equals(aCVTValue) Then
-
+                            If Me.Convert2ColumnData(fieldname, invalue:=aValue, outvalue:=aCVTValue, abostrophNecessary:=abostrophNecessary) Then
                                 If abostrophNecessary Then
                                     wherestr &= " = '" & aCVTValue.ToString & "'"
                                 Else
                                     wherestr &= " = " & aCVTValue.ToString
                                 End If
                             Else
-                                Call CoreMessageHandler(subname:="clsADONETTableStore.PersistCache", message:="Value for primary key couldnot be converted to ColumnData", _
+                                Call CoreMessageHandler(subname:="adonetTableStore.PersistCache", message:="Value for primary key could not be converted to ColumnData", _
                                                       arg1:=aValue, messagetype:=otCoreMessageType.InternalError, entryname:=fieldname, tablename:=Me.TableID)
                                 Return False
-
                             End If
+
                         End If
 
                     Next j
@@ -2870,7 +3335,7 @@ Namespace OnTrack.Database
                     dataRows = _cacheTable.Select(wherestr)
 
                     If dataRows.Length = 0 Then
-                        Call CoreMessageHandler(subname:="clsADONETTableStore.persistCache", message:="Datarow to update not found", tablename:=Me.TableID)
+                        Call CoreMessageHandler(subname:="adonetTableStore.persistCache", message:="Datarow to update not found", tablename:=Me.TableID)
                         Return False
                     End If
 
@@ -2884,15 +3349,18 @@ Namespace OnTrack.Database
                         fieldname = Me.TableSchema.Getfieldname(j)
                         If Me.TableSchema.HasprimaryKeyfieldname(fieldname) Then
                             aValue = record.GetValue(fieldname)
-                            aCVTValue = Me.Convert2ColumnData(j, aValue, abostrophNecessary)
-                            If Not DBNull.Value.Equals(aCVTValue) And Not IsNothing(aCVTValue) And record.IsValueChanged(j) Then
+                            If Convert2ColumnData(j, invalue:=aValue, outvalue:=aCVTValue, abostrophNecessary:=abostrophNecessary) Then
                                 dataRows(0).Item(fieldname) = aCVTValue
+                            Else
+                                Call CoreMessageHandler(subname:="adonetTableStore.persistCache", arg1:=aValue, columnname:=fieldname, _
+                                                      message:="object primary key value could not be converted to column data", messagetype:=otCoreMessageType.InternalError, _
+                                                      tablename:=Me.TableID)
                             End If
                         End If
                     Next j
                 Else
 
-                    Call CoreMessageHandler(subname:="clsADONETTableStore.persistCache", arg1:=Me.TableSchema.PrimaryKeyIndexName, _
+                    Call CoreMessageHandler(subname:="adonetTableStore.persistCache", arg1:=Me.TableSchema.PrimaryKeyIndexName, _
                                           message:="record is nor loaded or created", messagetype:=otCoreMessageType.InternalError, _
                                           tablename:=Me.TableID)
                     Return False
@@ -2908,13 +3376,17 @@ Namespace OnTrack.Database
                     If Not Me.TableSchema.HasprimaryKeyfieldname(fieldname) Then
                         If fieldname <> ConstFNUpdatedOn And fieldname <> "" And fieldname <> ConstFNCreatedOn Then
                             aValue = record.GetValue(fieldname)
-                            aCVTValue = Me.Convert2ColumnData(j, aValue, abostrophNecessary)
-                            If Not DBNull.Value.Equals(aCVTValue) And Not IsNothing(aCVTValue) And record.IsValueChanged(j) Then
+                            If Me.Convert2ColumnData(j, invalue:=aValue, outvalue:=aCVTValue, abostrophNecessary:=abostrophNecessary) Then
                                 dataRows(0).Item(fieldname) = aCVTValue
                                 changedRecord = True
+                            Else
+                                Call CoreMessageHandler(subname:="adonetTableStore.persistCache", arg1:=aValue, columnname:=fieldname, _
+                                                      message:="object value could not be converted to column data", messagetype:=otCoreMessageType.InternalError, _
+                                                      tablename:=Me.TableID)
                             End If
+
                         End If
-                    End If
+                        End If
                 Next j
                 ' Update the record
                 If changedRecord Then
@@ -2960,7 +3432,7 @@ Namespace OnTrack.Database
                                 PersistCache = True
                             End If
                         Else
-                            CoreMessageHandler(message:="persist to an uninitialized cache ?!", subname:="clsADONETTableStore.PersistCache", _
+                            CoreMessageHandler(message:="persist to an uninitialized cache ?!", subname:="adonetTableStore.PersistCache", _
                                                 messagetype:=otCoreMessageType.InternalError, tablename:=Me.TableID, arg1:=dataRows.ToString)
                         End If
 
@@ -2974,10 +3446,10 @@ Namespace OnTrack.Database
                                 End If
                             End SyncLock
                         ElseIf Not Me.HasProperty(ConstTPNCacheUpdateInstant) Then
-                            CoreMessageHandler(message:="Perist later is not implemented", subname:="clsADONETTableStore.PersistCache", _
+                            CoreMessageHandler(message:="Perist later is not implemented", subname:="adonetTableStore.PersistCache", _
                                               messagetype:=otCoreMessageType.InternalError, tablename:=Me.TableID, arg1:=dataRows.ToString)
                         ElseIf Not Me.IsCacheInitialized Then
-                            CoreMessageHandler(message:="persist to an uninitialized cache ?!", subname:="clsADONETTableStore.PersistCache", _
+                            CoreMessageHandler(message:="persist to an uninitialized cache ?!", subname:="adonetTableStore.PersistCache", _
                                                 messagetype:=otCoreMessageType.InternalError, tablename:=Me.TableID, arg1:=dataRows.ToString)
                         End If
                     End If
@@ -2989,7 +3461,7 @@ Namespace OnTrack.Database
 
 
             Catch ex As Exception
-                Call CoreMessageHandler(showmsgbox:=silent, subname:="clsADONETTableStore.persistRecord", exception:=ex, tablename:=Me.TableID)
+                Call CoreMessageHandler(showmsgbox:=silent, subname:="adonetTableStore.PersistCache", exception:=ex, tablename:=Me.TableID)
                 Return False
             End Try
 
@@ -3011,7 +3483,7 @@ Namespace OnTrack.Database
 
             ' check if schema is initialized
             If Not Me.TableSchema.IsInitialized Then
-                Call CoreMessageHandler(subname:="clsADONETTableStore.PersistRecord", messagetype:=otCoreMessageType.InternalError, _
+                Call CoreMessageHandler(subname:="adonetTableStore.PersistRecord", messagetype:=otCoreMessageType.InternalError, _
                                       message:="tableschema couldnot be initialized - loaded to fail ?", tablename:=Me.TableID)
                 Return False
             End If
@@ -3041,10 +3513,7 @@ Namespace OnTrack.Database
             Dim aCVTValue, aValue As Object
             Dim j As Integer
             Dim abostrophNecessary As Boolean
-            Dim otdbcn As IDbConnection
-
             Dim changedRecord As Boolean
-
             Dim persistCommand As IDbCommand
 
             ' timestamp
@@ -3055,15 +3524,13 @@ Namespace OnTrack.Database
             ' Connection
 
             Try
-                If Me.Connection.isConnected Then
-                    otdbcn = DirectCast(Me.Connection.NativeConnection, IDbConnection)
-                Else
-                    Call CoreMessageHandler(subname:="clsADONETTableStore.PersistRecord", message:="Connection is not available")
+                If Not Me.Connection.IsConnected AndAlso Not Me.Connection.Session.IsBootstrappingInstallationRequested Then
+                    Call CoreMessageHandler(subname:="adonetTableStore.PersistDirect", message:="Connection is not available")
                     Return Nothing
                 End If
 
             Catch ex As Exception
-                Call CoreMessageHandler(subname:="clsADONETTableStore.PersistRecord", exception:=ex)
+                Call CoreMessageHandler(subname:="adonetTableStore.PersistDirect", exception:=ex)
                 Return Nothing
             End Try
 
@@ -3081,18 +3548,18 @@ Namespace OnTrack.Database
                 '****
                 '**** UPDATE
                 If record.IsLoaded Then
-                    persistCommand = TryCast(Me.TableSchema, clsADONETTableSchema).GetCommand(Me.TableSchema.PrimaryKeyIndexName, _
-                                                                                                clsADONETTableSchema.CommandType.UpdateType)
+                    persistCommand = TryCast(Me.TableSchema, adonetTableSchema).GetCommand(Me.TableSchema.PrimaryKeyIndexName, _
+                                                                                                adonetTableSchema.CommandType.UpdateType)
                     If persistCommand Is Nothing Then
-                        Call CoreMessageHandler(subname:="clsADONETTableStore.persistRecord", arg1:=Me.TableSchema.PrimaryKeyIndexName, _
+                        Call CoreMessageHandler(subname:="adonetTableStore.PersistDirect", arg1:=Me.TableSchema.PrimaryKeyIndexName, _
                                               message:="Update Command is not in store", messagetype:=otCoreMessageType.InternalError, tablename:=Me.TableID)
                         Return False
                     End If
                 ElseIf record.IsCreated Then
-                    persistCommand = TryCast(Me.TableSchema, clsADONETTableSchema).GetCommand(Me.TableSchema.PrimaryKeyIndexName, _
-                                                                                                clsADONETTableSchema.CommandType.InsertType)
+                    persistCommand = TryCast(Me.TableSchema, adonetTableSchema).GetCommand(Me.TableSchema.PrimaryKeyIndexName, _
+                                                                                                adonetTableSchema.CommandType.InsertType)
                     If persistCommand Is Nothing Then
-                        Call CoreMessageHandler(subname:="clsADONETTableStore.persistRecord", arg1:=Me.TableSchema.PrimaryKeyIndexName, _
+                        Call CoreMessageHandler(subname:="adonetTableStore.PersistDirect", arg1:=Me.TableSchema.PrimaryKeyIndexName, _
                                               message:="Update Command is not in store", messagetype:=otCoreMessageType.InternalError, tablename:=Me.TableID)
                         Return False
                     End If
@@ -3108,14 +3575,19 @@ Namespace OnTrack.Database
                         For j = 1 To Me.TableSchema.NoFields
                             ' get fields
                             fieldname = Me.TableSchema.Getfieldname(j)
+                           
 
                             If Not Me.TableSchema.HasprimaryKeyfieldname(fieldname) Then
                                 If fieldname <> ConstFNUpdatedOn And fieldname <> "" And fieldname <> ConstFNCreatedOn Then
                                     aValue = record.GetValue(fieldname)
-                                    aCVTValue = Me.Convert2ColumnData(j, aValue, abostrophNecessary)
-                                    If Not DBNull.Value.Equals(aCVTValue) And Not IsNothing(aCVTValue) And record.IsValueChanged(j) Then
+                                    If Me.Convert2ColumnData(fieldname, invalue:=aValue, _
+                                                             outvalue:=aCVTValue, _
+                                                             abostrophNecessary:=abostrophNecessary) Then
                                         persistCommand.Parameters.Item("@" & fieldname).Value = aCVTValue
                                         changedRecord = True
+                                    Else
+                                        CoreMessageHandler(message:="parameter value could not be converted", arg1:=aValue, columnname:=fieldname, tablename:=Me.TableSchema.TableID, _
+                                                         subname:="adonetTableStore.PersistDirect", messagetype:=otCoreMessageType.InternalWarning)
                                     End If
                                 End If
                             End If
@@ -3126,16 +3598,16 @@ Namespace OnTrack.Database
                             fieldname = Me.TableSchema.GetPrimaryKeyfieldname(j + 1)
                             aValue = record.GetValue(fieldname)
                             If fieldname <> "" Then
-                                aCVTValue = Me.Convert2ColumnData(fieldname, aValue, abostrophNecessary)
-                                If Not DBNull.Value.Equals(aCVTValue) Then
+                                If Me.Convert2ColumnData(fieldname, _
+                                                         invalue:=aValue, _
+                                                         outvalue:=aCVTValue, _
+                                                         abostrophNecessary:=abostrophNecessary) Then
                                     persistCommand.Parameters.Item("@" & fieldname).Value = aCVTValue
-
                                 Else
-                                    Call CoreMessageHandler(subname:="clsADONETTableStore.PersistRecord", message:="Value for primary key couldnot be converted to ColumnData", _
-                                                          arg1:=aValue, messagetype:=otCoreMessageType.InternalError, entryname:=fieldname, tablename:=Me.TableID)
-                                    Return False
-
+                                    CoreMessageHandler(message:="primary key parameter value could not be converted", arg1:=aValue, columnname:=fieldname, tablename:=Me.TableSchema.TableID, _
+                                                     subname:="adonetTableStore.PersistDirect", messagetype:=otCoreMessageType.InternalWarning)
                                 End If
+                                
                             End If
 
                         Next j
@@ -3149,17 +3621,21 @@ Namespace OnTrack.Database
                             fieldname = Me.TableSchema.Getfieldname(j)
                             If fieldname <> ConstFNUpdatedOn And fieldname <> "" And fieldname <> ConstFNCreatedOn Then
                                 aValue = record.GetValue(fieldname)
-                                aCVTValue = Me.Convert2ColumnData(j, aValue, abostrophNecessary)
-                                If Not DBNull.Value.Equals(aCVTValue) And Not IsNothing(aCVTValue) And record.IsValueChanged(j) Then
+                                If Me.Convert2ColumnData(j, invalue:=aValue, _
+                                                         outvalue:=aCVTValue, _
+                                                         abostrophNecessary:=abostrophNecessary) Then
                                     persistCommand.Parameters.Item("@" & fieldname).Value = aCVTValue
                                     changedRecord = True
+                                Else
+                                    CoreMessageHandler(message:="insert parameter value could not be converted", arg1:=aValue, columnname:=fieldname, tablename:=Me.TableSchema.TableID, _
+                                                subname:="adonetTableStore.PersistDirect", messagetype:=otCoreMessageType.InternalWarning)
                                 End If
                             End If
 
                         Next j
                     Else
 
-                        Call CoreMessageHandler(subname:="clsADONETTableStore.persistRecord", arg1:=Me.TableSchema.PrimaryKeyIndexName, _
+                        Call CoreMessageHandler(subname:="adonetTableStore.PersistDirect", arg1:=Me.TableSchema.PrimaryKeyIndexName, _
                                               message:="record is nor loaded or created", messagetype:=otCoreMessageType.InternalError, _
                                               tablename:=Me.TableID)
                         Return False
@@ -3179,11 +3655,11 @@ Namespace OnTrack.Database
                         If Me.TableSchema.GetFieldordinal(ConstFNCreatedOn) > 0 And record.IsCreated Then
                             persistCommand.Parameters.Item("@" & ConstFNCreatedOn).Value = timestamp
                         ElseIf Me.TableSchema.GetFieldordinal(ConstFNCreatedOn) > 0 And Not record.IsCreated Then
-                            If Not DBNull.Value.Equals(record.GetValue(ConstFNCreatedOn)) And Not record.GetValue(ConstFNCreatedOn) Is Nothing Then
+                            If Not DBNull.Value.Equals(record.GetValue(ConstFNCreatedOn)) AndAlso Not record.GetValue(ConstFNCreatedOn) Is Nothing _
+                                AndAlso record.GetValue(ConstFNCreatedOn) <> ConstNullDate Then
                                 persistCommand.Parameters.Item("@" & ConstFNCreatedOn).Value = record.GetValue(ConstFNCreatedOn)    'keep the value
-                            ElseIf Me.TableSchema.GetFieldordinal(ConstFNUpdatedOn) > 0 AndAlso _
-                            Not DBNull.Value.Equals(record.GetValue(ConstFNUpdatedOn)) _
-                            AndAlso Not record.GetValue(ConstFNUpdatedOn) Is Nothing Then
+                            ElseIf Me.TableSchema.GetFieldordinal(ConstFNUpdatedOn) > 0 AndAlso Not DBNull.Value.Equals(record.GetValue(ConstFNUpdatedOn)) _
+                                AndAlso Not record.GetValue(ConstFNUpdatedOn) Is Nothing AndAlso record.GetValue(ConstFNUpdatedOn) <> ConstNullDate Then
                                 persistCommand.Parameters.Item("@" & ConstFNCreatedOn).Value = record.GetValue(ConstFNUpdatedOn)    'keep the value
                             Else
                                 persistCommand.Parameters.Item("@" & ConstFNCreatedOn).Value = timestamp
@@ -3201,7 +3677,7 @@ Namespace OnTrack.Database
 
                 Exit Function
             Catch ex As Exception
-                Call CoreMessageHandler(showmsgbox:=silent, exception:=ex, subname:="clsADONETTableStore.persistRecord", tablename:=Me.TableID, _
+                Call CoreMessageHandler(showmsgbox:=silent, exception:=ex, arg1:=persistCommand.CommandText, subname:="adonetTableStore.PersistDirect", tablename:=Me.TableID, _
                                       messagetype:=otCoreMessageType.InternalException)
                 Return False
             End Try

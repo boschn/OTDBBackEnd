@@ -242,7 +242,7 @@ errorhandle:
 
             If _IsLoaded Then
                 Dim anewICD As New clsOTDBICD
-                If anewICD.loadBy(Me.icdid, Me.icdrev) Then
+                If anewICD.Inject(Me.icdid, Me.icdrev) Then
                     getICD = anewICD
                     Exit Function
                 End If
@@ -330,9 +330,9 @@ errorhandle:
             Exit Function
 
         End Function
-        '**** loadby : load the object by the PrimaryKeys
+        '**** Inject : load the object by the PrimaryKeys
         '****
-        Public Function loadBy(UID As Long) As Boolean
+        Public Function Inject(UID As Long) As Boolean
             Dim aTable As iormDataStore
             Dim pkarry() As Object
             Dim aRecord As ormRecord
@@ -340,7 +340,7 @@ errorhandle:
             '* init
             If Not Me.IsInitialized Then
                 If Not initialize() Then
-                    loadBy = False
+                    Inject = False
                     Exit Function
                 End If
             End If
@@ -354,12 +354,12 @@ errorhandle:
 
             If aRecord Is Nothing Then
                 Me.Unload()
-                loadBy = Me.IsLoaded
+                Inject = Me.IsLoaded
                 Exit Function
             Else
                 Me.Record = aRecord
                 _IsLoaded = Me.infuse(Me.Record)
-                loadBy = Me.IsLoaded
+                Inject = Me.IsLoaded
                 Exit Function
             End If
 
@@ -736,9 +736,9 @@ errorhandle:
 
         End Function
 
-        '**** loadby : load the object by the PrimaryKeys
+        '**** Inject : load the object by the PrimaryKeys
         '****
-        Public Function loadBy(icdid As String, Optional icdrev As String = "") As Boolean
+        Public Function Inject(icdid As String, Optional icdrev As String = "") As Boolean
             Dim aTable As iormDataStore
             Dim pkarry() As Object
             Dim aRecord As ormRecord
@@ -759,12 +759,12 @@ errorhandle:
 
             If aRecord Is Nothing Then
                 Me.Unload()
-                loadBy = Me.IsLoaded
+                Inject = Me.IsLoaded
                 Exit Function
             Else
                 Me.Record = aRecord
                 _IsLoaded = Me.infuse(Me.Record)
-                loadBy = Me.IsLoaded
+                Inject = Me.IsLoaded
                 Exit Function
             End If
 

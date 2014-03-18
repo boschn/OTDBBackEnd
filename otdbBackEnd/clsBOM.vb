@@ -50,11 +50,6 @@ Namespace OnTrack.Parts
 
         End Sub
 
-        Public Overrides Function initialize() As Boolean
-            initialize = MyBase.Initialize
-            s_cmids = New Dictionary(Of Long, clsOTDBBOMMember)
-        End Function
-
         ReadOnly Property PARTID()
             Get
                 PARTID = s_pnid
@@ -114,7 +109,7 @@ Namespace OnTrack.Parts
             anEntry = New clsOTDBBOMMember
             posno = Me.getMaxPosNo + 1
             If Not anEntry.create(s_pnid, Me.getMaxPosNo + 1, cmid:=aPNID, qty:=aQty) Then
-                Call anEntry.loadBy(s_pnid, posno)
+                Call anEntry.Inject(s_pnid, posno)
             End If
             anEntry.cmid = aPNID
             anEntry.qty = aQty
@@ -171,7 +166,7 @@ Namespace OnTrack.Parts
             ' reset it
             s_cmids = New Dictionary(Of Long, clsOTDBBOMMember)
             If Not anEntry.create(AssyID:=Me.PARTID, posno:=0, cmid:="", qty:=0) Then
-                Call anEntry.loadBy(AssyID:=Me.PARTID, posno:=0)
+                Call anEntry.Inject(AssyID:=Me.PARTID, posno:=0)
                 anEntry.cmid = ""
                 anEntry.qty = 0
             End If
@@ -226,9 +221,9 @@ Namespace OnTrack.Parts
             infuse = False
         End Function
 
-        '**** loadby : load the object by the PrimaryKeys
+        '**** Inject : load the object by the PrimaryKeys
         '****
-        Public Function loadBy(ByVal pnid As String) As Boolean
+        Public Function Inject(ByVal pnid As String) As Boolean
             Dim aTable As iormDataStore
             Dim aRecordCollection As List(Of ormRecord)
             Dim aRecord As ormRecord
@@ -248,7 +243,7 @@ Namespace OnTrack.Parts
 
             If aRecordCollection Is Nothing Then
                 Me.Unload()
-                loadBy = False
+                Inject = False
                 Exit Function
             Else
                 s_pnid = pnid
@@ -267,13 +262,13 @@ Namespace OnTrack.Parts
                 Next aRecord
                 '
                 _IsLoaded = True
-                loadBy = True
+                Inject = True
                 Exit Function
             End If
 
 error_handler:
             Me.Unload()
-            loadBy = True
+            Inject = True
             Exit Function
         End Function
 
@@ -432,9 +427,9 @@ errorhandle:
 
         End Function
 
-        '**** loadby : load the object by the PrimaryKeys
+        '**** Inject : load the object by the PrimaryKeys
         '****
-        Public Function loadBy(ByVal AssyID As String, ByVal posno As Long) As Boolean
+        Public Function Inject(ByVal AssyID As String, ByVal posno As Long) As Boolean
             Dim aTable As iormDataStore
             Dim pkarry(2) As Object
             Dim aRecord As ormRecord
@@ -448,17 +443,17 @@ errorhandle:
 
             If aRecord Is Nothing Then
                 Me.Unload()
-                loadBy = Me.IsLoaded
+                Inject = Me.IsLoaded
                 Exit Function
             Else
                 Me.Record = aRecord
                 _IsLoaded = Me.infuse(Me.Record)
-                loadBy = Me.IsLoaded
+                Inject = Me.IsLoaded
                 Exit Function
             End If
 
 error_handler:
-            loadBy = True
+            Inject = True
             Exit Function
         End Function
 
@@ -468,102 +463,102 @@ error_handler:
 
 
 
-            Dim UsedKeyColumnNames As New Collection
-            Dim aFieldDesc As New ormFieldDescription
-            Dim PrimaryColumnNames As New Collection
-            Dim WorkspaceColumnNames As New Collection
-            Dim aTable As New ObjectDefinition
-            Dim aTableEntry As New ObjectEntryDefinition
+            '            Dim UsedKeyColumnNames As New Collection
+            '            Dim aFieldDesc As New ormFieldDescription
+            '            Dim PrimaryColumnNames As New Collection
+            '            Dim WorkspaceColumnNames As New Collection
+            '            Dim aTable As New ObjectDefinition
+            '            Dim aTableEntry As New ObjectEntryDefinition
 
 
-            aFieldDesc.ID = ""
-            aFieldDesc.Parameter = ""
-            aFieldDesc.Relation = New String() {}
-            aFieldDesc.Aliases = New String() {}
-            aFieldDesc.Tablename = ourTableName
+            '            aFieldDesc.ID = ""
+            '            aFieldDesc.Parameter = ""
+            '            aFieldDesc.Relation = New String() {}
+            '            aFieldDesc.Aliases = New String() {}
+            '            aFieldDesc.Tablename = ourTableName
 
 
-            aTable = New ObjectDefinition
-            aTable.Create(ourTableName)
+            '            aTable = New ObjectDefinition
+            '            aTable.Create(ourTableName)
 
-            '******
-            '****** Fields
+            '            '******
+            '            '****** Fields
 
-            With aTable
-
-
-                On Error GoTo error_handle
+            '            With aTable
 
 
-                '*** TaskUID
-                '****
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "Assembly part-id"
-                aFieldDesc.ID = ""
-                aFieldDesc.Parameter = ""
-                aFieldDesc.ColumnName = "assyid"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
-
-                'Position
-                aFieldDesc.Datatype = otFieldDataType.[Long]
-                aFieldDesc.Title = "posno"
-                aFieldDesc.ColumnName = "posno"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
-
-                'component id
-                aFieldDesc.Datatype = otFieldDataType.Text
-                aFieldDesc.Title = "component part-id"
-                aFieldDesc.ColumnName = "cmid"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-                UsedKeyColumnNames.Add(aFieldDesc.ColumnName)
-
-                ' number
-                aFieldDesc.Datatype = otFieldDataType.Numeric
-                aFieldDesc.Title = "quantity"
-                aFieldDesc.ColumnName = "qty"
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                On Error GoTo error_handle
 
 
-                '***
-                '*** TIMESTAMP
-                '****
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "last Update"
-                aFieldDesc.ColumnName = ConstFNUpdatedOn
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                '*** TaskUID
+            '                '****
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "Assembly part-id"
+            '                aFieldDesc.ID = ""
+            '                aFieldDesc.Parameter = ""
+            '                aFieldDesc.ColumnName = "assyid"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
 
-                aFieldDesc.Datatype = otFieldDataType.Timestamp
-                aFieldDesc.Title = "creation Date"
-                aFieldDesc.ColumnName = ConstFNCreatedOn
-                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                'Position
+            '                aFieldDesc.Datatype = otFieldDataType.[Long]
+            '                aFieldDesc.Title = "posno"
+            '                aFieldDesc.ColumnName = "posno"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
 
-                ' Index
-                Call .AddIndex("PrimaryKey", PrimaryColumnNames, isprimarykey:=True)
-                Call .AddIndex("UsedByKey", UsedKeyColumnNames, isprimarykey:=False)
-                ' persist
-                .Persist()
-                ' change the database
-                .AlterSchema()
-            End With
+            '                'component id
+            '                aFieldDesc.Datatype = otFieldDataType.Text
+            '                aFieldDesc.Title = "component part-id"
+            '                aFieldDesc.ColumnName = "cmid"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
+            '                UsedKeyColumnNames.Add(aFieldDesc.ColumnName)
 
-            ' reset the Table description
-            If Not Me.Record.SetTable(ourTableName, forceReload:=True) Then
-                Call CoreMessageHandler(subname:="clsOTDBBOM.createSchema", tablename:=ourTableName, _
-                                      message:="Error while setTable in createSchema")
-            End If
+            '                ' number
+            '                aFieldDesc.Datatype = otFieldDataType.Numeric
+            '                aFieldDesc.Title = "quantity"
+            '                aFieldDesc.ColumnName = "qty"
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
 
+            '                '***
+            '                '*** TIMESTAMP
+            '                '****
+            '                aFieldDesc.Datatype = otFieldDataType.Timestamp
+            '                aFieldDesc.Title = "last Update"
+            '                aFieldDesc.ColumnName = ConstFNUpdatedOn
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-            '
-            createSchema = True
-            Exit Function
+            '                aFieldDesc.Datatype = otFieldDataType.Timestamp
+            '                aFieldDesc.Title = "creation Date"
+            '                aFieldDesc.ColumnName = ConstFNCreatedOn
+            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
-            ' Handle the error
-error_handle:
-            Call CoreMessageHandler(subname:="clsOTDBBOM.createSchema", tablename:=ourTableName)
-            createSchema = False
+            '                ' Index
+            '                Call .AddIndex("PrimaryKey", PrimaryColumnNames, isprimarykey:=True)
+            '                Call .AddIndex("UsedByKey", UsedKeyColumnNames, isprimarykey:=False)
+            '                ' persist
+            '                .Persist()
+            '                ' change the database
+            '                .CreateObjectSchema()
+            '            End With
+
+            '            ' reset the Table description
+            '            If Not Me.Record.SetTable(ourTableName, forceReload:=True) Then
+            '                Call CoreMessageHandler(subname:="clsOTDBBOM.createSchema", tablename:=ourTableName, _
+            '                                      message:="Error while setTable in createSchema")
+            '            End If
+
+
+
+            '            '
+            '            createSchema = True
+            '            Exit Function
+
+            '            ' Handle the error
+            'error_handle:
+            '            Call CoreMessageHandler(subname:="clsOTDBBOM.createSchema", tablename:=ourTableName)
+            '            createSchema = False
         End Function
 
         '**** persist

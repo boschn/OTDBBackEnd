@@ -70,10 +70,7 @@ Namespace OnTrack
         Public Const ConstFirstPlanRevision As String = "V1.0"
 
         Public Const ConstDefaultConfigFileName As String = "otdbconfig.ini"
-        Public Const ConstParameterTableName As String = "TBLDBPARAMETERS"
-
         Public Const ConstDefaultToolingNamePattern As String = "OnTrack*"
-
         Public Const ConstDefaultAccessRight As Integer = otAccessRight.[ReadOnly]
 
         Public Const ConstXChangeClearFieldValue As String = "-"
@@ -90,23 +87,16 @@ Namespace OnTrack
 
         Public Const ConstDefaultCompoundIndexName = "CompoundIndex"
 
-        '*** Tablestore Cache Property names
-        ''' <summary>
-        ''' Table Property Name "Cache Property"
-        ''' </summary>
-        ''' <remarks></remarks>
-        Public Const ConstTPNCacheProperty = "CacheDataTable"
-        ''' <summary>
-        ''' Table Property Name "Cache Update Instant"
-        ''' </summary>
-        ''' <remarks></remarks>
-        Public Const ConstTPNCacheUpdateInstant = "CacheDataTableUpdateImmediatly"
-
-        '''
+        ''' parameters stored with DB Driver Parameters
+        '
         Public Const ConstPNObjectsLoad = "loadobjects"
         Public Const ConstPNBootStrapSchemaChecksum = "bootstrapschemaversion"
         Public Const ConstPNBSchemaVersion_TableHeader = "schemaversion_"
         Public Const ConstPNBSchemaVersion = "dbschemaversion"
+        ''' <summary>
+        ''' The Schema Version - increase here to trigger recreation of the database schema
+        ''' </summary>
+        ''' <remarks></remarks>
         Public Const ConstOTDBSchemaVersion = 10
 
         '** config parameters
@@ -116,6 +106,10 @@ Namespace OnTrack
         ''' <remarks></remarks>
         Public Const ConstGlobalConfigSetName = "global"
 
+        ''' <summary>
+        '''  Parameters names for config parameters read from .ini or documents
+        ''' </summary>
+        ''' <remarks></remarks>
         Public Const ConstCPNUseConfigSetName = "parameter_otdb_configsetname" ' ConfigSetname to use
         Public Const ConstCPNConfigFileName = "parameter_otdb_configfilename"
         Public Const ConstCPNConfigFileLocation = "parameter_otdb_configfilelocation"
@@ -129,8 +123,6 @@ Namespace OnTrack
         Public Const ConstCPNDBUseseek = "parameter_otdb_driver_useseek"
         Public Const ConstCPNDescription = "parameter_otdb_configset_description"
         Public Const constCPNUseLogAgent = "parameter_otdb_uselogagent"
-
-        Public Const ConstGlobalDomain = "@"
         ''' <summary>
         ''' config Property value
         ''' </summary>
@@ -140,6 +132,13 @@ Namespace OnTrack
         Public Const ConstCPVDriverADOClassic = "adoclassic"
         Public Const ConstCPVDriverOleDB = "OLEDB"
         Public Const ConstCPVDriverMSSQL = "MSSQL"
+
+        ''' <summary>
+        ''' Global Domain Name
+        ''' </summary>
+        ''' <remarks></remarks>
+        Public Const ConstGlobalDomain = "@"
+
 
         '** MQF operation codes
         Public Const ConstMQFOpDelete = "DELETE"
@@ -152,7 +151,10 @@ Namespace OnTrack
         '**** create ordinal with this
         Public Const constXCHCreateordinal = 990000000000
 
-        '**** Name of Modules
+        ''' <summary>
+        ''' Name of the different OnTrack Modules
+        ''' </summary>
+        ''' <remarks></remarks>
         Public Const ConstModuleCore = "Core"
         Public Const ConstModuleConfiguration = "Configuration"
         Public Const ConstModuleScheduling = "Scheduling"
@@ -164,16 +166,7 @@ Namespace OnTrack
         Public Const ConstModuleTracking = "Tracking"
         Public Const ConstModuleXChange = "XChange"
 
-        ''' <summary>
-        ''' Driver Sequenze
-        ''' </summary>
-        ''' <remarks></remarks>
-        
-        Public Enum ConfigSequence
-            primary = 0
-            secondary = 1
-        End Enum
-
+       
         Public NullArray As Object = {}
 
         '******* Ontrack Variables
@@ -181,13 +174,11 @@ Namespace OnTrack
         Private _CurrentSession As Session
         Private _configfilelocations As List(Of String) = New List(Of String)
         Private _UsedConfigFileLocation As String = ""
-        Private _UseConfigSet As String = ""  ' use the config set
         ' initialized Flag
         Private _OTDBIsInitialized As Boolean = False
 
         '*** config sets
-        Private _configsets As New Dictionary(Of String, Dictionary(Of String, SortedList(Of UShort, Object)))
-
+        Private _configurations As New ComplexPropertyStore(ConstGlobalConfigSetName)
         Private _configPropertiesRead As Boolean = False
 
         '** dictionary for dataobjects
@@ -208,29 +199,22 @@ Namespace OnTrack
             End Set
         End Property
         ''' <summary>
-        ''' returns the name of the standard Config set to be used
+        ''' returns the name of the standard Config set to be used - might be nothing if not set
         ''' </summary>
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Property CurrentConfigSetName As String
             Get
-                If CurrentSession IsNot Nothing AndAlso CurrentSession.IsRunning Then
-                    Return CurrentSession.ConfigSetName
+                If _configurations Is Nothing OrElse _configurations.CurrentSet = "" Then
+                    Return GetConfigProperty(ConstCPNUseConfigSetName, configsetname:=ConstGlobalConfigSetName)
                 Else
-                    If _UseConfigSet Is Nothing OrElse _UseConfigSet = "" Then
-                        _UseConfigSet = GetConfigProperty(ConstCPNUseConfigSetName, configsetname:=ConstGlobalConfigSetName)
-                        If _UseConfigSet Is Nothing Then _UseConfigSet = ConstGlobalConfigSetName
-                    End If
-
-                    Return _UseConfigSet
+                    Return _configurations.CurrentSet
                 End If
 
             End Get
             Set(value As String)
-                _UseConfigSet = value
-                SetConfigProperty(ConstCPNUseConfigSetName, weight:=30, value:=value, configsetname:=ConstGlobalConfigSetName)
-
+                _configurations.CurrentSet = value
             End Set
         End Property
         ''' <summary>
@@ -314,8 +298,8 @@ Namespace OnTrack
             Dim parameterName As String
             Dim configsetname As String = ConstGlobalConfigSetName
             Dim driver As String = "primary"
-            Dim sequence As ot.ConfigSequence = ConfigSequence.primary
-
+            Dim sequence As ComplexPropertyStore.Sequence = ComplexPropertyStore.Sequence.Primary
+            Dim weight As UShort = 15
 
             '** get the config file name
             If configFileName = "" Then
@@ -385,35 +369,35 @@ Namespace OnTrack
                         Dim match As Match = Regex.Match(readData, "\[\s*(?<name>\w.*\w)\s*\]")
                         valueString = match.Groups("name").Value
                         If Regex.IsMatch(valueString, "\:") Then
-                            Dim matchconfig As Match = Regex.Match(valueString, "(?<name>[A-Za-z0-9]*)\s*\:\s*(?<driver>[A-Za-z0-9]*)")
+                            Dim matchconfig As Match = Regex.Match(valueString, "(?<name>.*)\s*\:\s*(?<driver>.*)")
                             configsetname = matchconfig.Groups("name").Value
                             driver = matchconfig.Groups("driver").Value
                             Select Case driver.tolower
                                 Case "primary", "0"
-                                    sequence = ConfigSequence.primary
+                                    sequence = ComplexPropertyStore.Sequence.Primary
                                 Case "secondary", "1"
-                                    sequence = ConfigSequence.secondary
+                                    sequence = ComplexPropertyStore.Sequence.Secondary
                                 Case Else
-                                    sequence = ConfigSequence.primary
+                                    sequence = ComplexPropertyStore.Sequence.primary
                                     CoreMessageHandler(message:="driver sequence not recognized - primary assumed", arg1:=driver, subname:="ReadConfigFile", messagetype:=otCoreMessageType.InternalError)
                             End Select
 
                         Else
                             configsetname = valueString
-                            sequence = ConfigSequence.primary
+                            sequence = ComplexPropertyStore.Sequence.primary
                         End If
                         identifier = ""
                         '* parameter
                     ElseIf Regex.IsMatch(readData, "^\s*(?<name>.+)\s*[\=]\s*(?<value>.*)") Then
                         Dim match As Match = Regex.Match(readData, "^\s*(?<name>.+)\s*[\=]\s*(?<value>.*)")
-                        identifier = match.Groups("name").Value
-                        valueString = match.Groups("value").Value
+                        identifier = Trim(match.Groups("name").Value)
+                        valueString = Trim(match.Groups("value").Value)
                         parameterName = ""
                         '** select
                         Select Case identifier.tolower
                             Case "use", "current", ConstCPNUseConfigSetName
-                                CurrentConfigSetName = valueString
-                                parameterName = ""
+                                'ot.CurrentConfigSetName = valueString this doesnot work since the Config set might not be loaded 
+                                parameterName = ConstCPNUseConfigSetName
                             Case "path", ConstCPNDBPath.tolower
                                 parameterName = ConstCPNDBPath
                             Case "name", ConstCPNDBName
@@ -491,10 +475,16 @@ Namespace OnTrack
                         End Select
 
                         '** set the value to the found parametername
+                        '** high value for the UseConfigSetName
+                        If parameterName = ConstCPNUseConfigSetName And configsetname = ConstGlobalConfigSetName Then
+                            weight = 99 ' must be the same value as in ot.currentconfigset
+                        Else
+                            weight = 15
+                        End If
                         If parameterName <> "" AndAlso valueObject Is Nothing Then
-                            SetConfigProperty(name:=parameterName, weight:=15, value:=valueString, configsetname:=configsetname, sequence:=sequence)
+                            SetConfigProperty(name:=parameterName, weight:=weight, value:=valueString, configsetname:=configsetname, sequence:=sequence)
                         ElseIf parameterName <> "" AndAlso valueObject IsNot Nothing Then
-                            SetConfigProperty(name:=parameterName, weight:=15, value:=valueObject, configsetname:=configsetname, sequence:=sequence)
+                            SetConfigProperty(name:=parameterName, weight:=weight, value:=valueObject, configsetname:=configsetname, sequence:=sequence)
                         End If
 
                         valueString = ""
@@ -525,10 +515,8 @@ Namespace OnTrack
         ''' <param name="driverseq"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetConfigSet(configsetname As String, Optional sequence As ConfigSequence = ConfigSequence.primary) As Dictionary(Of String, SortedList(Of UShort, Object))
-            If HasConfigSetName(configsetname, sequence) Then
-                Return _configsets.Item(key:=configsetname & ":" & sequence)
-            End If
+        Public Function GetConfigSet(configsetname As String, Optional sequence As ComplexPropertyStore.Sequence = ComplexPropertyStore.Sequence.Primary) As Dictionary(Of String, SortedList(Of UShort, Object))
+            Return _configurations.GetSet(configsetname, sequence:=sequence)
         End Function
         ''' <summary>
         ''' returns the config set for a configsetname with a driversequence
@@ -537,14 +525,9 @@ Namespace OnTrack
         ''' <param name="driverseq"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function HasConfigSetProperty(propertyname As String, configsetname As String, Optional sequence As ConfigSequence = ConfigSequence.primary) As Boolean
-            If HasConfigSetName(configsetname, sequence) Then
-                Dim aConfigset = GetConfigSet(configsetname:=configsetname, sequence:=sequence)
-                Return aConfigset.ContainsKey(key:=propertyname)
-            End If
-            Return False
+        Public Function HasConfigSetProperty(propertyname As String, configsetname As String, Optional sequence As ComplexPropertyStore.Sequence = ComplexPropertyStore.Sequence.Primary) As Boolean
+            Return _configurations.HasProperty(name:=propertyname, setname:=configsetname, sequence:=sequence)
         End Function
-        Dim aConfigSet
         ''' <summary>
         ''' sets a Property to the TableStore
         ''' </summary>
@@ -553,44 +536,10 @@ Namespace OnTrack
         ''' <returns>returns True if succesfull</returns>
         ''' <remarks></remarks>
         Public Function SetConfigProperty(ByVal name As String, ByVal value As Object, _
-        Optional ByVal weight As UShort = 0,
-        Optional configsetname As String = "", _
-        Optional sequence As ConfigSequence = ConfigSequence.primary) As Boolean
-
-            Dim aWeightedList As SortedList(Of UShort, Object)
-            Dim aConfigSet As Dictionary(Of String, SortedList(Of UShort, Object))
-            If configsetname = "" Then
-                configsetname = ot.CurrentConfigSetName
-            End If
-
-            If HasConfigSetName(configsetname, sequence) Then
-                aConfigSet = GetConfigSet(configsetname, sequence:=sequence)
-            Else
-                aConfigSet = New Dictionary(Of String, SortedList(Of UShort, Object))
-                _configsets.Add(key:=configsetname & ":" & sequence, value:=aConfigSet)
-            End If
-
-            If aConfigSet.ContainsKey(name) Then
-                aWeightedList = aConfigSet.Item(name)
-                ' weight missing
-                If weight = 0 Then
-                    weight = aWeightedList.Keys.Max + 1
-                End If
-                ' retrieve
-                If aWeightedList.ContainsKey(weight) Then
-                    aWeightedList.Remove(weight)
-                End If
-                aWeightedList.Add(weight, value)
-            Else
-                aWeightedList = New SortedList(Of UShort, Object)
-                '* get weight
-                If weight = 0 Then
-                    weight = 1
-                End If
-                aWeightedList.Add(weight, value)
-                aConfigSet.Add(name, aWeightedList)
-                Return True
-            End If
+                                            Optional ByVal weight As UShort = 0,
+                                            Optional configsetname As String = "", _
+                                            Optional sequence As ComplexPropertyStore.Sequence = ComplexPropertyStore.Sequence.Primary) As Boolean
+            Return _configurations.SetProperty(name:=name, value:=value, weight:=weight, setname:=configsetname, sequence:=sequence)
         End Function
         ''' <summary>
         ''' Gets the Property of a config set. if configsetname is ommitted then check currentconfigset and the global one
@@ -600,41 +549,8 @@ Namespace OnTrack
         ''' <remarks></remarks>
         Public Function GetConfigProperty(ByVal name As String, Optional weight As UShort = 0, _
         Optional configsetname As String = "", _
-        Optional sequence As ConfigSequence = ConfigSequence.primary) As Object
-
-            Dim aConfigSet As Dictionary(Of String, SortedList(Of UShort, Object))
-            If configsetname = "" Then
-                configsetname = ot.CurrentConfigSetName
-            End If
-            '* test
-            If configsetname <> "" AndAlso HasConfigSetProperty(name, configsetname:=configsetname, sequence:=sequence) Then
-                aConfigSet = GetConfigSet(configsetname, sequence)
-            ElseIf configsetname <> "" AndAlso HasConfigSetProperty(name, configsetname:=ConstGlobalConfigSetName) Then
-                configsetname = ConstGlobalConfigSetName
-                aConfigSet = GetConfigSet(configsetname)
-            ElseIf configsetname = "" AndAlso HasConfigSetProperty(name, configsetname:=CurrentConfigSetName, sequence:=sequence) Then
-                configsetname = ot.CurrentConfigSetName
-                aConfigSet = GetConfigSet(configsetname, sequence)
-            ElseIf configsetname = "" AndAlso HasConfigSetProperty(name, configsetname:=ConstGlobalConfigSetName) Then
-                configsetname = ConstGlobalConfigSetName
-                aConfigSet = GetConfigSet(configsetname)
-            Else
-                Return Nothing
-            End If
-            ' retrieve
-            Dim aWeightedList As SortedList(Of UShort, Object)
-            If aConfigSet.ContainsKey(name) Then
-                aWeightedList = aConfigSet.Item(name)
-                If aWeightedList.ContainsKey(weight) Then
-                    Return aWeightedList.Item(weight)
-                ElseIf weight = 0 Then
-                    Return aWeightedList.Last.Value
-                Else
-                    Return Nothing
-                End If
-            Else
-                Return Nothing
-            End If
+        Optional sequence As ComplexPropertyStore.Sequence = ComplexPropertyStore.Sequence.Primary) As Object
+            Return _configurations.GetProperty(name:=name, weight:=weight, setname:=configsetname, sequence:=sequence)
         End Function
         ''' <summary>
         ''' returns a list of selectable config set names without global
@@ -644,7 +560,7 @@ Namespace OnTrack
         ''' <remarks></remarks>
         Public ReadOnly Property ConfigSetNamesToSelect As List(Of String)
             Get
-                Return ot.ConfigSetNames.FindAll(Function(x) x <> ConstGlobalConfigSetName)
+                Return _configurations.SetNames.FindAll(Function(x) x <> ConstGlobalConfigSetName)
             End Get
         End Property
         ''' <summary>
@@ -655,18 +571,7 @@ Namespace OnTrack
         ''' <remarks></remarks>
         Public ReadOnly Property ConfigSetNames As List(Of String)
             Get
-                Dim aList As New List(Of String)
-                If IsInitialized OrElse Initialize() Then
-                    Return aList
-                End If
-
-                For Each name In _configsets.Keys
-                    If name.Contains(":") Then
-                        name = name.Substring(0, name.IndexOf(":"))
-                    End If
-                    If Not aList.Contains(name) Then aList.Add(name)
-                Next
-                Return aList
+                Return _configurations.SetNames
             End Get
         End Property
 
@@ -676,12 +581,8 @@ Namespace OnTrack
         ''' <param name="name"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function HasConfigSetName(ByVal configsetname As String, Optional sequence As ConfigSequence = ConfigSequence.primary) As Boolean
-            If _configsets.ContainsKey(configsetname & ":" & sequence) Then
-                Return True
-            Else
-                Return False
-            End If
+        Public Function HasConfigSetName(ByVal configsetname As String, Optional sequence As ComplexPropertyStore.Sequence = ComplexPropertyStore.Sequence.Primary) As Boolean
+            Return _configurations.HasSet(setname:=configsetname, sequence:=sequence)
         End Function
         ''' <summary>
         ''' has the config set the named property
@@ -689,26 +590,15 @@ Namespace OnTrack
         ''' <param name="name">name of property</param>
         ''' <returns>return true</returns>
         ''' <remarks></remarks>
-        Public Function HasConfigProperty(ByVal name As String, Optional configsetname As String = "") As Boolean
-            Dim aConfigSet As Dictionary(Of String, SortedList(Of UShort, Object))
-            If configsetname = "" Then
-                configsetname = ot.CurrentConfigSetName
-            End If
-
-            If HasConfigSetName(configsetname) Then
-                aConfigSet = GetConfigSet(configsetname)
-                Return aConfigSet.ContainsKey(name)
-            Else
-                Return False
-            End If
-
+        Public Function HasConfigProperty(ByVal name As String, Optional configsetname As String = "", Optional sequence As ComplexPropertyStore.Sequence = ComplexPropertyStore.Sequence.Primary) As Boolean
+            Return _configurations.HasProperty(name:=name, setname:=configsetname, sequence:=sequence)
         End Function
         ''' <summary>
         ''' retrieve the Config parameters of OnTrack and write it to the PropertyBag
         ''' </summary>
         ''' <returns>true if successfull</returns>
         ''' <remarks></remarks>
-        Friend Function RetrieveConfigProperties(Optional force As Boolean = False) As Boolean
+        Public Function RetrieveConfigProperties(Optional force As Boolean = False) As Boolean
 
             Dim value As Object
 
@@ -716,7 +606,7 @@ Namespace OnTrack
             If _configPropertiesRead And Not force Then
                 Return True
             End If
-            '** start the default config set 
+            '** default config set 
             SetConfigProperty(ConstCPNUseConfigSetName, weight:=10, value:=ConstGlobalConfigSetName)
 
             '** get the driver
@@ -726,7 +616,6 @@ Namespace OnTrack
                     SetConfigProperty(ConstCPNDriverName, weight:=10, value:=value, configsetname:=ConstGlobalConfigSetName)
                 End If
             End If
-
 
             ' add config path the local path of the assembly
             Dim uri As System.Uri
@@ -739,6 +628,7 @@ Namespace OnTrack
                 value = ConstDefaultConfigFileName
             End If
             SetConfigProperty(ConstCPNConfigFileName, weight:=10, value:=value, configsetname:=ConstGlobalConfigSetName)
+
 
             '*** read the config file
             If Not String.IsNullOrWhiteSpace(value) Then
@@ -1177,18 +1067,7 @@ Namespace OnTrack
                     End If
 
                     '***** Request a Session -> now we have a session log
-                    _CurrentSession = New Session
-
-                    '*** Retrieve Config Properties and set the Bag
-                    If Not RetrieveConfigProperties(force:=force) Then
-
-                        Call CoreMessageHandler(showmsgbox:=True, message:="config properties couldnot be retrieved - Initialized failed. ", _
-                                                noOtdbAvailable:=True, subname:="Initialize", messagetype:=otCoreMessageType.InternalError)
-                        Return False
-                    Else
-                        Call CoreMessageHandler(showmsgbox:=False, message:="config properties could be retrieved", _
-                                                noOtdbAvailable:=True, subname:="Initialize", messagetype:=otCoreMessageType.InternalInfo)
-                    End If
+                    _CurrentSession = New Session(_configurations)
 
                     '***
                     Dim ipproperties As Net.NetworkInformation.IPGlobalProperties = Net.NetworkInformation.IPGlobalProperties.GetIPGlobalProperties()
@@ -1313,39 +1192,7 @@ Namespace OnTrack
             End If
         End Function
 
-        ''' <summary>
-        ''' returns the DBDriver Object for a session
-        ''' </summary>
-        ''' <param name="configsetname"></param>
-        ''' <param name="session"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Friend Function GetDatabaseDriver(Optional session As Session = Nothing) As iormDatabaseDriver
-            Dim avalue As Object
-            Dim aDBDriver As iormDatabaseDriver
-
-
-            If session Is Nothing Then session = ot.CurrentSession
-
-            '*** which Environment / Driver to use look into global configuration bag
-            avalue = GetConfigProperty(ConstCPNDriverName, configsetname:=session.ConfigSetName)
-            If DirectCast(avalue, otDbDriverType) = otDbDriverType.ADOClassic Then
-                Call CoreMessageHandler(showmsgbox:=True, message:="Initialization of database driver failed. Type of Database Environment " & ConstCPNDriverName & " is outdated. Parameter DefaultDBEnvirormentName has unknown value", _
-                                        noOtdbAvailable:=True, arg1:=avalue, subname:="GetDatabaseDriver", messagetype:=otCoreMessageType.ApplicationError)
-                Return Nothing
-            ElseIf DirectCast(avalue, otDbDriverType) = otDbDriverType.ADONETOLEDB Then
-                aDBDriver = New oleDBDriver(ID:=avalue, session:=session)
-            ElseIf DirectCast(avalue, otDbDriverType) = otDbDriverType.ADONETSQL Then
-                aDBDriver = New mssqlDBDriver(ID:=avalue, session:=session)
-            Else
-                Call CoreMessageHandler(showmsgbox:=True, message:="Initialized failed. Type of Database Environment not recognized. Parameter " & ConstCPNDriverName & " has unknown value", _
-                                        noOtdbAvailable:=True, arg1:=avalue, subname:="GetDatabaseDriver", messagetype:=otCoreMessageType.ApplicationError)
-                Return Nothing
-            End If
-
-            Return aDBDriver
-        End Function
-
+       
         ''' <summary>
         ''' validates the User, Passoword, Access Right in the Domain
         ''' </summary>

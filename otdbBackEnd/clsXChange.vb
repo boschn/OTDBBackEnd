@@ -9062,7 +9062,7 @@ Namespace OnTrack.XChange
         Public Overloads Function Initialize() As Boolean
             _IsInitialized = MyBase.Initialize
             s_cmids = New OrderedDictionary()
-            Me.TableStore.SetProperty(ConstTPNCacheProperty, True)
+
             Return _IsInitialized
         End Function
         ''' <summary>

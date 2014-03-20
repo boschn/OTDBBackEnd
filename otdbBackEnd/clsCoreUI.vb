@@ -496,8 +496,8 @@ Namespace OnTrack.UI
             Get
                 Return Me._configset
             End Get
-            Set
-                Me._configset = Value
+            Set(value As String)
+                Me._configset = value.Clone
             End Set
         End Property
 
@@ -621,7 +621,7 @@ Namespace OnTrack.UI
 
                 If _databasedriver Is Nothing Then
                     Me.Session.ConfigSetName = Me.Configset
-                    _databasedriver = ot.GetDatabaseDriver(session:=Me.Session)
+                    _databasedriver = Me.Session.CreateOrGetDatabaseDriver(session:=Me.Session)
                 End If
                 '** verify
                 Verify = ot.ValidateUser(username:=Username, password:=Password, accessRequest:=Me.Accessright, domainID:=Domain, databasedriver:=_databasedriver)

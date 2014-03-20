@@ -1177,7 +1177,7 @@ Namespace OnTrack
 
                     '** fire event
                     Dim ourEventArgs As New ormDataObjectEventArgs(Me, record:=aRecord, pkarray:=pkArray)
-                    Dim useRecordCache = Me.TableStore.HasProperty(ConstTPNCacheProperty)
+                    Dim useRecordCache = Me.TableStore.HasProperty(ormTableStore.ConstTPNCacheProperty)
                     ourEventArgs.UseCache = useRecordCache
                     RaiseEvent OnInjecting(Me, ourEventArgs)
                     If ourEventArgs.AbortOperation Then

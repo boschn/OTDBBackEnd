@@ -50,7 +50,7 @@ Namespace OnTrack.Database
         Public Sub New(id As String, ByRef session As Session)
             Call MyBase.New(id, session)
             If Me._primaryConnection Is Nothing Then
-                _primaryConnection = New oledbConnection(id:="primary", DatabaseDriver:=Me, session:=session, sequence:=ConfigSequence.primary)
+                _primaryConnection = New oledbConnection(id:="primary", DatabaseDriver:=Me, session:=session, sequence:=ComplexPropertyStore.Sequence.primary)
             End If
         End Sub
 
@@ -147,7 +147,7 @@ Namespace OnTrack.Database
 
                 ' we have no Connection ?!
                 If _primaryConnection Is Nothing Then
-                    _primaryConnection = New oledbConnection("primary", Me, _session, ConfigSequence.primary)
+                    _primaryConnection = New oledbConnection("primary", Me, _session, ComplexPropertyStore.Sequence.primary)
                 End If
 
                 '*** do we have the Table ?! - donot do this in bootstrapping since we are running in recursion then
@@ -1571,7 +1571,7 @@ Namespace OnTrack.Database
         Public Shadows Event OnConnection As EventHandler(Of ormConnectionEventArgs) Implements iormConnection.OnConnection
         Public Shadows Event OnDisconnection As EventHandler(Of ormConnectionEventArgs) Implements iormConnection.OnDisconnection
 
-        Public Sub New(ByVal id As String, ByRef databaseDriver As iormDatabaseDriver, ByRef session As Session, sequence As ot.ConfigSequence)
+        Public Sub New(ByVal id As String, ByRef databaseDriver As iormDatabaseDriver, ByRef session As Session, sequence As ComplexPropertyStore.Sequence)
             MyBase.New(id, databaseDriver, session, sequence)
         End Sub
 

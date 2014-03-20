@@ -55,6 +55,7 @@ Namespace OnTrack.Database
         Shadows Event RequestBootstrapInstall(sender As Object, e As SessionBootstrapEventArgs) Implements iormDatabaseDriver.RequestBootstrapInstall
 
         '** Field names of parameter table
+        Public Const ConstParameterTableName As String = "TBLDBPARAMETERS"
         Public Const ConstFNID = "ID"
         Public Const ConstFNValue = "VALUE"
         Public Const ConstFNChangedOn = "CHANGEDON"
@@ -946,7 +947,7 @@ Namespace OnTrack.Database
                 If sqlcommand.TableIDs.Count = 1 Then
                     atableid = sqlcommand.TableIDs.First
                     Dim aTablestore = Me.GetTableStore(sqlcommand.TableIDs.First)
-                    If aTablestore.HasProperty(ConstTPNCacheProperty) Then
+                    If aTablestore.HasProperty(ormTableStore.ConstTPNCacheProperty) Then
                         '*** BRANCH OUT
                         Return RunSqlSelectCommandCached(sqlcommand:=sqlcommand, parametervalues:=parametervalues, nativeConnection:=nativeConnection)
                     End If
@@ -1083,7 +1084,7 @@ Namespace OnTrack.Database
                 Else
                     atableid = sqlcommand.TableIDs.First
                     aTablestore = Me.GetTableStore(sqlcommand.TableIDs.First)
-                    If aTablestore.HasProperty(ConstTPNCacheProperty) Then
+                    If aTablestore.HasProperty(ormTableStore.ConstTPNCacheProperty) Then
                         If Not DirectCast(aTablestore, adonetTableStore).IsCacheInitialized Then
                             DirectCast(aTablestore, adonetTableStore).InitializeCache()
                         End If
@@ -1367,7 +1368,7 @@ Namespace OnTrack.Database
         Public Shadows Event OnDisconnection As EventHandler(Of ormConnectionEventArgs) Implements iormConnection.OnDisconnection
         Public Event OnInternalConnected As EventHandler(Of InternalConnectionEventArgs)
 
-        Public Sub New(ByVal id As String, ByRef DatabaseDriver As iormDatabaseDriver, ByRef session As Session, sequence As ot.ConfigSequence)
+        Public Sub New(ByVal id As String, ByRef DatabaseDriver As iormDatabaseDriver, ByRef session As Session, sequence As ComplexPropertyStore.Sequence)
             MyBase.New(id, DatabaseDriver, session, sequence)
             _useseek = False
             _nativeConnection = Nothing
@@ -1436,8 +1437,10 @@ Namespace OnTrack.Database
         ''' <value>The native connection.</value>
         Friend Overrides ReadOnly Property NativeConnection() As Object
             Get
-                If _nativeConnection Is Nothing OrElse _nativeConnection.State <> ConnectionState.Open Then
+                If _nativeConnection Is Nothing Then
                     Return Nothing
+                ElseIf _nativeConnection.State <> ConnectionState.Open Then
+                    Throw New ormNoConnectionException(message:="connection to database lost - state is not open", subname:="adonetConnection.NativeConnection", path:=Me.PathOrAddress)
                 Else
                     Return Me._nativeConnection
                 End If
@@ -1515,19 +1518,32 @@ Namespace OnTrack.Database
                             RaiseEvent OnInternalConnected(Me, New InternalConnectionEventArgs(newConnection:=Me, nativeConnection:=_nativeinternalConnection))
                             Return _nativeinternalConnection
                         Else
-                            Call CoreMessageHandler(showmsgbox:=False, message:="internal connection couldnot be established", _
+                            Call CoreMessageHandler(showmsgbox:=False, message:="internal connection couldnot be established", messagetype:=otCoreMessageType.InternalError,
                                                   subname:="adonetConnection.NativeInternalConnection")
+
+                            Throw New ormNoConnectionException(message:="internal connection couldnot be established", subname:="adonetConnection.NativeInternalConnection", path:=Me.PathOrAddress)
                             Return Nothing
                         End If
                     Catch ex As SqlException
-                        Call CoreMessageHandler(showmsgbox:=True, message:="internal connection to database could not be established", _
+
+                        Call CoreMessageHandler(showmsgbox:=True, message:="internal connection to database could not be established", messagetype:=otCoreMessageType.InternalError, _
                                               subname:="adonetConnection.NativeInternalConnection", exception:=ex)
+                        Throw New ormNoConnectionException(message:="internal connection couldnot be established", exception:=ex, subname:="adonetConnection.NativeInternalConnection", path:=Me.PathOrAddress)
+
                         Return Nothing
+
                     Catch ex As Exception
-                        Call CoreMessageHandler(showmsgbox:=True, message:="internal connection couldnot be established", _
+                        Call CoreMessageHandler(showmsgbox:=True, message:="internal connection couldnot be established", messagetype:=otCoreMessageType.InternalError, _
                                               subname:="adonetConnection.NativeInternalConnection", exception:=ex)
+                        Throw New ormNoConnectionException(message:="internal connection couldnot be established", exception:=ex, subname:="adonetConnection.NativeInternalConnection", path:=Me.PathOrAddress)
+
+
                         Return Nothing
+                    Finally
+                        ' Return Nothing
                     End Try
+
+
                 Else
                     Return Me._nativeinternalConnection
                 End If
@@ -2364,8 +2380,15 @@ Namespace OnTrack.Database
         Protected Friend _cacheViews As New Dictionary(Of String, DataView) ' Dictionary for Dataview per Index
         Protected Friend _cacheAdapter As Data.IDbDataAdapter
 
-        '** initialize
+       
 
+        ''' <summary>
+        ''' constructor
+        ''' </summary>
+        ''' <param name="connection"></param>
+        ''' <param name="TableID"></param>
+        ''' <param name="forceSchemaReload"></param>
+        ''' <remarks></remarks>
 
         Public Sub New(connection As iormConnection, TableID As String, ByVal forceSchemaReload As Boolean)
             Call MyBase.New(Connection:=connection, tableID:=TableID, force:=forceSchemaReload)

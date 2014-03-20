@@ -56,7 +56,7 @@ Namespace OnTrack.Database
             Call MyBase.New(ID, session)
             Me.ID = ID
             If Me._primaryConnection Is Nothing Then
-                _primaryConnection = New mssqlConnection(id:="primary", DatabaseDriver:=Me, session:=session, sequence:=ConfigSequence.primary)
+                _primaryConnection = New mssqlConnection(id:="primary", DatabaseDriver:=Me, session:=session, sequence:=ComplexPropertyStore.Sequence.primary)
             End If
         End Sub
 
@@ -150,7 +150,7 @@ Namespace OnTrack.Database
 
                 ' we have no Connection ?!
                 If _primaryConnection Is Nothing Then
-                    _primaryConnection = New mssqlConnection("primary", Me, _session, ConfigSequence.primary)
+                    _primaryConnection = New mssqlConnection("primary", Me, _session, ComplexPropertyStore.Sequence.primary)
                 End If
 
                 '*** do we have the Table ?! - donot do this in bootstrapping since we are running in recursion then
@@ -557,6 +557,7 @@ Namespace OnTrack.Database
             Dim smoconnection As ServerConnection
             Dim database As Microsoft.SqlServer.Management.Smo.Database
             Dim myNativeConnection As SqlConnection
+            Dim path As String
 
             '* if already loaded
             If _TableDirectory.ContainsKey(key:=tableID) Then Return True
@@ -566,23 +567,21 @@ Namespace OnTrack.Database
             Else
                 myconnection = connection
             End If
-            If nativeConnection Is Nothing Then
-                myNativeConnection = TryCast(myconnection.NativeInternalConnection, SqlConnection)
-            Else
-                myNativeConnection = TryCast(nativeConnection, SqlConnection)
-            End If
             ' ** important ! Access to native Internal Connection opens up the internal connection and also the SMO Driver
             ' **
-            If myconnection Is Nothing Or myconnection.NativeInternalConnection Is Nothing Then
-                Call CoreMessageHandler(message:="internal connection connection is nothing - no table can be retrieved", subname:="mssqlDBDriver.hasTable", _
-                                            messagetype:=otCoreMessageType.InternalError, tablename:=tableID)
-                Return Nothing
-            End If
+                If nativeConnection Is Nothing And myconnection IsNot Nothing Then
+                    myNativeConnection = TryCast(myconnection.NativeInternalConnection, SqlConnection)
+                Else
+                    myNativeConnection = TryCast(nativeConnection, SqlConnection)
+                End If
+
+            '** return if no connection (and no exception)
+
             If myNativeConnection Is Nothing Then
-                Call CoreMessageHandler(subname:="mssqlDBDriver.HasTable", message:="No current internal Connection to the Database", _
-                                      messagetype:=otCoreMessageType.ApplicationError)
-                Return Nothing
+                CoreMessageHandler(message:="no connection established", subname:="mssqldbdriver.hastable", messagetype:=otCoreMessageType.InternalError)
+                Return False
             End If
+
             '*** check on rights - avoid recursion if we are looking for the User Table
             '** makes no sense since we are checkin before installation if we need to install
             'If Not CurrentSession.IsBootstrappingInstallation AndAlso tableID <> User.ConstTableID Then
@@ -631,12 +630,12 @@ Namespace OnTrack.Database
                 End If
 
                 Call CoreMessageHandler(message:=sb.ToString, exception:=ex, tablename:=tableID, _
-                                      subname:="mssqlDBDriver.getTable", messagetype:=otCoreMessageType.InternalError)
-                Return Nothing
+                                      subname:="mssqlDBDriver.hasTable", messagetype:=otCoreMessageType.InternalError)
+                Return False
             Catch ex As Exception
                 Call CoreMessageHandler(message:="Exception", exception:=ex, tablename:=tableID, _
-                                      subname:="mssqlDBDriver.getTable", messagetype:=otCoreMessageType.InternalError)
-                Return Nothing
+                                      subname:="mssqlDBDriver.hasTable", messagetype:=otCoreMessageType.InternalError)
+                Return False
             End Try
 
         End Function
@@ -2149,8 +2148,8 @@ Namespace OnTrack.Database
                         ' value
                         'dataRows(0).BeginEdit()
                         dataRows(0)(ConstFNID) = parametername
-                        dataRows(0)(ConstFNValue) = CStr(Value)
-                        dataRows(0)(ConstFNChangedOn) = Date.Now().ToString
+                        dataRows(0)(ConstFNValue) = Value.ToString
+                        dataRows(0)(ConstFNChangedOn) = DateTime.Now()
                         'dataRows(0).EndEdit()
 
                         '* add to table
@@ -2172,9 +2171,9 @@ Namespace OnTrack.Database
             Catch ex As Exception
                 ' Handle the error
 
-                Call CoreMessageHandler(showmsgbox:=silent, subname:="mssqlDBDriver.setDBParameter", _
-                                      tablename:=_parametersTableName, entryname:=parametername)
-                SetDBParameter = False
+                Call CoreMessageHandler(showmsgbox:=Not silent, subname:="mssqlDBDriver.setDBParameter", _
+                                      exception:=ex, tablename:=_parametersTableName, entryname:=parametername)
+                Return False
             End Try
 
 
@@ -2303,8 +2302,8 @@ Namespace OnTrack.Database
         ''' <param name="session"></param>
         ''' <param name="sequence"></param>
         ''' <remarks></remarks>
-        Public Sub New(ByVal id As String, ByRef databaseDriver As iormDatabaseDriver, ByRef session As Session, sequence As ot.ConfigSequence)
-            MyBase.New(id, DatabaseDriver, session, sequence)
+        Public Sub New(ByVal id As String, ByRef databaseDriver As iormDatabaseDriver, ByRef session As Session, sequence As ComplexPropertyStore.Sequence)
+            MyBase.New(id, databaseDriver, session, sequence)
 
         End Sub
         ''' <summary>

@@ -32,7 +32,300 @@ Imports System.Reflection
 
 Namespace OnTrack
 
-    
+    ''' <summary>
+    ''' class for a Property Store with weighted properties for multiple property sets
+    ''' </summary>
+    ''' <remarks></remarks>
+    Public Class ComplexPropertyStore
+
+
+        ''' <summary>
+        ''' Event Arguments
+        ''' </summary>
+        ''' <remarks></remarks>
+        Public Class EventArgs
+            Inherits System.EventArgs
+
+            Private _propertyname As String
+            Private _setname As String
+            Private _weight As Nullable(Of UShort)
+            Private _value As Object
+
+            Sub New(Optional propertyname As String = Nothing, Optional setname As String = Nothing, Optional weight As Nullable(Of UShort) = Nothing, Optional value As Object = Nothing)
+                If propertyname IsNot Nothing Then _propertyname = propertyname
+                If setname IsNot Nothing Then _setname = setname
+                If weight.HasValue Then _weight = weight
+                If value IsNot Nothing Then value = _value
+            End Sub
+
+
+            ''' <summary>
+            ''' Gets the value.
+            ''' </summary>
+            ''' <value>The value.</value>
+            Public ReadOnly Property Value() As Object
+                Get
+                    Return Me._value
+                End Get
+            End Property
+
+            ''' <summary>
+            ''' Gets the weight.
+            ''' </summary>
+            ''' <value>The weight.</value>
+            Public ReadOnly Property Weight() As UShort?
+                Get
+                    Return Me._weight
+                End Get
+            End Property
+
+            ''' <summary>
+            ''' Gets the setname.
+            ''' </summary>
+            ''' <value>The setname.</value>
+            Public ReadOnly Property Setname() As String
+                Get
+                    Return Me._setname
+                End Get
+            End Property
+
+            ''' <summary>
+            ''' Gets the propertyname.
+            ''' </summary>
+            ''' <value>The propertyname.</value>
+            Public ReadOnly Property Propertyname() As String
+                Get
+                    Return Me._propertyname
+                End Get
+            End Property
+
+        End Class
+
+        ''' <summary>
+        '''  Sequenze of sets
+        ''' </summary>
+        ''' <remarks></remarks>
+        Public Enum Sequence
+            Primary = 0
+            Secondary = 1
+        End Enum
+
+        ''' <summary>
+        ''' main data structure a set by name consists of different properties with weights for the values
+        ''' </summary>
+        ''' <remarks></remarks>
+        Private _sets As New Dictionary(Of String, Dictionary(Of String, SortedList(Of UShort, Object)))
+
+        Private _currentset As String
+        Private _defaultset As String = ""
+
+        ''' <summary>
+        ''' constructor
+        ''' </summary>
+        ''' <param name="defaultsetname"></param>
+        ''' <remarks></remarks>
+        Sub New(defaultsetname As String)
+            _defaultset = defaultsetname
+        End Sub
+        ''' <summary>
+        ''' Gets or sets the currentset.
+        ''' </summary>
+        ''' <value>The currentset.</value>
+        Public Property CurrentSet() As String
+            Get
+                Return Me._currentset
+            End Get
+            Set(value As String)
+                If Me.HasSet(value) Then
+                    Me._currentset = value
+                    RaiseEvent OnCurrentSetChanged(Me, New ComplexPropertyStore.EventArgs(setname:=value))
+                Else
+                    Throw New IndexOutOfRangeException(message:="set name '" & value & "' does not exist in the store")
+                End If
+
+            End Set
+        End Property
+        ''' <summary>
+        ''' Event OnPropertyChange
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Public Event OnPropertyChanged(sender As Object, e As ComplexPropertyStore.EventArgs)
+        Public Event OnCurrentSetChanged(sender As Object, e As ComplexPropertyStore.EventArgs)
+        ''' <summary>
+        ''' returns the config set for a setname with a driversequence
+        ''' </summary>
+        ''' <param name="setname"></param>
+        ''' <param name="driverseq"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function GetSet(setname As String, Optional sequence As Sequence = Sequence.Primary) As Dictionary(Of String, SortedList(Of UShort, Object))
+            If HasConfigSetName(setname, sequence) Then
+                Return _sets.Item(key:=setname & ":" & sequence)
+            End If
+        End Function
+        ''' <summary>
+        ''' returns the config set for a setname with a driversequence
+        ''' </summary>
+        ''' <param name="setname"></param>
+        ''' <param name="driverseq"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function HasProperty(name As String, Optional setname As String = Nothing, Optional sequence As Sequence = Sequence.Primary) As Boolean
+            If setname Is Nothing Then
+                setname = _currentset
+            End If
+            If setname Is Nothing Then
+                setname = _defaultset
+            End If
+            If HasSet(setname, sequence) Then
+                Dim aset = GetSet(setname:=setname, sequence:=sequence)
+                Return aset.ContainsKey(key:=name)
+            End If
+            Return False
+        End Function
+
+        ''' <summary>
+        ''' sets a Property to the TableStore
+        ''' </summary>
+        ''' <param name="Name">Name of the Property</param>
+        ''' <param name="Object">ObjectValue</param>
+        ''' <returns>returns True if succesfull</returns>
+        ''' <remarks></remarks>
+        Public Function SetProperty(ByVal name As String, ByVal value As Object, _
+                                    Optional ByVal weight As UShort = 0,
+                                    Optional setname As String = "", _
+                                    Optional sequence As Sequence = Sequence.Primary) As Boolean
+
+            Dim aWeightedList As SortedList(Of UShort, Object)
+            Dim aSet As Dictionary(Of String, SortedList(Of UShort, Object))
+            If setname = "" Then
+                setname = _defaultset
+            End If
+
+            If HasConfigSetName(setname, sequence) Then
+                aSet = GetSet(setname, sequence:=sequence)
+            Else
+                aSet = New Dictionary(Of String, SortedList(Of UShort, Object))
+                _sets.Add(key:=setname & ":" & sequence, value:=aSet)
+            End If
+
+            If aSet.ContainsKey(name) Then
+                aWeightedList = aSet.Item(name)
+                ' weight missing
+                If weight = 0 Then
+                    weight = aWeightedList.Keys.Max + 1
+                End If
+                ' retrieve
+                If aWeightedList.ContainsKey(weight) Then
+                    aWeightedList.Remove(weight)
+
+                End If
+                aWeightedList.Add(weight, value)
+            Else
+                aWeightedList = New SortedList(Of UShort, Object)
+                '* get weight
+                If weight = 0 Then
+                    weight = 1
+                End If
+                aWeightedList.Add(weight, value)
+                aSet.Add(name, aWeightedList)
+            End If
+
+            RaiseEvent OnPropertyChanged(Me, New ComplexPropertyStore.EventArgs(propertyname:=name, setname:=setname, weight:=weight, value:=value))
+            Return True
+        End Function
+        ''' <summary>
+        ''' Gets the Property of a config set. if setname is ommitted then check currentconfigset and the global one
+        ''' </summary>
+        ''' <param name="name">name of property</param>
+        ''' <returns>object of the property</returns>
+        ''' <remarks></remarks>
+        Public Function GetProperty(ByVal name As String, Optional weight As UShort = 0, _
+        Optional setname As String = "", _
+        Optional sequence As Sequence = Sequence.Primary) As Object
+
+            Dim aConfigSet As Dictionary(Of String, SortedList(Of UShort, Object))
+            If setname = "" Then
+                setname = _currentset
+            End If
+            '* test
+            If setname <> "" AndAlso HasProperty(name, setname:=setname, sequence:=sequence) Then
+                aConfigSet = GetSet(setname, sequence)
+            ElseIf setname <> "" AndAlso HasProperty(name, setname:=setname) Then
+                aConfigSet = GetSet(setname)
+            ElseIf setname = "" AndAlso _currentset IsNot Nothing AndAlso HasProperty(name, setname:=_currentset, sequence:=sequence) Then
+                setname = _currentset
+                aConfigSet = GetSet(setname, sequence)
+            ElseIf setname = "" AndAlso _defaultset IsNot Nothing AndAlso HasProperty(name, setname:=_defaultset) Then
+                setname = _defaultset
+                aConfigSet = GetSet(setname)
+            Else
+                Return Nothing
+            End If
+            ' retrieve
+            Dim aWeightedList As SortedList(Of UShort, Object)
+            If aConfigSet.ContainsKey(name) Then
+                aWeightedList = aConfigSet.Item(name)
+                If aWeightedList.ContainsKey(weight) Then
+                    Return aWeightedList.Item(weight)
+                ElseIf weight = 0 Then
+                    Return aWeightedList.Last.Value
+                Else
+                    Return Nothing
+                End If
+            Else
+                Return Nothing
+            End If
+        End Function
+        ''' <summary>
+        ''' returns a list of selectable config set names without global
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property ConfigSetNamesToSelect As List(Of String)
+            Get
+                Return ot.ConfigSetNames.FindAll(Function(x) x <> ConstGlobalConfigSetName)
+            End Get
+        End Property
+        ''' <summary>
+        ''' returns a list of ConfigSetnames
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property SetNames As List(Of String)
+            Get
+                Dim aList As New List(Of String)
+
+                For Each name In _sets.Keys
+                    If name.Contains(":") Then
+                        name = name.Substring(0, name.IndexOf(":"))
+                    End If
+                    If Not aList.Contains(name) Then aList.Add(name)
+                Next
+                Return aList
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' returns true if the config-set name exists 
+        ''' </summary>
+        ''' <param name="name"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function HasSet(ByVal setname As String, Optional sequence As Sequence = Sequence.Primary) As Boolean
+            If _sets.ContainsKey(setname & ":" & sequence) Then
+                Return True
+            Else
+                Return False
+            End If
+        End Function
+       
+    End Class
+
     ''' <summary>
     ''' Session Class holds all the Session based Data for On Track Database
     ''' </summary>
@@ -69,6 +362,7 @@ Namespace OnTrack
         ' the environments
         Private WithEvents _primaryDBDriver As iormDatabaseDriver
         Private WithEvents _primaryConnection As iormConnection
+        Private WithEvents _configurations As ComplexPropertyStore
 
         Private _CurrentDomain As Domain
         Private _UILogin As UI.clsCoreUILogin
@@ -76,6 +370,8 @@ Namespace OnTrack
 
         Private _DomainObjectsDir As New Dictionary(Of String, ObjectRepository)
         Private _ObjectPermissionCache As New Dictionary(Of String, Boolean)
+
+        
 
         'shadow Reference for Events
         ' our Events
@@ -103,7 +399,7 @@ Namespace OnTrack
         ''' </summary>
         ''' <param name="SessionID"> unqiue ID of the Session</param>
         ''' <remarks></remarks>
-        Public Sub New(Optional id As String = "", Optional configSetname As String = "")
+        Public Sub New(configurations As ComplexPropertyStore, Optional id As String = "")
             '* ID
             If id <> "" Then
                 id = UCase(id)
@@ -119,8 +415,10 @@ Namespace OnTrack
             _errorLog = New MessageLog(_SessionID)
             _logagent = New SessionAgent(Me)
 
-            If configSetname <> "" Then
-                _UseConfigSetName = configSetname
+            '** register the configuration
+            If configurations IsNot Nothing Then
+                _UseConfigSetName = configurations.CurrentSet
+                _configurations = configurations
             End If
         End Sub
 
@@ -222,24 +520,30 @@ Namespace OnTrack
             End Get
         End Property
         ''' <summary>
-        ''' returns the ConfigSetName to be used to connect to the databased
+        ''' Gets the configurations ComplexPropertyStore.
+        ''' </summary>
+        ''' <value>The configurations.</value>
+        Public ReadOnly Property Configurations() As ComplexPropertyStore
+            Get
+                Return Me._configurations
+            End Get
+        End Property
+        ''' <summary>
+        ''' returns the setname to be used to connect to the databased
         ''' </summary>
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property ConfigSetName As String
+        Public Property ConfigSetname As String
             Get
-                Return _UseConfigSetName
+                Return _configurations.CurrentSet
             End Get
             Set(value As String)
                 If _UseConfigSetName <> value Then
                     If Not Me.IsRunning Then
-                        '*
-                        If Me.Initialize(useConfigsetName:=value) Then
-                            _UseConfigSetName = value
-                        End If
+                        _configurations.CurrentSet = value ' raises event
                     Else
-                        CoreMessageHandler(message:="a running session can not be set to another config set name", arg1:=value, messagetype:=otCoreMessageType.ApplicationError, subname:="Sesion.ConfigSetName")
+                        CoreMessageHandler(message:="a running session can not be set to another config set name", arg1:=value, messagetype:=otCoreMessageType.ApplicationError, subname:="Sesion.setname")
                     End If
                 End If
             End Set
@@ -425,48 +729,129 @@ Namespace OnTrack
         End Property
 #End Region
 
+
+        ''' <summary>
+        ''' Event Handler for the Current ConfigurationSet Changed Event
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Public Sub OnCurrentConfigSetChanged(sender As Object, e As ComplexPropertyStore.EventArgs) Handles _configurations.OnCurrentSetChanged
+            '** do only something if we have run through
+            If Me.IsRunning Then
+                '** do nothing if we are running
+                CoreMessageHandler(message:="current config set name was changed after session is running -ignored", subname:="OnCurrentConfigSetChanged", arg1:=e.Setname, messagetype:=otCoreMessageType.InternalError)
+            Else
+                ''' create or get the Database Driver
+                _primaryDBDriver = CreateOrGetDatabaseDriver(session:=Me)
+                If _primaryDBDriver IsNot Nothing Then
+                    '** set the connection for events
+                    _primaryConnection = _primaryDBDriver.CurrentConnection
+                    If _primaryConnection Is Nothing Then
+                        CoreMessageHandler(message:="The database connection could not be set - initialization of session aborted ", _
+                                           noOtdbAvailable:=True, subname:="Session.OnCurrentConfigSetChange", _
+                                           messagetype:=otCoreMessageType.InternalInfo)
+                    End If
+                End If
+
+            End If
+
+        End Sub
+        ''' <summary>
+        ''' Event Handler for the Configuration Property Changed Event
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Public Sub OnConfigPropertyChanged(sender As Object, e As ComplexPropertyStore.EventArgs) Handles _configurations.OnPropertyChanged
+            '** do only something if we have run through
+            If Me.IsRunning Then
+                '** do nothing if we are running
+                CoreMessageHandler(message:="current config set name was changed after session is running -ignored", subname:="OnCurrentConfigSetChanged", arg1:=e.Setname, messagetype:=otCoreMessageType.InternalError)
+            Else
+                If Me.IsInitialized Then
+                    ''' propagate the change shoud be running automatically 
+                End If
+            End If
+        End Sub
+
+        ''' <summary>
+        ''' returns the DBDriver Object for a session
+        ''' </summary>
+        ''' <param name="configsetname"></param>
+        ''' <param name="session"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Friend Function CreateOrGetDatabaseDriver(Optional session As Session = Nothing) As iormDatabaseDriver
+            Dim avalue As Object
+            Dim aDBDriver As iormDatabaseDriver
+
+
+            If session Is Nothing Then session = ot.CurrentSession
+
+            '*** which Environment / Driver to use look into configurations config 
+            avalue = _configurations.GetProperty(name:=ConstCPNDriverName, setname:=session.ConfigSetname)
+            If avalue IsNot Nothing AndAlso DirectCast(avalue, otDbDriverType) = otDbDriverType.ADOClassic Then
+                Call CoreMessageHandler(showmsgbox:=True, message:="Initialization of database driver failed. Type of Database Environment " & ConstCPNDriverName & " is outdated. Parameter DefaultDBEnvirormentName has unknown value", _
+                                        noOtdbAvailable:=True, arg1:=avalue, subname:="Session.GetDatabaseDriver", messagetype:=otCoreMessageType.ApplicationError)
+                Return Nothing
+            ElseIf avalue IsNot Nothing AndAlso DirectCast(avalue, otDbDriverType) = otDbDriverType.ADONETOLEDB Then
+                aDBDriver = New oleDBDriver(ID:=avalue, session:=session)
+            ElseIf avalue IsNot Nothing AndAlso DirectCast(avalue, otDbDriverType) = otDbDriverType.ADONETSQL Then
+                aDBDriver = New mssqlDBDriver(ID:=avalue, session:=session)
+            Else
+                Return Nothing
+            End If
+
+            Return aDBDriver
+        End Function
+
+
         ''' <summary>
         ''' Initialize the Session 
         ''' </summary>
         ''' <param name="DBDriver">DBDriver to be provided</param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Private Function Initialize(Optional dbDriver As iormDatabaseDriver = Nothing, Optional useConfigsetName As String = "") As Boolean
-            Dim aValue As Object
+        Private Function Initialize(Optional useConfigsetName As String = "") As Boolean
+            '
+            Try
 
-            ' set the configuration set to be used
-            If useConfigsetName = "" Then
-                _UseConfigSetName = ot.CurrentConfigSetName
-            Else
-                _UseConfigSetName = useConfigsetName
-            End If
-
-            '* load config set
-            If Not ot.HasConfigSetName(_UseConfigSetName) Then
-                If Not ot.HasConfigSetName(ConstGlobalConfigSetName) Then
-                    CoreMessageHandler(showmsgbox:=True, message:="configuration-set name '" & ConstGlobalConfigSetName & "' does not exist - can not connect", subname:="Session.initialize", messagetype:=otCoreMessageType.InternalError)
+                '*** Retrieve Config Properties and set the Bag
+                If Not ot.RetrieveConfigProperties() Then
+                    Call CoreMessageHandler(showmsgbox:=True, message:="config properties couldnot be retrieved - Initialized failed. ", _
+                                            noOtdbAvailable:=True, subname:="Session.Initialize", messagetype:=otCoreMessageType.InternalError)
                     Return False
                 Else
-                    CoreMessageHandler(showmsgbox:=True, message:="configuration-set name '" & useConfigsetName & "' does not exist - use '" & ConstGlobalConfigSetName & "' instead", _
-                                       subname:="Session.Initialize", messagetype:=otCoreMessageType.InternalWarning)
-
-                    _UseConfigSetName = ConstGlobalConfigSetName
-
+                    Call CoreMessageHandler(showmsgbox:=False, message:="config properties could be retrieved", _
+                                            noOtdbAvailable:=True, subname:="Session.Initialize", messagetype:=otCoreMessageType.InternalInfo)
                 End If
-            End If
-            Try
-                If dbDriver Is Nothing Then
-                    _primaryDBDriver = ot.GetDatabaseDriver(session:=Me)
-                Else
-                    '** take the supplied one
-                    _primaryDBDriver = dbDriver
-                End If
-                Call CoreMessageHandler(message:="The Database Driver is set to " & UCase(_primaryDBDriver.ID), _
-                                        noOtdbAvailable:=True, subname:="Session.Initialize", _
-                                        messagetype:=otCoreMessageType.InternalInfo)
 
-                '** set the connection for events
-                _primaryConnection = _primaryDBDriver.CurrentConnection
+                ' set the configuration set to be used
+                If useConfigsetName = "" Then
+                    '** get the default - trigger change event
+                    If _configurations.CurrentSet IsNot Nothing Then
+                        useConfigsetName = _configurations.CurrentSet
+                    Else
+                        useConfigsetName = _configurations.GetProperty(name:=ConstCPNUseConfigSetName, setname:=ConstGlobalConfigSetName)
+                    End If
+
+                ElseIf Not _configurations.HasSet(useConfigsetName) Then
+                    Call CoreMessageHandler(message:="config properties set could not be retrieved from config set properties - Initialized failed. ", _
+                                           noOtdbAvailable:=True, subname:="Session.Initialize", messagetype:=otCoreMessageType.InternalError)
+                    Return False
+                End If
+                '** set a specific - trigger change event
+                _configurations.CurrentSet = useConfigsetName
+                '** here we should have a database driver and a connection by event handling
+                '** and reading the properties if not something is wrong
+                If _primaryDBDriver Is Nothing OrElse _primaryConnection Is Nothing Then
+                    Call CoreMessageHandler(showmsgbox:=True, message:="config properties are invalid - Session to Ontrack failed to initialize. ", _
+                                           noOtdbAvailable:=True, subname:="Session.Initialize", messagetype:=otCoreMessageType.InternalError)
+                    Return False
+                End If
+
+
 
                 '** create ObjectStore
                 Dim aStore As New ObjectRepository(Me)
@@ -541,7 +926,7 @@ Namespace OnTrack
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function InstallOnTrackDatabase(Optional sequence As ConfigSequence = ConfigSequence.primary) As Boolean
+        Public Function InstallOnTrackDatabase(Optional sequence As ComplexPropertyStore.Sequence = ComplexPropertyStore.Sequence.Primary) As Boolean
             '** lazy initialize
             If Not Me.IsInitialized AndAlso Not Me.Initialize() Then
                 CoreMessageHandler(subname:="Session.InstallOnTrackDatabase", message:="failed to initialize session", _
@@ -550,7 +935,7 @@ Namespace OnTrack
             End If
 
             '** install
-            If sequence = ConfigSequence.primary Then
+            If sequence = sequence.Primary Then
                 If _primaryDBDriver.InstallOnTrackDatabase(askBefore:=True, modules:={}) Then
                     Return True
                 Else
@@ -565,6 +950,8 @@ Namespace OnTrack
 
 
         End Function
+
+
         ''' <summary>
         ''' requests and checks if an end of bootstrap is possible 
         ''' </summary>
@@ -577,7 +964,7 @@ Namespace OnTrack
                                         arg1:=Me.SessionID, messagetype:=otCoreMessageType.InternalError)
                 Return False
             End If
-            
+
 
             If Me.IsBootstrappingInstallationRequested Then
                 '** check should not only be on existence also on the columns
@@ -592,7 +979,7 @@ Namespace OnTrack
                 Me.IsBootstrappingInstallationRequested = False
                 Me.IsInstallationRunning = False
 
-                
+
                 Return True
             Else
                 Return True
@@ -644,7 +1031,17 @@ Namespace OnTrack
                 _DomainObjectsDir.Item(key:=_CurrentDomainID).OnObjectDefinitionChanged(sender, e)
             End If
         End Sub
-        
+        ''' <summary>
+        ''' Raises the Event RaiseChangeConfigSet
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Public Sub RaiseChangeConfigSetEvent(setname As String)
+            RaiseEvent OnConfigSetChange(Me, New SessionEventArgs(session:=Me, newConfigSetName:=setname))
+
+        End Sub
+
 
         ''' <summary>
         ''' Validate the Access Request against the current OnTrack DB Access Level of the user
@@ -1060,78 +1457,92 @@ Namespace OnTrack
             Dim aValue As Object
             Dim result As Boolean
 
-            '** set statup
-            Me.IsStartingUp = True
+            Try
 
-            If useconfigsetname <> "" AndAlso ot.HasConfigSetName(useconfigsetname, ConfigSequence.primary) Then
-                _UseConfigSetName = useconfigsetname
-            End If
-            '** lazy initialize
-            If Not Me.IsInitialized AndAlso Not Me.Initialize() Then
-                Call CoreMessageHandler(subname:="Session.Startup", message:="failed to initialize session", arg1:=Me.SessionID, messagetype:=otCoreMessageType.InternalError)
-                Return False
-            End If
+                '** set statup
+                Me.IsStartingUp = True
 
-            '* take the OTDBDriver
-            If _primaryDBDriver Is Nothing Then
-                CoreMessageHandler(message:="primary database driver is not set", messagetype:=otCoreMessageType.InternalError, _
-                                   subname:="Session.Startup")
-                Me.IsStartingUp = False
-                Return False
-            End If
-            '** domain
-            If domainID = "" Then Me.CurrentDomainID = ConstGlobalDomain ' set the current domain (_domainID)
+                If useconfigsetname <> "" AndAlso ot.HasConfigSetName(useconfigsetname, ComplexPropertyStore.Sequence.Primary) Then
+                    _UseConfigSetName = useconfigsetname
+                End If
+                '** lazy initialize
+                If Not Me.IsInitialized AndAlso Not Me.Initialize() Then
+                    Call CoreMessageHandler(subname:="Session.Startup", message:="failed to initialize session", arg1:=Me.SessionID, messagetype:=otCoreMessageType.InternalError)
+                    Return False
+                End If
 
-            '*** get the Schema Version
-            aValue = _primaryDBDriver.GetDBParameter(ConstPNBSchemaVersion, silent:=True)
-            If aValue Is Nothing OrElse Not IsNumeric(aValue) Then
-                result = _primaryDBDriver.VerifyOnTrackDatabase(install:=installIfNecessary, modules:=ot.InstalledModules, verifySchema:=False)
-            ElseIf ot.SchemaVersion < Convert.ToUInt64(aValue) Then
-                CoreMessageHandler(showmsgbox:=True, message:="Verifying the OnTrack Database failed. The Tooling schema version of # " & ot.SchemaVersion & _
-                                   " is less than the database schema version of #" & aValue & " - Session could not start up", _
-                                   messagetype:=otCoreMessageType.InternalError, subname:="Session.Startup")
-                Return False
-            ElseIf ot.SchemaVersion > Convert.ToUInt64(aValue) Then
-                result = _primaryDBDriver.VerifyOnTrackDatabase(install:=installIfNecessary, modules:=ot.InstalledModules, verifySchema:=False)
-            Else
-                '** check also the bootstrap version
-                aValue = _primaryDBDriver.GetDBParameter(ConstPNBootStrapSchemaChecksum, silent:=True)
-                If aValue Is Nothing OrElse Not IsNumeric(aValue) OrElse ot.GetBootStrapSchemaChecksum <> Convert.ToUInt64(aValue) Then
+                '* take the OTDBDriver
+                If _primaryDBDriver Is Nothing Then
+                    CoreMessageHandler(message:="primary database driver is not set", messagetype:=otCoreMessageType.InternalError, _
+                                       subname:="Session.Startup")
+                    Me.IsStartingUp = False
+                    Return False
+                End If
+                '** domain
+                If domainID = "" Then Me.CurrentDomainID = ConstGlobalDomain ' set the current domain (_domainID)
+
+                '*** get the Schema Version
+                aValue = _primaryDBDriver.GetDBParameter(ConstPNBSchemaVersion, silent:=True)
+                If aValue Is Nothing OrElse Not IsNumeric(aValue) Then
+                    result = _primaryDBDriver.VerifyOnTrackDatabase(install:=installIfNecessary, modules:=ot.InstalledModules, verifySchema:=False)
+                ElseIf ot.SchemaVersion < Convert.ToUInt64(aValue) Then
+                    CoreMessageHandler(showmsgbox:=True, message:="Verifying the OnTrack Database failed. The Tooling schema version of # " & ot.SchemaVersion & _
+                                       " is less than the database schema version of #" & aValue & " - Session could not start up", _
+                                       messagetype:=otCoreMessageType.InternalError, subname:="Session.Startup")
+                    Return False
+                ElseIf ot.SchemaVersion > Convert.ToUInt64(aValue) Then
                     result = _primaryDBDriver.VerifyOnTrackDatabase(install:=installIfNecessary, modules:=ot.InstalledModules, verifySchema:=False)
                 Else
-                    result = True
+                    '** check also the bootstrap version
+                    aValue = _primaryDBDriver.GetDBParameter(ConstPNBootStrapSchemaChecksum, silent:=True)
+                    If aValue Is Nothing OrElse Not IsNumeric(aValue) OrElse ot.GetBootStrapSchemaChecksum <> Convert.ToUInt64(aValue) Then
+                        result = _primaryDBDriver.VerifyOnTrackDatabase(install:=installIfNecessary, modules:=ot.InstalledModules, verifySchema:=False)
+                    Else
+                        result = True
+                    End If
                 End If
-            End If
 
-            '** the installation failed
-            If Not result And installIfNecessary Then
-                CoreMessageHandler(showmsgbox:=True, message:="Verifying and Installing the OnTrack Database failed - Session could not start up", _
-                                   messagetype:=otCoreMessageType.InternalError, subname:="Session.Startup")
+                '** the installation failed
+                If Not result And installIfNecessary Then
+                    CoreMessageHandler(showmsgbox:=True, message:="Verifying and Installing the OnTrack Database failed - Session could not start up", _
+                                       messagetype:=otCoreMessageType.InternalError, subname:="Session.Startup")
+                    Return False
+                ElseIf Not installIfNecessary And Not result Then
+                    CoreMessageHandler(showmsgbox:=True, message:="Verifying  the OnTrack Database failed - Session will be started anyway on demand", _
+                                                      messagetype:=otCoreMessageType.InternalWarning, subname:="Session.Startup")
+                End If
+
+                '** request access
+                If RequestUserAccess(accessRequest:=AccessRequest, username:=OTDBUsername, _
+                                    password:=OTDBPassword, domainID:=_CurrentDomainID, loginOnDisConnected:=True, loginOnFailed:=True, messagetext:=messagetext.Clone) Then
+                    '** Connect 
+                    Return _primaryConnection.Connect(FORCE:=True, _
+                                                      access:=AccessRequest, _
+                                                      domainID:=domainID, _
+                                                      OTDBUsername:=OTDBUsername, _
+                                                      OTDBPassword:=OTDBPassword, _
+                                                      doLogin:=True)
+                    '** Initialize through events
+                Else
+                    CoreMessageHandler(message:="user could not be verified", messagetype:=otCoreMessageType.InternalInfo, _
+                                       subname:="Session.Startup")
+                    Me.IsStartingUp = False
+                    Return False
+                End If
+
+                Return True
+
+            Catch ex As ormNoConnectionException
                 Return False
-            ElseIf Not installIfNecessary And Not result Then
-                CoreMessageHandler(showmsgbox:=True, message:="Verifying  the OnTrack Database failed - Session will be started anyway on demand", _
-                                                  messagetype:=otCoreMessageType.InternalWarning, subname:="Session.Startup")
-            End If
-
-            '** request access
-            If RequestUserAccess(accessRequest:=AccessRequest, username:=OTDBUsername, _
-                                password:=OTDBPassword, domainID:=_CurrentDomainID, loginOnDisConnected:=True, loginOnFailed:=True, messagetext:=messagetext.Clone) Then
-                '** Connect 
-                Return _primaryConnection.Connect(FORCE:=True, _
-                                                  access:=AccessRequest, _
-                                                  domainID:=domainID, _
-                                                  OTDBUsername:=OTDBUsername, _
-                                                  OTDBPassword:=OTDBPassword, _
-                                                  doLogin:=True)
-                '** Initialize through events
-            Else
-                CoreMessageHandler(message:="user could not be verified", messagetype:=otCoreMessageType.InternalInfo, _
-                                   subname:="Session.Startup")
-                Me.IsStartingUp = False
+            Catch ex As ORMException
+                CoreMessageHandler(exception:=ex, subname:="Session.Startup")
                 Return False
-            End If
+            Catch ex As Exception
+                CoreMessageHandler(exception:=ex, subname:="Session.Startup")
+                Return False
 
-            Return True
+            End Try
+
         End Function
         ''' <summary>
         ''' Initiate closeDown this Session and the Connection to OnTrack Database
@@ -1258,7 +1669,7 @@ Namespace OnTrack
                     _DefaultScheduleTypeID = newDomain.GetSetting(id:=ConstCDefaultScheduleTypeID).value
                 Else
                     _DefaultScheduleTypeID = "none"
-                  
+
                 End If
 
                 If newDomain.HasSetting(id:=ConstCDefaultDeliverableTypeID) Then
@@ -1288,78 +1699,89 @@ Namespace OnTrack
         Private Function StartUpSessionEnviorment(Optional ByVal force As Boolean = False, Optional domainID As String = "") As Boolean
             Dim aValue As Object
 
-            If Not IsRunning Or force Then
-                
+            Try
 
-                '** start the Agent
-                If Not _logagent Is Nothing Then
-                    aValue = ot.GetConfigProperty(constCPNUseLogAgent)
-                    If CBool(aValue) Then
-                        _logagent.Start()
+                If Not IsRunning Or force Then
+
+
+                    '** start the Agent
+                    If Not _logagent Is Nothing Then
+                        aValue = ot.GetConfigProperty(constCPNUseLogAgent)
+                        If CBool(aValue) Then
+                            _logagent.Start()
+                            '***
+                            Call CoreMessageHandler(showmsgbox:=False, message:=" LogAgent for Session started ", arg1:=_SessionID, _
+                                                    break:=True, noOtdbAvailable:=True, messagetype:=otCoreMessageType.ApplicationInfo, _
+                                                    subname:="Session.startupSesssionEnviorment")
+                        Else
+                            '***
+                            Call CoreMessageHandler(showmsgbox:=False, message:=" LogAgent for Session not used by configuration ", arg1:=_SessionID, _
+                                                    break:=True, noOtdbAvailable:=True, messagetype:=otCoreMessageType.ApplicationInfo, _
+                                                    subname:="Session.startupSesssionEnviorment")
+                        End If
+
+                    End If
+                    '** check driver
+                    If _primaryDBDriver Is Nothing Or Not IsInitialized Then
                         '***
-                        Call CoreMessageHandler(showmsgbox:=False, message:=" LogAgent for Session started ", arg1:=_SessionID, _
-                                                break:=True, noOtdbAvailable:=True, messagetype:=otCoreMessageType.ApplicationInfo, _
+                        Call CoreMessageHandler(showmsgbox:=False, message:=" Session cannot initiated no DBDriver set ", _
+                                                break:=True, noOtdbAvailable:=True, messagetype:=otCoreMessageType.InternalError, _
                                                 subname:="Session.startupSesssionEnviorment")
-                    Else
-                        '***
-                        Call CoreMessageHandler(showmsgbox:=False, message:=" LogAgent for Session not used by configuration ", arg1:=_SessionID, _
-                                                break:=True, noOtdbAvailable:=True, messagetype:=otCoreMessageType.ApplicationInfo, _
-                                                subname:="Session.startupSesssionEnviorment")
+                        Me.IsStartingUp = False
+                        IsRunning = False
+                        Return False
                     End If
 
-                End If
-                '** check driver
-                If _primaryDBDriver Is Nothing Or Not IsInitialized Then
+                    '*** Parameters
                     '***
-                    Call CoreMessageHandler(showmsgbox:=False, message:=" Session cannot initiated no DBDriver set ", _
-                                            break:=True, noOtdbAvailable:=True, messagetype:=otCoreMessageType.InternalError, _
-                                            subname:="Session.startupSesssionEnviorment")
+                    _Username = _primaryDBDriver.CurrentConnection.Dbuser
+                    _OTDBUser = User.Retrieve(username:=_primaryDBDriver.CurrentConnection.Dbuser)
+                    If Not _OTDBUser Is Nothing AndAlso _OTDBUser.IsLoaded Then
+                        _Username = _OTDBUser.Username
+                        _AccessLevel = _OTDBUser.AccessRight
+                    Else
+                        Call CoreMessageHandler(showmsgbox:=True, message:=" Session could not initiate - user could not be retrieved from database", _
+                                               break:=False, arg1:=_primaryDBDriver.CurrentConnection.Dbuser, noOtdbAvailable:=True, messagetype:=otCoreMessageType.InternalError, _
+                                               subname:="Session.startupSesssionEnviorment")
+                        IsRunning = False
+                        Me.IsStartingUp = False
+                        Return False
+                    End If
+
+                    '** load Domain
+                    If domainID = "" Then domainID = Me.CurrentDomainID
+                    '* set it here that we are really loading in SetDomain and not only 
+                    '* assigning _DomainID (if no connection is available)
+                    If SwitchToDomain(newDomainID:=domainID) Then
+                        Call CoreMessageHandler(message:=" Session Domain set to " & domainID, _
+                                                messagetype:=otCoreMessageType.InternalInfo, _
+                                                subname:="Session.startupSesssionEnviorment")
+                    End If
+                    '*** get the Schema Version
+                    aValue = _primaryDBDriver.GetDBParameter(ConstPNBootStrapSchemaChecksum, silent:=True)
+                    If aValue Is Nothing OrElse Not IsNumeric(aValue) Then
+                        _primaryDBDriver.VerifyOnTrackDatabase()
+                    ElseIf ot.GetBootStrapSchemaChecksum <> Convert.ToUInt64(aValue) Then
+                        _primaryDBDriver.VerifyOnTrackDatabase()
+                    End If
+
+                    '*** set started
                     Me.IsStartingUp = False
-                    IsRunning = False
-                    Return False
-                End If
+                    IsRunning = True
+                    '*** we are started
+                    RaiseEvent OnStarted(Me, New SessionEventArgs(Me))
 
-                '*** Parameters
-                '***
-                _Username = _primaryDBDriver.CurrentConnection.Dbuser
-                _OTDBUser = User.Retrieve(username:=_primaryDBDriver.CurrentConnection.Dbuser)
-                If Not _OTDBUser Is Nothing AndAlso _OTDBUser.IsLoaded Then
-                    _Username = _OTDBUser.Username
-                    _AccessLevel = _OTDBUser.AccessRight
-                Else
-                    Call CoreMessageHandler(showmsgbox:=True, message:=" Session could not initiate - user could not be retrieved from database", _
-                                           break:=False, arg1:=_primaryDBDriver.CurrentConnection.Dbuser, noOtdbAvailable:=True, messagetype:=otCoreMessageType.InternalError, _
-                                           subname:="Session.startupSesssionEnviorment")
-                    IsRunning = False
-                    Me.IsStartingUp = False
-                    Return False
                 End If
+                Return IsRunning
 
-                '** load Domain
-                If domainID = "" Then domainID = Me.CurrentDomainID
-                '* set it here that we are really loading in SetDomain and not only 
-                '* assigning _DomainID (if no connection is available)
-                If switchToDomain(newDomainID:=domainID) Then
-                    Call CoreMessageHandler(message:=" Session Domain set to " & domainID, _
-                                            messagetype:=otCoreMessageType.InternalInfo, _
-                                            subname:="Session.startupSesssionEnviorment")
-                End If
-                '*** get the Schema Version
-                aValue = _primaryDBDriver.GetDBParameter(ConstPNBootStrapSchemaChecksum, silent:=True)
-                If aValue Is Nothing OrElse Not IsNumeric(aValue) Then
-                    _primaryDBDriver.VerifyOnTrackDatabase()
-                ElseIf ot.GetBootStrapSchemaChecksum <> Convert.ToUInt64(aValue) Then
-                    _primaryDBDriver.VerifyOnTrackDatabase()
-                End If
+            Catch ex As ormNoConnectionException
+                Return False
 
-                '*** set started
-                Me.IsStartingUp = False
-                IsRunning = True
-                '*** we are started
-                RaiseEvent OnStarted(Me, New SessionEventArgs(Me))
+            Catch ex As Exception
+                CoreMessageHandler(exception:=ex, subname:="Session.StartupSessionEnviorment")
+                Return False
+            End Try
 
-            End If
-            Return IsRunning
         End Function
 
         ''' <summary>
@@ -1422,13 +1844,8 @@ Namespace OnTrack
             _ObjectPermissionCache.Clear()
         End Sub
 
-        Private Sub Session_EndOfBootStrapInstallation(sender As Object, e As SessionEventArgs) Handles Me.EndOfBootStrapInstallation
+       
 
-        End Sub
-
-        Private Sub Session_OnStarted(sender As Object, e As SessionEventArgs) Handles Me.OnStarted
-
-        End Sub
     End Class
     ''' <summary>
     ''' Object Defintion Event Arguments
@@ -1468,10 +1885,12 @@ Namespace OnTrack
 
         Private _Session As Session
         Private _NewDomain As Domain
+        Private _newConfigSetName As String
 
-        Public Sub New(Session As Session, Optional newDomain As Domain = Nothing)
+        Public Sub New(Session As Session, Optional newDomain As Domain = Nothing, Optional newConfigsetName As String = Nothing)
             _Session = Session
             _NewDomain = newDomain
+            If newConfigsetName IsNot Nothing Then _newConfigSetName = newConfigsetName
         End Sub
         ''' <summary>
         ''' Gets or sets the new domain ID.
@@ -2030,6 +2449,77 @@ Namespace OnTrack
                 _installationResult = value
             End Set
         End Property
+    End Class
+
+    ''' <summary>
+    ''' No Connection Excpetion
+    ''' </summary>
+    ''' <remarks></remarks>
+    Public Class ormNoConnectionException
+        Inherits ORMException
+        Public Sub New(Optional message As String = Nothing, Optional exception As Exception = Nothing, Optional subname As String = "", Optional path As String = "")
+            MyBase.New(message:=message, exception:=exception, subname:=subname, path:=path)
+        End Sub
+
+    End Class
+    ''' <summary>
+    ''' ORMException is an Exception for the ORM LAyer
+    ''' </summary>
+    ''' <remarks></remarks>
+    Public Class ORMException
+        Inherits Exception
+
+        Protected _InnerException As Exception
+        Protected _message As String
+        Protected _subname As String
+        Protected _path As String ' Database path
+        Public Sub New(Optional message As String = Nothing, Optional exception As Exception = Nothing, Optional subname As String = "", Optional path As String = "")
+            If message IsNot Nothing Then _message = message
+            If subname IsNot Nothing Then _subname = subname
+            If exception IsNot Nothing Then _InnerException = exception
+            If path IsNot Nothing Then _path = path
+        End Sub
+
+        ''' <summary>
+        ''' Gets the path.
+        ''' </summary>
+        ''' <value>The path.</value>
+        Public ReadOnly Property Path() As String
+            Get
+                Return Me._path
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Gets the subname.
+        ''' </summary>
+        ''' <value>The subname.</value>
+        Public ReadOnly Property Subname() As String
+            Get
+                Return Me._subname
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Gets the message.
+        ''' </summary>
+        ''' <value>The message.</value>
+        Public ReadOnly Property Message() As String
+            Get
+                Return Me._message
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Gets the inner exception.
+        ''' </summary>
+        ''' <value>The inner exception.</value>
+        Public ReadOnly Property InnerException() As Exception
+            Get
+                Return Me._InnerException
+            End Get
+        End Property
+
     End Class
     ''' <summary>
     ''' Event arguments for Ontrack error Events

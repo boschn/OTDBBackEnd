@@ -1099,6 +1099,7 @@ Namespace OnTrack
             Public Sub New(ByVal id As String, ByRef session As Session)
                 _ID = id
                 _session = session
+
             End Sub
 
             ''' <summary>
@@ -2355,7 +2356,7 @@ Namespace OnTrack
             Protected _Name As String = ""  'name of the database or file
             Protected _Dbuser As String = ""  'User name to use to access the database
             Protected _Dbpassword As String = ""   'password to use to access the database
-            Protected _Sequence As ot.ConfigSequence = ConfigSequence.primary ' configuration sequence of the connection
+            Protected _Sequence As ComplexPropertyStore.Sequence = ComplexPropertyStore.Sequence.Primary ' configuration sequence of the connection
             'Protected _OTDBUser As New User    ' OTDB User -> moved to session 
             Protected _AccessLevel As otAccessRight    ' access
 
@@ -2365,6 +2366,7 @@ Namespace OnTrack
             Protected _useseek As Boolean 'use seek instead of SQL
 
             Protected WithEvents _ErrorLog As MessageLog
+            Protected WithEvents _configurations As ComplexPropertyStore
 
             Public Event OnConnection As EventHandler(Of ormConnectionEventArgs) Implements iormConnection.OnConnection
             Public Event OnDisconnection As EventHandler(Of ormConnectionEventArgs) Implements iormConnection.OnDisconnection
@@ -2376,10 +2378,11 @@ Namespace OnTrack
             ''' <param name="databasedriver"></param>
             ''' <param name="session"></param>
             ''' <remarks></remarks>
-            Public Sub New(id As String, databasedriver As iormDatabaseDriver, ByRef session As Session, sequence As ot.ConfigSequence)
+            Public Sub New(id As String, databasedriver As iormDatabaseDriver, ByRef session As Session, sequence As ComplexPropertyStore.Sequence)
                 _OTDBDatabaseDriver = databasedriver
                 _OTDBDatabaseDriver.RegisterConnection(Me)
                 _Session = session
+                _configurations = session.Configurations
                 _ErrorLog = session.Errorlog
                 _ID = id
                 _Sequence = sequence
@@ -2413,7 +2416,7 @@ Namespace OnTrack
             ''' <value></value>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public ReadOnly Property Sequence As ot.ConfigSequence
+            Public ReadOnly Property Sequence As ComplexPropertyStore.Sequence
                 Get
                     Return _Sequence
                 End Get
@@ -2606,7 +2609,22 @@ Namespace OnTrack
                 Return True
             End Function
 
+            ''' <summary>
+            ''' Event Handler for the Configuration Property Changed Event
+            ''' </summary>
+            ''' <param name="sender"></param>
+            ''' <param name="e"></param>
+            ''' <remarks></remarks>
+            Public Sub OnConfigPropertyChanged(sender As Object, e As ComplexPropertyStore.EventArgs) Handles _configurations.OnPropertyChanged
+                '** do only something if we have run through
+                If Me.IsConnected Then
+                    '** do nothing if we are running
+                    CoreMessageHandler(message:="current config set name was changed after connection is connected -ignored", subname:="ormConnection.OnCurrentConfigSetChanged", arg1:=e.Setname, messagetype:=otCoreMessageType.InternalError)
+                Else
+                    SetConnectionConfigParameters()
 
+                End If
+            End Sub
 
             ''' <summary>
             ''' retrieve the Config parameters of OnTrack and sets it in the Connection
@@ -2619,10 +2637,10 @@ Namespace OnTrack
                 Dim Value As Object
 
                 ' DBType
-                Me.Databasetype = CLng(GetConfigProperty(name:=ConstCPNDBType, configsetname:=_Session.ConfigSetName, sequence:=_Sequence))
+                Me.Databasetype = CLng(_configurations.GetProperty(name:=ConstCPNDBType, setname:=_Session.ConfigSetname, sequence:=_Sequence))
 
                 '* useseek
-                Value = GetConfigProperty(name:=ConstCPNDBUseseek, configsetname:=_Session.ConfigSetName, sequence:=_Sequence)
+                Value = _configurations.GetProperty(name:=ConstCPNDBUseseek, setname:=_Session.ConfigSetname, sequence:=_Sequence)
                 If TypeOf (Value) Is Boolean Then
                     _useseek = Value
                 ElseIf TypeOf (Value) Is String Then
@@ -2635,21 +2653,21 @@ Namespace OnTrack
                 End If
 
                 ' get the path
-                Me.PathOrAddress = GetConfigProperty(name:=ConstCPNDBPath, configsetname:=_Session.ConfigSetName, sequence:=_Sequence)
+                Me.PathOrAddress = _configurations.GetProperty(name:=ConstCPNDBPath, setname:=_Session.ConfigSetname, sequence:=_Sequence)
 
                 ' get the Database Name if we have it
-                Me.DBName = GetConfigProperty(ConstCPNDBName, configsetname:=_Session.ConfigSetName, sequence:=_Sequence)
+                Me.DBName = _configurations.GetProperty(ConstCPNDBName, setname:=_Session.ConfigSetname, sequence:=_Sequence)
 
                 ' get the Database user if we have it
-                Me.Dbuser = GetConfigProperty(ConstCPNDBUser, configsetname:=_Session.ConfigSetName, sequence:=_Sequence)
+                Me.Dbuser = _configurations.GetProperty(ConstCPNDBUser, setname:=_Session.ConfigSetname, sequence:=_Sequence)
 
 
                 ' get the Database password if we have it
-                Me.Dbpassword = GetConfigProperty(name:=ConstCPNDBPassword, configsetname:=_Session.ConfigSetName, sequence:=_Sequence)
+                Me.Dbpassword = _configurations.GetProperty(name:=ConstCPNDBPassword, setname:=_Session.ConfigSetname, sequence:=_Sequence)
 
 
                 ' get the connection string
-                connectionstring = GetConfigProperty(name:=ConstCPNDBConnection, configsetname:=_Session.ConfigSetName, sequence:=_Sequence)
+                connectionstring = _configurations.GetProperty(name:=ConstCPNDBConnection, setname:=_Session.ConfigSetname, sequence:=_Sequence)
 
                 '***
                 Call CoreMessageHandler(message:="Config connection parameters :" & Me.ID & vbLf & _
@@ -3220,7 +3238,22 @@ Namespace OnTrack
 
             Private _PropertyBag As New Dictionary(Of String, Object)
 
-            Private Const ConstCPNFullCaching = "FULL"
+            '*** Tablestore Cache Property names
+            ''' <summary>
+            ''' Table Property Name "Cache Property"
+            ''' </summary>
+            ''' <remarks></remarks>
+            Public Const ConstTPNCacheProperty = "CacheDataTable"
+            ''' <summary>
+            ''' Table Property Name "Cache Update Instant"
+            ''' </summary>
+            ''' <remarks></remarks>
+            Public Const ConstTPNCacheUpdateInstant = "CacheDataTableUpdateImmediatly"
+            ''' <summary>
+            ''' Table Property Name for FULL CACHING
+            ''' </summary>
+            ''' <remarks></remarks>
+            Private Const ConstTPNFullCaching = "FULL"
             ''' <summary>
             ''' constuctor
             ''' </summary>
@@ -3340,7 +3373,7 @@ Namespace OnTrack
                         If aTable IsNot Nothing Then
                             If aTable.HasValueUseCache AndAlso aTable.UseCache Then
                                 If Not aTable.HasValueCacheProperties Then
-                                    Me.SetProperty(ConstTPNCacheProperty, ConstCPNFullCaching)
+                                    Me.SetProperty(ConstTPNCacheProperty, ConstTPNFullCaching)
                                 Else
                                     '** set properties
                                     Dim ext As String = ""
@@ -3353,14 +3386,14 @@ Namespace OnTrack
 
                                 End If
                             End If
-                            
+
                         End If
                         '** set the cache property if running from the object definitions
                     ElseIf CurrentSession.IsRunning Then
                         Dim aTable = CurrentSession.Objects.GetTable(tablename:=TableID)
                         If aTable IsNot Nothing Then
                             If aTable.UseCache And aTable.CacheProperties.Count = 0 Then
-                                Me.SetProperty(ConstTPNCacheProperty, ConstCPNFullCaching)
+                                Me.SetProperty(ConstTPNCacheProperty, ConstTPNFullCaching)
                             Else
                                 '** set properties
                                 Dim ext As String = ""

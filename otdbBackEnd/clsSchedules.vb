@@ -810,7 +810,6 @@ Namespace OnTrack.Scheduling
         ''' <remarks></remarks>
         Public Overloads Function Initialize() As Boolean
             Cache.RegisterCacheFor(constTableID)
-            Me.TableStore.SetProperty(ConstTPNCacheProperty, True)
 
             s_parameter_date1 = ConstNullDate
             s_parameter_date2 = ConstNullDate
@@ -1441,15 +1440,7 @@ Namespace OnTrack.Scheduling
             End Set
         End Property
 #End Region
-        ''' <summary>
-        ''' Initialize the data object
-        ''' </summary>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Function Initialize() As Boolean
-            Me.TableStore.SetProperty(ConstTPNCacheProperty, True)
-            Return MyBase.Initialize
-        End Function
+       
 
         ''' <summary>
         ''' Retrieve
@@ -2032,7 +2023,6 @@ Namespace OnTrack.Scheduling
         ''' <remarks></remarks>
         Public Function Initialize() As Boolean
 
-            Me.TableStore.SetProperty(ConstTPNCacheProperty, True)
             _members.Clear()
             _aliases.Clear()
             Return MyBase.Initialize

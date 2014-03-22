@@ -84,10 +84,18 @@ Namespace OnTrack.Database
             Dim aStrValue As String = ""
             If input Is Nothing Then Return ""
             For Each anElement In input
-                If aStrValue = "" Then
-                    aStrValue = ConstDelimiter & anElement.ToString & ConstDelimiter
+                Dim s As String
+                If anElement Is Nothing Then
+                    s = ""
                 Else
-                    aStrValue &= anElement.ToString & ConstDelimiter
+                    s = anElement.ToString
+                End If
+
+
+                If aStrValue = "" Then
+                    aStrValue = ConstDelimiter & s & ConstDelimiter
+                Else
+                    aStrValue &= s & ConstDelimiter
                 End If
             Next
             Return aStrValue
@@ -477,7 +485,7 @@ Namespace OnTrack.Database
 
                 If createMethod IsNot Nothing Then
                     '** if creating then do also with the new data object in the runtime
-                    Dim anObject As iormPersistable = createMethod.Invoke(Nothing, {theKeyvalues.ToArray, "", Not runtimeOnly, runtimeOnly})
+                    Dim anObject As iormPersistable = createMethod.Invoke(Nothing, {theKeyvalues.ToArray, "", True, runtimeOnly})
                     Return anObject
                 Else
                     CoreMessageHandler(message:="the RETRIEVE method was not found on this object class", messagetype:=otCoreMessageType.InternalError, _

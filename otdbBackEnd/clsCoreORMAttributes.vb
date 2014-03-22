@@ -1776,7 +1776,7 @@ Namespace OnTrack.Database
                 _properties = value
             End Set
         End Property
-        Public ReadOnly Property HasValueProperties As Boolean
+        Public ReadOnly Property HasValueObjectEntryProperties As Boolean
             Get
                 Return _properties IsNot Nothing AndAlso _properties.Count > 0
             End Get

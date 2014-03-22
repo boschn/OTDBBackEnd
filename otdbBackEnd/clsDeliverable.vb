@@ -31,7 +31,7 @@ Namespace OnTrack.Deliverables
     ''' Current target object points to the current clsOTDBDeliverableTarget 
     ''' </summary>
     ''' <remarks></remarks>
-    <ormObject(id:=CurrentTarget.ConstObjectID, modulename:=constModuleDeliverables, Version:=1)> _
+    <ormObject(id:=CurrentTarget.ConstObjectID, modulename:=ConstModuleDeliverables, Version:=1, useCache:=True)> _
     Public Class CurrentTarget
         Inherits ormDataObject
         Implements iormInfusable
@@ -442,7 +442,7 @@ Namespace OnTrack.Deliverables
     ''' </summary>
     ''' <remarks></remarks>
 
-    <ormObject(id:=OnTrack.Deliverables.Target.ConstObjectID, modulename:=constModuleDeliverables, Version:=1)> _
+    <ormObject(id:=OnTrack.Deliverables.Target.ConstObjectID, modulename:=ConstModuleDeliverables, Version:=1, useCache:=True)> _
     Public Class Target
         Inherits ormDataObject
         Implements iotXChangeable
@@ -1483,7 +1483,7 @@ Namespace OnTrack.Deliverables
         ''' <remarks></remarks>
         ''' <returns>the new cloned object or nothing</returns>
         Public Overloads Function Clone(pkarray() As Object) As Target Implements iotCloneable(Of Target).Clone
-            If Not MyBase.FeedRecord() Then
+            If Not MyBase.Feed() Then
                 Return Nothing
             End If
 
@@ -1525,7 +1525,7 @@ Namespace OnTrack.Deliverables
     ''' </summary>
     ''' <remarks></remarks>
 
-    <ormObject(id:=Track.ConstObjectID, modulename:=constModuleDeliverables, Version:=1)> Public Class Track
+    <ormObject(id:=Track.ConstObjectID, modulename:=ConstModuleDeliverables, Version:=1, useCache:=True)> Public Class Track
         Inherits ormDataObject
         Implements iormPersistable
         Implements iormInfusable
@@ -1626,7 +1626,7 @@ Namespace OnTrack.Deliverables
         Public Const constFNActiveTag = "acttag"
 
         <ormObjectEntry(referenceobjectentry:=ObjectLogMessage.ConstObjectID & "." & ObjectLogMessage.ConstFNTag)> _
- Public Const ConstFNmsglogtag = ObjectLogMessage.ConstFNTag
+        Public Const ConstFNmsglogtag = ObjectLogMessage.ConstFNTag
 
         ' change FK Action since we have the workspace as FK (leads also to domians)
         <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, _
@@ -1718,7 +1718,7 @@ Namespace OnTrack.Deliverables
                 MSIDFinish = _MSIDFinish
             End Get
             Set(value As String)
-                If value.tolower <> _MSIDFinish Then
+                If value.ToLower <> _MSIDFinish Then
                     _MSIDFinish = value
                     Me.IsChanged = True
                 End If
@@ -1730,7 +1730,7 @@ Namespace OnTrack.Deliverables
                 Scheduletype = s_scheduletype
             End Get
             Set(value As String)
-                If value.tolower <> _workspaceID Then
+                If value.ToLower <> _workspaceID Then
                     s_scheduletype = value
                     Me.IsChanged = True
                 End If
@@ -1814,7 +1814,7 @@ Namespace OnTrack.Deliverables
                 FCLCStatus = s_FCLCStatus
             End Get
             Set(value As String)
-                If value.tolower <> s_FCLCStatus Then
+                If value.ToLower <> s_FCLCStatus Then
                     s_FCLCStatus = value
                     Me.IsChanged = True
                 End If
@@ -1826,7 +1826,7 @@ Namespace OnTrack.Deliverables
                 ProcessStatus = s_pstatus
             End Get
             Set(value As String)
-                If value.tolower <> value Then
+                If value.ToLower <> value Then
                     s_pstatus = value
                     Me.IsChanged = True
                 End If
@@ -1946,7 +1946,7 @@ Namespace OnTrack.Deliverables
                 SyncStatus = s_SyncStatus
             End Get
             Set(value As String)
-                If value.tolower <> SyncStatus.tolower Then
+                If value.ToLower <> SyncStatus.ToLower Then
                     s_SyncStatus = value
                     Me.IsChanged = True
                 End If
@@ -2650,7 +2650,7 @@ Namespace OnTrack.Deliverables
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overloads Function Clone(pkarray() As Object) As Track Implements iotCloneable(Of Track).Clone
-            If Not FeedRecord() Then
+            If Not Feed() Then
                 Return Nothing
             End If
             Return MyBase.Clone(Of Track)(pkarray)
@@ -3093,7 +3093,7 @@ Namespace OnTrack.Deliverables
             With Me
                 .workspaceID = aWorkspace
                 '*** should come out of config -> hardcoded
-                If .MSIDFinish.tolower <> "bp9" Then
+                If .MSIDFinish.ToLower <> "bp9" Then
                     .MSIDFinish = "bp9"
                 End If
                 If aTarget.IsLoaded Or aTarget.IsCreated Then
@@ -3296,7 +3296,7 @@ Namespace OnTrack.Deliverables
     ''' Definition class for Deliverables
     ''' </summary>
     ''' <remarks></remarks>
-    <ormObject(id:=DeliverableType.ConstObjectID, modulename:=constModuleDeliverables, Version:=1)> Public Class DeliverableType
+    <ormObject(id:=DeliverableType.ConstObjectID, modulename:=ConstModuleDeliverables, Version:=1, useCache:=True)> Public Class DeliverableType
         Inherits ormDataObject
         Implements iormInfusable
         Implements iormPersistable
@@ -3482,7 +3482,7 @@ Namespace OnTrack.Deliverables
                 End If
             End If
             '* update the record
-            If Not MyBase.FeedRecord() Then
+            If Not MyBase.Feed() Then
                 Return Nothing
             End If
 
@@ -3588,7 +3588,7 @@ Namespace OnTrack.Deliverables
     ''' </summary>
     ''' <remarks></remarks>
 
-    <ormObject(id:=Deliverable.ConstObjectID, modulename:=ConstModuleDeliverables, Version:=1)> Public Class Deliverable
+    <ormObject(id:=Deliverable.ConstObjectID, modulename:=ConstModuleDeliverables, useCache:=True, Version:=1)> Public Class Deliverable
         Inherits ormDataObject
         Implements iormInfusable
         Implements iormPersistable
@@ -3698,7 +3698,7 @@ Namespace OnTrack.Deliverables
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=150, _
            XID:="DLV31", Title:="Workpackage", description:="workpackage of the deliverable")> Public Const ConstFNWorkpackage = "wkpk"
 
-        
+
 
         '*** mappings
         <ormEntryMapping(EntryName:=constFNUid)> Private _uid As Long
@@ -5551,7 +5551,7 @@ Namespace OnTrack.Deliverables
                 End If
             End If
             '* update the record
-            If Not MyBase.FeedRecord() Then
+            If Not MyBase.Feed() Then
                 Return Nothing
             End If
             '* get new uid

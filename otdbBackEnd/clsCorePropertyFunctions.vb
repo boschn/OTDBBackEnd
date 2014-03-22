@@ -552,10 +552,12 @@ Namespace OnTrack
         ''' <param name="out"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function Apply(ByVal [in] As Object(), ByRef [out] As Object()) As Boolean
-            For i = 0 To [in].Count
+        Public Function Apply(ByVal [in] As String(), ByRef [out] As String()) As Boolean
+            If [in] Is Nothing Then Return True
+            For i = 0 To [in].Count - 1
                 Me.Apply([in]:=[in](i), out:=out(i))
             Next
+            Return True
         End Function
         ''' <summary>
         ''' Apply the Property function to a value
@@ -565,6 +567,10 @@ Namespace OnTrack
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function Apply(ByVal [in] As Object, ByRef [out] As Object) As Boolean
+            If [in] Is Nothing Then
+                [out] = [in]
+                Return True
+            End If
             Select Case _property
                 Case otObjectEntryProperty.Lower
                     [out] = [in].ToString.ToLower

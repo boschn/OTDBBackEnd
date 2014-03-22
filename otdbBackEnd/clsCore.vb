@@ -371,7 +371,7 @@ Namespace OnTrack
         Private _DomainObjectsDir As New Dictionary(Of String, ObjectRepository)
         Private _ObjectPermissionCache As New Dictionary(Of String, Boolean)
 
-        
+        Private _ObjectCache As ormObjectCacheManager
 
         'shadow Reference for Events
         ' our Events
@@ -432,6 +432,7 @@ Namespace OnTrack
             _logagent = Nothing
             _UILogin = Nothing
             _DomainObjectsDir = Nothing
+            _ObjectCache = Nothing
         End Sub
 
 #Region "Properties"
@@ -851,10 +852,14 @@ Namespace OnTrack
                     Return False
                 End If
 
-
+                '** create Object Cache
+                If _ObjectCache Is Nothing Then _ObjectCache = New ormObjectCacheManager(Me)
+                ot.ObjectClassRepository.RegisterCacheManager(_ObjectCache)
+                _ObjectCache.Start()
 
                 '** create ObjectStore
                 Dim aStore As New ObjectRepository(Me)
+                aStore.registerCache(_ObjectCache)
 
                 _DomainObjectsDir.Clear()
                 _DomainObjectsDir.Add(key:=ConstGlobalDomain, value:=aStore)
@@ -1631,6 +1636,7 @@ Namespace OnTrack
                 If Not _DomainObjectsDir.ContainsKey(key:=newDomainID) Then
                     Dim aStore = New ObjectRepository(Me)
                     _DomainObjectsDir.Add(key:=newDomainID, value:=aStore)
+                    aStore.registerCache(_ObjectCache)
                 End If
                 '* reset cache
                 _ObjectPermissionCache.Clear()
@@ -1753,7 +1759,7 @@ Namespace OnTrack
                     '* set it here that we are really loading in SetDomain and not only 
                     '* assigning _DomainID (if no connection is available)
                     If SwitchToDomain(newDomainID:=domainID) Then
-                        Call CoreMessageHandler(message:=" Session Domain set to " & domainID, _
+                        Call CoreMessageHandler(message:="Session Domain set to " & domainID, _
                                                 messagetype:=otCoreMessageType.InternalInfo, _
                                                 subname:="Session.startupSesssionEnviorment")
                     End If
@@ -1845,7 +1851,6 @@ Namespace OnTrack
         End Sub
 
        
-
     End Class
     ''' <summary>
     ''' Object Defintion Event Arguments
@@ -3862,7 +3867,7 @@ errorhandle:
         ''' <param name="aRecord"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Private Function OnInfused(sender As Object, e As ormDataObjectEventArgs) As Boolean Handles MyBase.OnColumnMappingInfused
+        Private Function OnInfused(sender As Object, e As ormDataObjectEventArgs) As Boolean Handles MyBase.ClassOnColumnMappingInfused
 
             Try
                 s_msgdef = ObjectLogMessageDef.Retrieve(id:=_msgid)

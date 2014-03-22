@@ -47,7 +47,7 @@ Namespace OnTrack
             XID:="CAL1", title:="Name", description:="name of calendar")> Public Const constFNName = "cname"
         <ormObjectEntry(typeid:=otFieldDataType.Long, primarykeyordinal:=2, _
            XID:="CAL2", title:="EntryNo", description:="entry no in the calendar")> Public Const constFNID = "id"
-        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=3, useforeignkey:=True)> _
+        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=3, useforeignkey:=otForeignKeyImplementation.NativeDatabase)> _
         Public Const constFNDomainID = Domain.ConstFNDomainID
 
         '** columns
@@ -417,7 +417,7 @@ Namespace OnTrack
         ''' <param name="sender"></param>
         ''' <param name="e"></param>
         ''' <remarks></remarks>
-        Public Sub OnRecordFed(sender As Object, e As ormDataObjectEventArgs) Handles MyBase.ClassOnRecordFed
+        Public Sub OnRecordFed(sender As Object, e As ormDataObjectEventArgs) Handles MyBase.ClassOnFed
             Try
                 If e.Record.HasIndex(constFNYear) Then e.Record.SetValue(constFNYear, Me.year)
                 If e.Record.HasIndex(constFNmonth) Then e.Record.SetValue(constFNmonth, Me.month)

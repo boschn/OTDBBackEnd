@@ -27,7 +27,7 @@ Namespace OnTrack
     ''' Value Entry Class for List of Values
     ''' </summary>
     ''' <remarks></remarks>
-    <ormObject(id:=ValueEntry.ConstObjectID, modulename:=constModuleCore, Version:=1)> Public Class ValueEntry
+    <ormObject(id:=ValueEntry.ConstObjectID, modulename:=ConstModuleCore, Version:=1, useCache:=True)> Public Class ValueEntry
         Inherits ormDataObject
         Implements iormInfusable
         Implements iormPersistable
@@ -262,7 +262,7 @@ Namespace OnTrack
     ''' Domain Setting Definition Class
     ''' </summary>
     ''' <remarks></remarks>
-    <ormObject(id:=DomainSetting.ConstObjectID, modulename:=constModuleCore, Version:=1)> Public Class DomainSetting
+    <ormObject(id:=DomainSetting.ConstObjectID, modulename:=ConstModuleCore, Version:=1, useCache:=True)> Public Class DomainSetting
         Inherits ormDataObject
         Implements iormInfusable
         Implements iormPersistable
@@ -852,7 +852,7 @@ Namespace OnTrack
     ''' User Definition Class of an OnTrack User
     ''' </summary>
     ''' <remarks></remarks>
-    <ormObject(id:=User.ConstObjectID, modulename:=constModuleCore, Version:=1, isbootstrap:=True)> _
+    <ormObject(id:=User.ConstObjectID, modulename:=ConstModuleCore, Version:=1, isbootstrap:=True, usecache:=True)> _
     Public Class User
         Inherits ormDataObject
         Implements iormCloneable
@@ -1369,7 +1369,7 @@ Namespace OnTrack
     ''' User Setting Definition Class
     ''' </summary>
     ''' <remarks></remarks>
-    <ormObject(id:=UserSetting.ConstObjectID, modulename:=constModuleCore, Version:=1)> Public Class UserSetting
+    <ormObject(id:=UserSetting.ConstObjectID, modulename:=ConstModuleCore, Version:=1, useCache:=True)> Public Class UserSetting
         Inherits ormDataObject
         Implements iormInfusable
         Implements iormPersistable
@@ -1592,7 +1592,7 @@ Namespace OnTrack
     ''' the person definition class
     ''' </summary>
     ''' <remarks></remarks>
-    <ormObject(id:=Person.ConstObjectID, modulename:=constModuleCore, Version:=1)> Public Class Person
+    <ormObject(id:=Person.ConstObjectID, modulename:=ConstModuleCore, usecache:=True, Version:=1)> Public Class Person
         Inherits ormDataObject
         Implements iormInfusable
         Implements iormPersistable
@@ -1678,10 +1678,10 @@ Namespace OnTrack
                 Return Me._firstname
             End Get
             Set(value As String)
-                If _firstname.tolower <> value.tolower Then
+                If _firstname.ToLower <> value.ToLower Then
                     Dim pattern As String = "\b(\w|['-])+\b"
                     ' With lambda support:
-                    Dim result As String = Regex.Replace(value.tolower, pattern, _
+                    Dim result As String = Regex.Replace(value.ToLower, pattern, _
                         Function(m) m.Value(0).ToString().ToUpper() & m.Value.Substring(1))
                     Me._firstname = result
                     IsChanged = True
@@ -1718,10 +1718,10 @@ Namespace OnTrack
                 Return Me._sirname
             End Get
             Set(value As String)
-                If _sirname.tolower <> value.tolower Then
+                If _sirname.ToLower <> value.ToLower Then
                     Dim pattern As String = "\b(\w|['-])+\b"
                     ' With lambda support:
-                    Dim result As String = Regex.Replace(value.tolower, pattern, _
+                    Dim result As String = Regex.Replace(value.ToLower, pattern, _
                         Function(m) m.Value(0).ToString().ToUpper() & m.Value.Substring(1))
                     _sirname = result
                     IsChanged = True
@@ -1767,7 +1767,7 @@ Namespace OnTrack
                 Return Me._companyID
             End Get
             Set(value As String)
-                If _companyID.tolower <> value.tolower Then
+                If _companyID.ToLower <> value.ToLower Then
                     Me._companyID = value
                     IsChanged = True
                 End If
@@ -1784,7 +1784,7 @@ Namespace OnTrack
                 ManagerID = _managerid
             End Get
             Set(value As String)
-                If ManagerID.tolower <> value.tolower Then
+                If ManagerID.ToLower <> value.ToLower Then
                     _managerid = value
                     IsChanged = True
                 End If
@@ -1802,7 +1802,7 @@ Namespace OnTrack
                 OrgUnitID = _orgunitID
             End Get
             Set(value As String)
-                If _orgunitID.tolower <> value.tolower Then
+                If _orgunitID.ToLower <> value.ToLower Then
                     _orgunitID = value
                     IsChanged = True
                 End If
@@ -1820,7 +1820,7 @@ Namespace OnTrack
                 Return OrgUnit.Retrieve(id:=_orgunitID)
             End Get
             Set(value As OrgUnit)
-                If _orgunitID.tolower <> value.ID.tolower Then
+                If _orgunitID.ToLower <> value.ID.ToLower Then
                     _orgunitID = value.ID
                     IsChanged = True
                 End If
@@ -1836,7 +1836,7 @@ Namespace OnTrack
                 Return Me._emailaddy
             End Get
             Set(value As String)
-                If _emailaddy.tolower <> value.tolower Then
+                If _emailaddy.ToLower <> value.ToLower Then
                     Me._emailaddy = LCase(Trim(value))
                     IsChanged = True
                 End If
@@ -1852,7 +1852,7 @@ Namespace OnTrack
                 Return Me._phone
             End Get
             Set(value As String)
-                If _phone.tolower <> value.tolower Then
+                If _phone.ToLower <> value.ToLower Then
                     Me._phone = LCase(Trim(value))
                     IsChanged = True
                 End If
@@ -1868,7 +1868,7 @@ Namespace OnTrack
                 Return Me._fax
             End Get
             Set(value As String)
-                If _fax.tolower <> value.tolower Then
+                If _fax.ToLower <> value.ToLower Then
                     Me._fax = LCase(Trim(value))
                     IsChanged = True
                 End If
@@ -1942,8 +1942,8 @@ Namespace OnTrack
             Dim pattern As String = "\b(\w|['-])+\b"
             Dim midnamesS As String = ""
             ' With lambda support:
-            firstname = Regex.Replace(firstname.tolower, pattern, Function(m) m.Value(0).ToString().ToUpper() & m.Value.Substring(1))
-            sirname = Regex.Replace(firstname.tolower, pattern, Function(m) m.Value(0).ToString().ToUpper() & m.Value.Substring(1))
+            firstname = Regex.Replace(firstname.ToLower, pattern, Function(m) m.Value(0).ToString().ToUpper() & m.Value.Substring(1))
+            sirname = Regex.Replace(firstname.ToLower, pattern, Function(m) m.Value(0).ToString().ToUpper() & m.Value.Substring(1))
             If midnames IsNot Nothing Then midnamesS = Regex.Replace(LCase(Converter.Array2String(midnames)), pattern, Function(m) m.Value(0).ToString().ToUpper() & m.Value.Substring(1))
 
             If midnamesS <> "" Then
@@ -2226,7 +2226,7 @@ Namespace OnTrack
         ''' <param name="aRecord"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Private Sub OnInfused(sender As Object, e As ormDataObjectEventArgs) Handles MyBase.OnColumnMappingInfused
+        Private Sub OnInfused(sender As Object, e As ormDataObjectEventArgs) Handles MyBase.ClassOnColumnMappingInfused
             Dim aVAlue As Object
 
             Try
@@ -2413,7 +2413,7 @@ Namespace OnTrack
         ''' <returns></returns>
         ''' <remarks></remarks>
 
-        Public Sub OnRecordFed(sender As Object, e As ormDataObjectEventArgs) Handles MyBase.ClassOnRecordFed
+        Public Sub OnRecordFed(sender As Object, e As ormDataObjectEventArgs) Handles MyBase.ClassOnFed
 
             Try
                 '* transform
@@ -2855,7 +2855,7 @@ Namespace OnTrack
     ''' Workspace Definition Class
     ''' </summary>
     ''' <remarks></remarks>
-    <ormObject(id:=Workspace.ConstObjectID, modulename:=constModuleCore, Version:=1)> Public Class Workspace
+    <ormObject(id:=Workspace.ConstObjectID, modulename:=ConstModuleCore, Version:=1, useCache:=True)> Public Class Workspace
         Inherits ormDataObject
         Implements iormInfusable
         Implements iormPersistable
@@ -3301,7 +3301,7 @@ Namespace OnTrack
             Dim aList As New List(Of Workspace)
             For Each entry In aCollection
                 aList.Add(entry)
-                Cache.AddToCache(ConstTableID, entry.ID, entry)
+                'Cache.AddToCache(ConstTableID, entry.ID, entry)
             Next
             Return aList
         End Function
@@ -3312,7 +3312,7 @@ Namespace OnTrack
     ''' Domain Definition Class
     ''' </summary>
     ''' <remarks></remarks>
-    <ormObject(version:=1, id:=Domain.ConstObjectID, modulename:=constModuleCore, isbootstrap:=True)> Public Class Domain
+    <ormObject(version:=1, id:=Domain.ConstObjectID, modulename:=ConstModuleCore, isbootstrap:=True, useCache:=True)> Public Class Domain
         Inherits ormDataObject
         Implements iormInfusable
         Implements iormPersistable
@@ -3517,6 +3517,7 @@ Namespace OnTrack
 
         End Function
 
+
         Public Shared Function GlobalDomain() As Domain
             Return Retrieve(id:=ConstGlobalDomain)
         End Function
@@ -3673,7 +3674,6 @@ Namespace OnTrack
             Dim aList As New List(Of Domain)
             For Each entry In aCollection
                 aList.Add(entry)
-                Cache.AddToCache(ConstTableID, entry.ID, entry)
             Next
             Return aList
         End Function
@@ -3687,7 +3687,7 @@ Namespace OnTrack
     ''' </summary>
     ''' <remarks></remarks>
 
-    <ormObject(id:=OrgUnit.ConstObjectID, modulename:=constModuleCore, Version:=1)> Public Class OrgUnit
+    <ormObject(id:=OrgUnit.ConstObjectID, modulename:=ConstModuleCore, Version:=1, useCache:=True)> Public Class OrgUnit
         Inherits ormDataObject
         Implements iormPersistable
         Implements iormInfusable
@@ -3928,7 +3928,7 @@ Namespace OnTrack
     ''' Site Definition Class
     ''' </summary>
     ''' <remarks></remarks>
-    <ormObject(id:=Site.ConstObjectiD, description:="Site definition", modulename:=ConstModuleCore, Version:=1)> Public Class Site
+    <ormObject(id:=Site.ConstObjectiD, description:="Site definition", modulename:=ConstModuleCore, Version:=1, useCache:=True)> Public Class Site
         Inherits ormDataObject
         Implements iormInfusable
         Implements iormPersistable

@@ -1042,20 +1042,7 @@ Namespace OnTrack.Database
     ''' <remarks></remarks>
     Public Interface iormValidatable
 
-        ''' <summary>
-        ''' Event on Class Level for Validation (before Validating)
-        ''' </summary>
-        ''' <param name="sender"></param>
-        ''' <param name="e"></param>
-        ''' <remarks></remarks>
-        Event ClassOnValidating(sender As Object, e As ormDataObjectEventArgs)
-        ''' <summary>
-        ''' Event on Class Level for Validation (after Validation)
-        ''' </summary>
-        ''' <param name="sender"></param>
-        ''' <param name="e"></param>
-        ''' <remarks></remarks>
-        Event ClassOnValidated(sender As Object, e As ormDataObjectEventArgs)
+       
         ''' <summary>
         ''' Event on Object Instance Level for Validation (before Validation)
         ''' </summary>
@@ -1095,8 +1082,25 @@ Namespace OnTrack.Database
     ''' interface describes a persistable OTDB Data Object
     ''' </summary>
     ''' <remarks></remarks>
-
     Public Interface iormPersistable
+
+        '*** 
+        '*** Events to implement
+        Event OnInjecting(sender As Object, e As ormDataObjectEventArgs)
+        Event OnInjected(sender As Object, e As ormDataObjectEventArgs)
+        Event OnFeeding(sender As Object, e As ormDataObjectEventArgs)
+        Event OnFed(sender As Object, e As ormDataObjectEventArgs)
+        Event OnPersisting(sender As Object, e As ormDataObjectEventArgs)
+        Event OnPersisted(sender As Object, e As ormDataObjectEventArgs)
+        Event OnUnDeleting(sender As Object, e As ormDataObjectEventArgs)
+        Event OnUnDeleted(sender As Object, e As ormDataObjectEventArgs)
+        Event OnDeleting(sender As Object, e As ormDataObjectEventArgs)
+        Event OnDeleted(sender As Object, e As ormDataObjectEventArgs)
+
+        ReadOnly Property PrimaryKeyValues As Object()
+
+        ReadOnly Property useCache As Boolean
+
 
         ''' <summary>
         ''' creates an Object out or a record
@@ -1108,7 +1112,7 @@ Namespace OnTrack.Database
         ''' <returns></returns>
         ''' <remarks></remarks>
 
-        Function feedrecord(Optional record As ormRecord = Nothing) As Boolean
+        Function Feed(Optional record As ormRecord = Nothing) As Boolean
 
         Function isalive(Optional throwError As Boolean = True, Optional subname As String = "") As Boolean
 
@@ -1231,6 +1235,21 @@ Namespace OnTrack.Database
     Public Interface iormInfusable
 
         ''' <summary>
+        ''' OnInfusing event triggers before infusing a data object
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Event OnInfusing(sender As Object, e As ormDataObjectEventArgs)
+        ''' <summary>
+        ''' OnInfused event triggers after infusing a data object
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Event OnInfused(sender As Object, e As ormDataObjectEventArgs)
+
+        ''' <summary>
         ''' Infuse the object with data from the record
         ''' </summary>
         ''' <param name="record">record </param>
@@ -1262,6 +1281,16 @@ Namespace OnTrack.Database
     ''' <remarks></remarks>
 
     Public Interface iormCloneable
+
+        ''' <summary>
+        ''' OnCloning Event
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Event OnCloning(sender As Object, e As ormDataObjectEventArgs)
+        Event OnCloned(sender As Object, e As ormDataObjectEventArgs)
+
         ''' <summary>
         ''' clone the object with the new primary key
         ''' </summary>

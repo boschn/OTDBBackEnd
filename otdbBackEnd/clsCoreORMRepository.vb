@@ -41,16 +41,54 @@ Namespace OnTrack
 
     Public Class ObjectRepository
 
-        Private _IsInitialized As Boolean = False
+        '*** Event Arguments
+        Public Class EventArgs
+            Inherits System.EventArgs
 
+            Private _objectname As String
+            Private _objectdefinition As ObjectDefinition
+
+            ''' <summary>
+            ''' constructor
+            ''' </summary>
+            ''' <param name="objectname"></param>
+            ''' <param name="description"></param>
+            ''' <remarks></remarks>
+            Public Sub New(objectname As String, objectdefinition As ObjectDefinition)
+                _objectname = objectname
+                _objectdefinition = objectdefinition
+            End Sub
+
+            ''' <summary>
+            ''' Gets the objectdefinition.
+            ''' </summary>
+            ''' <value>The objectdefinition.</value>
+            Public ReadOnly Property Objectdefinition() As ObjectDefinition
+                Get
+                    Return Me._objectdefinition
+                End Get
+            End Property
+
+            ''' <summary>
+            ''' Gets the objectname.
+            ''' </summary>
+            ''' <value>The objectname.</value>
+            Public ReadOnly Property Objectname() As String
+                Get
+                    Return Me._objectname
+                End Get
+            End Property
+
+        End Class
+
+
+        Private _IsInitialized As Boolean = False
         '** cache of the table objects
         Private _objectDirectory As New Dictionary(Of String, ObjectDefinition)
         '** cache on the columns object 
         Private _entryDirectory As New Dictionary(Of String, iObjectEntry)
-
         '** cache of all Table Definitions
         Private _tableDirectory As New Dictionary(Of String, TableDefinition)
-
         '** reference to all the XChange IDs
         Private _XIDDirectory As New Dictionary(Of String, List(Of iObjectEntry))
         '** reference to all the aliases
@@ -62,6 +100,8 @@ Namespace OnTrack
         Private WithEvents _Session As Session ' reference to session which we belong
 
         Private _lock As New Object
+
+        Public Event OnObjectDefinitionLoaded(sender As Object, e As ObjectRepository.EventArgs)
         ''' <summary>
         ''' construction with link to the connection
         ''' </summary>
@@ -70,8 +110,9 @@ Namespace OnTrack
 
         Sub New(ByRef Session As Session)
             _Session = Session
-
         End Sub
+
+#Region "Properties"
         ''' <summary>
         ''' Gets or sets the is initialiazed.
         ''' </summary>
@@ -106,7 +147,7 @@ Namespace OnTrack
                 Return _entryDirectory.Values.ToList
             End Get
         End Property
-        
+
 
         ''' <summary>
         ''' gets a list of all Xchange IDs in the repository
@@ -142,6 +183,17 @@ Namespace OnTrack
             End Get
         End Property
 
+#End Region
+
+        ''' <summary>
+        ''' registers a cache manager for this repository
+        ''' </summary>
+        ''' <param name="cache"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function RegisterCache(cache As iormObjectCacheManager) As Boolean
+            AddHandler OnObjectDefinitionLoaded, AddressOf cache.OnObjectDefinitionLoaded
+        End Function
         ''' <summary>
         ''' if an Object Definition changes
         ''' </summary>
@@ -423,8 +475,8 @@ Namespace OnTrack
             End SyncLock
             '** load the table definitions
             For Each aTableDefinition In [object].Tables
-                If Not _tableDirectory.containskey(key:=aTableDefinition.Name) Then
-                    _tabledirectory.add(key:=aTableDefinition.Name, value:=aTableDefinition)
+                If Not _tableDirectory.ContainsKey(key:=aTableDefinition.Name) Then
+                    _tableDirectory.Add(key:=aTableDefinition.Name, value:=aTableDefinition)
                 End If
             Next
             For Each anEntry As iObjectEntry In [object].Entries
@@ -444,7 +496,7 @@ Namespace OnTrack
 
             Next
 
-
+            RaiseEvent OnObjectDefinitionLoaded(Me, New ObjectRepository.EventArgs(objectname:=[object].ID, objectdefinition:=[object]))
             Return True
         End Function
         ''' <summary>
@@ -474,7 +526,7 @@ Namespace OnTrack
 
                     '** load the objects belonging to that class !
                     For Each classdescription In aList
-                        Dim objectname As String = classdescription.id
+                        Dim objectname As String = classdescription.ID
                         '** retrieve Object
                         Dim anObject = ObjectDefinition.Retrieve(objectname:=objectname, domainID:=_DomainID, runtimeOnly:=runtimeOnly)
                         '** no object in persistancy but creatable from class description
@@ -654,7 +706,7 @@ Namespace OnTrack
                 Else
                     Return Nothing
                 End If
-               
+
 
 
             End If
@@ -1737,8 +1789,8 @@ Namespace OnTrack
     ''' </summary>
     ''' <remarks></remarks>
 
-    <ormObject(id:=IndexDefinition.ConstObjectID, modulename:=constModuleCore, description:="index definition for table definitions", _
-        isbootstrap:=True, Version:=1)> _
+    <ormObject(id:=IndexDefinition.ConstObjectID, modulename:=ConstModuleCore, description:="index definition for table definitions", _
+        isbootstrap:=True, usecache:=True, Version:=1)> _
     Public Class IndexDefinition
         Inherits ormDataObject
         Implements iormInfusable
@@ -2269,7 +2321,7 @@ Namespace OnTrack
 
                 '** Add the Foreign Key Attributes
                 For Each aForeignKeyAttribute In .ForeignKeyAttributes
-                    Dim aForeignkey As ForeignKeyDefinition = ForeignKeyDefinition.Create(tablename:=Me.Name, id:=aForeignKeyAttribute.ID, checkunique:=Not Me.RunTimeOnly, runtimeOnly:=Me.RunTimeOnly)
+                    Dim aForeignkey As ForeignKeyDefinition = ForeignKeyDefinition.Create(tablename:=Me.Name, id:=aForeignKeyAttribute.ID, checkunique:=True, runtimeOnly:=Me.RunTimeOnly)
                     If aForeignkey Is Nothing Then
                         aForeignkey = ForeignKeyDefinition.Retrieve(tablename:=Me.Name, id:=aForeignKeyAttribute.ID, runtimeOnly:=Me.RunTimeOnly)
                     End If
@@ -2838,7 +2890,7 @@ Namespace OnTrack
         ''' <remarks></remarks>
         Public Shared Function Create(ByVal tablename As String, _
                                 Optional runTimeOnly As Boolean = False, _
-                                Optional checkunique As Boolean = False _
+                                Optional checkunique As Boolean = True _
                                 ) As TableDefinition
             Return ormDataObject.CreateDataObject(Of TableDefinition)({tablename.ToUpper}, checkUnique:=checkunique, runtimeOnly:=runTimeOnly)
         End Function
@@ -3241,7 +3293,7 @@ Namespace OnTrack
         ''' <param name="sender"></param>
         ''' <param name="e"></param>
         ''' <remarks></remarks>
-        Public Sub OnFeeding(sender As Object, e As ormDataObjectEventArgs) Handles MyBase.OnRecordFeeding
+        Public Sub OnFeeding(sender As Object, e As ormDataObjectEventArgs) Handles MyBase.OnFeeding
             Try
                 If _permissionruleProperty IsNot Nothing Then
                     Me.Ruletype = "PROPERTY"
@@ -3794,7 +3846,7 @@ Namespace OnTrack
 
 
                         Dim aRule As ObjectPermission = ObjectPermission.Create(objectname:=Me.ID, order:=orderno, operationname:=attribute.OperationName, _
-                                                                                domainID:=DomainID, checkUnique:=Not runtimeOnly, runtimeOnly:=runtimeOnly)
+                                                                                domainID:=domainID, checkUnique:=True, runtimeOnly:=runtimeOnly)
 
                         Try
                             aRule.RuleProperty = New ObjectPermissionRuleProperty([property])
@@ -3851,7 +3903,7 @@ Namespace OnTrack
 
                 aTableDefinition = TableDefinition.Retrieve(tablename:=attribute.TableName, runtimeOnly:=runtimeOnly)
                 If aTableDefinition Is Nothing Then
-                    aTableDefinition = TableDefinition.Create(tablename:=attribute.TableName, checkunique:=Not runtimeOnly, runTimeOnly:=runtimeOnly)
+                    aTableDefinition = TableDefinition.Create(tablename:=attribute.TableName, checkunique:=True, runTimeOnly:=runtimeOnly)
                 End If
 
                 _tables.Add(key:=attribute.TableName, value:=aTableDefinition)
@@ -3914,14 +3966,14 @@ Namespace OnTrack
                     If anEntry Is Nothing Then
                         anEntry = ObjectColumnEntry.Create(objectname:=Me.ID, entryname:=attribute.EntryName, _
                                                                       tablename:=attribute.Tablename, columnname:=attribute.ColumnName, _
-                                                                      checkunique:=Not bootstrap, domainID:=domainid, runtimeOnly:=bootstrap)
+                                                                      checkunique:=True, domainID:=domainid, runtimeOnly:=bootstrap)
                     End If
                     '*** add the switchoff handler
                     AddHandler MyBase.OnSwitchRuntimeOff, AddressOf anEntry.OnswitchRuntimeOff
                 ElseIf attribute.EntryType = otObjectEntryDefinitiontype.Compound Then
                     anEntry = ObjectCompoundEntry.Retrieve(objectname:=Me.ID, entryname:=attribute.EntryName, runtimeOnly:=bootstrap)
                     If anEntry Is Nothing Then
-                        anEntry = ObjectCompoundEntry.Create(objectname:=Me.ID, entryname:=attribute.EntryName, checkunique:=Not bootstrap, runtimeOnly:=bootstrap)
+                        anEntry = ObjectCompoundEntry.Create(objectname:=Me.ID, entryname:=attribute.EntryName, checkunique:=True, runtimeOnly:=bootstrap)
                     End If
                 Else
                     CoreMessageHandler(message:="EntryType of object entry attribute is unknown to create", subname:="ObjectDefinition.AddEntry(attribute)", _
@@ -4408,7 +4460,7 @@ Namespace OnTrack
         Public Shared Function Create(ByVal objectID As String, _
                                 Optional domainID As String = "",
                                 Optional runTimeOnly As Boolean = False, _
-                                Optional checkunique As Boolean = False, _
+                                Optional checkunique As Boolean = True, _
                                 Optional version As UShort = 1) As ObjectDefinition
 
             Return ormDataObject.CreateDataObject(Of ObjectDefinition)({objectID.ToUpper}, domainID:=domainID, checkUnique:=checkunique, runtimeOnly:=runTimeOnly)
@@ -5138,7 +5190,7 @@ Namespace OnTrack
 
                 If .HasValueRelation Then Me.Relation = .Relation
                 ' properties
-                If .HasValueProperties Then
+                If .HasValueObjectEntryProperties Then
                     Me.Properties = .ObjectEntryProperties.ToList
                 End If
                 ' render
@@ -5358,7 +5410,7 @@ Namespace OnTrack
         ''' <param name="sender"></param>
         ''' <param name="e"></param>
         ''' <remarks></remarks>
-        Public Sub OnRecordFed(sender As Object, e As ormDataObjectEventArgs) Handles Me.OnRecordFedd
+        Public Sub OnRecordFed(sender As Object, e As ormDataObjectEventArgs) Handles Me.OnFed
             Dim avalue As String
 
             Select Case DirectCast(e.DataObject, AbstractEntryDefinition).Typeid
@@ -5806,8 +5858,8 @@ Namespace OnTrack
     <ormObject(id:=ObjectColumnEntry.ConstObjectID, modulename:=ConstModuleCore, _
                 DeletefieldFlag:=True, AddDomainBehaviorFlag:=True, _
                 Description:="Object Entry Definition as Column Entry (of a Table)", _
-        usecache:=True, isbootstrap:=True, Version:=1)> _
-     Public Class ObjectColumnEntry
+                usecache:=True, isbootstrap:=True, Version:=1)> _
+    Public Class ObjectColumnEntry
         Inherits AbstractEntryDefinition
         Implements iormPersistable
         Implements iormInfusable
@@ -6122,7 +6174,7 @@ Namespace OnTrack
                 End If
             End Set
         End Property
-      
+
         ''' <summary>
         ''' returns the corresponding columndefinition
         ''' </summary>

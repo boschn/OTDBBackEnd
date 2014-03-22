@@ -186,6 +186,9 @@ Namespace OnTrack
         Private _ObjectClassStore As New ObjectClassRepository
         Private _bootstrapObjectIds As New List(Of String)
 
+#Region "Properties"
+
+
         ''' <summary>
         ''' Gets or sets the name of the application.
         ''' </summary>
@@ -240,7 +243,17 @@ Namespace OnTrack
                 Return _configfilelocations
             End Get
         End Property
-
+        ''' <summary>
+        ''' gets the Object Class Repository
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property ObjectClassRepository As ObjectClassRepository
+            Get
+                Return _ObjectClassStore
+            End Get
+        End Property
         ''' <summary>
         ''' Property CurrentSession 
         ''' </summary>
@@ -274,6 +287,196 @@ Namespace OnTrack
                 End If
             End Get
         End Property
+
+        ''' <summary>
+        ''' returns the otdb errorlog or nothing
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        ReadOnly Property Errorlog As MessageLog
+            Get
+
+                If IsInitialized OrElse Initialize() Then
+                    Return CurrentSession.Errorlog
+                Else
+                    Return Nothing
+                End If
+            End Get
+        End Property
+        ReadOnly Property DBConnectionString As String
+            Get
+
+                If CurrentConnection(AutoConnect:=False) Is Nothing Then
+                    Return ""
+                Else
+                    Return CurrentConnection(AutoConnect:=False).Connectionstring
+                End If
+            End Get
+        End Property
+        ReadOnly Property LoginWindow As clsCoreUILogin
+            Get
+                If CurrentConnection(AutoConnect:=False) Is Nothing Then
+                    Return Nothing
+                Else
+                    Return CurrentConnection(AutoConnect:=False).UILogin
+                End If
+            End Get
+        End Property
+        ''' <summary>
+        ''' Gets or sets the OTD bis initialized.
+        ''' </summary>
+        ''' <value>The OTD bis initialized.</value>
+        Public Property IsInitialized() As Boolean
+            Get
+                Return _OTDBIsInitialized
+            End Get
+            Friend Set(value As Boolean)
+                _OTDBIsInitialized = value
+            End Set
+        End Property
+        ''' <summary>
+        ''' returns an IEnumerable of all Object Class Descriptions
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property ObjectClassDescriptions As IEnumerable(Of ObjectClassDescription)
+            Get
+                Return _ObjectClassStore.ObjectClassDescriptions()
+            End Get
+        End Property
+        ''' <summary>
+        ''' Gets or sets the O TDB connection.
+        ''' </summary>
+        ''' <value>The O TDB connection.</value>
+        ReadOnly Property CurrentConnection(Optional autoConnect As Boolean = True, _
+        Optional accessRequest As otAccessRight = ConstDefaultAccessRight, _
+        Optional username As String = "", _
+        Optional password As String = "") As OnTrack.Database.iormConnection
+            Get
+                '* Init
+                If Not IsInitialized Then
+                    If Not Initialize() Then
+                        Return Nothing
+                    End If
+                End If
+
+                ' ** select the Connection
+                If Not CurrentSession.CurrentDBDriver Is Nothing AndAlso Not CurrentSession.CurrentDBDriver.CurrentConnection Is Nothing Then
+                    Return CurrentSession.CurrentDBDriver.CurrentConnection
+                Else
+                    Call CoreMessageHandler(showmsgbox:=True, subname:="CurrentConnection", noOtdbAvailable:=True, message:="Connection is not set before Connect")
+                    Return Nothing
+                End If
+
+                '* connect ?!
+                If AutoConnect = True Then
+                    If CurrentSession.StartUp(AccessRequest:=accessRequest, OTDBUsername:=username, OTDBPassword:=password) Then
+                        Return CurrentSession.CurrentDBDriver.CurrentConnection
+                    ElseIf AutoConnect = False Then
+                        Return CurrentSession.CurrentDBDriver.CurrentConnection
+                    Else
+                        Return Nothing
+                    End If
+                End If
+
+                Return CurrentSession.CurrentDBDriver.CurrentConnection
+            End Get
+
+        End Property
+        ''' <summary>
+        ''' return True if the Current Connection exists to the database
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        ReadOnly Property IsConnected As Boolean
+            Get
+                If CurrentConnection(autoConnect:=False) Is Nothing Then
+                    Return False
+                Else
+                    Return CurrentConnection(autoConnect:=False).IsConnected
+                End If
+            End Get
+
+        End Property
+        ''' <summary>
+        ''' gets the used location for the config file location
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property UsedConfigFileLocation As String
+            Get
+                Return _UsedConfigFileLocation
+            End Get
+        End Property
+        ''' <summary>
+        ''' returns Current Username in the current connection
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        ReadOnly Property Username As String
+            Get
+                If Not CurrentSession.IsRunning Then
+                    Return ""
+                Else
+                    Return CurrentSession.OTdbUser.Username
+                End If
+            End Get
+
+        End Property
+        ''' <summary>
+        ''' retuns a list of Installed OnTrack Modules
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property InstalledModules As String()
+            Get
+                If IsInitialized OrElse Initialize() Then
+                    Return _ObjectClassStore.GetModulenames().ToArray()
+                End If
+            End Get
+        End Property
+        ''' <summary>
+        ''' returns the bootstrap schema Version
+        ''' </summary>
+        ''' <param name="columnname"></param>
+        ''' <param name="tablename"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property SchemaVersion() As ULong
+            Get
+                Return ConstOTDBSchemaVersion
+            End Get
+
+        End Property
+        ''' <summary>
+        ''' returns a list of selectable config set names without global
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property ConfigSetNamesToSelect As List(Of String)
+            Get
+                Return _configurations.SetNames.FindAll(Function(x) x <> ConstGlobalConfigSetName)
+            End Get
+        End Property
+        ''' <summary>
+        ''' returns a list of ConfigSetnames
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property ConfigSetNames As List(Of String)
+            Get
+                Return _configurations.SetNames
+            End Get
+        End Property
+#End Region
 
         '****
         '**** addConfigFilePath add a file path to the locations to look into
@@ -552,28 +755,7 @@ Namespace OnTrack
         Optional sequence As ComplexPropertyStore.Sequence = ComplexPropertyStore.Sequence.Primary) As Object
             Return _configurations.GetProperty(name:=name, weight:=weight, setname:=configsetname, sequence:=sequence)
         End Function
-        ''' <summary>
-        ''' returns a list of selectable config set names without global
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public ReadOnly Property ConfigSetNamesToSelect As List(Of String)
-            Get
-                Return _configurations.SetNames.FindAll(Function(x) x <> ConstGlobalConfigSetName)
-            End Get
-        End Property
-        ''' <summary>
-        ''' returns a list of ConfigSetnames
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public ReadOnly Property ConfigSetNames As List(Of String)
-            Get
-                Return _configurations.SetNames
-            End Get
-        End Property
+       
 
         ''' <summary>
         ''' returns true if the config-set name exists 
@@ -652,172 +834,6 @@ Namespace OnTrack
 
         End Function
 
-        ''' <summary>
-        ''' returns the otdb errorlog or nothing
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        ReadOnly Property Errorlog As MessageLog
-            Get
-
-                If IsInitialized OrElse Initialize() Then
-                    Return CurrentSession.Errorlog
-                Else
-                    Return Nothing
-                End If
-            End Get
-        End Property
-        ReadOnly Property DBConnectionString As String
-            Get
-
-                If CurrentConnection(AutoConnect:=False) Is Nothing Then
-                    Return ""
-                Else
-                    Return CurrentConnection(AutoConnect:=False).Connectionstring
-                End If
-            End Get
-        End Property
-        ReadOnly Property LoginWindow As clsCoreUILogin
-            Get
-                If CurrentConnection(AutoConnect:=False) Is Nothing Then
-                    Return Nothing
-                Else
-                    Return CurrentConnection(AutoConnect:=False).UILogin
-                End If
-            End Get
-        End Property
-        ''' <summary>
-        ''' Gets or sets the OTD bis initialized.
-        ''' </summary>
-        ''' <value>The OTD bis initialized.</value>
-        Public Property IsInitialized() As Boolean
-            Get
-                Return _OTDBIsInitialized
-            End Get
-            Friend Set(value As Boolean)
-                _OTDBIsInitialized = value
-            End Set
-        End Property
-        ''' <summary>
-        ''' returns an IEnumerable of all Object Class Descriptions
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public ReadOnly Property ObjectClassDescriptions As IEnumerable(Of ObjectClassDescription)
-            Get
-                Return _ObjectClassStore.ObjectClassDescriptions()
-            End Get
-        End Property
-        ''' <summary>
-        ''' Gets or sets the O TDB connection.
-        ''' </summary>
-        ''' <value>The O TDB connection.</value>
-        ReadOnly Property CurrentConnection(Optional autoConnect As Boolean = True, _
-        Optional accessRequest As otAccessRight = ConstDefaultAccessRight, _
-        Optional username As String = "", _
-        Optional password As String = "") As OnTrack.Database.iormConnection
-            Get
-                '* Init
-                If Not IsInitialized Then
-                    If Not Initialize() Then
-                        Return Nothing
-                    End If
-                End If
-
-                ' ** select the Connection
-                If Not CurrentSession.CurrentDBDriver Is Nothing AndAlso Not CurrentSession.CurrentDBDriver.CurrentConnection Is Nothing Then
-                    Return CurrentSession.CurrentDBDriver.CurrentConnection
-                Else
-                    Call CoreMessageHandler(showmsgbox:=True, subname:="CurrentConnection", noOtdbAvailable:=True, message:="Connection is not set before Connect")
-                    Return Nothing
-                End If
-
-                '* connect ?!
-                If AutoConnect = True Then
-                    If CurrentSession.StartUp(AccessRequest:=accessRequest, OTDBUsername:=username, OTDBPassword:=password) Then
-                        Return CurrentSession.CurrentDBDriver.CurrentConnection
-                    ElseIf AutoConnect = False Then
-                        Return CurrentSession.CurrentDBDriver.CurrentConnection
-                    Else
-                        Return Nothing
-                    End If
-                End If
-
-                Return CurrentSession.CurrentDBDriver.CurrentConnection
-            End Get
-
-        End Property
-        ''' <summary>
-        ''' return True if the Current Connection exists to the database
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        ReadOnly Property IsConnected As Boolean
-            Get
-                If CurrentConnection(autoConnect:=False) Is Nothing Then
-                    Return False
-                Else
-                    Return CurrentConnection(autoConnect:=False).IsConnected
-                End If
-            End Get
-
-        End Property
-        ''' <summary>
-        ''' gets the used location for the config file location
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public ReadOnly Property UsedConfigFileLocation As String
-            Get
-                Return _UsedConfigFileLocation
-            End Get
-        End Property
-        ''' <summary>
-        ''' returns Current Username in the current connection
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        ReadOnly Property Username As String
-            Get
-                If Not CurrentSession.IsRunning Then
-                    Return ""
-                Else
-                    Return CurrentSession.OTdbUser.Username
-                End If
-            End Get
-
-        End Property
-        ''' <summary>
-        ''' retuns a list of Installed OnTrack Modules
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public ReadOnly Property InstalledModules As String()
-            Get
-                If IsInitialized OrElse Initialize() Then
-                    Return _ObjectClassStore.GetModulenames().ToArray()
-                End If
-            End Get
-        End Property
-        ''' <summary>
-        ''' returns the bootstrap schema Version
-        ''' </summary>
-        ''' <param name="columnname"></param>
-        ''' <param name="tablename"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public ReadOnly Property SchemaVersion() As ULong
-            Get
-                Return ConstOTDBSchemaVersion
-            End Get
-            
-        End Property
         ''' <summary>
         ''' Retrieves a List of  ObjectClasses Descriptions referenced by a tableid
         ''' </summary>

@@ -415,25 +415,25 @@ errorhandle:
 
         '**** Singleton -> returns aCached <CONFIGNAME> Schedule Definition
         '****
-        Public Function Singleton(ByVal CONFIGNAME As String) As clsOTDBDefConfiguration
-            Dim aCachedObject As New clsOTDBDefConfiguration
-            Dim aVAlue As Object
+        'Public Function Singleton(ByVal CONFIGNAME As String) As clsOTDBDefConfiguration
+        '    Dim aCachedObject As New clsOTDBDefConfiguration
+        '    Dim aVAlue As Object
 
-            aVAlue = loadFromCache(ourTableName, New String() {"SINGLETON", CONFIGNAME})
-            If aVAlue Is Nothing Then
-                If Not aCachedObject.Inject(CONFIGNAME:=CONFIGNAME) Then
-                    aCachedObject = Nothing
-                Else
-                    Call AddToCache(ourTableName, New String() {"SINGLETON", CONFIGNAME}, theOBJECT:=aCachedObject)
+        '    aVAlue = loadFromCache(ourTableName, New String() {"SINGLETON", CONFIGNAME})
+        '    If aVAlue Is Nothing Then
+        '        If Not aCachedObject.Inject(CONFIGNAME:=CONFIGNAME) Then
+        '            aCachedObject = Nothing
+        '        Else
+        '            Call AddToCache(ourTableName, New String() {"SINGLETON", CONFIGNAME}, theOBJECT:=aCachedObject)
 
-                End If
-            Else
-                aCachedObject = aVAlue
-            End If
+        '        End If
+        '    Else
+        '        aCachedObject = aVAlue
+        '    End If
 
-            Singleton = aCachedObject
-            Exit Function
-        End Function
+        '    Singleton = aCachedObject
+        '    Exit Function
+        'End Function
 
 
     End Class
@@ -809,7 +809,7 @@ error_handler:
 
             aTable = GetTableStore(ourTableName)
             ' try to load it from cache
-            aRecord = loadFromCache(ourTableName, pkarry)
+            'aRecord = loadFromCache(ourTableName, pkarry)
             ' load it from database
             If aRecord Is Nothing Then
                 aTable = GetTableStore(ourTableName)
@@ -823,7 +823,7 @@ error_handler:
             Else
                 Me.Record = aRecord
                 _IsLoaded = Me.infuse(Me.Record)
-                Call AddToCache(objectTag:=ourTableName, key:=pkarry, theOBJECT:=aRecord)
+                'Call AddToCache(objectTag:=ourTableName, key:=pkarry, theOBJECT:=aRecord)
 
                 Inject = Me.IsLoaded
                 Exit Function
@@ -1101,26 +1101,7 @@ errorhandle:
 
         End Function
 
-        '**** Singleton -> returns aCached <CONFIGNAME> Schedule Definition
-        '****
-        Public Function Singleton(ByVal CONFIGNAME As String, ByVal ID As String) As clsOTDBDefConfigurationItem
-            Dim aCachedObject As New clsOTDBDefConfigurationItem
-            Dim aVAlue As Object
-
-            aVAlue = loadFromCache(ourTableName, New String() {"SINGLETON", CONFIGNAME, ID})
-            If aVAlue Is Nothing Then
-                If Not aCachedObject.Inject(CONFIGNAME:=CONFIGNAME, ID:=ID) Then
-                    aCachedObject = Nothing
-                Else
-                    Call AddToCache(objectTag:=ourTableName, key:=New String() {"SINGLETON", CONFIGNAME, ID}, theOBJECT:=aCachedObject)
-                End If
-            Else
-                aCachedObject = aVAlue
-            End If
-
-            Singleton = aCachedObject
-            Exit Function
-        End Function
+       
 
     End Class
 
@@ -1181,7 +1162,7 @@ errorhandle:
             End If
 
             If Not s_DefConfiguration.IsLoaded And Not s_DefConfiguration.IsCreated Then
-                s_DefConfiguration = s_DefConfiguration.Singleton(CONFIGNAME:=s_configname)
+                's_DefConfiguration = s_DefConfiguration.Singleton(CONFIGNAME:=s_configname)
                 If s_DefConfiguration Is Nothing Then
                     Call CoreMessageHandler(message:="config defintion doesn't exist", subname:="clsOTDBConfigurable.DefConfiguration", _
                                           arg1:=s_configname)
@@ -1211,7 +1192,7 @@ errorhandle:
                 Dim defconfiguration As clsOTDBDefConfiguration
                 ' set the internal defconfiguration link
                 If LCase(s_configname) <> LCase(avalue) Then
-                    defconfiguration = s_DefConfiguration.Singleton(CONFIGNAME:=avalue)
+                    ' defconfiguration = s_DefConfiguration.Singleton(CONFIGNAME:=avalue)
                     If defconfiguration Is Nothing Then
                         Call CoreMessageHandler(message:="CONFIG has not been defined", subname:="clsOTDBConfigurable.CONFIGNAME", _
                                               arg1:=avalue)
@@ -1275,7 +1256,7 @@ errorhandle:
         End Property
         '*** init
         Public Function initialize() As Boolean
-            Call registerCacheFor(ourTableName)
+            'Call registerCacheFor(ourTableName)
             initialize = MyBase.Initialize
             s_items = New Dictionary(Of String, clsOTDBConfigurableItem)
             s_orgItemValues = New Dictionary(Of String, Object)
@@ -1874,7 +1855,7 @@ errorhandle:
                 aRealID = LCase(ID)
             End If
             ' get the DefConfiguration ITEM
-            aDefConfigItem = aDefConfigItem.Singleton(Me.CONFIGNAME, ID:=aRealID)
+            'aDefConfigItem = aDefConfigItem.Singleton(Me.CONFIGNAME, ID:=aRealID)
 
 
             ' if ITEM exists in Items

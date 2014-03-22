@@ -28,7 +28,8 @@ Namespace OnTrack.Scheduling
     ''' milestone definition class
     ''' </summary>
     ''' <remarks></remarks>
-    <ormObject(version:=1, ID:=MileStoneDefinition.ConstObjectID, Modulename:=constModuleScheduling, Description:="definition of milestones for all schedule types")> _
+    <ormObject(version:=1, ID:=MileStoneDefinition.ConstObjectID, Modulename:=ConstModuleScheduling, _
+        Description:="definition of milestones for all schedule types", useCache:=True)> _
     Public Class MileStoneDefinition
         Inherits ormDataObject
         Implements iormPersistable
@@ -803,19 +804,6 @@ Namespace OnTrack.Scheduling
         End Property
 #End Region
 
-        ''' <summary>
-        ''' Initialize the dataobject
-        ''' </summary>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Overloads Function Initialize() As Boolean
-            Cache.RegisterCacheFor(constTableID)
-
-            s_parameter_date1 = ConstNullDate
-            s_parameter_date2 = ConstNullDate
-            s_parameter_date3 = ConstNullDate
-            Return MyBase.Initialize()
-        End Function
 
         ''' <summary>
         ''' Infuse the data object by the record
@@ -1211,7 +1199,8 @@ Namespace OnTrack.Scheduling
     ''' Definition of a schedule milestone class
     ''' </summary>
     ''' <remarks></remarks>
-    <ormObject(id:=ScheduleMilestoneDefinition.ConstObjectID, modulename:=constModuleScheduling, Version:=1, description:="declaration of milestones specific in a schedule type")> _
+    <ormObject(id:=ScheduleMilestoneDefinition.ConstObjectID, modulename:=ConstModuleScheduling, _
+        Version:=1, description:="declaration of milestones specific in a schedule type", useCache:=True)> _
     Public Class ScheduleMilestoneDefinition
         Inherits ormDataObject
         Implements iormPersistable
@@ -1440,7 +1429,7 @@ Namespace OnTrack.Scheduling
             End Set
         End Property
 #End Region
-       
+
 
         ''' <summary>
         ''' Retrieve
@@ -1780,13 +1769,13 @@ Namespace OnTrack.Scheduling
             Dim acollection As List(Of ScheduleMilestoneDefinition)
 
             Try
-
-                acollection = Cache.LoadFromCache(ConstTableID, scheduletype)
-                If acollection IsNot Nothing Then
-                    Return acollection
-                Else
-                    acollection = New List(Of ScheduleMilestoneDefinition)
-                End If
+                ' To do ... load by a select
+                'acollection = Cache.LoadFromCache(ConstTableID, scheduletype)
+                'If acollection IsNot Nothing Then
+                '    Return acollection
+                'Else
+                '    acollection = New List(Of ScheduleMilestoneDefinition)
+                'End If
 
                 Dim aCommand As ormSqlSelectCommand = aStore.CreateSqlSelectCommand(id:="allbytype")
                 If Not aCommand.Prepared Then
@@ -1806,12 +1795,6 @@ Namespace OnTrack.Scheduling
                     End If
 
                 Next aRecord
-
-                '** get from Cache
-                If acollection.Count > 0 Then
-                    Cache.RegisterCacheFor(ConstTableID)
-                    Cache.AddToCache(ConstTableID, scheduletype, acollection)
-                End If
 
                 Return acollection
             Catch ex As Exception
@@ -1840,7 +1823,8 @@ Namespace OnTrack.Scheduling
     ''' schedule definition object
     ''' </summary>
     ''' <remarks></remarks>
-    <ormObject(id:=ScheduleDefinition.ConstObjectID, modulename:=constModuleScheduling, Version:=1, description:="definition of schedules (types)")> Public Class ScheduleDefinition
+    <ormObject(id:=ScheduleDefinition.ConstObjectID, modulename:=ConstModuleScheduling, Version:=1, _
+        description:="definition of schedules (types)", useCache:=True)> Public Class ScheduleDefinition
         Inherits ormDataObject
         Implements iormPersistable
         Implements iormInfusable
@@ -2368,7 +2352,7 @@ Namespace OnTrack.Scheduling
         Implements iotHasCompounds
         Implements iotCloneable(Of Schedule)
 
-        Public Const ConstObjectID = constModuleScheduling
+        Public Const ConstObjectID = "Schedule"
 
         '** Schema Table
         <ormSchemaTableAttribute(Version:=2, addDomainBehavior:=False, AddDeleteFieldBehavior:=True, addsparefields:=True)> _
@@ -4552,7 +4536,7 @@ Namespace OnTrack.Scheduling
             Dim m As Object
 
             Try
-                If Not FeedRecord() Then
+                If Not Feed() Then
                     Persist = False
                     Exit Function
                 End If
@@ -4577,7 +4561,7 @@ Namespace OnTrack.Scheduling
                     ' set last forecast update
                     If Me.IsForecastChanged Then
                         Me.LastForecastUpdate = timestamp
-                        FeedRecord()
+                        Feed()
                     End If
 
                     Persist = MyBase.Persist(timestamp)
@@ -4629,7 +4613,7 @@ Namespace OnTrack.Scheduling
 
             Try
 
-                If Not FeedRecord() Then
+                If Not Feed() Then
                     Return Nothing
                 End If
 
@@ -5967,7 +5951,7 @@ Namespace OnTrack.Scheduling
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Sub OnFeedRecord(sender As Object, e As ormDataObjectEventArgs) Handles MyBase.ClassOnRecordFed
+        Public Sub OnFeedRecord(sender As Object, e As ormDataObjectEventArgs) Handles MyBase.ClassOnFed
 
 
             Try
@@ -6038,7 +6022,7 @@ Namespace OnTrack.Scheduling
         ''' <remarks></remarks>
         Public Overloads Function Persist(Optional timestamp As Date = ot.ConstNullDate, Optional forceSerializeToOTDB As Boolean = False) As Boolean
 
-            If Me.FeedRecord() Then
+            If Me.Feed() Then
                 '*** overload it from the Application Container
                 '***
                 If Me.SerializeWithHostApplication Then
@@ -6120,7 +6104,7 @@ Namespace OnTrack.Scheduling
             End If
 
             'update our Record
-            If Not Me.FeedRecord() Then
+            If Not Me.Feed() Then
                 Clone = Nothing
                 Exit Function
             End If

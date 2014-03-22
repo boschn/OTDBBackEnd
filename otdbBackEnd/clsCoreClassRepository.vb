@@ -41,6 +41,40 @@ Namespace OnTrack
 
     Public Class ObjectClassRepository
 
+        '*** Event Arguments
+        Public Class EventArgs
+            Inherits System.EventArgs
+
+            Private _id As String
+            Private _description As ObjectClassDescription
+
+            Public Sub New(objectname As String, description As ObjectClassDescription)
+                _id = objectname
+                _description = description
+            End Sub
+
+            ''' <summary>
+            ''' Gets the object class description.
+            ''' </summary>
+            ''' <value>The objectdefinition.</value>
+            Public ReadOnly Property Description() As ObjectClassDescription
+                Get
+                    Return Me._description
+                End Get
+            End Property
+
+            ''' <summary>
+            ''' Gets the objectname.
+            ''' </summary>
+            ''' <value>The objectname.</value>
+            Public ReadOnly Property Objectname() As String
+                Get
+                    Return Me._id
+                End Get
+            End Property
+
+        End Class
+
         Private _isInitialized As Boolean = False
         Private _lock As New Object
         Private _BootStrapSchemaCheckSum As ULong
@@ -52,6 +86,9 @@ Namespace OnTrack
         Private _BootstrapObjectClasses As New List(Of Type)
         Private _ClassDescriptorPerModule As New Dictionary(Of String, List(Of ObjectClassDescription))
         Private _TableAttributesStore As New Dictionary(Of String, ormSchemaTableAttribute)
+
+        Public Event OnObjectClassDescriptionLoaded(sender As Object, e As ObjectClassRepository.EventArgs)
+
         ''' <summary>
         ''' constructor of the object class repository
         ''' </summary>
@@ -59,6 +96,9 @@ Namespace OnTrack
         Public Sub New()
 
         End Sub
+
+#Region "Properties"
+
 
         ''' <summary>
         ''' returns the count for the class description store (all classes in store)
@@ -99,6 +139,8 @@ Namespace OnTrack
                 _BootStrapSchemaCheckSum = value
             End Set
         End Property
+#End Region
+
         ''' <summary>
         ''' Add oder modify a table attribute 
         ''' </summary>
@@ -413,7 +455,7 @@ Namespace OnTrack
 
                             If .HasValueXID And Not attribute.HasValueXID Then attribute.XID = .XID
                             If .HasValueAliases And Not attribute.HasValueAliases Then attribute.Aliases = .Aliases
-                            If .HasValueProperties And Not attribute.HasValueProperties Then attribute.Properties = .Properties
+                            If .HasValueObjectEntryProperties And Not attribute.HasValueObjectEntryProperties Then attribute.Properties = .Properties
                             If .HasValueVersion And Not attribute.HasValueVersion Then attribute.Version = .Version
                             If .HasValueSpareFieldTag And Not attribute.HasValueSpareFieldTag Then attribute.SpareFieldTag = .SpareFieldTag
 
@@ -538,6 +580,16 @@ Namespace OnTrack
             Else
                 Return New List(Of Type)
             End If
+        End Function
+
+        ''' <summary>
+        ''' register a CacheManager at the ObjectClassRepository
+        ''' </summary>
+        ''' <param name="cache"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function RegisterCacheManager(cache As iormObjectCacheManager) As Boolean
+            AddHandler OnObjectClassDescriptionLoaded, AddressOf cache.OnObjectClassDescriptionLoaded
         End Function
         ''' <summary>
         ''' Initialize the Repository
@@ -742,7 +794,7 @@ Namespace OnTrack
         ''' Gets or sets the object attribute.
         ''' </summary>
         ''' <value>The object attribute.</value>
-        Public ReadOnly Property Keynames() As String()
+        Public ReadOnly Property PrimaryKeyEntryNames() As String()
             Get
                 If _ObjectAttribute IsNot Nothing Then Return Me._ObjectAttribute.PrimaryKeys
                 Return {}

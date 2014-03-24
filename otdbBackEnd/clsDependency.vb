@@ -708,10 +708,10 @@ Namespace OnTrack.Scheduling
                 For Each aRecord As ormRecord In aRecordCollection
                     ' add the Entry as Component
                     anEntry = New clsOTDBDependMember
-                    If anEntry.Infuse(aRecord) Then
-                        If Not Me.AddDependMember(anEntry) Then
-                        End If
-                    End If
+                '    If anEntry.Infuse(aRecord) Then
+                '        If Not Me.AddDependMember(anEntry) Then
+                '        End If
+                '    End If
                 Next
 
                 If aRecordCollection.Count > 0 Then
@@ -756,10 +756,10 @@ Namespace OnTrack.Scheduling
                 For Each aRecord As ormRecord In aRecordCollection
                     ' add the Entry as Component
                     anEntry = New clsOTDBDependMember
-                    If anEntry.Infuse(aRecord) Then
-                        If Not Me.AddDependMember(anEntry) Then
-                        End If
-                    End If
+                    'If anEntry.Infuse(aRecord) Then
+                    '    If Not Me.AddDependMember(anEntry) Then
+                    '    End If
+                    'End If
                 Next
 
                 If aRecordCollection.Count > 0 Then
@@ -1714,64 +1714,64 @@ errorhandle:
         ''' <param name="aRecord"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overrides Function Infuse(ByRef record As ormRecord) As Boolean
+        'Public Overrides Function Infuse(ByRef record As ormRecord) As Boolean
 
 
-            Try
-                s_partID = CStr(record.GetValue(constFNPartID))
-                s_dependfrompartid = CStr(record.GetValue("depfromid"))
-                s_posno = CLng(record.GetValue("posno"))
-                s_condition = CStr(record.GetValue("cond"))
-                s_typeid = CStr(record.GetValue("typeid"))
-                s_category = CStr(record.GetValue("cat"))
-                If Not IsNull(record.GetValue("clusterid")) Then
-                    s_clusterid = CStr(record.GetValue("clusterid"))
-                Else
-                    s_clusterid = ""
-                End If
-                If Not IsNull(record.GetValue("clusterlevel")) Then
-                    s_clusterlevel = CLng(record.GetValue("clusterlevel"))
-                Else
-                    s_clusterlevel = 0
-                End If
-                If Not IsNull(record.GetValue("nopos")) Then
-                    s_nopos = CLng(record.GetValue("nopos"))
-                Else
-                    s_nopos = 0
-                End If
-                If Not IsNull(record.GetValue("isleaf")) Then
-                    s_isleaf = CBool(record.GetValue("isleaf"))
-                Else
-                    s_nopos = False
-                End If
-                If Not IsNull(record.GetValue("isnode")) Then
-                    s_isnode = CBool(record.GetValue("isnode"))
-                Else
-                    s_nopos = False
-                End If
-                s_parameter_txt1 = CStr(record.GetValue("param_txt1"))
-                s_parameter_txt2 = CStr(record.GetValue("param_txt2"))
-                s_parameter_txt3 = CStr(record.GetValue("param_txt3"))
-                s_parameter_num1 = CDbl(record.GetValue("param_num1"))
-                s_parameter_num2 = CDbl(record.GetValue("param_num2"))
-                s_parameter_num3 = CDbl(record.GetValue("param_num3"))
-                s_parameter_date1 = CDate(record.GetValue("param_date1"))
-                s_parameter_date2 = CDate(record.GetValue("param_date2"))
-                s_parameter_date3 = CDate(record.GetValue("param_date3"))
-                s_parameter_flag1 = CBool(record.GetValue("param_flag1"))
-                s_parameter_flag2 = CBool(record.GetValue("param_flag2"))
-                s_parameter_flag3 = CBool(record.GetValue("param_flag3"))
+        '    Try
+        '        s_partID = CStr(record.GetValue(constFNPartID))
+        '        s_dependfrompartid = CStr(record.GetValue("depfromid"))
+        '        s_posno = CLng(record.GetValue("posno"))
+        '        s_condition = CStr(record.GetValue("cond"))
+        '        s_typeid = CStr(record.GetValue("typeid"))
+        '        s_category = CStr(record.GetValue("cat"))
+        '        If Not IsNull(record.GetValue("clusterid")) Then
+        '            s_clusterid = CStr(record.GetValue("clusterid"))
+        '        Else
+        '            s_clusterid = ""
+        '        End If
+        '        If Not IsNull(record.GetValue("clusterlevel")) Then
+        '            s_clusterlevel = CLng(record.GetValue("clusterlevel"))
+        '        Else
+        '            s_clusterlevel = 0
+        '        End If
+        '        If Not IsNull(record.GetValue("nopos")) Then
+        '            s_nopos = CLng(record.GetValue("nopos"))
+        '        Else
+        '            s_nopos = 0
+        '        End If
+        '        If Not IsNull(record.GetValue("isleaf")) Then
+        '            s_isleaf = CBool(record.GetValue("isleaf"))
+        '        Else
+        '            s_nopos = False
+        '        End If
+        '        If Not IsNull(record.GetValue("isnode")) Then
+        '            s_isnode = CBool(record.GetValue("isnode"))
+        '        Else
+        '            s_nopos = False
+        '        End If
+        '        s_parameter_txt1 = CStr(record.GetValue("param_txt1"))
+        '        s_parameter_txt2 = CStr(record.GetValue("param_txt2"))
+        '        s_parameter_txt3 = CStr(record.GetValue("param_txt3"))
+        '        s_parameter_num1 = CDbl(record.GetValue("param_num1"))
+        '        s_parameter_num2 = CDbl(record.GetValue("param_num2"))
+        '        s_parameter_num3 = CDbl(record.GetValue("param_num3"))
+        '        s_parameter_date1 = CDate(record.GetValue("param_date1"))
+        '        s_parameter_date2 = CDate(record.GetValue("param_date2"))
+        '        s_parameter_date3 = CDate(record.GetValue("param_date3"))
+        '        s_parameter_flag1 = CBool(record.GetValue("param_flag1"))
+        '        s_parameter_flag2 = CBool(record.GetValue("param_flag2"))
+        '        s_parameter_flag3 = CBool(record.GetValue("param_flag3"))
 
-                Return MyBase.Infuse(record)
-
-
-            Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="clsOTDBDEpendMember.Infuse")
-                Return False
-            End Try
+        '        Return MyBase.Infuse(record)
 
 
-        End Function
+        '    Catch ex As Exception
+        '        CoreMessageHandler(exception:=ex, subname:="clsOTDBDEpendMember.Infuse")
+        '        Return False
+        '    End Try
+
+
+        'End Function
 
         '**** Inject : load the object by the PrimaryKeys
         '****
@@ -1829,12 +1829,12 @@ errorhandle:
             Else
                 For Each aRecord In aRecordCollection
                     aNewDepend = New clsOTDBDependMember
-                    If aNewDepend.Infuse(aRecord) Then
-                        If Not aDir.ContainsKey(aNewDepend.PartID) Then
-                            aCollection.Add(Item:=aNewDepend)
-                            aDir.Add(key:=aNewDepend.PartID, value:=aNewDepend)
-                        End If
-                    End If
+                    'If aNewDepend.Infuse(aRecord) Then
+                    '    If Not aDir.ContainsKey(aNewDepend.PartID) Then
+                    '        aCollection.Add(Item:=aNewDepend)
+                    '        aDir.Add(key:=aNewDepend.PartID, value:=aNewDepend)
+                    '    End If
+                    'End If
                 Next aRecord
                 allHeadsByTypeID = aCollection
                 Exit Function
@@ -2490,76 +2490,76 @@ error_handler:
             Return MyBase.Initialize()
         End Function
 
-        ''' <summary>
-        ''' Infuse the data object by a record
-        ''' </summary>
-        ''' <param name="aRecord"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Overrides Function Infuse(ByRef record As ormRecord) As Boolean
+        '''' <summary>
+        '''' Infuse the data object by a record
+        '''' </summary>
+        '''' <param name="aRecord"></param>
+        '''' <returns></returns>
+        '''' <remarks></remarks>
+        'Public Overrides Function Infuse(ByRef record As ormRecord) As Boolean
 
-            '* init
-            If Not Me.IsInitialized Then
-                If Not Me.Initialize() Then
-                    Infuse = False
-                    Exit Function
-                End If
-            End If
+        '    '* init
+        '    If Not Me.IsInitialized Then
+        '        If Not Me.Initialize() Then
+        '            Infuse = False
+        '            Exit Function
+        '        End If
+        '    End If
 
-            '*** overload it from the Application Container
-            '***
-            If Me.SerializeWithHostApplication Then
-                If overloadFromHostApplication(Record) Then
-                    Me.LoadedFromHost = True
-                End If
-            End If
+        '    '*** overload it from the Application Container
+        '    '***
+        '    If Me.SerializeWithHostApplication Then
+        '        If overloadFromHostApplication(Record) Then
+        '            Me.LoadedFromHost = True
+        '        End If
+        '    End If
 
-            Try
-                s_partID = CStr(record.GetValue(constFNPartid))
-                s_dependfrompartid = CStr(record.GetValue("depfromid"))
-                s_posno = CLng(record.GetValue("posno"))
-                s_suid = CLng(record.GetValue("suid"))
-                s_supdc = CLng(record.GetValue("supdc"))
-                s_depsuid = CLng(record.GetValue("depsuid"))
-                s_depsupdc = CLng(record.GetValue("depsupdc"))
-                s_condition = CStr(record.GetValue("cond"))
-                s_typeid = CStr(record.GetValue("typeid"))
-                s_status = CStr(record.GetValue("status"))
-                s_msgno = CStr(record.GetValue("msgno"))
-                s_comment = CStr(record.GetValue("cmt"))
-                If Not IsNull(record.GetValue("clusterid")) Then
-                    s_clusterid = CStr(record.GetValue("clusterid"))
-                Else
-                    s_clusterid = ""
-                End If
-                If Not IsNull(record.GetValue("clusterlevel")) Then
-                    s_clusterlevel = CLng(record.GetValue("clusterlevel"))
-                Else
-                    s_clusterlevel = 0
-                End If
-                s_parameter_txt1 = CStr(record.GetValue("param_txt1"))
-                s_parameter_txt2 = CStr(record.GetValue("param_txt2"))
-                s_parameter_txt3 = CStr(record.GetValue("param_txt3"))
-                s_parameter_num1 = CDbl(record.GetValue("param_num1"))
-                s_parameter_num2 = CDbl(record.GetValue("param_num2"))
-                s_parameter_num3 = CDbl(record.GetValue("param_num3"))
-                s_parameter_date1 = CDate(record.GetValue("param_date1"))
-                s_parameter_date2 = CDate(record.GetValue("param_date2"))
-                s_parameter_date3 = CDate(record.GetValue("param_date3"))
-                s_parameter_flag1 = CBool(record.GetValue("param_flag1"))
-                s_parameter_flag2 = CBool(record.GetValue("param_flag2"))
-                s_parameter_flag3 = CBool(record.GetValue("param_flag3"))
-
-
-                Return MyBase.Infuse(record)
-
-            Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="clsOTDBDependCheck.Infuse")
-                Return False
-            End Try
+        '    Try
+        '        s_partID = CStr(record.GetValue(constFNPartid))
+        '        s_dependfrompartid = CStr(record.GetValue("depfromid"))
+        '        s_posno = CLng(record.GetValue("posno"))
+        '        s_suid = CLng(record.GetValue("suid"))
+        '        s_supdc = CLng(record.GetValue("supdc"))
+        '        s_depsuid = CLng(record.GetValue("depsuid"))
+        '        s_depsupdc = CLng(record.GetValue("depsupdc"))
+        '        s_condition = CStr(record.GetValue("cond"))
+        '        s_typeid = CStr(record.GetValue("typeid"))
+        '        s_status = CStr(record.GetValue("status"))
+        '        s_msgno = CStr(record.GetValue("msgno"))
+        '        s_comment = CStr(record.GetValue("cmt"))
+        '        If Not IsNull(record.GetValue("clusterid")) Then
+        '            s_clusterid = CStr(record.GetValue("clusterid"))
+        '        Else
+        '            s_clusterid = ""
+        '        End If
+        '        If Not IsNull(record.GetValue("clusterlevel")) Then
+        '            s_clusterlevel = CLng(record.GetValue("clusterlevel"))
+        '        Else
+        '            s_clusterlevel = 0
+        '        End If
+        '        s_parameter_txt1 = CStr(record.GetValue("param_txt1"))
+        '        s_parameter_txt2 = CStr(record.GetValue("param_txt2"))
+        '        s_parameter_txt3 = CStr(record.GetValue("param_txt3"))
+        '        s_parameter_num1 = CDbl(record.GetValue("param_num1"))
+        '        s_parameter_num2 = CDbl(record.GetValue("param_num2"))
+        '        s_parameter_num3 = CDbl(record.GetValue("param_num3"))
+        '        s_parameter_date1 = CDate(record.GetValue("param_date1"))
+        '        s_parameter_date2 = CDate(record.GetValue("param_date2"))
+        '        s_parameter_date3 = CDate(record.GetValue("param_date3"))
+        '        s_parameter_flag1 = CBool(record.GetValue("param_flag1"))
+        '        s_parameter_flag2 = CBool(record.GetValue("param_flag2"))
+        '        s_parameter_flag3 = CBool(record.GetValue("param_flag3"))
 
 
-        End Function
+        '        Return MyBase.Infuse(record)
+
+        '    Catch ex As Exception
+        '        CoreMessageHandler(exception:=ex, subname:="clsOTDBDependCheck.Infuse")
+        '        Return False
+        '    End Try
+
+
+        'End Function
 
         ''' <summary>
         ''' load a DependCheck by primary key
@@ -2609,9 +2609,9 @@ error_handler:
 
                 For Each aRecord As ormRecord In aRecordCollection
                     Dim aDependCheck As New clsOTDBDependCheck
-                    If aDependCheck.Infuse(aRecord) Then
-                        aCollection.Add(Item:=aDependCheck)
-                    End If
+                    'If aDependCheck.Infuse(aRecord) Then
+                    '    aCollection.Add(Item:=aDependCheck)
+                    'End If
                 Next
 
                 Return aCollection
@@ -2662,9 +2662,9 @@ error_handler:
 
                 For Each aRecord As ormRecord In aRecordCollection
                     Dim aDependCheck As New clsOTDBDependCheck
-                    If aDependCheck.Infuse(aRecord) Then
-                        aCollection.Add(item:=aDependCheck)
-                    End If
+                    'If aDependCheck.Infuse(aRecord) Then
+                    '    aCollection.Add(item:=aDependCheck)
+                    'End If
                 Next
 
                 Return aCollection

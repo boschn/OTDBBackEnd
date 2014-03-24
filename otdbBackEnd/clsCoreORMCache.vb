@@ -130,6 +130,8 @@ Namespace OnTrack.database
 
         Sub OnInfusedDataObject(sender As Object, e As ormDataObjectEventArgs)
 
+        Sub OnInfusingDataObject(sender As Object, e As ormDataObjectEventArgs)
+
     End Interface
 
     ''' <summary>
@@ -368,7 +370,9 @@ Namespace OnTrack.database
         Private Class CachedObject(Of T)
             Private _object As T
             '** bookkeeping
-            Private _creationDate As DateTime = DateTime.Now
+            Private _GUID As Guid = Guid.NewGuid
+            Private _comeToAlive As DateTime = DateTime.Now
+            Private _creationDate As DateTime
             Private _lastAccessStamp As DateTime
             Private _persistedDate As DateTime
             Private _retrieveData As DateTime
@@ -386,6 +390,26 @@ Namespace OnTrack.database
 
 #Region "Properties"
 
+
+            ''' <summary>
+            ''' Gets the come to alive.
+            ''' </summary>
+            ''' <value>The come to alive.</value>
+            Public ReadOnly Property ComeToAlive() As DateTime
+                Get
+                    Return Me._comeToAlive
+                End Get
+            End Property
+
+            ''' <summary>
+            ''' Gets the GUID.
+            ''' </summary>
+            ''' <value>The GUID.</value>
+            Public ReadOnly Property Guid() As Guid
+                Get
+                    Return Me._GUID
+                End Get
+            End Property
 
             ''' <summary>
             ''' Gets or sets the deleted flag
@@ -556,7 +580,7 @@ Namespace OnTrack.database
 
         ''' Define the Assignments of shared iorm persistable Events to the Cache Methods
         ''' IMPORTANT !
-        Private _assignments As String(,) = {
+        Private _assignments As String(,) = {{"ClassOnInfusing", "OnInfusingDataObject"}, _
                                              {"ClassOnInfused", "OnInfusedDataObject"}, _
                                              {"ClassOnRetrieved", "OnRetrievedDataObject"}, _
                                              {"ClassOnRetrieving", "OnRetrievingDataObject"}, _
@@ -903,7 +927,7 @@ Namespace OnTrack.database
                         Dim aBucket = theobjects.Item(key:=searchkeys)
                         e.DataObject = TryCast(aBucket.Object, ormDataObject)
                         aBucket.LastAccessStamp = DateTime.Now
-                        e.Result = False 'no success
+                        e.Result = True 'no success
                         e.AbortOperation = True ' abort creating use object instead
                         Exit Sub
                     Else
@@ -913,12 +937,12 @@ Namespace OnTrack.database
                     End If
                 Else
                     e.AbortOperation = False
-                    e.Result = False
+                    e.Result = True
                     Exit Sub
                 End If
             End If
             e.AbortOperation = False
-            e.Result = False
+            e.Result = True
             Exit Sub
         End Sub
 
@@ -946,17 +970,28 @@ Namespace OnTrack.database
                 If Not theobjects.ContainsKey(key:=searchkeys) Then
                     Dim aBucket = New CachedObject(Of iormPersistable)(e.DataObject)
                     aBucket.IsCreated = True
+                    aBucket.CreationDate = DateTime.Now
                     theobjects.TryAdd(key:=searchkeys, value:=aBucket)
 
                     e.AbortOperation = False
                     e.Result = True 'success
                     Exit Sub
                 Else
-                    CoreMessageHandler("Warning ! created object already in cache", subname:="ormObjectCacheManager.OnCreatedDataObject", messagetype:=otCoreMessageType.InternalWarning, _
+                    Dim aBucket = theobjects.Item(key:=searchkeys)
+                    Dim aDataObject = TryCast(aBucket.Object, ormDataObject)
+                    If aDataObject.Guid <> e.DataObject.Guid Then
+                        CoreMessageHandler("Warning ! objects of same type and keys already in cache", subname:="ormObjectCacheManager.OnCreatedDataObject", messagetype:=otCoreMessageType.InternalWarning, _
                                         objectname:=e.DataObject.GetType.Name, arg1:=e.Pkarray)
-                    e.DataObject = Nothing
-                    e.Result = False
-                    Exit Sub
+                        e.DataObject = Nothing
+                        e.Result = False
+                        e.AbortOperation = True
+                        Exit Sub
+                    Else
+                        e.Result = True
+                        e.AbortOperation = False
+                        Exit Sub
+                    End If
+                    
                 End If
 
 
@@ -1260,6 +1295,56 @@ Namespace OnTrack.database
             Exit Sub
         End Sub
         ''' <summary>
+        ''' OnCreating Event Handler for the ORM Data Object - check if the object exists in cache
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Public Sub OnInfusingDataObject(sender As Object, e As ormDataObjectEventArgs) Implements iormObjectCacheManager.OnInfusingDataObject
+            If _isStarted AndAlso e.UseCache Then
+                If e.DataObject Is Nothing OrElse e.Pkarray Is Nothing OrElse e.Pkarray.Count = 0 Then Exit Sub
+                '** get the data
+                Dim theobjects As Concurrent.ConcurrentDictionary(Of ObjectKeys(Of iormPersistable), CachedObject(Of iormPersistable))
+                SyncLock _lockObject
+                    If _cachedObjects.ContainsKey(e.DataObject.GetType.Name) Then
+                        theobjects = _cachedObjects.Item(e.DataObject.GetType.Name)
+                    End If
+                End SyncLock
+                If theobjects IsNot Nothing Then
+                    Dim searchkeys = New ObjectKeys(Of iormPersistable)(e.Pkarray)
+                    If theobjects.ContainsKey(key:=searchkeys) Then
+                        Dim aBucket = theobjects.Item(key:=searchkeys)
+                        aBucket.LastAccessStamp = DateTime.Now
+                        Dim aDataObject = TryCast(aBucket.Object, ormDataObject)
+                        If aDataObject.Guid <> e.DataObject.Guid Then
+                            '** return the existing object
+                            e.DataObject = aDataObject
+                            e.Result = True
+                            e.AbortOperation = True
+                            Exit Sub
+                        Else
+                            e.Result = False
+                            e.AbortOperation = False
+                            Exit Sub
+                        End If
+                        
+                    Else
+                        e.AbortOperation = False
+                        e.Result = True
+                        Exit Sub
+                    End If
+                Else
+                    e.AbortOperation = False
+                    e.Result = True
+                    Exit Sub
+                End If
+            End If
+            e.AbortOperation = False
+            e.Result = True
+            Exit Sub
+        End Sub
+
+        ''' <summary>
         ''' OnRetrieved Event Handler for the ORM Data Object - add retrieved object to cache
         ''' </summary>
         ''' <param name="sender"></param>
@@ -1284,19 +1369,37 @@ Namespace OnTrack.database
                 Dim searchkeys = New ObjectKeys(Of iormPersistable)(e.Pkarray)
                 If Not theobjects.ContainsKey(key:=searchkeys) Then
                     Dim aBucket = New CachedObject(Of iormPersistable)(e.DataObject)
-                    aBucket.RetrieveData = DateTime.Now
-                    aBucket.IsRetrieved = True
+                    If e.DataObject.IsLoaded Then
+                        aBucket.RetrieveData = DateTime.Now
+                        aBucket.IsRetrieved = e.DataObject.IsLoaded
+                    End If
+                    If e.DataObject.IsCreated Then
+                        aBucket.IsCreated = e.DataObject.IsCreated
+                        aBucket.CreationDate = DateTime.Now
+                    End If
+
                     theobjects.TryAdd(key:=searchkeys, value:=aBucket)
                     e.AbortOperation = False
                     e.Result = True 'success
                     Exit Sub
                 Else
-                    CoreMessageHandler("Warning ! Infused Object already in cache", subname:="ormObjectCacheManager.OnInfused", messagetype:=otCoreMessageType.InternalWarning, _
-                                        objectname:=e.DataObject.GetType.Name, arg1:=e.Pkarray)
-                    e.DataObject = Nothing
-                    e.Result = False
-                    e.AbortOperation = False
-                    Exit Sub
+                    Dim aBucket = theobjects.Item(key:=searchkeys)
+                    Dim aDataObject = TryCast(aBucket.Object, ormDataObject)
+                    If aDataObject.Guid <> e.DataObject.Guid Then
+                        CoreMessageHandler("Warning ! infused object already in cache", subname:="ormObjectCacheManager.OnInfusedDataObject", _
+                                           messagetype:=otCoreMessageType.InternalWarning, _
+                                          objectname:=aDataObject.ObjectID, arg1:=e.Pkarray)
+                        e.DataObject = aDataObject
+                        e.Result = False
+                        e.AbortOperation = True
+                        Exit Sub
+                    Else
+                        e.DataObject = aDataObject
+                        e.Result = True
+                        e.AbortOperation = False
+                        Exit Sub
+                    End If
+
                 End If
 
             End If

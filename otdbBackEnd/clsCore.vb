@@ -3446,35 +3446,35 @@ Namespace OnTrack
         Public Function getFCLCStatus(Optional ByVal i As Integer = 0) As Object
             getFCLCStatus = Me.GetStatus(OTDBConst_StatusTypeid_FCLF, i)
         End Function
-        ''' <summary>
-        ''' infuses the message log by a record
-        ''' </summary>
-        ''' <param name="record"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Overrides Function Infuse(ByRef record As ormRecord) As Boolean Implements iormInfusable.Infuse
-            '* init
-            If Not IsInitialized Then
-                If Not Me.Initialize() Then
-                    Infuse = False
-                    Exit Function
-                End If
-            End If
+        '''' <summary>
+        '''' infuses the message log by a record
+        '''' </summary>
+        '''' <param name="record"></param>
+        '''' <returns></returns>
+        '''' <remarks></remarks>
+        'Public Overrides Function Infuse(ByRef record As ormRecord) As Boolean Implements iormInfusable.Infuse
+        '    '* init
+        '    If Not IsInitialized Then
+        '        If Not Me.Initialize() Then
+        '            Infuse = False
+        '            Exit Function
+        '        End If
+        '    End If
 
-            Try
-                s_tag = CStr(record.GetValue("tag"))
-                's_description = CStr(aRecord.getValue("desc"))
+        '    Try
+        '        s_tag = CStr(record.GetValue("tag"))
+        '        's_description = CStr(aRecord.getValue("desc"))
 
-                Infuse = MyBase.Infuse(record)
-                _IsLoaded = True
-                Exit Function
+        '        Infuse = MyBase.Infuse(record)
+        '        _IsLoaded = True
+        '        Exit Function
 
-            Catch ex As Exception
-                Call CoreMessageHandler(exception:=ex, subname:="clsOTDBMessagelog.Infuse")
-                Return False
-            End Try
+        '    Catch ex As Exception
+        '        Call CoreMessageHandler(exception:=ex, subname:="clsOTDBMessagelog.Infuse")
+        '        Return False
+        '    End Try
 
-        End Function
+        'End Function
 
         ''' <summary>
         ''' load and infuse the message log by primary key
@@ -3483,68 +3483,68 @@ Namespace OnTrack
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function Inject(ByVal TAG As String) As Boolean
-            Dim aTable As iormDataStore
-            Dim aRecordCollection As List(Of ormRecord)
-            Dim aRecord As ormRecord
-            Dim cmid As String
-            Dim posno As Long
-            Dim qty As Double
-            Dim anEntry As New ObjectLogMessage
+            'Dim aTable As iormDataStore
+            'Dim aRecordCollection As List(Of ormRecord)
+            'Dim aRecord As ormRecord
+            'Dim cmid As String
+            'Dim posno As Long
+            'Dim qty As Double
+            'Dim anEntry As New ObjectLogMessage
 
-            Dim pkarry(1) As Object
+            'Dim pkarry(1) As Object
 
-            '* lazy init
-            If Not IsInitialized Then
-                If Not Me.Initialize() Then
-                    Inject = False
-                    Exit Function
-                End If
-            End If
-
-            ' set the primaryKey
-            pkarry(0) = TAG.ToUpper
-            ' try to load it from cache
-            'Set aRecord = loadFromCache(ourTableName, PKArry)
-            'If aRecord Is Nothing Then
-            'Set aTable = getOTDBTableClass(ourTableName)
-            'Set aRecord = aTable.getRecordByPrimaryKey(PKArry)
+            ''* lazy init
+            'If Not IsInitialized Then
+            '    If Not Me.Initialize() Then
+            '        Inject = False
+            '        Exit Function
+            '    End If
             'End If
 
-            'If aRecord Is Nothing Then
-            '    isLoaded = False
-            '    Inject = isLoaded
+            '' set the primaryKey
+            'pkarry(0) = TAG.ToUpper
+            '' try to load it from cache
+            ''Set aRecord = loadFromCache(ourTableName, PKArry)
+            ''If aRecord Is Nothing Then
+            ''Set aTable = getOTDBTableClass(ourTableName)
+            ''Set aRecord = aTable.getRecordByPrimaryKey(PKArry)
+            ''End If
+
+            ''If aRecord Is Nothing Then
+            ''    isLoaded = False
+            ''    Inject = isLoaded
+            ''    Exit Function
+            ''Else
+            ''Set me.record = aRecord
+            ''isLoaded = Me.infuse(me.record)
+            ''Inject = isLoaded
+            ''Call addToCache(ourTableName, Key:=PKArry, Object:=aRecord)
+            '' load the members
+            'Dim wherestr As String
+            'aTable = GetTableStore(anEntry.TableID)
+            'aRecordCollection = aTable.GetRecordsBySql(wherestr:="tag = '" & TAG & "'", orderby:=" id asc")
+            '' record collection
+            'If aRecordCollection Is Nothing Then
+            '    _IsLoaded = False
+            '    Inject = False
             '    Exit Function
             'Else
-            'Set me.record = aRecord
-            'isLoaded = Me.infuse(me.record)
-            'Inject = isLoaded
-            'Call addToCache(ourTableName, Key:=PKArry, Object:=aRecord)
-            ' load the members
-            Dim wherestr As String
-            aTable = GetTableStore(anEntry.TableID)
-            aRecordCollection = aTable.GetRecordsBySql(wherestr:="tag = '" & TAG & "'", orderby:=" id asc")
-            ' record collection
-            If aRecordCollection Is Nothing Then
-                _IsLoaded = False
-                Inject = False
-                Exit Function
-            Else
-                s_tag = TAG
-                _IsLoaded = True
-                ' records read
-                For Each aRecord In aRecordCollection
+            '    s_tag = TAG
+            '    _IsLoaded = True
+            '    ' records read
+            '    For Each aRecord In aRecordCollection
 
-                    ' add the Entry as Component
-                    anEntry = New ObjectLogMessage
-                    If anEntry.Infuse(aRecord) Then
+            '        ' add the Entry as Component
+            '        anEntry = New ObjectLogMessage
+            '        If anEntry.Infuse(aRecord) Then
 
-                    End If
-                Next aRecord
-                '
-                _IsLoaded = True
-                Inject = True
-                Exit Function
-            End If
+            '        End If
+            '    Next aRecord
+            '    '
+            '    _IsLoaded = True
+            '    Inject = True
+            '    Exit Function
+            'End If
             Exit Function
             'End If
 
@@ -3874,16 +3874,14 @@ errorhandle:
                 If s_msgdef Is Nothing Then
                     Call CoreMessageHandler(arg1:=_msgid, message:="message id not defined - valid object message id ?", _
                                             tablename:=ConstTableID, entryname:=ConstFNMessageID, messagetype:=otCoreMessageType.ApplicationError, subname:="ObjectLogMessage.onInfused")
-
+                    e.AbortOperation = True
+                    Exit Function
                 End If
-
-                Return MyBase.Infuse(Record)
+                e.Proceed = True
             Catch ex As Exception
                 Call CoreMessageHandler(exception:=ex, subname:="ObjectLogMessage.onInfused")
-                Return False
+                e.AbortOperation = True
             End Try
-
-
         End Function
 
         ''' <summary>

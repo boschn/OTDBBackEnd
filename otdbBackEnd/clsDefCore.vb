@@ -203,12 +203,7 @@ Namespace OnTrack
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overloads Shared Function RetrieveByListID(ByVal listID As String, Optional ByVal domainID As String = "", Optional forcereload As Boolean = False) As List(Of ValueEntry)
-            Dim aParameterslist As New List(Of ormSqlCommandParameter)
-            aParameterslist.Add(New ormSqlCommandParameter(ID:="@id", columnname:=ConstFNDomainID, tablename:=ConstTableID, value:=domainID))
-
-            Dim aList As List(Of ValueEntry) = ormDataObject.All(Of ValueEntry)(ID:="allbyListID", _
-                                                                                      where:="[" & ConstFNDomainID & "] = @id", _
-                                                                                      parameters:=aParameterslist)
+          Dim aList As List(Of ValueEntry) = ormDataObject.All(Of ValueEntry)(ID:="allbyListID", domainID:=domainID)
             Return aList
         End Function
         ''' <summary>
@@ -442,12 +437,9 @@ Namespace OnTrack
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overloads Shared Function RetrieveByDomain(ByVal domainID As String, Optional forcereload As Boolean = False) As List(Of DomainSetting)
-            Dim aParameterslist As New List(Of ormSqlCommandParameter)
-            aParameterslist.Add(New ormSqlCommandParameter(ID:="@id", columnname:=ConstFNDomainID, tablename:=ConstTableID, value:=domainID))
-
             Dim aList As List(Of DomainSetting) = ormDataObject.All(Of DomainSetting)(ID:="allbyDomain", _
-                                                                                      where:="[" & ConstFNDomainID & "] = @id", _
-                                                                                      parameters:=aParameterslist)
+                                                                                      where:="[" & ConstFNDomainID & "] = @" & ConstFNDomainID, _
+                                                                                      parameters:={New ormSqlCommandParameter(id:="@" & ConstFNDomainID, columnname:=ConstFNDomainID, tablename:=ConstTableID, value:=domainID)}.ToList)
             Return aList
         End Function
         ''' <summary>
@@ -3297,13 +3289,7 @@ Namespace OnTrack
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function All() As List(Of Workspace)
-            Dim aCollection As List(Of Workspace) = ormDataObject.All(Of Workspace)()
-            Dim aList As New List(Of Workspace)
-            For Each entry In aCollection
-                aList.Add(entry)
-                'Cache.AddToCache(ConstTableID, entry.ID, entry)
-            Next
-            Return aList
+            Return ormDataObject.All(Of Workspace)()
         End Function
 #End Region
     End Class
@@ -3326,7 +3312,7 @@ Namespace OnTrack
         <ormObjectEntry(XID:="DM1", _
             typeid:=otFieldDataType.Text, size:=50, Properties:={ObjectEntryProperty.Keyword}, _
             title:="Domain", Description:="domain identifier", _
-            primaryKeyordinal:=1, isnullable:=False, useforeignkey:=otForeignKeyImplementation.None)> Public Const ConstFNDomainID As String = "domainid"
+            primaryKeyordinal:=1, isnullable:=False, useforeignkey:=otForeignKeyImplementation.None)> Public Const ConstFNDomainID As String = "DOMAINID"
 
         '** fields
         <ormObjectEntry(XID:="DM2", _
@@ -3670,12 +3656,7 @@ Namespace OnTrack
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function All() As List(Of Domain)
-            Dim aCollection As List(Of Domain) = ormDataObject.All(Of Domain)()
-            Dim aList As New List(Of Domain)
-            For Each entry In aCollection
-                aList.Add(entry)
-            Next
-            Return aList
+            Return ormDataObject.All(Of Domain)()
         End Function
 #End Region
     End Class
@@ -4046,352 +4027,5 @@ Namespace OnTrack
 
     End Class
 
-    '************************************************************************************
-    '***** CLASS clsOTDBDefUserAccessList is the OnTrack User Definition Class
-    '*****
-    '*****
-    ''' <summary>
-    ''' Definition of User Access List Class
-    ''' </summary>
-    ''' <remarks></remarks>
-    Public Class clsOTDBDefUserAccessList
-        Inherits ormDataObject
-        Implements iormPersistable
-        Implements iormInfusable
-
-        Const _tableID = "tblDefUserAccessLists"
-
-        Private s_id As String
-        Private s_username As String       ' condition type
-
-        'fields
-
-        Private s_isAllUsers As Boolean
-        Private s_desc As String
-        Private s_hasRead As Boolean
-        Private s_hasUpdate As Boolean
-        Private s_hasAlterSchema As Boolean
-        Private s_hasNoRights As Boolean
-
-
-        ''' <summary>
-        ''' constuctor of a user Access List Object
-        ''' </summary>
-        ''' <remarks></remarks>
-        Public Sub New()
-            MyBase.New(_tableID)
-        End Sub
-
-
-        Public Property Description() As String
-            Get
-                Description = s_desc
-            End Get
-            Set(value As String)
-                s_desc = value
-                Me.IsChanged = True
-            End Set
-        End Property
-
-        Public Property ID() As String
-            Get
-                ID = s_id
-            End Get
-            Set(value As String)
-                s_id = value
-                Me.IsChanged = True
-            End Set
-        End Property
-
-        Public Property Username() As String
-            Get
-                Username = s_username
-            End Get
-            Set(value As String)
-                s_username = value
-                Me.IsChanged = True
-            End Set
-        End Property
-
-        Public Property HasNoRights() As Boolean
-            Get
-                HasNoRights = s_hasNoRights
-            End Get
-            Set(value As Boolean)
-                s_hasNoRights = value
-                Me.IsChanged = True
-            End Set
-        End Property
-
-        Public Property HasReadRights() As Boolean
-            Get
-                HasReadRights = s_hasRead
-            End Get
-            Set(value As Boolean)
-                s_hasRead = value
-                Me.IsChanged = True
-            End Set
-        End Property
-
-        Public Property HasUpdateRights() As Boolean
-            Get
-                HasUpdateRights = s_hasUpdate
-            End Get
-            Set(value As Boolean)
-                s_hasUpdate = value
-                Me.IsChanged = True
-            End Set
-        End Property
-
-        Public Property HasAlterSchemaRights() As Boolean
-            Get
-                HasAlterSchemaRights = s_hasAlterSchema
-            End Get
-            Set(value As Boolean)
-                s_hasAlterSchema = value
-                Me.IsChanged = True
-            End Set
-        End Property
-
-        Public Property IsAllUsers() As Boolean
-            Get
-                IsAllUsers = s_isAllUsers
-            End Get
-            Set(value As Boolean)
-                s_isAllUsers = value
-                Me.IsChanged = True
-            End Set
-        End Property
-
-        ''' <summary>
-        ''' return a collection of all objects
-        ''' </summary>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Shared Function All() As List(Of clsOTDBDefUserAccessList)
-            Return ormDataObject.All(Of clsOTDBDefUserAccessList)(orderby:="username desc")
-        End Function
-
-        '****** getAnonymous: "static" function to return the first Anonymous user
-        '******
-        Public Shared Function GetAnonymous() As clsOTDBDefUserAccessList
-            Dim aObjectCollection As List(Of clsOTDBDefUserAccessList) = ormDataObject.All(Of clsOTDBDefUserAccessList)(orderby:="name desc", where:="isall=1")
-
-            If aObjectCollection.Count = 0 Then
-                Return Nothing
-            Else
-                Return aObjectCollection.Item(1)
-            End If
-
-        End Function
-
-
-        '**** infuese the object by a OTDBRecord
-        '****
-        Public Function Infuse(ByRef aRecord As ormRecord) As Boolean Implements iormInfusable.Infuse
-
-            '* lazy init
-            If Not Me.IsInitialized Then
-                If Not Me.Initialize() Then
-                    Infuse = False
-                    Exit Function
-                End If
-            End If
-            Try
-                s_id = CStr(aRecord.GetValue("id"))
-                s_username = CStr(aRecord.GetValue("username"))
-
-                s_desc = CStr(aRecord.GetValue("desc"))
-
-                s_isAllUsers = CBool(aRecord.GetValue("isall"))
-                s_hasAlterSchema = CBool(aRecord.GetValue("alterschema"))
-                s_hasNoRights = CBool(aRecord.GetValue("noright"))
-                s_hasRead = CBool(aRecord.GetValue("readdata"))
-                s_hasUpdate = CBool(aRecord.GetValue("updatedata"))
-
-                _IsLoaded = MyBase.Infuse(aRecord)
-                Return Me.IsLoaded
-
-            Catch ex As Exception
-                Call CoreMessageHandler(exception:=ex, subname:="clsOTDBDefUserAccessList.Infuse")
-                Return False
-            End Try
-            Exit Function
-
-        End Function
-
-        ''' <summary>
-        ''' loads and infuses a DefUserAccessList by primary key
-        ''' </summary>
-        ''' <param name="id"></param>
-        ''' <param name="username"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Overloads Function Inject(ByVal id As String, ByVal username As String) As Boolean
-            Dim primarykey() As Object = {id, username}
-            Return Me.Inject(primarykey)
-        End Function
-        ''' <summary>
-        ''' create the persistency schema
-        ''' </summary>
-        ''' <param name="silent"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Shared Function CreateSchema(Optional silent As Boolean = True) As Boolean
-
-            'Dim aFieldDesc As New ormFieldDescription
-            'Dim PrimaryColumnNames As New Collection
-            'Dim aStore As New ObjectDefinition
-
-            'With aStore
-            '    .Create(_tableID)
-            '    .Delete()
-
-            '    aFieldDesc.Tablename = _tableID
-            '    aFieldDesc.ID = ""
-            '    aFieldDesc.Parameter = ""
-            '    aFieldDesc.Relation = New String() {}
-
-            '    '***
-            '    '*** Fields
-            '    '****
-
-            '    ' Username
-            '    aFieldDesc.Datatype = otFieldDataType.Text
-            '    aFieldDesc.Title = "accesslist id"
-            '    aFieldDesc.ColumnName = "id"
-            '    aFieldDesc.ID = "acl1"
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-            '    PrimaryColumnNames.Add(aFieldDesc.ColumnName)
-
-
-            '    '
-            '    aFieldDesc.Datatype = otFieldDataType.Text
-            '    aFieldDesc.Title = "username of user"
-            '    aFieldDesc.ColumnName = "username"
-            '    aFieldDesc.ID = "u1"
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-            '    PrimaryColumnNames.Add(aFieldDesc.ColumnName)
-
-            '    '
-            '    aFieldDesc.Datatype = otFieldDataType.Text
-            '    aFieldDesc.Title = "description"
-            '    aFieldDesc.ColumnName = "desc"
-            '    aFieldDesc.ID = "acl3"
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    ' is anonymous
-            '    aFieldDesc.Datatype = otFieldDataType.Bool
-            '    aFieldDesc.Title = "is all users"
-            '    aFieldDesc.ColumnName = "isall"
-            '    aFieldDesc.ID = "acl4"
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    ' right
-            '    aFieldDesc.Datatype = otFieldDataType.Bool
-            '    aFieldDesc.Title = "alter schema right"
-            '    aFieldDesc.ColumnName = "alterschema"
-            '    aFieldDesc.ID = "acl5"
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    ' right
-            '    aFieldDesc.Datatype = otFieldDataType.Bool
-            '    aFieldDesc.Title = "update data right"
-            '    aFieldDesc.ColumnName = "updatedata"
-            '    aFieldDesc.ID = "acl6"
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    ' right
-            '    aFieldDesc.Datatype = otFieldDataType.Bool
-            '    aFieldDesc.Title = "read data right"
-            '    aFieldDesc.ColumnName = "readdata"
-            '    aFieldDesc.ID = "acl7"
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    ' right
-            '    aFieldDesc.Datatype = otFieldDataType.Bool
-            '    aFieldDesc.Title = "no right at all"
-            '    aFieldDesc.ColumnName = "noright"
-            '    aFieldDesc.ID = "acl8"
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-
-            '    '***
-            '    '*** TIMESTAMP
-            '    '****
-            '    aFieldDesc.Datatype = otFieldDataType.Timestamp
-            '    aFieldDesc.Title = "last Update"
-            '    aFieldDesc.ColumnName = ConstFNUpdatedOn
-            '    aFieldDesc.ID = ""
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    aFieldDesc.Datatype = otFieldDataType.Timestamp
-            '    aFieldDesc.Title = "creation Date"
-            '    aFieldDesc.ColumnName = ConstFNCreatedOn
-            '    aFieldDesc.ID = ""
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-            '    ' Index
-            '    Call .AddIndex("PrimaryKey", PrimaryColumnNames, isprimarykey:=True)
-
-
-            '    ' persist
-            '    .Persist()
-            '    ' change the database
-            '    .CreateObjectSchema()
-            'End With
-            ''
-            'CreateSchema = True
-            'Exit Function
-
-        End Function
-
-        ''' <summary>
-        ''' Persist the object
-        ''' </summary>
-        ''' <param name="timestamp"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Overloads Function Persist(Optional timestamp As Date = ot.ConstNullDate) As Boolean
-
-            Try
-                Call Me.Record.SetValue("id", s_id)
-                Call Me.Record.SetValue("username", s_username)
-
-                Call Me.Record.SetValue("desc", s_desc)
-                Call Me.Record.SetValue("isall", s_isAllUsers)
-                Call Me.Record.SetValue("noright", s_hasNoRights)
-                Call Me.Record.SetValue("updatedata", s_hasUpdate)
-                Call Me.Record.SetValue("readdata", s_hasRead)
-                Call Me.Record.SetValue("alterschema", s_hasAlterSchema)
-
-                Persist = MyBase.Persist(timestamp)
-
-            Catch ex As Exception
-
-                Call CoreMessageHandler(exception:=ex, subname:="clsOTDBDefUserAccessList.Persist")
-                Return False
-
-            End Try
-
-        End Function
-        ''' <summary>
-        '''  Creates a persistable dataobject 
-        ''' </summary>
-        ''' <param name="id"></param>
-        ''' <param name="username"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Overloads Function Create(ByVal id As String, ByVal username As String) As Boolean
-            Dim primarykey() As Object = {id, username}
-            If MyBase.Create(primarykey, checkUnique:=True) Then
-                ' set the primaryKey
-                s_id = id
-                s_username = username
-                Return True
-            Else
-                Return False
-            End If
-
-        End Function
-    End Class
+   
 End Namespace

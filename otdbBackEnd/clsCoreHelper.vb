@@ -645,7 +645,8 @@ Namespace OnTrack.Database
                 If domainBehavior And domainID <> ConstGlobalDomain Then
                     For Each aRecord In aDomainRecordCollection.Values
                         Dim atargetobject = Activator.CreateInstance(aTargetType)
-                        If DirectCast(atargetobject, iormInfusable).Infuse(aRecord) Then
+                        If ormDataObject.InfuseDataObject(record:=aRecord, dataobject:=TryCast(atargetobject, iormInfusable), _
+                                                          mode:=otInfuseMode.OnInject Or otInfuseMode.OnDefault) Then
                             theObjectList.Add(DirectCast(atargetobject, iormPersistable))
                         End If
                     Next

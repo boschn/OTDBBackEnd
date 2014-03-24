@@ -253,81 +253,81 @@ Namespace OnTrack
 
         End Function
 
-        '**** infuese the object by a OTDBRecord
-        '****
-        Public Overrides Function Infuse(ByRef record As ormRecord) As Boolean
+'        '**** infuese the object by a OTDBRecord
+'        '****
+'        Public Overrides Function Infuse(ByRef record As ormRecord) As Boolean
 
-            Dim i As Integer
-            Dim aVAlue As Object
+'            Dim i As Integer
+'            Dim aVAlue As Object
 
-            '* init
-            If Not Me.IsInitialized Then
-                If Not Me.initialize() Then
-                    Infuse = False
-                    Exit Function
-                End If
-            End If
+'            '* init
+'            If Not Me.IsInitialized Then
+'                If Not Me.initialize() Then
+'                    Infuse = False
+'                    Exit Function
+'                End If
+'            End If
 
-            On Error GoTo errorhandle
+'            On Error GoTo errorhandle
 
-            '*** overload it from the Application Container
-            '***
-            'If Me.serializeWithHostApplication Then
-            '    If overloadFromHostApplication(me.record) Then
-            '        s_loadedFromHost = True
-            '    End If
-            'End If
-
-
-            s_typeid = CStr(Me.Record.GetValue("typeid"))
-            s_snapdate = CDate(Me.Record.GetValue("snapdate"))
-
-            s_dims(1) = CStr(Me.Record.GetValue("dim1"))
-            s_dims(2) = CStr(Me.Record.GetValue("dim2"))
-            s_dims(3) = CStr(Me.Record.GetValue("dim3"))
-            s_dims(4) = CStr(Me.Record.GetValue("dim4"))
-            s_dims(5) = CStr(Me.Record.GetValue("dim5"))
-            s_dims(6) = CStr(Me.Record.GetValue("dim6"))
-            s_dims(7) = CStr(Me.Record.GetValue("dim7"))
-            s_dims(8) = CStr(Me.Record.GetValue("dim8"))
-            s_dims(9) = CStr(Me.Record.GetValue("dim9"))
-            s_dims(10) = CStr(Me.Record.GetValue("dim10"))
-
-            s_values(1) = CDbl(Me.Record.GetValue("value1"))
-            s_values(2) = CDbl(Me.Record.GetValue("value2"))
-            s_values(3) = CDbl(Me.Record.GetValue("value3"))
-            s_values(4) = CDbl(Me.Record.GetValue("value4"))
-            s_values(5) = CDbl(Me.Record.GetValue("value5"))
-            s_values(6) = CDbl(Me.Record.GetValue("value6"))
-            s_values(7) = CDbl(Me.Record.GetValue("value7"))
-            s_values(8) = CDbl(Me.Record.GetValue("value8"))
-            s_values(9) = CDbl(Me.Record.GetValue("value9"))
-            s_values(10) = CDbl(Me.Record.GetValue("value10"))
-
-            s_parameter_txt1 = CStr(Me.Record.GetValue("param_txt1"))
-            s_parameter_txt2 = CStr(Me.Record.GetValue("param_txt2"))
-            s_parameter_txt3 = CStr(Me.Record.GetValue("param_txt3"))
-            s_parameter_num1 = CDbl(Me.Record.GetValue("param_num1"))
-            s_parameter_num2 = CDbl(Me.Record.GetValue("param_num2"))
-            s_parameter_num3 = CDbl(Me.Record.GetValue("param_num3"))
-            s_parameter_date1 = CDate(Me.Record.GetValue("param_date1"))
-            s_parameter_date2 = CDate(Me.Record.GetValue("param_date2"))
-            s_parameter_date3 = CDate(Me.Record.GetValue("param_date3"))
-            s_parameter_flag1 = CBool(Me.Record.GetValue("param_flag1"))
-            s_parameter_flag2 = CBool(Me.Record.GetValue("param_flag2"))
-            s_parameter_flag3 = CBool(Me.Record.GetValue("param_flag3"))
+'            '*** overload it from the Application Container
+'            '***
+'            'If Me.serializeWithHostApplication Then
+'            '    If overloadFromHostApplication(me.record) Then
+'            '        s_loadedFromHost = True
+'            '    End If
+'            'End If
 
 
+'            s_typeid = CStr(Me.Record.GetValue("typeid"))
+'            s_snapdate = CDate(Me.Record.GetValue("snapdate"))
 
-            Infuse = True
-            _IsLoaded = True
-            Exit Function
+'            s_dims(1) = CStr(Me.Record.GetValue("dim1"))
+'            s_dims(2) = CStr(Me.Record.GetValue("dim2"))
+'            s_dims(3) = CStr(Me.Record.GetValue("dim3"))
+'            s_dims(4) = CStr(Me.Record.GetValue("dim4"))
+'            s_dims(5) = CStr(Me.Record.GetValue("dim5"))
+'            s_dims(6) = CStr(Me.Record.GetValue("dim6"))
+'            s_dims(7) = CStr(Me.Record.GetValue("dim7"))
+'            s_dims(8) = CStr(Me.Record.GetValue("dim8"))
+'            s_dims(9) = CStr(Me.Record.GetValue("dim9"))
+'            s_dims(10) = CStr(Me.Record.GetValue("dim10"))
 
-errorhandle:
-            Infuse = False
+'            s_values(1) = CDbl(Me.Record.GetValue("value1"))
+'            s_values(2) = CDbl(Me.Record.GetValue("value2"))
+'            s_values(3) = CDbl(Me.Record.GetValue("value3"))
+'            s_values(4) = CDbl(Me.Record.GetValue("value4"))
+'            s_values(5) = CDbl(Me.Record.GetValue("value5"))
+'            s_values(6) = CDbl(Me.Record.GetValue("value6"))
+'            s_values(7) = CDbl(Me.Record.GetValue("value7"))
+'            s_values(8) = CDbl(Me.Record.GetValue("value8"))
+'            s_values(9) = CDbl(Me.Record.GetValue("value9"))
+'            s_values(10) = CDbl(Me.Record.GetValue("value10"))
+
+'            s_parameter_txt1 = CStr(Me.Record.GetValue("param_txt1"))
+'            s_parameter_txt2 = CStr(Me.Record.GetValue("param_txt2"))
+'            s_parameter_txt3 = CStr(Me.Record.GetValue("param_txt3"))
+'            s_parameter_num1 = CDbl(Me.Record.GetValue("param_num1"))
+'            s_parameter_num2 = CDbl(Me.Record.GetValue("param_num2"))
+'            s_parameter_num3 = CDbl(Me.Record.GetValue("param_num3"))
+'            s_parameter_date1 = CDate(Me.Record.GetValue("param_date1"))
+'            s_parameter_date2 = CDate(Me.Record.GetValue("param_date2"))
+'            s_parameter_date3 = CDate(Me.Record.GetValue("param_date3"))
+'            s_parameter_flag1 = CBool(Me.Record.GetValue("param_flag1"))
+'            s_parameter_flag2 = CBool(Me.Record.GetValue("param_flag2"))
+'            s_parameter_flag3 = CBool(Me.Record.GetValue("param_flag3"))
 
 
-        End Function
+
+'            Infuse = True
+'            _IsLoaded = True
+'            Exit Function
+
+'errorhandle:
+'            Infuse = False
+
+
+'        End Function
 
         '**** Inject : load the object by the PrimaryKeys
         '****
@@ -361,7 +361,7 @@ errorhandle:
                 Exit Function
             Else
                 Me.Record = aRecord
-                _IsLoaded = Me.Infuse(Me.Record)
+                '_IsLoaded = Me.Infuse(Me.Record)
                 Inject = Me.IsLoaded
                 Exit Function
             End If

@@ -1284,31 +1284,29 @@ Namespace OnTrack.XChange
         ''' <param name="record"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overrides Function Infuse(ByRef record As ormRecord) As Boolean Implements iormInfusable.Infuse
+        Public Sub OnInfused(sender As Object, e As ormDataObjectEventArgs) Handles MyBase.OnInfused
             Dim aValue As Object
 
             Try
-                If MyBase.Infuse(record) Then
-                    If IsNull(record.GetValue(constFNordinal)) Then
-                        _ordinal = New Ordinal(0)
+                Dim isnull As Boolean
+                aValue = Record.GetValue(constFNordinal, isNull:=isnull)
+                If isnull Then
+                    _ordinal = New Ordinal(0)
+                Else
+                    If IsNumeric(aValue) Then
+                        _ordinal = New Ordinal(CLng(aValue))
                     Else
-                        aValue = record.GetValue(constFNordinal)
-                        If IsNumeric(aValue) Then
-                            _ordinal = New Ordinal(CLng(aValue))
-                        Else
-                            _ordinal = New Ordinal(CStr(aValue))
-                        End If
+                        _ordinal = New Ordinal(CStr(aValue))
                     End If
                 End If
-
-                Return Me.IsLoaded
+                e.Proceed = True
+                Exit Sub
             Catch ex As Exception
                 CoreMessageHandler(exception:=ex, subname:="XConfigMember.Infuse")
-                Unload()
-                Return False
+                e.AbortOperation = True
             End Try
 
-        End Function
+        End Sub
 
         ''' <summary>
         ''' Load XChange Member from persistence store
@@ -2763,38 +2761,7 @@ Namespace OnTrack.XChange
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overloads Shared Function All() As List(Of XConfig)
-            Dim aList As New List(Of XConfig)
-            Dim aRecordCollection As New List(Of ormRecord)
-            Dim aTable As iormDataStore
-
-            Dim aRecord As ormRecord
-
-            Try
-                aTable = GetTableStore(constTableID)
-                Dim aCommand As ormSqlSelectCommand = aTable.CreateSqlSelectCommand(id:="All")
-                If Not aCommand.Prepared Then
-                    aCommand.Prepare()
-                End If
-
-                aRecordCollection = aCommand.RunSelect
-
-                For Each aRecord In aRecordCollection
-                    Dim aNewObject As New XConfig
-                    aNewObject = New XConfig
-                    If aNewObject.Infuse(aRecord) Then
-                        ' Inject to get all items
-                        If aNewObject.Inject(aNewObject.Configname) Then
-                            aList.Add(item:=aNewObject)
-                        End If
-                    End If
-                Next aRecord
-
-                Return aList
-
-            Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="XConfig.All")
-                Return aList
-            End Try
+            Return ormDataObject.All(Of XConfig)()
         End Function
 #End Region
     End Class
@@ -6537,12 +6504,12 @@ Namespace OnTrack.XChange
                     For Each aRecord In aRecordCollection
                         ' add the Entry as Component (even the header -> )
                         anEntry = New clsOTDBXChangeMember
-                        If anEntry.Infuse(aRecord) Then
-                            If Not Me.AddMember(anEntry) Then
-                                CoreMessageHandler(message:="couldnot add member", subname:="clsOTDBXChangeConfig.Inject",
-                                                   messagetype:=otCoreMessageType.InternalError)
-                            End If
-                        End If
+                        'If anEntry.Infuse(aRecord) Then
+                        '    If Not Me.AddMember(anEntry) Then
+                        '        CoreMessageHandler(message:="couldnot add member", subname:="clsOTDBXChangeConfig.Inject",
+                        '                           messagetype:=otCoreMessageType.InternalError)
+                        '    End If
+                        'End If
                     Next
                     '
                     _IsLoaded = True
@@ -7512,12 +7479,12 @@ Namespace OnTrack.XChange
                     For Each aRecord In aRecordCollection
                         Dim aNewObject As New clsOTDBXChangeConfig
                         aNewObject = New clsOTDBXChangeConfig
-                        If aNewObject.Infuse(aRecord) Then
-                            ' Inject to get all items
-                            If aNewObject.Inject(aNewObject.Configname) Then
-                                aList.Add(item:=aNewObject)
-                            End If
-                        End If
+                        'If aNewObject.Infuse(aRecord) Then
+                        '    ' Inject to get all items
+                        '    If aNewObject.Inject(aNewObject.Configname) Then
+                        '        aList.Add(item:=aNewObject)
+                        '    End If
+                        'End If
                     Next aRecord
                     AllByList = aList
                     Exit Function
@@ -8176,31 +8143,31 @@ Namespace OnTrack.XChange
         ''' <param name="record"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overrides Function Infuse(ByRef record As ormRecord) As Boolean
-            Dim aValue As Object
+        'Public Overrides Function Infuse(ByRef record As ormRecord) As Boolean
+        '    Dim aValue As Object
 
-            Try
-                If MyBase.Infuse(record) Then
-                    If IsNull(record.GetValue(constFNordinal)) Then
-                        _ordinal = New Ordinal(0)
-                    Else
-                        aValue = record.GetValue(constFNordinal)
-                        If IsNumeric(aValue) Then
-                            _ordinal = New Ordinal(CLng(aValue))
-                        Else
-                            _ordinal = New Ordinal(CStr(aValue))
-                        End If
-                    End If
-                End If
+        '    Try
+        '        If MyBase.Infuse(record) Then
+        '            If IsNull(record.GetValue(constFNordinal)) Then
+        '                _ordinal = New Ordinal(0)
+        '            Else
+        '                aValue = record.GetValue(constFNordinal)
+        '                If IsNumeric(aValue) Then
+        '                    _ordinal = New Ordinal(CLng(aValue))
+        '                Else
+        '                    _ordinal = New Ordinal(CStr(aValue))
+        '                End If
+        '            End If
+        '        End If
 
-                Return Me.IsLoaded
-            Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="clsOTDBXChangeMember.Infuse")
-                Unload()
-                Return False
-            End Try
+        '        Return Me.IsLoaded
+        '    Catch ex As Exception
+        '        CoreMessageHandler(exception:=ex, subname:="clsOTDBXChangeMember.Infuse")
+        '        Unload()
+        '        Return False
+        '    End Try
 
-        End Function
+        'End Function
 
         ''' <summary>
         ''' Load XChange Member from persistence store
@@ -9172,7 +9139,7 @@ Namespace OnTrack.XChange
                 '* add all
                 For Each anEntry As XOutlineItem In aCollection.Values
                     If Not Me.AddOutlineItem(anEntry) Then
-                        Call CoreMessageHandler(message:="a clsOTDBXOutlineItem couldnot be added to an outline", arg1:=anEntry.ToString,
+                        Call CoreMessageHandler(message:="a XOutlineItem couldnot be added to an outline", arg1:=anEntry.ToString,
                                                  entryname:=id, tablename:=constTableID, messagetype:=otCoreMessageType.InternalError,
                                                  subname:="clsOTDBXoutline.loaditems")
                     End If
@@ -9199,7 +9166,7 @@ Namespace OnTrack.XChange
                 If Persist Then
                     ' save each entry
                     For Each anEntry As XOutlineItem In s_cmids.Values
-                        'Dim anEntry As clsOTDBXOutlineItem = kvp.Value
+                        'Dim anEntry As XOutlineItem = kvp.Value
                         Persist = Persist And anEntry.Persist(timestamp)
                     Next
                 End If
@@ -9546,7 +9513,7 @@ Namespace OnTrack.XChange
         ''' <param name="record"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overrides Function Infuse(ByRef record As ormRecord) As Boolean
+        Public Sub OnInfused(sender As Object, e As ormDataObjectEventArgs) Handles MyBase.OnInfused
 
             Dim aType As otFieldDataType
             Dim aValue As Object
@@ -9554,84 +9521,79 @@ Namespace OnTrack.XChange
 
             '***
             Try
-                If MyBase.Infuse(record) Then
+                aValue = e.Record.GetValue(ConstFNordinals)
 
-                    aValue = record.GetValue(ConstFNordinals)
-
-                    If IsNumeric(aValue) Then
-                        _ordinal = New Ordinal(CLng(record.GetValue(ConstFNordinall)))
-                    Else
-                        _ordinal = New Ordinal(CStr(record.GetValue(ConstFNordinall)))
-                    End If
-
-                    ' get the keys and values
-                    Dim idstr As String = record.GetValue(ConstFNIDs)
-                    Dim ids As String()
-                    If idstr <> "" AndAlso Not IsNull(idstr) Then
-                        ids = SplitMultbyChar(idstr, ConstDelimiter)
-                    Else
-                        ids = {}
-                    End If
-                    Dim valuestr As String = record.GetValue(ConstFNValues)
-                    Dim values As String()
-                    If valuestr <> "" AndAlso Not IsNull(valuestr) Then
-                        values = SplitMultbyChar(valuestr, ConstDelimiter)
-                    Else
-                        values = {}
-                    End If
-                    Dim typestr As String = record.GetValue(ConstFNTypes)
-                    Dim types As String()
-                    If typestr <> "" AndAlso Not IsNull(typestr) Then
-                        types = SplitMultbyChar(typestr, ConstDelimiter)
-                    Else
-                        types = {}
-                    End If
-
-                    For i = 0 To ids.Length - 1
-                        If i < types.Length Then
-                            Try
-                                Select Case CLng(types(i))
-                                    Case CLng(otFieldDataType.Bool)
-                                        aType = otFieldDataType.Bool
-                                        aValue = CBool(values(i))
-                                    Case CLng(otFieldDataType.[Date]), CLng(otFieldDataType.[Timestamp]), CLng(otFieldDataType.Time)
-                                        aType = otFieldDataType.[Date]
-                                        aValue = CDate(values(i))
-                                    Case CLng(otFieldDataType.Text)
-                                        aType = otFieldDataType.Text
-                                        aValue = values(i)
-                                    Case CLng(otFieldDataType.[Long])
-                                        aType = otFieldDataType.[Long]
-                                        aValue = CLng(values(i))
-                                    Case Else
-                                        Call CoreMessageHandler(subname:="clsotdbXoutlineItem.infuse", messagetype:=otCoreMessageType.InternalError,
-                                                                message:="Outline datatypes couldnot be determined ", arg1:=types(i))
-                                End Select
-
-                            Catch ex As Exception
-                                Call CoreMessageHandler(exception:=ex, subname:="clsotdbXoutlineItem.infuse",
-                                                        messagetype:=otCoreMessageType.InternalError, message:="Outline keys couldnot be filled ")
-                            End Try
-
-                            '**
-                            _keys.Add(New OTLineKey(aType, ids(i), aValue))
-                        End If
-                    Next
-
-
+                If IsNumeric(aValue) Then
+                    _ordinal = New Ordinal(CLng(Record.GetValue(ConstFNordinall)))
+                Else
+                    _ordinal = New Ordinal(CStr(Record.GetValue(ConstFNordinall)))
                 End If
 
-                Return Me.IsLoaded
+                ' get the keys and values
+                Dim idstr As String = e.Record.GetValue(ConstFNIDs)
+                Dim ids As String()
+                If idstr <> "" AndAlso Not IsNull(idstr) Then
+                    ids = SplitMultbyChar(idstr, ConstDelimiter)
+                Else
+                    ids = {}
+                End If
+                Dim valuestr As String = e.Record.GetValue(ConstFNValues)
+                Dim values As String()
+                If valuestr <> "" AndAlso Not IsNull(valuestr) Then
+                    values = SplitMultbyChar(valuestr, ConstDelimiter)
+                Else
+                    values = {}
+                End If
+                Dim typestr As String = e.Record.GetValue(ConstFNTypes)
+                Dim types As String()
+                If typestr <> "" AndAlso Not IsNull(typestr) Then
+                    types = SplitMultbyChar(typestr, ConstDelimiter)
+                Else
+                    types = {}
+                End If
+
+                For i = 0 To ids.Length - 1
+                    If i < types.Length Then
+                        Try
+                            Select Case CLng(types(i))
+                                Case CLng(otFieldDataType.Bool)
+                                    aType = otFieldDataType.Bool
+                                    aValue = CBool(values(i))
+                                Case CLng(otFieldDataType.[Date]), CLng(otFieldDataType.[Timestamp]), CLng(otFieldDataType.Time)
+                                    aType = otFieldDataType.[Date]
+                                    aValue = CDate(values(i))
+                                Case CLng(otFieldDataType.Text)
+                                    aType = otFieldDataType.Text
+                                    aValue = values(i)
+                                Case CLng(otFieldDataType.[Long])
+                                    aType = otFieldDataType.[Long]
+                                    aValue = CLng(values(i))
+                                Case Else
+                                    Call CoreMessageHandler(subname:="XOutlineItem.infuse", messagetype:=otCoreMessageType.InternalError,
+                                                            message:="Outline datatypes couldnot be determined ", arg1:=types(i))
+                                    e.AbortOperation = True
+                                    Exit Sub
+                            End Select
+
+                        Catch ex As Exception
+                            Call CoreMessageHandler(exception:=ex, subname:="XOutlineItem.infuse",
+                                                    messagetype:=otCoreMessageType.InternalError, message:="Outline keys couldnot be filled ")
+                            e.AbortOperation = True
+                            Exit Sub
+                        End Try
+
+                        '**
+                        _keys.Add(New OTLineKey(aType, ids(i), aValue))
+                    End If
+                Next
+                e.Proceed = True
             Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="clsOTDBXOutlineItem.Infuse")
+                CoreMessageHandler(exception:=ex, subname:="XOutlineItem.Infuse")
                 Unload()
-                Return Me.IsLoaded
+                e.AbortOperation = True
             End Try
 
-
-            Return False
-
-        End Function
+        End Sub
         ''' <summary>
         ''' retrieves a sorted list of items by uid
         ''' </summary>
@@ -9664,7 +9626,7 @@ Namespace OnTrack.XChange
                     For Each aRecord In aRecordCollection
                         ' add the Entry as Component
                         anEntry = New XOutlineItem
-                        If anEntry.Infuse(aRecord) Then
+                        If InfuseDataObject(record:=aRecord, dataobject:=anEntry) Then
                             aCollection.Add(value:=anEntry, key:=anEntry.ordinal)
                         End If
                     Next aRecord
@@ -9672,7 +9634,7 @@ Namespace OnTrack.XChange
                 End If
                 Return aCollection
             Catch ex As Exception
-                Call CoreMessageHandler(subname:="clsOTDBXoutlineItem.allByID", arg1:=id,
+                Call CoreMessageHandler(subname:="XOutlineItem.allByID", arg1:=id,
                                         exception:=ex, tablename:=constTableID)
                 Return aCollection
             End Try
@@ -9837,7 +9799,7 @@ Namespace OnTrack.XChange
 
             '            ' Handle the error
             'error_handle:
-            '            Call CoreMessageHandler(subname:="clsOTDBXOutlineItem.createSchema", tablename:=constTableID)
+            '            Call CoreMessageHandler(subname:="XOutlineItem.createSchema", tablename:=constTableID)
             '            CreateSchema = False
         End Function
         ''' <summary>
@@ -9895,7 +9857,7 @@ Namespace OnTrack.XChange
                 Return MyBase.Persist(timestamp:=timestamp, doFeedRecord:=True)
 
             Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="clsOTDBXoutlineItem.persist")
+                CoreMessageHandler(exception:=ex, subname:="XOutlineItem.persist")
                 Return False
             End Try
 

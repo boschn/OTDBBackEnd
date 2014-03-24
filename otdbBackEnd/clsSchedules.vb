@@ -811,59 +811,59 @@ Namespace OnTrack.Scheduling
         ''' <param name="record"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overrides Function Infuse(ByRef record As ormRecord) As Boolean
+        'Public Overrides Function Infuse(ByRef record As ormRecord) As Boolean
 
-            '* init
-            If Not Me.IsInitialized Then
-                If Not Me.Initialize() Then
-                    Infuse = False
-                    Exit Function
-                End If
-            End If
-
-
-            Try
-
-                s_scheduletype = CStr(record.GetValue("scheduletype"))
-                s_taskid = CStr(record.GetValue("id"))
-                s_description = CStr(record.GetValue("desc"))
-                s_orderNo = CLng(record.GetValue("orderno"))
-                s_takeActIfFCisMissing = CBool(record.GetValue("actoverfc"))
-                s_isMandatory = CBool(record.GetValue("ismand"))
-                s_isFacultative = CBool(record.GetValue("isfac"))
-                s_isForbidden = CBool(record.GetValue("isforb"))
-
-                s_altstartids = CStr(record.GetValue("altstartids"))
-                s_altfinishids = CStr(record.GetValue("altfinishids"))
-                s_startID = CStr(record.GetValue("startid"))
-                s_finishID = CStr(record.GetValue("finishid"))
-                s_actStartID = CStr(record.GetValue("actstartid"))
-                s_actFinishID = CStr(record.GetValue("actfinishid"))
-
-                s_parameter_txt1 = CStr(record.GetValue("param_txt1"))
-                s_parameter_txt2 = CStr(record.GetValue("param_txt2"))
-                s_parameter_txt3 = CStr(record.GetValue("param_txt3"))
-                s_parameter_num1 = CDbl(record.GetValue("param_num1"))
-                s_parameter_num2 = CDbl(record.GetValue("param_num2"))
-                s_parameter_num3 = CDbl(record.GetValue("param_num3"))
-                s_parameter_date1 = CDate(record.GetValue("param_date1"))
-                s_parameter_date2 = CDate(record.GetValue("param_date2"))
-                s_parameter_date3 = CDate(record.GetValue("param_date3"))
-                s_parameter_flag1 = CBool(record.GetValue("param_flag1"))
-                s_parameter_flag2 = CBool(record.GetValue("param_flag2"))
-                s_parameter_flag3 = CBool(record.GetValue("param_flag3"))
+        '    '* init
+        '    If Not Me.IsInitialized Then
+        '        If Not Me.Initialize() Then
+        '            Infuse = False
+        '            Exit Function
+        '        End If
+        '    End If
 
 
-                Return MyBase.Infuse(record)
+        '    Try
 
-            Catch ex As Exception
-                Call CoreMessageHandler(exception:=ex, subname:="clsOTDBDefSchelueTask.Infuse")
-                Return False
+        '        s_scheduletype = CStr(record.GetValue("scheduletype"))
+        '        s_taskid = CStr(record.GetValue("id"))
+        '        s_description = CStr(record.GetValue("desc"))
+        '        s_orderNo = CLng(record.GetValue("orderno"))
+        '        s_takeActIfFCisMissing = CBool(record.GetValue("actoverfc"))
+        '        s_isMandatory = CBool(record.GetValue("ismand"))
+        '        s_isFacultative = CBool(record.GetValue("isfac"))
+        '        s_isForbidden = CBool(record.GetValue("isforb"))
 
-            End Try
+        '        s_altstartids = CStr(record.GetValue("altstartids"))
+        '        s_altfinishids = CStr(record.GetValue("altfinishids"))
+        '        s_startID = CStr(record.GetValue("startid"))
+        '        s_finishID = CStr(record.GetValue("finishid"))
+        '        s_actStartID = CStr(record.GetValue("actstartid"))
+        '        s_actFinishID = CStr(record.GetValue("actfinishid"))
+
+        '        s_parameter_txt1 = CStr(record.GetValue("param_txt1"))
+        '        s_parameter_txt2 = CStr(record.GetValue("param_txt2"))
+        '        s_parameter_txt3 = CStr(record.GetValue("param_txt3"))
+        '        s_parameter_num1 = CDbl(record.GetValue("param_num1"))
+        '        s_parameter_num2 = CDbl(record.GetValue("param_num2"))
+        '        s_parameter_num3 = CDbl(record.GetValue("param_num3"))
+        '        s_parameter_date1 = CDate(record.GetValue("param_date1"))
+        '        s_parameter_date2 = CDate(record.GetValue("param_date2"))
+        '        s_parameter_date3 = CDate(record.GetValue("param_date3"))
+        '        s_parameter_flag1 = CBool(record.GetValue("param_flag1"))
+        '        s_parameter_flag2 = CBool(record.GetValue("param_flag2"))
+        '        s_parameter_flag3 = CBool(record.GetValue("param_flag3"))
 
 
-        End Function
+        '        Return MyBase.Infuse(record)
+
+        '    Catch ex As Exception
+        '        Call CoreMessageHandler(exception:=ex, subname:="clsOTDBDefSchelueTask.Infuse")
+        '        Return False
+
+        '    End Try
+
+
+        'End Function
 
         ''' <summary>
         ''' loads and infuses the schedule task definition by primary key
@@ -1789,8 +1789,7 @@ Namespace OnTrack.Scheduling
 
                 For Each aRecord As ormRecord In aRecordcollection
                     Dim aNewObject As New ScheduleMilestoneDefinition
-                    aNewObject = New ScheduleMilestoneDefinition
-                    If aNewObject.Infuse(aRecord) Then
+                    If InfuseDataObject(record:=aRecord, dataobject:=aNewObject) Then
                         acollection.Add(item:=aNewObject)
                     End If
 
@@ -2184,7 +2183,7 @@ Namespace OnTrack.Scheduling
                     For Each aRecord In aRecordCollection
                         ' add the Entry as Component
                         anEntry = New ScheduleMilestoneDefinition
-                        If anEntry.Infuse(aRecord) Then
+                        If InfuseDataObject(record:=aRecord, dataobject:=anEntry) Then
                             If Not Me.AddMember(anEntry) Then
                             End If
                         End If
@@ -2551,7 +2550,7 @@ Namespace OnTrack.Scheduling
                 If LCase(_typeid) <> LCase(value) Then
                     defschedule = ScheduleDefinition.Retrieve(scheduletype:=value)
                     If defschedule Is Nothing Then
-                        Call CoreMessageHandler(message:="TypeID has not schedule defined", subname:="clsOTDBSchedule.typeID", _
+                        Call CoreMessageHandler(message:="TypeID has not schedule defined", subname:="Schedule.typeID", _
                                               arg1:=value)
                     Else
                         s_defschedule = defschedule
@@ -2561,7 +2560,7 @@ Namespace OnTrack.Scheduling
                     ' load the milestones
                     If Not LoadMilestones(scheduletypeid:=_typeid) Then
                         Call CoreMessageHandler(message:="Milestones of TypeID couldnot loaded", _
-                                              subname:="clsOTDBSchedule.typeID let", _
+                                              subname:="Schedule.typeID let", _
                                               arg1:=value)
                     End If
                 End If
@@ -2786,7 +2785,7 @@ Namespace OnTrack.Scheduling
             If Not s_defschedule.IsLoaded And Not s_defschedule.IsCreated Then
                 s_defschedule = ScheduleDefinition.Retrieve(scheduletype:=_typeid)
                 If s_defschedule Is Nothing Then
-                    Call CoreMessageHandler(message:="schedule defintion doesn't exist", subname:="clsOTDBSchedule.defSchedule", _
+                    Call CoreMessageHandler(message:="schedule defintion doesn't exist", subname:="Schedule.defSchedule", _
                                           arg1:=_typeid)
                     s_defschedule = New ScheduleDefinition
                 End If
@@ -2803,7 +2802,7 @@ Namespace OnTrack.Scheduling
             Dim aDefScheduleMS As ScheduleMilestoneDefinition = ScheduleMilestoneDefinition.Retrieve(scheduletype:=_typeid, ID:=ID)
             If aDefScheduleMS Is Nothing Then
                 Call CoreMessageHandler(message:="schedule milestone definition doesn't exist", _
-                                      subname:="clsOTDBSchedule.getDefScheduleMilestone", _
+                                      subname:="Schedule.getDefScheduleMilestone", _
                                       arg1:=_typeid & "-" & ID)
                 aDefScheduleMS = Nothing
             End If
@@ -2874,7 +2873,7 @@ Namespace OnTrack.Scheduling
 
             ' check aliases
             If aDefSchedule Is Nothing Then
-                Call CoreMessageHandler(message:="DefSchedule is not valid", arg1:=Me.Typeid, subname:="clsOTDBSchedule.getMilestone")
+                Call CoreMessageHandler(message:="DefSchedule is not valid", arg1:=Me.Typeid, subname:="Schedule.getMilestone")
                 Return Nothing
             End If
 
@@ -2918,7 +2917,7 @@ Namespace OnTrack.Scheduling
             End If
 
             If aDefSchedule Is Nothing Then
-                Call CoreMessageHandler(message:="DefSchedule is not valid", arg1:=Me.Typeid, subname:="clsOTDBSchedule.getMilestone")
+                Call CoreMessageHandler(message:="DefSchedule is not valid", arg1:=Me.Typeid, subname:="Schedule.getMilestone")
                 Return Nothing
             End If
 
@@ -2959,7 +2958,7 @@ Namespace OnTrack.Scheduling
 
             ' check aliases
             If aDefSchedule Is Nothing Then
-                Call CoreMessageHandler(message:="DefSchedule is not valid", arg1:=Me.Typeid, subname:="clsOTDBSchedule.getMilestone")
+                Call CoreMessageHandler(message:="DefSchedule is not valid", arg1:=Me.Typeid, subname:="Schedule.getMilestone")
                 SetMilestone = False
                 Exit Function
             End If
@@ -2972,7 +2971,7 @@ Namespace OnTrack.Scheduling
             If s_members.ContainsKey(LCase(aRealID)) Then
                 aMember = s_members.Item(LCase(aRealID))
             Else
-                Call CoreMessageHandler(arg1:=ID, subname:="clsOTDBSchedule.setMilestone", tablename:=ConstTableID, _
+                Call CoreMessageHandler(arg1:=ID, subname:="Schedule.setMilestone", tablename:=ConstTableID, _
                                       message:="ID doesnot exist in Milestone Entries")
                 SetMilestone = False
                 Exit Function
@@ -2984,7 +2983,7 @@ Namespace OnTrack.Scheduling
             ' if the Member is only a Cache ?!
             If aMember.IsCacheNoSave Then
                 Call CoreMessageHandler(message:="setMilestone to cached Item", _
-                                      subname:="clsOTDBSchedule.setMilestone", _
+                                      subname:="Schedule.setMilestone", _
                                       arg1:=LCase(ID) & ":" & CStr(Value))
                 SetMilestone = False
                 Exit Function
@@ -3003,7 +3002,7 @@ Namespace OnTrack.Scheduling
                         isMemberchanged = True
                     End If
                 Else
-                    Call CoreMessageHandler(message:="milestone of date cannot set to", subname:="clsOTDBSchedule.setMilestone", _
+                    Call CoreMessageHandler(message:="milestone of date cannot set to", subname:="Schedule.setMilestone", _
                                                          arg1:=LCase(ID) & ":" & CStr(Value), messagetype:=otCoreMessageType.ApplicationError)
                     Return False
                 End If
@@ -3020,7 +3019,7 @@ Namespace OnTrack.Scheduling
                         isMemberchanged = True
                     End If
                 Else
-                    Call CoreMessageHandler(message:="milestone of numeric cannot set to", subname:="clsOTDBSchedule.setMilestone", _
+                    Call CoreMessageHandler(message:="milestone of numeric cannot set to", subname:="Schedule.setMilestone", _
                                                         arg1:=LCase(ID) & ":" & CStr(Value), messagetype:=otCoreMessageType.ApplicationError)
                     Return False
                 End If
@@ -3037,7 +3036,7 @@ Namespace OnTrack.Scheduling
                         isMemberchanged = True
                     End If
                 Else
-                    Call CoreMessageHandler(message:="milestone of long cannot set to", subname:="clsOTDBSchedule.setMilestone", _
+                    Call CoreMessageHandler(message:="milestone of long cannot set to", subname:="Schedule.setMilestone", _
                                                         arg1:=LCase(ID) & ":" & CStr(Value), messagetype:=otCoreMessageType.ApplicationError)
                     Return False
                 End If
@@ -3054,7 +3053,7 @@ Namespace OnTrack.Scheduling
                         isMemberchanged = True
                     End If
                 Else
-                    Call CoreMessageHandler(message:="milestone of bool cannot set to", subname:="clsOTDBSchedule.setMilestone", _
+                    Call CoreMessageHandler(message:="milestone of bool cannot set to", subname:="Schedule.setMilestone", _
                                                         arg1:=LCase(ID) & ":" & CStr(Value), messagetype:=otCoreMessageType.ApplicationError)
                     Return False
                 End If
@@ -3071,7 +3070,7 @@ Namespace OnTrack.Scheduling
                         isMemberchanged = True
                     End If
                 Else
-                    Call CoreMessageHandler(message:="milestone of string cannot set to", subname:="clsOTDBSchedule.setMilestone", _
+                    Call CoreMessageHandler(message:="milestone of string cannot set to", subname:="Schedule.setMilestone", _
                                                         arg1:=LCase(ID) & ":" & CStr(Value), messagetype:=otCoreMessageType.ApplicationError)
                     Return False
                 End If
@@ -3267,7 +3266,7 @@ Namespace OnTrack.Scheduling
 
             aScheduleDef = ScheduleDefinition.Retrieve(scheduletype:=atypeid)
             If aScheduleDef Is Nothing Then
-                Call CoreMessageHandler(subname:="clsOTDBSchedule.getDefScheduleMSbyOrder", message:=" scheduletype of '" & atypeid & "' not found", arg1:=atypeid)
+                Call CoreMessageHandler(subname:="Schedule.getDefScheduleMSbyOrder", message:=" scheduletype of '" & atypeid & "' not found", arg1:=atypeid)
                 Return Nothing
             Else
                 aMSDefCollection = aScheduleDef.Members    ' should be in the order
@@ -3284,7 +3283,7 @@ Namespace OnTrack.Scheduling
                             Call aCollection.Add(Item:=aScheduleMSDef)
                         End If
                     Else
-                        Call CoreMessageHandler(subname:="clsOTDBSchedule.getDefScheduleMSbyOrder", message:=" milestone with id '" & aScheduleMSDef.ID & "' not found", arg1:=atypeid)
+                        Call CoreMessageHandler(subname:="Schedule.getDefScheduleMSbyOrder", message:=" milestone with id '" & aScheduleMSDef.ID & "' not found", arg1:=atypeid)
                     End If
 
                 Next aScheduleMSDef
@@ -3304,7 +3303,6 @@ Namespace OnTrack.Scheduling
             Dim aRecordCollection As List(Of ormRecord)
             Dim aStore As iormDataStore
             Dim aRecord As ormRecord
-            Dim aNewSchedule As New Schedule
 
             Try
                 aStore = GetTableStore(ConstTableID)
@@ -3313,15 +3311,15 @@ Namespace OnTrack.Scheduling
 
                 If Not aRecordCollection Is Nothing Then
                     For Each aRecord In aRecordCollection
-                        aNewSchedule = New Schedule
-                        If aNewSchedule.Infuse(aRecord) Then
+                        Dim aNewSchedule As New Schedule
+                        If InfuseDataObject(record:=aRecord, dataobject:=aNewSchedule) Then
                             aCollection.Add(Item:=aNewSchedule)
                         End If
                     Next aRecord
                 End If
                 Return aCollection
             Catch ex As Exception
-                Call CoreMessageHandler(exception:=ex, subname:="clsOTDBSchedule.AllByUID")
+                Call CoreMessageHandler(exception:=ex, subname:="Schedule.AllByUID")
                 Return aCollection
             End Try
 
@@ -3573,7 +3571,7 @@ Namespace OnTrack.Scheduling
 
             '            ' Handle the error
             'error_handle:
-            '            Call CoreMessageHandler(subname:="clsOTDBSchedule.createSchema", tablename:=ConstTableID)
+            '            Call CoreMessageHandler(subname:="Schedule.createSchema", tablename:=ConstTableID)
             '            CreateSchema = False
         End Function
 
@@ -3646,48 +3644,35 @@ Namespace OnTrack.Scheduling
             LoadMilestones = True
         End Function
         ''' <summary>
-        ''' infuse the schedule by a record and load the milestones
+        ''' handles the OnInfused Event - load the milestones
         ''' </summary>
         ''' <param name="aRecord"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overrides Function Infuse(ByRef record As ormRecord) As Boolean Implements iormInfusable.Infuse
-
-            '* init
-            If Not Me.IsInitialized Then
-                If Not Me.Initialize() Then
-                    Return False
-                End If
-            End If
-
-            '*** overload it from the Application Container
-            '***
-            If Me.SerializeWithHostApplication Then
-                If overloadFromHostApplication(record) Then
-                    s_loadedFromHost = True
-                End If
-            End If
+        Public Sub OnInfused(sender As Object, e As ormDataObjectEventArgs) Handles MyBase.OnInfused
 
             Try
-                If MyBase.Infuse(record) Then
-                    ' the schedule is loaded
-                    s_haveMilestonesChanged = False
-
-                    '*** fill the Milestone Dictionary
-                    If Not LoadMilestones(scheduletypeid:=_typeid) Then
-                        Me.Unload()
-                        Return False
+                '*** overload it from the Application Container
+                '***
+                If Me.SerializeWithHostApplication Then
+                    If overloadFromHostApplication(Record) Then
+                        s_loadedFromHost = True
                     End If
                 End If
 
-                Return Me.IsLoaded
+                s_haveMilestonesChanged = False
+
+                '*** fill the Milestone Dictionary
+                If Not LoadMilestones(scheduletypeid:=_typeid) Then
+                    e.Proceed = False
+
+                End If
 
             Catch ex As Exception
-                Call CoreMessageHandler(exception:=ex, subname:="clsOTDBSchedule.Infuse")
-                Return False
+                Call CoreMessageHandler(exception:=ex, subname:="Schedule.Infuse")
             End Try
 
-        End Function
+        End Sub
         ''' <summary>
         ''' delete the record and all members
         ''' </summary>
@@ -3820,7 +3805,7 @@ Namespace OnTrack.Scheduling
             If updc = 0 Then
                 If Not Me.GetMaxUpdc(max:=updc, workspaceID:=workspaceID) Then
                     Call CoreMessageHandler(message:=" primary key values could not be created - cannot create object", arg1:=pkArray, _
-                                            subname:="clsotdbschedule.create", tablename:=TableID, messagetype:=otCoreMessageType.InternalError)
+                                            subname:="Schedule.create", tablename:=TableID, messagetype:=otCoreMessageType.InternalError)
                     Return False
                 End If
                 '* increase
@@ -3901,7 +3886,7 @@ Namespace OnTrack.Scheduling
 
             ' check aliases
             If aDefSchedule Is Nothing Then
-                Call CoreMessageHandler(message:="DefSchedule is not valid", arg1:=Me.Typeid, subname:="clsOTDBSchedule.getMilestone")
+                Call CoreMessageHandler(message:="DefSchedule is not valid", arg1:=Me.Typeid, subname:="Schedule.getMilestone")
                 Return False
             End If
             aRealID = aDefSchedule.GetMilestoneIDByAlias(AliasID:=LCase(ID))
@@ -4170,7 +4155,7 @@ Namespace OnTrack.Scheduling
             'if we have a baseline
             If Me.IsBaseline Then
                 Call CoreMessageHandler(message:=" Schedule for uid #" & Me.Uid & " is already baselined with this updc #" & Me.Updc, _
-                                      subname:="clsOTDBSchedule.drawBaseline", arg1:=Me.Uid & "." & Me.Updc, break:=False)
+                                      subname:="Schedule.drawBaseline", arg1:=Me.Uid & "." & Me.Updc, break:=False)
                 DrawBaseline = True
                 Exit Function
             End If
@@ -4208,7 +4193,7 @@ Namespace OnTrack.Scheduling
                     ' freeze again ?!
                     If aSchedule.IsFrozen = True Then
                         Call CoreMessageHandler(message:=" Schedule was baselined again at a later point of time", _
-                                              subname:="clsOTDBSchedule.drawBaseline", arg1:=Me.Uid & "." & Me.Updc, break:=False)
+                                              subname:="Schedule.drawBaseline", arg1:=Me.Uid & "." & Me.Updc, break:=False)
 
                     End If
                     If aSchedule.Updc <> Me.Updc Then
@@ -4346,7 +4331,7 @@ Namespace OnTrack.Scheduling
             End If
             If Workspace.Retrieve(id:=workspaceid) Is Nothing Then
                 CoreMessageHandler(message:="workspaceID Definition does not exist", arg1:=workspaceid, messagetype:=otCoreMessageType.ApplicationError, _
-                                    subname:="clsotdbSchedule.publish")
+                                    subname:="Schedule.publish")
                 Return False
             End If
             ' set msglog
@@ -4386,7 +4371,7 @@ Namespace OnTrack.Scheduling
                 If Me.IsLoaded Or Me.IsCreated Then
                     If Not Me.GetMaxUpdc(max:=aNewUPDC, workspaceID:=workspaceid) Then
                         CoreMessageHandler(message:="no updc for schedule #" & Me.Uid.ToString & " could be created", arg1:=workspaceid, _
-                                            subname:="clsOTDBSchedule.Publish", messagetype:=otCoreMessageType.InternalError)
+                                            subname:="Schedule.Publish", messagetype:=otCoreMessageType.InternalError)
                         Return False
                     Else
                         '** here we change our IDENTITY UPDC !
@@ -4578,7 +4563,7 @@ Namespace OnTrack.Scheduling
 
             Catch ex As Exception
 
-                Call CoreMessageHandler(subname:="clsOTDBSchedule.Persist", exception:=ex)
+                Call CoreMessageHandler(subname:="Schedule.Persist", exception:=ex)
                 Return False
             End Try
 
@@ -4636,7 +4621,7 @@ Namespace OnTrack.Scheduling
 
                     ' actually here it we should clone all members too !
 
-                    If aNewObject.Infuse(aNewRecord) Then
+                    If InfuseDataObject(record:=aNewRecord, dataobject:=aNewObject) Then
                         ' now clone the Members (Milestones)
                         For Each kvp As KeyValuePair(Of String, ScheduleMilestone) In s_members
                             aMember = kvp.Value
@@ -4654,7 +4639,7 @@ Namespace OnTrack.Scheduling
                 Return Nothing
 
             Catch ex As Exception
-                Call CoreMessageHandler(subname:="clsOTDBSchedule.Clone", exception:=ex)
+                Call CoreMessageHandler(subname:="Schedule.Clone", exception:=ex)
                 Return Nothing
             End Try
         End Function
@@ -4707,7 +4692,7 @@ Namespace OnTrack.Scheduling
             End If
             '**
             If Not aWorkspace.Inject(workspaceID) Then
-                Call CoreMessageHandler(arg1:=workspaceID, subname:="clsOTDBSchedule.cloneToWorkspace", message:="couldn't load workspaceID")
+                Call CoreMessageHandler(arg1:=workspaceID, subname:="Schedule.cloneToWorkspace", message:="couldn't load workspaceID")
                 CloneToWorkspace = False
                 Exit Function
             End If
@@ -4724,7 +4709,7 @@ Namespace OnTrack.Scheduling
             '** clone
             aNewObject = Me.Clone(updc:=newUPDC)
             If aNewObject Is Nothing Then
-                Call CoreMessageHandler(arg1:=workspaceID, subname:="clsOTDBSchedule.cloneToWorkspace", _
+                Call CoreMessageHandler(arg1:=workspaceID, subname:="Schedule.cloneToWorkspace", _
                                       message:="couldn't clone schedule (" & Me.Uid & "," & Me.Updc & ") to new updc(" & newUPDC)
                 CloneToWorkspace = False
                 Exit Function
@@ -4812,7 +4797,7 @@ Namespace OnTrack.Scheduling
                 End If
                 Return GetMaxUpdc
             Catch ex As Exception
-                Call CoreMessageHandler(showmsgbox:=False, exception:=ex, subname:="clsOTDBSchedule.getMaxUPDC")
+                Call CoreMessageHandler(showmsgbox:=False, exception:=ex, subname:="Schedule.getMaxUPDC")
                 Return False
             End Try
         End Function
@@ -4846,7 +4831,7 @@ Namespace OnTrack.Scheduling
                 Dim anWSId As String = envelope.GetSlotValueByID(id:="WS")
                 If aXCmd = otXChangeCommandType.UpdateCreate Then
                     If anUID Is Nothing Then
-                        CoreMessageHandler(message:="could not load or create new schedule from envelope - uid is missing", subname:="clsOTDBSchedule.RunXChange", messagetype:=otCoreMessageType.ApplicationError)
+                        CoreMessageHandler(message:="could not load or create new schedule from envelope - uid is missing", subname:="Schedule.RunXChange", messagetype:=otCoreMessageType.ApplicationError)
                         Return False
                     Else
                         anUID = CLng(anUID)
@@ -4863,7 +4848,7 @@ Namespace OnTrack.Scheduling
                 Else
                     Call envelope.MsgLog.AddMsg("203", envelope.Xchangeconfig.Configname, Nothing, Nothing, _
                                            envelope.Xchangeconfig.Configname, anUID & ", <none>")
-                    CoreMessageHandler(message:="could not load or create new schedule from envelope", arg1:=anUID, subname:="clsOTDBSchedule.RunXChange", messagetype:=otCoreMessageType.ApplicationError)
+                    CoreMessageHandler(message:="could not load or create new schedule from envelope", arg1:=anUID, subname:="Schedule.RunXChange", messagetype:=otCoreMessageType.ApplicationError)
                     Return False
                 End If
             End If
@@ -5071,7 +5056,7 @@ Namespace OnTrack.Scheduling
                 ' change the workspaceID ?!
                 If aSchedule.workspaceID <> aWorkspace Then
                     Debug.Assert(False)
-                    Debug.Print("workspaceID changed in clsOTDBSchedule")
+                    Debug.Print("workspaceID changed in Schedule")
                     aSchedule.workspaceID = aWorkspace
                 End If
             End If
@@ -5257,7 +5242,7 @@ Namespace OnTrack.Scheduling
                 End If
                 If aValue Is Nothing OrElse Not IsNumeric(aValue) Then
                     CoreMessageHandler(message:="Envelope has no id 'uid'", messagetype:=otCoreMessageType.ApplicationError, _
-                                       subname:="clsOTDBSchedule.Inject(Envelope)")
+                                       subname:="Schedule.Inject(Envelope)")
                     If envelope.Xchangeconfig.AttributeByFieldName(fieldname:=Me.ConstFNUid, tablename:=Me.ConstTableID) Is Nothing Then
                         Call envelope.MsgLog.AddMsg("200", Nothing, Nothing, "SC2", "SC2", ConstTableID, envelope.Xchangeconfig.Configname)
                     Else
@@ -5290,7 +5275,7 @@ Namespace OnTrack.Scheduling
                         envelope.AddSlotByID(id:="SC3", value:=updc, isHostValue:=False, extendXConfig:=True)
                     Else
                         'CoreMessageHandler(message:="Envelope has no determinable id 'SC3'", messagetype:=otCoreMessageType.ApplicationError, _
-                        '                   subname:="clsOTDBSchedule.Inject(Envelope)")
+                        '                   subname:="Schedule.Inject(Envelope)")
                         Return False
                     End If
                 Else
@@ -5299,7 +5284,7 @@ Namespace OnTrack.Scheduling
                 '*** load the schedule
                 If Not Me.Inject(UID:=uid, updc:=updc) Then
                     CoreMessageHandler(message:="could not load the schedule ", arg1:=CStr(uid) & "." & CStr(updc), _
-                                       messagetype:=otCoreMessageType.ApplicationError, subname:="clsOTDBSchedule.Inject(Envelope)")
+                                       messagetype:=otCoreMessageType.ApplicationError, subname:="Schedule.Inject(Envelope)")
                     Return False
                 End If
             Else
@@ -5322,7 +5307,7 @@ Namespace OnTrack.Scheduling
             Dim avalue As Object
 
             If Not Me.Inject(envelope:=envelope) Then
-                CoreMessageHandler(message:="Schedule could not be loaded from envelope", subname:="clsOTDBSchedule.AddCompounds", messagetype:=otCoreMessageType.ApplicationError)
+                CoreMessageHandler(message:="Schedule could not be loaded from envelope", subname:="Schedule.AddCompounds", messagetype:=otCoreMessageType.ApplicationError)
                 Return False
             End If
             '***
@@ -5625,34 +5610,26 @@ Namespace OnTrack.Scheduling
         ''' <param name="aRecord"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overrides Function Infuse(ByRef record As ormRecord) As Boolean Implements iormInfusable.Infuse
+        Public Sub OnInfused(sender As Object, e As ormDataObjectEventArgs) Handles MyBase.OnInfused
             Dim aVAlue As Object
-
-            '* init
-            If Not Me.IsInitialized Then
-                If Not Me.Initialize() Then
-                    Infuse = False
-                    Exit Function
-                End If
-            End If
 
 
             Try
                 '*** overload it from the Application Container
                 '***
                 If Me.SerializeWithHostApplication Then
-                    If overloadFromHostApplication(record) Then
+                    If overloadFromHostApplication(Record) Then
                         s_loadedFromHost = True
                     End If
                 End If
 
-                _datatype = CLng(record.GetValue(ConstFNDatatype))
-                aVAlue = record.GetValue(ConstFNvalue)
+                _datatype = CLng(Record.GetValue(ConstFNDatatype))
+                aVAlue = Record.GetValue(ConstFNvalue)
                 ' select on Datatype
                 Select Case _datatype
 
                     Case otFieldDataType.Numeric
-                        aVAlue = record.GetValue(ConstFNvaluenumeric)
+                        aVAlue = Record.GetValue(ConstFNvaluenumeric)
                         _value = CDbl(aVAlue)
                     Case otFieldDataType.Text
 
@@ -5662,7 +5639,7 @@ Namespace OnTrack.Scheduling
                         Call CoreMessageHandler(subname:="ScheduleMilestone.infuse", messagetype:=otCoreMessageType.ApplicationError, _
                                               message:="runtime, formular, binary can't infuse", msglog:=s_msglog, arg1:=aVAlue)
                     Case otFieldDataType.[Date], otFieldDataType.Timestamp
-                        aVAlue = record.GetValue(ConstFNvaluedate)
+                        aVAlue = Record.GetValue(ConstFNvaluedate)
                         If IsDate(aVAlue) Then
                             _value = CDate(aVAlue)
                         Else
@@ -5674,10 +5651,10 @@ Namespace OnTrack.Scheduling
                         End If
 
                     Case otFieldDataType.[Long]
-                        aVAlue = record.GetValue(ConstFNvaluelong)
+                        aVAlue = Record.GetValue(ConstFNvaluelong)
                         _value = CLng(aVAlue)
                     Case otFieldDataType.Bool
-                        aVAlue = record.GetValue(ConstFNvaluebool)
+                        aVAlue = Record.GetValue(ConstFNvaluebool)
                         _value = CBool(aVAlue)
                     Case otFieldDataType.Memo
                         _value = CStr(aVAlue)
@@ -5686,16 +5663,13 @@ Namespace OnTrack.Scheduling
                                               message:="unknown datatype to be infused", msglog:=s_msglog, arg1:=aVAlue)
                 End Select
 
-                Return MyBase.Infuse(record)
-
 
             Catch ex As Exception
                 Call CoreMessageHandler(exception:=ex, subname:="ScheduleMilestone.Infuse")
-                Return False
             End Try
 
 
-        End Function
+        End Sub
 
         ''' <summary>
         ''' Load and infuse the schedule milestone from the data store by primary key
@@ -6436,7 +6410,6 @@ Namespace OnTrack.Scheduling
             Dim aTable As iormDataStore
             Dim Key(0) As Object
             Dim aRECORD As ormRecord
-            Dim aNewcurSchedule As New CurrentSchedule
             ' set the primaryKey
 
             Key(0) = UID
@@ -6452,8 +6425,8 @@ Namespace OnTrack.Scheduling
                 Exit Function
             Else
                 For Each aRECORD In aRECORDCollection
-                    aNewcurSchedule = New CurrentSchedule
-                    If aNewcurSchedule.Infuse(aRECORD) Then
+                    Dim aNewcurSchedule As New CurrentSchedule
+                    If InfuseDataObject(record:=aRECORD, dataobject:=aNewcurSchedule) Then
                         aCollection.Add(Item:=aNewcurSchedule)
                     End If
                 Next

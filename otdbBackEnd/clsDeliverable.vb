@@ -187,10 +187,9 @@ Namespace OnTrack.Deliverables
                 aCommand.SetParameterValue(ID:="@uid", value:=uid)
                 aRecordCollection = aCommand.RunSelect
 
-
                 For Each aRecord As ormRecord In aRecordCollection
-                    Dim aCurrTarget As CurrentTarget = New CurrentTarget
-                    If aCurrTarget.Infuse(aRecord) Then
+                    Dim aCurrTarget As New CurrentTarget
+                    If InfuseDataObject(record:=aRecord, dataobject:=aCurrTarget) Then
                         aCollection.Add(Item:=aCurrTarget)
                     End If
                 Next aRecord
@@ -226,10 +225,9 @@ Namespace OnTrack.Deliverables
                 aCommand.SetParameterValue(ID:="@wspace", value:=workspaceID)
                 aRecordCollection = aCommand.RunSelect
 
-
                 For Each aRecord As ormRecord In aRecordCollection
-                    Dim aCurrTarget As CurrentTarget = New CurrentTarget
-                    If aCurrTarget.Infuse(aRecord) Then
+                    Dim aCurrTarget As New CurrentTarget
+                    If InfuseDataObject(record:=aRecord, dataobject:=aCurrTarget) Then
                         aCollection.Add(Item:=aCurrTarget)
                     End If
                 Next aRecord
@@ -861,7 +859,7 @@ Namespace OnTrack.Deliverables
                 If aRecordCollection.Count > 0 Then
                     For Each aRecord As ormRecord In aRecordCollection
                         Dim aNewcurSchedule As New CurrentSchedule
-                        If aNewcurSchedule.Infuse(aRecord) Then
+                        If InfuseDataObject(record:=aRecord, dataobject:=aNewcurSchedule) Then
                             aCollection.Add(Item:=aNewcurSchedule)
                         End If
                     Next aRecord
@@ -921,56 +919,6 @@ Namespace OnTrack.Deliverables
         ' | End Function                                            |
         '  •—————————————————————————————————————————————————————————• */
 
-        ''' <summary>
-        ''' Perist the object to the datastore
-        ''' </summary>
-        ''' <param name="timestamp"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Function Persist(Optional timestamp As Date = ot.ConstNullDate) As Boolean
-            Return MyBase.Persist(timestamp)
-        End Function
-        ''' <summary>
-        ''' Infuse the object with a record
-        ''' </summary>
-        ''' <param name="record"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Overrides Function Infuse(ByRef record As ormRecord) As Boolean Implements iormInfusable.Infuse
-
-            ' |                                             |
-            ' |             '* init                         |
-            ' |             If Not Me.IsInitialized Then    |
-            ' |                 If Not Me.Initialize() Then |
-            ' |                     Infuse = False          |
-            ' |                     Exit Function           |
-            ' |                 End If                      |
-            ' |             End If                          |
-
-            Try
-                ' | _uid = CLng(record.GetValue("uid"))                 |
-                ' | _updc = CInt(record.GetValue("updc"))               |
-                ' | _rev = CStr(record.GetValue("rev"))                 |
-                ' |                                                     |
-                ' | If Not IsNull(record.GetValue("wspace")) Then       |
-                ' |     _workspace = CStr(record.GetValue("wspace"))    |
-                ' | Else                                                |
-                ' |     _workspace = CurrentSession.DefaultWorkspaceID  |
-                ' | End If                                              |
-                ' |                                                     |
-                ' | _targetdate = CDate(record.GetValue(constFNTarget)) |
-                ' | _prevTarget = CDate(record.GetValue("pvtd"))        |
-                ' | _changedDate = CDate(record.GetValue("tchg"))       |
-                ' | _msglogtag = CStr(record.GetValue("msglogtag"))     |
-                ' | _IsLoaded = MyBase.Infuse(record)                   |
-                Return MyBase.Infuse(record)
-
-            Catch ex As Exception
-                Call CoreMessageHandler(exception:=ex, subname:="clsOTDBDeliverableTarget.Infuse")
-                Return False
-            End Try
-
-        End Function
         ''' <summary>
         ''' load and infuse the object by primary key
         ''' </summary>
@@ -1517,7 +1465,7 @@ Namespace OnTrack.Deliverables
     End Class
 
     '************************************************************************************
-    '***** CLASS clsOTDBDeliverableTrack is the object for a OTDBRecord (which is the data store)
+    '***** CLASS Track is the object for a OTDBRecord (which is the data store)
     '*****
     '*****
     ''' <summary>
@@ -2006,7 +1954,7 @@ Namespace OnTrack.Deliverables
             ' Connection
             If Not CurrentSession.RequireAccessRight(accessRequest:=otAccessRight.ReadUpdateData) Then
                 CoreMessageHandler(showmsgbox:=True, message:="Rights not sufficient to exectue the requested operation", _
-                                   messagetype:=otCoreMessageType.ApplicationError, subname:="clsOTDBDeliverableTrack.UpdateAllTrack")
+                                   messagetype:=otCoreMessageType.ApplicationError, subname:="Track.UpdateAllTrack")
                 Return False
             End If
 
@@ -2016,7 +1964,7 @@ Namespace OnTrack.Deliverables
             End If
             Dim aWorkspace As Workspace = Workspace.Retrieve(id:=workspaceID)
             If aWorkspace Is Nothing Then
-                Call CoreMessageHandler(message:="workspaceID '" & workspaceID & "' is not defined", subname:="clsOTDBDeliverableTrack.UpdateAllTrack", _
+                Call CoreMessageHandler(message:="workspaceID '" & workspaceID & "' is not defined", subname:="Track.UpdateAllTrack", _
                                         showmsgbox:=True, _
                                         messagetype:=otCoreMessageType.ApplicationError)
                 Return False
@@ -2187,13 +2135,13 @@ Namespace OnTrack.Deliverables
                 End If
 
                 CoreMessageHandler(message:=maximum & " deliverables checked and tracks updated", messagetype:=otCoreMessageType.ApplicationInfo, _
-                                   subname:="clsOTDBDEliverableTrack.UpdateAllTracks")
+                                   subname:="Track.UpdateAllTracks")
                 Return True
 
                 Exit Function
 
             Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="clsOTDBDeliverableTrack.updateAllTracks")
+                CoreMessageHandler(exception:=ex, subname:="Track.updateAllTracks")
                 Return False
             End Try
 
@@ -2569,7 +2517,7 @@ Namespace OnTrack.Deliverables
 
             '            ' Handle the error
             'error_handle:
-            '            Call CoreMessageHandler(subname:="clsOTDBDeliverableTrack.createSchema", tablename:=constTableID)
+            '            Call CoreMessageHandler(subname:="Track.createSchema", tablename:=constTableID)
             '            CreateSchema = False
         End Function
 
@@ -2598,7 +2546,7 @@ Namespace OnTrack.Deliverables
                 Else
                     For Each aRecord As ormRecord In aRecordCollection
                         Dim aNewDelivTrack As New Track
-                        If aNewDelivTrack.Infuse(aRecord) Then
+                        If InfuseDataObject(record:=aRecord, dataobject:=aNewDelivTrack) Then
                             If ((aNewDelivTrack.ScheduleUPDC = scheduleUPDC And scheduleUPDC > -1) Or (scheduleUPDC = -1)) _
                             And ((aNewDelivTrack.TargetUPDC = targetUPDC And targetUPDC > -1) Or (targetUPDC = -1)) Then
                                 aCollection.Add(Item:=aNewDelivTrack)
@@ -2609,7 +2557,7 @@ Namespace OnTrack.Deliverables
                 End If
 
             Catch ex As Exception
-                Call CoreMessageHandler(exception:=ex, subname:="clsOTDBDeliverableTrack.AllByUID", tablename:=ConstTableID, messagetype:=otCoreMessageType.InternalException)
+                Call CoreMessageHandler(exception:=ex, subname:="Track.AllByUID", tablename:=ConstTableID, messagetype:=otCoreMessageType.InternalException)
                 Return aCollection
             End Try
 
@@ -2728,7 +2676,7 @@ Namespace OnTrack.Deliverables
 
             If Not target.IsLoaded And Not target.IsCreated Then
                 Call CoreMessageHandler(message:="input deliverable target is not created nor loaded", break:=False, _
-                                        subname:="clsOTDBDeliverableTrack.updateFromTarget")
+                                        subname:="Track.updateFromTarget")
                 If s_dlvTarget Is Nothing Then
                     UpdateFromTarget = False
                     Exit Function
@@ -2861,7 +2809,7 @@ Namespace OnTrack.Deliverables
 
             If Not schedule.IsLoaded And Not schedule.IsCreated Then
                 Call CoreMessageHandler(message:="input deliverable SCHEDULE is not created nor loaded", break:=False, _
-                                        subname:="clsOTDBDeliverableTrack.updateFromSchedule")
+                                        subname:="Track.updateFromSchedule")
                 If s_schedule Is Nothing Then
                     UpdateFromSchedule = False
                     Exit Function
@@ -3039,7 +2987,7 @@ Namespace OnTrack.Deliverables
             '*** check deliverable
             If Not deliverable.IsLoaded And Not deliverable.IsCreated Then
                 Call CoreMessageHandler(message:="input deliverable is not created nor loaded", break:=False, _
-                                        subname:="clsOTDBDeliverableTrack.updateFromDeliverable")
+                                        subname:="Track.updateFromDeliverable")
                 If s_deliverable Is Nothing Then
                     UpdateFromDeliverable = False
                     Exit Function
@@ -3554,7 +3502,7 @@ Namespace OnTrack.Deliverables
                 '** get the entries for the domain and global sorted out
                 For Each aRecord As ormRecord In aRecordCollection
                     Dim aNewDeliverable As New DeliverableType
-                    If aNewDeliverable.Infuse(aRecord) Then
+                    If InfuseDataObject(record:=aRecord, dataobject:=aNewDeliverable) Then
                         If aDomainDir.ContainsKey(key:=aNewDeliverable.Typeid) Then
                             Dim anExist = aDomainDir.Item(key:=aNewDeliverable.Typeid)
                             If anExist.DomainID = ConstGlobalDomain And aNewDeliverable.DomainID = CurrentSession.CurrentDomainID Then
@@ -3661,10 +3609,12 @@ Namespace OnTrack.Deliverables
         Public Const constFNRespOU = "respou"
 
         <ormObjectEntry(referenceobjectentry:=Part.ConstObjectID & "." & Part.ConstFNPartID, _
-            isnullable:=True, description:="part id of the deliverable", XID:="DLV12", useforeignkey:=otForeignKeyImplementation.NativeDatabase)> Public Const constFNPartID = Part.ConstFNPartID
+            isnullable:=True, description:="part id of the deliverable", XID:="DLV12", _
+            useforeignkey:=otForeignKeyImplementation.NativeDatabase)> Public Const constFNPartID = Part.ConstFNPartID
 
         <ormObjectEntry(referenceobjectentry:=DeliverableType.ConstObjectID & "." & DeliverableType.constFNTypeID, _
-            title:="Type", description:="type of the deliverable", XID:="DLV13")> Public Const constFNTypeID = "typeid"
+            title:="Type", description:="type of the deliverable", XID:="DLV13", _
+             useforeignkey:=otForeignKeyImplementation.NativeDatabase)> Public Const constFNTypeID = "typeid"
 
         <ormObjectEntry(referenceobjectentry:=Person.ConstObjectID & "." & Person.constFNID, _
             title:="Responsible", description:="responsible person for the deliverable", XID:="DLV16")> Public Const constFNResponsiblePerson = "resp"
@@ -4550,7 +4500,7 @@ Namespace OnTrack.Deliverables
 
                 For Each aRecord As ormRecord In aRecordCollection
                     Dim aNewDeliverable As New Deliverable
-                    If aNewDeliverable.Infuse(aRecord) Then
+                    If InfuseDataObject(record:=aRecord, dataobject:=aNewDeliverable) Then
                         aCollection.Add(item:=aNewDeliverable)
                     End If
                 Next
@@ -4604,7 +4554,7 @@ Namespace OnTrack.Deliverables
 
                 For Each aRecord As ormRecord In aRecordCollection
                     Dim aNewDeliverable As New Deliverable
-                    If aNewDeliverable.Infuse(aRecord) Then
+                    If InfuseDataObject(record:=aRecord, dataobject:=aNewDeliverable) Then
                         aCollection.Add(item:=aNewDeliverable)
                     End If
                 Next
@@ -4686,7 +4636,7 @@ Namespace OnTrack.Deliverables
 
                 For Each aRecord As ormRecord In aRecordCollection
                     Dim aNewDeliverable As New Deliverable
-                    If aNewDeliverable.Infuse(aRecord) Then
+                    If InfuseDataObject(record:=aRecord, dataobject:=aNewDeliverable) Then
                         aCollection.Add(item:=aNewDeliverable)
                     End If
                 Next

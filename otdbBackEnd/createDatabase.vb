@@ -918,58 +918,58 @@ Namespace OnTrack.Database
         ''' creates or updates all schemata for Configurable object
         ''' </summary>
         ''' <remarks></remarks>
-        Public Sub Configurables()
+        'Public Sub Configurables()
 
-            If Not ot.CurrentSession.RequireAccessRight(otAccessRight.AlterSchema) Then
-                Call ot.CoreMessageHandler(message:="Access right couldnot be set to AlterSchema", subname:="modCreateDB.createDatabase_CONFIG", _
-                                             messagetype:=otCoreMessageType.ApplicationInfo, break:=False)
-                Exit Sub
-            End If
-
-
-            Dim aDefConfigItem As New clsOTDBDefConfigurationItem
-            If Not clsOTDBDefConfigurationItem.CreateSchema() Then
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="createDatabase", _
-                                             message:="Schema  couldn't be created")
-
-            End If
-
-            Dim aDefConfiguration As New clsOTDBDefConfiguration
-            Dim i As Integer
-
-            With aDefConfiguration
-                If .Inject(CONFIGNAME:="CTUSAGE") Then
-                    .delete()
-                End If
-                Call .create(CONFIGNAME:="CTUSAGE")
-                For i = 1 To 26
-
-                    Call .addItemByValues(ID:="CT" & i, DATATYPE:=otFieldDataType.[Long], TITLE:="Usage on cartype H" & Format(i, "0#"))
-                Next i
-                .Persist()
-            End With
+        '    If Not ot.CurrentSession.RequireAccessRight(otAccessRight.AlterSchema) Then
+        '        Call ot.CoreMessageHandler(message:="Access right couldnot be set to AlterSchema", subname:="modCreateDB.createDatabase_CONFIG", _
+        '                                     messagetype:=otCoreMessageType.ApplicationInfo, break:=False)
+        '        Exit Sub
+        '    End If
 
 
-            Dim aConfig As New clsOTDBConfigurable
-            If Not aConfig.createSchema() Then
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="createDatabase", _
-                                             message:="Schema Schedle couldn't be created")
+        '    Dim aDefConfigItem As New clsOTDBDefConfigurationItem
+        '    If Not clsOTDBDefConfigurationItem.CreateSchema() Then
+        '        Call ot.CoreMessageHandler(showmsgbox:=False, subname:="createDatabase", _
+        '                                     message:="Schema  couldn't be created")
+
+        '    End If
+
+        '    Dim aDefConfiguration As New clsOTDBDefConfiguration
+        '    Dim i As Integer
+
+        '    With aDefConfiguration
+        '        If .Inject(CONFIGNAME:="CTUSAGE") Then
+        '            .delete()
+        '        End If
+        '        Call .create(CONFIGNAME:="CTUSAGE")
+        '        For i = 1 To 26
+
+        '            Call .addItemByValues(ID:="CT" & i, DATATYPE:=otFieldDataType.[Long], TITLE:="Usage on cartype H" & Format(i, "0#"))
+        '        Next i
+        '        .Persist()
+        '    End With
 
 
-            End If
-            Dim aConfigItem As New clsOTDBConfigurableItem
-            If Not aConfigItem.createSchema() Then
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="createDatabase", _
-                                             message:="Schema Schedle couldn't be created")
-            End If
+        '    Dim aConfig As New clsOTDBConfigurable
+        '    If Not aConfig.createSchema() Then
+        '        Call ot.CoreMessageHandler(showmsgbox:=False, subname:="createDatabase", _
+        '                                     message:="Schema Schedle couldn't be created")
 
-            Dim aConfigLink As New clsOTDBConfigurableLink
-            If Not aConfigLink.createSchema() Then
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="createDatabase", _
-                                             message:="Schema Schedle couldn't be created")
-            End If
 
-        End Sub
+        '    End If
+        '    Dim aConfigItem As New clsOTDBConfigurableItem
+        '    If Not aConfigItem.createSchema() Then
+        '        Call ot.CoreMessageHandler(showmsgbox:=False, subname:="createDatabase", _
+        '                                     message:="Schema Schedle couldn't be created")
+        '    End If
+
+        '    Dim aConfigLink As New clsOTDBConfigurableLink
+        '    If Not aConfigLink.createSchema() Then
+        '        Call ot.CoreMessageHandler(showmsgbox:=False, subname:="createDatabase", _
+        '                                     message:="Schema Schedle couldn't be created")
+        '    End If
+
+        'End Sub
         '******* createDatabase_ConfigSection
         '*******
         Public Sub XChange()

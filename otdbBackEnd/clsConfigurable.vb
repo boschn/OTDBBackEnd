@@ -157,46 +157,46 @@ Namespace OnTrack.Configurables
 
         '**** delete
         '****
-        Public Function delete() As Boolean
-            Dim anEntry As New clsOTDBDefConfigurationItem
-            Dim initialEntry As New clsOTDBDefConfigurationItem
-            Dim m As Object
+        'Public Function delete() As Boolean
+        '    Dim anEntry As New clsOTDBDefConfigurationItem
+        '    Dim initialEntry As New clsOTDBDefConfigurationItem
+        '    Dim m As Object
 
-            '* init
-            If Not Me.IsInitialized Then
-                If Not Me.initialize() Then
-                    delete = False
-                    Exit Function
-                End If
-            End If
-            If Me.IsCreated Then
-                Call Me.Inject(CONFIGNAME:=Me.CONFIGNAME)
-            End If
-            If Not _IsLoaded And Not Me.IsCreated Then
-                delete = False
-                Exit Function
-            End If
+        '    '* init
+        '    If Not Me.IsInitialized Then
+        '        If Not Me.initialize() Then
+        '            delete = False
+        '            Exit Function
+        '        End If
+        '    End If
+        '    If Me.IsCreated Then
+        '        Call Me.Inject(CONFIGNAME:=Me.CONFIGNAME)
+        '    End If
+        '    If Not _IsLoaded And Not Me.IsCreated Then
+        '        delete = False
+        '        Exit Function
+        '    End If
 
-            ' delete each entry
-            For Each kvp As KeyValuePair(Of String, clsOTDBDefConfigurationItem) In s_items
-                anEntry = kvp.Value
-                anEntry.Delete()
-            Next
+        '    ' delete each entry
+        '    For Each kvp As KeyValuePair(Of String, clsOTDBDefConfigurationItem) In s_items
+        '        anEntry = kvp.Value
+        '        anEntry.Delete()
+        '    Next
 
-            ' reset it
-            s_items = New Dictionary(Of String, clsOTDBDefConfigurationItem)
-            If Not anEntry.create(CONFIGNAME:=s_configname, ID:="") Then
-                Call anEntry.Inject(CONFIGNAME:=s_configname, ID:="")
-                anEntry.ID = ""
+        '    ' reset it
+        '    s_items = New Dictionary(Of String, clsOTDBDefConfigurationItem)
+        '    If Not anEntry.create(CONFIGNAME:=s_configname, ID:="") Then
+        '        Call anEntry.Inject(CONFIGNAME:=s_configname, ID:="")
+        '        anEntry.ID = ""
 
-            End If
-            s_items.Add(key:="", value:=anEntry)
+        '    End If
+        '    s_items.Add(key:="", value:=anEntry)
 
-            _IsCreated = True
-            Me.IsDeleted = True
-            Me.Unload()
+        '    _IsCreated = True
+        '    Me.IsDeleted = True
+        '    Me.Unload()
 
-        End Function
+        'End Function
 
         '**** IDs
         '****
@@ -265,62 +265,60 @@ Namespace OnTrack.Configurables
             infuse = False
         End Function
 
+'        '**** Inject : load the object by the PrimaryKeys
+'        '****
+'        Public Function Inject(ByVal CONFIGNAME As String) As Boolean
+'            Dim aTable As iormDataStore
+'            Dim aRecordCollection As List(Of ormRecord)
+'            Dim aRecord As ormRecord
+'            Dim aIndexCollection As New Collection
 
+'            Dim anEntry As New clsOTDBDefConfigurationItem
 
-        '**** Inject : load the object by the PrimaryKeys
-        '****
-        Public Function Inject(ByVal CONFIGNAME As String) As Boolean
-            Dim aTable As iormDataStore
-            Dim aRecordCollection As List(Of ormRecord)
-            Dim aRecord As ormRecord
-            Dim aIndexCollection As New Collection
+'            Dim wherestr As String
+'            'Dim PKArry(1 To 1) As Object
 
-            Dim anEntry As New clsOTDBDefConfigurationItem
+'            '* init
+'            If Not Me.IsInitialized Then
+'                If Not Me.initialize() Then
+'                    Inject = False
+'                    Exit Function
+'                End If
+'            End If
 
-            Dim wherestr As String
-            'Dim PKArry(1 To 1) As Object
+'            ' set the primaryKey
 
-            '* init
-            If Not Me.IsInitialized Then
-                If Not Me.initialize() Then
-                    Inject = False
-                    Exit Function
-                End If
-            End If
+'            aTable = GetTableStore(ourTableName)
+'            aRecordCollection = aTable.GetRecordsBySql(wherestr:="cname = '" & CONFIGNAME & "'")
+'            'Set aRecordCollection = aTable.getRecordsByIndex(aTable.primaryKeyIndexName, Key, True)
 
-            ' set the primaryKey
+'            If aRecordCollection Is Nothing Then
+'                Me.Unload()
+'                Inject = False
+'                Exit Function
+'            Else
+'                s_configname = CONFIGNAME
+'                _IsLoaded = True
+'                ' records read
+'                For Each aRecord In aRecordCollection
+'                    ' add the Entry as Component
+'                    anEntry = New clsOTDBDefConfigurationItem
+'                    'If anEntry.infuse(aRecord) Then
+'                    'If Not Me.addItem(anEntry) Then
+'                    'End If
+'                    'End If
+'                Next aRecord
+'                '
+'                _IsLoaded = True
+'                Inject = True
+'                Exit Function
+'            End If
 
-            aTable = GetTableStore(ourTableName)
-            aRecordCollection = aTable.GetRecordsBySql(wherestr:="cname = '" & CONFIGNAME & "'")
-            'Set aRecordCollection = aTable.getRecordsByIndex(aTable.primaryKeyIndexName, Key, True)
-
-            If aRecordCollection Is Nothing Then
-                Me.Unload()
-                Inject = False
-                Exit Function
-            Else
-                s_configname = CONFIGNAME
-                _IsLoaded = True
-                ' records read
-                For Each aRecord In aRecordCollection
-                    ' add the Entry as Component
-                    anEntry = New clsOTDBDefConfigurationItem
-                    If anEntry.infuse(aRecord) Then
-                        If Not Me.addItem(anEntry) Then
-                        End If
-                    End If
-                Next aRecord
-                '
-                _IsLoaded = True
-                Inject = True
-                Exit Function
-            End If
-
-error_handler:
-            Me.Unload()
-            Inject = True
-            Exit Function
-        End Function
+'error_handler:
+'            Me.Unload()
+'            Inject = True
+'            Exit Function
+'        End Function
 
         '**** persist
         '****
@@ -651,43 +649,43 @@ errorhandle:
         End Function
 
         '**** infuese the object by a OTDBRecord
-        '****
-        Public Function infuse(ByRef aRecord As ormRecord) As Boolean
-            Dim aVAlue As String
+'        '****
+'        Public Function infuse(ByRef aRecord As ormRecord) As Boolean
+'            Dim aVAlue As String
 
-            '* init
-            If Not Me.IsInitialized Then
-                If Not Me.initialize() Then
-                    infuse = False
-                    Exit Function
-                End If
-            End If
-
-
-            On Error GoTo errorhandle
-
-            Me.Record = aRecord
-            s_configname = CStr(aRecord.GetValue("cname"))
-            s_id = CStr(aRecord.GetValue("id"))
-            s_parameter = CStr(aRecord.GetValue("parameter"))
-            s_relation = CStr(aRecord.GetValue("relation"))
-            s_typeid = CStr(aRecord.GetValue("typeid"))
-            s_datatype = CLng(aRecord.GetValue("datatype"))
-            s_version = CLng(aRecord.GetValue("updc"))
-            s_title = CStr(aRecord.GetValue("title"))
-            s_aliases = CStr(aRecord.GetValue("alias"))
-            s_cmt = CStr(aRecord.GetValue("cmt"))
+'            '* init
+'            If Not Me.IsInitialized Then
+'                If Not Me.initialize() Then
+'                    infuse = False
+'                    Exit Function
+'                End If
+'            End If
 
 
-            infuse = MyBase.Infuse(aRecord)
-            _IsLoaded = infuse
-            Exit Function
+'            On Error GoTo errorhandle
 
-errorhandle:
-            infuse = False
+'            Me.Record = aRecord
+'            s_configname = CStr(aRecord.GetValue("cname"))
+'            s_id = CStr(aRecord.GetValue("id"))
+'            s_parameter = CStr(aRecord.GetValue("parameter"))
+'            s_relation = CStr(aRecord.GetValue("relation"))
+'            s_typeid = CStr(aRecord.GetValue("typeid"))
+'            s_datatype = CLng(aRecord.GetValue("datatype"))
+'            s_version = CLng(aRecord.GetValue("updc"))
+'            s_title = CStr(aRecord.GetValue("title"))
+'            s_aliases = CStr(aRecord.GetValue("alias"))
+'            s_cmt = CStr(aRecord.GetValue("cmt"))
 
 
-        End Function
+'            infuse = MyBase.Infuse(aRecord)
+'            _IsLoaded = infuse
+'            Exit Function
+
+'errorhandle:
+'            infuse = False
+
+
+'        End Function
 
         '**** allByID
         '****
@@ -725,9 +723,9 @@ errorhandle:
                 For Each aRecord In aRecordCollection
 
                     aNew = New clsOTDBDefConfigurationItem
-                    If aNew.infuse(aRecord) Then
-                        aCollection.Add(Item:=aNew)
-                    End If
+                    'If aNew.infuse(aRecord) Then
+                    aCollection.Add(Item:=aNew)
+                    'End If
                 Next aRecord
                 allByID = aCollection
                 Exit Function
@@ -740,94 +738,94 @@ error_handler:
         End Function
         '**** loadByID
         '****
-        Public Function loadByID(ByVal ID As String, Optional ByVal CONFIGNAME As String = "") As Boolean
-            Dim aCollection As New Collection
-            Dim aRecordCollection As List(Of ormRecord)
-            Dim aTable As iormDataStore
-            Dim aRecord As ormRecord
-            Dim wherestr As String
+'        Public Function loadByID(ByVal ID As String, Optional ByVal CONFIGNAME As String = "") As Boolean
+'            Dim aCollection As New Collection
+'            Dim aRecordCollection As List(Of ormRecord)
+'            Dim aTable As iormDataStore
+'            Dim aRecord As ormRecord
+'            Dim wherestr As String
 
-            '* lazy init
-            If Not Me.IsInitialized Then
-                If Not Me.initialize() Then
-                    loadByID = False
-                    Exit Function
-                End If
-            End If
+'            '* lazy init
+'            If Not Me.IsInitialized Then
+'                If Not Me.initialize() Then
+'                    loadByID = False
+'                    Exit Function
+'                End If
+'            End If
 
-            On Error GoTo error_handler
+'            On Error GoTo error_handler
 
-            aTable = GetTableStore(Me.TableID)
-            wherestr = " ( ID = '" & UCase(ID) & "' or alias like '%" _
-                       & ConstDelimiter & UCase(ID) & ConstDelimiter & "%' )"
-            If CONFIGNAME <> "" Then
-                wherestr = wherestr & " and cname = '" & CONFIGNAME & "'"
-            End If
-            aRecordCollection = aTable.GetRecordsBySql(wherestr:=wherestr)
+'            aTable = GetTableStore(Me.TableID)
+'            wherestr = " ( ID = '" & UCase(ID) & "' or alias like '%" _
+'                       & ConstDelimiter & UCase(ID) & ConstDelimiter & "%' )"
+'            If CONFIGNAME <> "" Then
+'                wherestr = wherestr & " and cname = '" & CONFIGNAME & "'"
+'            End If
+'            aRecordCollection = aTable.GetRecordsBySql(wherestr:=wherestr)
 
-            If aRecordCollection Is Nothing Then
-                Me.Unload()
-                loadByID = False
-                Exit Function
-            Else
-                For Each aRecord In aRecordCollection
-                    ' take the first
-                    If infuse(aRecord) Then
-                        loadByID = True
-                        Exit Function
-                    End If
-                Next aRecord
-                loadByID = False
-                Exit Function
-            End If
+'            If aRecordCollection Is Nothing Then
+'                Me.Unload()
+'                loadByID = False
+'                Exit Function
+'            Else
+'                For Each aRecord In aRecordCollection
+'                    ' take the first
+'                    If infuse(aRecord) Then
+'                        loadByID = True
+'                        Exit Function
+'                    End If
+'                Next aRecord
+'                loadByID = False
+'                Exit Function
+'            End If
 
-error_handler:
+'error_handler:
 
-            loadByID = False
-            Exit Function
-        End Function
+'            loadByID = False
+'            Exit Function
+'        End Function
         '**** Inject : load the object by the PrimaryKeys
         '****
         Public Function Inject(ByVal CONFIGNAME As String, ByVal ID As String) As Boolean
-            Dim aTable As iormDataStore
-            Dim pkarry(1) As Object
-            Dim aRecord As ormRecord
+            'Dim aTable As iormDataStore
+            'Dim pkarry(1) As Object
+            'Dim aRecord As ormRecord
 
-            '* lazy init
-            If Not Me.IsInitialized Then
-                If Not Me.initialize() Then
-                    Inject = False
-                    Exit Function
-                End If
-            End If
+            ''* lazy init
+            'If Not Me.IsInitialized Then
+            '    If Not Me.initialize() Then
+            '        Inject = False
+            '        Exit Function
+            '    End If
+            'End If
 
-            ' set the primaryKey
-            pkarry(0) = LCase(CONFIGNAME)
-            pkarry(1) = LCase(ID)
-            'PKArry(3) = id
+            '' set the primaryKey
+            'pkarry(0) = LCase(CONFIGNAME)
+            'pkarry(1) = LCase(ID)
+            ''PKArry(3) = id
 
 
-            aTable = GetTableStore(ourTableName)
-            ' try to load it from cache
-            'aRecord = loadFromCache(ourTableName, pkarry)
-            ' load it from database
-            If aRecord Is Nothing Then
-                aTable = GetTableStore(ourTableName)
-                aRecord = aTable.GetRecordByPrimaryKey(pkarry)
-            End If
+            'aTable = GetTableStore(ourTableName)
+            '' try to load it from cache
+            ''aRecord = loadFromCache(ourTableName, pkarry)
+            '' load it from database
+            'If aRecord Is Nothing Then
+            '    aTable = GetTableStore(ourTableName)
+            '    aRecord = aTable.GetRecordByPrimaryKey(pkarry)
+            'End If
 
-            If aRecord Is Nothing Then
-                Me.Unload()
-                Inject = Me.IsLoaded
-                Exit Function
-            Else
-                Me.Record = aRecord
-                _IsLoaded = Me.infuse(Me.Record)
-                'Call AddToCache(objectTag:=ourTableName, key:=pkarry, theOBJECT:=aRecord)
+            'If aRecord Is Nothing Then
+            '    Me.Unload()
+            '    Inject = Me.IsLoaded
+            '    Exit Function
+            'Else
+            '    Me.Record = aRecord
+            '    _IsLoaded = Me.infuse(Me.Record)
+            '    'Call AddToCache(objectTag:=ourTableName, key:=pkarry, theOBJECT:=aRecord)
 
-                Inject = Me.IsLoaded
-                Exit Function
-            End If
+            '    Inject = Me.IsLoaded
+            '    Exit Function
+            'End If
 
 
         End Function
@@ -1202,12 +1200,12 @@ errorhandle:
                         Me.IsChanged = True
                     End If
                     ' load the milestones
-                    If Not loadItems(CONFIGNAME:=s_configname) Then
-                        Call CoreMessageHandler(message:="Items of CONFIGNAME couldnot loaded", _
-                                              subname:="clsOTDBConfigurable.CONFIGNAME let", _
-                                              arg1:=avalue)
-                        Exit Property
-                    End If
+                    'If Not loadItems(CONFIGNAME:=s_configname) Then
+                    '    Call CoreMessageHandler(message:="Items of CONFIGNAME couldnot loaded", _
+                    '                          subname:="clsOTDBConfigurable.CONFIGNAME let", _
+                    '                          arg1:=avalue)
+                    '    Exit Property
+                    'End If
                 End If
             End Set
         End Property
@@ -1527,122 +1525,122 @@ errorhandle:
 '            createSchema = False
         End Function
 
-        '***** loadItems -> load all Items as Items
-        '*****
-        Public Function loadItems(ByVal CONFIGNAME As String) As Boolean
-            Dim aTable As iormDataStore
-            Dim aVAlue As Object
-            Dim anItem As New clsOTDBConfigurableItem
-            Dim aDefConfig As New clsOTDBDefConfiguration
-            Dim aDefConfigItem As New clsOTDBDefConfigurationItem
-            Dim aCollection As New Collection
-            Dim updc As Long
-            Dim isCache As Boolean
-            Dim m As Object
+        ''***** loadItems -> load all Items as Items
+        ''*****
+        'Public Function loadItems(ByVal CONFIGNAME As String) As Boolean
+        '    Dim aTable As iormDataStore
+        '    Dim aVAlue As Object
+        '    Dim anItem As New clsOTDBConfigurableItem
+        '    Dim aDefConfig As New clsOTDBDefConfiguration
+        '    Dim aDefConfigItem As New clsOTDBDefConfigurationItem
+        '    Dim aCollection As New Collection
+        '    Dim updc As Long
+        '    Dim isCache As Boolean
+        '    Dim m As Object
 
-            aTable = GetTableStore(ourTableName)
-            If Not aDefConfig.Inject(CONFIGNAME:=CONFIGNAME) Then
-                loadItems = False
-                Exit Function
-            End If
+        '    aTable = GetTableStore(ourTableName)
+        '    If Not aDefConfig.Inject(CONFIGNAME:=CONFIGNAME) Then
+        '        loadItems = False
+        '        Exit Function
+        '    End If
 
-            For Each m In aDefConfig.Items
-                aDefConfigItem = m
-                ' create the ITEM or load it
-                If aTable.TableSchema.Hasfieldname(aDefConfigItem.ID) Then
-                    aVAlue = Me.Record.GetValue(aDefConfigItem.ID)
-                Else
-                    aVAlue = Null()
-                End If
-                '** create ITEM
-                If anItem.create(UID:=s_uid, CONFIGNAME:=s_configname, ID:=aDefConfigItem.ID) Then
-                    anItem.DATATYPE = aDefConfigItem.DATATYPE
-                    'anItem.isCacheNoSave = isCache
-                    anItem.cmt = aDefConfigItem.COMMENT
-                    ' set the value
-                    If Not IsNull(aVAlue) Then
-                        anItem.Value = aVAlue
-                    Else
-                        ' reset if no value
-                        If anItem.DATATYPE = otFieldDataType.[Date] _
-                           Or anItem.DATATYPE = otFieldDataType.Timestamp Then
-                            anItem.Value = ConstNullDate
-                        ElseIf anItem.DATATYPE = otFieldDataType.Text _
-                               Or anItem.DATATYPE = otFieldDataType.List Then
-                            anItem.Value = ""
-                        Else
-                            anItem.Value = 0
-                        End If
-                    End If
-                    Call anItem.PERSIST()
-                Else
-                    Call anItem.Inject(UID:=s_uid, CONFIGNAME:=s_configname, ID:=aDefConfigItem.ID)
-                End If
-                '** include
-                Call addItem(ITEM:=anItem)
+        '    For Each m In aDefConfig.Items
+        '        aDefConfigItem = m
+        '        ' create the ITEM or load it
+        '        If aTable.TableSchema.Hasfieldname(aDefConfigItem.ID) Then
+        '            aVAlue = Me.Record.GetValue(aDefConfigItem.ID)
+        '        Else
+        '            aVAlue = Null()
+        '        End If
+        '        '** create ITEM
+        '        If anItem.create(UID:=s_uid, CONFIGNAME:=s_configname, ID:=aDefConfigItem.ID) Then
+        '            anItem.DATATYPE = aDefConfigItem.DATATYPE
+        '            'anItem.isCacheNoSave = isCache
+        '            anItem.cmt = aDefConfigItem.COMMENT
+        '            ' set the value
+        '            If Not IsNull(aVAlue) Then
+        '                anItem.Value = aVAlue
+        '            Else
+        '                ' reset if no value
+        '                If anItem.DATATYPE = otFieldDataType.[Date] _
+        '                   Or anItem.DATATYPE = otFieldDataType.Timestamp Then
+        '                    anItem.Value = ConstNullDate
+        '                ElseIf anItem.DATATYPE = otFieldDataType.Text _
+        '                       Or anItem.DATATYPE = otFieldDataType.List Then
+        '                    anItem.Value = ""
+        '                Else
+        '                    anItem.Value = 0
+        '                End If
+        '            End If
+        '            Call anItem.PERSIST()
+        '        Else
+        '            Call anItem.Inject(UID:=s_uid, CONFIGNAME:=s_configname, ID:=aDefConfigItem.ID)
+        '        End If
+        '        '** include
+        '        Call addItem(ITEM:=anItem)
 
 
-            Next m
+        '    Next m
 
-            loadItems = True
-        End Function
+        '    loadItems = True
+        'End Function
 
         '**** infuse the the Object by a OTBRecord
         '****
         Public Function infuse(ByRef aRecord As ormRecord) As Boolean
-            Dim aTable As iormDataStore
-            Dim i As Integer
-            Dim fieldname As String
-            Dim aVAlue As Object
+'            Dim aTable As iormDataStore
+'            Dim i As Integer
+'            Dim fieldname As String
+'            Dim aVAlue As Object
 
 
 
-            '* init
-            If Not Me.IsInitialized Then
-                If Not Me.initialize() Then
-                    infuse = False
-                    Exit Function
-                End If
-            End If
+'            '* init
+'            If Not Me.IsInitialized Then
+'                If Not Me.initialize() Then
+'                    infuse = False
+'                    Exit Function
+'                End If
+'            End If
 
-            '*** overload it from the Application Container
-            '***
-            'If Me.serializeWithHostApplication Then
-            '    If overloadFromHostApplication(aRecord) Then
-            '        s_loadedFromHost = True
-            '    End If
-            'End If
+'            '*** overload it from the Application Container
+'            '***
+'            'If Me.serializeWithHostApplication Then
+'            '    If overloadFromHostApplication(aRecord) Then
+'            '        s_loadedFromHost = True
+'            '    End If
+'            'End If
 
-            On Error GoTo errorhandle
+'            On Error GoTo errorhandle
 
-            Me.Record = aRecord
-            _IsLoaded = True
-            s_uid = CLng(aRecord.GetValue("uid"))
-            s_configname = CStr(aRecord.GetValue("cname"))
-            s_updc = CLng(aRecord.GetValue("updc"))
-            s_msglogtag = CStr(aRecord.GetValue("msglogtag"))
-            s_comment = CStr(aRecord.GetValue("cmt"))
+'            Me.Record = aRecord
+'            _IsLoaded = True
+'            s_uid = CLng(aRecord.GetValue("uid"))
+'            s_configname = CStr(aRecord.GetValue("cname"))
+'            s_updc = CLng(aRecord.GetValue("updc"))
+'            s_msglogtag = CStr(aRecord.GetValue("msglogtag"))
+'            s_comment = CStr(aRecord.GetValue("cmt"))
 
-            _updatedOn = CDate(aRecord.GetValue(ConstFNUpdatedOn))
+'            _updatedOn = CDate(aRecord.GetValue(ConstFNUpdatedOn))
 
-            ' is loaded
-            s_isItemChanged = False
-            _IsLoaded = True
+'            ' is loaded
+'            s_isItemChanged = False
+'            _IsLoaded = True
 
-            '*** fill the ITEM Dictionary
-            If Not loadItems(CONFIGNAME:=s_configname) Then
-                Me.Unload()
-                infuse = False
-                Exit Function
-            End If
+'            '*** fill the ITEM Dictionary
+'            If Not loadItems(CONFIGNAME:=s_configname) Then
+'                Me.Unload()
+'                infuse = False
+'                Exit Function
+'            End If
 
-            infuse = MyBase.Infuse(aRecord)
+'            infuse = MyBase.Infuse(aRecord)
 
-            Exit Function
+'            Exit Function
 
-errorhandle:
-            Me.Unload()
-            infuse = False
+'errorhandle:
+'            Me.Unload()
+'            infuse = False
 
 
         End Function
@@ -1737,42 +1735,42 @@ errorhandle:
         '**** Inject : load the object by the PrimaryKeys
         '****
         Public Function Inject(UID As Long) As Boolean
-            Dim aTable As iormDataStore
-            Dim pkarry() As Object
-            Dim aRecord As ormRecord
-            Dim aRecordCollection As List(Of ormRecord)
+            'Dim aTable As iormDataStore
+            'Dim pkarry() As Object
+            'Dim aRecord As ormRecord
+            'Dim aRecordCollection As List(Of ormRecord)
 
-            '* init
-            If Not Me.IsInitialized Then
-                If Not initialize() Then
-                    Inject = False
-                    Exit Function
-                End If
-            End If
+            ''* init
+            'If Not Me.IsInitialized Then
+            '    If Not initialize() Then
+            '        Inject = False
+            '        Exit Function
+            '    End If
+            'End If
 
-            ' set the primaryKey
-            ReDim pkarry(1)
-            pkarry(0) = UID
+            '' set the primaryKey
+            'ReDim pkarry(1)
+            'pkarry(0) = UID
 
 
-            aTable = GetTableStore(Me.Record.TableID)
-            aRecord = aTable.GetRecordByPrimaryKey(pkarry)
+            'aTable = GetTableStore(Me.Record.TableID)
+            'aRecord = aTable.GetRecordByPrimaryKey(pkarry)
 
-            If aRecord Is Nothing Then
-                Me.Unload()
-                Inject = Me.IsLoaded
-                Exit Function
-            Else
-                Me.Record = aRecord
-                _IsLoaded = Me.infuse(Me.Record)
-                If Not _IsLoaded Then
-                    Inject = False
-                    Exit Function
-                End If
+            'If aRecord Is Nothing Then
+            '    Me.Unload()
+            '    Inject = Me.IsLoaded
+            '    Exit Function
+            'Else
+            '    Me.Record = aRecord
+            '    _IsLoaded = Me.infuse(Me.Record)
+            '    If Not _IsLoaded Then
+            '        Inject = False
+            '        Exit Function
+            '    End If
 
-                Inject = MyBase.Infuse(aRecord)
-                Exit Function
-            End If
+            '    Inject = MyBase.Infuse(aRecord)
+            '    Exit Function
+            'End If
 
         End Function
 
@@ -1817,7 +1815,7 @@ errorhandle:
                 ' this will set also the loadItems
                 If Not IsMissing(CONFIGNAME) Then
                     s_configname = CONFIGNAME
-                    Call loadItems(CONFIGNAME:=CONFIGNAME)
+                    'Call loadItems(CONFIGNAME:=CONFIGNAME)
                 End If
 
                 create = Me.IsCreated
@@ -2601,86 +2599,86 @@ error_handle:
         '**** infuese the object by a OTDBRecord
         '****
         Public Function infuse(ByRef aRecord As ormRecord) As Boolean
-            Dim aVAlue As Object
+'            Dim aVAlue As Object
 
-            '* init
-            If Not Me.IsInitialized Then
-                If Not Me.initialize() Then
-                    infuse = False
-                    Exit Function
-                End If
-            End If
-
-
-            '*** overload it from the Application Container
-            '***
-            'If Me.serializeWithHostApplication Then
-            '    If overloadFromHostApplication(aRecord) Then
-            '        s_loadedFromHost = True
-            '    End If
-            'End If
-
-            On Error GoTo errorhandle
-
-            Me.Record = aRecord
-            s_uid = CStr(aRecord.GetValue("uid"))
-            s_configname = CStr(aRecord.GetValue("cname"))
-            s_id = CStr(aRecord.GetValue("id"))
-
-            s_datatype = CLng(aRecord.GetValue("datatype"))
-            aVAlue = aRecord.GetValue("value")
-            ' select on Datatype
-            Select Case s_datatype
-
-                Case otFieldDataType.Numeric
-                    s_value = CDbl(aVAlue)
-                Case otFieldDataType.List, otFieldDataType.Text
-                    s_value = CStr(aVAlue)
-                Case otFieldDataType.Runtime, otFieldDataType.Formula, otFieldDataType.Binary
-                    s_value = ""
-                    Call CoreMessageHandler(subname:="clsOTDBConfigurableItem.infuse", _
-                                          message:="runtime, formular, binary can't infuse", msglog:=s_msglog, arg1:=aVAlue)
-                Case otFieldDataType.[Date], otFieldDataType.Timestamp
-                    s_value = CDate(aVAlue)
-                Case otFieldDataType.[Long]
-                    s_value = CLng(aVAlue)
-                Case otFieldDataType.Bool
-                    s_value = CBool(aVAlue)
-                Case otFieldDataType.Memo
-                    s_value = CStr(aVAlue)
-                Case Else
-                    Call CoreMessageHandler(subname:="clsOTDBConfigurableItem.infuse", _
-                                          message:="unknown datatype to be infused", msglog:=s_msglog, arg1:=aVAlue)
-            End Select
+'            '* init
+'            If Not Me.IsInitialized Then
+'                If Not Me.initialize() Then
+'                    infuse = False
+'                    Exit Function
+'                End If
+'            End If
 
 
-            s_cmt = CStr(aRecord.GetValue("cmt"))
+'            '*** overload it from the Application Container
+'            '***
+'            'If Me.serializeWithHostApplication Then
+'            '    If overloadFromHostApplication(aRecord) Then
+'            '        s_loadedFromHost = True
+'            '    End If
+'            'End If
 
-            s_msglogtag = CStr(aRecord.GetValue("msglogtag"))
+'            On Error GoTo errorhandle
 
-            s_parameter_txt1 = CStr(aRecord.GetValue("param_txt1"))
-            s_parameter_txt2 = CStr(aRecord.GetValue("param_txt2"))
-            s_parameter_txt3 = CStr(aRecord.GetValue("param_txt3"))
-            s_parameter_num1 = CDbl(aRecord.GetValue("param_num1"))
-            s_parameter_num2 = CDbl(aRecord.GetValue("param_num2"))
-            s_parameter_num3 = CDbl(aRecord.GetValue("param_num3"))
-            s_parameter_date1 = CDate(aRecord.GetValue("param_date1"))
-            s_parameter_date2 = CDate(aRecord.GetValue("param_date2"))
-            s_parameter_date3 = CDate(aRecord.GetValue("param_date3"))
-            s_parameter_flag1 = CBool(aRecord.GetValue("param_flag1"))
-            s_parameter_flag2 = CBool(aRecord.GetValue("param_flag2"))
-            s_parameter_flag3 = CBool(aRecord.GetValue("param_flag3"))
+'            Me.Record = aRecord
+'            s_uid = CStr(aRecord.GetValue("uid"))
+'            s_configname = CStr(aRecord.GetValue("cname"))
+'            s_id = CStr(aRecord.GetValue("id"))
 
-            _updatedOn = CDate(aRecord.GetValue(ConstFNUpdatedOn))
-            _createdOn = CDate(aRecord.GetValue(ConstFNCreatedOn))
+'            s_datatype = CLng(aRecord.GetValue("datatype"))
+'            aVAlue = aRecord.GetValue("value")
+'            ' select on Datatype
+'            Select Case s_datatype
+
+'                Case otFieldDataType.Numeric
+'                    s_value = CDbl(aVAlue)
+'                Case otFieldDataType.List, otFieldDataType.Text
+'                    s_value = CStr(aVAlue)
+'                Case otFieldDataType.Runtime, otFieldDataType.Formula, otFieldDataType.Binary
+'                    s_value = ""
+'                    Call CoreMessageHandler(subname:="clsOTDBConfigurableItem.infuse", _
+'                                          message:="runtime, formular, binary can't infuse", msglog:=s_msglog, arg1:=aVAlue)
+'                Case otFieldDataType.[Date], otFieldDataType.Timestamp
+'                    s_value = CDate(aVAlue)
+'                Case otFieldDataType.[Long]
+'                    s_value = CLng(aVAlue)
+'                Case otFieldDataType.Bool
+'                    s_value = CBool(aVAlue)
+'                Case otFieldDataType.Memo
+'                    s_value = CStr(aVAlue)
+'                Case Else
+'                    Call CoreMessageHandler(subname:="clsOTDBConfigurableItem.infuse", _
+'                                          message:="unknown datatype to be infused", msglog:=s_msglog, arg1:=aVAlue)
+'            End Select
 
 
-            _IsLoaded = MyBase.Infuse(aRecord)
-            infuse = Me.IsLoaded
-            Exit Function
+'            s_cmt = CStr(aRecord.GetValue("cmt"))
 
-errorhandle:
-            infuse = False
+'            s_msglogtag = CStr(aRecord.GetValue("msglogtag"))
+
+'            s_parameter_txt1 = CStr(aRecord.GetValue("param_txt1"))
+'            s_parameter_txt2 = CStr(aRecord.GetValue("param_txt2"))
+'            s_parameter_txt3 = CStr(aRecord.GetValue("param_txt3"))
+'            s_parameter_num1 = CDbl(aRecord.GetValue("param_num1"))
+'            s_parameter_num2 = CDbl(aRecord.GetValue("param_num2"))
+'            s_parameter_num3 = CDbl(aRecord.GetValue("param_num3"))
+'            s_parameter_date1 = CDate(aRecord.GetValue("param_date1"))
+'            s_parameter_date2 = CDate(aRecord.GetValue("param_date2"))
+'            s_parameter_date3 = CDate(aRecord.GetValue("param_date3"))
+'            s_parameter_flag1 = CBool(aRecord.GetValue("param_flag1"))
+'            s_parameter_flag2 = CBool(aRecord.GetValue("param_flag2"))
+'            s_parameter_flag3 = CBool(aRecord.GetValue("param_flag3"))
+
+'            _updatedOn = CDate(aRecord.GetValue(ConstFNUpdatedOn))
+'            _createdOn = CDate(aRecord.GetValue(ConstFNCreatedOn))
+
+
+'            _IsLoaded = MyBase.Infuse(aRecord)
+'            infuse = Me.IsLoaded
+'            Exit Function
+
+'errorhandle:
+'            infuse = False
 
 
         End Function
@@ -3266,41 +3264,41 @@ errorhandle:
         '****** allByUID: "static" function to return a collection of curSchedules by key
         '******
         Public Function allByUID(UID As Long) As Collection
-            Dim aCollection As New Collection
-            Dim aRECORDCollection As List(Of ormRecord)
-            Dim aTable As iormDataStore
-            Dim Key() As Object
-            Dim RECORD As ormRecord
-            Dim aNewLink As New clsOTDBConfigurableLink
-            ' set the primaryKey
-            ReDim Key(1)
+'            Dim aCollection As New Collection
+'            Dim aRECORDCollection As List(Of ormRecord)
+'            Dim aTable As iormDataStore
+'            Dim Key() As Object
+'            Dim RECORD As ormRecord
+'            Dim aNewLink As New clsOTDBConfigurableLink
+'            ' set the primaryKey
+'            ReDim Key(1)
 
-            Key(0) = UID
+'            Key(0) = UID
 
-            On Error GoTo error_handler
+'            On Error GoTo error_handler
 
-            aTable = GetTableStore(ourTableName)
-            aRECORDCollection = aTable.GetRecordsBySql(wherestr:=" uid = " & CStr(UID))
+'            aTable = GetTableStore(ourTableName)
+'            aRECORDCollection = aTable.GetRecordsBySql(wherestr:=" uid = " & CStr(UID))
 
-            If aRECORDCollection Is Nothing Then
-                Me.Unload()
-                allByUID = Nothing
-                Exit Function
-            Else
-                For Each RECORD In aRECORDCollection
-                    aNewLink = New clsOTDBConfigurableLink
-                    If aNewLink.Infuse(RECORD) Then
-                        aCollection.Add(Item:=aNewLink)
-                    End If
-                Next RECORD
-                allByUID = aCollection
-                Exit Function
-            End If
+'            If aRECORDCollection Is Nothing Then
+'                Me.Unload()
+'                allByUID = Nothing
+'                Exit Function
+'            Else
+'                For Each RECORD In aRECORDCollection
+'                    aNewLink = New clsOTDBConfigurableLink
+'                    If aNewLink.Infuse(RECORD) Then
+'                        aCollection.Add(Item:=aNewLink)
+'                    End If
+'                Next RECORD
+'                allByUID = aCollection
+'                Exit Function
+'            End If
 
-error_handler:
+'error_handler:
 
-            allByUID = Nothing
-            Exit Function
+'            allByUID = Nothing
+'            Exit Function
         End Function
 
         '****** allByconfigname: "static" function to return a collection of curSchedules by key
@@ -3331,9 +3329,9 @@ error_handler:
             Else
                 For Each aRecord In aRECORDCollection
                     aNewLink = New clsOTDBConfigurableLink
-                    If aNewLink.Infuse(aRecord) Then
-                        aCollection.Add(Item:=aNewLink)
-                    End If
+                    'If aNewLink.Infuse(aRecord) Then
+                    '    aCollection.Add(Item:=aNewLink)
+                    'End If
                 Next aRecord
                 allByconfigname = aCollection
                 Exit Function
@@ -3373,9 +3371,9 @@ error_handler:
                 For Each aRECORD In aRECORDCollection
                     aNewLink = New clsOTDBConfigurableLink
 
-                    If aNewLink.Infuse(aRECORD) Then
-                        aCollection.Add(Item:=aNewLink)
-                    End If
+                    'If aNewLink.Infuse(aRECORD) Then
+                    '    aCollection.Add(Item:=aNewLink)
+                    'End If
                 Next
                 allByUIDConfig = aCollection
                 Exit Function
@@ -3509,43 +3507,43 @@ error_handler:
 
         '**** infuse the the Object by a OTBRecord
         '****
-        Public Overrides Function Infuse(ByRef record As ormRecord) As Boolean
+'        Public Overrides Function Infuse(ByRef record As ormRecord) As Boolean
 
-            '* init
-            If Not Me.IsInitialized Then
-                If Not Me.initialize() Then
-                    Infuse = False
-                    Exit Function
-                End If
-            End If
-
-
-            On Error GoTo errorhandle
-
-            Me.Record = record
-            s_uid = CLng(record.GetValue("uid"))
-            s_configname = CStr(record.GetValue("cname"))
-            s_objectname = CStr(record.GetValue("objectname"))
-            s_tag = CStr(record.GetValue("tag"))
-            s_datatype = CLng(record.GetValue("datatype"))
-            s_isActive = CBool(record.GetValue("isactive"))
-            's_updc = CLng(RECORD.getValue("updc"))
-
-            If IsDate(record.GetValue(ConstFNCreatedOn)) Then
-                _createdOn = CDate(record.GetValue(ConstFNCreatedOn))
-            Else
-                _createdOn = ConstNullDate
-            End If
-            _updatedOn = CDate(record.GetValue(ConstFNUpdatedOn))
-            _IsLoaded = True
-            Infuse = True
-            Exit Function
-
-errorhandle:
-            Infuse = False
+'            '* init
+'            If Not Me.IsInitialized Then
+'                If Not Me.initialize() Then
+'                    Infuse = False
+'                    Exit Function
+'                End If
+'            End If
 
 
-        End Function
+'            On Error GoTo errorhandle
+
+'            Me.Record = record
+'            s_uid = CLng(record.GetValue("uid"))
+'            s_configname = CStr(record.GetValue("cname"))
+'            s_objectname = CStr(record.GetValue("objectname"))
+'            s_tag = CStr(record.GetValue("tag"))
+'            s_datatype = CLng(record.GetValue("datatype"))
+'            s_isActive = CBool(record.GetValue("isactive"))
+'            's_updc = CLng(RECORD.getValue("updc"))
+
+'            If IsDate(record.GetValue(ConstFNCreatedOn)) Then
+'                _createdOn = CDate(record.GetValue(ConstFNCreatedOn))
+'            Else
+'                _createdOn = ConstNullDate
+'            End If
+'            _updatedOn = CDate(record.GetValue(ConstFNUpdatedOn))
+'            _IsLoaded = True
+'            Infuse = True
+'            Exit Function
+
+'errorhandle:
+'            Infuse = False
+
+
+'        End Function
 
 
         '****** getCurrSchedule entry
@@ -3553,38 +3551,38 @@ errorhandle:
         Public Function Inject(ByVal UID As Long, _
                                ByVal CONFIGNAME As String, _
                                ByVal TAG As Object) As Boolean
-            Dim aTable As iormDataStore
-            Dim pkarry() As Object
-            Dim aRecord As ormRecord
+            'Dim aTable As iormDataStore
+            'Dim pkarry() As Object
+            'Dim aRecord As ormRecord
 
-            '* init
-            If Not Me.IsInitialized Then
-                If Not Me.initialize() Then
-                    Inject = False
-                    Exit Function
-                End If
-            End If
+            ''* init
+            'If Not Me.IsInitialized Then
+            '    If Not Me.initialize() Then
+            '        Inject = False
+            '        Exit Function
+            '    End If
+            'End If
 
-            ' set the primaryKey
-            ReDim pkarry(3)
-            pkarry(0) = UID
-            pkarry(1) = LCase(CONFIGNAME)
-            'pkarry(3) = LCase(OBJECTNAME)
-            pkarry(2) = TAG
+            '' set the primaryKey
+            'ReDim pkarry(3)
+            'pkarry(0) = UID
+            'pkarry(1) = LCase(CONFIGNAME)
+            ''pkarry(3) = LCase(OBJECTNAME)
+            'pkarry(2) = TAG
 
-            aTable = GetTableStore(Me.Record.TableID)
-            aRecord = aTable.GetRecordByPrimaryKey(pkarry)
+            'aTable = GetTableStore(Me.Record.TableID)
+            'aRecord = aTable.GetRecordByPrimaryKey(pkarry)
 
-            If aRecord Is Nothing Then
-                Me.Unload()
-                Inject = Me.IsLoaded
-                Exit Function
-            Else
-                Me.Record = aRecord
-                _IsLoaded = Me.Infuse(Me.Record)
-                Inject = Me.IsLoaded
-                Exit Function
-            End If
+            'If aRecord Is Nothing Then
+            '    Me.Unload()
+            '    Inject = Me.IsLoaded
+            '    Exit Function
+            'Else
+            '    Me.Record = aRecord
+            '    _IsLoaded = Me.Infuse(Me.Record)
+            '    Inject = Me.IsLoaded
+            '    Exit Function
+            'End If
         End Function
 
         '**** persist

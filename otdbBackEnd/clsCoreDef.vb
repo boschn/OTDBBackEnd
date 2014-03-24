@@ -1084,6 +1084,8 @@ Namespace OnTrack.Database
     ''' <remarks></remarks>
     Public Interface iormPersistable
 
+        Function DetermineLiveStatus() As Boolean
+
         '*** 
         '*** Events to implement
         Event OnInjecting(sender As Object, e As ormDataObjectEventArgs)
@@ -1096,10 +1098,18 @@ Namespace OnTrack.Database
         Event OnUnDeleted(sender As Object, e As ormDataObjectEventArgs)
         Event OnDeleting(sender As Object, e As ormDataObjectEventArgs)
         Event OnDeleted(sender As Object, e As ormDataObjectEventArgs)
+        Event OnCreating(sender As Object, e As ormDataObjectEventArgs)
+        Event OnCreated(sender As Object, e As ormDataObjectEventArgs)
 
         ReadOnly Property PrimaryKeyValues As Object()
 
         ReadOnly Property useCache As Boolean
+
+        ReadOnly Property GUID As Guid
+
+        ReadOnly Property HasDomainBehavior As Boolean
+
+        ReadOnly Property hasDeletePerFlagBehavior As Boolean
 
 
         ''' <summary>
@@ -1255,7 +1265,7 @@ Namespace OnTrack.Database
         ''' <param name="record">record </param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Function Infuse(ByRef record As ormRecord) As Boolean
+        Function Infuse(ByRef record As ormRecord, Optional mode? As otInfuseMode = Nothing) As Boolean
 
 
     End Interface

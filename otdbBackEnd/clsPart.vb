@@ -378,163 +378,28 @@ Namespace OnTrack.Parts
         End Property
 #End Region
 
-
-        '**** all returns all parts
-        '****
+        ''' <summary>
+        ''' return all Parts as List
+        ''' </summary>
+        ''' <param name="isDeleted"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
         Public Function All(Optional isDeleted As Boolean = False) As List(Of Part)
-            Dim aCollection As New List(Of Part)
-            Dim aRecordCollection As List(Of ormRecord)
-            Dim aStore As iormDataStore
-
-            Try
-                aStore = GetTableStore(ConstTableID)
-                Dim aCommand As ormSqlSelectCommand = aStore.CreateSqlSelectCommand(id:="All", addAllFields:=True)
-                If Not aCommand.Prepared Then
-                    aCommand.Where = "[" & ConstFNIsDeleted & "] = @deleted"
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@deleted", ColumnName:=ConstFNIsDeleted, tablename:=ConstTableID))
-                    aCommand.Prepare()
-                End If
-                aCommand.SetParameterValue(ID:="@deleted", value:=isDeleted)
-
-                aRecordCollection = aCommand.RunSelect
-
-                For Each aRecord As ormRecord In aRecordCollection
-                    Dim aNewPart = New Part
-                    If aNewPart.Infuse(aRecord) Then
-                        aCollection.Add(item:=aNewPart)
-                    End If
-                Next
-
-                Return aCollection
-
-
-            Catch ex As Exception
-                Call CoreMessageHandler(exception:=ex, subname:="Part.All")
-                Return aCollection
-            End Try
-
+            Return ormDataObject.All(Of Part)(deleted:=isDeleted)
         End Function
 
-        '**** allByUID returns allByUID parts
-        '****
+        ''' <summary>
+        ''' return a List of parts by deliverableUID
+        ''' </summary>
+        ''' <param name="deliverableUID"></param>
+        ''' <param name="isDeleted"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
         Public Function AllByDeliverable(ByVal deliverableUID As Long, Optional ByVal isDeleted As Boolean = False) As List(Of Part)
-            Dim aCollection As New List(Of Part)
-            Dim aRecordCollection As List(Of ormRecord)
-            Dim aStore As iormDataStore
-
-            Try
-                aStore = GetTableStore(ConstTableID)
-                Dim aCommand As ormSqlSelectCommand = aStore.CreateSqlSelectCommand(id:="AllByDeliverable", addAllFields:=True)
-                If Not aCommand.Prepared Then
-                    aCommand.Where = "[" & ConstFNDeliverableUID & "] = @dlvuid AND [" & ConstFNIsDeleted & "] = @deleted"
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@dlvuid", ColumnName:=ConstFNDeliverableUID, tablename:=ConstTableID))
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@deleted", ColumnName:=ConstFNIsDeleted, tablename:=ConstTableID))
-                    aCommand.Prepare()
-                End If
-                aCommand.SetParameterValue(ID:="@dlvuid", value:=deliverableUID)
-                aCommand.SetParameterValue(ID:="@deleted", value:=isDeleted)
-
-                aRecordCollection = aCommand.RunSelect
-
-                For Each aRecord As ormRecord In aRecordCollection
-                    Dim aNewPart = New Part
-                    If aNewPart.Infuse(aRecord) Then
-                        aCollection.Add(item:=aNewPart)
-                    End If
-                Next
-
-                Return aCollection
-
-
-            Catch ex As Exception
-                Call CoreMessageHandler(exception:=ex, subname:="Part.AllByDeliverable")
-                Return aCollection
-            End Try
+            Return ormDataObject.All(Of Part)(deleted:=isDeleted, where:="[" & ConstFNDeliverableUID & "] = @dlvuid", _
+                                              parameters:={New ormSqlCommandParameter(ID:="@dlvuid", ColumnName:=ConstFNDeliverableUID, value:=deliverableUID, tablename:=ConstTableID)}.ToList)
 
         End Function
-
-        '**** allByAssyCode_Cartypes returns all parts with Assycode and one of the selected cartypes
-        '****
-        Public Function allByAssyCode_Cartypes(assycode As String, ByRef selectCartypes As clsCartypes) As Collection
-            Dim aCollection As New Collection
-            Dim aRecordCollection As List(Of ormRecord)
-            Dim aTable As iormDataStore
-            Dim aRecord As ormRecord
-            Dim wherestr As String
-            Dim i As Integer
-            Dim flag As Boolean
-            Dim substrings() As String
-            Dim substr As String
-            Dim innerjoin As String
-            Dim aDir As New Dictionary(Of String, Object)
-            Dim aNewPart As Part
-
-            ' creats the whereclause
-            If InStr(assycode, ".") > 0 Then
-                substrings = Split(assycode, ".")
-                substr = substrings(0) & substrings(1) & substrings(2)
-            Else
-                substr = assycode
-            End If
-            wherestr = "mid(tblparts.pnid, 6,6) = '" & substr & "' and mid(tblparts.pnid, 12,4) = '-000' and ("
-            For i = 1 To selectCartypes.getNoCars
-
-                If selectCartypes.getCar(i) Then
-                    If flag Then
-                        wherestr = wherestr & " or "
-                    End If
-                    wherestr = wherestr & "tblcartypes.ct" & Format(i, "0#") & "="
-                    wherestr = wherestr & "true"
-
-                    flag = True
-                Else
-                    'wherestr = wherestr & "false"
-                End If
-
-            Next i
-            If flag Then
-                wherestr = wherestr & ")"
-            Else
-                System.Diagnostics.Debug.WriteLine("Parts.allByAssyCode: selectCartypes has no cartypes to select on")
-                Call CoreMessageHandler(message:="selectCartypes has no cartypes to select on", _
-                                           arg1:=Me.DeliverableUID & " " & assycode & " on " & selectCartypes.show, _
-                                           subname:="Part.allByAssyCode_Cartypes", break:=False)
-                'GoTo error_handler
-            End If
-
-            ' inner join
-            innerjoin = " inner join tblcartypes on tblparts.dlvuid = tblcartypes.uid "
-            'Debug.Print wherestr
-
-            On Error GoTo error_handler
-
-            aTable = GetTableStore(ConstTableID)
-            aRecordCollection = aTable.GetRecordsBySql(wherestr, innerjoin:=innerjoin, silent:=True)
-
-            If aRecordCollection Is Nothing Then
-                Me.Unload()
-                allByAssyCode_Cartypes = Nothing
-                Exit Function
-            Else
-                For Each aRecord In aRecordCollection
-                    aNewPart = New Part
-                    If aNewPart.Infuse(aRecord) Then
-                        If Not aDir.ContainsKey(aNewPart.PartID) Then
-                            aCollection.Add(Item:=aNewPart)
-                            aDir.Add(key:=aNewPart.PartID, value:=aNewPart)
-                        End If
-                    End If
-                Next aRecord
-                allByAssyCode_Cartypes = aCollection
-                Exit Function
-            End If
-
-error_handler:
-
-            allByAssyCode_Cartypes = Nothing
-            Exit Function
-        End Function
-
 
         '****** all: "static" function to return a collection of parts by key
         '******
@@ -583,8 +448,7 @@ error_handler:
             Else
                 For Each aRecord In aRecordCollection
                     Dim aNewPart As New Part
-                    aNewPart = New Part
-                    If aNewPart.Infuse(aRecord) Then
+                    If InfuseDataObject(record:=aRecord, dataobject:=aNewPart) Then
                         aCollection.Add(Item:=aNewPart)
                     End If
                 Next aRecord
@@ -1002,6 +866,10 @@ error_handler:
             Dim aDir As New Dictionary(Of String, Object)
             Dim flag As Boolean
 
+            ''' rework
+            Throw New NotImplementedException()
+
+
             If _IsLoaded Then
 
                 ourAssyCode = Me.GetAssycode()
@@ -1031,7 +899,8 @@ error_handler:
                     End If
                     ' get interface corresponding parts
                     If anInterface.status <> LCase("na") And flag Then
-                        otherPartCollection = Me.allByAssyCode_Cartypes(otherAssycode, anInterface.Cartypes)
+                        ' TODO: REIMPLEMENT
+                        ' otherPartCollection = Me.allByAssyCode_Cartypes(otherAssycode, anInterface.Cartypes)
                         If Not otherPartCollection Is Nothing Then
                             For Each otherPart In otherPartCollection
                                 ' check if otherPart has a hit in cartypes as this part
@@ -1117,7 +986,8 @@ error_handler:
 
                     ' get interface corresponding parts
                     If anInterface.status <> LCase("na") And flag Then
-                        otherPartCollection = Me.allByAssyCode_Cartypes(otherAssycode, anInterface.Cartypes)
+                        ' reimplement
+                        ' otherPartCollection = Me.allByAssyCode_Cartypes(otherAssycode, anInterface.Cartypes)
                         If Not otherPartCollection Is Nothing Then
                             ' create the ifcdepends
                             If Not ifcdepends.IsCreated And Not ifcdepends.IsLoaded Then

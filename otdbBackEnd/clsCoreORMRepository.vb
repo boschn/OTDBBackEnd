@@ -2847,7 +2847,7 @@ Namespace OnTrack
         ''' <param name="e"></param>
         ''' <remarks></remarks>
         Public Sub OnRelationLoaded(sender As Object, e As ormDataObjectEventArgs) Handles Me.OnRelationLoad
-            If e.DataObject.CurrentInfuseMode <> otInfuseMode.OnCreate Then RebuildPrimaryKey()
+            If e.Infusemode <> otInfuseMode.OnCreate Then RebuildPrimaryKey()
 
             For Each anEntry In Me.Columns
                 '** add the PropertyChange Event 
@@ -3207,7 +3207,7 @@ Namespace OnTrack
 
                 For Each aRecord As ormRecord In aRecordCollection
                     Dim aPermission As New ObjectPermission
-                    If aPermission.Infuse(aRecord) Then
+                    If InfuseDataObject(record:=aRecord, dataobject:=aPermission) Then
                         '** add only the domain asked or if nothing in there
                         Dim key As String = aPermission.Objectname & ConstDelimiter & aPermission.Entryname & ConstDelimiter & aPermission.Operation & ConstDelimiter & aPermission.Order.ToString
                         If instantDir.ContainsKey(key) And aPermission.DomainID = DomainID Then
@@ -4434,7 +4434,7 @@ Namespace OnTrack
         Public Sub OnInfused(sender As Object, e As ormDataObjectEventArgs) Handles MyBase.OnInfused
             Dim myself = TryCast(e.DataObject, ObjectDefinition)
             If myself IsNot Nothing AndAlso Not myself.RunTimeOnly Then
-                Dim permissions = ObjectPermission.ByObjectName(myself.ObjectID)
+                Dim permissions = ObjectPermission.ByObjectName(TryCast(e.DataObject, ObjectDefinition).ID)
                 For Each aPermission In permissions
                     Dim aSet As New SortedList(Of Long, ObjectPermission)
                     If _objectpermissions.ContainsKey(key:=aPermission.Operation) Then
@@ -6269,7 +6269,7 @@ Namespace OnTrack
         Public Sub OnRelationLoaded(sender As Object, e As ormDataObjectEventArgs) Handles Me.OnRelationLoad
             Dim aColumnEntry = TryCast(e.DataObject, ObjectColumnEntry)
             '** add the new columndefinition element in the table definition
-            If aColumnEntry IsNot Nothing AndAlso e.DataObject.CurrentInfuseMode = otInfuseMode.OnCreate Then
+            If aColumnEntry IsNot Nothing AndAlso e.Infusemode = otInfuseMode.OnCreate Then
                 '** set up the connection to the tabledefinition
                 Dim aTableDefinition As TableDefinition = TableDefinition.Retrieve(tablename:=aColumnEntry.TableName, runtimeOnly:=e.DataObject.RunTimeOnly)
                 If aTableDefinition IsNot Nothing AndAlso Not aTableDefinition.HasEntry(entryname:=aColumnEntry.Columnname) Then

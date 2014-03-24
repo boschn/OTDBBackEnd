@@ -166,71 +166,71 @@ Namespace OnTrack.IFM
         '**** infuese the object by a OTDBRecord
         '****
         Public Function infuse(ByRef aRecord As ormRecord) As Boolean
-            Dim i As Integer
-            Dim aCartypes As New clsCartypes
-            Dim fieldname As String
-            Dim flag As Boolean
-            Dim Value As Object
+'            Dim i As Integer
+'            Dim aCartypes As New clsCartypes
+'            Dim fieldname As String
+'            Dim flag As Boolean
+'            Dim Value As Object
 
-            '* init
-            If Not Me.IsInitialized Then
-                If Not initialize() Then
-                    infuse = False
-                    Exit Function
-                End If
-            End If
+'            '* init
+'            If Not Me.IsInitialized Then
+'                If Not initialize() Then
+'                    infuse = False
+'                    Exit Function
+'                End If
+'            End If
 
-            If aRecord.TableID <> ourTablename Then
-                infuse = False
-                Exit Function
-            End If
+'            If aRecord.TableID <> ourTablename Then
+'                infuse = False
+'                Exit Function
+'            End If
 
-            On Error GoTo errorhandle
+'            On Error GoTo errorhandle
 
-            Me.Record = aRecord
-            s_uid = CLng(aRecord.GetValue("uid"))
-            s_icdid = CStr(aRecord.GetValue("icdid"))
-            s_icdrev = CStr(aRecord.GetValue("icdrev"))
-            s_dept1 = CStr(aRecord.GetValue("dept1"))
-            s_assy1 = CStr(aRecord.GetValue("assy1"))
-            s_desc1 = CStr(aRecord.GetValue("desc1"))
+'            Me.Record = aRecord
+'            s_uid = CLng(aRecord.GetValue("uid"))
+'            s_icdid = CStr(aRecord.GetValue("icdid"))
+'            s_icdrev = CStr(aRecord.GetValue("icdrev"))
+'            s_dept1 = CStr(aRecord.GetValue("dept1"))
+'            s_assy1 = CStr(aRecord.GetValue("assy1"))
+'            s_desc1 = CStr(aRecord.GetValue("desc1"))
 
-            s_dept2 = CStr(aRecord.GetValue("dept2"))
-            s_assy2 = CStr(aRecord.GetValue("assy2"))
-            s_desc2 = CStr(aRecord.GetValue("desc2"))
+'            s_dept2 = CStr(aRecord.GetValue("dept2"))
+'            s_assy2 = CStr(aRecord.GetValue("assy2"))
+'            s_desc2 = CStr(aRecord.GetValue("desc2"))
 
-            s_class = CStr(aRecord.GetValue("class"))
-            s_status = CStr(aRecord.GetValue("status"))
-            If IsDate(aRecord.GetValue("chgdt")) Then s_changedOn = CDate(aRecord.GetValue("chgdt"))
+'            s_class = CStr(aRecord.GetValue("class"))
+'            s_status = CStr(aRecord.GetValue("status"))
+'            If IsDate(aRecord.GetValue("chgdt")) Then s_changedOn = CDate(aRecord.GetValue("chgdt"))
 
-            ' set cartypes
-            For i = 1 To aCartypes.getNoCars
-                fieldname = "h" & Format(i, "0#")
-                flag = False
-                Value = aRecord.GetValue(fieldname)
-                If TypeName(Value) = "Boolean" Then
-                    If Value = True Then
-                        flag = CBool(aRecord.GetValue(fieldname))
-                    Else
-                        flag = False
-                    End If
-                ElseIf Not IsEmpty(Value) And Not Value = "" Then
-                    flag = True
-                End If
+'            ' set cartypes
+'            For i = 1 To aCartypes.getNoCars
+'                fieldname = "h" & Format(i, "0#")
+'                flag = False
+'                Value = aRecord.GetValue(fieldname)
+'                If TypeName(Value) = "Boolean" Then
+'                    If Value = True Then
+'                        flag = CBool(aRecord.GetValue(fieldname))
+'                    Else
+'                        flag = False
+'                    End If
+'                ElseIf Not IsEmpty(Value) And Not Value = "" Then
+'                    flag = True
+'                End If
 
-                If flag Then Call aCartypes.addCartypeByIndex(i)
+'                If flag Then Call aCartypes.addCartypeByIndex(i)
 
-            Next i
-            s_cartypes = aCartypes
+'            Next i
+'            s_cartypes = aCartypes
 
-            _updatedOn = CDate(aRecord.GetValue(ConstFNUpdatedOn))
+'            _updatedOn = CDate(aRecord.GetValue(ConstFNUpdatedOn))
 
-            infuse = MyBase.Infuse(aRecord)
-            _IsLoaded = infuse
-            Exit Function
+'            infuse = MyBase.Infuse(aRecord)
+'            _IsLoaded = infuse
+'            Exit Function
 
-errorhandle:
-            infuse = False
+'errorhandle:
+'            infuse = False
 
 
         End Function
@@ -671,67 +671,67 @@ error_handler:
         '**** infuese the object by a OTDBRecord
         '****
         Public Function infuse(ByRef aRecord As ormRecord) As Boolean
-            Dim i As Integer
-            Dim aCartypes As New clsCartypes
-            Dim fieldname As String
-            Dim flag As Boolean
-            Dim Value As Object
-            '* init
-            If Not Me.IsInitialized Then
-                If Not initialize() Then
-                    Return False
-                    Exit Function
-                End If
-            End If
+'            Dim i As Integer
+'            Dim aCartypes As New clsCartypes
+'            Dim fieldname As String
+'            Dim flag As Boolean
+'            Dim Value As Object
+'            '* init
+'            If Not Me.IsInitialized Then
+'                If Not initialize() Then
+'                    Return False
+'                    Exit Function
+'                End If
+'            End If
 
 
-            On Error GoTo errorhandle
+'            On Error GoTo errorhandle
 
-            Me.Record = aRecord
+'            Me.Record = aRecord
 
-            s_icdid = CStr(aRecord.GetValue("icdid"))
-            s_icdrev = CStr(aRecord.GetValue("rev"))
-            s_sdept = CStr(aRecord.GetValue("sdept"))
-            s_sassy = Split(CStr(aRecord.GetValue("sassy")), ",")
-            s_seditor = CStr(aRecord.GetValue("seditor"))
-            s_sresp = CStr(aRecord.GetValue("sresp"))
+'            s_icdid = CStr(aRecord.GetValue("icdid"))
+'            s_icdrev = CStr(aRecord.GetValue("rev"))
+'            s_sdept = CStr(aRecord.GetValue("sdept"))
+'            s_sassy = Split(CStr(aRecord.GetValue("sassy")), ",")
+'            s_seditor = CStr(aRecord.GetValue("seditor"))
+'            s_sresp = CStr(aRecord.GetValue("sresp"))
 
-            s_desc = CStr(aRecord.GetValue("desc"))
+'            s_desc = CStr(aRecord.GetValue("desc"))
 
-            s_rdept = CStr(aRecord.GetValue("rdept"))
-            s_rassy = Split(CStr(aRecord.GetValue("rassy")), ",")
-            s_receiver = CStr(aRecord.GetValue("receiver"))
+'            s_rdept = CStr(aRecord.GetValue("rdept"))
+'            s_rassy = Split(CStr(aRecord.GetValue("rassy")), ",")
+'            s_receiver = CStr(aRecord.GetValue("receiver"))
 
-            s_class = CStr(aRecord.GetValue("class"))
-            s_status = CStr(aRecord.GetValue("status"))
-            s_statuscmt = CStr(aRecord.GetValue("statuscmt"))
-            If IsDate(aRecord.GetValue("statdt")) Then s_statdt = CDate(aRecord.GetValue("statdt"))
-            If IsDate(aRecord.GetValue("duedt")) Then s_duedt = CDate(aRecord.GetValue("duedt"))
+'            s_class = CStr(aRecord.GetValue("class"))
+'            s_status = CStr(aRecord.GetValue("status"))
+'            s_statuscmt = CStr(aRecord.GetValue("statuscmt"))
+'            If IsDate(aRecord.GetValue("statdt")) Then s_statdt = CDate(aRecord.GetValue("statdt"))
+'            If IsDate(aRecord.GetValue("duedt")) Then s_duedt = CDate(aRecord.GetValue("duedt"))
 
-            ' set cartypes
-            For i = 1 To aCartypes.getNoCars
-                fieldname = "h" & Format(i, "0#")
-                Value = aRecord.GetValue(fieldname)
-                If TypeName(Value) = "boolean" Then
-                    If Value = True Then
-                        flag = CBool(aRecord.GetValue(fieldname))
-                    End If
-                ElseIf Not IsEmpty(Value) And Not Value = "" Then
-                    flag = True
-                End If
+'            ' set cartypes
+'            For i = 1 To aCartypes.getNoCars
+'                fieldname = "h" & Format(i, "0#")
+'                Value = aRecord.GetValue(fieldname)
+'                If TypeName(Value) = "boolean" Then
+'                    If Value = True Then
+'                        flag = CBool(aRecord.GetValue(fieldname))
+'                    End If
+'                ElseIf Not IsEmpty(Value) And Not Value = "" Then
+'                    flag = True
+'                End If
 
-                If flag Then Call aCartypes.addCartypeByIndex(i)
-            Next i
-            s_cartypes = aCartypes
+'                If flag Then Call aCartypes.addCartypeByIndex(i)
+'            Next i
+'            s_cartypes = aCartypes
 
-            _updatedOn = CDate(aRecord.GetValue(ConstFNUpdatedOn))
+'            _updatedOn = CDate(aRecord.GetValue(ConstFNUpdatedOn))
 
-            infuse = MyBase.Infuse(aRecord)
-            _IsLoaded = infuse
-            Exit Function
+'            infuse = MyBase.Infuse(aRecord)
+'            _IsLoaded = infuse
+'            Exit Function
 
-errorhandle:
-            infuse = False
+'errorhandle:
+'            infuse = False
 
 
         End Function

@@ -366,71 +366,71 @@ Namespace OnTrack.Xchange
             createEntry = anEntry
 
         End Function
-        ''' <summary>
-        ''' Infuses the Object from the record
-        ''' </summary>
-        ''' <param name="aRecord"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Overrides Function Infuse(ByRef record As ormRecord) As Boolean Implements iormInfusable.Infuse
-            '* init
-            If Not Me.IsInitialized Then
-                If Not Me.Initialize() Then
-                    Infuse = False
-                    Exit Function
-                End If
-            End If
+        '''' <summary>
+        '''' Infuses the Object from the record
+        '''' </summary>
+        '''' <param name="aRecord"></param>
+        '''' <returns></returns>
+        '''' <remarks></remarks>
+        'Public Overrides Function Infuse(ByRef record As ormRecord) As Boolean Implements iormInfusable.Infuse
+        '    '* init
+        '    If Not Me.IsInitialized Then
+        '        If Not Me.Initialize() Then
+        '            Infuse = False
+        '            Exit Function
+        '        End If
+        '    End If
 
 
-            Try
-                s_tag = CStr(record.GetValue(ConstFNTag))
-                s_reqby = CStr(record.GetValue("reqby"))
-                s_reqbyOU = CStr(record.GetValue("reqbyou"))
-                s_workspace = CStr(record.GetValue("wspace"))
-                s_xChangeConfigName = CStr(record.GetValue("xchg"))
-                s_status = CStr(record.GetValue("status"))
-                s_desc = CStr(record.GetValue("desc"))
-                s_cmt = CStr(record.GetValue("cmt"))
-                If IsNull(record.GetValue("timestamp")) Then
-                    s_timestamp = ConstNullDate
-                Else
-                    s_timestamp = CDate(record.GetValue("timestamp"))
-                End If
-                s_procbyUser = CStr(record.GetValue("procuser"))
-                s_msglogtag = CStr(record.GetValue("msglogtag"))
+        '    Try
+        '        s_tag = CStr(record.GetValue(ConstFNTag))
+        '        s_reqby = CStr(record.GetValue("reqby"))
+        '        s_reqbyOU = CStr(record.GetValue("reqbyou"))
+        '        s_workspace = CStr(record.GetValue("wspace"))
+        '        s_xChangeConfigName = CStr(record.GetValue("xchg"))
+        '        s_status = CStr(record.GetValue("status"))
+        '        s_desc = CStr(record.GetValue("desc"))
+        '        s_cmt = CStr(record.GetValue("cmt"))
+        '        If IsNull(record.GetValue("timestamp")) Then
+        '            s_timestamp = ConstNullDate
+        '        Else
+        '            s_timestamp = CDate(record.GetValue("timestamp"))
+        '        End If
+        '        s_procbyUser = CStr(record.GetValue("procuser"))
+        '        s_msglogtag = CStr(record.GetValue("msglogtag"))
 
-                '** Infuse the subenries
-                Dim aRecordCollection As New List(Of ormRecord)
-                Dim aTable As iormDataStore = GetTableStore(clsOTDBMessageQueueEntry.ConstTableID)
-                Dim aCommand As ormSqlSelectCommand = aTable.CreateSqlSelectCommand(id:="Inject")
-                If Not aCommand.Prepared Then
-                    aCommand.Where = clsOTDBMessageQueueEntry.ConstTableID & ".[" & clsOTDBMessageQueueEntry.ConstFNTag & "] = @tag"
-                    aCommand.OrderBy = clsOTDBMessageQueueEntry.ConstTableID & ".[" & clsOTDBMessageQueueEntry.ConstFNRowno & "] asc"
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@tag", columnname:=clsOTDBMessageQueueEntry.ConstFNTag, _
-                                                                           tablename:=clsOTDBMessageQueueEntry.ConstTableID))
-                End If
-                If aCommand.Prepared Then
-                    _entries.Clear()
-                    aCommand.SetParameterValue(ID:="@tag", value:=LCase(s_tag))
-                    aRecordCollection = aCommand.RunSelect
-                    ' records read
-                    For Each aRecord In aRecordCollection
-                        ' add the Entry as Component
-                        Dim anEntry As clsOTDBMessageQueueEntry = New clsOTDBMessageQueueEntry
-                        If anEntry.Infuse(aRecord) Then
-                            _entries.Add(anEntry)
-                        End If
-                    Next aRecord
-                End If
+        '        '** Infuse the subenries
+        '        Dim aRecordCollection As New List(Of ormRecord)
+        '        Dim aTable As iormDataStore = GetTableStore(clsOTDBMessageQueueEntry.ConstTableID)
+        '        Dim aCommand As ormSqlSelectCommand = aTable.CreateSqlSelectCommand(id:="Inject")
+        '        If Not aCommand.Prepared Then
+        '            aCommand.Where = clsOTDBMessageQueueEntry.ConstTableID & ".[" & clsOTDBMessageQueueEntry.ConstFNTag & "] = @tag"
+        '            aCommand.OrderBy = clsOTDBMessageQueueEntry.ConstTableID & ".[" & clsOTDBMessageQueueEntry.ConstFNRowno & "] asc"
+        '            aCommand.AddParameter(New ormSqlCommandParameter(ID:="@tag", columnname:=clsOTDBMessageQueueEntry.ConstFNTag, _
+        '                                                                   tablename:=clsOTDBMessageQueueEntry.ConstTableID))
+        '        End If
+        '        If aCommand.Prepared Then
+        '            _entries.Clear()
+        '            aCommand.SetParameterValue(ID:="@tag", value:=LCase(s_tag))
+        '            aRecordCollection = aCommand.RunSelect
+        '            ' records read
+        '            For Each aRecord In aRecordCollection
+        '                ' add the Entry as Component
+        '                Dim anEntry As clsOTDBMessageQueueEntry = New clsOTDBMessageQueueEntry
+        '                If anEntry.Infuse(aRecord) Then
+        '                    _entries.Add(anEntry)
+        '                End If
+        '            Next aRecord
+        '        End If
 
-                Return MyBase.Infuse(record)
+        '        Return MyBase.Infuse(record)
 
-            Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="clsOTDBMessageQueue.Infuse")
-                Return False
-            End Try
+        '    Catch ex As Exception
+        '        CoreMessageHandler(exception:=ex, subname:="clsOTDBMessageQueue.Infuse")
+        '        Return False
+        '    End Try
 
-        End Function
+        'End Function
         ''' <summary>
         ''' loads a message queue from the datastore
         ''' </summary>
@@ -1085,68 +1085,68 @@ Namespace OnTrack.Xchange
             Return Me.IsDeleted
 
         End Function
-        ''' <summary>
-        ''' infuse the object from the record
-        ''' </summary>
-        ''' <param name="aRecord"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Overrides Function Infuse(ByRef record As ormRecord) As Boolean Implements iormInfusable.Infuse
-            '* init
-            If Not Me.IsInitialized Then
-                If Not Me.Initialize() Then
-                    Infuse = False
-                    Exit Function
-                End If
-            End If
+        '''' <summary>
+        '''' infuse the object from the record
+        '''' </summary>
+        '''' <param name="aRecord"></param>
+        '''' <returns></returns>
+        '''' <remarks></remarks>
+        'Public Overrides Function Infuse(ByRef record As ormRecord) As Boolean Implements iormInfusable.Infuse
+        '    '* init
+        '    If Not Me.IsInitialized Then
+        '        If Not Me.Initialize() Then
+        '            Infuse = False
+        '            Exit Function
+        '        End If
+        '    End If
 
 
-            Try
-                s_tag = CStr(record.GetValue(ConstFNTag))
-                s_rowno = CLng(Record.GetValue(constFNRowno))
-                s_action = CStr(Record.GetValue("action"))
-                s_processable = CBool(Record.GetValue("isprocessable"))
-                s_processedOn = CDate(Record.GetValue("timestamp"))
-                s_msglogtag = CBool(Record.GetValue("msglogtag"))
-                s_status = CBool(record.GetValue("status"))
+        '    Try
+        '        s_tag = CStr(record.GetValue(ConstFNTag))
+        '        s_rowno = CLng(Record.GetValue(constFNRowno))
+        '        s_action = CStr(Record.GetValue("action"))
+        '        s_processable = CBool(Record.GetValue("isprocessable"))
+        '        s_processedOn = CDate(Record.GetValue("timestamp"))
+        '        s_msglogtag = CBool(Record.GetValue("msglogtag"))
+        '        s_status = CBool(record.GetValue("status"))
 
-                ' load the members
-                Dim aTable As iormDataStore = GetTableStore(clsOTDBMessageQueueMember.constTableID)
+        '        ' load the members
+        '        Dim aTable As iormDataStore = GetTableStore(clsOTDBMessageQueueMember.constTableID)
 
-                Dim aCommand As ormSqlSelectCommand = aTable.CreateSqlSelectCommand(id:="Inject")
-                If Not aCommand.Prepared Then
-                    aCommand.Where = clsOTDBMessageQueueMember.constTableID & ".[" & ConstFNTag & "] = @tag and " & _
-                                     clsOTDBMessageQueueMember.constTableID & ".[" & ConstFNRowno & "] = @rowno"
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@tag", _
-                                                                           columnname:=clsOTDBMessageQueueMember.ConstFNTag, _
-                                                                           tablename:=clsOTDBMessageQueueMember.constTableID))
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@" & clsOTDBMessageQueueMember.ConstFNRowno, _
-                                                                           columnname:=clsOTDBMessageQueueMember.ConstFNRowno, _
-                                                                           tablename:=clsOTDBMessageQueueMember.constTableID))
-                    aCommand.OrderBy = clsOTDBMessageQueueMember.constTableID & ".[" & clsOTDBMessageQueueMember.ConstFNIDNo & "] asc"
-                    aCommand.Prepare()
-                End If
-                If aCommand.Prepared Then
-                    aCommand.SetParameterValue(ID:="@" & clsOTDBMessageQueueMember.ConstFNTag, value:=LCase(s_tag))
-                    aCommand.SetParameterValue(ID:="@" & clsOTDBMessageQueueMember.ConstFNRowno, value:=s_rowno)
-                    Dim aRecordCollection As List(Of ormRecord) = aCommand.RunSelect
-                    _members.Clear()
-                    For Each aRecord In aRecordCollection
-                        ' add the Entry as Component
-                        Dim anEntry = New clsOTDBMessageQueueMember
-                        If anEntry.Infuse(aRecord) Then
-                            Call _members.Add(item:=anEntry)
-                        End If
-                    Next aRecord
-                End If
+        '        Dim aCommand As ormSqlSelectCommand = aTable.CreateSqlSelectCommand(id:="Inject")
+        '        If Not aCommand.Prepared Then
+        '            aCommand.Where = clsOTDBMessageQueueMember.constTableID & ".[" & ConstFNTag & "] = @tag and " & _
+        '                             clsOTDBMessageQueueMember.constTableID & ".[" & ConstFNRowno & "] = @rowno"
+        '            aCommand.AddParameter(New ormSqlCommandParameter(ID:="@tag", _
+        '                                                                   columnname:=clsOTDBMessageQueueMember.ConstFNTag, _
+        '                                                                   tablename:=clsOTDBMessageQueueMember.constTableID))
+        '            aCommand.AddParameter(New ormSqlCommandParameter(ID:="@" & clsOTDBMessageQueueMember.ConstFNRowno, _
+        '                                                                   columnname:=clsOTDBMessageQueueMember.ConstFNRowno, _
+        '                                                                   tablename:=clsOTDBMessageQueueMember.constTableID))
+        '            aCommand.OrderBy = clsOTDBMessageQueueMember.constTableID & ".[" & clsOTDBMessageQueueMember.ConstFNIDNo & "] asc"
+        '            aCommand.Prepare()
+        '        End If
+        '        If aCommand.Prepared Then
+        '            aCommand.SetParameterValue(ID:="@" & clsOTDBMessageQueueMember.ConstFNTag, value:=LCase(s_tag))
+        '            aCommand.SetParameterValue(ID:="@" & clsOTDBMessageQueueMember.ConstFNRowno, value:=s_rowno)
+        '            Dim aRecordCollection As List(Of ormRecord) = aCommand.RunSelect
+        '            _members.Clear()
+        '            For Each aRecord In aRecordCollection
+        '                ' add the Entry as Component
+        '                Dim anEntry = New clsOTDBMessageQueueMember
+        '                If anEntry.Infuse(aRecord) Then
+        '                    Call _members.Add(item:=anEntry)
+        '                End If
+        '            Next aRecord
+        '        End If
 
-                Return MyBase.Infuse(Record)
-            Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="clsOTDBMessageQueueEntry.Infuse")
-                Return False
-            End Try
+        '        Return MyBase.Infuse(Record)
+        '    Catch ex As Exception
+        '        CoreMessageHandler(exception:=ex, subname:="clsOTDBMessageQueueEntry.Infuse")
+        '        Return False
+        '    End Try
 
-        End Function
+        'End Function
         ''' <summary>
         ''' Load the object from the datastore
         ''' </summary>
@@ -1891,71 +1891,71 @@ Namespace OnTrack.Xchange
         End Property
 #End Region
 
-        ''' <summary>
-        ''' Infuse the object by the record
-        ''' </summary>
-        ''' <param name="record"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Overrides Function Infuse(ByRef record As ormRecord) As Boolean
+        '''' <summary>
+        '''' Infuse the object by the record
+        '''' </summary>
+        '''' <param name="record"></param>
+        '''' <returns></returns>
+        '''' <remarks></remarks>
+        'Public Overrides Function Infuse(ByRef record As ormRecord) As Boolean
 
-            '* init
-            If Not Me.IsInitialized Then
-                If Not Me.Initialize() Then
-                    Infuse = False
-                    Exit Function
-                End If
-            End If
-
-
-            Try
-                s_tag = CStr(record.GetValue(ConstFNTag))
-                s_rowno = CLng(record.GetValue(constFNRowno))
-                s_id = CLng(record.GetValue(constFNIdNo))
-
-                s_xcmd = CStr(record.GetValue("xcmd"))
-                s_xid = CStr(record.GetValue("xid"))
-
-                s_objectname = CStr(record.GetValue("objectname"))
-                s_fieldname = CStr(record.GetValue("fieldname"))
-                s_data = (record.GetValue("data"))
-                s_datatype = CLng(record.GetValue("datatype"))
-                s_msglogtag = CStr(record.GetValue("msglogtag"))
-                s_status = CStr(record.GetValue("status"))
-                s_ordinal = record.GetValue("ordinal")
-
-                If Not IsNull(record.GetValue("timestamp")) Then
-                    s_filedOn = CDate(record.GetValue("timestamp"))
-                Else
-                    s_filedOn = ConstNullDate
-                End If
-                s_isSuccess = CBool(record.GetValue("issuccess"))
-                s_isToBeApproved = CBool(record.GetValue("istobeappr"))
-                s_isApproved = CBool(record.GetValue("isapproved"))
-
-                If Not IsNull(record.GetValue("approvedon")) Then
-                    s_filedOn = CDate(record.GetValue("approvedon"))
-                Else
-                    s_filedOn = ConstNullDate
-                End If
-                If Not IsNull(record.GetValue("filedon")) Then
-                    s_filedOn = CDate(record.GetValue("filedon"))
-                Else
-                    s_filedOn = ConstNullDate
-                End If
-                s_isProcessable = CBool(record.GetValue("isprocessable"))
-
-                _IsLoaded = MyBase.Infuse(record)
-                Return Me.IsLoaded
-
-            Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="clsOTDBMessageQueueMember.infuse")
-                Return False
-            End Try
+        '    '* init
+        '    If Not Me.IsInitialized Then
+        '        If Not Me.Initialize() Then
+        '            Infuse = False
+        '            Exit Function
+        '        End If
+        '    End If
 
 
+        '    Try
+        '        s_tag = CStr(record.GetValue(ConstFNTag))
+        '        s_rowno = CLng(record.GetValue(constFNRowno))
+        '        s_id = CLng(record.GetValue(constFNIdNo))
 
-        End Function
+        '        s_xcmd = CStr(record.GetValue("xcmd"))
+        '        s_xid = CStr(record.GetValue("xid"))
+
+        '        s_objectname = CStr(record.GetValue("objectname"))
+        '        s_fieldname = CStr(record.GetValue("fieldname"))
+        '        s_data = (record.GetValue("data"))
+        '        s_datatype = CLng(record.GetValue("datatype"))
+        '        s_msglogtag = CStr(record.GetValue("msglogtag"))
+        '        s_status = CStr(record.GetValue("status"))
+        '        s_ordinal = record.GetValue("ordinal")
+
+        '        If Not IsNull(record.GetValue("timestamp")) Then
+        '            s_filedOn = CDate(record.GetValue("timestamp"))
+        '        Else
+        '            s_filedOn = ConstNullDate
+        '        End If
+        '        s_isSuccess = CBool(record.GetValue("issuccess"))
+        '        s_isToBeApproved = CBool(record.GetValue("istobeappr"))
+        '        s_isApproved = CBool(record.GetValue("isapproved"))
+
+        '        If Not IsNull(record.GetValue("approvedon")) Then
+        '            s_filedOn = CDate(record.GetValue("approvedon"))
+        '        Else
+        '            s_filedOn = ConstNullDate
+        '        End If
+        '        If Not IsNull(record.GetValue("filedon")) Then
+        '            s_filedOn = CDate(record.GetValue("filedon"))
+        '        Else
+        '            s_filedOn = ConstNullDate
+        '        End If
+        '        s_isProcessable = CBool(record.GetValue("isprocessable"))
+
+        '        _IsLoaded = MyBase.Infuse(record)
+        '        Return Me.IsLoaded
+
+        '    Catch ex As Exception
+        '        CoreMessageHandler(exception:=ex, subname:="clsOTDBMessageQueueMember.infuse")
+        '        Return False
+        '    End Try
+
+
+
+        'End Function
 
         ''' <summary>
         ''' load the object from the persistence store

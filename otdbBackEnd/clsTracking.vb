@@ -229,7 +229,7 @@ Namespace OnTrack.Deliverables
                 ' records read
                 For Each aRecord In aRecordCollection
                     Dim anEntry As New TrackItem
-                    If anEntry.Infuse(aRecord) Then
+                    If InfuseDataObject(record:=aRecord, dataobject:=anEntry) Then
                         aCollection.Add(Item:=anEntry)
                     End If
                 Next aRecord

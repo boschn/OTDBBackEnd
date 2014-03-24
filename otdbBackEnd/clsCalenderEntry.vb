@@ -970,11 +970,9 @@ error_handle:
                 Dim theRecords As List(Of ormRecord) = aCommand.RunSelect
 
                 If theRecords.Count >= 0 Then
-
                     For Each aRecord As ormRecord In theRecords
                         Dim aNewObject As New CalendarEntry
-                        aNewObject = New CalendarEntry
-                        If aNewObject.Infuse(aRecord) Then
+                        If InfuseDataObject(record:=aRecord, dataobject:=aNewObject) Then
                             aCollection.Add(item:=aNewObject)
                         End If
                     Next aRecord

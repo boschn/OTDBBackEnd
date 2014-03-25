@@ -3614,7 +3614,7 @@ Namespace OnTrack.Deliverables
 
         <ormObjectEntry(referenceobjectentry:=DeliverableType.ConstObjectID & "." & DeliverableType.constFNTypeID, _
             title:="Type", description:="type of the deliverable", XID:="DLV13", _
-             useforeignkey:=otForeignKeyImplementation.NativeDatabase)> Public Const constFNTypeID = "typeid"
+             useforeignkey:=otForeignKeyImplementation.ORM)> Public Const constFNTypeID = "typeid"
 
         <ormObjectEntry(referenceobjectentry:=Person.ConstObjectID & "." & Person.constFNID, _
             title:="Responsible", description:="responsible person for the deliverable", XID:="DLV16")> Public Const constFNResponsiblePerson = "resp"

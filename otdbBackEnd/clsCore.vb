@@ -365,7 +365,7 @@ Namespace OnTrack
         Private WithEvents _configurations As ComplexPropertyStore
 
         Private _CurrentDomain As Domain
-        Private _UILogin As UI.clsCoreUILogin
+        Private _UILogin As UI.CoreLoginForm
         Private _AccessLevel As otAccessRight    ' access
 
         Private _DomainObjectsDir As New Dictionary(Of String, ObjectRepository)
@@ -677,14 +677,14 @@ Namespace OnTrack
         ''' Gets or sets the UI login.
         ''' </summary>
         ''' <value>The UI login.</value>
-        Public Property UILogin() As UI.clsCoreUILogin
+        Public Property UILogin() As UI.CoreLoginForm
             Get
                 If _UILogin Is Nothing Then
-                    _UILogin = New UI.clsCoreUILogin
+                    _UILogin = New UI.CoreLoginForm()
                 End If
                 Return Me._UILogin
             End Get
-            Set(value As UI.clsCoreUILogin)
+            Set(value As UI.CoreLoginForm)
                 Me._UILogin = value
             End Set
         End Property
@@ -998,7 +998,6 @@ Namespace OnTrack
         ''' <remarks></remarks>
         Public Function RequireAccessRight(accessRequest As otAccessRight, _
                                             Optional domainID As String = "", _
-                                            Optional installIfnecessary As Boolean = False, _
                                             Optional reLogin As Boolean = True) As Boolean
             Dim anUsername As String
             '** lazy initialize
@@ -1020,7 +1019,7 @@ Namespace OnTrack
                 Return Me.RequestUserAccess(accessRequest:=accessRequest, username:=anUsername, domainID:=domainID, loginOnFailed:=reLogin)
             Else
                 If domainID = "" Then domainID = ConstGlobalDomain
-                Me.StartUp(AccessRequest:=accessRequest, domainID:=domainID, installIfNecessary:=installIfnecessary)
+                Me.StartUp(AccessRequest:=accessRequest, domainID:=domainID)
                 Return Me.ValidateAccessRights(accessrequest:=accessRequest, domainid:=domainID)
             End If
 
@@ -1047,9 +1046,32 @@ Namespace OnTrack
 
         End Sub
 
+        ''' <summary>
+        ''' Validate the User against the Database with the accessRight
+        ''' </summary>
+        ''' <param name="username"></param>
+        ''' <param name="password"></param>
+        ''' <param name="accessRequest"></param>
+        ''' <param name="domainID"></param>
+        ''' <param name="databasedriver"></param>
+        ''' <param name="uservalidation"></param>
+        ''' <param name="messagetext"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function ValidateUser(ByVal username As String, ByVal password As String, ByVal accessRequest As otAccessRight, ByVal domainID As String, _
+          Optional databasedriver As iormDatabaseDriver = Nothing, Optional uservalidation As UserValidation = Nothing, Optional messagetext As String = "") As Boolean
+
+            If databasedriver Is Nothing Then databasedriver = _primaryDBDriver
+            If databasedriver Is Nothing Then
+                CoreMessageHandler(message:="database driver is not available ", subname:="Session.ValidateUser", messagetype:=otCoreMessageType.InternalError)
+                Return False
+            End If
+            Return databasedriver.validateUser(username:=username, password:=password, accessRequest:=accessRequest)
+        End Function
 
         ''' <summary>
-        ''' Validate the Access Request against the current OnTrack DB Access Level of the user
+        ''' Validate the Access Request against the current OnTrack DB Access Level of the user and the objects operations
+        ''' (database driver and connection are checking just the access level)
         ''' </summary>
         ''' <param name="accessrequest"></param>
         ''' <param name="domain" >Domain to validate for</param>
@@ -1167,11 +1189,11 @@ Namespace OnTrack
                     'LoginWindow
                     Me.UILogin.Configset = ot.CurrentConfigSetName
                     Me.UILogin.PossibleConfigSets = ot.ConfigSetNamesToSelect
-                    Me.UILogin.EnableConfigSet = True
+                    Me.UILogin.EnableChangeConfigSet = True
                     If messagetext <> "" Then Me.UILogin.Messagetext = messagetext
                     Me.UILogin.Domain = domainID
                     Me.UILogin.EnableDomain = False
-                    Me.UILogin.Session = Me
+                    'Me.UILogin.Session = Me
 
                     Me.UILogin.Accessright = accessRequest
                     Me.UILogin.enableAccess = True
@@ -1224,7 +1246,7 @@ Namespace OnTrack
                 Else
                     '**** Check Password
                     '****
-                    If ot.ValidateUser(accessRequest:=accessRequest, username:=username, password:=password, domainID:=domainID, databasedriver:=_primaryDBDriver) Then
+                    If _primaryDBDriver.validateUser(accessRequest:=accessRequest, username:=username, password:=password, domainid:=domainID) Then
                         Call CoreMessageHandler(subname:="Session.verifyUserAccess", break:=False, message:="User verified successfully", _
                                                 arg1:=username, noOtdbAvailable:=True, messagetype:=otCoreMessageType.ApplicationInfo)
                     Else
@@ -1256,7 +1278,7 @@ Namespace OnTrack
                     Me.UILogin.enableAccess = True
                     Me.UILogin.PossibleRights = AccessRightProperty.GetHigherAccessRequests(accessRequest)
                     Me.UILogin.Configset = _UseConfigSetName
-                    Me.UILogin.EnableConfigSet = False
+                    Me.UILogin.EnableChangeConfigSet = False
                     Me.UILogin.Accessright = accessRequest
                     If messagetext <> "" Then
                         Me.UILogin.Messagetext = messagetext
@@ -1266,7 +1288,7 @@ Namespace OnTrack
                     Me.UILogin.EnableUsername = True
                     Me.UILogin.Username = ""
                     Me.UILogin.Password = ""
-                    Me.UILogin.Session = Me
+                    'Me.UILogin.Session = Me
 
                     Me.UILogin.Show()
 
@@ -1285,8 +1307,7 @@ Namespace OnTrack
 
                     '* check validation -> relogin on connected -> EventHandler ?!
                     '* or abortion of the login window
-                    If ot.ValidateUser(accessRequest:=accessRequest, username:=username, password:=password, _
-                                       domainID:=domainID, databasedriver:=_primaryDBDriver) Then
+                    If _primaryDBDriver.validateUser(accessRequest:=accessRequest, username:=username, password:=password, domainid:=domainID) Then
                         Call CoreMessageHandler(subname:="Session.verifyUserAccess", break:=False, _
                                                 message:="User change verified successfully on domain '" & domainID & "'", _
                                                 arg1:=username, noOtdbAvailable:=True, messagetype:=otCoreMessageType.ApplicationInfo)
@@ -1332,7 +1353,7 @@ Namespace OnTrack
                     Me.UILogin.enableAccess = True
                     Me.UILogin.PossibleRights = AccessRightProperty.GetHigherAccessRequests(accessRequest)
                     Me.UILogin.Configset = _UseConfigSetName
-                    Me.UILogin.EnableConfigSet = False
+                    Me.UILogin.EnableChangeConfigSet = False
                     Me.UILogin.Accessright = accessRequest
                     If messagetext <> "" Then
                         Me.UILogin.Messagetext = messagetext
@@ -1342,7 +1363,7 @@ Namespace OnTrack
                     Me.UILogin.EnableUsername = False
                     Me.UILogin.Username = Me.OTdbUser.Username
                     Me.UILogin.Password = password
-                    Me.UILogin.Session = Me
+                    'Me.UILogin.Session = Me
 
                     Me.UILogin.Show()
                     If Not Me.UILogin.Ok Then
@@ -1362,8 +1383,7 @@ Namespace OnTrack
                     End If
                     userValidation = _primaryDBDriver.GetUserValidation(username)
                     '* check password
-                    If ot.ValidateUser(accessRequest:=accessRequest, username:=username, password:=password, _
-                                       domainID:=domainID, databasedriver:=_primaryDBDriver) Then
+                    If _primaryDBDriver.validateUser(accessRequest:=accessRequest, username:=username, password:=password, domainid:=domainID) Then
                         '** not again
                         'Call CoreMessageHandler(subname:="Session.verifyUserAccess", break:=False, message:="User change verified successfully", _
                         '                        arg1:=username, noOtdbAvailable:=True, messagetype:=otCoreMessageType.ApplicationInfo)
@@ -1443,6 +1463,7 @@ Namespace OnTrack
             Return True
 
         End Function
+       
 
         ''' <summary>
         ''' Initiate/Start a new Session or do nothing if a Session is already initiated
@@ -1453,16 +1474,23 @@ Namespace OnTrack
         ''' <returns>True if successfull False else</returns>
         ''' <remarks></remarks>
         Public Function StartUp(AccessRequest As otAccessRight, Optional useconfigsetname As String = "", _
-        Optional domainID As String = "", _
-        Optional OTDBUsername As String = "", _
-        Optional OTDBPassword As String = "", _
-        Optional installIfNecessary As Boolean = True, _
-        Optional ByVal messagetext As String = "") As Boolean
+                            Optional domainID As String = "", _
+                            Optional OTDBUsername As String = "", _
+                            Optional OTDBPassword As String = "", _
+                            Optional installIfNecessary As Boolean? = Nothing, _
+                            Optional ByVal messagetext As String = "") As Boolean
             Dim aConfigsetname As String
             Dim aValue As Object
             Dim result As Boolean
 
             Try
+                If Me.IsRunning Or Me.IsStartingUp Then
+                    CoreMessageHandler(message:="Session is already running or starting up - further startups not possible", arg1:=Me.SessionID, subname:="Session.Startup", messagetype:=otCoreMessageType.InternalInfo)
+                    Return False
+                End If
+
+                '** default is install on startup
+                If Not installIfNecessary.HasValue Then installIfNecessary = True
 
                 '** set statup
                 Me.IsStartingUp = True
@@ -1636,7 +1664,7 @@ Namespace OnTrack
                 If Not _DomainObjectsDir.ContainsKey(key:=newDomainID) Then
                     Dim aStore = New ObjectRepository(Me)
                     _DomainObjectsDir.Add(key:=newDomainID, value:=aStore)
-                    aStore.registerCache(_ObjectCache)
+                    aStore.RegisterCache(_ObjectCache)
                 End If
                 '* reset cache
                 _ObjectPermissionCache.Clear()
@@ -1850,7 +1878,7 @@ Namespace OnTrack
             _ObjectPermissionCache.Clear()
         End Sub
 
-       
+
     End Class
     ''' <summary>
     ''' Object Defintion Event Arguments

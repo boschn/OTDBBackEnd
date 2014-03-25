@@ -314,7 +314,7 @@ Namespace OnTrack
                 End If
             End Get
         End Property
-        ReadOnly Property LoginWindow As clsCoreUILogin
+        ReadOnly Property LoginWindow As CoreLoginForm
             Get
                 If CurrentConnection(AutoConnect:=False) Is Nothing Then
                     Return Nothing
@@ -1069,9 +1069,9 @@ Namespace OnTrack
                 If Not IsInitialized Or force Then
 
                     '** Add the CORE UI Mappings as per Default
-                    If Not OTDBUI.HasNativeUI(OTDBUI.LoginFormName) Then
-                        OTDBUI.RegisterNativeUI(OTDBUI.LoginFormName, GetType(UIWinFormLogin))
-                        OTDBUI.RegisterNativeUI(OTDBUI.MessageboxFormName, GetType(UIWinFormMessageBox))
+                    If Not UserInterface.HasNativeUI(UserInterface.LoginFormName) Then
+                        UserInterface.RegisterNativeUI(UserInterface.LoginFormName, GetType(UIWinFormLogin))
+                        UserInterface.RegisterNativeUI(UserInterface.MessageboxFormName, GetType(UIWinFormMessageBox))
                     End If
 
                     ''' register all data objects which have a direct orm mapping
@@ -1208,64 +1208,36 @@ Namespace OnTrack
             End If
         End Function
 
+        ''' <summary>
+        ''' requires access to the OnTrack Database  - starts a session if not running otherwise just validates
+        ''' </summary>
+        ''' <param name="AccessRequest">otAccessRight</param>
+        ''' <returns>True if successfull</returns>
+        ''' <remarks></remarks>
+        Public Function RequireAccess(accessRequest As otAccessRight, _
+                                            Optional domainID As String = "", _
+                                            Optional reLogin As Boolean = True) As Boolean
+            Return CurrentSession.RequireAccessRight(accessRequest:=accessRequest, domainID:=domainID, reLogin:=reLogin)
+        End Function
        
         ''' <summary>
-        ''' validates the User, Passoword, Access Right in the Domain
+        ''' requires access to the OnTrack Database  - starts a session if not running otherwise just validates
         ''' </summary>
-        ''' <param name="username"></param>
-        ''' <param name="password"></param>
-        ''' <param name="accessright"></param>
-        ''' <param name="domainID"></param>
-        ''' <returns></returns>
+        ''' <param name="AccessRequest">otAccessRight</param>
+        ''' <returns>True if successfull</returns>
         ''' <remarks></remarks>
-        Public Function ValidateUser(ByVal username As String, ByVal password As String, ByVal accessRequest As otAccessRight, ByVal domainID As String, _
-        Optional databasedriver As iormDatabaseDriver = Nothing, Optional uservalidation As UserValidation = Nothing, Optional messagetext As String = "") As Boolean
+        Public Function Startup(accessRequest As otAccessRight, _
+                                            Optional domainID As String = "", _
+                                            Optional messagetext As String = "") As Boolean
 
-            If databasedriver Is Nothing Then databasedriver = CurrentDBDriver
-            If databasedriver Is Nothing Then
-                CoreMessageHandler(message:="database driver is not available ", subname:="ValidateUser", messagetype:=otCoreMessageType.InternalError)
-                Return False
-            End If
-            Dim aValidation As UserValidation
-            aValidation.ValidEntry = False
-            aValidation = databasedriver.GetUserValidation(username:=username)
-
-            If Not aValidation.ValidEntry Then
-                Return False
+            '*** startup
+            If Not CurrentSession.IsRunning AndAlso Not CurrentSession.IsStartingUp Then
+                Return CurrentSession.StartUp(AccessRequest:=accessRequest, domainID:=domainID, messagetext:=messagetext)
             Else
-                If aValidation.Password <> password Then
-                    Return False
-                End If
-
-                Return ValidateAccessRequest(accessrequest:=accessRequest, uservalidation:=aValidation)
+                Return RequireAccess(accessRequest:=accessRequest, domainID:=domainID)
             End If
         End Function
 
-        ''' <summary>
-        ''' Validate the Access Request against the uservalidation
-        ''' </summary>
-        ''' <param name="accessrequest"></param>
-        ''' <param name="domain" >Domain to validate for</param>
-        ''' <param name="Objects" >list of Obejectnames to validate in the domain</param>
-        ''' <returns>eturns false if reverification of User is needed or true if currentAccessLevel includes this new request Level</returns>
-        ''' <remarks></remarks>
-
-        Public Function ValidateAccessRequest(accessrequest As otAccessRight, uservalidation As UserValidation, _
-        Optional domain As String = "", _
-        Optional ByRef [Objectnames] As List(Of String) = Nothing) As Boolean
-
-            If accessrequest = otAccessRight.[ReadOnly] And _
-            (uservalidation.HasUpdateRights Or uservalidation.HasAlterSchemaRights Or uservalidation.HasReadRights) Then
-                Return True
-            ElseIf accessrequest = otAccessRight.ReadUpdateData And (uservalidation.HasUpdateRights Or uservalidation.HasAlterSchemaRights) Then
-                Return True
-                ' will never be reached !
-            ElseIf accessrequest = otAccessRight.AlterSchema And uservalidation.HasAlterSchemaRights Then
-                Return True
-            End If
-
-            Return False
-        End Function
         ''' <summary>
         ''' Add Error Message to the ErrorLog of the Current Session
         ''' </summary>
@@ -1440,7 +1412,7 @@ Namespace OnTrack
             ''' Messagebox Handling
             '''
             If showmsgbox Then
-                With New clsCoreUIMessageBox
+                With New CoreMessageBox
                     '* Message Heaxder
                     Select Case messagetype
                         Case otCoreMessageType.ApplicationError
@@ -1471,8 +1443,8 @@ Namespace OnTrack
                     If subname IsNot Nothing AndAlso subname <> "" Then .Message &= vbLf & "Routine: " & CStr(subname)
                     .Message &= vbLf & exmessagetext
 
-                    .type = clsCoreUIMessageBox.MessageType.Error
-                    .buttons = clsCoreUIMessageBox.ButtonType.OK
+                    .type = CoreMessageBox.MessageType.Error
+                    .buttons = CoreMessageBox.ButtonType.OK
                     .Show()
                 End With
 

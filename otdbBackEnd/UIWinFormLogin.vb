@@ -5,7 +5,7 @@ Imports OnTrack.UI
 Public Class UIWinFormLogin
     Implements iUINativeFormLogin
 
-    Private _ourUILogin As clsCoreUILogin
+    Private _ourUILogin As CoreLoginForm
 
     Friend WithEvents ButtonOk As System.Windows.Forms.Button
     Friend WithEvents CancelButton As System.Windows.Forms.Button
@@ -262,7 +262,7 @@ Public Class UIWinFormLogin
 
     Private Sub CbQuit_Click(sender As Object, e As EventArgs) Handles CBquit.Click
         If Not _ourUILogin Is Nothing Then
-            DirectCast(Me.OtdbShadow, clsCoreUILogin).Ok = False
+            DirectCast(Me.OtdbShadow, CoreLoginForm).Ok = False
         End If
         Me.Dispose()
     End Sub

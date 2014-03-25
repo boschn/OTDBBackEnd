@@ -417,10 +417,10 @@ Namespace OnTrack.Database
                                                                               group:="admins", defaultworkspace:="", person:="")
                 Me.RunSqlStatement(anInsertStr, nativeConnection:=nativeConnection)
 
-                With New UI.clsCoreUIMessageBox
-                    .type = UI.clsCoreUIMessageBox.MessageType.Info
+                With New UI.CoreMessageBox
+                    .type = UI.CoreMessageBox.MessageType.Info
                     .Message = "An administrator user 'Admin' with password 'axs2ontrack' was created. Please change the password as soon as possible"
-                    .buttons = UI.clsCoreUIMessageBox.ButtonType.OK
+                    .buttons = UI.CoreMessageBox.ButtonType.OK
                     .Show()
                 End With
                 Call CoreMessageHandler(message:="An administrator user 'Admin' with password 'axs2ontrack' was created. Please change the password as soon as possible", _
@@ -449,7 +449,7 @@ Namespace OnTrack.Database
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overrides Function InstallOnTrackDatabase(askBefore As Boolean, modules As String()) As Boolean Implements iormDatabaseDriver.InstallOnTrackDatabase
-            Dim result As OnTrack.UI.clsCoreUIMessageBox.ResultType
+            Dim result As OnTrack.UI.CoreMessageBox.ResultType
 
             '** check
             If _isInstalling Then Return False
@@ -458,17 +458,17 @@ Namespace OnTrack.Database
 
             '** ask
             If askBefore Then
-                With New clsCoreUIMessageBox
+                With New CoreMessageBox
                     .Title = "IMPORTANT QUESTION"
                     .Message = "The OnTrack database detected missing installation data." & vbLf & _
                         "Should the database schema be (re) created ? This means that all data might be lost ..." & vbLf & _
                         "If this is a repair or upgrade of the schema - an Administrator Account might be necessary for this operation."
-                    .buttons = clsCoreUIMessageBox.ButtonType.YesNo
+                    .buttons = CoreMessageBox.ButtonType.YesNo
                     .Show()
                     result = .result
                 End With
             Else
-                result = clsCoreUIMessageBox.ResultType.Yes
+                result = CoreMessageBox.ResultType.Yes
             End If
 
             '** check rights
@@ -482,7 +482,7 @@ Namespace OnTrack.Database
 
             '*** create
             '***
-            If result = clsCoreUIMessageBox.ResultType.Yes Then
+            If result = CoreMessageBox.ResultType.Yes Then
                 _isInstalling = True
                 '** send message to the session
                 RaiseEvent RequestBootstrapInstall(Me, New SessionBootstrapEventArgs(install:=False, modules:=modules, AskBefore:=False))
@@ -1197,29 +1197,30 @@ Namespace OnTrack.Database
                 End If
 
                 'DirectCast(_primaryConnection, adonetConnection).IsNativeInternalLocked = True
-
-                '** build the command
-                If _ErrorLogPersistCommand Is Nothing Then
-                    '* get the schema
-                    _ErrorLogPersistTableschema = Me.GetTableSchema(SessionLogMessage.ConstTableID)
-                    If _ErrorLogPersistTableschema Is Nothing OrElse Not _ErrorLogPersistTableschema.IsInitialized Then
-                        Return False
-                    End If
-
-                    '** we need just the insert
-                    _ErrorLogPersistCommand = DirectCast(_ErrorLogPersistTableschema, adonetTableSchema). _
-                        BuildCommand(_ErrorLogPersistTableschema.PrimaryKeyIndexName, _
-                                     adonetTableSchema.CommandType.InsertType, _
-                                     nativeconnection:=DirectCast(_primaryConnection, adonetConnection).NativeInternalConnection)
-                    '** take it on the internal 
-                    If _ErrorLogPersistCommand Is Nothing Then
-                        'DirectCast(_primaryConnection, adonetConnection).IsNativeInternalLocked = False
-                        Return False
-                    End If
-                End If
-
                 '** flush the messages
                 SyncLock DirectCast(_primaryConnection, adonetConnection).NativeInternalConnection
+
+                    '** build the command
+                    If _ErrorLogPersistCommand Is Nothing Then
+                        '* get the schema
+                        _ErrorLogPersistTableschema = Me.GetTableSchema(SessionLogMessage.ConstTableID)
+                        If _ErrorLogPersistTableschema Is Nothing OrElse Not _ErrorLogPersistTableschema.IsInitialized Then
+                            Return False
+                        End If
+
+                        '** we need just the insert
+                        _ErrorLogPersistCommand = DirectCast(_ErrorLogPersistTableschema, adonetTableSchema). _
+                            BuildCommand(_ErrorLogPersistTableschema.PrimaryKeyIndexName, _
+                                         adonetTableSchema.CommandType.InsertType, _
+                                         nativeconnection:=DirectCast(_primaryConnection, adonetConnection).NativeInternalConnection)
+                        '** take it on the internal 
+                        If _ErrorLogPersistCommand Is Nothing Then
+                            'DirectCast(_primaryConnection, adonetConnection).IsNativeInternalLocked = False
+                            Return False
+                        End If
+                    End If
+
+
                     If _ErrorLogPersistCommand.Connection.State = ConnectionState.Open Then
                         PersistLog = False
                         Dim anError As SessionLogMessage
@@ -1588,19 +1589,19 @@ Namespace OnTrack.Database
         ''' <param name="notInitialize">The not initialize.</param>
         ''' <returns></returns>
         Public Overrides Function Connect(Optional FORCE As Boolean = False, _
-        Optional accessRequest As otAccessRight = otAccessRight.[ReadOnly], _
-        Optional domainID As String = "", _
-        Optional OTDBUsername As String = "", _
-        Optional OTDBPassword As String = "", _
-        Optional exclusive As Boolean = False, _
-        Optional notInitialize As Boolean = False, _
-        Optional doLogin As Boolean = True) As Boolean
+                                            Optional accessRequest As otAccessRight = otAccessRight.[ReadOnly], _
+                                            Optional domainID As String = "", _
+                                            Optional OTDBUsername As String = "", _
+                                            Optional OTDBPassword As String = "", _
+                                            Optional exclusive As Boolean = False, _
+                                            Optional notInitialize As Boolean = False, _
+                                            Optional doLogin As Boolean = True) As Boolean
 
             ' return if connection is there
             If Not _nativeConnection Is Nothing And Not FORCE Then
                 ' stay in the connection if we donot need another state -> Validate the Request
                 ' if there is a connection and we have no need for higher access -> return
-                If _nativeConnection.State = ConnectionState.Open And ValidateAccessRequest(accessrequest:=accessRequest) Then
+                If _nativeConnection.State = ConnectionState.Open And Me.ValidateAccessRequest(accessrequest:=accessRequest) Then
                     ' initialize the parameter values of the OTDB
                     Call Initialize(force:=False)
                     Return True
@@ -1629,7 +1630,7 @@ Namespace OnTrack.Database
             End If
 
             '*** verify the User
-            If Not ot.ValidateUser(accessRequest:=accessRequest, username:=OTDBUsername, _
+            If Not _Session.ValidateUser(accessRequest:=accessRequest, username:=OTDBUsername, _
                                            password:=OTDBPassword, domainID:=domainID) Then
                 Call CoreMessageHandler(showmsgbox:=True, message:="Connect not possible - user could not be validated", arg1:=OTDBUsername, _
                                     subname:="adonetConnection.Connect", noOtdbAvailable:=True, messagetype:=otCoreMessageType.ApplicationError)
@@ -1668,7 +1669,7 @@ Namespace OnTrack.Database
                     _OTDBDatabaseDriver.SetDBParameter("lastLogin_timestamp", Date.Now.ToString)
                     _Dbuser = OTDBUsername
                     _Dbpassword = OTDBPassword
-                    
+
 
                     ' raise Connected Event
                     RaiseEvent OnConnection(Me, New ormConnectionEventArgs(Me, domainID))

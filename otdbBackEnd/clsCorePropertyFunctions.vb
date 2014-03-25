@@ -636,6 +636,10 @@ Namespace OnTrack
             MyBase.New(propertystring:=propertystring)
         End Sub
 
+        Public Sub New([enum] As otAccessRight)
+            MyBase.New(property:=[enum])
+        End Sub
+
         ''' <summary>
         ''' returns the enumeration value
         ''' </summary>

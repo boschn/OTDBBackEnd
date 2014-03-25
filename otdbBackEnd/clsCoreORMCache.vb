@@ -1,7 +1,7 @@
 ﻿REM ***********************************************************************************************************************************************
 REM *********** ON TRACK DATABASE BACKEND LIBRARY
 REM ***********
-REM *********** CACHE Class  for OTDB Business Objects
+REM *********** CACHE Class for ORM iormPersistables based on events
 REM ***********
 REM *********** Version: X.YY
 REM *********** Created: 2014-03-14
@@ -362,7 +362,7 @@ Namespace OnTrack.database
         End Class
 
         ''' <summary>
-        ''' Cached Object instance tuppel with some additional data
+        ''' generic cached object instance (tuppel with some additional data)
         ''' </summary>
         ''' <typeparam name="T"></typeparam>
         ''' <remarks></remarks>
@@ -927,7 +927,7 @@ Namespace OnTrack.database
                         Dim aBucket = theobjects.Item(key:=searchkeys)
                         e.DataObject = TryCast(aBucket.Object, ormDataObject)
                         aBucket.LastAccessStamp = DateTime.Now
-                        e.Result = True 'no success
+                        e.Result = True ' yes we have a result
                         e.AbortOperation = True ' abort creating use object instead
                         Exit Sub
                     Else

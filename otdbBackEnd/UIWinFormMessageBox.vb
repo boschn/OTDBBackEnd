@@ -21,13 +21,13 @@ Namespace OnTrack.UI
     Public Class UIWinFormMessageBox
         Implements iUINativeFormMessageBox
 
-        Private _shadow As clsCoreUIMessageBox
+        Private _shadow As CoreMessageBox
 
         Private _title As String
         Private _message As String
-        Private _result As clsCoreUIMessageBox.ResultType
-        Private _buttons As clsCoreUIMessageBox.ButtonType
-        Private _type As clsCoreUIMessageBox.MessageType
+        Private _result As CoreMessageBox.ResultType
+        Private _buttons As CoreMessageBox.ButtonType
+        Private _type As CoreMessageBox.MessageType
         ''' <summary>
         ''' 
         ''' </summary>
@@ -41,11 +41,11 @@ Namespace OnTrack.UI
         ''' Gets or sets the type.
         ''' </summary>
         ''' <value>The type.</value>
-        Public Property Type() As clsCoreUIMessageBox.MessageType Implements iUINativeFormMessageBox.Type
+        Public Property Type() As CoreMessageBox.MessageType Implements iUINativeFormMessageBox.Type
             Get
                 Return Me._type
             End Get
-            Set(value As clsCoreUIMessageBox.MessageType)
+            Set(value As CoreMessageBox.MessageType)
                 Me._type = value
             End Set
         End Property
@@ -98,29 +98,29 @@ Namespace OnTrack.UI
             Dim defaultbutton As MessageBoxDefaultButton
 
             Select Case _buttons
-                Case clsCoreUIMessageBox.ButtonType.OK
+                Case CoreMessageBox.ButtonType.OK
                     buttons = MessageBoxButtons.OK
-                Case clsCoreUIMessageBox.ButtonType.YesNo
+                Case CoreMessageBox.ButtonType.YesNo
                     buttons = MessageBoxButtons.YesNo
-                Case clsCoreUIMessageBox.ButtonType.YesNoCancel
+                Case CoreMessageBox.ButtonType.YesNoCancel
                     buttons = MessageBoxButtons.YesNoCancel
-                Case clsCoreUIMessageBox.ButtonType.OKCancel
+                Case CoreMessageBox.ButtonType.OKCancel
                     buttons = MessageBoxButtons.OKCancel
                 Case Else
                     buttons = MessageBoxButtons.OK
             End Select
 
             Select Case _type
-                Case clsCoreUIMessageBox.MessageType.Error
+                Case CoreMessageBox.MessageType.Error
                     icon = MessageBoxIcon.Error
                     title &= " ERROR: " & _title
-                Case clsCoreUIMessageBox.MessageType.Info
+                Case CoreMessageBox.MessageType.Info
                     icon = MessageBoxIcon.Information
                     title &= " INFORMATION: " & _title
-                Case clsCoreUIMessageBox.MessageType.Question
+                Case CoreMessageBox.MessageType.Question
                     icon = MessageBoxIcon.Question
                     title &= " FEEDBACK REQUIRED: " & _title
-                Case clsCoreUIMessageBox.MessageType.Warning
+                Case CoreMessageBox.MessageType.Warning
                     icon = MessageBoxIcon.Warning
                     title &= " WARNING: " & _title
                 Case Else
@@ -135,15 +135,15 @@ Namespace OnTrack.UI
             '** select on the result
             Select Case result
                 Case DialogResult.No
-                    _result = clsCoreUIMessageBox.ResultType.No
+                    _result = CoreMessageBox.ResultType.No
                 Case DialogResult.Cancel
-                    _result = clsCoreUIMessageBox.ResultType.Cancel
+                    _result = CoreMessageBox.ResultType.Cancel
                 Case DialogResult.OK
-                    _result = clsCoreUIMessageBox.ResultType.Ok
+                    _result = CoreMessageBox.ResultType.Ok
                 Case DialogResult.Yes
-                    _result = clsCoreUIMessageBox.ResultType.Yes
+                    _result = CoreMessageBox.ResultType.Yes
                 Case Else
-                    _result = clsCoreUIMessageBox.ResultType.None
+                    _result = CoreMessageBox.ResultType.None
             End Select
 
         End Function
@@ -183,11 +183,11 @@ Namespace OnTrack.UI
         ''' Gets or sets the buttons.
         ''' </summary>
         ''' <value>The buttons.</value>
-        Public Property Buttons() As clsCoreUIMessageBox.ButtonType Implements iUINativeFormMessageBox.Buttons
+        Public Property Buttons() As CoreMessageBox.ButtonType Implements iUINativeFormMessageBox.Buttons
             Get
                 Return _buttons
             End Get
-            Set(value As clsCoreUIMessageBox.ButtonType)
+            Set(value As CoreMessageBox.ButtonType)
                 _buttons = value
             End Set
         End Property
@@ -196,11 +196,11 @@ Namespace OnTrack.UI
         ''' Gets or sets the answer.
         ''' </summary>
         ''' <value>The answer.</value>
-        Public Property Result() As clsCoreUIMessageBox.ResultType Implements iUINativeFormMessageBox.Result
+        Public Property Result() As CoreMessageBox.ResultType Implements iUINativeFormMessageBox.Result
             Get
                 Return _result
             End Get
-            Set(value As clsCoreUIMessageBox.ResultType)
+            Set(value As CoreMessageBox.ResultType)
                 _result = value
             End Set
         End Property

@@ -923,10 +923,10 @@ Namespace OnTrack
                         For Each aProperty In theProperties
                             If IsArray([in]) Then
                                 result = result And aProperty.Apply([in]:=inarr, out:=outarr)
-                                If result Then inarr = outarr
+                                If result Then inarr = outarr ' change the in - it is no reference by
                             Else
                                 result = result And aProperty.Apply([in]:=[in], out:=outvalue)
-                                If result Then [in] = outvalue
+                                If result Then [in] = outvalue ' change the in to reflect changes
                             End If
 
                         Next
@@ -935,11 +935,31 @@ Namespace OnTrack
 
                     End If
 
+                    ' set the final out value
+
                     If result And Not IsArray([in]) Then
-                        out = outvalue
+                        '** if we have a value
+                        If outvalue IsNot Nothing Then
+                            out = outvalue
+                        Else
+                            '** may be since result is true from the beginning 
+                            '** no property might be applied
+                            out = [in]
+                        End If
+
                     Else
-                        out = outarr
+                        '** if we have a value
+                        If outvalue IsNot Nothing Then
+                            out = outarr
+                        Else
+                            '** may be since result is true from the beginning 
+                            '** no property might be applied
+                            out = [in]
+                        End If
+
                     End If
+
+                    '*** return result
                     Return result
                 Catch ex As Exception
                     CoreMessageHandler(exception:=ex, subname:="ormDataObject.ApplyObjectEntryProperty")

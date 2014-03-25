@@ -696,18 +696,9 @@ Namespace OnTrack
         ''' <param name="id"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Retrieve(ByVal groupname As String, Optional forcereload As Boolean = False) As Group
-            Return Retrieve(Of Group)(pkArray:={groupname}, forceReload:=forcereload)
-        End Function
-
-        ''' <summary>
-        ''' create the persistency schema with use of database driver
-        ''' </summary>
-        ''' <param name="silent"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Shared Function CreateSchema(Optional silent As Boolean = True) As Boolean
-            Return ormDataObject.CreateDataObjectSchema(Of Group)(silent:=silent)
+        Public Overloads Shared Function Retrieve(ByVal groupname As String, Optional domainid As String = "", Optional forcereload As Boolean = False) As Group
+            If domainid = "" Then domainid = CurrentSession.CurrentDomainID
+            Return Retrieve(Of Group)(pkArray:={groupname, domainid}, domainID:=domainid, forceReload:=forcereload)
         End Function
 
         ''' <summary>
@@ -716,9 +707,10 @@ Namespace OnTrack
         ''' <param name="groupname"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Shared Function Create(ByVal groupname As String) As Group
-            Dim primarykey() As Object = {groupname}
-            Return ormDataObject.CreateDataObject(Of Group)(primarykey, checkUnique:=True)
+        Public Shared Function Create(ByVal groupname As String, Optional domainid As String = "") As Group
+            If domainid = "" Then domainid = CurrentSession.CurrentDomainID
+            Dim primarykey() As Object = {groupname, domainid}
+            Return ormDataObject.CreateDataObject(Of Group)(primarykey, domainID:=domainid, checkUnique:=True)
         End Function
 
     End Class
@@ -795,18 +787,10 @@ Namespace OnTrack
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overloads Shared Function Retrieve(ByVal groupname As String, ByVal username As String, Optional ByVal domainid As String = "", Optional forcereload As Boolean = False) As GroupMember
-            Return Retrieve(Of GroupMember)(pkArray:={groupname, username}, domainID:=domainid, forceReload:=forcereload)
+            If domainid = "" Then domainid = CurrentSession.CurrentDomainID
+            Return Retrieve(Of GroupMember)(pkArray:={groupname, username, domainid}, domainID:=domainid, forceReload:=forcereload)
         End Function
 
-        ''' <summary>
-        ''' create the persistency schema with use of database driver
-        ''' </summary>
-        ''' <param name="silent"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Shared Function CreateSchema(Optional silent As Boolean = True) As Boolean
-            Return ormDataObject.CreateDataObjectSchema(Of GroupMember)(silent:=silent)
-        End Function
         ''' <summary>
         ''' Returns the Groupdefinition
         ''' </summary>
@@ -834,7 +818,8 @@ Namespace OnTrack
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overloads Shared Function Create(ByVal groupname As String, ByVal username As String, Optional ByVal domainid As String = "", Optional runtimeOnly As Boolean = False) As GroupMember
-            Dim primarykey() As Object = {groupname, username}
+            If domainid = "" Then domainid = CurrentSession.CurrentDomainID
+            Dim primarykey() As Object = {groupname, username, domainid}
             Return ormDataObject.CreateDataObject(Of GroupMember)(primarykey, domainID:=domainid, checkUnique:=False, runtimeOnly:=runtimeOnly)
         End Function
 
@@ -889,8 +874,9 @@ Namespace OnTrack
 
         '** relations
         '* Members
-        <ormSchemaRelation(cascadeOnDelete:=True, cascadeOnUpdate:=True, FromEntries:={ConstFNUsername}, toEntries:={GroupMember.ConstFNUsername}, LinkObject:=GetType(GroupMember) _
-            )> Const ConstRelMembers = "members"
+        <ormSchemaRelation(cascadeOnDelete:=True, cascadeOnUpdate:=True, cascadeOnCreate:=True, _
+            FromEntries:={ConstFNUsername}, toEntries:={GroupMember.ConstFNUsername}, _
+            LinkObject:=GetType(GroupMember))> Public Const ConstRelMembers = "members"
 
         'fields
         <ormEntryMapping(EntryName:=ConstFNUsername)> Private _username As String

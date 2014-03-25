@@ -78,10 +78,10 @@ Namespace OnTrack.UI
 
 
         Property Message As String
-        Property [Buttons] As clsCoreUIMessageBox.ButtonType
+        Property [Buttons] As CoreMessageBox.ButtonType
         Property Title As String
-        Property Result As clsCoreUIMessageBox.ResultType
-        Property Type As clsCoreUIMessageBox.MessageType
+        Property Result As CoreMessageBox.ResultType
+        Property Type As CoreMessageBox.MessageType
 
     End Interface
     ''' <summary>
@@ -120,7 +120,7 @@ Namespace OnTrack.UI
     ''' For each UI Type you have to register the concrete Mapping to use for each Type
     ''' </summary>
     ''' <remarks></remarks>
-    Public Module OTDBUI
+    Public Module UserInterface
 
         '** Const of all the Forms we need a mapping for
         Public Const LoginFormName As String = "UILogin"
@@ -180,7 +180,7 @@ Namespace OnTrack.UI
     ''' Abstract Base Class for the OTDB UI Forms
     ''' </summary>
     ''' <remarks></remarks>
-    Public MustInherit Class clsOTDBAbstractUIForm
+    Public MustInherit Class CoreAbstractForm
 
         Protected _form As iUINativeForm
 
@@ -210,8 +210,8 @@ Namespace OnTrack.UI
     ''' </summary>
     ''' <remarks></remarks>
     ''' 
-    Public Class clsCoreUIMessageBox
-        Inherits clsOTDBAbstractUIForm
+    Public Class CoreMessageBox
+        Inherits CoreAbstractForm
         Implements iOTDBUIAbstractForm
 
         ''' <summary>
@@ -253,7 +253,7 @@ Namespace OnTrack.UI
 
         Public Sub New()
             MyBase.New()
-            _form = OTDBUI.CreateUINew(OTDBUI.MessageboxFormName)
+            _form = UserInterface.CreateUINew(UserInterface.MessageboxFormName)
             _form.OtdbShadow = Me
             MyBase.form = _form
             buttons = ButtonType.OK
@@ -345,8 +345,8 @@ Namespace OnTrack.UI
     ''' </summary>
     ''' <remarks></remarks>
     ''' 
-    Public Class clsCoreUILogin
-        Inherits clsOTDBAbstractUIForm
+    Public Class CoreLoginForm
+        Inherits CoreAbstractForm
         Implements iOTDBUIAbstractForm
 
         Protected Shadows _form As iUINativeFormLogin
@@ -362,9 +362,6 @@ Namespace OnTrack.UI
         Private _enableAccess As Boolean = False
         Private _configset As String = ""
 
-        Private _databasedriver As iormDatabaseDriver
-        Private _session As Session
-
         Private _possibleRights As New List(Of String)
         Private _possibleDomains As New List(Of String)
         Private _possibleConfigSets As New List(Of String)
@@ -373,42 +370,16 @@ Namespace OnTrack.UI
         Private _accessright As otAccessRight
 
         ''' <summary>
-        ''' Constructor
+        ''' Constructor with initial database driver
         ''' </summary>
         ''' <remarks></remarks>
         Public Sub New()
             MyBase.New()
-            _form = OTDBUI.CreateUINew(OTDBUI.LoginFormName)
+            _form = UserInterface.CreateUINew(UserInterface.LoginFormName)
             _form.OtdbShadow = Me
             MyBase.form = _form
             Call Initialize()
         End Sub
-
-        ''' <summary>
-        ''' Gets or sets the session.
-        ''' </summary>
-        ''' <value>The session.</value>
-        Public Property Session() As Session
-            Get
-                Return Me._session
-            End Get
-            Set
-                Me._session = Value
-            End Set
-        End Property
-
-        ''' <summary>
-        ''' Gets or sets the databasedriver.
-        ''' </summary>
-        ''' <value>The databasedriver.</value>
-        Public Property Databasedriver() As iormDatabaseDriver
-            Get
-                Return Me._databasedriver
-            End Get
-            Set
-                Me._databasedriver = Value
-            End Set
-        End Property
 
         ''' <summary>
         ''' Gets or sets the possible config sets.
@@ -466,7 +437,7 @@ Namespace OnTrack.UI
         ''' Gets or sets the enable config set.
         ''' </summary>
         ''' <value>The enable config set.</value>
-        Public Property EnableConfigSet() As Boolean
+        Public Property EnableChangeConfigSet() As Boolean
             Get
                 Return Me._enableConfigSet
             End Get
@@ -615,16 +586,21 @@ Namespace OnTrack.UI
         Public Function Verify() As Boolean
             Try
                 '** change the config set
-                If ot.CurrentConfigSetName <> Me.Configset Then
+                If ot.CurrentConfigSetName <> Me.Configset And Me.EnableChangeConfigSet Then
                     ot.CurrentConfigSetName = Me.Configset
                 End If
+                Dim aDBDriver As iormDatabaseDriver = ot.CurrentDBDriver
 
-                If _databasedriver Is Nothing Then
-                    Me.Session.ConfigSetName = Me.Configset
-                    _databasedriver = Me.Session.CreateOrGetDatabaseDriver(session:=Me.Session)
+                If aDBDriver Is Nothing Then
+                    aDBDriver = CurrentSession.CreateOrGetDatabaseDriver()
+                End If
+
+                If aDBDriver Is Nothing Then
+                    CoreMessageHandler(showmsgbox:=True, message:="No connection to OnTrack Database is available for verifying the user access - contact your administrator", messagetype:=otCoreMessageType.InternalError, subname:="CoreLoginForm.Verify")
+                    Return False
                 End If
                 '** verify
-                Verify = ot.ValidateUser(username:=Username, password:=Password, accessRequest:=Me.Accessright, domainID:=Domain, databasedriver:=_databasedriver)
+                Verify = aDBDriver.validateUser(username:=Username, password:=Password, accessRequest:=Me.Accessright, domainid:=Domain)
 
             Catch ex As Exception
                 Me.Statustext = "OnTrack Database not available"

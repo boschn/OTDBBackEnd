@@ -1084,35 +1084,35 @@ Namespace OnTrack.Database
             End If
 
             '***
-            If Not Group.CreateSchema() Then
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", message:="dataobject  couldn't be created", _
-                                             messagetype:=otCoreMessageType.InternalError, objectname:=Group.ConstObjectID, tablename:=Group.ConstTableID)
-            Else
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", message:="data object could be created", _
-                                                           messagetype:=otCoreMessageType.ApplicationInfo, objectname:=Group.ConstObjectID, tablename:=Group.ConstTableID)
-                Dim aGroup As Group = Group.Create(groupname:="admin")
-                If aGroup IsNot Nothing Then
-                    aGroup.Description = "Administratio group"
-                    aGroup.HasAlterSchemaRights = True
-                    aGroup.HasReadRights = True
-                    aGroup.HasUpdateRights = True
-                    aGroup.HasNoRights = False
-                    If aGroup.Persist() Then
-                        Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", objectname:=Group.ConstObjectID, _
-                                                    message:="Group Admin created", messagetype:=otCoreMessageType.ApplicationInfo)
-                    End If
+            'If Not Group.CreateSchema() Then
+            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", message:="dataobject  couldn't be created", _
+            '                                 messagetype:=otCoreMessageType.InternalError, objectname:=Group.ConstObjectID, tablename:=Group.ConstTableID)
+            'Else
+            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", message:="data object could be created", _
+            '                                               messagetype:=otCoreMessageType.ApplicationInfo, objectname:=Group.ConstObjectID, tablename:=Group.ConstTableID)
+            '    Dim aGroup As Group = Group.Create(groupname:="admin")
+            '    If aGroup IsNot Nothing Then
+            '        aGroup.Description = "Administratio group"
+            '        aGroup.HasAlterSchemaRights = True
+            '        aGroup.HasReadRights = True
+            '        aGroup.HasUpdateRights = True
+            '        aGroup.HasNoRights = False
+            '        If aGroup.Persist() Then
+            '            Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", objectname:=Group.ConstObjectID, _
+            '                                        message:="Group Admin created", messagetype:=otCoreMessageType.ApplicationInfo)
+            '        End If
 
-                End If
+            '    End If
 
-            End If
+            'End If
 
-            If Not GroupMember.CreateSchema() Then
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", message:="dataobject  couldn't be created", _
-                                             messagetype:=otCoreMessageType.InternalError, objectname:=GroupMember.ConstObjectID, tablename:=GroupMember.ConstTableID)
-            Else
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", message:="data object could be created", _
-                                                           messagetype:=otCoreMessageType.ApplicationInfo, objectname:=GroupMember.ConstObjectID, tablename:=GroupMember.ConstTableID)
-            End If
+            'If Not GroupMember.CreateSchema() Then
+            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", message:="dataobject  couldn't be created", _
+            '                                 messagetype:=otCoreMessageType.InternalError, objectname:=GroupMember.ConstObjectID, tablename:=GroupMember.ConstTableID)
+            'Else
+            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", message:="data object could be created", _
+            '                                               messagetype:=otCoreMessageType.ApplicationInfo, objectname:=GroupMember.ConstObjectID, tablename:=GroupMember.ConstTableID)
+            'End If
             '** User Setting
             If Not UserSetting.CreateSchema() Then
                 Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", message:="UserSettings couldn't be created", _
@@ -1199,211 +1199,6 @@ Namespace OnTrack.Database
                                                  message:="Schema DefSite up-to-date", messagetype:=otCoreMessageType.ApplicationInfo)
 
                    
-                End If
-
-                Dim aCalEntry As New CalendarEntry
-                If Not CalendarEntry.CreateSchema() Then
-                    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", tablename:=aCalEntry.TableID, _
-                                                 message:="Schema " & aCalEntry.TableID & " couldn't be created", messagetype:=otCoreMessageType.ApplicationError)
-                Else
-                    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", tablename:=aCalEntry.TableID, _
-                                                 message:="Schema " & aCalEntry.TableID & " up-to-date", messagetype:=otCoreMessageType.ApplicationInfo)
-                    aCalEntry = New CalendarEntry
-                    With aCalEntry
-                        Call .GenerateDays(fromdate:=CDate("01.01.2011"), untildate:=CDate("01.01.2016"), name:=ot.CurrentSession.DefaultCalendarName)
-                        ' additional
-
-                        If .Create() Then
-                            .Datevalue = CDate("29.03.2013")
-                            .entrytype = otCalendarEntryType.DayEntry
-                            .notAvailable = True
-                            .description = "Karfreitag (Eastern)"
-                            .Persist()
-                        End If
-                    End With
-                    aCalEntry = New CalendarEntry
-                    With aCalEntry
-                        If .Create() Then
-                            .Datevalue = CDate("01.04.2013")
-                            .entrytype = otCalendarEntryType.DayEntry
-                            .notAvailable = True
-                            .description = "EasterMonday (Eastern)"
-                            .Persist()
-                        End If
-                    End With
-                    aCalEntry = New CalendarEntry
-                    With aCalEntry
-                        If .Create() Then
-                            .Datevalue = CDate("09.05.2013")
-                            .entrytype = otCalendarEntryType.DayEntry
-                            .notAvailable = True
-                            .description = "Christi Himmelfahrt"
-                            .Persist()
-                        End If
-                    End With
-
-                    aCalEntry = New CalendarEntry
-                    With aCalEntry
-                        If .Create() Then
-                            .Datevalue = CDate("10.05.2013")
-                            .entrytype = otCalendarEntryType.DayEntry
-                            .notAvailable = True
-                            .description = "Christi Himmelfahrt Brückentag"
-                            .Persist()
-                        End If
-                    End With
-                    aCalEntry = New CalendarEntry
-                    With aCalEntry
-                        If .Create() Then
-                            .Datevalue = CDate("20.05.2013")
-                            .entrytype = otCalendarEntryType.DayEntry
-                            .notAvailable = True
-                            .description = "Pfingsten"
-                            .Persist()
-                        End If
-                    End With
-                    aCalEntry = New CalendarEntry
-                    With aCalEntry
-                        If .Create() Then
-                            .Datevalue = CDate("31.10.2013")
-                            .entrytype = otCalendarEntryType.DayEntry
-                            .notAvailable = True
-                            .description = "Reformationstag (Sachsen)"
-                            .Persist()
-                        End If
-                    End With
-                    aCalEntry = New CalendarEntry
-                    With aCalEntry
-                        If .Create() Then
-                            .Datevalue = CDate("20.11.2013")
-                            .entrytype = otCalendarEntryType.DayEntry
-                            .notAvailable = True
-                            .description = "Buß- und Bettag (Sachsen)"
-                            .Persist()
-                        End If
-                    End With
-                    aCalEntry = New CalendarEntry
-                    With aCalEntry
-                        If .Create() Then
-                            .Datevalue = CDate("18.04.2014")
-                            .entrytype = otCalendarEntryType.DayEntry
-                            .notAvailable = True
-                            .description = "Karfreitag (Eastern)"
-                            .Persist()
-                        End If
-                    End With
-                    aCalEntry = New CalendarEntry
-                    With aCalEntry
-                        If .Create() Then
-                            .Datevalue = CDate("01.04.2014")
-                            .entrytype = otCalendarEntryType.DayEntry
-                            .notAvailable = True
-                            .description = "EasterMonday (Eastern)"
-                            .Persist()
-                        End If
-                    End With
-                    aCalEntry = New CalendarEntry
-                    With aCalEntry
-                        If .Create() Then
-                            .Datevalue = CDate("29.05.2013")
-                            .entrytype = otCalendarEntryType.DayEntry
-                            .notAvailable = True
-                            .description = "Christi Himmelfahrt"
-                            .Persist()
-                        End If
-                    End With
-                    aCalEntry = New CalendarEntry
-                    With aCalEntry
-                        If .Create() Then
-                            .Datevalue = CDate("20.05.2014")
-                            .entrytype = otCalendarEntryType.DayEntry
-                            .notAvailable = True
-                            .description = "Pfingsten"
-                            .Persist()
-                        End If
-                    End With
-                    aCalEntry = New CalendarEntry
-                    With aCalEntry
-                        If .Create() Then
-                            .Datevalue = CDate("31.10.2014")
-                            .entrytype = otCalendarEntryType.DayEntry
-                            .notAvailable = True
-                            .description = "Reformationstag (Sachsen)"
-                            .Persist()
-                        End If
-                    End With
-                    aCalEntry = New CalendarEntry
-                    With aCalEntry
-                        If .Create() Then
-                            .Datevalue = CDate("19.11.2014")
-                            .entrytype = otCalendarEntryType.DayEntry
-                            .notAvailable = True
-                            .description = "Buß- und Bettag (Sachsen)"
-                            .Persist()
-                        End If
-                    End With
-                    aCalEntry = New CalendarEntry
-                    With aCalEntry
-                        If .Create() Then
-                            .Datevalue = CDate("03.04.2015")
-                            .entrytype = otCalendarEntryType.DayEntry
-                            .notAvailable = True
-                            .description = "Karfreitag (Eastern)"
-                            .Persist()
-                        End If
-                    End With
-                    aCalEntry = New CalendarEntry
-                    With aCalEntry
-                        If .Create() Then
-                            .Datevalue = CDate("06.04.2015")
-                            .entrytype = otCalendarEntryType.DayEntry
-                            .notAvailable = True
-                            .description = "EasterMonday (Eastern)"
-                            .Persist()
-                        End If
-                    End With
-                    aCalEntry = New CalendarEntry
-                    With aCalEntry
-                        If .Create() Then
-                            .Datevalue = CDate("14.05.2015")
-                            .entrytype = otCalendarEntryType.DayEntry
-                            .notAvailable = True
-                            .description = "Christi Himmelfahrt"
-                            .Persist()
-                        End If
-                    End With
-                    aCalEntry = New CalendarEntry
-                    With aCalEntry
-                        If .Create() Then
-                            .Datevalue = CDate("25.05.2015")
-                            .entrytype = otCalendarEntryType.DayEntry
-                            .notAvailable = True
-                            .description = "Pfingsten"
-                            .Persist()
-                        End If
-                    End With
-                    aCalEntry = New CalendarEntry
-                    With aCalEntry
-                        If .Create() Then
-                            .Datevalue = CDate("31.10.2015")
-                            .entrytype = otCalendarEntryType.DayEntry
-                            .notAvailable = True
-                            .description = "Reformationstag (Sachsen)"
-                            .Persist()
-                        End If
-                    End With
-                    aCalEntry = New CalendarEntry
-                    With aCalEntry
-                        If .Create() Then
-                            .Datevalue = CDate("18.11.2015")
-                            .entrytype = otCalendarEntryType.DayEntry
-                            .notAvailable = True
-                            .description = "Buß- und Bettag (Sachsen)"
-                            .Persist()
-                        End If
-                    End With
-                    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", tablename:=aCalEntry.TableID, _
-                                                 message:="Calendar until 31.12.2016 created", messagetype:=otCoreMessageType.ApplicationInfo)
                 End If
 
                 Dim aStatusItem As New StatusItem
@@ -1776,7 +1571,7 @@ Namespace OnTrack.Database
             '*** start a session
             Dim sessionrunning As Boolean = CurrentSession.IsRunning
             Dim sessionstarted As Boolean = False
-            If sessionrunning Then
+            If Not sessionrunning Then
                 sessionstarted = CurrentSession.StartUp(otAccessRight.AlterSchema, messagetext:="Please start up a Session to setup initial data")
             End If
 
@@ -1816,203 +1611,204 @@ Namespace OnTrack.Database
 
             ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_RUN", _
                                                      message:="creating calendar - please stand by ...", _
-                                                     messagetype:=otCoreMessageType.InternalInfo)
+                                                     messagetype:=otCoreMessageType.ApplicationInfo)
+            ''' generate the days
+            CalendarEntry.GenerateDays(fromdate:=CDate("01.01.2013"), untildate:=CDate("01.01.2016"), name:=ot.CurrentSession.DefaultCalendarName)
 
             Dim acalentry As CalendarEntry
-            acalentry = New CalendarEntry
-            With acalentry
-                Call .GenerateDays(fromdate:=CDate("01.01.2013"), untildate:=CDate("01.01.2016"), name:=ot.CurrentSession.DefaultCalendarName)
-                ' additional
-
-                If .Create() Then
+            acalentry = CalendarEntry.Create()
+            If acalentry IsNot Nothing Then
+                With acalentry
+                    ' additional
                     .Datevalue = CDate("29.03.2013")
                     .entrytype = otCalendarEntryType.DayEntry
                     .notAvailable = True
                     .description = "Karfreitag (Eastern)"
                     .Persist()
-                End If
-            End With
-            acalentry = New CalendarEntry
-            With acalentry
-                If .Create() Then
+                End With
+            End If
+
+            acalentry = CalendarEntry.Create()
+            If acalentry IsNot Nothing Then
+                With acalentry
                     .Datevalue = CDate("01.04.2013")
                     .entrytype = otCalendarEntryType.DayEntry
                     .notAvailable = True
                     .description = "EasterMonday (Eastern)"
                     .Persist()
-                End If
-            End With
-            acalentry = New CalendarEntry
-            With acalentry
-                If .Create() Then
+                End With
+            End If
+            acalentry = CalendarEntry.Create()
+            If acalentry IsNot Nothing Then
+                With acalentry
                     .Datevalue = CDate("09.05.2013")
                     .entrytype = otCalendarEntryType.DayEntry
                     .notAvailable = True
                     .description = "Christi Himmelfahrt"
                     .Persist()
-                End If
-            End With
+                End With
+            End If
 
-            acalentry = New CalendarEntry
-            With acalentry
-                If .Create() Then
+            acalentry = CalendarEntry.Create()
+            If acalentry IsNot Nothing Then
+                With acalentry
                     .Datevalue = CDate("10.05.2013")
                     .entrytype = otCalendarEntryType.DayEntry
                     .notAvailable = True
                     .description = "Christi Himmelfahrt Brückentag"
                     .Persist()
-                End If
-            End With
-            acalentry = New CalendarEntry
-            With acalentry
-                If .Create() Then
+                End With
+            End If
+            acalentry = CalendarEntry.Create()
+            If acalentry IsNot Nothing Then
+                With acalentry
                     .Datevalue = CDate("20.05.2013")
                     .entrytype = otCalendarEntryType.DayEntry
                     .notAvailable = True
                     .description = "Pfingsten"
                     .Persist()
-                End If
-            End With
-            acalentry = New CalendarEntry
-            With acalentry
-                If .Create() Then
+                End With
+            End If
+            acalentry = CalendarEntry.Create()
+            If acalentry IsNot Nothing Then
+                With acalentry
                     .Datevalue = CDate("31.10.2013")
                     .entrytype = otCalendarEntryType.DayEntry
                     .notAvailable = True
                     .description = "Reformationstag (Sachsen)"
-                    .Persist()
-                End If
-            End With
-            acalentry = New CalendarEntry
-            With acalentry
-                If .Create() Then
+                  End With
+            End If
+            acalentry = CalendarEntry.Create()
+            If acalentry IsNot Nothing Then
+                With acalentry
                     .Datevalue = CDate("20.11.2013")
                     .entrytype = otCalendarEntryType.DayEntry
                     .notAvailable = True
                     .description = "Buß- und Bettag (Sachsen)"
                     .Persist()
-                End If
-            End With
-            acalentry = New CalendarEntry
-            With acalentry
-                If .Create() Then
+                End With
+            End If
+            acalentry = CalendarEntry.Create()
+            If acalentry IsNot Nothing Then
+                With acalentry
                     .Datevalue = CDate("18.04.2014")
                     .entrytype = otCalendarEntryType.DayEntry
                     .notAvailable = True
                     .description = "Karfreitag (Eastern)"
                     .Persist()
-                End If
-            End With
-            acalentry = New CalendarEntry
-            With acalentry
-                If .Create() Then
+                End With
+            End If
+            acalentry = CalendarEntry.Create()
+            If acalentry IsNot Nothing Then
+                With acalentry
                     .Datevalue = CDate("01.04.2014")
                     .entrytype = otCalendarEntryType.DayEntry
                     .notAvailable = True
                     .description = "EasterMonday (Eastern)"
                     .Persist()
-                End If
-            End With
-            acalentry = New CalendarEntry
-            With acalentry
-                If .Create() Then
+                End With
+            End If
+            acalentry = CalendarEntry.Create()
+            If acalentry IsNot Nothing Then
+                With acalentry
                     .Datevalue = CDate("29.05.2013")
                     .entrytype = otCalendarEntryType.DayEntry
                     .notAvailable = True
                     .description = "Christi Himmelfahrt"
                     .Persist()
-                End If
-            End With
-            acalentry = New CalendarEntry
-            With acalentry
-                If .Create() Then
+                End With
+            End If
+            acalentry = CalendarEntry.Create()
+            If acalentry IsNot Nothing Then
+                With acalentry
                     .Datevalue = CDate("20.05.2014")
                     .entrytype = otCalendarEntryType.DayEntry
                     .notAvailable = True
                     .description = "Pfingsten"
                     .Persist()
-                End If
-            End With
-            acalentry = New CalendarEntry
-            With acalentry
-                If .Create() Then
+                End With
+            End If
+            acalentry = CalendarEntry.Create()
+            If acalentry IsNot Nothing Then
+                With acalentry
                     .Datevalue = CDate("31.10.2014")
                     .entrytype = otCalendarEntryType.DayEntry
                     .notAvailable = True
                     .description = "Reformationstag (Sachsen)"
                     .Persist()
-                End If
-            End With
-            acalentry = New CalendarEntry
-            With acalentry
-                If .Create() Then
+               End With
+            End If
+            If acalentry IsNot Nothing Then
+                With acalentry
                     .Datevalue = CDate("19.11.2014")
                     .entrytype = otCalendarEntryType.DayEntry
                     .notAvailable = True
                     .description = "Buß- und Bettag (Sachsen)"
                     .Persist()
-                End If
-            End With
-            acalentry = New CalendarEntry
-            With acalentry
-                If .Create() Then
+                End With
+            End If
+            acalentry = CalendarEntry.Create()
+            If acalentry IsNot Nothing Then
+                With acalentry
                     .Datevalue = CDate("03.04.2015")
                     .entrytype = otCalendarEntryType.DayEntry
                     .notAvailable = True
                     .description = "Karfreitag (Eastern)"
                     .Persist()
-                End If
-            End With
-            acalentry = New CalendarEntry
-            With acalentry
-                If .Create() Then
+                End With
+            End If
+            acalentry = CalendarEntry.Create()
+            If acalentry IsNot Nothing Then
+                With acalentry
                     .Datevalue = CDate("06.04.2015")
                     .entrytype = otCalendarEntryType.DayEntry
                     .notAvailable = True
                     .description = "EasterMonday (Eastern)"
                     .Persist()
-                End If
-            End With
-            acalentry = New CalendarEntry
-            With acalentry
-                If .Create() Then
+                End With
+            End If
+            acalentry = CalendarEntry.Create()
+            If acalentry IsNot Nothing Then
+                With acalentry
                     .Datevalue = CDate("14.05.2015")
                     .entrytype = otCalendarEntryType.DayEntry
                     .notAvailable = True
                     .description = "Christi Himmelfahrt"
                     .Persist()
-                End If
-            End With
-            acalentry = New CalendarEntry
-            With acalentry
-                If .Create() Then
+                End With
+            End If
+            acalentry = CalendarEntry.Create()
+            If acalentry IsNot Nothing Then
+                With acalentry
                     .Datevalue = CDate("25.05.2015")
                     .entrytype = otCalendarEntryType.DayEntry
                     .notAvailable = True
                     .description = "Pfingsten"
                     .Persist()
-                End If
-            End With
-            acalentry = New CalendarEntry
-            With acalentry
-                If .Create() Then
+                End With
+            End If
+            acalentry = CalendarEntry.Create()
+            If acalentry IsNot Nothing Then
+                With acalentry
                     .Datevalue = CDate("31.10.2015")
                     .entrytype = otCalendarEntryType.DayEntry
                     .notAvailable = True
                     .description = "Reformationstag (Sachsen)"
                     .Persist()
-                End If
-            End With
-            acalentry = New CalendarEntry
-            With acalentry
-                If .Create() Then
+                End With
+            End If
+            acalentry = CalendarEntry.Create()
+            If acalentry IsNot Nothing Then
+                With acalentry
                     .Datevalue = CDate("18.11.2015")
                     .entrytype = otCalendarEntryType.DayEntry
                     .notAvailable = True
                     .description = "Buß- und Bettag (Sachsen)"
                     .Persist()
-                End If
-            End With
+
+                End With
+            End If
+
             Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", tablename:=acalentry.TableID, _
                                          message:="Calendar until 31.12.2016 created", messagetype:=otCoreMessageType.ApplicationInfo)
 

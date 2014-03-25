@@ -28,14 +28,14 @@ Namespace OnTrack
     ''' Calendar Entry Class
     ''' </summary>
     ''' <remarks></remarks>
-    <ormObject(id:=CalendarEntry.ConstObjectID, modulename:=constModuleCore, Version:=1)> Public Class CalendarEntry
+    <ormObject(id:=CalendarEntry.ConstObjectID, modulename:=ConstModuleCore, usecache:=True, Version:=1)> Public Class CalendarEntry
         Inherits ormDataObject
         Implements iormInfusable
         Implements iormPersistable
 
         Public Const ConstObjectID = "CalendarEntry"
         '** Schema
-        <ormSchemaTable(version:=2, adddeletefieldbehavior:=True, addDomainBehavior:=True, addsparefields:=True)> _
+        <ormSchemaTable(version:=2, adddeletefieldbehavior:=True, addDomainBehavior:=True, usecache:=True, addsparefields:=True)> _
         Public Const ConstTableid As String = "tblCalendarEntries"
 
         <ormSchemaIndex(columnname1:=constFNName, columnname2:=constFNRefID, columnname3:=constFNID, columnname4:=constFNDomainID)> Public Const constINDEXRefID = "refid"
@@ -446,267 +446,6 @@ Namespace OnTrack
             Dim primarykey() As Object = {name, ID, domainID}
             Return Retrieve(Of CalendarEntry)(pkArray:=primarykey, domainID:=domainID)
         End Function
-        ''' <summary>
-        ''' loads and infuses the object
-        ''' </summary>
-        ''' <param name="Name"></param>
-        ''' <param name="ID"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Overloads Function Inject(ByVal name As String, ByVal ID As Long, Optional domainID As String = "") As Boolean
-            Dim primarykey() As Object = {name, ID, domainID}
-            Return MyBase.Inject(pkArray:=primarykey, domainID:=domainID)
-        End Function
-        ''' <summary>
-        ''' create persistency schema
-        ''' </summary>
-        ''' <param name="silent"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Shared Function CreateSchema(Optional silent As Boolean = True) As Boolean
-            Return ormDataObject.CreateDataObjectSchema(Of CalendarEntry)(silent:=silent)
-
-            'Dim aFieldDesc As New ormFieldDescription
-            'Dim PrimaryColumnNames As New Collection
-            'Dim OrderByColumnNames As New Collection
-            'Dim RefByColumnNames As New Collection
-            'Dim aTable As New ObjectDefinition
-
-            'With aTable
-
-            '    .Create(constTableid)
-
-            '    aFieldDesc.Tablename = constTableid
-            '    aFieldDesc.ID = ""
-            '    aFieldDesc.Parameter = ""
-
-            '    '***
-            '    '*** Fields
-            '    '****
-            '    aFieldDesc.Datatype = otFieldDataType.Text
-            '    aFieldDesc.Title = "calender name"
-            '    aFieldDesc.ID = "cal1"
-            '    aFieldDesc.ColumnName = "cname"
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-            '    PrimaryColumnNames.Add(aFieldDesc.ColumnName)
-            '    OrderByColumnNames.Add(aFieldDesc.ColumnName)
-            '    RefByColumnNames.Add(aFieldDesc.ColumnName)
-
-
-            '    aFieldDesc.Datatype = otFieldDataType.[Long]
-            '    aFieldDesc.Title = "reference entry id"
-            '    aFieldDesc.ID = "cal18"
-            '    aFieldDesc.ColumnName = "refid"
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-            '    RefByColumnNames.Add(aFieldDesc.ColumnName)
-
-            '    aFieldDesc.Datatype = otFieldDataType.[Long]
-            '    aFieldDesc.Title = "entry id"
-            '    aFieldDesc.ID = "cal2"
-            '    aFieldDesc.ColumnName = "id"
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-            '    PrimaryColumnNames.Add(aFieldDesc.ColumnName)
-            '    RefByColumnNames.Add(aFieldDesc.ColumnName)
-
-            '    aFieldDesc.Datatype = otFieldDataType.Timestamp
-            '    aFieldDesc.Title = "Timestamp"
-            '    aFieldDesc.ID = "cal4"
-            '    aFieldDesc.ColumnName = "timestamp"
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-            '    OrderByColumnNames.Add(aFieldDesc.ColumnName)
-
-            '    aFieldDesc.Datatype = otFieldDataType.[Long]
-            '    aFieldDesc.Title = "entry type id"
-            '    aFieldDesc.ID = "cal5"
-            '    aFieldDesc.ColumnName = "typeid"
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-            '    OrderByColumnNames.Add(aFieldDesc.ColumnName)
-
-            '    aFieldDesc.Datatype = otFieldDataType.Text
-            '    aFieldDesc.Title = "description"
-            '    aFieldDesc.ID = "cal16"
-            '    aFieldDesc.ColumnName = "desc"
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    aFieldDesc.Datatype = otFieldDataType.[Long]
-            '    aFieldDesc.Title = "length in min"
-            '    aFieldDesc.ID = "cal19"
-            '    aFieldDesc.ColumnName = "length"
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    aFieldDesc.Datatype = otFieldDataType.[Long]
-            '    aFieldDesc.Title = "week of the year"
-            '    aFieldDesc.ID = "cal6"
-            '    aFieldDesc.ColumnName = "noweek"
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    aFieldDesc.Datatype = otFieldDataType.[Long]
-            '    aFieldDesc.Title = "day of year"
-            '    aFieldDesc.ID = "cal7"
-            '    aFieldDesc.ColumnName = "noday"
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    aFieldDesc.Datatype = otFieldDataType.[Long]
-            '    aFieldDesc.Title = "number of weekday"
-            '    aFieldDesc.ID = "cal8"
-            '    aFieldDesc.ColumnName = "noweekday"
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    aFieldDesc.Datatype = otFieldDataType.[Long]
-            '    aFieldDesc.Title = "year"
-            '    aFieldDesc.ID = "cal9"
-            '    aFieldDesc.ColumnName = "year"
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    aFieldDesc.Datatype = otFieldDataType.[Long]
-            '    aFieldDesc.Title = "month"
-            '    aFieldDesc.ID = "cal10"
-            '    aFieldDesc.ColumnName = "month"
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    aFieldDesc.Datatype = otFieldDataType.[Long]
-            '    aFieldDesc.Title = "day of month"
-            '    aFieldDesc.ID = "cal11"
-            '    aFieldDesc.ColumnName = "day"
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    aFieldDesc.Datatype = otFieldDataType.Time
-            '    aFieldDesc.Title = "timestamp"
-            '    aFieldDesc.ID = "cal12"
-            '    aFieldDesc.ColumnName = "timevalue"
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    aFieldDesc.Datatype = otFieldDataType.Date
-            '    aFieldDesc.Title = "timestamp"
-            '    aFieldDesc.ID = "cal13"
-            '    aFieldDesc.ColumnName = "datevalue"
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    aFieldDesc.Datatype = otFieldDataType.Bool
-            '    aFieldDesc.Title = "not available"
-            '    aFieldDesc.ID = "cal14"
-            '    aFieldDesc.ColumnName = "notavail"
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    aFieldDesc.Datatype = otFieldDataType.Bool
-            '    aFieldDesc.Title = "is important"
-            '    aFieldDesc.ID = "cal15"
-            '    aFieldDesc.ColumnName = "isimp"
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    aFieldDesc.Datatype = otFieldDataType.[Long]
-            '    aFieldDesc.Title = "quarter"
-            '    aFieldDesc.ID = "cal17"
-            '    aFieldDesc.ColumnName = "quarter"
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    aFieldDesc.Datatype = otFieldDataType.Text
-            '    aFieldDesc.Title = "week and year"
-            '    aFieldDesc.ID = "cal20"
-            '    aFieldDesc.ColumnName = "weekofyear"
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    ' parameter_txt 1
-            '    aFieldDesc.Datatype = otFieldDataType.Text
-            '    aFieldDesc.Title = "parameter_txt 1 of condition"
-            '    aFieldDesc.ColumnName = "param_txt1"
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    ' parameter_txt 2
-            '    aFieldDesc.Datatype = otFieldDataType.Text
-            '    aFieldDesc.Title = "parameter_txt 2 of condition"
-            '    aFieldDesc.ColumnName = "param_txt2"
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    ' parameter_txt 2
-            '    aFieldDesc.Datatype = otFieldDataType.Text
-            '    aFieldDesc.Title = "parameter_txt 3 of condition"
-            '    aFieldDesc.ColumnName = "param_txt3"
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    ' parameter_num 1
-            '    aFieldDesc.Datatype = otFieldDataType.Numeric
-            '    aFieldDesc.Title = "parameter numeric 1 of condition"
-            '    aFieldDesc.ColumnName = "param_num1"
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    ' parameter_num 2
-            '    aFieldDesc.Datatype = otFieldDataType.Numeric
-            '    aFieldDesc.Title = "parameter numeric 2 of condition"
-            '    aFieldDesc.ColumnName = "param_num2"
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-            '    ' parameter_num 2
-            '    aFieldDesc.Datatype = otFieldDataType.Numeric
-            '    aFieldDesc.Title = "parameter numeric 3 of condition"
-            '    aFieldDesc.ColumnName = "param_num3"
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-            '    ' parameter_date 1
-            '    aFieldDesc.Datatype = otFieldDataType.[Date]
-            '    aFieldDesc.Title = "parameter date 1 of condition"
-            '    aFieldDesc.ColumnName = "param_date1"
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-            '    ' parameter_date 2
-            '    aFieldDesc.Datatype = otFieldDataType.[Date]
-            '    aFieldDesc.Title = "parameter date 2 of condition"
-            '    aFieldDesc.ColumnName = "param_date2"
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-            '    ' parameter_date 3
-            '    aFieldDesc.Datatype = otFieldDataType.[Date]
-            '    aFieldDesc.Title = "parameter date 3 of condition"
-            '    aFieldDesc.ColumnName = "param_date3"
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-            '    ' parameter_flag 1
-            '    aFieldDesc.Datatype = otFieldDataType.Bool
-            '    aFieldDesc.Title = "parameter flag 1 of condition"
-            '    aFieldDesc.ColumnName = "param_flag1"
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    ' parameter_flag 2
-            '    aFieldDesc.Datatype = otFieldDataType.Bool
-            '    aFieldDesc.Title = "parameter flag 2 of condition"
-            '    aFieldDesc.ColumnName = "param_flag2"
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    ' parameter_flag 3
-            '    aFieldDesc.Datatype = otFieldDataType.Bool
-            '    aFieldDesc.Title = "parameter flag 3 of condition"
-            '    aFieldDesc.ColumnName = "param_flag3"
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    '***
-            '    '*** TIMESTAMP
-            '    '****
-            '    aFieldDesc.Datatype = otFieldDataType.Timestamp
-            '    aFieldDesc.Title = "last Update"
-            '    aFieldDesc.ColumnName = ConstFNUpdatedOn
-            '    aFieldDesc.ID = ""
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    aFieldDesc.Datatype = otFieldDataType.Timestamp
-            '    aFieldDesc.Title = "creation Date"
-            '    aFieldDesc.ColumnName = ConstFNCreatedOn
-            '    aFieldDesc.ID = ""
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-            '    ' Index
-            '    Call .AddIndex("PrimaryKey", PrimaryColumnNames, isprimarykey:=True)
-            '    Call .AddIndex("OrderbyDate", OrderByColumnNames, isprimarykey:=False)
-            '    Call .AddIndex("OrderbyRefID", RefByColumnNames, isprimarykey:=False)
-
-            '    ' persist
-            '    .Persist()
-            '    ' change the database
-            '    .AlterSchema()
-            'End With
-
-            ''
-            'CreateSchema = True
-            'Exit Function
-
-            ' Handle the error
-error_handle:
-            Call CoreMessageHandler(subname:="clsOTDBDefScheduleMilestone.createSchema", tablename:=ConstTableid)
-            CreateSchema = False
-        End Function
 
 
         ''' <summary>
@@ -994,7 +733,7 @@ error_handle:
         ''' <param name="name">name of the calendar (optional)</param>
         ''' <returns>True if successfull</returns>
         ''' <remarks></remarks>
-        Public Function GenerateDays(ByVal fromdate As Date, ByVal untildate As Date, Optional ByVal name As String = "", Optional domainID As String = "") As Boolean
+        Public Shared Function GenerateDays(ByVal fromdate As Date, ByVal untildate As Date, Optional ByVal name As String = "", Optional domainID As String = "") As Boolean
             Dim aCollection As New List(Of CalendarEntry)
             Dim currDate As Date
             Dim anEntry As New CalendarEntry
@@ -1010,40 +749,41 @@ error_handle:
                 'exists ?
                 aCollection = CalendarEntry.AllByDate(refDate:=currDate, name:=name, domainID:=domainID)
                 If aCollection Is Nothing Or aCollection.Count = 0 Then
-                    anEntry = New CalendarEntry
-                    With anEntry
-                        .Create(name, domainID:=domainID)
-                        .Datevalue = currDate
-                        .notAvailable = False
-                        .description = "working day"
-                        ' weekend
-                        If .weekday = vbSaturday Or .weekday = vbSunday Then
-                            .notAvailable = True
-                            .description = "weekend"
-                        Else
+                    anEntry = CalendarEntry.Create(name:=name, domainID:=domainID)
+                    If anEntry IsNot Nothing Then
+                        With anEntry
+                            .Datevalue = currDate
                             .notAvailable = False
-                        End If
-                        ' new year
-                        If .month = 1 And (.dayofmonth = 1) Then
-                            .notAvailable = True
-                            .description = "new year"
-                        ElseIf .month = 10 And .dayofmonth = 3 Then
-                            .notAvailable = True
-                            .description = "reunifcation day in germany"
-                        ElseIf .month = 5 And .dayofmonth = 1 Then
-                            .notAvailable = True
-                            .description = "labor day in germany"
-                        ElseIf .month = 11 And .dayofmonth = 1 Then
-                            .notAvailable = True
-                            .description = "allerseelen in germany"
-                            ' christmas
-                        ElseIf .month = 12 And (.dayofmonth = 24 Or .dayofmonth = 26 Or .dayofmonth = 25) Then
-                            .notAvailable = True
-                            .description = "christmas"
-                        End If
-                        .entrytype = otCalendarEntryType.DayEntry
-                        .Persist()
-                    End With
+                            .description = "working day"
+                            ' weekend
+                            If .weekday = vbSaturday Or .weekday = vbSunday Then
+                                .notAvailable = True
+                                .description = "weekend"
+                            Else
+                                .notAvailable = False
+                            End If
+                            ' new year
+                            If .month = 1 And (.dayofmonth = 1) Then
+                                .notAvailable = True
+                                .description = "new year"
+                            ElseIf .month = 10 And .dayofmonth = 3 Then
+                                .notAvailable = True
+                                .description = "reunifcation day in germany"
+                            ElseIf .month = 5 And .dayofmonth = 1 Then
+                                .notAvailable = True
+                                .description = "labor day in germany"
+                            ElseIf .month = 11 And .dayofmonth = 1 Then
+                                .notAvailable = True
+                                .description = "allerseelen in germany"
+                                ' christmas
+                            ElseIf .month = 12 And (.dayofmonth = 24 Or .dayofmonth = 26 Or .dayofmonth = 25) Then
+                                .notAvailable = True
+                                .description = "christmas"
+                            End If
+                            .entrytype = otCalendarEntryType.DayEntry
+                            .Persist()
+                        End With
+                    End If
                 End If
 
                 ' inc
@@ -1060,7 +800,7 @@ error_handle:
         ''' <param name="name">name of calendar</param>
         ''' <returns>True if successfull</returns>
         ''' <remarks></remarks>
-        Public Overloads Function Create(Optional ByVal name As String = "", Optional entryid As Long = 0, Optional domainID As String = "") As Boolean
+        Public Shared Function Create(Optional ByVal name As String = "", Optional entryid As Long = 0, Optional domainID As String = "") As CalendarEntry
             Dim primarykey() As Object = {name, entryid, domainID}
             If name = "" Then
                 name = CurrentSession.DefaultCalendarName
@@ -1070,29 +810,14 @@ error_handle:
             '** create the key
             If entryid = 0 Then
                 Dim pkarray() As Object = {name, Nothing, Nothing}
-                If Not Me.TableStore.CreateUniquePkValue(pkarray) Then
+                If Not ot.GetTableStore(ConstTableid).CreateUniquePkValue(pkarray) Then
                     Call CoreMessageHandler(message:="unique key couldnot be created", subname:="CalendarEntry.Create", arg1:=name, _
-                                                tablename:=TableID, messagetype:=otCoreMessageType.InternalError)
-                    Return False
+                                                tablename:=ConstTableid, messagetype:=otCoreMessageType.InternalError)
+                    Return Nothing
                 End If
                 primarykey = pkarray
             End If
-            If Not MyBase.Create(primarykey, domainID:=domainID) Then
-                Return False
-            End If
-
-            ' set the primaryKey
-            _name = LCase(name)
-            Try
-                _entryid = CLng(primarykey(1))
-            Catch ex As Exception
-                Call CoreMessageHandler(message:="unique id couldnot be retrieved", subname:="CalendarEntry.Create", arg1:=primarykey, _
-                                               tablename:=TableID, entryname:="entryid", messagetype:=otCoreMessageType.InternalError)
-                Return False
-            End Try
-
-
-            Return Me.IsCreated
+            Return CreateDataObject(Of CalendarEntry)(pkArray:=primarykey, domainID:=domainID)
         End Function
 
     End Class

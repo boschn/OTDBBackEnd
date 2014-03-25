@@ -137,6 +137,17 @@ Namespace OnTrack.Database
     Public Interface iormDatabaseDriver
 
         ''' <summary>
+        ''' validates the User against the Database with a accessrequest
+        ''' </summary>
+        ''' <param name="username"></param>
+        ''' <param name="password"></param>
+        ''' <param name="accessRequest"></param>
+        ''' <param name="domainid"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Function validateUser(username As String, password As String, accessRequest As otAccessRight, Optional domainid As String = "") As Boolean
+
+        ''' <summary>
         ''' returns or creates foreign keys for a columndefinition
         ''' </summary>
         ''' <param name="nativeTable"></param>
@@ -960,7 +971,7 @@ Namespace OnTrack.Database
         ''' Gets or sets the UI login.
         ''' </summary>
         ''' <value>The UI login.</value>
-        Property UILogin As UI.clsCoreUILogin
+        Property UILogin As UI.CoreLoginForm
 
         ''' <summary>
         ''' Gets or sets the access.

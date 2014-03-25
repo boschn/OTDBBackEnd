@@ -1375,7 +1375,53 @@ Namespace OnTrack
             ''' <returns></returns>
             Public MustOverride Function GetDBParameter(parametername As String, Optional ByRef nativeConnection As Object = Nothing, Optional silent As Boolean = False) As Object Implements iormDatabaseDriver.GetDBParameter
 
+            ''' <summary>
+            ''' validates the User, Passoword, Access Right in the Domain
+            ''' </summary>
+            ''' <param name="username"></param>
+            ''' <param name="password"></param>
+            ''' <param name="accessright"></param>
+            ''' <param name="domainID"></param>
+            ''' <returns></returns>
+            ''' <remarks></remarks>
+            Public Function ValidateUser(ByVal username As String, ByVal password As String, ByVal accessRequest As otAccessRight, Optional domainid As String = "") As Boolean Implements iormDatabaseDriver.validateUser
+                Dim aValidation As UserValidation
+                aValidation.ValidEntry = False
+                aValidation = GetUserValidation(username:=username)
 
+                If Not aValidation.ValidEntry Then
+                    Return False
+                Else
+                    If aValidation.Password <> password Then
+                        Return False
+                    End If
+
+                    ''' if there is a connection - just check against the the access there
+                    If _primaryConnection IsNot Nothing AndAlso _primaryConnection.IsConnected Then
+                        Return _primaryConnection.ValidateAccessRequest(accessRequest:=accessRequest)
+                    Else
+                        '** check against the validation
+                        Dim aAccessProperty As AccessRightProperty
+
+                        If aValidation.ValidEntry Then
+                            If aValidation.HasAlterSchemaRights Then
+                                aAccessProperty = New AccessRightProperty(otAccessRight.AlterSchema)
+                            ElseIf aValidation.HasUpdateRights Then
+                                aAccessProperty = New AccessRightProperty(otAccessRight.ReadUpdateData)
+                            ElseIf aValidation.HasReadRights Then
+                                aAccessProperty = New AccessRightProperty(otAccessRight.ReadOnly)
+                            Else
+                                Return False 'return if no Right in the validation
+                            End If
+                        End If
+                        ''' ToDo: forbidd access for domains
+                        ''' 
+                        ''' check if Rights are covered
+                        Return aAccessProperty.CoverRights(accessRequest)
+                    End If
+                   
+                End If
+            End Function
             ''' <summary>
             ''' Gets the def user.
             ''' </summary>
@@ -2360,7 +2406,7 @@ Namespace OnTrack
             'Protected _OTDBUser As New User    ' OTDB User -> moved to session 
             Protected _AccessLevel As otAccessRight    ' access
 
-            Protected _UILogin As clsCoreUILogin
+            Protected _UILogin As CoreLoginForm
             Protected _cacheUserValidateon As UserValidation
             Protected _OTDBDatabaseDriver As iormDatabaseDriver
             Protected _useseek As Boolean 'use seek instead of SQL
@@ -2473,14 +2519,14 @@ Namespace OnTrack
             ''' Gets or sets the UI login.
             ''' </summary>
             ''' <value>The UI login.</value>
-            Public Property UILogin() As clsCoreUILogin Implements iormConnection.UILogin
+            Public Property UILogin() As CoreLoginForm Implements iormConnection.UILogin
                 Get
                     If _UILogin Is Nothing Then
-                        _UILogin = New clsCoreUILogin
+                        _UILogin = New CoreLoginForm()
                     End If
                     Return Me._UILogin
                 End Get
-                Set(value As clsCoreUILogin)
+                Set(value As CoreLoginForm)
                     Me._UILogin = value
                 End Set
             End Property
@@ -2834,8 +2880,8 @@ Namespace OnTrack
                         'LoginWindow
                         Me.UILogin.Configset = ot.CurrentConfigSetName
                         Me.UILogin.PossibleConfigSets = ot.ConfigSetNamesToSelect
-                        Me.UILogin.Databasedriver = Me.DatabaseDriver
-                        Me.UILogin.EnableConfigSet = True
+                        'Me.UILogin.Databasedriver = Me.DatabaseDriver
+                        Me.UILogin.EnableChangeConfigSet = True
                         If messagetext IsNot Nothing Then Me.UILogin.Messagetext = messagetext
 
                         Me.UILogin.Domain = domainID
@@ -2916,7 +2962,7 @@ Namespace OnTrack
                         Me.UILogin.enableAccess = True
                         Me.UILogin.PossibleRights = HigherAccessRequest(accessRequest)
                         Me.UILogin.Configset = ot.CurrentConfigSetName
-                        Me.UILogin.EnableConfigSet = False
+                        Me.UILogin.EnableChangeConfigSet = False
                         Me.UILogin.Accessright = accessRequest
                         Me.UILogin.Messagetext = "<html><strong>Welcome !</strong><br />Please change to a valid user and password for authorization of the needed access right.</html>"
                         Me.UILogin.EnableUsername = True
@@ -2964,7 +3010,7 @@ Namespace OnTrack
                         Me.UILogin.enableAccess = True
                         Me.UILogin.PossibleRights = HigherAccessRequest(accessRequest)
                         Me.UILogin.Configset = ot.CurrentConfigSetName
-                        Me.UILogin.EnableConfigSet = False
+                        Me.UILogin.EnableChangeConfigSet = False
                         Me.UILogin.Accessright = accessRequest
 
                         Me.UILogin.Messagetext = "<html><strong>Attention !</strong><br />Please confirm by your password to obtain the access right.</html>"

@@ -156,6 +156,7 @@ Namespace OnTrack
         ''' </summary>
         ''' <remarks></remarks>
         Public Const ConstModuleCore = "Core"
+        Public Const ConstModuleMeta = "MetaDictionary"
         Public Const ConstModuleConfiguration = "Configuration"
         Public Const ConstModuleScheduling = "Scheduling"
         Public Const ConstModuleParts = "Parts"

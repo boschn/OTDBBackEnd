@@ -1475,7 +1475,9 @@ Namespace OnTrack
                     _IsDeleted = False
 
                     '** fire event
-                    Dim ourEventArgs As New ormDataObjectEventArgs(Me, record:=Me.Record)
+                    Dim ourEventArgs As New ormDataObjectEventArgs(Me, record:=Me.Record, pkarray:=Me.PrimaryKeyValues, _
+                                                                   timestamp:=timestamp, usecache:=Me.UseCache, domainID:=DomainID, _
+                                                                   domainBehavior:=Me.HasDomainBehavior)
                     RaiseEvent ClassOnPersisting(Me, ourEventArgs)
                     If ourEventArgs.AbortOperation Then
                         Return False
@@ -1484,8 +1486,7 @@ Namespace OnTrack
                     End If
 
                     '** fire event
-                    ourEventArgs = New ormDataObjectEventArgs(Me, record:=Me.Record)
-                    RaiseEvent OnPersisting(Me, ourEventArgs)
+                     RaiseEvent OnPersisting(Me, ourEventArgs)
                     If ourEventArgs.AbortOperation Then
                         Return False
                     Else
@@ -1502,7 +1503,6 @@ Namespace OnTrack
                     Persist = Persist And CascadeRelation(Me, Me.ObjectClassDescription, cascadeUpdate:=True, cascadeDelete:=False)
 
                     '** fire event
-                    ourEventArgs = New ormDataObjectEventArgs(Me, record:=Record)
                     RaiseEvent OnPersisted(Me, ourEventArgs)
                     Persist = ourEventArgs.Proceed
 
@@ -3533,6 +3533,7 @@ Namespace OnTrack
             Private _domainID As String = ConstGlobalDomain
             Private _hasDomainBehavior As Boolean = False
             Private _infusemode As otInfuseMode?
+            Private _timestamp As DateTime = DateTime.Now
 
             ''' <summary>
             ''' constructor
@@ -3546,7 +3547,8 @@ Namespace OnTrack
                             Optional domainBehavior As Nullable(Of Boolean) = Nothing, _
                               Optional usecache As Nullable(Of Boolean) = Nothing, _
                             Optional pkarray As Object() = Nothing, _
-                            Optional infuseMode As otInfuseMode? = Nothing)
+                            Optional infuseMode As otInfuseMode? = Nothing, _
+                            Optional timestamp? As DateTime = Nothing)
                 _Object = [object]
                 _Record = record
                 _relationID = relationID
@@ -3555,10 +3557,21 @@ Namespace OnTrack
                 If domainBehavior.HasValue Then _hasDomainBehavior = domainBehavior
                 If usecache.HasValue Then _UseCache = usecache
                 If infuseMode.HasValue Then _infusemode = infuseMode
+                If timestamp.HasValue Then _timestamp = timestamp
                 _pkarray = pkarray
                 _result = True
                 _Abort = False
             End Sub
+
+            ''' <summary>
+            ''' Gets the timestamp.
+            ''' </summary>
+            ''' <value>The timestamp.</value>
+            Public ReadOnly Property Timestamp() As DateTime
+                Get
+                    Return Me._timestamp
+                End Get
+            End Property
 
             ''' <summary>
             ''' Gets the infusemode.

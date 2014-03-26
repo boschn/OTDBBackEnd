@@ -672,7 +672,7 @@ Namespace OnTrack
         ''' <remarks></remarks>
         Public Function GetObject(objectname As String, Optional runtimeOnly As Boolean = False) As ObjectDefinition
             Dim anObject As ObjectDefinition
-
+            objectname = objectname.ToUpper
 
             If _objectDirectory.ContainsKey(key:=objectname) Then
                 Return _objectDirectory.Item(key:=objectname)
@@ -812,7 +812,7 @@ Namespace OnTrack
     ''' class for Column Definition of a table
     ''' </summary>
     ''' <remarks></remarks>
-    <ormObject(id:=ColumnDefinition.ConstObjectID, modulename:=ConstModuleCore, description:="Column Definition of a Table Definition", _
+    <ormObject(id:=ColumnDefinition.ConstObjectID, modulename:=ConstModuleMeta, description:="Column Definition of a Table Definition", _
         Version:=2, usecache:=True, isbootstrap:=True)> _
     Public Class ColumnDefinition
         Inherits ormDataObject
@@ -1091,7 +1091,7 @@ Namespace OnTrack
             End Set
         End Property
 
-       
+
         ''' <summary>
         ''' returns the parameter for the object entry
         ''' </summary>
@@ -1192,7 +1192,7 @@ Namespace OnTrack
                 If .HasValuePrimaryKeyOrdinal Then
                     Me.IsPrimaryKey = True
                 End If
-                If .hasvalueisUnique Then Me.IsUnique = .isunique
+                If .HasValueIsUnique Then Me.IsUnique = .IsUnique
                 If .HasValuePrimaryKeyOrdinal Then Me.PrimaryKeyOrdinal = .PrimaryKeyOrdinal
                 If .HasValueUseForeignKey AndAlso .UseForeignKey <> otForeignKeyImplementation.None Then
                     '* normally we should check if the foreign key was transmitted to tables
@@ -1321,7 +1321,7 @@ Namespace OnTrack
     ''' class for foreign key definition of multiple table columns
     ''' </summary>
     ''' <remarks></remarks>
-    <ormObject(id:=ForeignKeyDefinition.ConstObjectID, modulename:=ConstModuleCore, description:="Foreign Key Definition of a Table", _
+    <ormObject(id:=ForeignKeyDefinition.ConstObjectID, modulename:=ConstModuleMeta, description:="Foreign Key Definition of a Table", _
         Version:=1, usecache:=True, isbootstrap:=True)> _
     Public Class ForeignKeyDefinition
         Inherits ormDataObject
@@ -1789,7 +1789,7 @@ Namespace OnTrack
     ''' </summary>
     ''' <remarks></remarks>
 
-    <ormObject(id:=IndexDefinition.ConstObjectID, modulename:=ConstModuleCore, description:="index definition for table definitions", _
+    <ormObject(id:=IndexDefinition.ConstObjectID, modulename:=ConstModuleMeta, description:="index definition for table definitions", _
         isbootstrap:=True, usecache:=True, Version:=1)> _
     Public Class IndexDefinition
         Inherits ormDataObject
@@ -2027,7 +2027,7 @@ Namespace OnTrack
     ''' </summary>
     ''' <remarks></remarks>
 
-    <ormObject(id:=TableDefinition.ConstObjectID, modulename:=constModuleCore, description:="Relational table definition of a database table", _
+    <ormObject(id:=TableDefinition.ConstObjectID, modulename:=ConstModuleMeta, description:="Relational table definition of a database table", _
         usecache:=True, isbootstrap:=True, Version:=1)> _
     Public Class TableDefinition
         Inherits ormDataObject
@@ -2278,6 +2278,14 @@ Namespace OnTrack
 #End Region
 
         ''' <summary>
+        ''' returns a List of all Tabledefinitions
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Shared Function All() As List(Of TableDefinition)
+            Return ormDataObject.All(Of TableDefinition)()
+        End Function
+        ''' <summary>
         ''' OnCreated handles the creation event - set 
         ''' </summary>
         ''' <param name="sender"></param>
@@ -2490,7 +2498,7 @@ Namespace OnTrack
             Dim tblInfo As Object
             Dim aCollection As New List(Of String)
 
-            If Not isalive(subname:="TableDefinition.alterschema") Then Return False
+            If Not IsAlive(subname:="TableDefinition.alterschema") Then Return False
 
             Try
                 '** call to get object
@@ -2827,7 +2835,7 @@ Namespace OnTrack
                 End If
             Next
             '** add it
-            If pkList.Count > 0 Then Me.AddIndex(indexname:=Me.PrimaryKey, columnnames:=pkList.Values.ToList, isprimarykey:=True, Replace:=True)
+            If pkList.Count > 0 Then Me.AddIndex(indexname:=Me.PrimaryKey, columnnames:=pkList.Values.ToList, isprimarykey:=True, replace:=True)
         End Sub
 
         ''' <summary>
@@ -2918,7 +2926,7 @@ Namespace OnTrack
     ''' </summary>
     ''' <remarks></remarks>
 
-    <ormObject(id:=ObjectPermission.ConstObjectID, modulename:=constModuleCore, description:="permission rules for object access", _
+    <ormObject(id:=ObjectPermission.ConstObjectID, modulename:=ConstModuleMeta, description:="permission rules for object access", _
         version:=1, isbootstrap:=True, usecache:=True)> _
     Public Class ObjectPermission
         Inherits ormDataObject
@@ -3333,67 +3341,67 @@ Namespace OnTrack
 
             Try
 
-            '** evaluate the rules
-            Select Case _permissionruleProperty.[Enum]
-                '*** check on user rights
-                '*** and on the user's group rights
-                Case otObjectPermissionRuleProperty.DBAccess
-                    If _permissionruleProperty.Validate Then
+                '** evaluate the rules
+                Select Case _permissionruleProperty.[Enum]
+                    '*** check on user rights
+                    '*** and on the user's group rights
+                    Case otObjectPermissionRuleProperty.DBAccess
+                        If _permissionruleProperty.Validate Then
                             Dim accessright = New AccessRightProperty(_permissionruleProperty.Arguments(0).ToString)
                             result = AccessRightProperty.CoverRights(rights:=user.AccessRight, covers:=accessright.[Enum])
-                        If Not result Then
-                            For Each groupname In user.GroupNames
-                                Dim aGroup As Group = Group.Retrieve(groupname:=groupname)
-                                If aGroup IsNot Nothing Then
-                                    result = AccessRightProperty.CoverRights(rights:=aGroup.AccessRight, covers:=accessright.[Enum])
-                                Else
-                                    CoreMessageHandler(message:="Groupname not found", arg1:=_permissionruleProperty.ToString, _
-                                            subname:="ObjectPermission.CheckFor", objectname:=Me.Objectname, messagetype:=otCoreMessageType.InternalError)
-                                    '* do not set  a result
-                                End If
-                            Next
+                            If Not result Then
+                                For Each groupname In user.GroupNames
+                                    Dim aGroup As Group = Group.Retrieve(groupname:=groupname)
+                                    If aGroup IsNot Nothing Then
+                                        result = AccessRightProperty.CoverRights(rights:=aGroup.AccessRight, covers:=accessright.[Enum])
+                                    Else
+                                        CoreMessageHandler(message:="Groupname not found", arg1:=_permissionruleProperty.ToString, _
+                                                subname:="ObjectPermission.CheckFor", objectname:=Me.Objectname, messagetype:=otCoreMessageType.InternalError)
+                                        '* do not set  a result
+                                    End If
+                                Next
+                            End If
+
+                        Else
+                            result = False 'wrong value -> false
                         End If
 
-                    Else
-                        result = False 'wrong value -> false
-                    End If
-
-                    '*** check on membership
-                Case otObjectPermissionRuleProperty.Group
-                    If _permissionruleProperty.Validate Then
+                        '*** check on membership
+                    Case otObjectPermissionRuleProperty.Group
+                        If _permissionruleProperty.Validate Then
                             Dim groupname As String = _permissionruleProperty.Arguments(0).ToString
-                        If user.GroupNames.Contains(groupname) Then
-                            result = True
+                            If user.GroupNames.Contains(groupname) Then
+                                result = True
+                            Else
+                                result = False
+                            End If
                         Else
-                            result = False
+                            result = False 'wrong value -> false
                         End If
-                    Else
-                        result = False 'wrong value -> false
-                    End If
 
-                    '** compare the individual member
-                Case otObjectPermissionRuleProperty.User
-                    If _permissionruleProperty.Validate Then
+                        '** compare the individual member
+                    Case otObjectPermissionRuleProperty.User
+                        If _permissionruleProperty.Validate Then
                             Dim username As String = _permissionruleProperty.Arguments(0).ToString
-                        If user.Username.ToUpper = username.ToUpper Then
-                            result = True
+                            If user.Username.ToUpper = username.ToUpper Then
+                                result = True
+                            Else
+                                result = False
+                            End If
                         Else
-                            result = False
+                            result = False 'wrong value -> false
                         End If
-                    Else
+                    Case Else
+                        CoreMessageHandler(message:="ObjectPermissionRuleProperty not implemented", arg1:=_permissionruleProperty.ToString, _
+                                            subname:="ObjectPermission.CheckFor", objectname:=Me.Objectname, messagetype:=otCoreMessageType.InternalError)
                         result = False 'wrong value -> false
-                    End If
-                Case Else
-                    CoreMessageHandler(message:="ObjectPermissionRuleProperty not implemented", arg1:=_permissionruleProperty.ToString, _
-                                        subname:="ObjectPermission.CheckFor", objectname:=Me.Objectname, messagetype:=otCoreMessageType.InternalError)
-                    result = False 'wrong value -> false
 
-            End Select
-            '* exit flag
-            If (result AndAlso ExitOnTrue) OrElse (Not result AndAlso _exitOnFalse) Then
-                [exit] = True
-            End If
-            Return result
+                End Select
+                '* exit flag
+                If (result AndAlso ExitOnTrue) OrElse (Not result AndAlso _exitOnFalse) Then
+                    [exit] = True
+                End If
+                Return result
 
             Catch ex As Exception
                 CoreMessageHandler(exception:=ex, subname:="ObjectPermission.Checkfor")
@@ -3409,7 +3417,7 @@ Namespace OnTrack
     ''' </summary>
     ''' <remarks></remarks>
 
-    <ormObject(id:=ObjectDefinition.ConstObjectID, modulename:=constModuleCore, description:="persistable Business Object definition", _
+    <ormObject(id:=ObjectDefinition.ConstObjectID, modulename:=ConstModuleMeta, description:="persistable Business Object definition", _
         Version:=1, isbootstrap:=True, usecache:=True)> _
     Public Class ObjectDefinition
         Inherits ormDataObject
@@ -3486,14 +3494,18 @@ Namespace OnTrack
         <ormEntryMapping(EntryName:=ConstFNtablenames)> Private _tablenames As String() = {}
         <ormEntryMapping(EntryName:=ConstFNDefaultPermission)> Private _defaultpermission As Boolean = True
 
-        '** runtime variables
-        Private _tables As New Dictionary(Of String, TableDefinition) ' by table id
+        ''' <summary>
+        ''' Relations which will be handled by events
+        ''' </summary>
+        ''' <remarks></remarks>
+        Private _tables As New Dictionary(Of String, TableDefinition) ' relations will be handled by events - list to load stored in _tablenames
         Private _objectpermissions As New Dictionary(Of String, SortedList(Of Long, ObjectPermission)) 'ObjectPermissions by Operation and the sorted rules list
 
         Public Shared Event ObjectDefinitionChanged As EventHandler(Of ObjectDefintionEventArgs)
         Public Shared Event OnObjectSchemaCreating(sender As Object, e As ormDataObjectEventArgs)
         Public Shared Event OnObjectSchemaCreated(sender As Object, e As ormDataObjectEventArgs)
-        '** runtime
+
+        '** runtime variables
         Private _lock As New Object
         Private _DefaultDomainID As String = ""
 
@@ -4238,6 +4250,10 @@ Namespace OnTrack
             End If
             ' add entry
             _objectentries.Add(key:=entry.Entryname.ToUpper, value:=entry)
+            '** synchronize the table names after object entry is added
+            SynchronizeTables()
+
+            ''' yes we have changed
             Me.IsChanged = True
             '
             Return True
@@ -4416,14 +4432,61 @@ Namespace OnTrack
         Public Sub OnPersisted(sender As Object, e As ormDataObjectEventArgs) Handles MyBase.OnPersisted
             Dim myself = TryCast(e.DataObject, ObjectDefinition)
             If myself IsNot Nothing Then
+                SynchronizeTables()
+                '*** save the tables
                 For Each aTable In myself.Tables
-                    aTable.Persist()
+                    aTable.Persist(e.Timestamp)
                 Next
+                '*** save the permissions
                 For Each aPermission In myself.PermissionRules
-                    aPermission.Persist()
+                    aPermission.Persist(e.Timestamp)
                 Next
             End If
 
+        End Sub
+
+        ''' <summary>
+        ''' little routine to synchronize tablenames (as stored foreign key in the database) and the runtime structure _tables and entries
+        ''' </summary>
+        ''' <remarks></remarks>
+        Private Sub SynchronizeTables()
+            '** build from ground - no entries if no columnentry exists
+            Dim theTablenamesList As New List(Of String)
+
+            ''' add the tables dependend on the object entries
+            ''' 
+            For Each anEntry In _objectentries.Values
+                If anEntry.IsColumn Then
+                    Dim aColumnEntry = TryCast(anEntry, ObjectColumnEntry)
+                    If aColumnEntry IsNot Nothing Then
+                        If Not _tables.ContainsKey(aColumnEntry.TableName) Then
+                            Dim aTable As TableDefinition = TableDefinition.Retrieve(tablename:=aColumnEntry.TableName, runtimeOnly:=Me.RunTimeOnly)
+                            If aTable IsNot Nothing Then
+                                _tables.Add(key:=aColumnEntry.TableName, value:=aTable)
+                                If Not theTablenamesList.Contains(aColumnEntry.TableName) Then theTablenamesList.Add(aTable.Name)
+                            End If
+                        End If
+                    End If
+                End If
+            Next
+
+            ''' add the tables definied in the list but not elsethere (error condition ?!)
+            ''' 
+            For Each aName In theTablenamesList
+                If Not _tables.ContainsKey(aName) Then
+                    Dim aTable As TableDefinition = TableDefinition.Retrieve(tablename:=aName, runtimeOnly:=Me.RunTimeOnly)
+                    If aTable IsNot Nothing Then
+                        _tables.Add(key:=aName, value:=aTable)
+                        If Not theTablenamesList.Contains(aName) Then theTablenamesList.Add(aTable.Name)
+                    Else
+                        theTablenamesList.Remove(aName)
+                    End If
+                End If
+            Next
+
+            ''' set the _tablenames
+            ''' 
+            _tablenames = theTablenamesList.ToArray
         End Sub
         ''' <summary>
         ''' handles the OnPersisted Event - used to persist the tables since these are dynamic and not relation mapped
@@ -4434,6 +4497,7 @@ Namespace OnTrack
         Public Sub OnInfused(sender As Object, e As ormDataObjectEventArgs) Handles MyBase.OnInfused
             Dim myself = TryCast(e.DataObject, ObjectDefinition)
             If myself IsNot Nothing AndAlso Not myself.RunTimeOnly Then
+                ''' infuse also the Object Permission
                 Dim permissions = ObjectPermission.ByObjectName(TryCast(e.DataObject, ObjectDefinition).ID)
                 For Each aPermission In permissions
                     Dim aSet As New SortedList(Of Long, ObjectPermission)
@@ -4444,6 +4508,11 @@ Namespace OnTrack
                     End If
                     aSet.Add(key:=aPermission.Order, value:=aPermission)
                 Next
+                ''' infuse also the tables list
+                ''' 
+                SynchronizeTables()
+
+               
             End If
 
         End Sub
@@ -4502,7 +4571,7 @@ Namespace OnTrack
     ''' </summary>
     ''' <remarks></remarks>
 
-    <ormObject(id:=AbstractEntryDefinition.ConstObjectID, modulename:=ConstModuleCore, description:="Abstract ObjectEntry definition", _
+    <ormObject(id:=AbstractEntryDefinition.ConstObjectID, modulename:=ConstModuleMeta, description:="Abstract ObjectEntry definition", _
         useCache:=True, DeletefieldFlag:=True, AddDomainBehaviorFlag:=True, isbootstrap:=True, Version:=1)> _
     Public MustInherit Class AbstractEntryDefinition
         Inherits ormDataObject
@@ -5468,7 +5537,7 @@ Namespace OnTrack
     ''' </summary>
     ''' <remarks></remarks>
 
-    <ormObject(ID:=ObjectCompoundEntry.ConstObjectID, modulename:=ConstModuleCore, _
+    <ormObject(ID:=ObjectCompoundEntry.ConstObjectID, modulename:=ConstModuleMeta, _
         description:="Compound definition of an object entry definition.", _
              DeletefieldFlag:=True, AddDomainBehaviorFlag:=True, _
             usecache:=True, isbootstrap:=True, Version:=1)> _
@@ -5855,7 +5924,7 @@ Namespace OnTrack
     ''' </summary>
     ''' <remarks></remarks>
     'explicit since we are not running through inherited classes
-    <ormObject(id:=ObjectColumnEntry.ConstObjectID, modulename:=ConstModuleCore, _
+    <ormObject(id:=ObjectColumnEntry.ConstObjectID, modulename:=ConstModuleMeta, _
                 DeletefieldFlag:=True, AddDomainBehaviorFlag:=True, _
                 Description:="Object Entry Definition as Column Entry (of a Table)", _
                 usecache:=True, isbootstrap:=True, Version:=1)> _

@@ -16,19 +16,14 @@ Imports System.Collections.Generic
 
 Imports OnTrack.Database
 
-Namespace OnTrack
-
-
-    '************************************************************************************
-    '***** CLASS clsOTDBCalenderEntry is the object for a OTDBRecord (which is the datastore)
-    '***** describes an Entry in the Calendar of <name>
-    '*****
+Namespace OnTrack.Calendar
 
     ''' <summary>
     ''' Calendar Entry Class
     ''' </summary>
     ''' <remarks></remarks>
-    <ormObject(id:=CalendarEntry.ConstObjectID, modulename:=ConstModuleCore, usecache:=True, Version:=1)> Public Class CalendarEntry
+    <ormObject(id:=CalendarEntry.ConstObjectID, modulename:=ConstModuleCalendar, description:="object to store an calendar entry", _
+        usecache:=True, Version:=1)> Public Class CalendarEntry
         Inherits ormDataObject
         Implements iormInfusable
         Implements iormPersistable
@@ -454,7 +449,7 @@ Namespace OnTrack
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function All() As List(Of CalendarEntry)
-            Return ormDataObject.All(Of CalendarEntry)()
+            Return ormDataObject.AllDataObject(Of CalendarEntry)()
         End Function
 
         ''' <summary>

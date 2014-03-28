@@ -725,6 +725,8 @@ Namespace OnTrack.Database
 
     Public Interface iormSqlCommand
 
+        Function HasParameter(ID As String) As Boolean
+
         Property ID As String
         ReadOnly Property TableIDs As List(Of String)
         ReadOnly Property [Type] As OTDBSQLCommandTypes
@@ -1085,15 +1087,57 @@ Namespace OnTrack.Database
         Function Validate(enryname As String, value As Object) As otValidationResultType
 
     End Interface
+    ''' <summary>
+    ''' interface for all queried Enumeration
+    ''' </summary>
+    ''' <remarks></remarks>
+    Public Interface iormQueriedEnumeration
 
-    '************************************************************************************
-    '**** INTERFACE iOTDBDataObject
-    '****
+        ReadOnly Property ID As String
+
+        Property ObjectEntryNames As IEnumerable(Of String)
+
+        Function GetObjectEntry(name As String) As iormObjectEntry
+
+        Function getObjectEntries() As IList(Of iormObjectEntry)
+
+        Function Reset() As Boolean
+
+        Function getRecord(no As ULong) As ormRecord
+
+        Function GetObject(no As ULong) As iormPersistable
+
+        ReadOnly Property Count As ULong
+
+        Function getvalue(name As String, ByRef value As Object) As Boolean
+
+        Function setvalue(name As String, value As Object) As Boolean
+
+    End Interface
+    ''' <summary>
+    ''' interface describes a queriable object class
+    ''' </summary>
+    ''' <remarks></remarks>
+    Public Interface iormQueriable
+
+        ''' <summary>
+        ''' returns a queried Enumeration by name
+        ''' </summary>
+        ''' <param name="name"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Function GetQuery(name As String) As iormQueriedEnumeration
+
+    End Interface
     ''' <summary>
     ''' interface describes a persistable OTDB Data Object
     ''' </summary>
     ''' <remarks></remarks>
     Public Interface iormPersistable
+
+        Function getValue(entryname As String, Optional ByRef fieldmembername As String = "") As Object
+
+        Function setvalue(entryname As String, value As Object) As Boolean
 
         Function DetermineLiveStatus() As Boolean
 
@@ -1141,7 +1185,7 @@ Namespace OnTrack.Database
 
         Function Create(ByRef record As ormRecord, Optional domainID As String = "", Optional checkUnique As Boolean = False, Optional runtimeOnly As Boolean = False) As Boolean
 
-        Property DbDriver As iormDatabaseDriver
+        Property DatabaseDriver As iormDatabaseDriver
         ''' <summary>
         ''' Tablestore associated with this data object
         ''' </summary>
@@ -1344,7 +1388,7 @@ Namespace OnTrack
     ''' Interface for Object Entries
     ''' </summary>
     ''' <remarks></remarks>
-    Public Interface iObjectEntry
+    Public Interface iormObjectEntry
         Inherits iormPersistable
 
         ''' <summary>
@@ -1543,6 +1587,8 @@ Namespace OnTrack
         Property PrimaryKeyOrdinal As UShort
 
         Property InnerDatatype As otFieldDataType
+
+        Property Ordinal As UShort
 
         Function SetByAttribute(attribute As ormObjectEntryAttribute) As Boolean
 

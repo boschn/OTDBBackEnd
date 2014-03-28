@@ -519,7 +519,7 @@ Namespace OnTrack.Database
                                                  Optional dbdriver As iormDatabaseDriver = Nothing) As List(Of iormPersistable)
             Dim theKeyvalues As New List(Of Object)
             Dim theObjectList As New List(Of iormPersistable)
-            If dbdriver Is Nothing Then dbdriver = dataobject.DbDriver
+            If dbdriver Is Nothing Then dbdriver = dataobject.DatabaseDriver
             If dbdriver Is Nothing Then dbdriver = CurrentDBDriver
             Dim aTargetObjectDescriptor As ObjectClassDescription = ot.GetObjectClassDescription(attribute.LinkObject)
             Dim aTargetType As System.Type = aTargetObjectDescriptor.Type
@@ -608,9 +608,10 @@ Namespace OnTrack.Database
                 For i = 0 To attribute.ToEntries.Count - 1
                     aCommand.SetParameterValue(ID:="@" & attribute.ToEntries(i), value:=theKeyvalues(i))
                 Next
-                If deletebehavior Then aCommand.SetParameterValue(ID:="@deleted", value:=False)
-                If domainBehavior Then aCommand.SetParameterValue(ID:="@domainID", value:=domainID)
-                If domainBehavior Then aCommand.SetParameterValue(ID:="@globalID", value:=ConstGlobalDomain)
+                '** set the values
+                If aCommand.HasParameter(ID:="@deleted") Then aCommand.SetParameterValue(ID:="@deleted", value:=False)
+                If aCommand.HasParameter(ID:="@domainID") Then aCommand.SetParameterValue(ID:="@domainID", value:=domainID)
+                If aCommand.HasParameter(ID:="@globalID") Then aCommand.SetParameterValue(ID:="@globalID", value:=ConstGlobalDomain)
 
                 ' Infuse
                 Dim aRecordCollection As List(Of ormRecord) = aCommand.RunSelect

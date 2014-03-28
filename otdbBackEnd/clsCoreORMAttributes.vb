@@ -2698,4 +2698,144 @@ Namespace OnTrack.Database
         End Property
     End Class
 
+    ''' <summary>
+    ''' Attribute for Const fields to describe an Query for the Object Class
+    ''' </summary>
+    ''' <remarks></remarks>
+
+    <AttributeUsage(AttributeTargets.Field, AllowMultiple:=False, Inherited:=True)> _
+    Public Class ormObjectQueryAttribute
+        Inherits Attribute
+        Private _ID As String = Nothing
+        Private _where As String = Nothing
+        Private _orderBy As String = Nothing
+        Private _Description As String = Nothing
+        Private _Version As Nullable(Of UShort) = 1
+        Private _addAllFields As Nullable(Of Boolean)
+        Private _Entrynames As String()
+
+        ''' <summary>
+        ''' Gets or sets the where part of a query.
+        ''' </summary>
+        ''' <value>The description.</value>
+        Public Property Where As String
+            Get
+                Return Me._where
+            End Get
+            Set(value As String)
+                Me._where = value
+            End Set
+        End Property
+        Public ReadOnly Property HasValueWhere As Boolean
+            Get
+                Return _where IsNot Nothing AndAlso Not String.IsNullOrWhiteSpace(_where)
+            End Get
+        End Property
+       
+
+        ''' <summary>
+        ''' Gets or sets the object Properties
+        ''' </summary>
+        ''' <value>cache.</value>
+        Public Property EntryNames() As String()
+            Get
+                Return Me._Entrynames
+            End Get
+            Set(value As String())
+                Me._Entrynames = value
+            End Set
+        End Property
+        Public ReadOnly Property HasValueEntrynames As Boolean
+            Get
+                Return _Entrynames IsNot Nothing AndAlso _Entrynames.Count > 0
+            End Get
+        End Property
+        ''' <summary>
+        ''' Gets or sets the version.
+        ''' </summary>
+        ''' <value>The version.</value>
+        Public Property AddAllFields() As Boolean?
+            Get
+                Return Me._addAllFields
+            End Get
+            Set(value As Boolean?)
+                Me._addAllFields = value
+            End Set
+        End Property
+        Public ReadOnly Property HasValueAddAllFields As Boolean
+            Get
+                Return _addAllFields.HasValue
+            End Get
+        End Property
+        ''' <summary>
+        ''' Gets or sets the version.
+        ''' </summary>
+        ''' <value>The version.</value>
+        Public Property Version() As UShort
+            Get
+                Return Me._Version
+            End Get
+            Set(value As UShort)
+                Me._Version = value
+            End Set
+        End Property
+        Public ReadOnly Property HasValueVersion As Boolean
+            Get
+                Return _Version.HasValue
+            End Get
+        End Property
+        ''' <summary>
+        ''' Gets or sets the description.
+        ''' </summary>
+        ''' <value>The description.</value>
+        Public Property Description() As String
+            Get
+                Return Me._Description
+            End Get
+            Set(value As String)
+                Me._Description = value
+            End Set
+        End Property
+        Public ReadOnly Property HasValueDescription As Boolean
+            Get
+                Return _Description IsNot Nothing
+            End Get
+        End Property
+        ''' <summary>
+        ''' Gets or sets the orderby.
+        ''' </summary>
+        ''' <value>The title.</value>
+        Public Property Orderby() As String
+            Get
+                Return Me._orderBy
+            End Get
+            Set(value As String)
+                Me._orderBy = value
+            End Set
+        End Property
+        Public ReadOnly Property HasValueOrderBy As Boolean
+            Get
+                Return _orderBy IsNot Nothing AndAlso Not String.IsNullOrWhiteSpace(_orderBy)
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the ID.
+        ''' </summary>
+        ''' <value>The ID.</value>
+        Public Property ID() As String
+            Get
+                Return Me._ID
+            End Get
+            Set(value As String)
+                Me._ID = value.ToUpper
+            End Set
+        End Property
+        Public ReadOnly Property HasValueID As Boolean
+            Get
+                Return _ID IsNot Nothing AndAlso _ID <> ""
+            End Get
+        End Property
+    End Class
+
 End Namespace

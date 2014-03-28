@@ -20,6 +20,7 @@ Imports OnTrack
 Imports OnTrack.Database
 Imports OnTrack.Deliverables
 Imports OnTrack.XChange
+Imports OnTrack.Calendar
 
 Namespace OnTrack.Scheduling
 
@@ -419,7 +420,7 @@ Namespace OnTrack.Scheduling
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function All(Optional domainID As String = "") As List(Of MileStoneDefinition)
-            Return ormDataObject.All(Of MileStoneDefinition)(domainID:=domainID)
+            Return ormDataObject.AllDataObject(Of MileStoneDefinition)(domainID:=domainID)
         End Function
 
 
@@ -1170,7 +1171,7 @@ Namespace OnTrack.Scheduling
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function All() As List(Of clsOTDBDefScheduleTask)
-            Return ormDataObject.All(Of clsOTDBDefScheduleTask)()
+            Return ormDataObject.AllDataObject(Of clsOTDBDefScheduleTask)()
         End Function
 
         ''' <summary>
@@ -1754,7 +1755,7 @@ Namespace OnTrack.Scheduling
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function All() As List(Of ScheduleMilestoneDefinition)
-            Return ormDataObject.All(Of ScheduleMilestoneDefinition)()
+            Return ormDataObject.AllDataObject(Of ScheduleMilestoneDefinition)()
         End Function
 
         ''' <summary>
@@ -1968,7 +1969,7 @@ Namespace OnTrack.Scheduling
             Dim flag As Boolean
             Dim existEntry As New ScheduleMilestoneDefinition
             Dim aMilestone As New ScheduleMilestone
-            Dim anObjectEntry As iObjectEntry
+            Dim anObjectEntry As iormObjectEntry
             Dim aSchedule As New Schedule
             Dim m As Object
 

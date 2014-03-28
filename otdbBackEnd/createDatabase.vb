@@ -12,7 +12,7 @@ Imports OnTrack.Deliverables
 Imports OnTrack.Parts
 Imports OnTrack.Configurables
 Imports OnTrack.XChange
-
+Imports OnTrack.Calendar
 
 Namespace OnTrack.Database
 

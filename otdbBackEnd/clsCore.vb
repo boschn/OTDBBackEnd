@@ -3747,7 +3747,7 @@ errorhandle:
         <ormSchemaTable(version:=1, addsparefields:=True)> Public Const ConstTableID As String = "tblObjectMessages"
 
         '* primary keys
-        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, PrimarykeyOrdinal:=1, _
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, PosOrdinal:=1, PrimarykeyOrdinal:=1, _
                          ID:="olog1", title:="Tag", description:="tag to the object message log")> Public Shadows Const ConstFNTag = "msglogtag"
         <ormObjectEntry(typeid:=otFieldDataType.Long, PrimarykeyOrdinal:=2, _
                          ID:="olog2", title:="Number", description:="number of the object message")> Public Const ConstFNNo = "idno"

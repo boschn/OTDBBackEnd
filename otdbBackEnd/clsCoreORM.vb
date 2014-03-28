@@ -307,18 +307,33 @@ Namespace OnTrack
 
                 Return True
             End Function
+            ''' <summary>
+            ''' returns True if the Command has the parameter
+            ''' </summary>
+            ''' <param name="ID"></param>
+            ''' <returns></returns>
+            ''' <remarks></remarks>
+            Public Function HasParameter(ID As String) As Boolean Implements iormSqlCommand.HasParameter
+                ID = Regex.Replace(ID, "\s", "") ' no white chars allowed
+                If Not _parameters.ContainsKey(key:=ID) Then
+                    Return False
+                Else
+                    Return True
+                End If
+            End Function
             ''' Sets the parameter value.
             ''' </summary>
             ''' <param name="name">The name of the parameter.</param>
             ''' <param name="value">The value of the object</param>
             ''' <returns></returns>
             Public Function GetParameterValue(ID As String) As Object Implements iormSqlCommand.GetParameterValue
+                ID = Regex.Replace(ID, "\s", "") ' no white chars allowed
                 If Not _parameters.ContainsKey(key:=ID) Then
                     Call CoreMessageHandler(message:="Parameter ID not in Command", arg1:=Me.ID, entryname:=ID, subname:="ormSqlCommand.SetParameterValue", _
                                           messagetype:=otCoreMessageType.InternalError)
                     Return Nothing
                 End If
-                ID = Regex.Replace(ID, "\s", "") ' no white chars allowed
+
                 If _parametervalues.ContainsKey(key:=ID) Then
                     Return _parametervalues.Item(key:=ID)
                 Else

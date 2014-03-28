@@ -15,10 +15,9 @@ REM *********** (C) by Boris Schneider 2013
 REM ***********************************************************************************************************************************************''' <summary>
 
 Imports System.Diagnostics.Debug
-
-Imports OnTrack
-Imports OnTrack.Database
 Imports System.Text.RegularExpressions
+Imports OnTrack.Database
+Imports OnTrack.Calendar
 
 Namespace OnTrack
 
@@ -27,7 +26,8 @@ Namespace OnTrack
     ''' Value Entry Class for List of Values
     ''' </summary>
     ''' <remarks></remarks>
-    <ormObject(id:=ValueEntry.ConstObjectID, modulename:=ConstModuleCore, Version:=1, useCache:=True)> Public Class ValueEntry
+    <ormObject(id:=ValueEntry.ConstObjectID, modulename:=ConstModuleCore, Version:=1, Description:="lookup value pairs for general use", _
+        useCache:=True)> Public Class ValueEntry
         Inherits ormDataObject
         Implements iormInfusable
         Implements iormPersistable
@@ -43,7 +43,7 @@ Namespace OnTrack
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, primaryKeyordinal:=2, _
             XID:="VE3", title:="Value", description:="value entry")> Const ConstFNValue = "value"
 
-        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=2 _
+        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=3 _
          , useforeignkey:=otForeignKeyImplementation.NativeDatabase, defaultvalue:=ConstGlobalDomain)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
         '*** Fields
@@ -203,7 +203,7 @@ Namespace OnTrack
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overloads Shared Function RetrieveByListID(ByVal listID As String, Optional ByVal domainID As String = "", Optional forcereload As Boolean = False) As List(Of ValueEntry)
-          Dim aList As List(Of ValueEntry) = ormDataObject.All(Of ValueEntry)(ID:="allbyListID", domainID:=domainID)
+            Dim aList As List(Of ValueEntry) = ormDataObject.AllDataObject(Of ValueEntry)(ID:="allbyListID", domainID:=domainID)
             Return aList
         End Function
         ''' <summary>
@@ -257,7 +257,8 @@ Namespace OnTrack
     ''' Domain Setting Definition Class
     ''' </summary>
     ''' <remarks></remarks>
-    <ormObject(id:=DomainSetting.ConstObjectID, modulename:=ConstModuleCore, Version:=1, useCache:=True)> Public Class DomainSetting
+    <ormObject(id:=DomainSetting.ConstObjectID, modulename:=ConstModuleCore, description:="properties per domain", _
+        Version:=1, useCache:=True)> Public Class DomainSetting
         Inherits ormDataObject
         Implements iormInfusable
         Implements iormPersistable
@@ -437,7 +438,7 @@ Namespace OnTrack
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overloads Shared Function RetrieveByDomain(ByVal domainID As String, Optional forcereload As Boolean = False) As List(Of DomainSetting)
-            Dim aList As List(Of DomainSetting) = ormDataObject.All(Of DomainSetting)(ID:="allbyDomain", _
+            Dim aList As List(Of DomainSetting) = ormDataObject.AllDataObject(Of DomainSetting)(ID:="allbyDomain", _
                                                                                       where:="[" & ConstFNDomainID & "] = @" & ConstFNDomainID, _
                                                                                       parameters:={New ormSqlCommandParameter(id:="@" & ConstFNDomainID, columnname:=ConstFNDomainID, tablename:=ConstTableID, value:=domainID)}.ToList)
             Return aList
@@ -484,8 +485,8 @@ Namespace OnTrack
     ''' User Definition Class of an OnTrack User
     ''' </summary>
     ''' <remarks></remarks>
-    <ormObject(id:=Group.ConstObjectID, description:="group definition", _
-        modulename:=constModuleCore, Version:=1, usecache:=True, isbootstrap:=False)> _
+    <ormObject(id:=Group.ConstObjectID, description:="group definition for users", _
+        modulename:=ConstModuleCore, Version:=1, usecache:=True, isbootstrap:=False)> _
     Public Class Group
         Inherits ormDataObject
 
@@ -535,7 +536,7 @@ Namespace OnTrack
 
         <ormEntryMapping(EntryName:=ConstFNDefaultWorkspace)> Private _DefaultWorkspaceID As String
         <ormEntryMapping(EntryName:=ConstFNDefaultDomainID)> Private _DefaultDomainID As String
-        
+
         <ormEntryMapping(EntryName:=ConstFNReadData)> Private _hasRead As Boolean
         <ormEntryMapping(EntryName:=ConstFNUpdateData)> Private _hasUpdate As Boolean
         <ormEntryMapping(EntryName:=ConstFNAlterSchema)> Private _hasAlterSchema As Boolean
@@ -687,7 +688,7 @@ Namespace OnTrack
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function All() As List(Of Group)
-            Return ormDataObject.All(Of Group)(orderby:=ConstFNGroupname)
+            Return ormDataObject.AllDataObject(Of Group)(orderby:=ConstFNGroupname)
         End Function
 
         ''' <summary>
@@ -719,8 +720,8 @@ Namespace OnTrack
     ''' Group Member Definition Class of an OnTrack User
     ''' </summary>
     ''' <remarks></remarks>
-    <ormObject(id:=GroupMember.ConstObjectID, description:="group member definition", _
-        modulename:=constModuleCore, Version:=1, usecache:=True, isbootstrap:=False)> _
+    <ormObject(id:=GroupMember.ConstObjectID, description:="group member definition of n:m relation from user to groups", _
+        modulename:=ConstModuleCore, Version:=1, usecache:=True, isbootstrap:=False)> _
     Public Class GroupMember
         Inherits ormDataObject
 
@@ -777,7 +778,7 @@ Namespace OnTrack
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function All() As List(Of Group)
-            Return ormDataObject.All(Of Group)(orderby:=ConstFNGroupname)
+            Return ormDataObject.AllDataObject(Of Group)(orderby:=ConstFNGroupname)
         End Function
 
         ''' <summary>
@@ -829,7 +830,8 @@ Namespace OnTrack
     ''' User Definition Class of an OnTrack User
     ''' </summary>
     ''' <remarks></remarks>
-    <ormObject(id:=User.ConstObjectID, modulename:=ConstModuleCore, Version:=1, isbootstrap:=True, usecache:=True)> _
+    <ormObject(id:=User.ConstObjectID, description:="user definition for OnTrack login users", _
+        modulename:=ConstModuleCore, Version:=1, isbootstrap:=True, usecache:=True)> _
     Public Class User
         Inherits ormDataObject
         Implements iormCloneable
@@ -1188,7 +1190,7 @@ Namespace OnTrack
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function All() As List(Of User)
-            Return ormDataObject.All(Of User)(orderby:=ConstFNUsername)
+            Return ormDataObject.AllDataObject(Of User)(orderby:=ConstFNUsername)
         End Function
 
         '****** getAnonymous: "static" function to return the first Anonymous user
@@ -1201,9 +1203,9 @@ Namespace OnTrack
         Public Shared Function GetAnonymous() As OnTrack.User
             Dim aObjectCollection As List(Of User)
             If CurrentSession.CurrentDBDriver.DatabaseType = otDBServerType.SQLServer Then
-                aObjectCollection = ormDataObject.All(Of User)(orderby:=ConstFNUsername, where:=ConstFNIsAnonymous & "=1")
+                aObjectCollection = ormDataObject.AllDataObject(Of User)(orderby:=ConstFNUsername, where:=ConstFNIsAnonymous & "=1")
             Else
-                aObjectCollection = ormDataObject.All(Of User)(orderby:=ConstFNUsername, where:=ConstFNIsAnonymous & "=true")
+                aObjectCollection = ormDataObject.AllDataObject(Of User)(orderby:=ConstFNUsername, where:=ConstFNIsAnonymous & "=true")
             End If
 
             If aObjectCollection.Count = 0 Then
@@ -1347,7 +1349,8 @@ Namespace OnTrack
     ''' User Setting Definition Class
     ''' </summary>
     ''' <remarks></remarks>
-    <ormObject(id:=UserSetting.ConstObjectID, modulename:=ConstModuleCore, Version:=1, useCache:=True)> Public Class UserSetting
+    <ormObject(id:=UserSetting.ConstObjectID, description:="properties per user", _
+        modulename:=ConstModuleCore, Version:=1, useCache:=True)> Public Class UserSetting
         Inherits ormDataObject
         Implements iormInfusable
         Implements iormPersistable
@@ -1519,7 +1522,7 @@ Namespace OnTrack
             Dim aParameterslist As New List(Of ormSqlCommandParameter)
             aParameterslist.Add(New ormSqlCommandParameter(ID:="@Username", columnname:=ConstFNUsername, value:=Username))
 
-            Dim aList As List(Of UserSetting) = ormDataObject.All(Of UserSetting)(ID:="allby" & Username, where:=ConstFNUsername & "= @Username", _
+            Dim aList As List(Of UserSetting) = ormDataObject.AllDataObject(Of UserSetting)(ID:="allby" & Username, where:=ConstFNUsername & "= @Username", _
                                                                                       parameters:=aParameterslist)
             Return aList
         End Function
@@ -1570,7 +1573,8 @@ Namespace OnTrack
     ''' the person definition class
     ''' </summary>
     ''' <remarks></remarks>
-    <ormObject(id:=Person.ConstObjectID, modulename:=ConstModuleCore, usecache:=True, Version:=1)> Public Class Person
+    <ormObject(id:=Person.ConstObjectID, modulename:=ConstModuleCore, description:="person definition", _
+        usecache:=True, Version:=1)> Public Class Person
         Inherits ormDataObject
         Implements iormInfusable
         Implements iormPersistable
@@ -1908,7 +1912,7 @@ Namespace OnTrack
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function All(Optional domainID As String = "") As List(Of Person)
-            Return ormDataObject.All(Of Person)(domainID:=domainID)
+            Return ormDataObject.AllDataObject(Of Person)(domainID:=domainID)
         End Function
 
         ''' <summary>
@@ -1959,7 +1963,7 @@ Namespace OnTrack
     ''' Object Message Definition Class - bound messages to a buisiness object
     ''' </summary>
     ''' <remarks></remarks>
-    <ormObject(ID:=ObjectLogMessageDef.ConstObjectID, Modulename:=constModuleCore, Description:="message definitions for object messages")> _
+    <ormObject(ID:=ObjectLogMessageDef.ConstObjectID, Modulename:=ConstModuleCore, Description:="message definitions for object messages")> _
     Public Class ObjectLogMessageDef
         Inherits ormDataObject
         Implements iormInfusable
@@ -2086,8 +2090,8 @@ Namespace OnTrack
                 Statuscode1 = _status1
             End Get
             Set(avalue As String)
-                If _status1 <> avalue.tolower Then
-                    _status1 = avalue.tolower
+                If _status1 <> avalue.ToLower Then
+                    _status1 = avalue.ToLower
                     IsChanged = True
                 End If
             End Set
@@ -2098,8 +2102,8 @@ Namespace OnTrack
                 Statuscode2 = _status2
             End Get
             Set(avalue As String)
-                If _status2 <> avalue.tolower Then
-                    _status2 = avalue.tolower
+                If _status2 <> avalue.ToLower Then
+                    _status2 = avalue.ToLower
                     IsChanged = True
                 End If
             End Set
@@ -2109,8 +2113,8 @@ Namespace OnTrack
                 Statuscode3 = _status3
             End Get
             Set(avalue As String)
-                If _status3 <> avalue.tolower Then
-                    _status3 = avalue.tolower
+                If _status3 <> avalue.ToLower Then
+                    _status3 = avalue.ToLower
                     IsChanged = True
                 End If
             End Set
@@ -2121,8 +2125,8 @@ Namespace OnTrack
                 Statustype1 = _statustype1
             End Get
             Set(avalue As String)
-                If _statustype1 <> avalue.tolower Then
-                    _statustype1 = avalue.tolower
+                If _statustype1 <> avalue.ToLower Then
+                    _statustype1 = avalue.ToLower
                     IsChanged = True
                 End If
             End Set
@@ -2132,8 +2136,8 @@ Namespace OnTrack
                 Statustype2 = _statustype2
             End Get
             Set(avalue As String)
-                If _statustype2 <> avalue.tolower Then
-                    _statustype2 = avalue.tolower
+                If _statustype2 <> avalue.ToLower Then
+                    _statustype2 = avalue.ToLower
                     IsChanged = True
                 End If
             End Set
@@ -2143,8 +2147,8 @@ Namespace OnTrack
                 Statustype3 = _statustype3
             End Get
             Set(avalue As String)
-                If _statustype3 <> avalue.tolower Then
-                    _statustype3 = avalue.tolower
+                If _statustype3 <> avalue.ToLower Then
+                    _statustype3 = avalue.ToLower
                     IsChanged = True
                 End If
             End Set
@@ -2157,13 +2161,13 @@ Namespace OnTrack
                 Exit Function
             End If
 
-            If typeid.tolower = Me.Statustype1 Then
+            If typeid.ToLower = Me.Statustype1 Then
                 GetStatusCodeOf = Me.Statuscode1
                 Exit Function
-            ElseIf typeid.tolower = Me.Statustype2 Then
+            ElseIf typeid.ToLower = Me.Statustype2 Then
                 GetStatusCodeOf = Me.Statuscode2
                 Exit Function
-            ElseIf typeid.tolower = Me.Statustype3 Then
+            ElseIf typeid.ToLower = Me.Statustype3 Then
                 GetStatusCodeOf = Me.Statuscode2
                 Exit Function
             Else
@@ -2173,14 +2177,14 @@ Namespace OnTrack
         End Function
 
         Public Function GetMessageTypeID(typeid As String) As otAppLogMessageType
-            Select Case typeid.tolower
-                Case OTDBConst_MessageTypeid_error.tolower
+            Select Case typeid.ToLower
+                Case OTDBConst_MessageTypeid_error.ToLower
                     GetMessageTypeID = otAppLogMessageType.[Error]
-                Case OTDBConst_MessageTypeid_info.tolower
+                Case OTDBConst_MessageTypeid_info.ToLower
                     GetMessageTypeID = otAppLogMessageType.Info
-                Case OTDBConst_MessageTypeid_attention.tolower
+                Case OTDBConst_MessageTypeid_attention.ToLower
                     GetMessageTypeID = otAppLogMessageType.Attention
-                Case OTDBConst_MessageTypeid_warning.tolower
+                Case OTDBConst_MessageTypeid_warning.ToLower
                     GetMessageTypeID = otAppLogMessageType.Warning
                 Case Else
                     GetMessageTypeID = 0
@@ -2210,13 +2214,13 @@ Namespace OnTrack
             Try
                 aVAlue = e.Record.GetValue(constFNType)
                 Select Case aVAlue.tolower
-                    Case OTDBConst_MessageTypeid_error.tolower
+                    Case OTDBConst_MessageTypeid_error.ToLower
                         _typeid = otAppLogMessageType.[Error]
-                    Case OTDBConst_MessageTypeid_info.tolower
+                    Case OTDBConst_MessageTypeid_info.ToLower
                         _typeid = otAppLogMessageType.Info
-                    Case OTDBConst_MessageTypeid_attention.tolower
+                    Case OTDBConst_MessageTypeid_attention.ToLower
                         _typeid = otAppLogMessageType.Attention
-                    Case OTDBConst_MessageTypeid_warning.tolower
+                    Case OTDBConst_MessageTypeid_warning.ToLower
                         _typeid = otAppLogMessageType.Warning
                 End Select
 
@@ -2417,7 +2421,7 @@ Namespace OnTrack
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function All(Optional domainID As String = "") As List(Of ObjectLogMessageDef)
-            Return ormDataObject.All(Of ObjectLogMessageDef)(domainID:=domainID)
+            Return ormDataObject.AllDataObject(Of ObjectLogMessageDef)(domainID:=domainID)
         End Function
 
         ''' <summary>
@@ -2433,15 +2437,12 @@ Namespace OnTrack
         End Function
     End Class
 
-    '************************************************************************************
-    '***** CLASS clsOTDBDefStatusItem is the object for a OTDBRecord (which is the datastore)
-    '*****       defines a Status for different typeids
-    '*****
     ''' <summary>
     ''' Status ITEM Class for Stati in Object Messages
     ''' </summary>
     ''' <remarks></remarks>
-    <ormObject(id:=StatusItem.ConstObjectID, modulename:=constModuleCore, Version:=1)> Public Class StatusItem
+    <ormObject(id:=StatusItem.ConstObjectID, description:="status item description for object messages and others", _
+        modulename:=ConstModuleCore, Version:=1)> Public Class StatusItem
         Inherits ormDataObject
         Implements iormPersistable
         Implements iormInfusable
@@ -2490,7 +2491,7 @@ Namespace OnTrack
         '* mappings
         <ormEntryMapping(EntryName:=constFNType)> Private _type As String = ""  ' Status Type
         <ormEntryMapping(EntryName:=constFNCode)> Private _code As String = ""  ' code
-        <ormEntryMapping(EntryName:=ConstFNDomainId)> Private _DomainID As String = ""  ' code
+        <ormEntryMapping(EntryName:=ConstFNDomainID)> Private _DomainID As String = ""  ' code
         <ormEntryMapping(EntryName:=constFNName)> Private _name As String = ""
         <ormEntryMapping(EntryName:=constFNDescription)> Private s_descriptio As String = ""
         <ormEntryMapping(EntryName:=constFNKPICode)> Private _kpicode As String = ""
@@ -2559,8 +2560,8 @@ Namespace OnTrack
                 KPICode = _kpicode
             End Get
             Set(value As String)
-                If _kpicode.tolower <> value.tolower Then
-                    _kpicode = value.tolower
+                If _kpicode.ToLower <> value.ToLower Then
+                    _kpicode = value.ToLower
                     IsChanged = True
                 End If
             End Set
@@ -2662,7 +2663,7 @@ Namespace OnTrack
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overloads Shared Function Retrieve([typeid] As String, code As String, Optional domainID As String = "", Optional forcereload As Boolean = False) As StatusItem
-            Dim pkarry() As Object = {LCase([typeid]), code.tolower, UCase(domainID)}
+            Dim pkarry() As Object = {LCase([typeid]), code.ToLower, UCase(domainID)}
             Return Retrieve(Of StatusItem)(pkArray:=pkarry, domainID:=domainID, forceReload:=forcereload)
         End Function
 
@@ -2674,7 +2675,7 @@ Namespace OnTrack
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function Inject(ByVal typeid As String, ByVal code As String, Optional domainID As String = "") As Boolean
-            Dim pkarry() As Object = {typeid.tolower, code.tolower, UCase(domainID)}
+            Dim pkarry() As Object = {typeid.ToLower, code.ToLower, UCase(domainID)}
             Return MyBase.Inject(pkArray:=pkarry, domainID:=domainID)
         End Function
         ''' <summary>
@@ -2820,7 +2821,7 @@ Namespace OnTrack
         ''' <remarks></remarks>
         Public Function Create(ByVal typeid As String, ByVal code As String, Optional ByVal domainID As String = "") As Boolean
             ' set the primaryKey
-            Dim primarykey() As Object = {typeid.tolower, code.tolower, domainID}
+            Dim primarykey() As Object = {typeid.ToLower, code.ToLower, domainID}
             Return MyBase.Create(primarykey, domainID:=domainID, checkUnique:=True)
         End Function
 
@@ -2833,7 +2834,8 @@ Namespace OnTrack
     ''' Workspace Definition Class
     ''' </summary>
     ''' <remarks></remarks>
-    <ormObject(id:=Workspace.ConstObjectID, modulename:=ConstModuleCore, Version:=1, useCache:=True)> Public Class Workspace
+    <ormObject(id:=Workspace.ConstObjectID, modulename:=ConstModuleCore, description:="workspace definition for vertical grouping in scheduling", _
+        Version:=1, useCache:=True)> Public Class Workspace
         Inherits ormDataObject
         Implements iormInfusable
         Implements iormPersistable
@@ -3275,7 +3277,7 @@ Namespace OnTrack
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function All() As List(Of Workspace)
-            Return ormDataObject.All(Of Workspace)()
+            Return ormDataObject.AllDataObject(Of Workspace)()
         End Function
 #End Region
     End Class
@@ -3303,7 +3305,7 @@ Namespace OnTrack
         '** fields
         <ormObjectEntry(XID:="DM2", _
             typeid:=otFieldDataType.Text, size:=100, _
-            title:="Description")> Public Const ConstFNDescription = "desc"
+            title:="Description", Description:="description of the domain")> Public Const ConstFNDescription = "desc"
 
         <ormObjectEntry(XID:="DM3", _
             typeid:=otFieldDataType.Bool, title:="Global", description:="if set this domain is the global domain") _
@@ -3642,7 +3644,7 @@ Namespace OnTrack
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function All() As List(Of Domain)
-            Return ormDataObject.All(Of Domain)()
+            Return ormDataObject.AllDataObject(Of Domain)()
         End Function
 #End Region
     End Class
@@ -3654,7 +3656,8 @@ Namespace OnTrack
     ''' </summary>
     ''' <remarks></remarks>
 
-    <ormObject(id:=OrgUnit.ConstObjectID, modulename:=ConstModuleCore, Version:=1, useCache:=True)> Public Class OrgUnit
+    <ormObject(id:=OrgUnit.ConstObjectID, modulename:=ConstModuleCore, description:="recursive organization unit for a group of persons", _
+        Version:=1, useCache:=True)> Public Class OrgUnit
         Inherits ormDataObject
         Implements iormPersistable
         Implements iormInfusable
@@ -3878,7 +3881,7 @@ Namespace OnTrack
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function All() As List(Of OrgUnit)
-            Return ormDataObject.All(Of OrgUnit)()
+            Return ormDataObject.AllDataObject(Of OrgUnit)()
         End Function
         '**** create : create a new Object with primary keys
         '****
@@ -3895,7 +3898,7 @@ Namespace OnTrack
     ''' Site Definition Class
     ''' </summary>
     ''' <remarks></remarks>
-    <ormObject(id:=Site.ConstObjectiD, description:="Site definition", modulename:=ConstModuleCore, Version:=1, useCache:=True)> Public Class Site
+    <ormObject(id:=Site.ConstObjectiD, description:="site (geographic units) definition for organization units", modulename:=ConstModuleCore, Version:=1, useCache:=True)> Public Class Site
         Inherits ormDataObject
         Implements iormInfusable
         Implements iormPersistable
@@ -3995,7 +3998,7 @@ Namespace OnTrack
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function All(Optional domainID As String = "") As List(Of Site)
-            Return ormDataObject.All(Of Site)(domainID:=domainID)
+            Return ormDataObject.AllDataObject(Of Site)(domainID:=domainID)
         End Function
         '**** create : create a new Object with primary keys
         ''' <summary>
@@ -4013,5 +4016,5 @@ Namespace OnTrack
 
     End Class
 
-   
+
 End Namespace

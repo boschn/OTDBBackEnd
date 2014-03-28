@@ -385,7 +385,7 @@ Namespace OnTrack.Parts
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function All(Optional isDeleted As Boolean = False) As List(Of Part)
-            Return ormDataObject.All(Of Part)(deleted:=isDeleted)
+            Return ormDataObject.AllDataObject(Of Part)(deleted:=isDeleted)
         End Function
 
         ''' <summary>
@@ -396,7 +396,7 @@ Namespace OnTrack.Parts
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function AllByDeliverable(ByVal deliverableUID As Long, Optional ByVal isDeleted As Boolean = False) As List(Of Part)
-            Return ormDataObject.All(Of Part)(deleted:=isDeleted, where:="[" & ConstFNDeliverableUID & "] = @dlvuid", _
+            Return ormDataObject.AllDataObject(Of Part)(deleted:=isDeleted, where:="[" & ConstFNDeliverableUID & "] = @dlvuid", _
                                               parameters:={New ormSqlCommandParameter(ID:="@dlvuid", ColumnName:=ConstFNDeliverableUID, value:=deliverableUID, tablename:=ConstTableID)}.ToList)
 
         End Function

@@ -244,7 +244,7 @@ Namespace OnTrack.Deliverables
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function All() As List(Of TrackItem)
-            Return ormDataObject.All(Of TrackItem)(ID:="all")
+            Return ormDataObject.AllDataObject(Of TrackItem)(ID:="all")
         End Function
 
     End Class

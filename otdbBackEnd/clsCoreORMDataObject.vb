@@ -35,6 +35,7 @@ Namespace OnTrack
             Implements iormInfusable
             Implements iormCloneable
             Implements iormValidatable
+            Implements iormQueriable
 
             '** record for persistence
             Private _guid As Guid = Guid.NewGuid
@@ -220,6 +221,9 @@ Namespace OnTrack
                            Description:="perist a data object")> Protected Const ConstOPPersist = "Persist"
 
 
+            ''' Queries
+            ''' 
+            <ormObjectQuery(Description:="All Objects", where:="")> Public Const constQRYAll = "All"
 
 #Region "Properties"
             ''' <summary>
@@ -347,7 +351,7 @@ Namespace OnTrack
             ''' <value></value>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public Property DBDriver As iormDatabaseDriver Implements iormPersistable.DbDriver
+            Public Property DatabaseDriver As iormDatabaseDriver Implements iormPersistable.DatabaseDriver
 
                 Set(value As iormDatabaseDriver)
                     If Not _IsInitialized Then
@@ -555,8 +559,20 @@ Namespace OnTrack
                 Get
                     If (_primaryKeyValues Is Nothing OrElse _primaryKeyValues.Length = 0) AndAlso Me.IsAlive(throwError:=False, subname:="PrimaryKeyValue") _
                         AndAlso _primarykeynames IsNot Nothing AndAlso _primarykeynames.Length > 0 Then
-                        Dim pkarray() As Object = ExtractPrimaryKey(record:=Record, objectID:=Me.ObjectID, runtimeOnly:=Me.RunTimeOnly)
-                        _primaryKeyValues = pkarray
+                        'Dim pkarray() As Object = ExtractPrimaryKey(record:=Record, objectID:=Me.ObjectID, runtimeOnly:=Me.RunTimeOnly)
+                        'For Each avalue In pkarray
+                        '    If avalue Is Nothing Then
+                        '        Return Nothing
+                        '    End If
+                        'Next
+                        If _primaryKeyValues Is Nothing OrElse _primaryKeyValues.length <> _primarykeynames.Length Then
+                            ReDim _primaryKeyValues(_primarykeynames.Length - 1)
+                        End If
+                        For i = 0 To _primarykeynames.Length - 1
+                            If _primarykeynames(i) IsNot Nothing Then
+                                _primaryKeyValues(i) = Me.GetValue(_primarykeynames(i))
+                            End If
+                        Next
                     End If
                     Return _primaryKeyValues
                 End Get
@@ -977,7 +993,7 @@ Namespace OnTrack
             ''' <param name="value"></param>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Protected Function GetValue(entryname As String, Optional ByRef fieldmembername As String = "") As Object
+            Protected Function GetValue(entryname As String, Optional ByRef fieldmembername As String = "") As Object Implements iormPersistable.getValue
                 Dim result As Boolean = False
 
                 Try
@@ -997,7 +1013,7 @@ Namespace OnTrack
                                            objectname:=Me.ObjectID, entryname:=entryname, _
                                             messagetype:=otCoreMessageType.InternalError, subname:="ormDataObject.GetValue")
                     ElseIf afieldinfos.Count > 1 And fieldmembername = "" Then
-                       
+
 
                     End If
                     Dim anEntryAttribute = aClassDescription.GetObjectEntryAttribute(entryname)
@@ -1054,7 +1070,7 @@ Namespace OnTrack
             ''' <param name="value"></param>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Protected Function SetValue(entryname As String, ByVal value As Object) As Boolean
+            Protected Function SetValue(entryname As String, ByVal value As Object) As Boolean Implements iormPersistable.setvalue
                 Dim result As Boolean = False
                 Dim outvalue As Object
                 '** apply any conversion Properties
@@ -1072,7 +1088,7 @@ Namespace OnTrack
                     '** Validate against the ObjectEntry Rules
                     If aValidateResult = otValidationResultType.Succeeded Or aValidateResult = otValidationResultType.FailedButSave Then
 
-                       
+
                         Dim aClassDescription = Me.ObjectClassDescription 'ot.GetObjectClassDescription(Me.GetType)
                         If aClassDescription Is Nothing Then
                             CoreMessageHandler(message:=" Object's Class Description could not be retrieved - object not defined ?!", arg1:=value, _
@@ -1295,7 +1311,7 @@ Namespace OnTrack
             Public Shared Function InjectDataObject(Of T As {iormInfusable, iormPersistable, New})(pkArray() As Object, Optional domainID As String = "", Optional dbdriver As iormDatabaseDriver = Nothing) As iormPersistable
                 Dim aDataObject As New T
 
-                If dbdriver IsNot Nothing Then aDataObject.DbDriver = dbdriver
+                If dbdriver IsNot Nothing Then aDataObject.DatabaseDriver = dbdriver
                 If aDataObject.Inject(pkArray, domainID:=domainID) Then
                     Return aDataObject
                 Else
@@ -1525,12 +1541,22 @@ Namespace OnTrack
                     Return False
                 End Try
             End Function
+
+            ''' <summary>
+            ''' Returns a Query Enumeration
+            ''' </summary>
+            ''' <param name="name"></param>
+            ''' <returns></returns>
+            ''' <remarks></remarks>
+            Public Function GetQuery(name As String) As iormQueriedEnumeration Implements iormQueriable.GetQuery
+                Return Me.ObjectDefinition.GetQuery(name:=name)
+            End Function
             ''' <summary>
             ''' Static Function ALL returns a Collection of all objects
             ''' </summary>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public Shared Function All(Of T As {iormInfusable, iormPersistable, New})(Optional ID As String = "All", _
+            Public Shared Function AllDataObject(Of T As {iormInfusable, iormPersistable, New})(Optional ID As String = "All", _
                                                                                       Optional domainID As String = "",
                                                                                        Optional where As String = "", _
                                                                                        Optional orderby As String = "", _
@@ -2390,6 +2416,7 @@ Namespace OnTrack
 
                 '** domainid
                 If domainID = "" Then domainID = ConstGlobalDomain
+                
 
                 '* extract the primary key
                 pkarray = ExtractPrimaryKey(record, objectID:=Me.ObjectID, runtimeOnly:=runtimeOnly)
@@ -2399,7 +2426,8 @@ Namespace OnTrack
                 End If
 
                 '** fire event
-                Dim ourEventArgs As New ormDataObjectEventArgs(Me, record:=record, pkarray:=pkarray, usecache:=Me.UseCache)
+                Dim ourEventArgs As New ormDataObjectEventArgs(record:=record, pkarray:=pkarray, object:=Me, infuseMode:=otInfuseMode.OnCreate, _
+                                                               usecache:=Me.UseCache)
                 RaiseEvent OnCreating(Me, ourEventArgs)
                 If ourEventArgs.AbortOperation Then
                     Return ourEventArgs.Result
@@ -2417,7 +2445,9 @@ Namespace OnTrack
                 '** set on the runtime Only Flag
                 If runtimeOnly Then SwitchRuntimeON()
 
-               
+                '** set the record
+                Me.Record = record
+
                 '** infuse what we have
                 Dim aDataobject = Me
                 If Not InfuseDataObject(record:=record, dataobject:=aDataobject, mode:=otInfuseMode.OnCreate) Then
@@ -2457,7 +2487,7 @@ Namespace OnTrack
                                                   Optional checkUnique As Boolean = False, _
                                                   Optional runtimeOnly As Boolean = False) As Boolean Implements iormPersistable.Create
 
-                Dim aRecord As New ormRecord
+                Dim aRecord As ormRecord = Me.Record
                 '*** add the primary keys
                 '** is a session running ?!
                 If Not runtimeOnly AndAlso Not CurrentSession.IsRunning AndAlso Not CurrentSession.IsStartingUp Then

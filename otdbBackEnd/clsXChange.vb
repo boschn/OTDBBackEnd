@@ -603,7 +603,7 @@ Namespace OnTrack.XChange
         ''' <remarks></remarks>
         Public Overloads ReadOnly Property IsCompound() As Boolean Implements iConfigMember.IsCompound
             Get
-                Dim aFieldDef As iObjectEntry
+                Dim aFieldDef As iormObjectEntry
                 If _isAttributeEntry Then
                     aFieldDef = Me.[ObjectEntryDefinition]
                     If Not aFieldDef Is Nothing Then
@@ -625,7 +625,7 @@ Namespace OnTrack.XChange
         ''' <remarks></remarks>
         Public Overloads ReadOnly Property IsField() As Boolean Implements iConfigMember.IsField
             Get
-                Dim aFieldDef As iObjectEntry
+                Dim aFieldDef As iormObjectEntry
                 If Me.IsAttributeEntry Then
                     aFieldDef = Me.[ObjectEntryDefinition]
                     If Not aFieldDef Is Nothing Then
@@ -807,7 +807,7 @@ Namespace OnTrack.XChange
         <ormEntryMapping(EntryName:=constFNIsDynamic)> Protected _isDynamicAttribute As Boolean
 
         'dynamic
-        Protected _EntryDefinition As iObjectEntry
+        Protected _EntryDefinition As iormObjectEntry
         Protected _ObjectDefinition As ObjectDefinition
         Protected _aliases As String()    ' not saved !
         Protected _msglog As New ObjectLog
@@ -976,9 +976,9 @@ Namespace OnTrack.XChange
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property [ObjectEntryDefinition] As iObjectEntry
+        Public Property [ObjectEntryDefinition] As iormObjectEntry
             Get
-                Dim anEntryDefinition As iObjectEntry
+                Dim anEntryDefinition As iormObjectEntry
                 If (Me.IsCreated Or Me.IsLoaded) And _isAttributeEntry And _EntryDefinition Is Nothing Then
 
                     If _entryname <> "" And Me.Objectname <> "" Then
@@ -997,7 +997,7 @@ Namespace OnTrack.XChange
                 ' return
                 [ObjectEntryDefinition] = Nothing
             End Get
-            Set(value As iObjectEntry)
+            Set(value As iormObjectEntry)
                 _EntryDefinition = value
             End Set
         End Property
@@ -1181,7 +1181,7 @@ Namespace OnTrack.XChange
         ''' <remarks></remarks>
         Public Overridable ReadOnly Property IsCompound() As Boolean Implements iConfigMember.IsCompound
             Get
-                Dim aFieldDef As iObjectEntry
+                Dim aFieldDef As iormObjectEntry
                 If _isAttributeEntry Then
                     aFieldDef = Me.[ObjectEntryDefinition]
                     If Not aFieldDef Is Nothing Then
@@ -1201,7 +1201,7 @@ Namespace OnTrack.XChange
         ''' <remarks></remarks>
         Public Overridable ReadOnly Property IsField() As Boolean Implements iConfigMember.IsField
             Get
-                Dim aFieldDef As iObjectEntry
+                Dim aFieldDef As iormObjectEntry
                 If Me.IsAttributeEntry Then
                     aFieldDef = Me.[ObjectEntryDefinition]
                     If Not aFieldDef Is Nothing Then
@@ -1869,7 +1869,7 @@ Namespace OnTrack.XChange
                 Exit Function
             End If
 
-            Dim anFieldEntry As iObjectEntry = CurrentSession.Objects.GetEntry(objectname:=objectname, entryname:=entryname)
+            Dim anFieldEntry As iormObjectEntry = CurrentSession.Objects.GetEntry(objectname:=objectname, entryname:=entryname)
 
 
             If Not anFieldEntry Is Nothing Then
@@ -1884,7 +1884,7 @@ Namespace OnTrack.XChange
         End Function
         '*** add a Attribute by an ID
         '***
-        Public Function AddAttributeByField(ByRef objectentry As iObjectEntry,
+        Public Function AddAttributeByField(ByRef objectentry As iormObjectEntry,
                                         Optional ByVal ordinal As Object = Nothing,
                                         Optional ByVal objectname As String = "",
                                         Optional ByVal isxchanged As Boolean = True,
@@ -2477,7 +2477,7 @@ Namespace OnTrack.XChange
             End If
 
             '** search also by ID and consequent by ALIAS
-            Dim anObjectEntry As iObjectEntry = CurrentSession.Objects.GetEntry(objectname:=tablename, entryname:=fieldname)
+            Dim anObjectEntry As iormObjectEntry = CurrentSession.Objects.GetEntry(objectname:=tablename, entryname:=fieldname)
             If Not anObjectEntry Is Nothing Then
                 aMember = Me.AttributeByID(ID:=anObjectEntry.XID, objectname:=tablename)
                 If Not aMember Is Nothing Then
@@ -2761,7 +2761,7 @@ Namespace OnTrack.XChange
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overloads Shared Function All() As List(Of XConfig)
-            Return ormDataObject.All(Of XConfig)()
+            Return ormDataObject.AllDataObject(Of XConfig)()
         End Function
 #End Region
     End Class
@@ -4996,13 +4996,13 @@ Namespace OnTrack.XChange
             Dim aTable As iormDataStore
             Dim aRecord As ormRecord
             Dim aCompRecordColl As New List(Of ormRecord)
-            Dim aCompTableDir As New Dictionary(Of String, Dictionary(Of String, iObjectEntry))
+            Dim aCompTableDir As New Dictionary(Of String, Dictionary(Of String, iormObjectEntry))
             Dim compoundKeys As Object
             Dim aCompField As Object
             Dim aCompValue As Object
             Dim tablename As Object
-            Dim anObjectEntry As iObjectEntry
-            Dim anEntryDir As New Dictionary(Of String, iObjectEntry)
+            Dim anObjectEntry As iormObjectEntry
+            Dim anEntryDir As New Dictionary(Of String, iormObjectEntry)
             Dim aKey As String
             Dim pkarry() As Object
             Dim i As Integer
@@ -5023,7 +5023,7 @@ Namespace OnTrack.XChange
                     If aCompTableDir.ContainsKey(key:=DirectCast(anObjectEntry, ObjectCompoundEntry).CompoundTablename) Then
                         anEntryDir = aCompTableDir.Item(key:=DirectCast(anObjectEntry, ObjectCompoundEntry).CompoundTablename)
                     Else
-                        anEntryDir = New Dictionary(Of String, iObjectEntry)
+                        anEntryDir = New Dictionary(Of String, iormObjectEntry)
                         Call aCompTableDir.Add(key:=DirectCast(anObjectEntry, ObjectCompoundEntry).CompoundTablename, value:=anEntryDir)
                     End If
                     ' add the Entry
@@ -5671,7 +5671,7 @@ Namespace OnTrack.XChange
                 Exit Function
             End If
 
-            Dim anFieldEntry As iObjectEntry = CurrentSession.Objects.GetEntry(objectname:=objectname, entryname:=entryname)
+            Dim anFieldEntry As iormObjectEntry = CurrentSession.Objects.GetEntry(objectname:=objectname, entryname:=entryname)
 
 
             If Not anFieldEntry Is Nothing Then
@@ -5686,7 +5686,7 @@ Namespace OnTrack.XChange
         End Function
         '*** add a Attribute by an ID
         '***
-        Public Function AddAttributeByField(ByRef objectentry As iObjectEntry,
+        Public Function AddAttributeByField(ByRef objectentry As iormObjectEntry,
                                         Optional ByVal ordinal As Object = Nothing,
                                         Optional ByVal objectname As String = "",
                                         Optional ByVal isxchanged As Boolean = True,
@@ -6279,7 +6279,7 @@ Namespace OnTrack.XChange
             End If
 
             '** search also by ID and consequent by ALIAS
-            Dim anObjectEntry As iObjectEntry = CurrentSession.Objects.GetEntry(objectname:=tablename, entryname:=fieldname)
+            Dim anObjectEntry As iormObjectEntry = CurrentSession.Objects.GetEntry(objectname:=tablename, entryname:=fieldname)
             If Not anObjectEntry Is Nothing Then
                 aMember = Me.AttributeByID(ID:=anObjectEntry.XID, objectname:=tablename)
                 If Not aMember Is Nothing Then
@@ -6739,10 +6739,10 @@ Namespace OnTrack.XChange
         Optional ByVal NoCompounds As Boolean = False) As Boolean
             Dim aTable As iormDataStore
             Dim aRecord As ormRecord
-            Dim PkFields As New Dictionary(Of String, iObjectEntry)
+            Dim PkFields As New Dictionary(Of String, iormObjectEntry)
             Dim OLDVALUES As New Dictionary(Of Object, Object)
             Dim aConfigmember As clsOTDBXChangeMember
-            Dim anObjectEntry As iObjectEntry
+            Dim anObjectEntry As iormObjectEntry
             Dim pkarry() As Object
             Dim m As Object
             Dim Value As Object
@@ -6996,13 +6996,13 @@ Namespace OnTrack.XChange
             Dim aTable As iormDataStore
             Dim aRecord As ormRecord
             Dim aCompRecordColl As New List(Of ormRecord)
-            Dim aCompTableDir As New Dictionary(Of String, Dictionary(Of String, iObjectEntry))
+            Dim aCompTableDir As New Dictionary(Of String, Dictionary(Of String, iormObjectEntry))
             Dim compoundKeys As Object
             Dim aCompField As Object
             Dim aCompValue As Object
             Dim tablename As Object
-            Dim anObjectEntry As iObjectEntry
-            Dim anEntryDir As New Dictionary(Of String, iObjectEntry)
+            Dim anObjectEntry As iormObjectEntry
+            Dim anEntryDir As New Dictionary(Of String, iormObjectEntry)
             Dim aKey As String
             Dim pkarry() As Object
             Dim i As Integer
@@ -7023,7 +7023,7 @@ Namespace OnTrack.XChange
                     If aCompTableDir.ContainsKey(key:=DirectCast(anObjectEntry, ObjectCompoundEntry).CompoundTablename) Then
                         anEntryDir = aCompTableDir.Item(key:=DirectCast(anObjectEntry, ObjectCompoundEntry).CompoundTablename)
                     Else
-                        anEntryDir = New Dictionary(Of String, iObjectEntry)
+                        anEntryDir = New Dictionary(Of String, iormObjectEntry)
                         Call aCompTableDir.Add(key:=DirectCast(anObjectEntry, ObjectCompoundEntry).CompoundTablename, value:=anEntryDir)
                     End If
                     ' add the Entry
@@ -7245,7 +7245,7 @@ Namespace OnTrack.XChange
             Dim aRecord As ormRecord
             Dim PkFields As Collection
             Dim aConfigmember As clsOTDBXChangeMember
-            Dim aFieldDef As iObjectEntry
+            Dim aFieldDef As iormObjectEntry
             Dim pkarr() As Object
             Dim m As Object
             Dim Value As Object
@@ -7307,7 +7307,7 @@ Namespace OnTrack.XChange
         '****
         Public Function GetMemberValue(Optional ByVal ID As String = "",
                                         Optional ByRef changemember As clsOTDBXChangeMember = Nothing,
-                                        Optional ByRef tableentry As iObjectEntry = Nothing,
+                                        Optional ByRef tableentry As iormObjectEntry = Nothing,
                                         Optional ByRef mapping As Dictionary(Of Object, Object) = Nothing,
                                         Optional ByVal objectname As String = ""
                                         ) As Object
@@ -7365,7 +7365,7 @@ Namespace OnTrack.XChange
             For Each anID In IDs
                 aChangeMember = Me.AttributeByID(ID:=anID, objectname:=objectname)
                 If aChangeMember Is Nothing Then
-                    For Each anEntryDef As iObjectEntry In CurrentSession.Objects.GetEntryByID(id:=anID, objectname:=objectname)
+                    For Each anEntryDef As iormObjectEntry In CurrentSession.Objects.GetEntryByID(id:=anID, objectname:=objectname)
                         For Each aliasid In anEntryDef.Aliases
                             aChangeMember = Me.AttributeByAlias(alias:=aliasid, objectname:=objectname)
                             '* found
@@ -7406,7 +7406,7 @@ Namespace OnTrack.XChange
         ByRef RECORD As ormRecord) As Boolean
             '*** now we copy the object
             Dim aDefTable As New ObjectDefinition
-            Dim aFieldDef As iObjectEntry
+            Dim aFieldDef As iormObjectEntry
             Dim aConfigmember As clsOTDBXChangeMember
             Dim m As Object
             Dim aVAlue As Object
@@ -7607,7 +7607,7 @@ Namespace OnTrack.XChange
         <ormEntryMapping(EntryName:=ConstFNIsDynamic)> Private _isDynamicAttribute As Boolean
 
         'dynamic
-        Private _EntryDefinition As iObjectEntry
+        Private _EntryDefinition As iormObjectEntry
         Private _ObjectDefinition As ObjectDefinition
         Private _aliases As String()    ' not saved !
         Private _msglog As New ObjectLog
@@ -7784,9 +7784,9 @@ Namespace OnTrack.XChange
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property [ObjectEntryDefinition] As iObjectEntry
+        Public Property [ObjectEntryDefinition] As iormObjectEntry
             Get
-                Dim anEntryDefinition As iObjectEntry
+                Dim anEntryDefinition As iormObjectEntry
                 If (Me.IsCreated Or Me.IsLoaded) And Me.IsAttributeEntry And _EntryDefinition Is Nothing Then
 
                     If Me.Entryname <> "" And Me.Objectname <> "" Then
@@ -7805,7 +7805,7 @@ Namespace OnTrack.XChange
                 ' return
                 [ObjectEntryDefinition] = Nothing
             End Get
-            Set(value As iObjectEntry)
+            Set(value As iormObjectEntry)
                 _EntryDefinition = value
             End Set
         End Property
@@ -7996,7 +7996,7 @@ Namespace OnTrack.XChange
         ''' <remarks></remarks>
         ReadOnly Property IsCompound() As Boolean
             Get
-                Dim aFieldDef As iObjectEntry
+                Dim aFieldDef As iormObjectEntry
                 If Me.IsAttributeEntry Then
                     aFieldDef = Me.[ObjectEntryDefinition]
                     If Not aFieldDef Is Nothing Then
@@ -8016,7 +8016,7 @@ Namespace OnTrack.XChange
         ''' <remarks></remarks>
         ReadOnly Property IsField() As Boolean
             Get
-                Dim aFieldDef As iObjectEntry
+                Dim aFieldDef As iormObjectEntry
                 If Me.IsAttributeEntry Then
                     aFieldDef = Me.[ObjectEntryDefinition]
                     If Not aFieldDef Is Nothing Then
@@ -8415,7 +8415,7 @@ Namespace OnTrack.XChange
         ByRef outvalue As Object,
         Optional ByRef MSGLOG As ObjectLog = Nothing) As Boolean
 
-            Dim aFieldDef As iObjectEntry
+            Dim aFieldDef As iormObjectEntry
             Dim result As Object
             Dim index As Integer
 
@@ -8553,7 +8553,7 @@ Namespace OnTrack.XChange
         Optional ByVal existingValue As Boolean = True,
         Optional ByRef MSGLOG As ObjectLog = Nothing) As Boolean
 
-            Dim aFieldDef As iObjectEntry
+            Dim aFieldDef As iormObjectEntry
             Dim result As Object
             Dim index As Integer
 
@@ -8700,7 +8700,7 @@ Namespace OnTrack.XChange
         ByVal RIGHTVALUE As Object,
         Optional ByRef MSGLOG As ObjectLog = Nothing) As Integer
 
-            Dim aFieldDef As iObjectEntry
+            Dim aFieldDef As iormObjectEntry
 
             aFieldDef = Me.[ObjectEntryDefinition]
             If aFieldDef Is Nothing Then

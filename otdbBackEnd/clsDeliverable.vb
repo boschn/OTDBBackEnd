@@ -19,6 +19,7 @@ Imports OnTrack.Parts
 Imports OnTrack.IFM
 Imports OnTrack.Scheduling
 Imports OnTrack.XChange
+Imports OnTrack.Calendar
 
 Namespace OnTrack.Deliverables
 

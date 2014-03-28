@@ -156,13 +156,14 @@ Namespace OnTrack
         ''' </summary>
         ''' <remarks></remarks>
         Public Const ConstModuleCore = "Core"
-        Public Const ConstModuleMeta = "MetaDictionary"
+        Public Const ConstModuleMeta = "Repository"
+        Public Const ConstModuleCalendar = "Calendar"
         Public Const ConstModuleConfiguration = "Configuration"
         Public Const ConstModuleScheduling = "Scheduling"
         Public Const ConstModuleParts = "Parts"
         Public Const ConstModuleDeliverables = "Deliverables"
         Public Const ConstModuleStatistics = "Statistics"
-        Public Const ConstModuleMessageQueue = "MQF"
+        Public Const ConstModuleMessageQueue = "Message Queuing"
         Public Const ConstModuleDependency = "Dependencies"
         Public Const ConstModuleTracking = "Tracking"
         Public Const ConstModuleXChange = "XChange"
@@ -186,7 +187,7 @@ Namespace OnTrack
         Private _tableDataObjects As New Dictionary(Of String, System.Type)
         Private _ObjectClassStore As New ObjectClassRepository
         Private _bootstrapObjectIds As New List(Of String)
-
+        Private _bootstrapclassnames As New List(Of String)
 #Region "Properties"
 
 
@@ -899,6 +900,20 @@ Namespace OnTrack
             Return _bootstrapObjectIds
         End Function
         ''' <summary>
+        ''' returns the names of the bootstrapping tables
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function GetBootStrapObjectClassnames() As List(Of String)
+            If _bootstrapclassnames.Count = 0 Then
+                For Each aClassDescription In GetBootStrapObjectClassDescriptions()
+                    _bootstrapclassnames.Add(aClassDescription.ObjectAttribute.ClassName)
+                Next
+            End If
+
+            Return _bootstrapclassnames
+        End Function
+        ''' <summary>
         ''' returns the object class description for a type
         ''' </summary>
         ''' <param name="type"></param>
@@ -943,6 +958,7 @@ Namespace OnTrack
                 Return Nothing
             End If
         End Function
+       
         ''' <summary>
         ''' returns a method hook for a class
         ''' </summary>
@@ -1271,6 +1287,38 @@ Namespace OnTrack
             End If
         End Function
 
+        ''' <summary>
+        ''' Mapping of otdb Datatypes to native .NET Datatypes
+        ''' </summary>
+        ''' <param name="datatype"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function DatatypeMapping(datatype As otFieldDataType) As System.Type
+
+            Select Case datatype
+                Case otFieldDataType.Date
+                    Return GetType(DateTime)
+                Case otFieldDataType.Bool
+                    Return GetType(Boolean)
+                Case otFieldDataType.List
+                    Return GetType(List(Of String))
+                Case otFieldDataType.Long
+                    Return GetType(Long)
+                Case otFieldDataType.Memo
+                    Return GetType(String)
+                Case otFieldDataType.Text
+                    Return GetType(String)
+                Case otFieldDataType.Time
+                    Return GetType(DateTime)
+                Case otFieldDataType.Numeric
+                    Return GetType(Double)
+                Case otFieldDataType.Timestamp
+                    Return GetType(DateTime)
+                Case Else
+                    CoreMessageHandler(message:="Mapping for datatype must be implemented", arg1:=datatype, subname:="DataTypeMapping", messagetype:=otCoreMessageType.InternalError)
+                    Throw New NotImplementedException("mapping in DatatypeMapping is not implemented")
+            End Select
+        End Function
         ''' <summary>
         ''' central error handler .. all messages and error conditions are fed here
         ''' </summary>

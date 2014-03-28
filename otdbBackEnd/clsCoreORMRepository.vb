@@ -83,16 +83,18 @@ Namespace OnTrack
 
 
         Private _IsInitialized As Boolean = False
-        '** cache of the table objects
+        '** cache of the objects by Object name
         Private _objectDirectory As New Dictionary(Of String, ObjectDefinition)
+        '** cache of the objects by Object class name
+        Private _objectClassDirectory As New Dictionary(Of String, ObjectDefinition)
         '** cache on the columns object 
-        Private _entryDirectory As New Dictionary(Of String, iObjectEntry)
+        Private _entryDirectory As New Dictionary(Of String, iormObjectEntry)
         '** cache of all Table Definitions
         Private _tableDirectory As New Dictionary(Of String, TableDefinition)
         '** reference to all the XChange IDs
-        Private _XIDDirectory As New Dictionary(Of String, List(Of iObjectEntry))
+        Private _XIDDirectory As New Dictionary(Of String, List(Of iormObjectEntry))
         '** reference to all the aliases
-        Private _aliasDirectory As New Dictionary(Of String, List(Of iObjectEntry))
+        Private _aliasDirectory As New Dictionary(Of String, List(Of iormObjectEntry))
 
         '** reference to the session 
         Private _DomainID As String = ""
@@ -142,7 +144,7 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public ReadOnly Property ObjectEntryDefinitions As IEnumerable(Of iObjectEntry)
+        Public ReadOnly Property ObjectEntryDefinitions As IEnumerable(Of iormObjectEntry)
             Get
                 Return _entryDirectory.Values.ToList
             End Get
@@ -260,13 +262,13 @@ Namespace OnTrack
         ''' <param name="entry"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Private Function AddID(ByRef entry As iObjectEntry) As Boolean
-            Dim entries As List(Of iObjectEntry)
+        Private Function AddID(ByRef entry As iormObjectEntry) As Boolean
+            Dim entries As List(Of iormObjectEntry)
 
             If _XIDDirectory.ContainsKey(key:=UCase(entry.XID)) Then
                 entries = _XIDDirectory.Item(key:=UCase(entry.XID))
             Else
-                entries = New List(Of iObjectEntry)
+                entries = New List(Of iormObjectEntry)
                 SyncLock _lock
                     _XIDDirectory.Add(key:=UCase(entry.XID), value:=entries)
                 End SyncLock
@@ -284,15 +286,15 @@ Namespace OnTrack
         ''' <param name="entry"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Private Function AddAlias(ByRef entry As iObjectEntry) As Boolean
-            Dim entries As List(Of iObjectEntry)
+        Private Function AddAlias(ByRef entry As iormObjectEntry) As Boolean
+            Dim entries As List(Of iormObjectEntry)
 
             For Each [alias] As String In entry.Aliases
 
                 If _aliasDirectory.ContainsKey(key:=UCase([alias])) Then
                     entries = _aliasDirectory.Item(key:=UCase([alias]))
                 Else
-                    entries = New List(Of iObjectEntry)
+                    entries = New List(Of iormObjectEntry)
                     SyncLock _lock
                         _aliasDirectory.Add(key:=UCase([alias]), value:=entries)
                     End SyncLock
@@ -473,13 +475,20 @@ Namespace OnTrack
             SyncLock _lock
                 _objectDirectory.Add(key:=[object].ID, value:=[object])
             End SyncLock
+            '** save it
+            If _objectClassDirectory.ContainsKey([object].Classname) Then
+                _objectClassDirectory.Remove([object].Classname)
+            End If
+            SyncLock _lock
+                _objectClassDirectory.Add(key:=[object].Classname, value:=[object])
+            End SyncLock
             '** load the table definitions
             For Each aTableDefinition In [object].Tables
                 If Not _tableDirectory.ContainsKey(key:=aTableDefinition.Name) Then
                     _tableDirectory.Add(key:=aTableDefinition.Name, value:=aTableDefinition)
                 End If
             Next
-            For Each anEntry As iObjectEntry In [object].Entries
+            For Each anEntry As iormObjectEntry In [object].Entries
                 ' save the entry
                 If _entryDirectory.ContainsKey(key:=[object].ID & "." & anEntry.Entryname) Then
                     SyncLock _lock
@@ -610,7 +619,7 @@ Namespace OnTrack
         ''' <param name="Alias"></param>
         ''' <returns>an Entry object or nothing </returns>
         ''' <remarks></remarks>
-        Public Function GetEntry(entryname As String, Optional objectname As String = "", Optional runtimeOnly As Boolean? = Nothing) As iObjectEntry
+        Public Function GetEntry(entryname As String, Optional objectname As String = "", Optional runtimeOnly As Boolean? = Nothing) As iormObjectEntry
             entryname = entryname.ToUpper
             objectname = objectname.ToUpper
             If runtimeOnly Is Nothing Then runtimeOnly = _Session.IsBootstrappingInstallationRequested
@@ -665,7 +674,20 @@ Namespace OnTrack
 
         End Function
         ''' <summary>
-        ''' retrieves an Entry by name
+        ''' retrieves an Object by name
+        ''' </summary>
+        ''' <param name="objectname">name of the object</param>
+        ''' <returns>an Entry object or nothing </returns>
+        ''' <remarks></remarks>
+        Public Function GetObjectByClassname(classname As String, Optional runtimeOnly As Boolean = False) As ObjectDefinition
+            If _objectClassDirectory.ContainsKey(key:=classname) Then
+                Return _objectClassDirectory.Item(key:=classname)
+                ' try to reload
+            Else
+            End If
+        End Function
+        ''' <summary>
+        ''' retrieves an Object by name
         ''' </summary>
         ''' <param name="objectname">name of the object</param>
         ''' <returns>an Entry object or nothing </returns>
@@ -706,9 +728,6 @@ Namespace OnTrack
                 Else
                     Return Nothing
                 End If
-
-
-
             End If
 
         End Function
@@ -733,11 +752,11 @@ Namespace OnTrack
         ''' <param name="objectname">name of the object</param>
         ''' <returns>an Entry object or nothing </returns>
         ''' <remarks></remarks>
-        Public Function GetEntries(objectname As String) As List(Of iObjectEntry)
+        Public Function GetEntries(objectname As String) As List(Of iormObjectEntry)
             If _objectDirectory.ContainsKey(key:=objectname) Then
                 Return _objectDirectory.Item(key:=objectname).Entries
             Else
-                Return New List(Of iObjectEntry)
+                Return New List(Of iormObjectEntry)
             End If
 
         End Function
@@ -748,12 +767,12 @@ Namespace OnTrack
         ''' <param name="Alias"></param>
         ''' <returns>an Entry object or nothing </returns>
         ''' <remarks></remarks>
-        Public Function GetEntryByID([id] As String, Optional objectname As String = "") As List(Of iObjectEntry)
+        Public Function GetEntryByID([id] As String, Optional objectname As String = "") As List(Of iormObjectEntry)
             If _XIDDirectory.ContainsKey(UCase([id])) Then
                 If objectname = "" Then
                     Return _XIDDirectory.Item(key:=UCase([id]))
                 Else
-                    Dim aList As New List(Of iObjectEntry)
+                    Dim aList As New List(Of iormObjectEntry)
                     For Each objectdef In _XIDDirectory.Item(key:=UCase(id))
                         If objectname.ToUpper = objectdef.Objectname.ToUpper Then
                             aList.Add(objectdef)
@@ -772,12 +791,12 @@ Namespace OnTrack
         ''' <param name="Alias"></param>
         ''' <returns>an Entry object or nothing </returns>
         ''' <remarks></remarks>
-        Public Function GetEntryByAlias([alias] As String, Optional objectname As String = "") As List(Of iObjectEntry)
+        Public Function GetEntryByAlias([alias] As String, Optional objectname As String = "") As List(Of iormObjectEntry)
             If _aliasDirectory.ContainsKey(UCase([alias])) Then
                 If objectname = "" Then
                     Return _aliasDirectory.Item(key:=UCase([alias]))
                 Else
-                    Dim aList As New List(Of iObjectEntry)
+                    Dim aList As New List(Of iormObjectEntry)
                     For Each objectdef In _aliasDirectory.Item(key:=UCase([alias]))
                         If objectname.ToUpper = objectdef.Objectname.ToUpper Then
                             aList.Add(objectdef)
@@ -787,7 +806,7 @@ Namespace OnTrack
                 End If
 
             Else
-                Return New List(Of iObjectEntry)
+                Return New List(Of iormObjectEntry)
             End If
 
         End Function
@@ -797,8 +816,8 @@ Namespace OnTrack
         ''' <param name="Alias"></param>
         ''' <returns>an Entry object or nothing </returns>
         ''' <remarks></remarks>
-        Public Function GetEntryByAlias([aliases]() As String, Optional objectname As String = "") As List(Of iObjectEntry)
-            Dim theEntries As New List(Of iObjectEntry)
+        Public Function GetEntryByAlias([aliases]() As String, Optional objectname As String = "") As List(Of iormObjectEntry)
+            Dim theEntries As New List(Of iormObjectEntry)
 
             For Each [alias] In aliases
                 theEntries.AddRange(Me.GetEntryByAlias([alias], objectname:=objectname))
@@ -2283,7 +2302,7 @@ Namespace OnTrack
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function All() As List(Of TableDefinition)
-            Return ormDataObject.All(Of TableDefinition)()
+            Return ormDataObject.AllDataObject(Of TableDefinition)()
         End Function
         ''' <summary>
         ''' OnCreated handles the creation event - set 
@@ -2508,7 +2527,14 @@ Namespace OnTrack
 
                 '** check which entries to use
                 For Each anEntry In _columns.Values
-                    entrycoll.Add(key:=anEntry.Position, value:=anEntry)
+                    If entrycoll.ContainsKey(anEntry.Position) Then
+                        '** append
+                        anEntry.Position = entrycoll.Keys.Max + 1
+                        entrycoll.Add(key:=anEntry.Position, value:=anEntry)
+                    Else
+                        entrycoll.Add(key:=anEntry.Position, value:=anEntry)
+                    End If
+
                 Next
 
 
@@ -3475,7 +3501,7 @@ Namespace OnTrack
         Public Const ConstRObjectEntries = "entries"
 
         <ormEntryMapping(RelationName:=ConstRObjectEntries, infuseMode:=otInfuseMode.OnInject Or otInfuseMode.OnDemand, _
-            keyentries:={ObjectColumnEntry.ConstFNEntryName})> Private _objectentries As New Dictionary(Of String, iObjectEntry) ' by id
+            keyentries:={ObjectColumnEntry.ConstFNEntryName})> Private _objectentries As New Dictionary(Of String, iormObjectEntry) ' by id
 
         '*** Mapping
         <ormEntryMapping(EntryName:=ConstFNID)> Private _id As String = ""
@@ -3775,12 +3801,12 @@ Namespace OnTrack
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public ReadOnly Property Entries() As List(Of iObjectEntry)
+        Public ReadOnly Property Entries() As List(Of iormObjectEntry)
             Get
                 If Me.IsAlive(subname:="ObjectDefinition.Entries") Then
                     Return _objectentries.Values.ToList
                 Else
-                    Return New List(Of iObjectEntry)
+                    Return New List(Of iormObjectEntry)
                 End If
             End Get
         End Property
@@ -3919,15 +3945,16 @@ Namespace OnTrack
                 End If
 
                 _tables.Add(key:=attribute.TableName, value:=aTableDefinition)
-                If _tablenames Is Nothing Then
-                    ReDim _tablenames(0)
-                    _tablenames(0) = attribute.TableName
-                ElseIf Not _tablenames.Contains(attribute.TableName) Then
-                    ReDim Preserve _tablenames(_tablenames.GetUpperBound(0) + 1)
-                    _tablenames(_tablenames.GetUpperBound(0)) = attribute.TableName
-                End If
+            End If
 
-
+            ''' check if table is also listed in the relation field
+            ''' 
+            If _tablenames Is Nothing Then
+                ReDim _tablenames(0)
+                _tablenames(0) = attribute.TableName
+            ElseIf Not _tablenames.Contains(attribute.TableName) Then
+                ReDim Preserve _tablenames(_tablenames.GetUpperBound(0) + 1)
+                _tablenames(_tablenames.GetUpperBound(0)) = attribute.TableName
             End If
 
             '** set the values of the table definition
@@ -3957,7 +3984,7 @@ Namespace OnTrack
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function AddEntry(attribute As ormObjectEntryAttribute, Optional runtimeOnly As Boolean = False, Optional domainid As String = "") As Boolean
-            Dim anEntry As iObjectEntry
+            Dim anEntry As iormObjectEntry
             Dim bootstrap As Boolean = runtimeOnly
 
             If Not attribute.HasValueEntryName Then
@@ -4165,7 +4192,7 @@ Namespace OnTrack
                         Exit For
                     End If
                 End If
-                If Me.Tablenames.Contains(anIndexAttribute.TableName) Then
+                If Me.HasTable(anIndexAttribute.TableName) Then
                     '** add Index to table definition
                     '** no runTimeOnly since the AddIndex is getting this from the table
                     Me.GetTable(anIndexAttribute.TableName).AddIndex(anIndexAttribute)
@@ -4233,7 +4260,7 @@ Namespace OnTrack
         ''' <param name="entry"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function AddEntry(entry As iObjectEntry) As Boolean
+        Public Function AddEntry(entry As iormObjectEntry) As Boolean
             If Not IsAlive(subname:="AddEntry") Then Return False
             ' remove and overwrite
             If _objectentries.ContainsKey(key:=entry.Entryname.ToUpper) Then
@@ -4291,6 +4318,16 @@ Namespace OnTrack
             Else
                 Return Nothing
             End If
+        End Function
+        ''' <summary>
+        ''' returns true if the tablename exists in the table dictionary
+        ''' </summary>
+        ''' <param name="tablename"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function HasTable(tablename As String) As Boolean
+            If Not Me.IsAlive(subname:="ObjectDefinition.hastable") Then Return Nothing
+            return _tables.ContainsKey(key:=tablename.ToUpper) 
         End Function
         ''' <summary>
         ''' returns the Object Class Description for the Object Definition Instance
@@ -4562,6 +4599,187 @@ Namespace OnTrack
             End If
 
         End Function
+        ''' <summary>
+        ''' Returns a Query Enumeration
+        ''' </summary>
+        ''' <param name="name"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Overloads Function GetQuery(name As String, Optional domainid As String = "") As iormQueriedEnumeration
+            ''' function gets a queried enumeration mostly from the attribute unless we have no 
+            ''' query objects in the core
+            If Not Me.IsAlive(subname:="Objectdefinition.GetQuery") Then Return Nothing
+
+            Dim aDescription As ObjectClassDescription = ot.GetObjectClassDescriptionByID(Me.ID)
+            If aDescription Is Nothing Then
+                Call CoreMessageHandler(message:="data object class description cannot be retrieved", _
+                                       objectname:=Me.Classname, arg1:=name, _
+                                       subname:="ObjectDefinition.GetQuery", messagetype:=otCoreMessageType.InternalError)
+                Return Nothing
+            End If
+            Dim anObjectID As String = Me.ID
+            Dim type As System.Type = System.Type.GetType(Me.Classname, throwOnError:=False, ignoreCase:=True)
+            If type Is Nothing Then
+                Call CoreMessageHandler(message:="type cannot be retrieved from reflection", _
+                                           objectname:=Me.Classname, arg1:=name, _
+                                           subname:="ObjectDefinition.GetQuery", messagetype:=otCoreMessageType.InternalError)
+                Return Nothing
+            End If
+            '** is a session running ?!
+            'If Not CurrentSession.IsRunning AndAlso Not CurrentSession.IsStartingUp Then
+            '    Call CoreMessageHandler(message:="data object cannot be retrieved - start session to database first", _
+            '                            objectname:=anObjectID, arg1:=name, _
+            '                            subname:="ObjectDefinition.GetQuery", messagetype:=otCoreMessageType.ApplicationError)
+            '    Return Nothing
+            'End If
+
+            '** DOMAIN ID
+            If domainid = "" Then domainid = ConstGlobalDomain
+
+            '** check on the operation right for this object for the current username (might be that during session startup otdb username is not set)
+            If Not CurrentSession.IsStartingUp AndAlso Not ot.GetBootStrapObjectClassIDs.Contains(anObjectID) _
+                AndAlso Not CurrentSession.ValidateAccessRights(accessrequest:=otAccessRight.ReadOnly, domainid:=domainid, _
+                                                                objectoperations:={anObjectID & "." & ConstOPInject}) Then
+                '** request authorizartion
+                If Not CurrentSession.RequestUserAccess(accessRequest:=otAccessRight.ReadOnly, domainID:=domainid, _
+                                                                            username:=CurrentSession.Username, _
+                                                                            objectoperations:={anObjectID & "." & ConstOPInject}) Then
+                    Call CoreMessageHandler(message:="data object cannot be retrieved - permission denied to user", _
+                                            objectname:=anObjectID, arg1:=ConstOPInject, username:=CurrentSession.Username, _
+                                            subname:="ObjectDefinition.GetQuery", messagetype:=otCoreMessageType.ApplicationError)
+                    Return Nothing
+                End If
+            End If
+
+            '** get the store for the primary table 
+            Dim aStore As iormDataStore = Me.DatabaseDriver.GetTableStore(tableID:=aDescription.PrimaryTable)
+            If aStore Is Nothing Then
+                Call CoreMessageHandler(message:="table store cannot be retrieved", _
+                                           objectname:=anObjectID, arg1:=name, tablename:=aDescription.PrimaryTable, _
+                                           subname:="ObjectDefinition.GetQuery", messagetype:=otCoreMessageType.InternalError)
+                Return Nothing
+            End If
+
+            ''' get the Select-Command
+            Dim aSelectCommand As ormSqlSelectCommand = aStore.CreateSqlSelectCommand(name)
+
+            ''' prepare the command with the specials
+            ''' 
+            If Not aSelectCommand.Prepared Then
+                Dim aQryAttribute As ormObjectQueryAttribute = aDescription.GetQueryAttribute(name:=name)
+                Dim where As String
+                Dim orderby As String
+                Dim fieldnames As New List(Of String)
+                Dim addallfields As Boolean
+
+                If aQryAttribute Is Nothing Then
+                    Call CoreMessageHandler(message:="query attribute could not be retrieved", _
+                                           objectname:=anObjectID, arg1:=name, _
+                                           subname:="ObjectDefinition.GetQuery", messagetype:=otCoreMessageType.InternalError)
+                    Return Nothing
+                Else
+                    If aQryAttribute.HasValueWhere Then
+                        where = aQryAttribute.Where
+                    Else
+                        where = ""
+                    End If
+                    If aQryAttribute.HasValueOrderBy Then
+                        orderby = aQryAttribute.Orderby
+                    Else
+                        orderby = ""
+                    End If
+                    If aQryAttribute.HasValueAddAllFields Then addallfields = aQryAttribute.AddAllFields
+                    If aQryAttribute.HasValueEntrynames Then
+                        Call CoreMessageHandler(message:="retrieving entry names not yet implemented", _
+                                         objectname:=anObjectID, arg1:=name, _
+                                         subname:="ObjectDefinition.GetQuery", messagetype:=otCoreMessageType.InternalError)
+                        Return Nothing
+                    End If
+                End If
+                Dim hasDomainBehavior As Boolean
+                Dim hasDeleteBehavior As Boolean
+
+                ''' this returns only a definition if it was previously loaded
+                ''' 
+                If CurrentSession.IsBootstrappingInstallationRequested _
+                  OrElse ot.GetBootStrapObjectClassnames.Contains(Me.Classname.ToUpper) Then
+                    hasDomainBehavior = Me.HasDomainBehavior
+                    hasDeleteBehavior = Me.HasDeletePerFlagBehavior
+                Else
+                    hasDomainBehavior = aDescription.ObjectAttribute.AddDomainBehaviorFlag
+                    hasDeleteBehavior = aDescription.ObjectAttribute.DeleteFieldFlag
+                End If
+
+                Dim primaryTablename As String = aDescription.PrimaryTable
+
+                ''' add tables
+                ''' 
+                aSelectCommand.AddTable(primaryTablename, addAllFields:=addallfields)
+
+                ''' build domain behavior and deleteflag
+                ''' 
+                If hasDomainBehavior Then
+                    If domainid = "" Then domainid = CurrentSession.CurrentDomainID
+                    ''' add where
+                    If Not String.IsNullOrWhiteSpace(where) Then where &= " AND "
+                    where &= String.Format(" ([{0}] = @{0} OR [{0}] = @Global{0})", ConstFNDomainID)
+                    ''' add parameters
+                    If aSelectCommand.Parameters.Find(Function(x)
+                                                          Return x.ID.ToUpper = "@" & ConstFNDomainID.ToUpper
+                                                      End Function) Is Nothing Then
+                        aSelectCommand.Parameters.Add(New ormSqlCommandParameter(id:="@" & ConstFNDomainID, columnname:=ConstFNDomainID, _
+                                                                  tablename:=primaryTablename, value:=domainid)
+                                       )
+                    End If
+                    If aSelectCommand.Parameters.Find(Function(x)
+                                                          Return x.ID.ToUpper = "@Global" & ConstFNDomainID.ToUpper
+                                                      End Function
+                                      ) Is Nothing Then
+                        aSelectCommand.Parameters.Add(New ormSqlCommandParameter(id:="@Global" & ConstFNDomainID, columnname:=ConstFNDomainID, _
+                                                                  tablename:=primaryTablename, value:=ConstGlobalDomain)
+                                       )
+                    End If
+                End If
+                ''' delete 
+                ''' 
+                If hasDeleteBehavior Then
+                    If Not String.IsNullOrWhiteSpace(where) Then where &= " AND "
+                    where &= String.Format(" [{0}] = @{0}", ConstFNIsDeleted)
+                    If aSelectCommand.Parameters.Find(Function(x)
+                                                          Return x.ID.ToUpper = "@" & ConstFNIsDeleted.ToUpper
+                                                      End Function
+                                       ) Is Nothing Then
+
+                        aSelectCommand.Parameters.Add(New ormSqlCommandParameter(id:="@" & ConstFNIsDeleted, columnname:=ConstFNIsDeleted, tablename:=primaryTablename, _
+                                                                  value:=False)
+                                       )
+                    End If
+                End If
+
+                ''' set the parameters
+                aSelectCommand.Where = where
+                aSelectCommand.OrderBy = orderby
+
+                If Not aSelectCommand.Prepare() Then
+                    Call CoreMessageHandler(message:="the select command could not be prepared", _
+                                          objectname:=anObjectID, arg1:=name, _
+                                          subname:="ObjectDefinition.GetQuery", messagetype:=otCoreMessageType.InternalError)
+                    Return Nothing
+                End If
+
+            End If
+
+            ''' return a new Queries enumeration with the embedded command
+            Dim aQE As ormQueriedEnumeration = New ormQueriedEnumeration(type:=type, command:=aSelectCommand, id:=name)
+
+
+            ''' further definitions
+            ''' 
+
+            ''' return the new queried Enumeration
+            ''' 
+            Return aQE
+        End Function
     End Class
 
 
@@ -4575,7 +4793,7 @@ Namespace OnTrack
         useCache:=True, DeletefieldFlag:=True, AddDomainBehaviorFlag:=True, isbootstrap:=True, Version:=1)> _
     Public MustInherit Class AbstractEntryDefinition
         Inherits ormDataObject
-        Implements iormPersistable, iormInfusable, iObjectEntry
+        Implements iormPersistable, iormInfusable, iormObjectEntry
 
 
         '*** CONST Schema
@@ -4605,6 +4823,8 @@ Namespace OnTrack
                                  title:="Inner Datatype", Description:="OTDB inner list data type")> Public Const ConstFNInnerDatatype As String = "innertype"
         <ormObjectEntry(referenceObjectentry:=ColumnDefinition.ConstObjectID & "." & ColumnDefinition.ConstFNSize, _
                                    Description:="max Length of the entry")> Public Const ConstFNSize As String = "size"
+        <ormObjectEntry(typeid:=otFieldDataType.Long, _
+                                  title:="Ordinal", Description:="ordinal of the object entry")> Public Const ConstFNordinal As String = "ordinal"
         <ormObjectEntry(referenceObjectentry:=ColumnDefinition.ConstObjectID & "." & ColumnDefinition.ConstFNIsNullable, _
                                   Description:="max Length of the entry")> Public Const ConstFNIsNullable As String = "isnullable"
         <ormObjectEntry(referenceObjectentry:=ColumnDefinition.ConstObjectID & "." & ColumnDefinition.ConstFNDefaultValue)> Public Const ConstFNDefaultValue As String = "defaultvalue"
@@ -4676,6 +4896,8 @@ Namespace OnTrack
         <ormEntryMapping(EntryName:=ConstFNDatatype)> Protected _datatype As otFieldDataType = 0
         <ormEntryMapping(EntryName:=ConstFNInnerDatatype)> Protected _innerdatatype As otFieldDataType = 0
         <ormEntryMapping(EntryName:=ConstFNSize)> Protected _size As UShort = 0
+        <ormEntryMapping(EntryName:=ConstFNOrdinal)> Protected _ordinal As UShort = 0
+
         <ormEntryMapping(EntryName:=ConstFNIsNullable)> Protected _isnullable As Boolean
         <ormEntryMapping(EntryName:=ConstFNDefaultValue)> Protected _defaultvalue As String = ""
         <ormEntryMapping(EntryName:=ConstFNEntryName)> Protected _entryname As String = ""
@@ -4721,7 +4943,7 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property Validate As Boolean Implements iObjectEntry.Validate
+        Public Property Validate As Boolean Implements iormObjectEntry.Validate
             Get
                 Return _validate
             End Get
@@ -4735,7 +4957,7 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property Render As Boolean Implements iObjectEntry.Render
+        Public Property Render As Boolean Implements iormObjectEntry.Render
             Get
                 Return _render
             End Get
@@ -4749,7 +4971,7 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public ReadOnly Property HasLowerRangeValue As Boolean Implements iObjectEntry.HasLowerRangeValue
+        Public ReadOnly Property HasLowerRangeValue As Boolean Implements iormObjectEntry.HasLowerRangeValue
             Get
                 If Not Me.IsAlive(subname:="HasLowerRangeValue") Then Return False
                 Return (_lowerRangeValue IsNot Nothing AndAlso _lowerRangeValue <> "")
@@ -4761,7 +4983,7 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property LowerRangeValue As Object Implements iObjectEntry.LowerRangeValue
+        Public Property LowerRangeValue As Object Implements iormObjectEntry.LowerRangeValue
             Get
                 Return Converter.String2DBType(_lowerRangeValue, Me.Datatype)
             End Get
@@ -4775,7 +4997,7 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public ReadOnly Property HasUpperRangeValue As Boolean Implements iObjectEntry.HasUpperRangeValue
+        Public ReadOnly Property HasUpperRangeValue As Boolean Implements iormObjectEntry.HasUpperRangeValue
             Get
                 If Not Me.IsAlive(subname:="HasUpperRangeValue") Then Return False
                 Return (_upperRangeValue IsNot Nothing AndAlso _upperRangeValue <> "")
@@ -4787,7 +5009,7 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property UpperRangeValue As Object Implements iObjectEntry.UpperRangeValue
+        Public Property UpperRangeValue As Object Implements iormObjectEntry.UpperRangeValue
             Get
                 Return Converter.String2DBType(_upperRangeValue, Me.Datatype)
             End Get
@@ -4801,7 +5023,7 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public ReadOnly Property HasPossibleValues As Boolean Implements iObjectEntry.HasPossibleValues
+        Public ReadOnly Property HasPossibleValues As Boolean Implements iormObjectEntry.HasPossibleValues
             Get
                 If Not Me.IsAlive(subname:="HasPossibleValues") Then Return False
                 Return (_listOfValues IsNot Nothing AndAlso _listOfValues.Count > 0)
@@ -4813,7 +5035,7 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property PossibleValues As List(Of String) Implements iObjectEntry.PossibleValues
+        Public Property PossibleValues As List(Of String) Implements iormObjectEntry.PossibleValues
             Get
                 Return _listOfValues
             End Get
@@ -4827,7 +5049,7 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public ReadOnly Property HasValidationProperties As Boolean Implements iObjectEntry.HasValidationProperties
+        Public ReadOnly Property HasValidationProperties As Boolean Implements iormObjectEntry.HasValidationProperties
             Get
                 If Not Me.IsAlive(subname:="HasValidationProperties") Then Return False
                 Return (_validateProperties IsNot Nothing AndAlso _validateProperties.Count > 0)
@@ -4839,7 +5061,7 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property Validationproperties As String() Implements iObjectEntry.Validationproperties
+        Public Property Validationproperties As String() Implements iormObjectEntry.Validationproperties
             Get
                 Return _validateProperties
             End Get
@@ -4853,7 +5075,7 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public ReadOnly Property HasValidateRegExpression As Boolean Implements iObjectEntry.HasValidateRegExpression
+        Public ReadOnly Property HasValidateRegExpression As Boolean Implements iormObjectEntry.HasValidateRegExpression
             Get
                 If Not Me.IsAlive(subname:="HasValidateRegExpression") Then Return False
                 Return (_validateRegexMatch IsNot Nothing AndAlso _validateRegexMatch <> "")
@@ -4865,7 +5087,7 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property ValidateRegExpression As String Implements iObjectEntry.ValidateRegExpression
+        Public Property ValidateRegExpression As String Implements iormObjectEntry.ValidateRegExpression
             Get
                 Return _validateRegexMatch
             End Get
@@ -4879,7 +5101,7 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public ReadOnly Property HasRenderProperties As Boolean Implements iObjectEntry.HasRenderProperties
+        Public ReadOnly Property HasRenderProperties As Boolean Implements iormObjectEntry.HasRenderProperties
             Get
                 If Not Me.IsAlive(subname:="HasRenderProperties") Then Return False
                 Return (_renderProperties IsNot Nothing AndAlso _renderProperties.Count > 0)
@@ -4891,7 +5113,7 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property RenderProperties As String() Implements iObjectEntry.RenderProperties
+        Public Property RenderProperties As String() Implements iormObjectEntry.RenderProperties
             Get
                 Return _renderProperties
             End Get
@@ -4905,7 +5127,7 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public ReadOnly Property HasRenderRegExpression As Boolean Implements iObjectEntry.HasRenderRegExpression
+        Public ReadOnly Property HasRenderRegExpression As Boolean Implements iormObjectEntry.HasRenderRegExpression
             Get
                 If Not Me.IsAlive(subname:="HasRenderRegExpression") Then Return False
                 Return (_lookupcondition IsNot Nothing AndAlso _lookupcondition <> "")
@@ -4917,7 +5139,7 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property RenderRegExpMatch As String Implements iObjectEntry.RenderRegExpMatch
+        Public Property RenderRegExpMatch As String Implements iormObjectEntry.RenderRegExpMatch
             Get
                 Return _renderRegexMatch
             End Get
@@ -4932,7 +5154,7 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property RenderRegExpPattern As String Implements iObjectEntry.RenderRegExpPattern
+        Public Property RenderRegExpPattern As String Implements iormObjectEntry.RenderRegExpPattern
             Get
                 Return _renderRegexPattern
             End Get
@@ -4946,7 +5168,7 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public ReadOnly Property HasLookupCondition As Boolean Implements iObjectEntry.HasLookupCondition
+        Public ReadOnly Property HasLookupCondition As Boolean Implements iormObjectEntry.HasLookupCondition
             Get
                 If Not Me.IsAlive(subname:="HasLookupValues") Then Return False
                 Return (_lookupcondition IsNot Nothing AndAlso _lookupcondition <> "")
@@ -4958,7 +5180,7 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property LookupCondition As String Implements iObjectEntry.LookupCondition
+        Public Property LookupCondition As String Implements iormObjectEntry.LookupCondition
             Get
                 Return _lookupcondition
             End Get
@@ -4971,7 +5193,7 @@ Namespace OnTrack
         ''' Gets or sets the description.
         ''' </summary>
         ''' <value>The description.</value>
-        Public Overridable Property Description() As String Implements iObjectEntry.Description
+        Public Overridable Property Description() As String Implements iormObjectEntry.Description
             Get
                 Return Me._Description
             End Get
@@ -4985,28 +5207,28 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public MustOverride Property isNullable() As Boolean Implements iObjectEntry.IsNullable
+        Public MustOverride Property isNullable() As Boolean Implements iormObjectEntry.IsNullable
         ''' <summary>
         ''' gets or sets the size
         ''' </summary>
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public MustOverride Property Size() As UShort Implements iObjectEntry.Size
+        Public MustOverride Property Size() As UShort Implements iormObjectEntry.Size
         ''' <summary>
         ''' gets or sets the datatype
         ''' </summary>
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public MustOverride Property Datatype() As otFieldDataType Implements iObjectEntry.Datatype
+        Public MustOverride Property Datatype() As otFieldDataType Implements iormObjectEntry.Datatype
         ''' <summary>
         ''' gets or sets the inner datatype
         ''' </summary>
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overridable Property InnerDatatype() As otFieldDataType Implements iObjectEntry.InnerDatatype
+        Public Overridable Property InnerDatatype() As otFieldDataType Implements iormObjectEntry.InnerDatatype
             Get
                 Return _innerdatatype
             End Get
@@ -5020,21 +5242,41 @@ Namespace OnTrack
         '''' <value></value>
         '''' <returns></returns>
         '''' <remarks></remarks>
-        Public MustOverride Property Defaultvalue() As Object Implements iObjectEntry.DefaultValue
+        Public MustOverride Property Defaultvalue() As Object Implements iormObjectEntry.DefaultValue
         ''' <summary>
         ''' gets or sets the nullable
         ''' </summary>
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public MustOverride Property PrimaryKeyOrdinal() As UShort Implements iObjectEntry.PrimaryKeyOrdinal
+        Public MustOverride Property PrimaryKeyOrdinal() As UShort Implements iormObjectEntry.PrimaryKeyOrdinal
+        ''' <summary>
+        ''' gets or sets the nullable
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        ''' <summary>
+        ''' returns the Position Ordinal in the record 
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Property Ordinal() As UShort Implements iormObjectEntry.Ordinal
+            Get
+                Return _ordinal
+            End Get
+            Set(value As UShort)
+                SetValue(entryname:=ConstFNordinal, value:=value)
+            End Set
+        End Property
         ''' <summary>
         ''' sets or gets the object name of the entry
         ''' </summary>
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public ReadOnly Property Objectname() As String Implements iObjectEntry.Objectname
+        Public ReadOnly Property Objectname() As String Implements iormObjectEntry.Objectname
             Get
                 Objectname = _objectname
             End Get
@@ -5055,7 +5297,7 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property XID() As String Implements iObjectEntry.XID
+        Public Property XID() As String Implements iormObjectEntry.XID
             Get
                 XID = _xid
             End Get
@@ -5070,7 +5312,7 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public ReadOnly Property Entryname As String Implements iObjectEntry.Entryname
+        Public ReadOnly Property Entryname As String Implements iormObjectEntry.Entryname
             Get
                 Return _entryname
             End Get
@@ -5082,7 +5324,7 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property Typeid() As otObjectEntryDefinitiontype Implements iObjectEntry.Typeid
+        Public Property Typeid() As otObjectEntryDefinitiontype Implements iormObjectEntry.Typeid
             Get
                 Typeid = Me._typeid
 
@@ -5098,7 +5340,7 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property SpareFieldTag() Implements iObjectEntry.SpareFieldTag
+        Public Property SpareFieldTag() Implements iormObjectEntry.SpareFieldTag
             Get
                 Return Me._SpareFieldTag
             End Get
@@ -5113,7 +5355,7 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Property IsColumn() As Boolean Implements iObjectEntry.IsColumn
+        Property IsColumn() As Boolean Implements iormObjectEntry.IsColumn
             Get
                 If _typeid = otObjectEntryDefinitiontype.Column Then IsColumn = True
             End Get
@@ -5127,7 +5369,7 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Property IsCompound() As Boolean Implements iObjectEntry.IsCompound
+        Property IsCompound() As Boolean Implements iormObjectEntry.IsCompound
             Get
                 If _typeid = otObjectEntryDefinitiontype.Compound Then IsCompound = True
             End Get
@@ -5141,7 +5383,7 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property Version() As Long Implements iObjectEntry.Version
+        Public Property Version() As Long Implements iormObjectEntry.Version
             Get
                 Return _version
             End Get
@@ -5156,7 +5398,7 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property Aliases() As String() Implements iObjectEntry.Aliases
+        Public Property Aliases() As String() Implements iormObjectEntry.Aliases
             Get
                 Return _aliases
             End Get
@@ -5184,7 +5426,7 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property Properties As List(Of ObjectEntryProperty) Implements iObjectEntry.Properties
+        Public Property Properties As List(Of ObjectEntryProperty) Implements iormObjectEntry.Properties
             Get
                 Properties = _properties
             End Get
@@ -5204,7 +5446,7 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property Title() As String Implements iObjectEntry.Title
+        Public Property Title() As String Implements iormObjectEntry.Title
             Get
                 Title = _title
             End Get
@@ -5221,7 +5463,7 @@ Namespace OnTrack
         ''' <param name="sender"></param>
         ''' <param name="e"></param>
         ''' <remarks></remarks>
-        Public MustOverride Sub OnSwitchRuntimeOff(sender As Object, e As ormDataObjectEventArgs) Implements iObjectEntry.OnswitchRuntimeOff
+        Public MustOverride Sub OnSwitchRuntimeOff(sender As Object, e As ormDataObjectEventArgs) Implements iormObjectEntry.OnswitchRuntimeOff
 
         ''' <summary>
         ''' Increase the version
@@ -5238,7 +5480,7 @@ Namespace OnTrack
         ''' <param name="attribute"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overridable Function SetByAttribute(attribute As ormObjectEntryAttribute) As Boolean Implements iObjectEntry.SetByAttribute
+        Public Overridable Function SetByAttribute(attribute As ormObjectEntryAttribute) As Boolean Implements iormObjectEntry.SetByAttribute
             If Not IsAlive(subname:="SetByAttribute") Then Return False
 
             With attribute
@@ -5249,6 +5491,7 @@ Namespace OnTrack
                 If .HasValueDescription Then Me.Description = .Description
                 If .HasValueTypeID Then Me.Datatype = .Typeid
                 If .HasValueInnerTypeID Then Me.InnerDatatype = .InnerTypeid
+                If .hasValuePosOrdinal Then Me.Ordinal = .Posordinal
                 If .HasValueSize Then Me.Size = .Size
                 If .HasValueDefaultValue Then Me.Defaultvalue = .DefaultValue
                 If .HasValuePrimaryKeyOrdinal Then Me.PrimaryKeyOrdinal = .PrimaryKeyOrdinal
@@ -5713,6 +5956,7 @@ Namespace OnTrack
                 SetValue(entryname:=ConstFNCompoundTable, value:=value)
             End Set
         End Property
+       
         ''' <summary>
         ''' returns the fieldname of the compound ID
         ''' </summary>
@@ -6221,12 +6465,12 @@ Namespace OnTrack
         End Property
 
         ''' <summary>
-        ''' returns the Position Ordinal in the record 
+        ''' returns the Position Ordinal in the table (record)
         ''' </summary>
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property Position() As UShort
+        Public Property ColumnOrdinal() As UShort
             Get
                 If _columndefinition IsNot Nothing AndAlso _columndefinition.IsAlive(subname:="ObjectColumnEntry.Position") Then
                     Return _columndefinition.Position
@@ -6300,7 +6544,7 @@ Namespace OnTrack
                 End If
                 '* column attributes
                 If .HasValueIsNullable Then Me.IsNullable = .IsNullable
-                If .hasValuePosOrdinal Then Me.Position = .Posordinal
+                If .hasValuePosOrdinal Then Me.ColumnOrdinal = .Posordinal ' should be the position from a table definition not an object definition
                 If .HasValuePrimaryKeyOrdinal Then Me.PrimaryKeyOrdinal = .PrimaryKeyOrdinal
 
                 If .HasValueSize Then Me.Size = .Size

@@ -762,6 +762,7 @@ Namespace OnTrack
         Private _EntryMappings As New Dictionary(Of String, ormEntryMapping)
 
         Private _ForeignKeys As New Dictionary(Of String, Dictionary(Of String, ormSchemaForeignKeyAttribute)) 'dictionary of tables and foreign keys by ids
+        Private _QueryAttributes As New Dictionary(Of String, ormObjectQueryAttribute) 'dictionary of queries and definitions
 
         Private _isInitalized As Boolean = False
         Private _lock As New Object
@@ -861,7 +862,17 @@ Namespace OnTrack
                 Return _TableAttributes.Keys.ToList
             End Get
         End Property
-
+        ''' <summary>
+        ''' gets a List of all queries
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property Querynames As List(Of String)
+            Get
+                Return _QueryAttributes.Keys.ToList
+            End Get
+        End Property
         ''' <summary>
         ''' gets a List of all entry names
         ''' </summary>
@@ -1015,7 +1026,7 @@ Namespace OnTrack
         Public Overrides Function ToString() As String
             Return Me.Name
         End Function
-        
+
         ''' <summary>
         ''' returns the schemaColumnAttribute for a given columnname and tablename
         ''' </summary>
@@ -1111,6 +1122,30 @@ Namespace OnTrack
             '** return
             If _Relations.ContainsKey(key:=aRelationName) Then
                 Return _Relations.Item(key:=aRelationName)
+            Else
+                Return Nothing
+            End If
+        End Function
+        ''' <summary>
+        ''' returns a relation attribute by name (tablename is obsolete)
+        ''' </summary>
+        ''' <param name="name"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function GetQueryAttribute(name As String) As ormObjectQueryAttribute
+            Dim aQueryname As String = ""
+            Dim names() As String = name.ToUpper.Split({CChar(ConstDelimiter), "."c})
+
+            '** split the names
+            If names.Count > 1 Then
+                aQueryname = names(1)
+            Else
+                aQueryname = name.ToUpper
+            End If
+
+            '** return
+            If _QueryAttributes.ContainsKey(key:=aQueryname) Then
+                Return _QueryAttributes.Item(key:=aQueryname)
             Else
                 Return Nothing
             End If
@@ -1299,7 +1334,7 @@ Namespace OnTrack
                     Return True '* do nothing since we have a ClassOverrides tableattribute
                 End If
 
-              
+
 
                 '** default values
                 With aTableAttribute
@@ -1315,7 +1350,7 @@ Namespace OnTrack
                 '** merge the values there
                 '** table name must be set
                 _repository.AlterTableAttribute(aTableAttribute)
-                
+
 
                 '** add it
                 _TableAttributes.Add(key:=aTableAttribute.TableName, value:=aTableAttribute)
@@ -1346,6 +1381,46 @@ Namespace OnTrack
                 Return True
             Catch ex As Exception
                 CoreMessageHandler(exception:=ex, subname:="ObjectClassDescription.InitializeTableAttribute")
+                Return False
+            End Try
+
+        End Function
+        ''' <summary>
+        ''' initialize a table attribute to the Description
+        ''' </summary>
+        ''' <param name="attribute"></param>
+        ''' <param name="tablename"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Private Function InitializeQueryAttribute(attribute As Attribute, queryname As String, value As String, overridesExisting As Boolean) As Boolean
+            Dim aQueryAttribute As ormObjectQueryAttribute = DirectCast(attribute, ormObjectQueryAttribute)
+            Try
+                If queryname = "" Then
+                    queryname = value.ToUpper
+                End If
+
+                '** Tables
+                If _QueryAttributes.ContainsKey(key:=queryname) And overridesExisting Then
+                    _QueryAttributes.Remove(key:=queryname)
+                ElseIf _QueryAttributes.ContainsKey(key:=queryname) And Not overridesExisting Then
+                    Return True '* do nothing since we have a ClassOverrides attribute
+                End If
+
+                '** default values
+                With aQueryAttribute
+                    .ID = queryname.ToUpper
+                    ' Entry names
+                    If Not .HasValueEntrynames Then .AddAllFields = True
+                    '** version
+                    If Not .HasValueVersion Then .Version = 1
+                End With
+
+                '** add it
+                _QueryAttributes.Add(key:=aQueryAttribute.ID, value:=aQueryAttribute)
+
+                Return True
+            Catch ex As Exception
+                CoreMessageHandler(exception:=ex, subname:="ObjectClassDescription.InitializeQueryAttribute")
                 Return False
             End Try
 
@@ -1395,7 +1470,10 @@ Namespace OnTrack
                 If Not anObjectEntryAttribute.HasValueObjectName Then anObjectEntryAttribute.ObjectName = _ObjectAttribute.ID.ToUpper
                 If Not anObjectEntryAttribute.HasValueEntryName Then anObjectEntryAttribute.EntryName = name.ToUpper
                 If Not anObjectEntryAttribute.HasValueVersion Then anObjectEntryAttribute.Version = 1
-               
+
+                If Not anObjectEntryAttribute.hasValuePosOrdinal Then
+                    anObjectEntryAttribute.Posordinal = _ObjectEntryAttributes.Count + 1
+                End If
                 '**
                 If Not name.Contains(".") AndAlso Not name.Contains(ConstDelimiter) Then
                     anObjectEntryName = _ObjectAttribute.ID.ToUpper & "." & name.ToUpper
@@ -2129,7 +2207,7 @@ Namespace OnTrack
 
                 '** defaults
                 If _ObjectAttribute.ClassName Is Nothing OrElse _ObjectAttribute.ClassName = "" Then
-                    _ObjectAttribute.ClassName = _Type.Name.ToUpper
+                    _ObjectAttribute.ClassName = _Type.FullName
                 End If
                 If _ObjectAttribute.ID Is Nothing OrElse _ObjectAttribute.ID = "" Then
                     _ObjectAttribute.ID = fieldinfo.GetValue(Nothing).ToString.ToUpper
@@ -2257,6 +2335,7 @@ Namespace OnTrack
             _EntryMappings.Clear()
             _ObjectOperationAttributes.Clear()
             _ForeignKeys.Clear()
+            _QueryAttributes.Clear()
             '***
             '*** collect all the attributes first
             '***
@@ -2389,6 +2468,10 @@ Namespace OnTrack
                                     '** Operation
                                 ElseIf aFieldInfo.IsStatic AndAlso anAttribute.GetType().Equals(GetType(ormObjectOperationAttribute)) Then
                                     InitializeOperationAttribute(attribute:=anAttribute, objectname:=aTablename, name:=aName, value:=aValue, overridesExisting:=overridesFlag)
+
+                                    '** Queries
+                                ElseIf aFieldInfo.IsStatic AndAlso anAttribute.GetType().Equals(GetType(ormQueriedEnumeration)) Then
+                                    InitializeQueryAttribute(attribute:=anAttribute, queryname:=aName, value:=aValue, overridesExisting:=overridesFlag)
 
                                 End If
 

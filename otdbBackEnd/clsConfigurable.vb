@@ -129,7 +129,7 @@ Namespace OnTrack.Configurables
             Dim m As Object
 
             ' Nothing
-            If Not _IsLoaded And Not Me.IsCreated Then
+            If Not me.isloaded And Not Me.IsCreated Then
                 addItem = False
                 Exit Function
             End If
@@ -172,7 +172,7 @@ Namespace OnTrack.Configurables
         '    If Me.IsCreated Then
         '        Call Me.Inject(CONFIGNAME:=Me.CONFIGNAME)
         '    End If
-        '    If Not _IsLoaded And Not Me.IsCreated Then
+        '    If Not me.isloaded And Not Me.IsCreated Then
         '        delete = False
         '        Exit Function
         '    End If
@@ -192,7 +192,7 @@ Namespace OnTrack.Configurables
         '    End If
         '    s_items.Add(key:="", value:=anEntry)
 
-        '    _IsCreated = True
+        '    me.iscreated = True
         '    Me.IsDeleted = True
         '    Me.Unload()
 
@@ -202,7 +202,7 @@ Namespace OnTrack.Configurables
         '****
         Public Function IDs() As String()
 
-            If Not Me.IsCreated And Not _IsLoaded Then
+            If Not Me.IsCreated And Not me.isloaded Then
                 IDs = Nothing
                 Exit Function
             End If
@@ -219,7 +219,7 @@ Namespace OnTrack.Configurables
             Dim anEntry As New clsOTDBDefConfigurationItem
 
 
-            If Not Me.IsCreated And Not _IsLoaded Then
+            If Not Me.IsCreated And Not me.isloaded Then
                 ITEM = Nothing
                 Exit Function
             End If
@@ -241,7 +241,7 @@ Namespace OnTrack.Configurables
             Dim aCollection As New Collection
             Dim m As Object
 
-            If Not Me.IsCreated And Not _IsLoaded Then
+            If Not Me.IsCreated And Not me.isloaded Then
                 Items = Nothing
                 Exit Function
             End If
@@ -298,7 +298,7 @@ Namespace OnTrack.Configurables
 '                Exit Function
 '            Else
 '                s_configname = CONFIGNAME
-'                _IsLoaded = True
+'                me.isloaded = True
 '                ' records read
 '                For Each aRecord In aRecordCollection
 '                    ' add the Entry as Component
@@ -309,7 +309,7 @@ Namespace OnTrack.Configurables
 '                    'End If
 '                Next aRecord
 '                '
-'                _IsLoaded = True
+'                me.isloaded = True
 '                Inject = True
 '                Exit Function
 '            End If
@@ -341,7 +341,7 @@ Namespace OnTrack.Configurables
                     Exit Function
                 End If
             End If
-            If Not _IsLoaded And Not Me.IsCreated Then
+            If Not me.isloaded And Not Me.IsCreated Then
                 Persist = False
                 Exit Function
             End If
@@ -406,7 +406,7 @@ errorhandle:
             End If
             s_items.Add(key:="", value:=anEntry)
 
-            _IsCreated = True
+            'me.iscreated = True
             create = Me.IsCreated
 
         End Function
@@ -678,7 +678,7 @@ errorhandle:
 
 
 '            infuse = MyBase.Infuse(aRecord)
-'            _IsLoaded = infuse
+'            me.isloaded = infuse
 '            Exit Function
 
 'errorhandle:
@@ -708,7 +708,7 @@ errorhandle:
 
             On Error GoTo error_handler
 
-            aTable = GetTableStore(Me.TableID)
+            aTable = GetTableStore(Me.primaryTableID)
             wherestr = " ( ID = '" & UCase(ID) & "' or alias like '%" & ConstDelimiter & UCase(ID) & ConstDelimiter & "%' )"
             If CONFIGNAME <> "" Then
                 wherestr = wherestr & " and cname = '" & CONFIGNAME & "'"
@@ -820,7 +820,7 @@ error_handler:
             '    Exit Function
             'Else
             '    Me.Record = aRecord
-            '    _IsLoaded = Me.infuse(Me.Record)
+            '    me.isloaded = Me.infuse(Me.Record)
             '    'Call AddToCache(objectTag:=ourTableName, key:=pkarry, theOBJECT:=aRecord)
 
             '    Inject = Me.IsLoaded
@@ -982,7 +982,7 @@ error_handler:
                     Exit Function
                 End If
             End If
-            If Not _IsLoaded And Not Me.IsCreated Then
+            If Not me.isloaded And Not Me.IsCreated Then
                 Persist = False
                 Exit Function
             End If
@@ -998,8 +998,8 @@ error_handler:
             '    anObjectDef.Create(aConfig.TableID)
             'End If
 
-            aCompDesc.Tablename = aConfig.TableID
-            aCompDesc.compound_Tablename = aConfigItem.TableID
+            aCompDesc.Tablename = aConfig.primaryTableID
+            aCompDesc.compound_Tablename = aConfigItem.primaryTableID
             aCompDesc.ID = s_id
             aCompDesc.compound_Relation = New String() {"uid"}
             aCompDesc.compound_IDFieldname = "id"
@@ -1093,7 +1093,7 @@ errorhandle:
             s_datatype = DATATYPE
 
 
-            _IsCreated = True
+            'me.iscreated = True
             create = Me.IsCreated
 
 
@@ -1614,7 +1614,7 @@ errorhandle:
 '            On Error GoTo errorhandle
 
 '            Me.Record = aRecord
-'            _IsLoaded = True
+'            me.isloaded = True
 '            s_uid = CLng(aRecord.GetValue("uid"))
 '            s_configname = CStr(aRecord.GetValue("cname"))
 '            s_updc = CLng(aRecord.GetValue("updc"))
@@ -1625,7 +1625,7 @@ errorhandle:
 
 '            ' is loaded
 '            s_isItemChanged = False
-'            _IsLoaded = True
+'            me.isloaded = True
 
 '            '*** fill the ITEM Dictionary
 '            If Not loadItems(CONFIGNAME:=s_configname) Then
@@ -1707,7 +1707,7 @@ errorhandle:
             Dim m As Object
 
             ' Nothing
-            If Not _IsLoaded And Not Me.IsCreated Then
+            If Not me.isloaded And Not Me.IsCreated Then
                 addItem = False
                 Exit Function
             End If
@@ -1762,8 +1762,8 @@ errorhandle:
             '    Exit Function
             'Else
             '    Me.Record = aRecord
-            '    _IsLoaded = Me.infuse(Me.Record)
-            '    If Not _IsLoaded Then
+            '    me.isloaded = Me.infuse(Me.Record)
+            '    If Not me.isloaded Then
             '        Inject = False
             '        Exit Function
             '    End If
@@ -1810,7 +1810,7 @@ errorhandle:
                 ' set the primaryKey
                 s_uid = UID
 
-                _IsCreated = True    ' here we are create
+                'me.iscreated = True    ' here we are create
 
                 ' this will set also the loadItems
                 If Not IsMissing(CONFIGNAME) Then
@@ -2040,7 +2040,7 @@ errorhandle:
             End If
 
             ' set it
-            newRecord.SetTable(Me.TableID)
+            newRecord.SetTable(Me.primaryTableID)
 
             ' go through the table and overwrite the Record if the rights are there
             For Each m In Me.Record.Keys
@@ -2096,7 +2096,7 @@ errorhandle:
 
             ' get
 
-            cmdstr = "SELECT max(UID) from " & Me.TableID & " where uid > 0"
+            cmdstr = "SELECT max(UID) from " & Me.primaryTableID & " where uid > 0"
 
 
             rst.Open(cmdstr, otdbcn, ADODB.CursorTypeEnum.adOpenStatic, ADODB.LockTypeEnum.adLockOptimistic)
@@ -2277,7 +2277,7 @@ error_handle:
             End If
 
             ' generell tests
-            anObject = CHANGECONFIG.ObjectByName(Me.TableID)
+            anObject = CHANGECONFIG.ObjectByName(Me.primaryTableID)
             runXPreCheckOLD = CHANGECONFIG.runDefaultXPreCheck(anObject:=anObject, _
                                                                          aMapping:=MAPPING, MSGLOG:=MSGLOG)
 
@@ -2673,7 +2673,7 @@ error_handle:
 '            _createdOn = CDate(aRecord.GetValue(ConstFNCreatedOn))
 
 
-'            _IsLoaded = MyBase.Infuse(aRecord)
+'            me.isloaded = MyBase.Infuse(aRecord)
 '            infuse = Me.IsLoaded
 '            Exit Function
 
@@ -2714,7 +2714,7 @@ error_handle:
                 Exit Function
             Else
                 Me.Record = aRecord
-                _IsLoaded = Me.infuse(Me.Record)
+                'me.isloaded = Me.infuse(Me.Record)
                 Inject = Me.IsLoaded
                 Exit Function
             End If
@@ -2946,7 +2946,7 @@ error_handle:
                     Exit Function
                 End If
             End If
-            If Not _IsLoaded And Not Me.IsCreated And Not s_isCacheNoSave Then
+            If Not me.isloaded And Not Me.IsCreated And Not s_isCacheNoSave Then
                 updateRecord = False
                 Exit Function
             End If
@@ -3106,7 +3106,7 @@ errorhandle:
             s_configname = LCase(CONFIGNAME)
             s_id = LCase(ID)
 
-            _IsCreated = True
+            'me.iscreated = True
             create = Me.IsCreated
 
         End Function
@@ -3145,7 +3145,7 @@ errorhandle:
             End If
 
             ' set it
-            newRecord.SetTable(Me.TableID)
+            newRecord.SetTable(Me.primaryTableID)
 
             ' go through the table and overwrite the Record if the rights are there
             For Each m In Me.Record.keys
@@ -3535,7 +3535,7 @@ error_handler:
 '                _createdOn = ConstNullDate
 '            End If
 '            _updatedOn = CDate(record.GetValue(ConstFNUpdatedOn))
-'            _IsLoaded = True
+'            me.isloaded = True
 '            Infuse = True
 '            Exit Function
 
@@ -3579,7 +3579,7 @@ error_handler:
             '    Exit Function
             'Else
             '    Me.Record = aRecord
-            '    _IsLoaded = Me.Infuse(Me.Record)
+            '    me.isloaded = Me.Infuse(Me.Record)
             '    Inject = Me.IsLoaded
             '    Exit Function
             'End If
@@ -3675,7 +3675,7 @@ errorhandle:
             s_tag = TAG
             s_isActive = True
 
-            _IsCreated = True
+            'me.iscreated = True
             create = Me.IsCreated
 
         End Function

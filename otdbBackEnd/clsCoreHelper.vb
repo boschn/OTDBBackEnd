@@ -190,6 +190,18 @@ Namespace OnTrack.Database
         End Function
 
         ''' <summary>
+        ''' create a IList from a Type
+        ''' </summary>
+        ''' <param name="type"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Shared Function CreateInstanceOfIlist(type As System.Type) As IList
+            Dim aGenricType As System.Type = GetType(List(Of )).MakeGenericType(type)
+            Dim aListInstance As Object = Activator.CreateInstance(aGenricType)
+            Return aListInstance
+        End Function
+
+        ''' <summary>
         ''' returns ORM Attributes out of a Type
         ''' </summary>
         ''' <param name="ormType"></param>
@@ -615,6 +627,11 @@ Namespace OnTrack.Database
 
                 ' Infuse
                 Dim aRecordCollection As List(Of ormRecord) = aCommand.RunSelect
+                If aRecordCollection Is Nothing Then
+                    CoreMessageHandler(message:="no records returned due to previous errors", subname:="Reflector.GetRelatedObjects", arg1:=attribute.Name, _
+                                        objectname:=aTargetObjectDescriptor.ObjectAttribute.ID, tablename:=toTablename, messagetype:=otCoreMessageType.InternalError)
+                    Return theObjectList
+                End If
                 Dim aDomainRecordCollection As New Dictionary(Of String, ormRecord)
                 Dim pknames = aStore.TableSchema.PrimaryKeys
                 For Each aRecord As ormRecord In aRecordCollection
@@ -712,23 +729,50 @@ Namespace OnTrack.Database
                     Else
                         field.SetValue(dataobject, anArray)
                     End If
+                    '''
+                    ''' setter for all types of list interfaces
+                    ''' 
                 ElseIf field.FieldType.GetInterfaces.Contains(GetType(IList)) Then
                     Dim anArray As String()
+                    Dim aList As Object
                     If value.GetType.IsArray Then
                         anArray = value
-                    Else
+                        If anArray.Count = 0 Then
+                            aList = Reflector.CreateInstanceOfIlist(field.FieldType.GetGenericArguments.First)
+                        Else
+                            aList = anArray.ToList
+                        End If
+                    ElseIf value.GetType.GetInterfaces.Contains(GetType(IList)) Then
+                        ''' make sure that the inner type of the list 
+                        ''' are casted as well before we pass it
+                        Dim innertype As System.Type = value.GetType.GetGenericArguments.First
+                        aList = Reflector.CreateInstanceOfIlist(field.FieldType.GetGenericArguments.First)
+                        For i = 0 To DirectCast(value, IList).Count - 1
+                            '' try to cast
+                            Dim item As Object = CTypeDynamic(DirectCast(value, IList).Item(i), innertype)
+                            TryCast(aList, IList).Add(item)
+                        Next
+
+                    ElseIf value.GetType.Equals(GetType(String)) Then
                         anArray = OnTrack.Database.Converter.String2Array(value)
+                        If anArray.Count = 0 Then
+                            aList = New List(Of String) 'HACK ! this should be of generic type of the field
+                        End If
+                    Else
+                        CoreMessageHandler(message:="Type is not convertable to ILIST", subname:="Reflector.SetFieldValue", messagetype:=otCoreMessageType.InternalError, _
+                                           entryname:=field.Name, tablename:=dataobject.primaryTableID, _
+                                           arg1:=field.Name)
+
                     End If
 
-                    Dim aList = anArray.ToList
-                    If anArray.Count = 0 Then
-                        aList = New List(Of String) 'HACK ! this should be of generic type of the field
-                    End If
+                    ''' set the value
+                    ''' 
                     If aSetter IsNot Nothing Then
                         aSetter(dataobject, aList)
                     Else
                         field.SetValue(dataobject, aList)
                     End If
+
                 ElseIf value Is Nothing OrElse field.FieldType.Equals(value.GetType) Then
                     If aSetter IsNot Nothing Then
                         aSetter(dataobject, value)
@@ -820,9 +864,15 @@ Namespace OnTrack.Database
                     Else
                         field.SetValue(dataobject, CDec(value))
                     End If
+                ElseIf field.FieldType.Equals(GetType(Object)) Then
+                    If aSetter IsNot Nothing Then
+                        aSetter(dataobject, value)
+                    Else
+                        field.SetValue(dataobject, value)
+                    End If
                 Else
                     Call CoreMessageHandler(subname:="ormDataObject.infuse", message:="cannot convert record value type to field type", _
-                                           entryname:=field.Name, tablename:=dataobject.TableID, _
+                                           entryname:=field.Name, tablename:=dataobject.primaryTableID, _
                                            arg1:=field.Name, messagetype:=otCoreMessageType.InternalError)
                     Return False
                 End If

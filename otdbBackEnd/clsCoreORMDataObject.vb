@@ -39,12 +39,15 @@ Namespace OnTrack
 
             '** record for persistence
             Private _guid As Guid = Guid.NewGuid
-            Private _record As New ormRecord
-            Protected _primaryTableID As String = ""
+            Private _record As ormRecord
+            Private _primaryTableID As String = ""
             Private _classDescription As ObjectClassDescription
-            Private _dbdriver As iormDatabaseDriver
-            Protected _IsCreated As Boolean = False
-            Protected _IsLoaded As Boolean = False
+            Private _objectdefinition As ObjectDefinition
+            Private _defaultdbdriver As iormDatabaseDriver
+            Private _isCreated As Boolean = False
+            Private _isLoaded As Boolean = False
+            Private _isInfused As Boolean = False
+            Private _InfusionTimeStamp As DateTime
             Protected _IsChanged As Boolean = False
             Protected _useCache As Nullable(Of Boolean) = Nothing
             Protected _primarykeynames As String() = {} ' object primary key names
@@ -58,7 +61,7 @@ Namespace OnTrack
             Protected _IsloadedFromHost As Boolean = False
             Protected _IsSavedToHost As Boolean = False
 
-            
+
 
             '** events
             Public Event PropertyChanged As System.ComponentModel.PropertyChangedEventHandler Implements System.ComponentModel.INotifyPropertyChanged.PropertyChanged
@@ -120,8 +123,8 @@ Namespace OnTrack
             Public Event OnValidated(sender As Object, e As ormDataObjectEventArgs) Implements iormValidatable.OnValidated
 
             '* relation Events
-            Public Shared Event ClassOnRelationLoading(sender As Object, e As ormDataObjectEventArgs)
-            Public Shared Event ClassOnRelationLoaded(sender As Object, e As ormDataObjectEventArgs)
+            Public Shared Event ClassOnCascadingRelation(sender As Object, e As ormDataObjectEventArgs)
+            Public Shared Event ClassOnCascadedRelation(sender As Object, e As ormDataObjectEventArgs)
             Public Event OnRelationLoading(sender As Object, e As ormDataObjectEventArgs)
             Public Event OnRelationLoad(sender As Object, e As ormDataObjectEventArgs)
 
@@ -132,7 +135,7 @@ Namespace OnTrack
             'Public Shared Property ConstTableID
             <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, _
                 title:="Domain", description:="domain of the business Object", _
-                defaultvalue:=ConstGlobalDomain, _
+                defaultvalue:=ConstGlobalDomain, dbdefaultvalue:=ConstGlobalDomain, _
                 useforeignkey:=otForeignKeyImplementation.NativeDatabase, _
                 foreignkeyProperties:={ForeignKeyProperty.OnDelete & "(" & ForeignKeyActionProperty.Cascade & ")", ForeignKeyProperty.OnUpdate & "(" & ForeignKeyActionProperty.Cascade & ")"})> _
             Public Const ConstFNDomainID = Domain.ConstFNDomainID
@@ -154,7 +157,7 @@ Namespace OnTrack
                 title:="Deleted On", Description:="time stamp when the deletion flag was set")> Public Const ConstFNDeletedOn As String = ot.ConstFNDeletedOn
 
             '** Deleted flag
-            <ormObjectEntry(typeid:=otFieldDataType.Bool, defaultvalue:="0", _
+            <ormObjectEntry(typeid:=otFieldDataType.Bool, defaultvalue:=False, dbdefaultvalue:="0", _
                 title:="Deleted", description:="flag if the entry in the data stored is regarded as deleted depends on the deleteflagbehavior")> _
             Public Const ConstFNIsDeleted As String = ot.ConstFNIsDeleted
 
@@ -187,7 +190,7 @@ Namespace OnTrack
             '** columnMapping of persistable fields
             <ormEntryMapping(EntryName:=ConstFNUpdatedOn)> Protected _updatedOn As Date = ot.ConstNullDate
             <ormEntryMapping(EntryName:=ConstFNCreatedOn)> Protected _createdOn As Date = ConstNullDate
-            <ormEntryMapping(EntryName:=ConstFNDeletedOn)> Protected _deletedOn As Date = ConstNullDate
+            <ormEntryMapping(EntryName:=ConstFNDeletedOn)> Protected _deletedOn As Nullable(Of Date) = ConstNullDate
             <ormEntryMapping(EntryName:=ConstFNIsDeleted)> Protected _IsDeleted As Boolean = False
 
             '** Spare Parameters
@@ -223,7 +226,9 @@ Namespace OnTrack
 
             ''' Queries
             ''' 
-            <ormObjectQuery(Description:="All Objects", where:="")> Public Const constQRYAll = "All"
+            <ormObjectQuery(Description:="All Objects", where:="")> Public Const ConstQRYAll = "All"
+
+           
 
 #Region "Properties"
             ''' <summary>
@@ -255,10 +260,12 @@ Namespace OnTrack
             ''' <value>The table store.</value>
             Public ReadOnly Property TableStore() As iormDataStore Implements iormPersistable.TableStore
                 Get
-                    If _record.Alive AndAlso Not _record.TableStore Is Nothing Then
+                    If _record IsNot Nothing AndAlso _record.Alive AndAlso _record.TableStore IsNot Nothing Then
                         Return _record.TableStore
-                    ElseIf Me._primaryTableID <> "" And Not Me.RunTimeOnly Then
-                        Return GetTableStore(tableid:=_primaryTableID)
+                        ''' assume about the tablestore to choose
+                    ElseIf Not Me.RunTimeOnly AndAlso Me.PrimaryTableID IsNot Nothing Then
+                        If _defaultdbdriver IsNot Nothing Then Return _defaultdbdriver.GetTableStore(tableID:=Me.PrimaryTableID)
+                        Return ot.GetTableStore(tableid:=Me.PrimaryTableID)
                     Else
                         Return Nothing
                     End If
@@ -273,7 +280,7 @@ Namespace OnTrack
                     Return Me._RunTimeOnly
                 End Get
             End Property
-            
+
             ''' <summary>
             ''' returns the object definition associated with this data object
             ''' </summary>
@@ -282,14 +289,14 @@ Namespace OnTrack
             ''' <remarks></remarks>
             Public ReadOnly Property ObjectDefinition As ObjectDefinition
                 Get
-                    If CurrentSession.IsRunning Or CurrentSession.IsStartingUp Then
-                        Return CurrentSession.Objects.GetObject(objectname:=Me.ObjectID)
-                    Else
-                        CoreMessageHandler(message:="not connected to ontrack - connect first", tablename:=Me.TableID, _
-                                           subname:="ormDataObject.ObjectDefinition", messagetype:=otCoreMessageType.InternalWarning)
-                        Return Nothing
+
+                    If _objectdefinition Is Nothing Then
+                        _RunTimeOnly = CurrentSession.IsBootstrappingInstallationRequested
+                        _objectdefinition = CurrentSession.Objects.GetObject(objectname:=Me.ObjectID, runtimeOnly:=_RunTimeOnly)
                     End If
 
+                    Return _objectdefinition
+                    
                 End Get
             End Property
             ''' <summary>
@@ -298,18 +305,14 @@ Namespace OnTrack
             ''' <value></value>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public Property ObjectClassDescription As ObjectClassDescription Implements iormPersistable.ObjectClassDescription
+            Public ReadOnly Property ObjectClassDescription As ObjectClassDescription Implements iormPersistable.ObjectClassDescription
                 Get
                     If _classDescription Is Nothing Then
                         _classDescription = ot.GetObjectClassDescription(Me.GetType)
                     End If
                     Return _classDescription
                 End Get
-                Set(value As ObjectClassDescription)
-                    If Not _IsInitialized Then
-                        _classDescription = value
-                    End If
-                End Set
+                
             End Property
             ''' <summary>
             ''' returns the tableschema associated with this data object
@@ -334,8 +337,7 @@ Namespace OnTrack
             ''' <value>The domain ID.</value>
             Public Property DomainID() As String
                 Get
-                    If CurrentSession.IsRunning AndAlso _
-                        Me.ObjectDefinition IsNot Nothing AndAlso Me.ObjectDefinition.DomainBehavior Then
+                    If Me.HasDomainBehavior Then
                         Return Me._domainID
                     Else
                         Return CurrentSession.CurrentDomainID
@@ -346,23 +348,15 @@ Namespace OnTrack
                 End Set
             End Property
             ''' <summary>
-            ''' sets or gets the DBDriver for the data object to use
+            '''  gets the DBDriver for the data object to use (real or the default dbdriver)
             ''' </summary>
             ''' <value></value>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public Property DatabaseDriver As iormDatabaseDriver Implements iormPersistable.DatabaseDriver
-
-                Set(value As iormDatabaseDriver)
-                    If Not _IsInitialized Then
-                        _dbdriver = value
-                    Else
-                        Call CoreMessageHandler(message:="can not set the dbdriver while initialised", subname:="ormDataobject.DBDriver", _
-                                                messagetype:=otCoreMessageType.InternalError)
-                    End If
-                End Set
+            Public ReadOnly Property DatabaseDriver As iormDatabaseDriver Implements iormPersistable.DatabaseDriver
                 Get
-                    Return _dbdriver
+                    If Me.TableStore IsNot Nothing Then Return Me.TableStore.Connection.DatabaseDriver
+                    Return _defaultdbdriver
                 End Get
             End Property
 
@@ -384,9 +378,9 @@ Namespace OnTrack
             ''' <remarks></remarks>
             Public ReadOnly Property ObjectID() As String Implements iormPersistable.ObjectID
                 Get
+                    
                     If Me.ObjectClassDescription IsNot Nothing Then
                         Return Me.ObjectClassDescription.ID
-
                     Else
                         CoreMessageHandler("object id for orm data object class could not be found", arg1:=Me.GetType.Name, _
                                             subname:="ormDataObejct.ObjectID", messagetype:=otCoreMessageType.InternalError)
@@ -409,6 +403,7 @@ Namespace OnTrack
                     End If
                 End Set
             End Property
+           
             ''' <summary>
             ''' returns true if object has domain behavior
             ''' </summary>
@@ -417,6 +412,12 @@ Namespace OnTrack
             ''' <remarks></remarks>
             Public ReadOnly Property HasDomainBehavior As Boolean Implements iormPersistable.HasDomainBehavior
                 Get
+                    ' do not initialize
+                    'If Not _IsInitialized AndAlso Not Initialize() Then
+                    '    CoreMessageHandler(message:="could not initialize object", subname:="ormDataObject.HasDomainBehavior")
+                    '    Return False
+                    'End If
+
                     '** to avoid recursion loops for bootstrapping objects during 
                     '** startup of session check these out and look into description
                     If CurrentSession.IsBootstrappingInstallationRequested _
@@ -444,6 +445,11 @@ Namespace OnTrack
             ''' <remarks></remarks>
             Public ReadOnly Property UseCache As Boolean Implements iormPersistable.useCache
                 Get
+                    ' do not initialize
+                    'If Not _IsInitialized AndAlso Not Initialize() Then
+                    '    CoreMessageHandler(message:="could not initialize object", subname:="ormDataObject.UseCache")
+                    '    Return False
+                    'End If
                     If _useCache.HasValue Then
                         Return _useCache
                     Else
@@ -477,6 +483,11 @@ Namespace OnTrack
             ''' <remarks></remarks>
             Public ReadOnly Property HasDeletePerFlagBehavior As Boolean Implements iormPersistable.hasDeletePerFlagBehavior
                 Get
+                    ' do not initialize
+                    'If Not _IsInitialized AndAlso Not Initialize() Then
+                    '    CoreMessageHandler(message:="could not initialize object", subname:="ormDataObject.HasDeletePerFlagBehavior")
+                    '    Return False
+                    'End If
                     '** avoid loops while starting up with bootstraps or during installation
                     If CurrentSession.IsBootstrappingInstallationRequested OrElse ot.GetBootStrapObjectClassIDs.Contains(Me.ObjectID) Then
                         Dim anObjectDescription As ObjectClassDescription = ot.GetObjectClassDescriptionByID(id:=Me.ObjectID)
@@ -507,22 +518,31 @@ Namespace OnTrack
             End Property
 
             ''' <summary>
-            ''' Gets or sets the PS is loaded.
+            ''' True if the Object was instanced by Retrieve
             ''' </summary>
             ''' <value>The PS is loaded.</value>
             Public ReadOnly Property IsLoaded() As Boolean Implements iormPersistable.IsLoaded
                 Get
-                    Return Me._IsLoaded
+                    Return _isLoaded
+                End Get
+
+            End Property
+            ''' <summary>
+            ''' returns True if the Object is infused
+            ''' </summary>
+            ''' <value>The PS is created.</value>
+            Public ReadOnly Property IsInfused() As Boolean Implements iormPersistable.IsInfused
+                Get
+                    Return _isInfused
                 End Get
             End Property
-
             ''' <summary>
-            ''' Gets or sets the PS is created.
+            '''  returns True if the Object was Instanced by Create
             ''' </summary>
             ''' <value>The PS is created.</value>
             Public ReadOnly Property IsCreated() As Boolean Implements iormPersistable.IsCreated
                 Get
-                    Return Me._IsCreated
+                    Return _isCreated
                 End Get
             End Property
             ''' <summary>
@@ -531,7 +551,7 @@ Namespace OnTrack
             ''' <returns></returns>
             ''' <remarks></remarks>
             Protected Function Unload() As Boolean
-                _IsLoaded = False
+                _isLoaded = False
             End Function
             ''' <summary>
             ''' Gets or sets the OTDB record.
@@ -557,14 +577,10 @@ Namespace OnTrack
             ''' <remarks></remarks>
             Public ReadOnly Property PrimaryKeyValues As Object() Implements iormPersistable.PrimaryKeyValues
                 Get
+                   
                     If (_primaryKeyValues Is Nothing OrElse _primaryKeyValues.Length = 0) AndAlso Me.IsAlive(throwError:=False, subname:="PrimaryKeyValue") _
                         AndAlso _primarykeynames IsNot Nothing AndAlso _primarykeynames.Length > 0 Then
-                        'Dim pkarray() As Object = ExtractPrimaryKey(record:=Record, objectID:=Me.ObjectID, runtimeOnly:=Me.RunTimeOnly)
-                        'For Each avalue In pkarray
-                        '    If avalue Is Nothing Then
-                        '        Return Nothing
-                        '    End If
-                        'Next
+
                         If _primaryKeyValues Is Nothing OrElse _primaryKeyValues.length <> _primarykeynames.Length Then
                             ReDim _primaryKeyValues(_primarykeynames.Length - 1)
                         End If
@@ -612,10 +628,10 @@ Namespace OnTrack
                 End Get
                 Protected Friend Set(value As Boolean)
                     If value Then
-                        If isRegisteredAtHostApplication(Me.TableID) Then
+                        If isRegisteredAtHostApplication(Me.primaryTableID) Then
                             _serializeWithHostApplication = True
                         Else
-                            _serializeWithHostApplication = registerHostApplicationFor(Me.TableID, AllObjectSerialize:=False)
+                            _serializeWithHostApplication = registerHostApplicationFor(Me.primaryTableID, AllObjectSerialize:=False)
                         End If
                     Else
                         _serializeWithHostApplication = False
@@ -625,14 +641,20 @@ Namespace OnTrack
 
 
             ''' <summary>
-            ''' gets the TableID of the persistency table
+            ''' gets the TableID of the primary Table
             ''' </summary>
             ''' <value></value>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            ReadOnly Property TableID() As String Implements iormPersistable.TableID
+            ReadOnly Property PrimaryTableID() As String Implements iormPersistable.primaryTableID
                 Get
-                    TableID = _primaryTableID
+                    ''' to avoid loops get the description here
+                    If _primaryTableID = "" Then
+                        Dim anObjectDescription As ObjectClassDescription = Me.ObjectClassDescription
+                        If anObjectDescription IsNot Nothing Then _primaryTableID = anObjectDescription.ObjectAttribute.Tablenames.First
+                    End If
+
+                    Return _primaryTableID
                 End Get
             End Property
             ''' <summary>
@@ -663,11 +685,11 @@ Namespace OnTrack
             ''' <value></value>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Property DeletedOn() As Date
+            Property DeletedOn() As Date?
                 Get
                     DeletedOn = _deletedOn
                 End Get
-                Friend Set(value As Date)
+                Friend Set(value As Date?)
                     DeletedOn = value
                 End Set
             End Property
@@ -810,7 +832,7 @@ Namespace OnTrack
             ''' </summary>
             ''' <param name="tableid"></param>
             ''' <remarks></remarks>
-            Protected Sub New(Optional tableid As String = "", Optional objectID As String = "", Optional dbdriver As iormDatabaseDriver = Nothing)
+            Protected Sub New(Optional tableid As String = "", Optional objectID As String = "", Optional dbdriver As iormDatabaseDriver = Nothing, Optional runtimeonly As Boolean = False)
                 _IsInitialized = False
                 If tableid <> "" Then _primaryTableID = tableid
                 If objectID <> "" Then
@@ -819,7 +841,8 @@ Namespace OnTrack
                         _classDescription = ot.GetObjectClassDescription(Me.GetType)
                     End If
                 End If
-                _dbdriver = dbdriver
+                _RunTimeOnly = runtimeonly
+                _defaultdbdriver = dbdriver
             End Sub
             ''' <summary>
             ''' clean up with the object
@@ -829,7 +852,7 @@ Namespace OnTrack
                 _IsInitialized = False
                 Me.Record = Nothing
                 _primaryTableID = ""
-                _dbdriver = Nothing
+                _defaultdbdriver = Nothing
             End Sub
             ''' <summary>
             ''' Register a cache manager at the events level of the class
@@ -1032,7 +1055,7 @@ Namespace OnTrack
                         If Not Reflector.GetFieldValue(field:=field, dataobject:=Me, value:=value) Then
                             CoreMessageHandler(message:="field value ob data object couldnot be retrieved", _
                                                 objectname:=Me.ObjectID, subname:="ormDataObject.getValue", _
-                                                messagetype:=otCoreMessageType.InternalError, entryname:=entryname, tablename:=Me.TableID)
+                                                messagetype:=otCoreMessageType.InternalError, entryname:=entryname, tablename:=Me.primaryTableID)
                         End If
 
                         '** if not specified take the first one
@@ -1117,7 +1140,7 @@ Namespace OnTrack
                             If Not Reflector.GetFieldValue(field:=field, dataobject:=Me, value:=oldvalue) Then
                                 CoreMessageHandler(message:="field value ob data object couldnot be get", _
                                                     objectname:=Me.ObjectID, subname:="ormDataObject.setValue", _
-                                                    messagetype:=otCoreMessageType.InternalError, entryname:=entryname, tablename:=Me.TableID)
+                                                    messagetype:=otCoreMessageType.InternalError, entryname:=entryname, tablename:=Me.primaryTableID)
                             End If
 
                             '*** if different value
@@ -1126,7 +1149,7 @@ Namespace OnTrack
                                 If Not Reflector.SetFieldValue(field:=field, dataobject:=Me, value:=value) Then
                                     CoreMessageHandler(message:="field value ob data object couldnot be set", _
                                                         objectname:=Me.ObjectID, subname:="ormDataObject.setValue", _
-                                                        messagetype:=otCoreMessageType.InternalError, entryname:=entryname, tablename:=Me.TableID)
+                                                        messagetype:=otCoreMessageType.InternalError, entryname:=entryname, tablename:=Me.primaryTableID)
                                 End If
                                 result = True
                             End If
@@ -1157,10 +1180,18 @@ Namespace OnTrack
             ''' <returns>True if successfull </returns>
             ''' <remarks></remarks>
             Private Function MergeRecord(record As ormRecord) As Boolean
-                For Each key In record.Keys
-                    If (_record.IsTableBound AndAlso _record.HasIndex(key)) OrElse Not _record.IsTableBound Then Me._record.SetValue(key, record.GetValue(key))
-                Next
-                Return True
+                If _record Is Nothing Then
+                    _record = record
+                    Return True
+                Else
+                    For Each key In record.Keys
+                        If (_record.IsTableBound AndAlso _record.HasIndex(key)) OrElse Not _record.IsTableBound Then Me._record.SetValue(key, record.GetValue(key))
+                    Next
+                    ' take over also the status if we have none
+                    If Not _record.IsLoaded AndAlso Not _record.IsCreated AndAlso (record.IsCreated OrElse record.IsLoaded) Then _record.IsLoaded = record.IsLoaded
+                    
+                    Return True
+                End If
             End Function
 
             ''' <summary>
@@ -1172,8 +1203,8 @@ Namespace OnTrack
                 ''' check the record again -> if infused by a record by sql selectment if have nor created not loaded
                 If Me.IsInitialized Then
                     '** check on the records
-                    _IsCreated = Me.Record.IsCreated
-                    _IsLoaded = Me.Record.IsLoaded
+                    _isCreated = Me.Record.IsCreated
+                    _isLoaded = Me.Record.IsLoaded
                     Return True
                 End If
                 Return False
@@ -1191,7 +1222,7 @@ Namespace OnTrack
                         If throwError Then
                             If subname = "" Then subname = "ormDataObject.checkalive"
                             CoreMessageHandler(message:="object is not alive but operation requested", objectname:=Me.GetType.Name, _
-                                               subname:=subname, tablename:=Me.TableID, messagetype:=otCoreMessageType.InternalError)
+                                               subname:=subname, tablename:=Me.primaryTableID, messagetype:=otCoreMessageType.InternalError)
                         End If
                         Return False
                     End If
@@ -1206,7 +1237,7 @@ Namespace OnTrack
             ''' <returns>True if successfull</returns>
             ''' <remarks></remarks>
             Public Overridable Function Initialize(Optional runtimeOnly As Boolean = False) As Boolean Implements iormPersistable.Initialize
-                Dim ourEventArgs As New ormDataObjectEventArgs(Me)
+
 
                 '** is a session running ?!
                 If Not runtimeOnly AndAlso Not CurrentSession.IsRunning AndAlso Not CurrentSession.IsStartingUp Then
@@ -1216,90 +1247,64 @@ Namespace OnTrack
                     Return False
                 End If
 
-                '*** Class Description
-                If _classDescription Is Nothing Then
-                    _classDescription = ot.GetObjectClassDescription(Me.GetType)
-                End If
-                If _classDescription Is Nothing Then
-                    CoreMessageHandler("object id for orm data object class could not be found", arg1:=Me.GetType.Name, _
-                                        subname:="ormDataObejct.Initialize", messagetype:=otCoreMessageType.InternalError)
-                    ourEventArgs.Result = False
-                    ourEventArgs.AbortOperation = True
-                Else
-                    ourEventArgs.Result = True
-                    ourEventArgs.AbortOperation = False
-                End If
-                '*** tableid
-                If Me.TableID = "" AndAlso _classDescription IsNot Nothing Then
-                    _primaryTableID = _classDescription.PrimaryTable
-                End If
-                If _classDescription IsNot Nothing Then
-                    _primarykeynames = _classDescription.PrimaryKeyEntryNames
-                End If
-                '*** 
-                If Me.TableID = "" Then
-                    ourEventArgs.Result = False
-                    ourEventArgs.AbortOperation = False
-                End If
+                ''' set the runtime flag 
+                _RunTimeOnly = runtimeOnly
 
-                '** fire event
+                ''' set the properties which are not initializing by themselves
+                ''' 
+
+
+                ''' fire event
+                ''' 
+                Dim ourEventArgs As New ormDataObjectEventArgs(Me, usecache:=Me.UseCache, runtimeOnly:=runtimeOnly)
                 RaiseEvent OnInitializing(Me, ourEventArgs)
                 If ourEventArgs.AbortOperation Then
-                    Return ourEventArgs.Result
+                    Return False
                 End If
+
+                ''' set the return value
                 Initialize = True
 
-                '** set tableid
-                If Me.TableID <> "" And ourEventArgs.Proceed Then
-                    '** get new Table
-                    If _record Is Nothing OrElse runtimeOnly Then
-                        _record = New ormRecord(Me.TableID, dbdriver:=_dbdriver, runtimeOnly:=runtimeOnly)
-                    Else
-                        _record.SetTable(Me.TableID) 'now we are not runtimeonly anymore -> set also the table and let's have a fixed structure
-                    End If
+                ''' get new  record if necessary
+                ''' STILL we rely on One Table for the Record
+                If _record Is Nothing Then
+                    _record = New ormRecord(Me.PrimaryTableID, dbdriver:=_defaultdbdriver, runtimeOnly:=runtimeOnly)
+                    'now we are not runtime only anymore -> set also the table and let's have a fixed structure
+                ElseIf Not Me.RunTimeOnly Then
+                    _record.SetTable(Me.PrimaryTableID, dbdriver:=_defaultdbdriver)
+                End If
 
+                ''' run on checks
+                If Not _record.IsTableBound AndAlso Not Me.RunTimeOnly Then
+                    Call CoreMessageHandler(subname:="ormDataObject.Initialize", message:="record is not set to table definition", _
+                                            messagetype:=otCoreMessageType.InternalError, tablename:=Me.PrimaryTableID, noOtdbAvailable:=True)
+                    Initialize = False
+                End If
 
-                    If _record.IsTableBound OrElse _RunTimeOnly OrElse runtimeOnly Then
-                        Initialize = True
-                    Else
-                        Call CoreMessageHandler(subname:="ormDataObject.Initialize", message:="record ist not set to tabledefinition", _
-                                                messagetype:=otCoreMessageType.InternalError, tablename:=Me.TableID, noOtdbAvailable:=True)
-                        Initialize = False
-                    End If
-
-                    '*** check on connected status if not bootstrapping
-                    If Not Me.Record.TableStore Is Nothing AndAlso Not Me.Record.TableStore.Connection Is Nothing Then
-                        If Not Me.Record.TableStore.Connection.IsConnected AndAlso Not Me.Record.TableStore.Connection.Session.IsBootstrappingInstallationRequested Then
+                '*** check on connected status if not on runtime
+                If Not Me.RunTimeOnly Then
+                    If Not _record.TableStore Is Nothing AndAlso Not _record.TableStore.Connection Is Nothing Then
+                        If Not _record.TableStore.Connection.IsConnected AndAlso Not _record.TableStore.Connection.Session.IsBootstrappingInstallationRequested Then
                             Call CoreMessageHandler(subname:="ormDataObject.Initialize", message:="TableStore is not connected to database / no connection available", _
                                                     messagetype:=otCoreMessageType.InternalError, noOtdbAvailable:=True)
                             Initialize = False
                         End If
                     End If
-
-                    '** register for caching
-                    'Call Cache.RegisterCacheFor(ObjectTag:=Me.TableID)
-
-                ElseIf Me.TableID = "" Then
-                    Call CoreMessageHandler(subname:="ormDataObject.Initialize", message:="Tablename / id is blank for OTDB object", _
-                                            messagetype:=otCoreMessageType.InternalError, noOtdbAvailable:=True)
-                    Initialize = False
                 End If
 
                 '* default values
                 _updatedOn = ConstNullDate
                 _createdOn = ConstNullDate
-                _deletedOn = ConstNullDate
+                '_deletedOn = ConstNullDate
                 _IsDeleted = False
-                
-                '*** here we could infuse the default values
 
                 '** fire event
-                ourEventArgs = New ormDataObjectEventArgs(object:=Me, record:=Me.Record)
+                ourEventArgs = New ormDataObjectEventArgs(Me, record:=Me.Record, usecache:=Me.UseCache, runtimeOnly:=runtimeOnly)
                 ourEventArgs.Proceed = Initialize
                 RaiseEvent OnInitialized(Me, ourEventArgs)
                 '** set initialized
                 _IsInitialized = ourEventArgs.Proceed
-                Return ourEventArgs.Proceed
+                Return Initialize
             End Function
             ''' <summary>
             ''' load DataObject by Type and Primary Key-Array
@@ -1308,11 +1313,12 @@ Namespace OnTrack
             ''' <param name="pkArray"></param>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public Shared Function InjectDataObject(Of T As {iormInfusable, iormPersistable, New})(pkArray() As Object, Optional domainID As String = "", Optional dbdriver As iormDatabaseDriver = Nothing) As iormPersistable
+            Public Shared Function InjectDataObject(Of T As {iormInfusable, iormPersistable, New})(pkArray() As Object, _
+                                                                                                   Optional domainID As String = "", _
+                                                                                                   Optional dbdriver As iormDatabaseDriver = Nothing) As iormPersistable
                 Dim aDataObject As New T
 
-                If dbdriver IsNot Nothing Then aDataObject.DatabaseDriver = dbdriver
-                If aDataObject.Inject(pkArray, domainID:=domainID) Then
+                If aDataObject.Inject(pkArray, domainID:=domainID, dbdriver:=dbdriver) Then
                     Return aDataObject
                 Else
                     Return Nothing
@@ -1326,8 +1332,10 @@ Namespace OnTrack
             ''' <remarks></remarks>
             Public Overridable Function Inject(ByRef pkArray() As Object, _
                                                Optional domainID As String = "", _
+                                               Optional dbdriver As iormDatabaseDriver = Nothing, _
                                                Optional loadDeleted As Boolean = False) As Boolean Implements iormPersistable.Inject
                 Dim aRecord As ormRecord
+                Dim aStore As iormDataStore
 
                 '* init
                 If Not Me.IsInitialized AndAlso Not Me.Initialize Then
@@ -1358,7 +1366,7 @@ Namespace OnTrack
                     End If
 
                     '** fire event
-                    Dim ourEventArgs As New ormDataObjectEventArgs(Me, record:=aRecord, pkarray:=pkArray, infusemode:=otInfuseMode.OnInject)
+                    Dim ourEventArgs As New ormDataObjectEventArgs(Me, record:=aRecord, pkarray:=pkArray, infusemode:=otInfuseMode.OnInject, runtimeOnly:=Me.RunTimeOnly)
                     ourEventArgs.UseCache = Me.UseCache
                     RaiseEvent OnInjecting(Me, ourEventArgs)
                     If ourEventArgs.AbortOperation Then
@@ -1372,20 +1380,26 @@ Namespace OnTrack
                         aRecord = ourEventArgs.Record
                     End If
 
-                    ''' load from tablestore if we do not have it
+                    ''' load from table store if we do not have it
+                    ''' IMPORTANT ! Still we need the primary Table as only source for the object
                     ''' 
                     If aRecord Is Nothing Then
-                        aRecord = Me.TableStore.GetRecordByPrimaryKey(pkArray)
+                        If dbdriver Is Nothing Then
+                            aStore = Me.TableStore
+                        Else
+                            aStore = dbdriver.GetTableStore(Me.PrimaryTableID)
+                        End If
+                        aRecord = aStore.GetRecordByPrimaryKey(pkArray)
                         '* on domain behavior ? -> reload from  the global domain
                         If Me.HasDomainBehavior AndAlso aRecord Is Nothing AndAlso domainID <> ConstGlobalDomain Then
                             SubstituteDomainIDinPKArray(pkarray:=pkArray, domainid:=ConstGlobalDomain, runtimeOnly:=RunTimeOnly)
-                            aRecord = Me.TableStore.GetRecordByPrimaryKey(pkArray)
+                            aRecord = aStore.GetRecordByPrimaryKey(pkArray)
                         End If
                     End If
 
                     '* still nothing ?!
                     If aRecord Is Nothing Then
-                        _IsLoaded = False
+                        _isLoaded = False
                         Return False
                     Else
                         '* what about deleted objects
@@ -1395,8 +1409,8 @@ Namespace OnTrack
                                     _IsDeleted = True
                                     '* load only on deleted
                                     If Not loadDeleted Then
-                                        _IsLoaded = False
-                                        _IsCreated = False
+                                        _isLoaded = False
+                                        _isCreated = False
                                         Return False
                                     End If
                                 Else
@@ -1404,7 +1418,7 @@ Namespace OnTrack
                                 End If
                             Else
                                 CoreMessageHandler(message:="object has delete per flag behavior but no flag", messagetype:=otCoreMessageType.InternalError, _
-                                                    subname:="ormDataObject.Inject", tablename:=Me.TableID, entryname:=ConstFNIsDeleted)
+                                                    subname:="ormDataObject.Inject", tablename:=Me.PrimaryTableID, entryname:=ConstFNIsDeleted)
                                 _IsDeleted = False
                             End If
                         Else
@@ -1418,23 +1432,23 @@ Namespace OnTrack
                         If InfuseDataObject(record:=aRecord, dataobject:=anewDataobject, mode:=otInfuseMode.OnInject) Then
                             If Me.Guid <> anewDataobject.Guid Then
                                 CoreMessageHandler(message:="object was substituted during infuse", messagetype:=otCoreMessageType.InternalError, _
-                                                    subname:="ormDataObject.Inject", tablename:=Me.TableID, objectname:=Me.ObjectID)
+                                                    subname:="ormDataObject.Inject", tablename:=Me.PrimaryTableID, objectname:=Me.ObjectID)
                                 Return False
                             End If
 
-                            _IsCreated = False
-                            _IsLoaded = True
+                            _isCreated = False
+                            _isLoaded = True
                             _IsChanged = False
                             '** set the primary keys
                             _primaryKeyValues = pkArray
                         End If
 
                         '** fire event
-                        ourEventArgs = New ormDataObjectEventArgs(anewDataobject, record:=Me.Record, pkarray:=pkArray, infuseMode:=otInfuseMode.OnInject)
-                        ourEventArgs.Proceed = _IsLoaded
+                        ourEventArgs = New ormDataObjectEventArgs(anewDataobject, record:=Me.Record, pkarray:=pkArray, infuseMode:=otInfuseMode.OnInject, runtimeOnly:=Me.RunTimeOnly)
+                        ourEventArgs.Proceed = Me.IsLoaded
                         ourEventArgs.UseCache = Me.UseCache
                         RaiseEvent OnInjected(Me, ourEventArgs)
-                        _IsLoaded = ourEventArgs.Proceed
+                        _isLoaded = ourEventArgs.Proceed
 
                         '** return
                         Return Me.IsLoaded
@@ -1467,7 +1481,7 @@ Namespace OnTrack
                 '** record must be alive too
                 If Not Me.Record.Alive Then
                     CoreMessageHandler(message:="record is not alive in data object - cannot persist", messagetype:=otCoreMessageType.InternalError, _
-                                       subname:="ormDataObject.Persist", objectname:=Me.ObjectID, tablename:=Me.TableID)
+                                       subname:="ormDataObject.Persist", objectname:=Me.ObjectID, tablename:=Me.primaryTableID)
                     Return False
                 End If
                 '** check on the operation right for this object
@@ -1493,7 +1507,7 @@ Namespace OnTrack
                     '** fire event
                     Dim ourEventArgs As New ormDataObjectEventArgs(Me, record:=Me.Record, pkarray:=Me.PrimaryKeyValues, _
                                                                    timestamp:=timestamp, usecache:=Me.UseCache, domainID:=DomainID, _
-                                                                   domainBehavior:=Me.HasDomainBehavior)
+                                                                   domainBehavior:=Me.HasDomainBehavior, runtimeOnly:=Me.RunTimeOnly)
                     RaiseEvent ClassOnPersisting(Me, ourEventArgs)
                     If ourEventArgs.AbortOperation Then
                         Return False
@@ -1502,7 +1516,7 @@ Namespace OnTrack
                     End If
 
                     '** fire event
-                     RaiseEvent OnPersisting(Me, ourEventArgs)
+                    RaiseEvent OnPersisting(Me, ourEventArgs)
                     If ourEventArgs.AbortOperation Then
                         Return False
                     Else
@@ -1527,9 +1541,9 @@ Namespace OnTrack
 
                     '** reset flags
                     If Persist Then
-                        _IsCreated = False
+                        _isCreated = False
                         _IsChanged = False
-                        _IsLoaded = True
+                        _isLoaded = True
                         _IsDeleted = False
                     Else
                         _IsDeleted = isdeleted
@@ -1551,6 +1565,7 @@ Namespace OnTrack
             Public Function GetQuery(name As String) As iormQueriedEnumeration Implements iormQueriable.GetQuery
                 Return Me.ObjectDefinition.GetQuery(name:=name)
             End Function
+
             ''' <summary>
             ''' Static Function ALL returns a Collection of all objects
             ''' </summary>
@@ -1608,7 +1623,7 @@ Namespace OnTrack
                                                Return x.ID.ToUpper = "@" & ConstFNDomainID.ToUpper
                                            End Function) Is Nothing Then
                             parameters.Add(New ormSqlCommandParameter(id:="@" & ConstFNDomainID, columnname:=ConstFNDomainID, _
-                                                                      tablename:=anObject.TableID, value:=domainID)
+                                                                      tablename:=anObject.primaryTableID, value:=domainID)
                                            )
                         End If
                         If parameters.Find(Function(x)
@@ -1616,7 +1631,7 @@ Namespace OnTrack
                                            End Function
                                           ) Is Nothing Then
                             parameters.Add(New ormSqlCommandParameter(id:="@Global" & ConstFNDomainID, columnname:=ConstFNDomainID, _
-                                                                      tablename:=anObject.TableID, value:=ConstGlobalDomain)
+                                                                      tablename:=anObject.primaryTableID, value:=ConstGlobalDomain)
                                            )
                         End If
                     End If
@@ -1630,14 +1645,18 @@ Namespace OnTrack
                                            End Function
                                            ) Is Nothing Then
 
-                            parameters.Add(New ormSqlCommandParameter(id:="@" & ConstFNIsDeleted, columnname:=ConstFNIsDeleted, tablename:=anObject.TableID, value:=deleted)
+                            parameters.Add(New ormSqlCommandParameter(id:="@" & ConstFNIsDeleted, columnname:=ConstFNIsDeleted, tablename:=anObject.primaryTableID, value:=deleted)
                                            )
                         End If
                     End If
 
                     ''' get the records
                     aRecordCollection = aStore.GetRecordsBySqlCommand(id:=ID, wherestr:=where, orderby:=orderby, parameters:=parameters)
-
+                    If aRecordCollection Is Nothing Then
+                        CoreMessageHandler(message:="no records returned due to previous errors", subname:="ormDataObject.AllDataObject", arg1:=ID, _
+                                            objectname:=anObject.ObjectID, tablename:=anObject.primaryTableID, messagetype:=otCoreMessageType.InternalError)
+                        Return theObjectList
+                    End If
                     Dim aDomainRecordCollection As New Dictionary(Of String, ormRecord)
                     Dim pknames = aStore.TableSchema.PrimaryKeys
                     Dim domainBehavior As Boolean = False
@@ -2072,11 +2091,17 @@ Namespace OnTrack
                                  Optional checkUnique As Boolean = False, _
                                  Optional runtimeOnly As Boolean = False) As iormPersistable
                 Dim aDataObject As New T
+
+                ''' Substitute the DomainID if necessary
+                If domainID = "" Then domainID = CurrentSession.CurrentDomainID
+                SubstituteDomainIDinPKArray(tablename:=aDataObject.primaryTableID, domainid:=domainID, pkarray:=pkarray, runtimeOnly:=runtimeOnly)
+
                 '** fire event
                 Dim ourEventArgs As New ormDataObjectEventArgs([object]:=TryCast(aDataObject, ormDataObject), _
                                                                record:=aDataObject.Record, _
                                                                pkarray:=pkArray, _
-                                                               usecache:=aDataObject.useCache)
+                                                               usecache:=aDataObject.useCache, _
+                                                               runtimeonly:=runtimeOnly)
                 RaiseEvent ClassOnCreating(Nothing, ourEventArgs)
                 If ourEventArgs.AbortOperation Then
                     If ourEventArgs.Result Then
@@ -2093,7 +2118,8 @@ Namespace OnTrack
                     ourEventArgs = New ormDataObjectEventArgs([object]:=TryCast(aDataObject, ormDataObject), _
                                                                    record:=aDataObject.Record, _
                                                                    pkarray:=pkArray, _
-                                                                   usecache:=aDataObject.useCache)
+                                                                   usecache:=aDataObject.useCache, _
+                                                                   runtimeonly:=runtimeOnly)
                     RaiseEvent ClassOnCreated(Nothing, ourEventArgs)
                     If ourEventArgs.AbortOperation Then
                         If ourEventArgs.Result Then
@@ -2121,11 +2147,19 @@ Namespace OnTrack
                                  Optional checkUnique As Boolean = False, _
                                  Optional runtimeOnly As Boolean = False) As iormPersistable
                 Dim aDataObject As New T
+
+                ''' Get the Primary key
+                Dim pkarray As Object() = ExtractPrimaryKey(record:=record, objectID:=aDataObject.ObjectID, runtimeOnly:=runtimeOnly)
+                ''' Substitute the DomainID if necessary
+                If domainID = "" Then domainID = CurrentSession.CurrentDomainID
+                SubstituteDomainIDinPKArray(tablename:=aDataObject.primaryTableID, domainid:=domainID, pkarray:=pkarray, runtimeOnly:=runtimeOnly)
+
                 '** fire event
                 Dim ourEventArgs As New ormDataObjectEventArgs([object]:=TryCast(aDataObject, ormDataObject), _
                                                                record:=record, _
-                                                               pkarray:=ExtractPrimaryKey(record:=record, objectID:=aDataObject.ObjectID, runtimeOnly:=runtimeOnly), _
-                                                               usecache:=aDataObject.useCache)
+                                                               pkarray:=pkarray, _
+                                                               usecache:=aDataObject.useCache, _
+                                                               runtimeonly:=runtimeOnly)
                 RaiseEvent ClassOnCreating(Nothing, ourEventArgs)
                 If ourEventArgs.AbortOperation Then
                     If ourEventArgs.Result Then
@@ -2142,7 +2176,8 @@ Namespace OnTrack
                     ourEventArgs = New ormDataObjectEventArgs([object]:=TryCast(aDataObject, ormDataObject), _
                                                                    record:=record, _
                                                                    pkarray:=ExtractPrimaryKey(record:=record, objectID:=aDataObject.ObjectID, runtimeOnly:=runtimeOnly), _
-                                                                   usecache:=aDataObject.useCache)
+                                                                   usecache:=aDataObject.useCache, _
+                                                                   runtimeonly:=runtimeOnly)
                     RaiseEvent ClassOnCreated(Nothing, ourEventArgs)
                     If ourEventArgs.AbortOperation Then
                         If ourEventArgs.Result Then
@@ -2208,37 +2243,50 @@ Namespace OnTrack
             End Function
 
             ''' <summary>
-            ''' helper substitutes the DomainID in the primary key
+            ''' substitutes in a primary key array (of a table) the domainid with the current domainid
             ''' </summary>
+            ''' <param name="tablename"></param>
             ''' <param name="pkarray"></param>
+            ''' <param name="domainid"></param>
             ''' <param name="runtimeOnly"></param>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Private Function SubstituteDomainIDinPKArray(ByRef pkarray As Object(), domainid As String, Optional runtimeOnly As Boolean = False) As Boolean
+            Private Shared Function SubstituteDomainIDinPKArray(tablename As String, ByRef pkarray As Object(), domainid As String, Optional runtimeOnly As Boolean = False) As Boolean
                 Dim domindex As Integer = -1
 
-                ''** offer 2 possibilites either by schema if rnot runtime
-                '*** or by ObjectClassDescription on runtimeOnly
                 If Not runtimeOnly Then
-                    domindex = Me.TableSchema.GetDomainIDPKOrdinal
+                    Dim aTabledefinition As TableDefinition = CurrentSession.Objects.GetTable(tablename:=tablename, runtimeOnly:=runtimeOnly)
+                    If aTabledefinition Is Nothing Then
+                        CoreMessageHandler(message:="table defdintion could not be retrieved", subname:="ormDataObject.SubstituteDomainIDinPKArray", _
+                                        arg1:=domainid, tablename:=tablename, columnname:=ConstFNDomainID, messagetype:=otCoreMessageType.InternalError)
+                        Return False
+                    ElseIf Not aTabledefinition.HasDomainBehavior Then
+                        Return True
+                    End If
+                    Dim aSchema = ot.CurrentDBDriver.GetTableSchema(tableID:=tablename)
+                    domindex = aSchema.GetDomainIDPKOrdinal
                     If domindex > 0 Then
                         If domainid = "" Then domainid = CurrentSession.CurrentDomainID
-                        If pkarray.Count = Me.TableSchema.NoPrimaryKeyFields Then
+                        If pkarray.Count = aSchema.NoPrimaryKeyFields Then
                             pkarray(domindex - 1) = UCase(domainid)
                         Else
-                            ReDim Preserve pkarray(Me.TableSchema.NoPrimaryKeyFields)
+                            ReDim Preserve pkarray(aSchema.NoPrimaryKeyFields)
                             pkarray(domindex - 1) = UCase(domainid)
                         End If
                     Else
                         CoreMessageHandler(message:="domainID is not in primary key although domain behavior is set", subname:="ormDataObject.SubstituteDomainIDinPKArray", _
-                                           arg1:=domainid, tablename:=Me.TableID, objectname:=Me.ObjectID, columnname:=ConstFNDomainID, messagetype:=otCoreMessageType.InternalError)
+                                           arg1:=domainid, tablename:=tablename, columnname:=ConstFNDomainID, messagetype:=otCoreMessageType.InternalError)
                         Return False
                     End If
                     Return True
                 Else
-                    Dim anObjectDescription As ObjectClassDescription = ot.GetObjectClassDescription(Me.GetType)
-                    If anObjectDescription IsNot Nothing Then
-                        Dim keynames As String() = anObjectDescription.PrimaryKeyEntryNames
+                    Dim anTableAttribute As ormSchemaTableAttribute = ot.GetTableAttribute(tablename)
+                    If anTableAttribute Is Nothing Then
+                        CoreMessageHandler(message:="table attribute could not be retrieved", subname:="ormDataObject.SubstituteDomainIDinPKArray", _
+                                        arg1:=domainid, tablename:=tablename, columnname:=ConstFNDomainID, messagetype:=otCoreMessageType.InternalError)
+                        Return False
+                    ElseIf (anTableAttribute.HasValueAddDomainBehavior AndAlso anTableAttribute.AddDomainBehavior) Then
+                        Dim keynames As String() = anTableAttribute.PrimaryKeyColumnNames
                         domindex = Array.FindIndex(keynames, Function(s) s.ToLower = Domain.ConstFNDomainID.ToLower)
                         If domindex >= 0 Then
                             If domainid = "" Then domainid = CurrentSession.CurrentDomainID
@@ -2250,16 +2298,30 @@ Namespace OnTrack
                             End If
                         Else
                             CoreMessageHandler(message:="domainID is not in primary key although domain behavior is set", subname:="ormDataObject.SubstituteDomainIDinPKArray", _
-                                         arg1:=domainid, tablename:=Me.TableID, objectname:=Me.ObjectID, columnname:=ConstFNDomainID, messagetype:=otCoreMessageType.InternalError)
+                                         arg1:=domainid, tablename:=tablename, columnname:=ConstFNDomainID, messagetype:=otCoreMessageType.InternalError)
                             Return False
                         End If
                     Else
-                        CoreMessageHandler(message:="an objectclassdescription couldnot be retrieved", subname:="ormDataObject.SubstituteDomainIDinPKArray", _
-                                           arg1:=domainid, tablename:=Me.TableID, objectname:=Me.ObjectID, columnname:=ConstFNDomainID, messagetype:=otCoreMessageType.InternalError)
-                        Return False
+                        Return True
                     End If
-                End If
 
+                    Return True
+                End If
+                Return True
+            End Function
+            ''' <summary>
+            ''' helper substitutes the DomainID in the primary key of the table
+            ''' </summary>
+            ''' <param name="pkarray"></param>
+            ''' <param name="runtimeOnly"></param>
+            ''' <returns></returns>
+            ''' <remarks></remarks>
+            Private Function SubstituteDomainIDinPKArray(ByRef pkarray As Object(), domainid As String, Optional runtimeOnly As Boolean = False) As Boolean
+                If Me.HasDomainBehavior Then
+                    Return SubstituteDomainIDinPKArray(tablename:=Me.PrimaryTableID, pkarray:=pkarray, domainid:=domainid, runtimeOnly:=runtimeOnly)
+                Else
+                    Return True
+                End If
             End Function
 
             ''' <summary>
@@ -2269,13 +2331,13 @@ Namespace OnTrack
             ''' <param name="runtimeOnly"></param>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Private Function CheckUniqueness(pkarray As Object(), Optional runtimeOnly As Boolean = False) As Boolean
+            Private Function CheckUniqueness(pkarray As Object(), record As ormRecord, Optional runtimeOnly As Boolean = False) As Boolean
 
                 '*** Check on Not Runtime
                 If Not runtimeOnly OrElse Me.UseCache Then
                     Dim aRecord As ormRecord
                     '* fire Event and check uniqueness in cache if we have one
-                    Dim ourEventArgs = New ormDataObjectEventArgs(Me, record:=Me.Record, pkarray:=pkarray, usecache:=Me.UseCache)
+                    Dim ourEventArgs = New ormDataObjectEventArgs(Me, record:=record, pkarray:=pkarray, usecache:=Me.UseCache, runtimeOnly:=runtimeOnly)
                     RaiseEvent ClassOnCheckingUniqueness(Me, ourEventArgs)
 
                     '* skip
@@ -2290,7 +2352,7 @@ Namespace OnTrack
                                 If aRecord.HasIndex(ConstFNIsDeleted) Then
                                     If CBool(aRecord.GetValue(ConstFNIsDeleted)) Then
                                         CoreMessageHandler(message:="deleted (per flag) object found - use undelete instead of create", messagetype:=otCoreMessageType.ApplicationWarning, _
-                                                            arg1:=pkarray, tablename:=Me.TableID)
+                                                            arg1:=pkarray, tablename:=Me.primaryTableID)
                                         Return False
                                     End If
                                 End If
@@ -2299,6 +2361,8 @@ Namespace OnTrack
                             End If
 
                         Else
+                            '** use the result to check record on uniqueness
+                            record.IsCreated = True
                             Return True ' unqiue
                         End If
 
@@ -2416,7 +2480,7 @@ Namespace OnTrack
 
                 '** domainid
                 If domainID = "" Then domainID = ConstGlobalDomain
-                
+
 
                 '* extract the primary key
                 pkarray = ExtractPrimaryKey(record, objectID:=Me.ObjectID, runtimeOnly:=runtimeOnly)
@@ -2427,7 +2491,7 @@ Namespace OnTrack
 
                 '** fire event
                 Dim ourEventArgs As New ormDataObjectEventArgs(record:=record, pkarray:=pkarray, object:=Me, infuseMode:=otInfuseMode.OnCreate, _
-                                                               usecache:=Me.UseCache)
+                                                               usecache:=Me.UseCache, runtimeonly:=runtimeOnly)
                 RaiseEvent OnCreating(Me, ourEventArgs)
                 If ourEventArgs.AbortOperation Then
                     Return ourEventArgs.Result
@@ -2438,7 +2502,7 @@ Namespace OnTrack
 
                 '** keys must be set in the object itself
                 '** create
-                If checkUnique AndAlso Not CheckUniqueness(pkarray:=pkarray, runtimeOnly:=runtimeOnly) Then
+                If checkUnique AndAlso Not CheckUniqueness(pkarray:=pkarray, record:=record, runtimeOnly:=runtimeOnly) Then
                     Return False '* not unique
                 End If
 
@@ -2447,6 +2511,7 @@ Namespace OnTrack
 
                 '** set the record
                 Me.Record = record
+
 
                 '** infuse what we have
                 Dim aDataobject = Me
@@ -2460,14 +2525,18 @@ Namespace OnTrack
 
                 '** set status
                 _domainID = domainID
-                _IsCreated = True
+                _isCreated = True
                 _IsDeleted = False
                 _deletedOn = ConstNullDate
-                _IsLoaded = False
+                _isLoaded = False
                 _IsChanged = False
 
                 '* fire Event
-                ourEventArgs = New ormDataObjectEventArgs(Me, record:=Me.Record, pkarray:=pkarray, usecache:=Me.UseCache)
+                ourEventArgs = New ormDataObjectEventArgs(Me, record:=Me.Record, _
+                                                          pkarray:=pkarray, _
+                                                          usecache:=Me.UseCache, _
+                                                          infuseMode:=otInfuseMode.OnCreate, _
+                                                          runtimeonly:=runtimeOnly)
                 RaiseEvent OnCreated(Me, ourEventArgs)
 
                 Return ourEventArgs.Proceed
@@ -2487,7 +2556,7 @@ Namespace OnTrack
                                                   Optional checkUnique As Boolean = False, _
                                                   Optional runtimeOnly As Boolean = False) As Boolean Implements iormPersistable.Create
 
-                Dim aRecord As ormRecord = Me.Record
+
                 '*** add the primary keys
                 '** is a session running ?!
                 If Not runtimeOnly AndAlso Not CurrentSession.IsRunning AndAlso Not CurrentSession.IsStartingUp Then
@@ -2509,9 +2578,9 @@ Namespace OnTrack
                 If domainID = "" Then domainID = ConstGlobalDomain
 
                 '** copy the primary keys
-                CopyPrimaryKeyToRecord(pkArray:=pkArray, record:=aRecord, domainID:=domainID, runtimeOnly:=runtimeOnly)
+                CopyPrimaryKeyToRecord(pkArray:=pkArray, record:=Me.Record, domainID:=domainID, runtimeOnly:=runtimeOnly)
 
-                Return Create(record:=aRecord, domainID:=domainID, checkUnique:=checkUnique, runtimeOnly:=runtimeOnly)
+                Return Create(record:=Me.Record, domainID:=domainID, checkUnique:=checkUnique, runtimeOnly:=runtimeOnly)
             End Function
             ''' <summary>
             ''' clone a dataobject with a new pkarray. return nothing if fails
@@ -2666,7 +2735,7 @@ Namespace OnTrack
                 End If
 
                 '* fire class event
-                Dim ourEventArgs As New ormDataObjectEventArgs(TryCast(aNewObject, ormDataObject), record:=Me.Record, pkarray:=newpkarray)
+                Dim ourEventArgs As New ormDataObjectEventArgs(TryCast(aNewObject, ormDataObject), record:=Me.Record, pkarray:=newpkarray, runtimeOnly:=Me.RunTimeOnly)
                 ourEventArgs.UseCache = Me.UseCache
                 RaiseEvent ClassOnCloning(Me, ourEventArgs)
                 If ourEventArgs.AbortOperation Then
@@ -2684,7 +2753,7 @@ Namespace OnTrack
                     End If
                 End If
                 '* fire object event
-                ourEventArgs = New ormDataObjectEventArgs(TryCast(aNewObject, ormDataObject), record:=Me.Record, pkarray:=newpkarray, usecache:=Me.UseCache)
+                ourEventArgs = New ormDataObjectEventArgs(TryCast(aNewObject, ormDataObject), record:=Me.Record, pkarray:=newpkarray, usecache:=Me.UseCache, runtimeOnly:=Me.RunTimeOnly)
                 RaiseEvent OnCloning(Me, ourEventArgs)
                 If ourEventArgs.AbortOperation Then
                     If ourEventArgs.Result Then
@@ -2702,7 +2771,7 @@ Namespace OnTrack
                 End If
 
                 ' set it
-                If Not Me.RunTimeOnly Then newRecord.SetTable(Me.TableID)
+                If Not Me.RunTimeOnly Then newRecord.SetTable(Me.primaryTableID)
 
                 ' go through the table and overwrite the Record if the rights are there
                 For Each keyname In Me.Record.Keys
@@ -2720,7 +2789,7 @@ Namespace OnTrack
                 ' actually here it we should clone all members too !
                 If aNewObject.Infuse(newRecord) Then
                     '** Fire Event
-                    ourEventArgs = New ormDataObjectEventArgs(TryCast(aNewObject, ormDataObject), record:=aNewObject.Record, pkarray:=newpkarray, usecache:=Me.UseCache)
+                    ourEventArgs = New ormDataObjectEventArgs(TryCast(aNewObject, ormDataObject), record:=aNewObject.Record, pkarray:=newpkarray, runtimeOnly:=Me.RunTimeOnly, usecache:=Me.UseCache)
                     ourEventArgs.Result = True
                     ourEventArgs.Proceed = True
                     RaiseEvent OnCloned(Me, ourEventArgs)
@@ -2739,7 +2808,7 @@ Namespace OnTrack
                         Return Nothing
                     End If
                     '** Fire class Event
-                    ourEventArgs = New ormDataObjectEventArgs(TryCast(aNewObject, ormDataObject), record:=aNewObject.Record, pkarray:=newpkarray, usecache:=Me.UseCache)
+                    ourEventArgs = New ormDataObjectEventArgs(TryCast(aNewObject, ormDataObject), record:=aNewObject.Record, pkarray:=newpkarray, usecache:=Me.UseCache, runtimeOnly:=Me.RunTimeOnly)
                     ourEventArgs.Result = True
                     ourEventArgs.Proceed = True
                     RaiseEvent ClassOnCloned(Me, ourEventArgs)
@@ -2797,7 +2866,7 @@ Namespace OnTrack
                 End If
 
                 '* fire event
-                Dim ourEventArgs As New ormDataObjectEventArgs(Me, record:=Me.Record, pkarray:=Me.PrimaryKeyValues)
+                Dim ourEventArgs As New ormDataObjectEventArgs(Me, record:=Me.Record, pkarray:=Me.PrimaryKeyValues, runtimeOnly:=Me.RunTimeOnly)
                 RaiseEvent OnUnDeleting(Me, ourEventArgs)
                 If ourEventArgs.AbortOperation Then
                     Return ourEventArgs.Result
@@ -2809,7 +2878,9 @@ Namespace OnTrack
                     _IsDeleted = False
                     _deletedOn = ConstNullDate
                     '* fire event
-                    ourEventArgs = New ormDataObjectEventArgs(Me, record:=Me.Record, pkarray:=Me.ExtractPrimaryKey(record:=Me.Record, objectID:=Me.ObjectID, runtimeOnly:=Me.RunTimeOnly), usecache:=Me.UseCache)
+                    ourEventArgs = New ormDataObjectEventArgs(Me, record:=Me.Record, _
+                                                              pkarray:=Me.ExtractPrimaryKey(record:=Me.Record, objectID:=Me.ObjectID, runtimeOnly:=Me.RunTimeOnly), _
+                                                               runtimeOnly:=Me.RunTimeOnly, usecache:=Me.UseCache)
                     ourEventArgs.Result = True
                     ourEventArgs.Proceed = True
                     RaiseEvent OnUnDeleted(Me, ourEventArgs)
@@ -2818,17 +2889,17 @@ Namespace OnTrack
                     End If
                     If ourEventArgs.Result Then
                         CoreMessageHandler(message:="data object undeleted", subname:="ormDataObject.undelete", messagetype:=otCoreMessageType.InternalInfo, _
-                                            tablename:=Me.TableID)
+                                            tablename:=Me.primaryTableID)
                         Return True
                     Else
                         CoreMessageHandler(message:="data object cannot be undeleted by event - delete per flag behavior not set", subname:="ormDataObject.undelete", messagetype:=otCoreMessageType.InternalInfo, _
-                                         tablename:=Me.TableID)
+                                         tablename:=Me.primaryTableID)
                         Return False
                     End If
 
                 Else
                     CoreMessageHandler(message:="data object cannot be undeleted - delete per flag behavior not set", subname:="ormDataObject.undelete", messagetype:=otCoreMessageType.InternalInfo, _
-                                         tablename:=Me.TableID)
+                                         tablename:=Me.primaryTableID)
                     Return False
                 End If
 
@@ -2859,7 +2930,7 @@ Namespace OnTrack
                 End If
 
                 '** Fire Event
-                Dim ourEventArgs As New ormDataObjectEventArgs(Me, record:=Me.Record, pkarray:=Me.PrimaryKeyValues, usecache:=Me.UseCache)
+                Dim ourEventArgs As New ormDataObjectEventArgs(Me, record:=Me.Record, pkarray:=Me.PrimaryKeyValues, usecache:=Me.UseCache, runtimeOnly:=Me.RunTimeOnly)
                 RaiseEvent ClassOnDeleting(Me, ourEventArgs)
                 RaiseEvent OnDeleting(Me, ourEventArgs)
                 If ourEventArgs.AbortOperation Then
@@ -2901,10 +2972,10 @@ Namespace OnTrack
             Private Shared Function InfuseColumnMapping(ByRef dataobject As iormPersistable, ByRef record As ormRecord, mode As otInfuseMode, _
                                                         Optional ByRef classdescriptor As ObjectClassDescription = Nothing) As Boolean
                 '** Fire Event
-                Dim ourEventArgs As New ormDataObjectEventArgs(dataobject, record:=record)
+                Dim ourEventArgs As New ormDataObjectEventArgs(dataobject, record:=record, infuseMode:=mode, runtimeOnly:=dataobject.RuntimeOnly)
                 RaiseEvent ClassOnColumnMappingInfusing(dataobject, ourEventArgs)
                 If ourEventArgs.AbortOperation Then
-                    Return ourEventArgs.Result
+                    Return ourEventArgs.Proceed
                 Else
                     dataobject = ourEventArgs.DataObject
                     record = ourEventArgs.Record
@@ -2928,12 +2999,32 @@ Namespace OnTrack
                                     '*** set the class internal field
                                     aValue = record.GetValue(aColumnName, isNull:=isNull)
 
+                                    ''' check on Default Values on Object level
+                                    ''' on the OnCreate Infuse
+                                    If mode = otInfuseMode.OnCreate AndAlso (isNull OrElse aValue Is Nothing) Then
+                                        ''' during bootstrapping installation we use just the value from class description
+                                        ''' (doesnot matter if runtime or not in this case)
+                                        If CurrentSession.IsBootstrappingInstallationRequested Then
+                                            ''' only if not nullable we use a default value
+                                            If Not classdescriptor.GetObjectEntryAttribute(entryname:=objectentryname).IsNullable Then
+                                                aValue = classdescriptor.GetObjectEntryAttribute(entryname:=objectentryname).DefaultValue
+                                            End If
+                                        Else
+                                            ''' only if not nullable we use a default value
+                                            If Not CurrentSession.Objects.GetObject(classdescriptor.ObjectAttribute.ID).GetEntry(entryname:=objectentryname).isNullable Then
+                                                aValue = CurrentSession.Objects.GetObject(classdescriptor.ObjectAttribute.ID).GetEntry(entryname:=objectentryname).Defaultvalue
+                                            End If
+                                        End If
+                                    End If
+                                    ''' set the value
+                                    ''' 
                                     If Not isNull AndAlso aValue IsNot Nothing Then
                                         If Not Reflector.SetFieldValue(field:=aField, dataobject:=dataobject, value:=aValue) Then
                                             CoreMessageHandler(message:="field value ob data object couldnot be set", _
                                                                 objectname:=dataobject.ObjectID, subname:="ormDataObject.InfuseColumnMapping", _
-                                                                messagetype:=otCoreMessageType.InternalError, entryname:=objectentryname, tablename:=dataobject.TableID)
+                                                                messagetype:=otCoreMessageType.InternalError, entryname:=objectentryname, tablename:=dataobject.primaryTableID)
                                         End If
+
                                     End If
                                 End If
                             End If
@@ -2942,15 +3033,14 @@ Namespace OnTrack
 
 
                     '** Fire Event OnColumnMappingInfused
-                    ourEventArgs = New ormDataObjectEventArgs(dataobject, record:=record)
+                    ourEventArgs = New ormDataObjectEventArgs(dataobject, record:=record, infuseMode:=mode, runtimeOnly:=dataobject.RuntimeOnly)
                     ourEventArgs.Proceed = True
-                    ourEventArgs.Result = True
                     RaiseEvent ClassOnColumnMappingInfused(dataobject, ourEventArgs)
-                    Return ourEventArgs.Result
+                    Return ourEventArgs.Proceed
 
                 Catch ex As Exception
                     Call CoreMessageHandler(subname:="ormDataObject.InfuseColumnMapping", exception:=ex, objectname:=dataobject.ObjectID, _
-                                            entryname:=objectentryname, tablename:=dataobject.TableID)
+                                            entryname:=objectentryname, tablename:=dataobject.primaryTableID)
                     Return False
 
                 End Try
@@ -2994,7 +3084,7 @@ Namespace OnTrack
 
                 Catch ex As Exception
                     Call CoreMessageHandler(subname:="ormDataObject.InfusePrimaryKeys", exception:=ex, objectname:=dataobject.ObjectID, _
-                                            tablename:=dataobject.TableID)
+                                            tablename:=dataobject.primaryTableID)
                     Return False
 
                 End Try
@@ -3029,10 +3119,10 @@ Namespace OnTrack
             Private Shared Function InfuseRelationMapped(ByRef dataobject As iormPersistable, ByRef classdescriptor As ObjectClassDescription, _
                                                          mode As otInfuseMode, Optional relationid As String = "") As Boolean
                 '* Fire Event OnRelationLoading
-                Dim ourEventArgs As New ormDataObjectEventArgs(dataobject, Nothing, relationID:=relationid, infuseMode:=mode)
+                Dim ourEventArgs As New ormDataObjectEventArgs(dataobject, Nothing, relationID:=relationid, infuseMode:=mode, runtimeOnly:=dataobject.RuntimeOnly)
                 ourEventArgs.Proceed = True
                 ourEventArgs.Result = True
-                RaiseEvent ClassOnRelationLoading(dataobject, ourEventArgs)
+                RaiseEvent ClassOnCascadingRelation(dataobject, ourEventArgs)
                 dataobject = ourEventArgs.DataObject
                 If Not ourEventArgs.Proceed Then Return ourEventArgs.Result
 
@@ -3061,7 +3151,7 @@ Namespace OnTrack
                                             If Not Reflector.SetFieldValue(field:=aFieldInfo, dataobject:=dataobject, value:=anObject) Then
                                                 Call CoreMessageHandler(subname:="ormDataObject.InfuseRelationMapped", _
                                                         message:="could not object mapped entry", _
-                                                        arg1:=aFieldInfo.Name, objectname:=dataobject.ObjectID, entryname:=aMappingAttribute.EntryName, tablename:=dataobject.TableID)
+                                                        arg1:=aFieldInfo.Name, objectname:=dataobject.ObjectID, entryname:=aMappingAttribute.EntryName, tablename:=dataobject.primaryTableID)
 
                                             End If
 
@@ -3072,7 +3162,7 @@ Namespace OnTrack
                                             If Not Reflector.SetFieldValue(field:=aFieldInfo, dataobject:=dataobject, value:=anObject) Then
                                                 Call CoreMessageHandler(subname:="ormDataObject.InfuseRelationMapped", _
                                                         message:="could not object mapped entry", _
-                                                        arg1:=aFieldInfo.Name, objectname:=dataobject.ObjectID, entryname:=aMappingAttribute.EntryName, tablename:=dataobject.TableID)
+                                                        arg1:=aFieldInfo.Name, objectname:=dataobject.ObjectID, entryname:=aMappingAttribute.EntryName, tablename:=dataobject.primaryTableID)
 
                                             End If
                                         End If
@@ -3088,7 +3178,7 @@ Namespace OnTrack
                                             If Not Reflector.SetFieldValue(field:=aFieldInfo, dataobject:=dataobject, value:=aList.ToArray) Then
                                                 Call CoreMessageHandler(subname:="ormDataObject.InfuseRelationMapped", _
                                                                        message:="could not object mapped entry", _
-                                                                       arg1:=aFieldInfo.Name, objectname:=dataobject.ObjectID, entryname:=aMappingAttribute.EntryName, tablename:=dataobject.TableID)
+                                                                       arg1:=aFieldInfo.Name, objectname:=dataobject.ObjectID, entryname:=aMappingAttribute.EntryName, tablename:=dataobject.primaryTableID)
 
                                             End If
 
@@ -3098,7 +3188,7 @@ Namespace OnTrack
                                             If Not Reflector.SetFieldValue(field:=aFieldInfo, dataobject:=dataobject, value:=aList) Then
                                                 Call CoreMessageHandler(subname:="ormDataObject.InfuseRelationMapped", _
                                                                         message:="could not object mapped entry", _
-                                                                        arg1:=aFieldInfo.Name, objectname:=dataobject.ObjectID, entryname:=aMappingAttribute.EntryName, tablename:=dataobject.TableID)
+                                                                        arg1:=aFieldInfo.Name, objectname:=dataobject.ObjectID, entryname:=aMappingAttribute.EntryName, tablename:=dataobject.primaryTableID)
                                             End If
 
 
@@ -3120,7 +3210,7 @@ Namespace OnTrack
                                                 If Not Reflector.SetFieldValue(field:=aFieldInfo, dataobject:=dataobject, value:=aDirectory) Then
                                                     Call CoreMessageHandler(subname:="ormDataObject.InfuseRelationMapped", _
                                                             message:="could not object mapped entry", _
-                                                            arg1:=aFieldInfo.Name, objectname:=dataobject.ObjectID, entryname:=aMappingAttribute.EntryName, tablename:=dataobject.TableID)
+                                                            arg1:=aFieldInfo.Name, objectname:=dataobject.ObjectID, entryname:=aMappingAttribute.EntryName, tablename:=dataobject.primaryTableID)
 
                                                 End If
                                             End If
@@ -3139,7 +3229,7 @@ Namespace OnTrack
                                                     aDirectory.Add(key:=aKey, value:=anObject)
                                                 Else
                                                     Call CoreMessageHandler(subname:="ormDataObject.InfuseRelationMapped", message:="cannot convert key to dicitionary from List of iormpersistables", _
-                                                                            objectname:=dataobject.ObjectID, tablename:=dataobject.TableID)
+                                                                            objectname:=dataobject.ObjectID, tablename:=dataobject.primaryTableID)
                                                 End If
                                             Next
 
@@ -3151,18 +3241,18 @@ Namespace OnTrack
                     Next
 
                     '* Fire Event OnRelationLoading
-                    ourEventArgs = New ormDataObjectEventArgs(dataobject, Nothing, , relationID:=relationid, infuseMode:=mode)
+                    ourEventArgs = New ormDataObjectEventArgs(dataobject, Nothing, , relationID:=relationid, infuseMode:=mode, runtimeOnly:=dataobject.RuntimeOnly)
                     '*** Raise Event
                     DirectCast(dataobject, ormDataObject).RaiseOnRelationLoaded(dataobject, ourEventArgs)
                     If Not ourEventArgs.Proceed Then Return False
 
                     '* Fire Event OnRelationLoading
-                    RaiseEvent ClassOnRelationLoaded(dataobject, ourEventArgs)
+                    RaiseEvent ClassOnCascadedRelation(dataobject, ourEventArgs)
                     If ourEventArgs.Result Then dataobject = ourEventArgs.DataObject
                     Return ourEventArgs.Proceed
                 Catch ex As Exception
                     Call CoreMessageHandler(subname:="ormDataObject.InfuseRelationMapped", exception:=ex, objectname:=dataobject.ObjectID, _
-                                            tablename:=dataobject.TableID)
+                                            tablename:=dataobject.primaryTableID)
                     Return False
 
                 End Try
@@ -3181,7 +3271,7 @@ Namespace OnTrack
                 Dim ourEventArgs As New ormDataObjectEventArgs(dataobject, Nothing, relationID:=relationid)
                 ourEventArgs.Proceed = True
                 ourEventArgs.Result = True
-                RaiseEvent ClassOnRelationLoading(dataobject, ourEventArgs)
+                RaiseEvent ClassOnCascadingRelation(dataobject, ourEventArgs)
                 dataobject = ourEventArgs.DataObject
                 If Not ourEventArgs.Proceed Then Return ourEventArgs.Result
 
@@ -3300,12 +3390,12 @@ Namespace OnTrack
                     ourEventArgs = New ormDataObjectEventArgs(dataobject, Nothing, , relationID:=relationid)
                     ourEventArgs.Proceed = True
                     ourEventArgs.Result = True
-                    RaiseEvent ClassOnRelationLoaded(dataobject, ourEventArgs)
+                    RaiseEvent ClassOnCascadedRelation(dataobject, ourEventArgs)
                     dataobject = ourEventArgs.DataObject
                     Return ourEventArgs.Result
                 Catch ex As Exception
                     Call CoreMessageHandler(subname:="ormDataObject.InfuseRelationMapped", exception:=ex, objectname:=dataobject.ObjectID, _
-                                            tablename:=dataobject.TableID)
+                                            tablename:=dataobject.primaryTableID)
                     Return False
 
                 End Try
@@ -3411,7 +3501,7 @@ Namespace OnTrack
 
                             Dim aValue As Object
                             If record.HasIndex(aColumnName) Then
-                                If aField.FieldType.IsValueType OrElse aField.FieldType.Equals(GetType(String)) OrElse _
+                                If aField.FieldType.IsValueType OrElse aField.FieldType.Equals(GetType(String)) OrElse aField.FieldType.Equals(GetType(Object)) OrElse _
                                     aField.FieldType.IsArray OrElse aField.FieldType.GetInterfaces.Contains(GetType(IEnumerable)) Then
                                     '** get the value by hook or slooow
                                     If Not Reflector.GetFieldValue(field:=aField, dataobject:=Me, value:=aValue) Then
@@ -3461,7 +3551,7 @@ Namespace OnTrack
 
                 Catch ex As Exception
 
-                    Call CoreMessageHandler(subname:="ormDataObject.FeedRecord", exception:=ex, tablename:=Me.TableID, objectname:=Me.ObjectID)
+                    Call CoreMessageHandler(subname:="ormDataObject.FeedRecord", exception:=ex, tablename:=Me.primaryTableID, objectname:=Me.ObjectID)
                     Return False
 
                 End Try
@@ -3492,7 +3582,8 @@ Namespace OnTrack
                 Try
                     Dim pkArray = ExtractPrimaryKey(record:=record, objectID:=Me.ObjectID, runtimeOnly:=Me.RunTimeOnly)
                     '** Fire Event
-                    Dim ourEventArgs As New ormDataObjectEventArgs(Me, record:=record, pkarray:=pkArray, usecache:=Me.UseCache)
+                    Dim ourEventArgs As New ormDataObjectEventArgs(Me, record:=record, pkarray:=pkArray, usecache:=Me.UseCache, infusemode:=mode, _
+                                                                   runtimeOnly:=Me.RunTimeOnly)
                     ourEventArgs.Result = True
                     ourEventArgs.AbortOperation = False
                     RaiseEvent OnInfusing(Me, ourEventArgs)
@@ -3502,9 +3593,19 @@ Namespace OnTrack
                         record = ourEventArgs.Record
                     End If
 
-                    ''' set the record according
-                    Me.Record = record
-
+                    ''' merge the record according
+                    ''' Me.Record = record
+                    If _record Is Nothing Then
+                        Me._record = record
+                    Else
+                        Me.MergeRecord(record)
+                    End If
+                    ''' if we have no load nor create state but are infused
+                    ''' 
+                    If Not Me.isloaded AndAlso Not Me.iscreated AndAlso (record.IsCreated Or record.IsLoaded) Then
+                        _isCreated = record.IsCreated
+                        _isLoaded = record.IsLoaded
+                    End If
                     '** default mode value
                     If Not mode.HasValue Then mode = otInfuseMode.OnDefault
 
@@ -3519,22 +3620,24 @@ Namespace OnTrack
                     End If
 
                     '** Fire Event
-                    ourEventArgs = New ormDataObjectEventArgs(Me, record:=record, pkarray:=pkArray, usecache:=Me.UseCache)
-                    ourEventArgs.Result = True
-                    ourEventArgs.AbortOperation = False
+                    ourEventArgs = New ormDataObjectEventArgs(Me, record:=record, pkarray:=pkArray, infusemode:=mode, runtimeOnly:=Me.RunTimeOnly, usecache:=Me.UseCache)
                     RaiseEvent OnInfused(Me, ourEventArgs)
                     If ourEventArgs.AbortOperation Then
-                        Return ourEventArgs.Result
+                        Return ourEventArgs.Proceed
                     Else
-                        record = ourEventArgs.Record
+                        If ourEventArgs.Result Then record = ourEventArgs.Record
                     End If
-                    record.IsLoaded = ourEventArgs.Result
-                    _IsLoaded = ourEventArgs.Result
-                    Return _IsLoaded
+
+                    ''' status
+                    ''' 
+                    _isInfused = True
+                    _InfusionTimeStamp = DateTime.Now
+
+                    Return True
 
                 Catch ex As Exception
                     Call CoreMessageHandler(message:="Exception", exception:=ex, subname:="ormDataObject.Infuse", _
-                                           tablename:=Me.TableID, messagetype:=otCoreMessageType.InternalException)
+                                           tablename:=Me.primaryTableID, messagetype:=otCoreMessageType.InternalException)
                     Return False
                 End Try
 
@@ -3564,6 +3667,7 @@ Namespace OnTrack
             Private _hasDomainBehavior As Boolean = False
             Private _infusemode As otInfuseMode?
             Private _timestamp As DateTime = DateTime.Now
+            Private _runtimeonly As Boolean = False
 
             ''' <summary>
             ''' constructor
@@ -3577,6 +3681,7 @@ Namespace OnTrack
                             Optional domainBehavior As Nullable(Of Boolean) = Nothing, _
                               Optional usecache As Nullable(Of Boolean) = Nothing, _
                             Optional pkarray As Object() = Nothing, _
+                            Optional runtimeOnly As Boolean = False, _
                             Optional infuseMode As otInfuseMode? = Nothing, _
                             Optional timestamp? As DateTime = Nothing)
                 _Object = [object]
@@ -3590,6 +3695,7 @@ Namespace OnTrack
                 If timestamp.HasValue Then _timestamp = timestamp
                 _pkarray = pkarray
                 _result = True
+                _runtimeonly = runtimeOnly
                 _Abort = False
             End Sub
 

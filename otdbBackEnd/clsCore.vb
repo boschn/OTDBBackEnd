@@ -955,8 +955,15 @@ Namespace OnTrack
 
 
         End Function
-
-
+        ''' <summary>
+        ''' Abort the Starting up if possible
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function RequestToAbortStartingUp() As Boolean
+            _IsStartupRunning = False
+            Return Not _IsStartupRunning
+        End Function
         ''' <summary>
         ''' requests and checks if an end of bootstrap is possible 
         ''' </summary>
@@ -970,22 +977,25 @@ Namespace OnTrack
                 Return False
             End If
 
-
             If Me.IsBootstrappingInstallationRequested Then
                 '** check should not only be on existence also on the columns
                 If Not CurrentDBDriver.VerifyOnTrackDatabase Then
-                    Return False
-                End If
-                '** raise event
-                RaiseEvent EndOfBootStrapInstallation(Me, New SessionEventArgs(Me))
-
-                Call CoreMessageHandler(subname:="Session.RequestEndofBootstrap", message:="bootstrapping ended", _
+                    '** raise event
+                    RaiseEvent EndOfBootStrapInstallation(Me, New SessionEventArgs(Me, abortOperation:=True))
+                    Call CoreMessageHandler(subname:="Session.RequestEndofBootstrap", message:="bootstrapping aborted - verify failed", _
                                         arg1:=Me.SessionID, messagetype:=otCoreMessageType.InternalInfo)
-                Me.IsBootstrappingInstallationRequested = False
-                Me.IsInstallationRunning = False
-
-
-                Return True
+                    Me.IsBootstrappingInstallationRequested = False
+                    Me.IsInstallationRunning = False
+                    Return False ' return false to indicate that state is not ok
+                Else
+                    '** raise event
+                    RaiseEvent EndOfBootStrapInstallation(Me, New SessionEventArgs(Me))
+                    Call CoreMessageHandler(subname:="Session.RequestEndofBootstrap", message:="bootstrapping ended", _
+                                        arg1:=Me.SessionID, messagetype:=otCoreMessageType.InternalInfo)
+                    Me.IsBootstrappingInstallationRequested = False
+                    Me.IsInstallationRunning = False
+                    Return True
+                End If
             Else
                 Return True
             End If
@@ -1019,8 +1029,12 @@ Namespace OnTrack
                 Return Me.RequestUserAccess(accessRequest:=accessRequest, username:=anUsername, domainID:=domainID, loginOnFailed:=reLogin)
             Else
                 If domainID = "" Then domainID = ConstGlobalDomain
-                Me.StartUp(AccessRequest:=accessRequest, domainID:=domainID)
-                Return Me.ValidateAccessRights(accessrequest:=accessRequest, domainid:=domainID)
+                If Me.StartUp(AccessRequest:=accessRequest, domainID:=domainID) Then
+                    Return Me.ValidateAccessRights(accessrequest:=accessRequest, domainid:=domainID)
+                Else
+                    CoreMessageHandler(message:="failed to startup a session", subname:="Session.RequireAccessRight", messagetype:=otCoreMessageType.InternalError)
+                    Return False
+                End If
             End If
 
         End Function
@@ -1508,6 +1522,9 @@ Namespace OnTrack
                 If _primaryDBDriver Is Nothing Then
                     CoreMessageHandler(message:="primary database driver is not set", messagetype:=otCoreMessageType.InternalError, _
                                        subname:="Session.Startup")
+                    '** reset
+                    If IsBootstrappingInstallationRequested Then Me.RequestEndofBootstrap()
+                    Me.IsRunning = False
                     Me.IsStartingUp = False
                     Return False
                 End If
@@ -1522,6 +1539,10 @@ Namespace OnTrack
                     CoreMessageHandler(showmsgbox:=True, message:="Verifying the OnTrack Database failed. The Tooling schema version of # " & ot.SchemaVersion & _
                                        " is less than the database schema version of #" & aValue & " - Session could not start up", _
                                        messagetype:=otCoreMessageType.InternalError, subname:="Session.Startup")
+                    '** reset
+                    If IsBootstrappingInstallationRequested Then Me.RequestEndofBootstrap()
+                    Me.IsRunning = False
+                    Me.IsStartingUp = False
                     Return False
                 ElseIf ot.SchemaVersion > Convert.ToUInt64(aValue) Then
                     result = _primaryDBDriver.VerifyOnTrackDatabase(install:=installIfNecessary, modules:=ot.InstalledModules, verifySchema:=False)
@@ -1534,11 +1555,25 @@ Namespace OnTrack
                         result = True
                     End If
                 End If
+                '** the starting up aborted
+                If Not Me.IsStartingUp Then
+                    CoreMessageHandler(message:="Startup of Session was aborted", _
+                                       messagetype:=otCoreMessageType.InternalInfo, subname:="Session.Startup")
+                    '** reset
+                    If IsBootstrappingInstallationRequested Then Me.RequestEndofBootstrap()
+                    Me.IsRunning = False
+                    Me.IsStartingUp = False
+                    Return False
+                End If
 
                 '** the installation failed
                 If Not result And installIfNecessary Then
                     CoreMessageHandler(showmsgbox:=True, message:="Verifying and Installing the OnTrack Database failed - Session could not start up", _
                                        messagetype:=otCoreMessageType.InternalError, subname:="Session.Startup")
+                    '** reset
+                    If IsBootstrappingInstallationRequested Then Me.RequestEndofBootstrap()
+                    Me.IsRunning = False
+                    Me.IsStartingUp = False
                     Return False
                 ElseIf Not installIfNecessary And Not result Then
                     CoreMessageHandler(showmsgbox:=True, message:="Verifying  the OnTrack Database failed - Session will be started anyway on demand", _
@@ -1548,17 +1583,43 @@ Namespace OnTrack
                 '** request access
                 If RequestUserAccess(accessRequest:=AccessRequest, username:=OTDBUsername, _
                                     password:=OTDBPassword, domainID:=_CurrentDomainID, loginOnDisConnected:=True, loginOnFailed:=True, messagetext:=messagetext.Clone) Then
-                    '** Connect 
-                    Return _primaryConnection.Connect(FORCE:=True, _
+                    '** the starting up aborted
+                    If Not Me.IsStartingUp Then
+                        CoreMessageHandler(message:="Startup of Session was aborted", _
+                                           messagetype:=otCoreMessageType.InternalInfo, subname:="Session.Startup")
+                        '** reset
+                        If IsBootstrappingInstallationRequested Then Me.RequestEndofBootstrap()
+                        Me.IsRunning = False
+                        Me.IsStartingUp = False
+                        Return False
+                    End If
+
+                    ''' Connect - if we return we are not starting up again we have started
+                    '''
+                    If Not _primaryConnection.Connect(FORCE:=True, _
                                                       access:=AccessRequest, _
                                                       domainID:=domainID, _
                                                       OTDBUsername:=OTDBUsername, _
                                                       OTDBPassword:=OTDBPassword, _
-                                                      doLogin:=True)
+                                                      doLogin:=True) Then
+                       
+                        ''' start up message
+                        CoreMessageHandler(message:="Could not connect to OnTrack Database though primary connection", arg1:=_primaryConnection.ID, _
+                                                      messagetype:=otCoreMessageType.InternalError, subname:="Session.Startup")
+                        '** reset
+                        If IsBootstrappingInstallationRequested Then Me.RequestEndofBootstrap()
+                        Me.IsRunning = False
+                        Me.IsStartingUp = False
+                        Return False
+                    End If
+                   
                     '** Initialize through events
                 Else
-                    CoreMessageHandler(message:="user could not be verified", messagetype:=otCoreMessageType.InternalInfo, _
+                    CoreMessageHandler(message:="user could not be verified - abort to start up a session", messagetype:=otCoreMessageType.InternalInfo, arg1:=OTDBUsername, _
                                        subname:="Session.Startup")
+                    '** reset
+                    If IsBootstrappingInstallationRequested Then Me.RequestEndofBootstrap()
+                    Me.IsRunning = False
                     Me.IsStartingUp = False
                     Return False
                 End If
@@ -1791,6 +1852,17 @@ Namespace OnTrack
                                                 messagetype:=otCoreMessageType.InternalInfo, _
                                                 subname:="Session.startupSesssionEnviorment")
                     End If
+                    '** the starting up aborted
+                    If Not Me.IsStartingUp Then
+                        CoreMessageHandler(message:="Startup of Session was aborted", _
+                                           messagetype:=otCoreMessageType.InternalInfo, subname:="Session.StartupSessionEnviorment")
+                        '** reset
+                        If IsBootstrappingInstallationRequested Then Me.RequestEndofBootstrap()
+                        Me.IsRunning = False
+                        Me.IsStartingUp = False
+                        Return False
+                    End If
+
                     '*** get the Schema Version
                     aValue = _primaryDBDriver.GetDBParameter(ConstPNBootStrapSchemaChecksum, silent:=True)
                     If aValue Is Nothing OrElse Not IsNumeric(aValue) Then
@@ -1798,7 +1870,16 @@ Namespace OnTrack
                     ElseIf ot.GetBootStrapSchemaChecksum <> Convert.ToUInt64(aValue) Then
                         _primaryDBDriver.VerifyOnTrackDatabase()
                     End If
-
+                    '** the starting up aborted
+                    If Not Me.IsStartingUp Then
+                        CoreMessageHandler(message:="Startup of Session was aborted", _
+                                           messagetype:=otCoreMessageType.InternalInfo, subname:="Session.StartupSessionEnviorment")
+                        '** reset
+                        If IsBootstrappingInstallationRequested Then Me.RequestEndofBootstrap()
+                        Me.IsRunning = False
+                        Me.IsStartingUp = False
+                        Return False
+                    End If
                     '*** set started
                     Me.IsStartingUp = False
                     IsRunning = True
@@ -1809,10 +1890,14 @@ Namespace OnTrack
                 Return IsRunning
 
             Catch ex As ormNoConnectionException
+                Me.IsRunning = False
+                Me.IsStartingUp = False
                 Return False
 
             Catch ex As Exception
                 CoreMessageHandler(exception:=ex, subname:="Session.StartupSessionEnviorment")
+                Me.IsRunning = False
+                Me.IsStartingUp = False
                 Return False
             End Try
 
@@ -1919,12 +2004,24 @@ Namespace OnTrack
         Private _Session As Session
         Private _NewDomain As Domain
         Private _newConfigSetName As String
+        Private _abortOperation As Boolean
 
-        Public Sub New(Session As Session, Optional newDomain As Domain = Nothing, Optional newConfigsetName As String = Nothing)
+        Public Sub New(Session As Session, Optional newDomain As Domain = Nothing, Optional abortOperation As Boolean = False, Optional newConfigsetName As String = Nothing)
             _Session = Session
             _NewDomain = newDomain
+            _abortOperation = abortOperation
             If newConfigsetName IsNot Nothing Then _newConfigSetName = newConfigsetName
         End Sub
+        ''' <summary>
+        ''' Gets the abort operation.
+        ''' </summary>
+        ''' <value>The abort operation.</value>
+        Public ReadOnly Property AbortOperation() As Boolean
+            Get
+                Return Me._abortOperation
+            End Get
+        End Property
+
         ''' <summary>
         ''' Gets or sets the new domain ID.
         ''' </summary>
@@ -2070,7 +2167,7 @@ Namespace OnTrack
     ''' </summary>
     ''' <remarks></remarks>
 
-    <ormObject(id:=SessionLogMessage.ConstObjectID, modulename:=ConstModuleCore, Version:=1)> Public Class SessionLogMessage
+    <ormObject(id:=SessionLogMessage.ConstObjectID, description:="message generated during an OnTrack session", modulename:=ConstModuleCore, Version:=1)> Public Class SessionLogMessage
         Inherits ormDataObject
         Implements iormPersistable
         Implements iormInfusable
@@ -2422,19 +2519,19 @@ Namespace OnTrack
         Function Clone() As Object Implements System.ICloneable.Clone
             Dim aClone As New SessionLogMessage
             With aClone
-                .Tag = Me.Tag.Clone
-                .ID = Me.ID.Clone
+                If Me.Tag IsNot Nothing Then .Tag = Me.Tag.Clone
+                If Me.ID IsNot Nothing Then .ID = Me.ID.Clone
                 .Exception = Me.Exception
-                .Username = Me.Username.Clone
+                If Me.Username IsNot Nothing Then .Username = Me.Username.Clone
                 .Entryno = Me.Entryno
-                .Tablename = Me.Tablename.Clone
-                .Columnname = Me.Columnname.Clone
-                .Message = Me.Message.Clone
+                If Me.Tablename IsNot Nothing Then .Tablename = Me.Tablename.Clone
+                If Me.Columnname IsNot Nothing Then .Columnname = Me.Columnname.Clone
+                If Me.Message IsNot Nothing Then .Message = Me.Message.Clone
                 .messagetype = Me.messagetype
                 .Timestamp = Me.Timestamp
                 .StackTrace = Me.StackTrace
-                .Objectname = Me.Objectname.Clone
-                .ObjectEntry = Me.ObjectEntry.Clone
+                If Me.Objectname IsNot Nothing Then .Objectname = Me.Objectname.Clone
+                If Me.ObjectEntry IsNot Nothing Then .ObjectEntry = Me.ObjectEntry.Clone
             End With
 
             Return aClone
@@ -3126,7 +3223,7 @@ Namespace OnTrack
             Dim initialEntry As New ObjectLogMessage
             Dim m As Object
 
-            If Not Me.IsCreated And Not _IsLoaded Then
+            If Not Me.IsCreated And Not Me.isloaded Then
                 Delete = False
                 Exit Function
             End If
@@ -3145,9 +3242,9 @@ Namespace OnTrack
             'End If
             's_members.add value:=anEntry
 
-            _IsCreated = True
-            _IsDeleted = True
-            _IsLoaded = False
+            'Me.IsCreated = True
+            '_IsDeleted = True
+            'Me.isloaded = False
 
         End Function
 
@@ -3494,7 +3591,7 @@ Namespace OnTrack
         '        's_description = CStr(aRecord.getValue("desc"))
 
         '        Infuse = MyBase.Infuse(record)
-        '        _IsLoaded = True
+        '        me.isloaded = True
         '        Exit Function
 
         '    Catch ex As Exception
@@ -3553,12 +3650,12 @@ Namespace OnTrack
             'aRecordCollection = aTable.GetRecordsBySql(wherestr:="tag = '" & TAG & "'", orderby:=" id asc")
             '' record collection
             'If aRecordCollection Is Nothing Then
-            '    _IsLoaded = False
+            '    me.isloaded = False
             '    Inject = False
             '    Exit Function
             'Else
             '    s_tag = TAG
-            '    _IsLoaded = True
+            '    me.isloaded = True
             '    ' records read
             '    For Each aRecord In aRecordCollection
 
@@ -3569,7 +3666,7 @@ Namespace OnTrack
             '        End If
             '    Next aRecord
             '    '
-            '    _IsLoaded = True
+            '    me.isloaded = True
             '    Inject = True
             '    Exit Function
             'End If
@@ -3578,7 +3675,7 @@ Namespace OnTrack
 
 
 error_handler:
-            _IsLoaded = False
+            'Me.isloaded = False
             Inject = True
             Exit Function
         End Function

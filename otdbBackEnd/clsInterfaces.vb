@@ -226,7 +226,7 @@ Namespace OnTrack.IFM
 '            _updatedOn = CDate(aRecord.GetValue(ConstFNUpdatedOn))
 
 '            infuse = MyBase.Infuse(aRecord)
-'            _IsLoaded = infuse
+'            me.isloaded = infuse
 '            Exit Function
 
 'errorhandle:
@@ -240,7 +240,7 @@ Namespace OnTrack.IFM
         '****
         Public Function getICD() As clsOTDBICD
 
-            If _IsLoaded Then
+            If me.isloaded Then
                 Dim anewICD As New clsOTDBICD
                 If anewICD.Inject(Me.icdid, Me.icdrev) Then
                     getICD = anewICD
@@ -263,7 +263,7 @@ Namespace OnTrack.IFM
             Dim assycode As String
             Dim Value As String
 
-            If _IsLoaded Then
+            If me.isloaded Then
                 If pairno = 1 Then
                     assycode = Me.assy1
                 ElseIf pairno = 2 Then
@@ -358,7 +358,7 @@ Namespace OnTrack.IFM
                 Exit Function
             Else
                 Me.Record = aRecord
-                _IsLoaded = Me.infuse(Me.Record)
+                'me.isloaded = Me.infuse(Me.Record)
                 Inject = Me.IsLoaded
                 Exit Function
             End If
@@ -727,7 +727,7 @@ error_handler:
 '            _updatedOn = CDate(aRecord.GetValue(ConstFNUpdatedOn))
 
 '            infuse = MyBase.Infuse(aRecord)
-'            _IsLoaded = infuse
+'            me.isloaded = infuse
 '            Exit Function
 
 'errorhandle:
@@ -763,7 +763,7 @@ error_handler:
                 Exit Function
             Else
                 Me.Record = aRecord
-                _IsLoaded = Me.infuse(Me.Record)
+                'me.isloaded = Me.infuse(Me.Record)
                 Inject = Me.IsLoaded
                 Exit Function
             End If

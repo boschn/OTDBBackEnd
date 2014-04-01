@@ -28,12 +28,11 @@ Imports OnTrack.Deliverables
 
 Namespace OnTrack.Parts
 
-
-    '************************************************************************************
-    '***** CLASS Part is the object for a OTDBRecord (which is the datastore)
-    '*****
-    '*****
-    <ormObject(id:=Part.ConstObjectID, modulename:=ConstModuleParts, Version:=1)> _
+    ''' <summary>
+    ''' part and assembly definition with reference link to deliverables
+    ''' </summary>
+    ''' <remarks></remarks>
+    <ormObject(id:=Part.ConstObjectID, description:="part and assembly definition with reference link to deliverables", modulename:=ConstModuleParts, Version:=1)> _
     Public Class Part
         Inherits ormDataObject
         Implements iormInfusable
@@ -803,7 +802,7 @@ error_handler:
         Public Function GetDeliverable() As Deliverable
             Dim aDeliverable As New Deliverable
 
-            'If _IsLoaded Then
+            'If me.isloaded Then
             '    Set getDeliverable = New clsOTDBDeliverable
             '    If Not getDeliverable.Inject(Me.partid) Then
             '        Set getDeliverable = Nothing
@@ -817,7 +816,7 @@ error_handler:
             Dim aCollection As List(Of Deliverable)
             Dim aDocument As Deliverable
 
-            If _IsLoaded Then
+            If me.isloaded Then
                 ' get the Table from the Factory
                 aCollection = aDeliverable.AllByPnid(Me.PartID)
                 If Not aCollection Is Nothing And aCollection.Count > 0 Then
@@ -838,7 +837,7 @@ error_handler:
             Dim substrings() As String
 
             On Error GoTo error_handler
-            If _IsLoaded Then
+            If me.isloaded Then
                 substrings = Split(Me.PartID, "-")
                 If UBound(substrings) < 3 And UBound(substrings) > 0 Then
                     assycode = Mid(substrings(1), 1, 2) & "." & Mid(substrings(1), 3, 2) & "." & Mid(substrings(1), 5, 2)
@@ -870,7 +869,7 @@ error_handler:
             Throw New NotImplementedException()
 
 
-            If _IsLoaded Then
+            If me.isloaded Then
 
                 ourAssyCode = Me.GetAssycode()
                 'get the interfaces
@@ -938,7 +937,7 @@ error_handler:
             Dim aDir As New Dictionary(Of String, Object)
             Dim flag As Boolean
 
-            If _IsLoaded Then
+            If me.isloaded Then
 
                 'get AssyCode of this Assy
                 ourAssyCode = Me.GetAssycode()
@@ -1039,7 +1038,7 @@ error_handler:
             If reload Or s_interfaceCollection.Count = 0 Then
             End If
 
-            If _IsLoaded Then
+            If me.isloaded Then
                 selectCartypes = Me.GetCartypes
                 If Me.GetCartypes.nousedCars = 0 Then
                     Call CoreMessageHandler(subname:="Part.getInterfaces", message:="cartypes are not selected for any car", break:=False)
@@ -1059,7 +1058,7 @@ error_handler:
         '****** getDeliverables return the Documents in a Collection
         '******
         Public Function GetDeliverables() As List(Of Deliverable)
-            If _IsLoaded Then
+            If me.isloaded Then
                 ' get the Table from the Factory
                 Return Deliverable.AllByPnid(partid:=Me.PartID)
             Else
@@ -1075,7 +1074,7 @@ error_handler:
             Dim i As Integer
             Dim ourCartypes As clsCartypes
 
-            If Not _IsLoaded And Not Me.IsCreated Then
+            If Not me.isloaded And Not Me.IsCreated Then
                 MatchWithCartypes = False
             End If
 
@@ -1104,7 +1103,7 @@ error_handler:
             Dim fieldname As String
 
 
-            If Not _IsLoaded Then
+            If Not me.isloaded Then
                 GetCartypes = Nothing
                 Exit Function
             End If
@@ -1145,7 +1144,7 @@ error_handler:
         '*********
         Public Function GetPrecode() As String
 
-            If _IsLoaded Or Me.IsCreated Then
+            If me.isloaded Or Me.IsCreated Then
                 GetPrecode = Mid(Me.PartID, 1, 1) & "." & UCase(Mid(Me.PartID, 2, 3)) & "-"
             Else
                 GetPrecode = ""

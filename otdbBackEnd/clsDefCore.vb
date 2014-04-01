@@ -469,15 +469,9 @@ Namespace OnTrack
         ''' <param name="workspaceID"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function Create(ByVal domainID As String, ByVal id As String) As Boolean
+        Public Shared Function Create(ByVal domainID As String, ByVal id As String) As DomainSetting
             Dim primarykey() As Object = {UCase(domainID), UCase(id)}
-            If MyBase.Create(primarykey, checkUnique:=False) Then
-                _DomainID = UCase(domainID)
-                _ID = UCase(id)
-                Return True
-            Else
-                Return False
-            End If
+            Return ormDataObject.CreateDataObject(Of DomainSetting)(primarykey, checkUnique:=False)
         End Function
 
     End Class
@@ -873,6 +867,10 @@ Namespace OnTrack
           XID:="UR3", title:="Read Data Right", description:="has user the right to read the database data")> Public Const ConstFNReadData = "readdata"
         <ormObjectEntry(typeid:=otFieldDataType.Bool, _
           XID:="UR4", title:="No Access", description:="has user no access")> Public Const ConstFNNoAccess = "noright"
+        'overwrite the Domain ID
+        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, _
+            defaultvalue:=ConstGlobalDomain, dbdefaultvalue:=ConstGlobalDomain, _
+            useforeignkey:=otForeignKeyImplementation.None)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
         '** relations
         '* Members
@@ -2156,7 +2154,7 @@ Namespace OnTrack
 #End Region
 
         Public Function GetStatusCodeOf(ByVal typeid As String) As String
-            If Not _IsLoaded And Not Me.IsCreated Then
+            If Not Me.isloaded And Not Me.IsCreated Then
                 GetStatusCodeOf = ""
                 Exit Function
             End If
@@ -2843,7 +2841,7 @@ Namespace OnTrack
         Public Const ConstObjectID = "Workspace"
 
         '** Table Schema
-        <ormSchemaTableAttribute(Version:=2, adddeletefieldbehavior:=True)> Public Const ConstTableID As String = "tblDefWorkspaces"
+        <ormSchemaTableAttribute(Version:=2, adddomainBehavior:=False, adddeletefieldbehavior:=True)> Public Const ConstTableID As String = "tblDefWorkspaces"
 
         '** primary Keys
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, primaryKeyordinal:=1, _
@@ -2853,11 +2851,11 @@ Namespace OnTrack
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=255, _
             XID:="WS1", title:="Description")> Public Const ConstFNDescription = "desc"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Text, innertypeid:=otFieldDataType.Text, _
+        <ormObjectEntry(typeid:=otFieldDataType.List, innertypeid:=otFieldDataType.Text, _
             XID:="WS2", title:="forecast lookup order", description:="Forecasts milestones are lookup in this order. Must include this workspaceID ID.")> _
         Public Const ConstFNFCRelyOn = "fcrelyOn"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Text, innertypeid:=otFieldDataType.Text, _
+        <ormObjectEntry(typeid:=otFieldDataType.List, innertypeid:=otFieldDataType.Text, _
             XID:="WS3", title:="actual lookup order", description:="Actual milestones are looked up in this order. Must include this workspaceID ID")> _
         Public Const ConstFNActRelyOn = "actrelyOn"
 
@@ -2868,39 +2866,38 @@ Namespace OnTrack
               XID:="WS5", title:="has actuals", description:="if set this workspaceID has actual milestones") _
                > Public Const ConstFNHasAct = "hasact"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Text, _
-          XID:="WS6", title:="accesslist", description:="Accesslist") _
-           > Public Const ConstFNAccesslist = "acclist"
+        <ormObjectEntry(typeid:=otFieldDataType.List, innertypeid:=otFieldDataType.Text, size:=255, _
+          XID:="WS6", title:="accesslist", description:="Accesslist")> Public Const ConstFNAccesslist = "acclist"
 
-        <ormObjectEntry(typeid:=otFieldDataType.[Long], defaultValue:="0", _
+        <ormObjectEntry(typeid:=otFieldDataType.[Long], defaultValue:=0, _
               XID:="WS7", title:="min schedule updc", description:="Minimum update counter for schedules of this workspaceID") _
-               > Public Const ConstMinScheduleUPC = "minsupdc"
+               > Public Const ConstFNMinScheduleUPC = "minsupdc"
 
-        <ormObjectEntry(typeid:=otFieldDataType.[Long], defaultValue:="0", _
+        <ormObjectEntry(typeid:=otFieldDataType.[Long], defaultValue:=9999, _
               XID:="WS8", title:="max schedule updc", description:="Maximum update counter for schedules of this workspaceID") _
                > Public Const ConstFNMaxScheduleUPC = "maxsupdc"
 
-        <ormObjectEntry(typeid:=otFieldDataType.[Long], defaultValue:="0", _
+        <ormObjectEntry(typeid:=otFieldDataType.[Long], defaultValue:=0, _
               XID:="WS9", title:="min target updc", description:="Minimum update counter for targets of this workspaceID") _
                > Public Const ConstFNMinTargetUPDC = "mintupdc"
 
-        <ormObjectEntry(typeid:=otFieldDataType.[Long], defaultValue:="0", _
+        <ormObjectEntry(typeid:=otFieldDataType.[Long], defaultValue:=9999, _
               XID:="WS10", title:="max target updc", description:="Minimum update counter for target of this workspaceID") _
-               > Public Const ConstMaxTargetUPDC = "maxtupdc"
+               > Public Const ConstFNMaxTargetUPDC = "maxtupdc"
 
         ' fields
         <ormEntryMapping(EntryName:=ConstFNID)> Private _ID As String = ""
         <ormEntryMapping(EntryName:=ConstFNDescription)> Private _description As String = ""
         <ormEntryMapping(EntryName:=ConstFNIsBase)> Private _isBasespace As Boolean
         <ormEntryMapping(EntryName:=ConstFNHasAct)> Private _hasActuals As Boolean
-        <ormEntryMapping(EntryName:=ConstFNFCRelyOn)> Private _fcrelyingOn As String = ""
-        <ormEntryMapping(EntryName:=ConstFNActRelyOn)> Private _actrelyingOn As String = ""
-        <ormEntryMapping(EntryName:=ConstFNAccesslist)> Private _accesslistID As String = ""
+        <ormEntryMapping(EntryName:=ConstFNFCRelyOn)> Private _fcrelyingOn As String()
+        <ormEntryMapping(EntryName:=ConstFNActRelyOn)> Private _actrelyingOn As String()
+        <ormEntryMapping(EntryName:=ConstFNAccesslist)> Private _accesslistID As String()
 
-        <ormEntryMapping(EntryName:=ConstMinScheduleUPC)> Private _min_schedule_updc As Long
+        <ormEntryMapping(EntryName:=ConstFNMinScheduleUPC)> Private _min_schedule_updc As Long
         <ormEntryMapping(EntryName:=ConstFNMaxScheduleUPC)> Private _max_schedule_updc As Long
         <ormEntryMapping(EntryName:=ConstFNMinTargetUPDC)> Private _min_target_updc As Long
-        <ormEntryMapping(EntryName:=ConstMaxTargetUPDC)> Private _max_target_updc As Long
+        <ormEntryMapping(EntryName:=ConstFNMaxTargetUPDC)> Private _max_target_updc As Long
 
         ' dynamics
         Private _fc_wspace_stack As New List(Of String)
@@ -2915,7 +2912,7 @@ Namespace OnTrack
         Public Sub New()
             Call MyBase.New(ConstTableID)
         End Sub
-
+#Region "Properties"
         ''' <summary>
         ''' Gets or sets the domain ID.
         ''' </summary>
@@ -2925,26 +2922,30 @@ Namespace OnTrack
                 Return Me._domainID
             End Get
             Set(value As String)
-                Me._domainID = value
+                SetValue(ConstFNDomainID, value)
             End Set
         End Property
 
-#Region "Properties"
+        ''' <summary>
+        ''' get the ID of the Workspace
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
 
         <ormPropertyMappingAttribute(ID:="ID", fieldname:=ConstFNID, tablename:=ConstTableID)> ReadOnly Property ID() As String
             Get
-                ID = _ID
+                Return _ID
             End Get
 
         End Property
 
         Public Property Description() As String
             Get
-                Description = _description
+                Return _description
             End Get
             Set(value As String)
-                _description = value
-                Me.IsChanged = True
+                SetValue(ConstFNDescription, value)
             End Set
         End Property
 
@@ -2954,144 +2955,119 @@ Namespace OnTrack
                 IsBasespace = _isBasespace
             End Get
             Set(value As Boolean)
-                _isBasespace = value
-                Me.IsChanged = True
+                SetValue(ConstFNIsBase, value)
             End Set
         End Property
 
         Public Property HasActuals() As Boolean
             Get
-                HasActuals = _hasActuals
+                Return _hasActuals
             End Get
             Set(value As Boolean)
-                _hasActuals = value
-                Me.IsChanged = True
+                SetValue(ConstFNHasAct, value)
             End Set
         End Property
-
+        ''' <summary>
+        ''' gets or sets the forecast milestone workspaces in order 
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
 
         Public Property FCRelyingOn() As String()
             Get
-                FCRelyingOn = SplitMultbyChar(text:=_fcrelyingOn, DelimChar:=ConstDelimiter)
-                If Not IsArrayInitialized(FCRelyingOn) Then
-                    FCRelyingOn = New String() {}
-                End If
+                Return _fcrelyingOn
             End Get
-            Set(avalue As String())
-                Dim i As Integer
-                If IsArrayInitialized(avalue) Then
-                    Dim aStrValue As String
-                    For i = LBound(avalue) To UBound(avalue)
-                        If i = LBound(avalue) Then
-                            aStrValue = ConstDelimiter & UCase(avalue(i)) & ConstDelimiter
-                        Else
-                            aStrValue = aStrValue & avalue(i) & ConstDelimiter
-                        End If
-                    Next i
-                    _fcrelyingOn = aStrValue
-                    Me.IsChanged = True
-                    'ElseIf Not isEmpty(Trim(aVAlue)) And Trim(aVAlue) <> "" And Not isNull(aVAlue) Then
-                    '   s_fcrelyingOn = ConstDelimiter & UCase(Trim(avalue)) & ConstDelimiter
-                Else
-                    _fcrelyingOn = ""
-                End If
+            Set(value As String())
+                SetValue(ConstFNFCRelyOn, value)
             End Set
         End Property
-
+        ''' <summary>
+        ''' gets or sets the actuals milestone workspace order
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
 
         Public Property ACTRelyingOn() As String()
             Get
-                ACTRelyingOn = SplitMultbyChar(text:=_actrelyingOn, DelimChar:=ConstDelimiter)
-                If Not IsArrayInitialized(ACTRelyingOn) Then
-                    ACTRelyingOn = New String() {}
-                End If
+               
+                    Return _actrelyingOn
             End Get
-            Set(avalue As String())
-                Dim i As Integer
-                If IsArrayInitialized(avalue) Then
-                    Dim aStrValue As String
-                    For i = LBound(avalue) To UBound(avalue)
-                        If i = LBound(avalue) Then
-                            aStrValue = ConstDelimiter & UCase(avalue(i)) & ConstDelimiter
-                        Else
-                            aStrValue = aStrValue & avalue(i) & ConstDelimiter
-                        End If
-                    Next i
-                    _actrelyingOn = aStrValue
-                    Me.IsChanged = True
-                    'ElseIf Not isEmpty(Trim(aVAlue)) And Trim(aVAlue) <> "" And Not isNull(aVAlue) Then
-                    '   s_actrelyingOn = ConstDelimiter & UCase(Trim(avalue)) & ConstDelimiter
-                Else
-                    _actrelyingOn = ""
-                End If
+            Set(value As String())
+                SetValue(ConstFNActRelyOn, value)
+
             End Set
         End Property
 
+        ''' <summary>
+        ''' gets or set the access list
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
         Public Property AccesslistIDs() As String()
             Get
-                AccesslistIDs = SplitMultbyChar(text:=_accesslistID, DelimChar:=ConstDelimiter)
-                If Not IsArrayInitialized(AccesslistIDs) Then
-                    AccesslistIDs = New String() {}
-                End If
+                Return _accesslistID
             End Get
-            Set(avalue As String())
-                Dim i As Integer
-                If IsArrayInitialized(avalue) Then
-                    Dim aStrValue As String
-                    For i = LBound(avalue) To UBound(avalue)
-                        If i = LBound(avalue) Then
-                            aStrValue = ConstDelimiter & UCase(avalue(i)) & ConstDelimiter
-                        Else
-                            aStrValue = aStrValue & avalue(i) & ConstDelimiter
-                        End If
-                    Next i
-                    _accesslistID = aStrValue
-                    Me.IsChanged = True
-                    'ElseIf Not isEmpty(Trim(aVAlue)) And Trim(aVAlue) <> "" And Not isNull(aVAlue) Then
-                    '   s_accesslistID = ConstDelimiter & UCase(Trim(avalue)) & ConstDelimiter
-                Else
-                    _accesslistID = ""
-                End If
+            Set(value As String())
+                SetValue(ConstFNAccesslist, value)
             End Set
         End Property
-
-        Public Property Min_schedule_updc() As Long
+        ''' <summary>
+        ''' get or set the minimum schedule updc
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Property MinScheduleUPDC() As Long
             Get
-                Min_schedule_updc = _min_schedule_updc
+                Return _min_schedule_updc
             End Get
             Set(value As Long)
-                _min_schedule_updc = value
-                Me.IsChanged = True
+                SetValue(ConstFNMinScheduleUPC, value)
             End Set
         End Property
-
-        Public Property Max_schedule_updc() As Long
+        ''' <summary>
+        ''' gets or sets the maximum schedule updc
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Property MaxScheduleUPDC() As Long
             Get
-                Max_schedule_updc = _max_schedule_updc
+                Return _max_schedule_updc
             End Get
             Set(value As Long)
-                _max_schedule_updc = value
-                Me.IsChanged = True
+                SetValue(ConstFNMaxScheduleUPC, value)
             End Set
         End Property
-
-        Public Property Min_target_updc() As Long
+        ''' <summary>
+        ''' gets or sets the minimum target updc
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Property MinTargetUPDC() As Long
             Get
-                Min_target_updc = _min_target_updc
+                Return _min_target_updc
             End Get
             Set(value As Long)
-                _min_target_updc = value
-                Me.IsChanged = True
+                SetValue(ConstFNMinTargetUPDC, value)
             End Set
         End Property
-
-        Public Property Max_target_updc() As Long
+        ''' <summary>
+        ''' gets or sets the maximum target updc
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Property MaxTargetUPDC() As Long
             Get
-                Max_target_updc = _max_target_updc
+                Return _max_target_updc
             End Get
             Set(value As Long)
-                _max_target_updc = value
-                Me.IsChanged = True
+                SetValue(ConstFNMaxTargetUPDC, value)
             End Set
         End Property
 
@@ -3109,156 +3085,7 @@ Namespace OnTrack
             Return Retrieve(Of Workspace)(pkArray:=pkarray, forceReload:=forcereload)
         End Function
 
-        ''' <summary>
-        ''' load and infuse the current workspaceID object
-        ''' </summary>
-        ''' <param name="workspaceID"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Overloads Function Inject(ByVal workspaceID As String) As Boolean
-            Dim primarykey() As Object = {UCase(Trim(workspaceID))}
-            Return MyBase.Inject(primarykey)
-        End Function
-        ''' <summary>
-        ''' create the objects persistence schema
-        ''' </summary>
-        ''' <param name="silent"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Shared Function CreateSchema(Optional silent As Boolean = True) As Boolean
-            Return ormDataObject.CreateDataObjectSchema(Of Workspace)(silent:=silent)
-
-            '***
-            '*** LEGACY
-            'Dim primaryColumnNames As New Collection
-            'Dim usedKeyColumnNames As New Collection
-            'Dim aFieldDesc As New ormFieldDescription
-            'Dim aStore As New ObjectDefinition
-
-
-            'aFieldDesc.ID = ""
-            'aFieldDesc.Parameter = ""
-            'aFieldDesc.Relation = New String() {}
-            'aFieldDesc.Aliases = New String() {}
-            'aFieldDesc.Tablename = ConstTableID
-
-            'Try
-
-
-            '    With aStore
-            '        .Create(ConstTableID)
-            '        .Delete()
-            '        '***
-            '        '*** Fields
-            '        '****
-
-
-            '        'Tablename
-            '        aFieldDesc.Datatype = otFieldDataType.Text
-            '        aFieldDesc.Title = "workspaceID  id"
-            '        aFieldDesc.ID = "ws"
-            '        aFieldDesc.ColumnName = ConstFNID
-            '        Call .AddFieldDesc(fielddesc:=aFieldDesc)
-            '        primaryColumnNames.Add(aFieldDesc.ColumnName)
-
-            '        'fieldnames
-            '        aFieldDesc.Datatype = otFieldDataType.Text
-            '        aFieldDesc.Title = "workspaceID description"
-            '        aFieldDesc.ID = "ws1"
-            '        aFieldDesc.ColumnName = "desc"
-            '        Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '        ' relyOn
-            '        aFieldDesc.Datatype = otFieldDataType.Text
-            '        aFieldDesc.Title = "forecast relying on"
-            '        aFieldDesc.ID = "ws2"
-            '        aFieldDesc.ColumnName = "fcrelyOn"
-            '        Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '        ' relyOn
-            '        aFieldDesc.Datatype = otFieldDataType.Text
-            '        aFieldDesc.Title = "actuals relying on"
-            '        aFieldDesc.ID = "ws3"
-            '        aFieldDesc.ColumnName = "actrelyOn"
-            '        Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '        aFieldDesc.Datatype = otFieldDataType.Bool
-            '        aFieldDesc.Title = "isBase workspaceID"
-            '        aFieldDesc.ID = "ws4"
-            '        aFieldDesc.ColumnName = "isbase"
-            '        Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '        aFieldDesc.Datatype = otFieldDataType.Bool
-            '        aFieldDesc.Title = "has actuals in workspaceID"
-            '        aFieldDesc.ID = "ws5"
-            '        aFieldDesc.ColumnName = "hasact"
-            '        Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '        ' Access List
-            '        aFieldDesc.Datatype = otFieldDataType.Text
-            '        aFieldDesc.Title = "access list"
-            '        aFieldDesc.ID = "ws6"
-            '        aFieldDesc.ColumnName = "acclist"
-            '        Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '        aFieldDesc.Datatype = otFieldDataType.[Long]
-            '        aFieldDesc.Title = "min schedule updc"
-            '        aFieldDesc.ID = "ws10"
-            '        aFieldDesc.ColumnName = "minsupdc"
-            '        Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '        aFieldDesc.Datatype = otFieldDataType.[Long]
-            '        aFieldDesc.Title = "max schedule updc"
-            '        aFieldDesc.ID = "ws11"
-            '        aFieldDesc.ColumnName = "maxsupdc"
-            '        Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '        aFieldDesc.Datatype = otFieldDataType.[Long]
-            '        aFieldDesc.Title = "min Target updc"
-            '        aFieldDesc.ID = "ws12"
-            '        aFieldDesc.ColumnName = "mintupdc"
-            '        Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '        aFieldDesc.Datatype = otFieldDataType.[Long]
-            '        aFieldDesc.Title = "max Target updc"
-            '        aFieldDesc.ID = "ws13"
-            '        aFieldDesc.ColumnName = "maxtupdc"
-            '        Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '        '***
-            '        '*** TIMESTAMP
-            '        '****
-            '        aFieldDesc.Datatype = otFieldDataType.Timestamp
-            '        aFieldDesc.Title = "last Update"
-            '        aFieldDesc.ColumnName = ConstFNUpdatedOn
-            '        aFieldDesc.ID = ""
-            '        aFieldDesc.Aliases = New String() {}
-            '        aFieldDesc.Relation = New String() {}
-            '        Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '        aFieldDesc.Datatype = otFieldDataType.Timestamp
-            '        aFieldDesc.Title = "creation Date"
-            '        aFieldDesc.ColumnName = ConstFNCreatedOn
-            '        aFieldDesc.ID = ""
-            '        aFieldDesc.Aliases = New String() {}
-            '        aFieldDesc.Relation = New String() {}
-            '        Call .AddFieldDesc(fielddesc:=aFieldDesc)
-            '        ' Index
-            '        Call .AddIndex("PrimaryKey", primaryColumnNames, isprimarykey:=True)
-            '        ' persist
-            '        .Persist()
-            '        ' change the database
-            '        .CreateObjectSchema()
-            '    End With
-
-            '    Return True
-
-            'Catch ex As Exception
-            '    Call CoreMessageHandler(exception:=ex, subname:="clsOTDBDefWorkspace.CreateSchema")
-            '    Return False
-            'End Try
-        End Function
-
+       
         ''' <summary>
         ''' creates with this object a new persistable Def workspaceID
         ''' </summary>
@@ -3267,10 +3094,10 @@ Namespace OnTrack
         ''' <remarks></remarks>
         Public Overloads Shared Function Create(ByVal workspaceID As String) As Workspace
             Dim primarykey() As Object = {UCase(workspaceID)}
-            Return ormDataObject.CreateDataObject(Of Workspace)(pkArray:=primarykey, checkUnique:=False)
+            Return ormDataObject.CreateDataObject(Of Workspace)(pkArray:=primarykey, checkUnique:=True)
         End Function
 
-#Region "static routines"
+
         ''' <summary>
         ''' returns a List(of clsotdbDefWorkspace) of all workspaceID Definitions
         ''' </summary>
@@ -3279,14 +3106,15 @@ Namespace OnTrack
         Public Shared Function All() As List(Of Workspace)
             Return ormDataObject.AllDataObject(Of Workspace)()
         End Function
-#End Region
+
     End Class
 
     ''' <summary>
     ''' Domain Definition Class
     ''' </summary>
     ''' <remarks></remarks>
-    <ormObject(version:=1, id:=Domain.ConstObjectID, modulename:=ConstModuleCore, isbootstrap:=True, useCache:=True)> Public Class Domain
+    <ormObject(version:=1, id:=Domain.ConstObjectID, description:="domain definition for horizontal grouping of objects", _
+        modulename:=ConstModuleCore, isbootstrap:=True, useCache:=True)> Public Class Domain
         Inherits ormDataObject
         Implements iormInfusable
         Implements iormPersistable
@@ -3539,12 +3367,11 @@ Namespace OnTrack
             If Me.HasSetting(id:=id) Then
                 aSetting = Me.GetSetting(id:=id)
             Else
-                If Not aSetting.Create(domainID:=Me.ID, id:=id) Then
-                    aSetting = DomainSetting.Retrieve(domainID:=Me.ID, id:=id)
-                End If
+                aSetting = DomainSetting.Create(domainID:=Me.ID, id:=id)
+                If aSetting Is Nothing Then aSetting = DomainSetting.Retrieve(domainID:=Me.ID, id:=id)
             End If
 
-            If aSetting Is Nothing OrElse Not (aSetting.IsLoaded Or aSetting.IsCreated) Then
+            If aSetting Is Nothing OrElse Not aSetting.IsAlive(throwError:=False) Then
                 Return False
             End If
             aSetting.Datatype = datatype
@@ -3771,109 +3598,7 @@ Namespace OnTrack
         Public Overloads Shared Function Retrieve(ByVal id As String, Optional domainID As String = "", Optional forcereload As Boolean = False) As OrgUnit
             Return Retrieve(Of OrgUnit)(pkArray:={domainID, id}, domainID:=domainID, forceReload:=forcereload)
         End Function
-        ''' <summary>
-        ''' loads and infuses a DefOrgUnit Object with the primary key
-        ''' </summary>
-        ''' <param name="id"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Function Inject(ByVal id As String, Optional domainID As String = "") As Boolean
-            Dim primarykey() As Object = {id, domainID}
-            Return MyBase.Inject(pkArray:=primarykey, domainID:=domainID)
-        End Function
-        ''' <summary>
-        ''' create the persistence schema
-        ''' </summary>
-        ''' <param name="silent"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Shared Function CreateSchema(Optional silent As Boolean = True) As Boolean
-            Return ormDataObject.CreateDataObjectSchema(Of OrgUnit)(silent:=silent)
-            'Dim aFieldDesc As New ormFieldDescription
-            'Dim PrimaryColumnNames As New Collection
-            'Dim aStore As New ObjectDefinition
-
-            'With aStore
-            '    .Create(ConstTableID)
-            '    .Delete()
-
-            '    aFieldDesc.Tablename = ConstTableID
-            '    aFieldDesc.ID = ""
-            '    aFieldDesc.Parameter = ""
-
-
-            '    '***
-            '    '*** Fields
-            '    '****
-
-            '    aFieldDesc.Datatype = otFieldDataType.Text
-            '    aFieldDesc.Title = "organisation unit id"
-            '    aFieldDesc.ID = "OU1"
-            '    aFieldDesc.ColumnName = "id"
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-            '    PrimaryColumnNames.Add(aFieldDesc.ColumnName)
-
-            '    'fieldnames
-            '    aFieldDesc.Datatype = otFieldDataType.Text
-            '    aFieldDesc.Title = "organization unit description"
-            '    aFieldDesc.ID = "OU2"
-            '    aFieldDesc.ColumnName = "desc"
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    aFieldDesc.Datatype = otFieldDataType.Text
-            '    aFieldDesc.Title = "manager"
-            '    aFieldDesc.ID = "OU3"
-            '    aFieldDesc.Relation = New String() {"P1"}
-            '    aFieldDesc.ColumnName = "manager"
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    aFieldDesc.Datatype = otFieldDataType.Text
-            '    aFieldDesc.Title = "siteid"
-            '    aFieldDesc.ID = "OU4"
-            '    aFieldDesc.ColumnName = "siteid"
-            '    aFieldDesc.Relation = New String() {"ous1"}
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    aFieldDesc.Datatype = otFieldDataType.Text
-            '    aFieldDesc.Title = "functionid"
-            '    aFieldDesc.ID = "OU5"
-            '    aFieldDesc.ColumnName = "functionid"
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    aFieldDesc.Datatype = otFieldDataType.Text
-            '    aFieldDesc.Title = "superior organisation unit ID"
-            '    aFieldDesc.ID = "OU6"
-            '    aFieldDesc.ColumnName = "supouid"
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-            '    '***
-            '    '*** TIMESTAMP
-            '    '****
-            '    aFieldDesc.Datatype = otFieldDataType.Timestamp
-            '    aFieldDesc.Title = "last Update"
-            '    aFieldDesc.ColumnName = ConstFNUpdatedOn
-            '    aFieldDesc.ID = ""
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    aFieldDesc.Datatype = otFieldDataType.Timestamp
-            '    aFieldDesc.Title = "creation Date"
-            '    aFieldDesc.ColumnName = ConstFNCreatedOn
-            '    aFieldDesc.ID = ""
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-            '    ' Index
-            '    Call .AddIndex("PrimaryKey", PrimaryColumnNames, isprimarykey:=True)
-
-            '    ' persist
-            '    .Persist()
-            '    ' change the database
-            '    .AlterSchema()
-            'End With
-
-            'CreateSchema = True
-            'Exit Function
-
-
-        End Function
-
+       
 
         ''' <summary>
         ''' returns a collection of all objects
@@ -3885,10 +3610,10 @@ Namespace OnTrack
         End Function
         '**** create : create a new Object with primary keys
         '****
-        Public Function Create(ByVal id As String, Optional domainID As String = "") As Boolean
+        Public Shared Function Create(ByVal id As String, Optional domainID As String = "") As OrgUnit
             Dim primarykey() As Object = {id, domainID}
             ' set the primaryKey
-            Return MyBase.Create(primarykey, domainID:=domainID, checkUnique:=True)
+            Return CreateDataObject(Of OrgUnit)(primarykey, domainID:=domainID, checkUnique:=True)
         End Function
 
     End Class

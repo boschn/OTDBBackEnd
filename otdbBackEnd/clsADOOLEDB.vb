@@ -306,6 +306,152 @@ Namespace OnTrack.Database
 
         End Function
         ''' <summary>
+        ''' returns a object from the Data type of the column to Host interpretation
+        ''' </summary>
+        ''' <param name="index">index as object (name or index 1..n)</param>
+        ''' <param name="value">value to convert</param>
+        ''' <param name="abostrophNecessary">True if necessary</param>
+        ''' <returns>converted value </returns>
+        ''' <remarks></remarks>
+        Public Overrides Function Convert2ObjectData(ByVal invalue As Object, _
+                                                     ByRef outvalue As Object, _
+                                                     sourcetype As Long, _
+                                                     Optional isnullable As Boolean? = Nothing, _
+                                                     Optional defaultvalue As Object = Nothing, _
+                                                     Optional ByRef abostrophNecessary As Boolean = False) As Boolean Implements iormDatabaseDriver.Convert2ObjectData
+           
+            Dim result As Object
+            
+
+            Try
+
+               
+
+                If sourcetype = OleDbType.BigInt OrElse sourcetype = OleDbType.Integer _
+                OrElse sourcetype = OleDbType.SmallInt OrElse sourcetype = OleDbType.TinyInt _
+                OrElse sourcetype = OleDbType.UnsignedBigInt OrElse sourcetype = OleDbType.UnsignedInt _
+                OrElse sourcetype = OleDbType.UnsignedSmallInt OrElse sourcetype = OleDbType.UnsignedTinyInt _
+                OrElse sourcetype = OleDbType.SmallInt OrElse sourcetype = OleDbType.TinyInt Then
+                    If defaultvalue Is Nothing Then defaultvalue = Convert.ToInt64(0)
+                    If isnullable Then
+                        result = New Nullable(Of Long)
+                    Else
+                        result = New Long
+                    End If
+
+                    If isnullable AndAlso (Not IsNumeric(invalue) OrElse invalue Is Nothing OrElse _
+                                               DBNull.Value.Equals(invalue) OrElse String.IsNullOrWhiteSpace(invalue)) Then
+                        result = New Nullable(Of Long)
+                    ElseIf Not isnullable AndAlso (Not IsNumeric(invalue) OrElse invalue Is Nothing OrElse _
+                                               DBNull.Value.Equals(invalue) OrElse String.IsNullOrWhiteSpace(invalue)) Then
+                        result = Convert.ToInt64(defaultvalue)
+                    ElseIf IsNumeric(invalue) Then
+                        result = Convert.ToInt64(invalue)
+                    Else
+                        Call CoreMessageHandler(subname:="oleDBDriver.Convert2ObjectData", messagetype:=otCoreMessageType.InternalError, _
+                                              message:="OTDB data '" & invalue & "' is not convertible to Integer", _
+                                              arg1:=sourcetype)
+                        Return False
+                    End If
+
+
+                ElseIf sourcetype = OleDbType.Char OrElse sourcetype = OleDbType.BSTR OrElse sourcetype = OleDbType.LongVarChar _
+                OrElse sourcetype = OleDbType.LongVarWChar OrElse sourcetype = OleDbType.VarChar OrElse sourcetype = OleDbType.VarWChar _
+                OrElse sourcetype = OleDbType.WChar Then
+                    abostrophNecessary = True
+                    If defaultvalue Is Nothing Then defaultvalue = Convert.ToString("")
+
+                    If isnullable AndAlso (invalue Is Nothing OrElse DBNull.Value.Equals(invalue) OrElse _
+                                          String.IsNullOrWhiteSpace(invalue)) Then
+                        result = Nothing
+                    ElseIf Not isnullable AndAlso (invalue Is Nothing OrElse DBNull.Value.Equals(invalue) OrElse _
+                                          String.IsNullOrWhiteSpace(invalue)) Then
+                        result = Convert.ToString(defaultvalue)
+                    Else
+                        result = Convert.ToString(invalue)
+                    End If
+
+                ElseIf sourcetype = OleDbType.Date OrElse sourcetype = OleDbType.DBDate OrElse sourcetype = OleDbType.DBTime _
+                OrElse sourcetype = OleDbType.DBTimeStamp Then
+                    If defaultvalue Is Nothing Then defaultvalue = Convert.ToDateTime(ConstNullDate)
+                    If isnullable Then
+                        result = New Nullable(Of DateTime)
+                    Else
+                        result = New DateTime
+                    End If
+
+                    If isnullable AndAlso (Not IsDate(invalue) OrElse invalue Is Nothing OrElse DBNull.Value.Equals(invalue) _
+                                            OrElse String.IsNullOrWhiteSpace(invalue)) Then
+                        result = New Nullable(Of DateTime)
+                    ElseIf (Not IsDate(invalue) OrElse invalue Is Nothing OrElse DBNull.Value.Equals(invalue) OrElse IsError(invalue)) OrElse String.IsNullOrWhiteSpace(invalue) Then
+                        result = Convert.ToDateTime(defaultvalue)
+                    ElseIf IsDate(invalue) Then
+                        result = Convert.ToDateTime(invalue)
+                    Else
+                        Call CoreMessageHandler(subname:="oleDBDriver.Convert2ObjectData", messagetype:=otCoreMessageType.InternalError, _
+                                            message:="OTDB data '" & invalue & "' is not convertible to Date", _
+                                            arg1:=sourcetype)
+                        Return False
+                    End If
+
+                ElseIf sourcetype = OleDbType.Double OrElse sourcetype = OleDbType.Decimal _
+                OrElse sourcetype = OleDbType.Single OrElse sourcetype = OleDbType.Numeric Then
+                    If defaultvalue Is Nothing Then defaultvalue = Convert.ToDouble(0)
+                    If isnullable Then
+                        result = New Nullable(Of Double)
+                    Else
+                        result = New Double
+                    End If
+
+                    If isnullable AndAlso (Not IsNumeric(invalue) OrElse invalue Is Nothing OrElse _
+                        DBNull.Value.Equals(invalue) OrElse String.IsNullOrWhiteSpace(invalue)) Then
+                        result = New Nullable(Of Double)
+                    ElseIf isnullable AndAlso (Not IsNumeric(invalue) OrElse invalue Is Nothing OrElse _
+                        DBNull.Value.Equals(invalue) OrElse String.IsNullOrWhiteSpace(invalue)) Then
+                        result = Convert.ToDouble(defaultvalue)
+                    ElseIf IsNumeric(invalue) Then
+                        result = Convert.ToDouble(invalue)
+                    Else
+                        Call CoreMessageHandler(subname:="oleDBDriver.Convert2ObjectData", messagetype:=otCoreMessageType.InternalError, _
+                                             message:="OTDB data '" & invalue & "' is not convertible to Double", _
+                                             arg1:=sourcetype)
+                        Return False
+                    End If
+
+
+                ElseIf sourcetype = OleDbType.Boolean Then
+                    If defaultvalue Is Nothing Then defaultvalue = Convert.ToBoolean(False)
+                    If isnullable Then
+                        result = New Nullable(Of Boolean)
+                    Else
+                        result = New Boolean
+                    End If
+
+                    If isnullable AndAlso (invalue Is Nothing OrElse DBNull.Value.Equals(invalue) _
+                                               OrElse invalue = False) OrElse String.IsNullOrWhiteSpace(invalue) Then
+                        result = New Nullable(Of Boolean)
+                    ElseIf Not isnullable AndAlso (invalue Is Nothing OrElse DBNull.Value.Equals(invalue) _
+                                               OrElse invalue = False) OrElse String.IsNullOrWhiteSpace(invalue) Then
+                        result = Convert.ToBoolean(False)
+                    Else
+                        result = True
+                    End If
+
+                End If
+
+                ' return
+                outvalue = result
+                Return True
+            Catch ex As Exception
+                Call CoreMessageHandler(showmsgbox:=False, subname:="oledbTableStore.convert2ObjectData", _
+                                      arg1:=sourcetype, exception:=ex, _
+                                      messagetype:=otCoreMessageType.InternalError)
+                Return Nothing
+            End Try
+
+        End Function
+
+        ''' <summary>
         ''' converts data to a specific type
         ''' </summary>
         ''' <param name="value"></param>
@@ -1744,199 +1890,202 @@ Namespace OnTrack.Database
             Refresh = True
 
             Try
+                SyncLock DirectCast(_Connection, oledbConnection).NativeInternalConnection
 
-                ' set the SchemaTable
-                Dim restrictionsTable() As String = {Nothing, Nothing, _TableID}
-                _ColumnsTable = aCon.GetSchema("COLUMNS", restrictionsTable)
-                Dim columnsList = From columnRow In _ColumnsTable.AsEnumerable _
-                            Select TableName = columnRow.Field(Of String)("TABLE_NAME"), _
-                            Columnordinal = columnRow.Field(Of Int64)("ORDINAL_POSITION"), _
-                            DataType = columnRow.Field(Of OleDbType)("DATA_TYPE"), _
-                            [ColumnName] = columnRow.Field(Of String)("COLUMN_NAME"), _
-                            Description = columnRow.Field(Of String)("DESCRIPTION"), _
-                            CharacterMaxLength = columnRow.Field(Of Nullable(Of Int64))("CHARACTER_MAXIMUM_LENGTH"), _
-                            IsNullable = columnRow.Field(Of Nullable(Of Boolean))("IS_NULLABLE") _
-                            Where [ColumnName] <> "" Order By TableName, Columnordinal
+                    ' set the SchemaTable
+                    Dim restrictionsTable() As String = {Nothing, Nothing, _TableID}
+                    _ColumnsTable = aCon.GetSchema("COLUMNS", restrictionsTable)
+                    Dim columnsList = From columnRow In _ColumnsTable.AsEnumerable _
+                                Select TableName = columnRow.Field(Of String)("TABLE_NAME"), _
+                                Columnordinal = columnRow.Field(Of Int64)("ORDINAL_POSITION"), _
+                                DataType = columnRow.Field(Of OleDbType)("DATA_TYPE"), _
+                                [ColumnName] = columnRow.Field(Of String)("COLUMN_NAME"), _
+                                Description = columnRow.Field(Of String)("DESCRIPTION"), _
+                                CharacterMaxLength = columnRow.Field(Of Nullable(Of Int64))("CHARACTER_MAXIMUM_LENGTH"), _
+                                IsNullable = columnRow.Field(Of Nullable(Of Boolean))("IS_NULLABLE") _
+                                Where [ColumnName] <> "" Order By TableName, Columnordinal
 
-                no = columnsList.Count()
+                    no = columnsList.Count()
 
-                Dim columnsList1 = From columnRow In _ColumnsTable.AsEnumerable _
-                                    Select TableName = columnRow.Field(Of String)("TABLE_NAME"), _
-                                    [ColumnName] = columnRow.Field(Of String)("COLUMN_NAME"), _
-                                    Columnordinal = columnRow.Field(Of Int64)("ORDINAL_POSITION"), _
-                                    DataType = columnRow.Field(Of OleDbType)("DATA_TYPE"), _
-                                    IsNullable = columnRow.Field(Of Boolean)("IS_NULLABLE"), _
-                                    HasDefault = columnRow.Field(Of Boolean)("COLUMN_HASDEFAULT"), _
-                                    [Default] = columnRow.Field(Of String)("COLUMN_DEFAULT"), _
-                                    CharacterMaxLength = columnRow.Field(Of Nullable(Of Int64))("CHARACTER_MAXIMUM_LENGTH"), _
-                                    CharacterOctetLength = columnRow.Field(Of Nullable(Of Int64))("CHARACTER_OCTET_LENGTH"), _
-                                    Description = columnRow.Field(Of String)("DESCRIPTION"), _
-                                    NumericPrecision = columnRow.Field(Of Nullable(Of Int64))("NUMERIC_PRECISION"), _
-                                    NumericScale = columnRow.Field(Of Nullable(Of Int64))("NUMERIC_SCALE"), _
-                                    DateTimePrecision = columnRow.Field(Of Nullable(Of Int64))("DATETIME_PRECISION"), _
-                                    Catalog = columnRow.Field(Of String)("TABLE_CATALOG") _
-                                    Where [ColumnName] <> "" And TableName <> "" And Columnordinal > 0 _
-                                    Order By TableName, Columnordinal
-
-
-                '** read indixes
-                Dim restrictionsIndex() As String = {Nothing, Nothing, Nothing, Nothing, _TableID}
-                ' get the Index Table
-                _IndexTable = aCon.GetSchema("INDEXES", restrictionsIndex)
-
-                Dim columnsIndexList = From indexRow In _IndexTable.AsEnumerable _
-                                            Select TableName = indexRow.Field(Of String)("TABLE_NAME"), _
-                                            IndexName = indexRow.Field(Of String)("INDEX_NAME"), _
-                                            Columnordinal = indexRow.Field(Of Int64)("ORDINAL_POSITION"), _
-                                            ColumnName = indexRow.Field(Of String)("COLUMN_NAME"), _
-                                            isPrimaryKey = indexRow.Field(Of Boolean)("PRIMARY_KEY") _
-                                            Where [ColumnName] <> "" And TableName <> "" And Columnordinal > 0 _
-                                            Order By TableName, IndexName, Columnordinal, ColumnName
+                    Dim columnsList1 = From columnRow In _ColumnsTable.AsEnumerable _
+                                        Select TableName = columnRow.Field(Of String)("TABLE_NAME"), _
+                                        [ColumnName] = columnRow.Field(Of String)("COLUMN_NAME"), _
+                                        Columnordinal = columnRow.Field(Of Int64)("ORDINAL_POSITION"), _
+                                        DataType = columnRow.Field(Of OleDbType)("DATA_TYPE"), _
+                                        IsNullable = columnRow.Field(Of Boolean)("IS_NULLABLE"), _
+                                        HasDefault = columnRow.Field(Of Boolean)("COLUMN_HASDEFAULT"), _
+                                        [Default] = columnRow.Field(Of String)("COLUMN_DEFAULT"), _
+                                        CharacterMaxLength = columnRow.Field(Of Nullable(Of Int64))("CHARACTER_MAXIMUM_LENGTH"), _
+                                        CharacterOctetLength = columnRow.Field(Of Nullable(Of Int64))("CHARACTER_OCTET_LENGTH"), _
+                                        Description = columnRow.Field(Of String)("DESCRIPTION"), _
+                                        NumericPrecision = columnRow.Field(Of Nullable(Of Int64))("NUMERIC_PRECISION"), _
+                                        NumericScale = columnRow.Field(Of Nullable(Of Int64))("NUMERIC_SCALE"), _
+                                        DateTimePrecision = columnRow.Field(Of Nullable(Of Int64))("DATETIME_PRECISION"), _
+                                        Catalog = columnRow.Field(Of String)("TABLE_CATALOG") _
+                                        Where [ColumnName] <> "" And TableName <> "" And Columnordinal > 0 _
+                                        Order By TableName, Columnordinal
 
 
-                no = columnsList.Count
+                    '** read indixes
+                    Dim restrictionsIndex() As String = {Nothing, Nothing, Nothing, Nothing, _TableID}
+                    ' get the Index Table
+                    _IndexTable = aCon.GetSchema("INDEXES", restrictionsIndex)
 
-                If no = 0 Then
-                    Call CoreMessageHandler(subname:="oleDBTableSchema.Refresh", tablename:=Me.TableID, _
-                                          messagetype:=otCoreMessageType.InternalError, message:="table has no fields - does it exist ?")
-                    _IsInitialized = False
-                    Return False
-                End If
-
-                ReDim _Fieldnames(no - 1)
-                ReDim _Columns(no - 1)
-
-                ' set the Dictionaries if reload
-                _fieldsDictionary = New Dictionary(Of String, Long)
-                _indexDictionary = New Dictionary(Of String, ArrayList)
-                aColumnCollection = New ArrayList
-                _NoPrimaryKeys = 0
-
-                '**** read all the column / fieldnames
-                '****
-                Dim i As UShort = 0
-                For Each row In columnsList
-
-                    '*
-                    If row.ColumnName.Contains(".") Then
-                        aColumnName = UCase(row.ColumnName.Substring(row.ColumnName.IndexOf(".") + 1, row.ColumnName.Length - row.ColumnName.IndexOf(".") + 1))
-                    Else
-                        aColumnName = UCase(row.ColumnName)
-                    End If
-                    '*
-                    _Fieldnames(i) = aColumnName.ToUpper
-                    '* set the description
-                    _Columns(i) = New adoNetColumnDescription
-                    With _Columns(i)
-                        .ColumnName = aColumnName.ToUpper
-                        .Description = row.Description
-                        '.HasDefault = row.HasDefault
-                        .CharacterMaxLength = row.CharacterMaxLength
-                        If Not row.CharacterMaxLength Is Nothing Then
-                            .CharacterMaxLength = CLng(row.CharacterMaxLength)
-                        Else
-                            .CharacterMaxLength = 0
-                        End If
-                        .IsNullable = row.IsNullable
-                        .DataType = row.DataType
-                        .Ordinal = row.Columnordinal
-                        .Default = Nothing
-                        .HasDefault = False
-                        '.Catalog = row.Catalog
-                        '.DateTimePrecision = row.DateTimePrecision
-                        '.NumericPrecision = row.NumericPrecision
-                        '.NumericScale = row.NumericScale
-                        '.CharachterOctetLength = row.CharacterOctetLength
-                    End With
-
-                    ' remove if existing
-                    If _fieldsDictionary.ContainsKey(aColumnName.ToUpper) Then
-                        _fieldsDictionary.Remove(aColumnName.ToUpper)
-                    End If
-                    ' add
-                    _fieldsDictionary.Add(key:=aColumnName.ToUpper, value:=i + 1) 'store no field 1... not the array index
-
-                    '* 
-                    i = i + 1
-                Next
+                    Dim columnsIndexList = From indexRow In _IndexTable.AsEnumerable _
+                                                Select TableName = indexRow.Field(Of String)("TABLE_NAME"), _
+                                                IndexName = indexRow.Field(Of String)("INDEX_NAME"), _
+                                                Columnordinal = indexRow.Field(Of Int64)("ORDINAL_POSITION"), _
+                                                ColumnName = indexRow.Field(Of String)("COLUMN_NAME"), _
+                                                isPrimaryKey = indexRow.Field(Of Boolean)("PRIMARY_KEY") _
+                                                Where [ColumnName] <> "" And TableName <> "" And Columnordinal > 0 _
+                                                Order By TableName, IndexName, Columnordinal, ColumnName
 
 
+                    no = columnsList.Count
 
-                '**** read each Index
-                '****
-                Dim anIndexName As String = ""
-                For Each row In columnsIndexList
-
-                    If row.ColumnName.Contains(".") Then
-                        aColumnName = UCase(row.ColumnName.Substring(row.ColumnName.IndexOf(".") + 1, row.ColumnName.Length))
-                    Else
-                        aColumnName = UCase(row.ColumnName)
-                    End If
-
-                    If row.IndexName.ToUpper <> anIndexName.ToUpper Then
-                        '** store
-                        If anIndexName <> "" Then
-                            If _indexDictionary.ContainsKey(anIndexName.ToUpper) Then
-                                _indexDictionary.Remove(key:=anIndexName.ToUpper)
-                            End If
-                            _indexDictionary.Add(key:=anIndexName.ToUpper, value:=aColumnCollection)
-                        End If
-                        ' new
-                        anIndexName = row.IndexName.ToUpper
-                        aColumnCollection = New ArrayList
-                    End If
-                    '** Add To List
-                    aColumnCollection.Add(aColumnName.ToUpper)
-
-                    ' indx no
-                    index = _fieldsDictionary.Item(aColumnName.ToUpper)
-                    '
-                    '** check if primaryKey
-                    'fill old primary Key structure
-                    If row.isPrimaryKey Then
-                        _PrimaryKeyIndexName = row.IndexName.ToUpper
-                        _NoPrimaryKeys = _NoPrimaryKeys + 1
-                        ReDim Preserve _Primarykeys(0 To _NoPrimaryKeys - 1)
-                        _Primarykeys(_NoPrimaryKeys - 1) = index - 1 ' set to the array 0...ubound
-                    End If
-
-                    If Not _fieldsDictionary.ContainsKey(aColumnName.ToUpper) Then
-                        Call CoreMessageHandler(subname:="oleDBTableSchema.refresh", _
-                                              message:="oleDBTableSchema : column " & row.ColumnName & " not in dictionary ?!", _
-                                              tablename:=TableID, entryname:=row.ColumnName)
-
+                    If no = 0 Then
+                        Call CoreMessageHandler(subname:="oleDBTableSchema.Refresh", tablename:=Me.TableID, _
+                                              messagetype:=otCoreMessageType.InternalError, message:="table has no fields - does it exist ?")
+                        _IsInitialized = False
                         Return False
                     End If
 
-                Next
-                '** store final
-                If anIndexName <> "" Then
-                    If _indexDictionary.ContainsKey(anIndexName.ToUpper) Then
-                        _indexDictionary.Remove(key:=anIndexName.ToUpper)
-                    End If
-                    _indexDictionary.Add(key:=anIndexName.ToUpper, value:=aColumnCollection)
-                End If
+                    ReDim _Fieldnames(no - 1)
+                    ReDim _Columns(no - 1)
 
-                '**** build the commands
-                '****
-                Dim enumValues As Array = System.[Enum].GetValues(GetType(CommandType))
-                For Each anIndexName In _indexDictionary.Keys
-                    Dim aNewCommand As OleDbCommand
-                    For Each aCommandType In enumValues
-                        Dim aNewKey = New CommandKey(anIndexName, aCommandType)
-                        aNewCommand = BuildCommand(anIndexName, aCommandType)
-                        If Not aNewCommand Is Nothing Then
-                            If _CommandStore.ContainsKey(aNewKey) Then
-                                _CommandStore.Remove(aNewKey)
-                            End If
-                            _CommandStore.Add(aNewKey, aNewCommand)
+                    ' set the Dictionaries if reload
+                    _fieldsDictionary = New Dictionary(Of String, Long)
+                    _indexDictionary = New Dictionary(Of String, ArrayList)
+                    aColumnCollection = New ArrayList
+                    _NoPrimaryKeys = 0
+
+                    '**** read all the column / fieldnames
+                    '****
+                    Dim i As UShort = 0
+                    For Each row In columnsList
+
+                        '*
+                        If row.ColumnName.Contains(".") Then
+                            aColumnName = UCase(row.ColumnName.Substring(row.ColumnName.IndexOf(".") + 1, row.ColumnName.Length - row.ColumnName.IndexOf(".") + 1))
+                        Else
+                            aColumnName = UCase(row.ColumnName)
                         End If
+                        '*
+                        _Fieldnames(i) = aColumnName.ToUpper
+                        '* set the description
+                        _Columns(i) = New adoNetColumnDescription
+                        With _Columns(i)
+                            .ColumnName = aColumnName.ToUpper
+                            .Description = row.Description
+                            '.HasDefault = row.HasDefault
+                            .CharacterMaxLength = row.CharacterMaxLength
+                            If Not row.CharacterMaxLength Is Nothing Then
+                                .CharacterMaxLength = CLng(row.CharacterMaxLength)
+                            Else
+                                .CharacterMaxLength = 0
+                            End If
+                            .IsNullable = row.IsNullable
+                            .DataType = row.DataType
+                            .Ordinal = row.Columnordinal
+                            .Default = Nothing
+                            .HasDefault = False
+                            '.Catalog = row.Catalog
+                            '.DateTimePrecision = row.DateTimePrecision
+                            '.NumericPrecision = row.NumericPrecision
+                            '.NumericScale = row.NumericScale
+                            '.CharachterOctetLength = row.CharacterOctetLength
+                        End With
+
+                        ' remove if existing
+                        If _fieldsDictionary.ContainsKey(aColumnName.ToUpper) Then
+                            _fieldsDictionary.Remove(aColumnName.ToUpper)
+                        End If
+                        ' add
+                        _fieldsDictionary.Add(key:=aColumnName.ToUpper, value:=i + 1) 'store no field 1... not the array index
+
+                        '* 
+                        i = i + 1
                     Next
 
 
-                Next
 
-                _IsInitialized = True
+                    '**** read each Index
+                    '****
+                    Dim anIndexName As String = ""
+                    For Each row In columnsIndexList
+
+                        If row.ColumnName.Contains(".") Then
+                            aColumnName = UCase(row.ColumnName.Substring(row.ColumnName.IndexOf(".") + 1, row.ColumnName.Length))
+                        Else
+                            aColumnName = UCase(row.ColumnName)
+                        End If
+
+                        If row.IndexName.ToUpper <> anIndexName.ToUpper Then
+                            '** store
+                            If anIndexName <> "" Then
+                                If _indexDictionary.ContainsKey(anIndexName.ToUpper) Then
+                                    _indexDictionary.Remove(key:=anIndexName.ToUpper)
+                                End If
+                                _indexDictionary.Add(key:=anIndexName.ToUpper, value:=aColumnCollection)
+                            End If
+                            ' new
+                            anIndexName = row.IndexName.ToUpper
+                            aColumnCollection = New ArrayList
+                        End If
+                        '** Add To List
+                        aColumnCollection.Add(aColumnName.ToUpper)
+
+                        ' indx no
+                        index = _fieldsDictionary.Item(aColumnName.ToUpper)
+                        '
+                        '** check if primaryKey
+                        'fill old primary Key structure
+                        If row.isPrimaryKey Then
+                            _PrimaryKeyIndexName = row.IndexName.ToUpper
+                            _NoPrimaryKeys = _NoPrimaryKeys + 1
+                            ReDim Preserve _Primarykeys(0 To _NoPrimaryKeys - 1)
+                            _Primarykeys(_NoPrimaryKeys - 1) = index - 1 ' set to the array 0...ubound
+                        End If
+
+                        If Not _fieldsDictionary.ContainsKey(aColumnName.ToUpper) Then
+                            Call CoreMessageHandler(subname:="oleDBTableSchema.refresh", _
+                                                  message:="oleDBTableSchema : column " & row.ColumnName & " not in dictionary ?!", _
+                                                  tablename:=TableID, entryname:=row.ColumnName)
+
+                            Return False
+                        End If
+
+                    Next
+                    '** store final
+                    If anIndexName <> "" Then
+                        If _indexDictionary.ContainsKey(anIndexName.ToUpper) Then
+                            _indexDictionary.Remove(key:=anIndexName.ToUpper)
+                        End If
+                        _indexDictionary.Add(key:=anIndexName.ToUpper, value:=aColumnCollection)
+                    End If
+
+                    '**** build the commands
+                    '****
+                    Dim enumValues As Array = System.[Enum].GetValues(GetType(CommandType))
+                    For Each anIndexName In _indexDictionary.Keys
+                        Dim aNewCommand As OleDbCommand
+                        For Each aCommandType In enumValues
+                            Dim aNewKey = New CommandKey(anIndexName, aCommandType)
+                            aNewCommand = BuildCommand(anIndexName, aCommandType)
+                            If Not aNewCommand Is Nothing Then
+                                If _CommandStore.ContainsKey(aNewKey) Then
+                                    _CommandStore.Remove(aNewKey)
+                                End If
+                                _CommandStore.Add(aNewKey, aNewCommand)
+                            End If
+                        Next
+
+
+                    Next
+
+                    _IsInitialized = True
+                End SyncLock
+
                 Return True
 
             Catch ex As Exception
@@ -2041,6 +2190,7 @@ Namespace OnTrack.Database
 
             Try
 
+
                 fieldno = aSchema.GetFieldordinal(index)
                 If fieldno < 0 Then
                     Call CoreMessageHandler(subname:="oledbTableStore.cvt2ColumnData", messagetype:=otCoreMessageType.InternalError, _
@@ -2059,135 +2209,17 @@ Namespace OnTrack.Database
                 If defaultvalue = Nothing Then
                     defaultvalue = Me.TableSchema.GetDefaultValue(index)
                 End If
-                '*
-                '*
-                'If IsError(aValue) Then
-                '    System.Diagnostics.Debug.WriteLine "Error in Formular of field invalue " & aValue & " while updating OTDB"
-                '    aValue = ""
-                'End If
+                '** return
+                Return Me.Connection.DatabaseDriver.Convert2ObjectData(invalue:=invalue, outvalue:=outvalue, _
+                                                                   sourceType:=aDBColumn.DataType, abostrophNecessary:=abostrophNecessary, _
+                                                                   isnullable:=isnullable, defaultvalue:=defaultvalue)
 
-                If aDBColumn.DataType = OleDbType.BigInt OrElse aDBColumn.DataType = OleDbType.Integer _
-                OrElse aDBColumn.DataType = OleDbType.SmallInt OrElse aDBColumn.DataType = OleDbType.TinyInt _
-                OrElse aDBColumn.DataType = OleDbType.UnsignedBigInt OrElse aDBColumn.DataType = OleDbType.UnsignedInt _
-                OrElse aDBColumn.DataType = OleDbType.UnsignedSmallInt OrElse aDBColumn.DataType = OleDbType.UnsignedTinyInt _
-                OrElse aDBColumn.DataType = OleDbType.SmallInt OrElse aDBColumn.DataType = OleDbType.TinyInt Then
-                    If defaultvalue Is Nothing Then defaultvalue = Convert.ToInt64(0)
-                    If isnullable Then
-                        result = New Nullable(Of Long)
-                    Else
-                        result = New Long
-                    End If
-
-                    If isnullable AndAlso (Not IsNumeric(invalue) OrElse invalue Is Nothing OrElse _
-                                               DBNull.Value.Equals(invalue) OrElse String.IsNullOrWhiteSpace(invalue)) Then
-                        result = New Nullable(Of Long)
-                    ElseIf Not isnullable AndAlso (Not IsNumeric(invalue) OrElse invalue Is Nothing OrElse _
-                                               DBNull.Value.Equals(invalue) OrElse String.IsNullOrWhiteSpace(invalue)) Then
-                        result = Convert.ToInt64(defaultvalue)
-                    ElseIf IsNumeric(invalue) Then
-                        result = Convert.ToInt64(invalue)
-                    Else
-                        Call CoreMessageHandler(subname:="oledbTableStore.conver2ObjectData", messagetype:=otCoreMessageType.InternalError, _
-                                              message:="OTDB data '" & invalue & "' is not convertible to Integer", _
-                                              arg1:=aDBColumn.DataType, tablename:=Me.TableID, entryname:=aDBColumn.ColumnName)
-                        Return False
-                    End If
-
-
-                ElseIf aDBColumn.DataType = OleDbType.Char OrElse aDBColumn.DataType = OleDbType.BSTR OrElse aDBColumn.DataType = OleDbType.LongVarChar _
-                OrElse aDBColumn.DataType = OleDbType.LongVarWChar OrElse aDBColumn.DataType = OleDbType.VarChar OrElse aDBColumn.DataType = OleDbType.VarWChar _
-                OrElse aDBColumn.DataType = OleDbType.WChar Then
-                    abostrophNecessary = True
-                    If defaultvalue Is Nothing Then defaultvalue = Convert.ToString("")
-
-                    If isnullable AndAlso (invalue Is Nothing OrElse DBNull.Value.Equals(invalue) OrElse _
-                                          String.IsNullOrWhiteSpace(invalue)) Then
-                        result = Nothing
-                    ElseIf Not isnullable AndAlso (invalue Is Nothing OrElse DBNull.Value.Equals(invalue) OrElse _
-                                          String.IsNullOrWhiteSpace(invalue)) Then
-                        result = Convert.ToString(defaultvalue)
-                    Else
-                        result = Convert.ToString(invalue)
-                    End If
-
-                ElseIf aDBColumn.DataType = OleDbType.Date OrElse aDBColumn.DataType = OleDbType.DBDate OrElse aDBColumn.DataType = OleDbType.DBTime _
-                OrElse aDBColumn.DataType = OleDbType.DBTimeStamp Then
-                    If defaultvalue Is Nothing Then defaultvalue = Convert.ToDateTime(ConstNullDate)
-                    If isnullable Then
-                        result = New Nullable(Of DateTime)
-                    Else
-                        result = New DateTime
-                    End If
-
-                    If isnullable AndAlso (Not IsDate(invalue) OrElse invalue Is Nothing OrElse DBNull.Value.Equals(invalue) _
-                                            OrElse String.IsNullOrWhiteSpace(invalue)) Then
-                        result = New Nullable(Of DateTime)
-                    ElseIf (Not IsDate(invalue) OrElse invalue Is Nothing OrElse DBNull.Value.Equals(invalue) OrElse IsError(invalue)) OrElse String.IsNullOrWhiteSpace(invalue) Then
-                        result = Convert.ToDateTime(defaultvalue)
-                    ElseIf IsDate(invalue) Then
-                        result = Convert.ToDateTime(invalue)
-                    Else
-                        Call CoreMessageHandler(subname:="oledbTableStore.conver2ObjectData", messagetype:=otCoreMessageType.InternalError, _
-                                            message:="OTDB data '" & invalue & "' is not convertible to Date", _
-                                            arg1:=aDBColumn.DataType, tablename:=Me.TableID, entryname:=aDBColumn.ColumnName)
-                        Return False
-                    End If
-
-                ElseIf aDBColumn.DataType = OleDbType.Double OrElse aDBColumn.DataType = OleDbType.Decimal _
-                OrElse aDBColumn.DataType = OleDbType.Single OrElse aDBColumn.DataType = OleDbType.Numeric Then
-                    If defaultvalue Is Nothing Then defaultvalue = Convert.ToDouble(0)
-                    If isnullable Then
-                        result = New Nullable(Of Double)
-                    Else
-                        result = New Double
-                    End If
-
-                    If isnullable AndAlso (Not IsNumeric(invalue) OrElse invalue Is Nothing OrElse _
-                        DBNull.Value.Equals(invalue) OrElse String.IsNullOrWhiteSpace(invalue)) Then
-                        result = New Nullable(Of Double)
-                    ElseIf isnullable AndAlso (Not IsNumeric(invalue) OrElse invalue Is Nothing OrElse _
-                        DBNull.Value.Equals(invalue) OrElse String.IsNullOrWhiteSpace(invalue)) Then
-                        result = Convert.ToDouble(defaultvalue)
-                    ElseIf IsNumeric(invalue) Then
-                        result = Convert.ToDouble(invalue)
-                    Else
-                        Call CoreMessageHandler(subname:="oledbTableStore.conver2ObjectData", messagetype:=otCoreMessageType.InternalError, _
-                                             message:="OTDB data '" & invalue & "' is not convertible to Double", _
-                                             arg1:=aDBColumn.DataType, tablename:=Me.TableID, entryname:=aDBColumn.ColumnName)
-                        Return False
-                    End If
-
-
-                ElseIf aDBColumn.DataType = OleDbType.Boolean Then
-                    If defaultvalue Is Nothing Then defaultvalue = Convert.ToBoolean(False)
-                    If isnullable Then
-                        result = New Nullable(Of Boolean)
-                    Else
-                        result = New Boolean
-                    End If
-
-                    If isnullable AndAlso (invalue Is Nothing OrElse DBNull.Value.Equals(invalue) _
-                                               OrElse invalue = False) OrElse String.IsNullOrWhiteSpace(invalue) Then
-                        result = New Nullable(Of Boolean)
-                    ElseIf Not isnullable AndAlso (invalue Is Nothing OrElse DBNull.Value.Equals(invalue) _
-                                               OrElse invalue = False) OrElse String.IsNullOrWhiteSpace(invalue) Then
-                        result = Convert.ToBoolean(False)
-                    Else
-                        result = True
-                    End If
-
-                End If
-
-                ' return
-                outvalue = result
-                Return True
             Catch ex As Exception
-                Call CoreMessageHandler(showmsgbox:=False, subname:="oledbTableStore.cvt2ObjData", _
+                Call CoreMessageHandler(showmsgbox:=False, subname:="oledbTablestore.convert2ObjectData", _
                                       arg1:=aDBColumn.DataType, tablename:=Me.TableID, entryname:=aDBColumn.ColumnName, exception:=ex, _
                                       messagetype:=otCoreMessageType.InternalError)
-                Return Nothing
+                Return False
             End Try
-
         End Function
 
         ''' <summary>
@@ -2222,8 +2254,11 @@ Namespace OnTrack.Database
                         _cacheAdapter.SelectCommand = New OleDbCommand(selectstr)
                         _cacheAdapter.SelectCommand.CommandType = CommandType.Text
                         _cacheAdapter.SelectCommand.Connection = DirectCast(Me.Connection.NativeConnection, System.Data.OleDb.OleDbConnection)
-                        _cacheAdapter.FillSchema(aDataSet, SchemaType.Source)
-                        DirectCast(_cacheAdapter, System.Data.OleDb.OleDbDataAdapter).Fill(aDataSet, Me.TableID)
+                        SyncLock Me.Connection.NativeConnection
+                            _cacheAdapter.FillSchema(aDataSet, SchemaType.Source)
+                            DirectCast(_cacheAdapter, System.Data.OleDb.OleDbDataAdapter).Fill(aDataSet, Me.TableID)
+                        End SyncLock
+                      
                         ' set the Table
                         _cacheTable = aDataSet.Tables(Me.TableID)
                         If _cacheTable Is Nothing Then

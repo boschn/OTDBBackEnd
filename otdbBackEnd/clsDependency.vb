@@ -145,7 +145,7 @@ Namespace OnTrack.Scheduling
             Dim dependFromList As New Dictionary(Of Long, clsOTDBDependMember)
 
             ' empty
-            If Not _IsLoaded And Not Me.IsCreated Then
+            If Not me.isloaded And Not Me.IsCreated Then
                 addPartID = Nothing
                 Exit Function
             End If
@@ -187,7 +187,7 @@ Namespace OnTrack.Scheduling
             Dim anEntry As New clsOTDBDependMember
 
             ' empty
-            If Not _IsLoaded And Not Me.IsCreated Then
+            If Not me.isloaded And Not Me.IsCreated Then
                 createDependMemberTypeIdList = Nothing
                 Exit Function
             End If
@@ -219,7 +219,7 @@ Namespace OnTrack.Scheduling
                                                         dependFromList As Dictionary(Of Long, clsOTDBDependMember)) As Boolean
 
             ' empty
-            If Not _IsLoaded And Not Me.IsCreated Then
+            If Not me.isloaded And Not Me.IsCreated Then
                 exchangeDependMemberTypeIdList = False
                 Exit Function
             End If
@@ -242,7 +242,7 @@ Namespace OnTrack.Scheduling
         '****** returns the TypeIDList of typeid
         Private Function DeleteDependMemberTypeIdList(TYPEID As String) As Boolean
             ' empty
-            If Not _IsLoaded And Not Me.IsCreated Then
+            If Not me.isloaded And Not Me.IsCreated Then
                 deleteDependMemberTypeIdList = False
                 Exit Function
             End If
@@ -264,7 +264,7 @@ Namespace OnTrack.Scheduling
         '****** returns the TypeIDList of DependMembers typeid
         Private Function GetDependMemberTypeIdList(TYPEID As String) As Dictionary(Of Long, clsOTDBDependMember)
             ' empty
-            If Not _IsLoaded And Not Me.IsCreated Then
+            If Not me.isloaded And Not Me.IsCreated Then
                 getDependMemberTypeIdList = Nothing
                 Exit Function
             End If
@@ -280,7 +280,7 @@ Namespace OnTrack.Scheduling
         '****** returns the TypeIDList of typeid
         Private Function DeleteDependCheckTypeIdList(TYPEID As String) As Boolean
             ' empty
-            If Not _IsLoaded And Not Me.IsCreated Then
+            If Not me.isloaded And Not Me.IsCreated Then
                 deleteDependCheckTypeIdList = False
                 Exit Function
             End If
@@ -299,7 +299,7 @@ Namespace OnTrack.Scheduling
                                                        dependFromList As Dictionary(Of Long, clsOTDBDependCheck)) As Boolean
 
             ' empty
-            If Not _IsLoaded And Not Me.IsCreated Then
+            If Not me.isloaded And Not Me.IsCreated Then
                 exchangeDependCheckTypeIdList = False
                 Exit Function
             End If
@@ -322,7 +322,7 @@ Namespace OnTrack.Scheduling
         '****** returns the TypeIDList of DependChecks
         Private Function GetDependCheckTypeIdList(TYPEID As String) As Dictionary(Of Long, clsOTDBDependCheck)
             ' empty
-            If Not _IsLoaded And Not Me.IsCreated Then
+            If Not me.isloaded And Not Me.IsCreated Then
                 getDependCheckTypeIdList = Nothing
                 Exit Function
             End If
@@ -341,7 +341,7 @@ Namespace OnTrack.Scheduling
             Dim anEntry As New clsOTDBDependCheck
 
             ' empty
-            If Not _IsLoaded And Not Me.IsCreated Then
+            If Not me.isloaded And Not Me.IsCreated Then
                 createDependCheckTypeIdList = Nothing
                 Exit Function
             End If
@@ -373,7 +373,7 @@ Namespace OnTrack.Scheduling
             Dim dependFromList As New Dictionary(Of Long, clsOTDBDependCheck)
 
             ' empty
-            If (Not _IsLoaded And Not Me.IsCreated) Or (Not anEntry.IsLoaded And Not anEntry.IsCreated) Then
+            If (Not me.isloaded And Not Me.IsCreated) Or (Not anEntry.IsLoaded And Not anEntry.IsCreated) Then
                 addDependCheckMember = False
                 Exit Function
             End If
@@ -414,7 +414,7 @@ Namespace OnTrack.Scheduling
             Dim dependFromList As New Dictionary(Of Long, clsOTDBDependMember)
 
             ' empty
-            If Not _IsLoaded And Not Me.IsCreated And Not anEntry.IsLoaded And Not anEntry.IsCreated Then
+            If Not me.isloaded And Not Me.IsCreated And Not anEntry.IsLoaded And Not anEntry.IsCreated Then
                 addDependMember = False
                 Exit Function
             End If
@@ -456,7 +456,7 @@ Namespace OnTrack.Scheduling
             Dim dependFromList As New Dictionary(Of Long, clsOTDBDependMember)
 
             ' empty
-            If Not _IsLoaded And Not Me.IsCreated Then
+            If Not me.isloaded And Not Me.IsCreated Then
                 IsLeaf = False
                 Exit Function
             End If
@@ -508,7 +508,7 @@ Namespace OnTrack.Scheduling
             dependFromList = CreateDependMemberTypeIdList(TYPEID, FORCE:=True)
             Call ExchangeDependMemberTypeIdList(TYPEID, dependFromList)
 
-            _IsCreated = True
+            'me.iscreated = True
             Me.IsDeleted = True
             Me.Unload()
 
@@ -518,7 +518,7 @@ Namespace OnTrack.Scheduling
         Public Function delete() As Boolean
             Dim m As Object
 
-            If Not Me.IsCreated And Not _IsLoaded Then
+            If Not Me.IsCreated And Not me.isloaded Then
                 delete = False
                 Exit Function
             End If
@@ -530,7 +530,7 @@ Namespace OnTrack.Scheduling
 
             ' reset it
 
-            _IsCreated = True
+            'me.iscreated = True
             Me.IsDeleted = True
             Me.Unload()
 
@@ -880,7 +880,7 @@ errorhandle:
             Dim atypeid As Object
 
             '**
-            If Not Me.IsCreated And Not _IsLoaded Then
+            If Not Me.IsCreated And Not me.isloaded Then
                 Persist = False
                 Exit Function
             End If
@@ -920,7 +920,7 @@ errorhandle:
             ' header
 
 
-            _IsCreated = True
+            'me.iscreated = True
             create = Me.IsCreated
         End Function
 
@@ -1076,12 +1076,12 @@ errorhandle:
             Dim anEntry As New clsOTDBDependMember
             Dim anDepCheck As New clsOTDBDependCheck
 
-            aTable = GetTableStore(anEntry.TableID)
+            aTable = GetTableStore(anEntry.primaryTableID)
 
             If isDynamic Then
-                unionClusters = aTable.RunSqlStatement("update " & anDepCheck.TableID & " set clusterid = '" & aClusterID & "' where clusterid = '" & aNotherClusterID & "'")
+                unionClusters = aTable.RunSqlStatement("update " & anDepCheck.primaryTableID & " set clusterid = '" & aClusterID & "' where clusterid = '" & aNotherClusterID & "'")
             Else
-                unionClusters = aTable.RunSqlStatement("update " & anEntry.TableID & " set clusterid = '" & aClusterID & "' where clusterid = '" & aNotherClusterID & "'")
+                unionClusters = aTable.RunSqlStatement("update " & anEntry.primaryTableID & " set clusterid = '" & aClusterID & "' where clusterid = '" & aNotherClusterID & "'")
             End If
 
         End Function
@@ -1096,11 +1096,11 @@ errorhandle:
             Dim cmdstr As String
             Dim anDepCheck As New clsOTDBDependCheck
 
-            aTable = GetTableStore(anEntry.TableID)
+            aTable = GetTableStore(anEntry.primaryTableID)
             If isDynamic Then
-                cmdstr = "update " & anDepCheck.TableID & " set clusterid = '', clusterlevel=0 "
+                cmdstr = "update " & anDepCheck.primaryTableID & " set clusterid = '', clusterlevel=0 "
             Else
-                cmdstr = "update " & anEntry.TableID & " set clusterid = '', clusterlevel=0 "
+                cmdstr = "update " & anEntry.primaryTableID & " set clusterid = '', clusterlevel=0 "
             End If
 
             If aClusterID <> "" Then
@@ -2135,7 +2135,7 @@ error_handler:
             Dim aCollection
 
             ' return
-            If Not _IsLoaded And Not Me.IsCreated Then
+            If Not me.isloaded And Not Me.IsCreated Then
                 GetDependCheck = Nothing
                 Exit Function
             End If
@@ -3019,7 +3019,7 @@ errorhandle:
             s_posno = POSNO
             s_dependfrompartid = dependfromPartID
 
-            _IsCreated = True
+            'me.iscreated = True
             create = Me.IsCreated
 
         End Function
@@ -3289,13 +3289,13 @@ errorhandle:
                         s_supdc = aSchedule.Updc
                         Me.condition = DEPENDMEMBER.condition
                         Me.dependfromPartID = DEPENDMEMBER.dependfromPartID
-                        _IsCreated = True
+                        'me.iscreated = True
                         '*** run specific tests on the CONDITION
                         Select Case DEPENDMEMBER.condition
                             Case "IFC1"
                                 run = runIFC1(DEPENDMEMBER, aDeliverable, aPart, aSchedule, workspaceID:=workspaceID)
                                 If run And autopersist Then
-                                    _IsCreated = True
+                                    'me.iscreated = True
                                     Me.Persist()
                                 End If
                             Case "IFC2"
@@ -3521,7 +3521,7 @@ error_handler:
             _createdOn = CDate(aRecord.GetValue(ConstFNCreatedOn))
 
             infuse = True
-            _IsLoaded = True
+            'me.isloaded = True
             Exit Function
 
 errorhandle:
@@ -3558,7 +3558,7 @@ errorhandle:
                 Exit Function
             Else
                 Me.Record = aRecord
-                _IsLoaded = Me.infuse(Me.Record)
+                'me.isloaded = Me.infuse(Me.Record)
                 Inject = Me.IsLoaded
                 Exit Function
             End If
@@ -3719,7 +3719,7 @@ errorhandle:
             Dim aDependMember As New clsOTDBDependMember
 
 
-            If _IsLoaded And Not Me.IsCreated Then
+            If me.isloaded And Not Me.IsCreated Then
                 getSizeMax = False
                 Exit Function
             End If
@@ -3737,9 +3737,9 @@ errorhandle:
 
             ' get
             If Me.isDynamic Then
-                tablename = aDependCheck.TableID
+                tablename = aDependCheck.primaryTableID
             Else
-                tablename = aDependMember.TableID
+                tablename = aDependMember.primaryTableID
             End If
             ''' TODO
             ''' 
@@ -3812,7 +3812,7 @@ error_handle:
             s_typeid = TYPEID
             s_clusterid = clusterid
 
-            _IsCreated = True
+            'me.iscreated = True
             create = Me.IsCreated
 
         End Function

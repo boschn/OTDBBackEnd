@@ -99,7 +99,7 @@
     <Compile Include="clsADONET.vb" />
     <Compile Include="clsADOOLEDB.vb" />
     <Compile Include="clsBOM.vb" />
-    <Compile Include="clsCalenderEntry.vb" />
+    <Compile Include="clsCalender.vb" />
     <Compile Include="clsCartypes.vb" />
     <Compile Include="clsConfigurable.vb" />
     <Compile Include="clsCore.vb" />

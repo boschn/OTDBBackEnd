@@ -1469,7 +1469,7 @@ Namespace OnTrack.XChange
         End Property
         ReadOnly Property Outline As XOutline
             Get
-                If Me._outlineid <> "" And (_IsLoaded Or Me.IsCreated) Then
+                If Me._outlineid <> "" And (me.isloaded Or Me.IsCreated) Then
                     If Not _outline.IsLoaded And Not _outline.IsCreated Then
                         If _outline.Inject(Me._outlineid) Then
                             Return _outline
@@ -1715,7 +1715,7 @@ Namespace OnTrack.XChange
         Public Function SetordinalForID(ByVal ID As String, ByVal ordinal As Object, Optional ByVal objectname As String = "") As Boolean
             Dim anEntry As New XConfigAttributeEntry()
             ' Nothing
-            If Not _IsLoaded And Not Me.IsCreated Then
+            If Not me.isloaded And Not Me.IsCreated Then
                 SetordinalForID = False
                 Exit Function
             End If
@@ -1748,7 +1748,7 @@ Namespace OnTrack.XChange
             Dim aMember As New XConfigObjectEntry
 
             ' Nothing
-            If Not _IsLoaded And Not Me.IsCreated Then
+            If Not me.isloaded And Not Me.IsCreated Then
                 SetObjectXCmd = False
                 Exit Function
             End If
@@ -1863,7 +1863,7 @@ Namespace OnTrack.XChange
                                                 Optional ByVal [readonly] As Boolean = False) As Boolean
 
             ' Nothing
-            If Not _IsLoaded And Not Me.IsCreated Then
+            If Not me.isloaded And Not Me.IsCreated Then
 
                 AddAttributeByField = False
                 Exit Function
@@ -1896,7 +1896,7 @@ Namespace OnTrack.XChange
             Dim objectMember As XConfigObjectEntry
 
             ' Nothing
-            If Not _IsLoaded And Not Me.IsCreated Then
+            If Not me.isloaded And Not Me.IsCreated Then
                 AddAttributeByField = False
                 Exit Function
             End If
@@ -2001,7 +2001,7 @@ Namespace OnTrack.XChange
             AddAttributeByID = False
 
             ' Nothing
-            If Not _IsLoaded And Not Me.IsCreated Then
+            If Not me.isloaded And Not Me.IsCreated Then
                 AddAttributeByID = False
                 Exit Function
             End If
@@ -2059,7 +2059,7 @@ Namespace OnTrack.XChange
             Dim flag As Boolean
 
             ' Nothing
-            If Not _IsLoaded And Not Me.IsCreated Then
+            If Not me.isloaded And Not Me.IsCreated Then
                 Exists = False
                 Exit Function
             End If
@@ -2192,7 +2192,7 @@ Namespace OnTrack.XChange
 
 
             ' Nothing
-            If Not _IsLoaded And Not Me.IsCreated Then
+            If Not me.isloaded And Not Me.IsCreated Then
                 AddMember = False
                 Exit Function
             End If
@@ -2297,7 +2297,7 @@ Namespace OnTrack.XChange
             Dim anEntry As iConfigMember
 
 
-            If Not Me.IsCreated And Not _IsLoaded Then
+            If Not Me.IsCreated And Not me.isloaded Then
                 Delete = False
                 Exit Function
             End If
@@ -2311,7 +2311,7 @@ Namespace OnTrack.XChange
             ' reset it
             Me.Reset()
 
-            _IsCreated = True
+            'me.iscreated = True
             Me.IsDeleted = True
             Me.Unload()
 
@@ -2344,7 +2344,7 @@ Namespace OnTrack.XChange
         ''' <remarks></remarks>
         Public Function MemberIndexNo() As List(Of Long)
 
-            If Not Me.IsCreated And Not _IsLoaded Then
+            If Not Me.IsCreated And Not me.isloaded Then
                 Return New List(Of Long)
             End If
 
@@ -2359,7 +2359,7 @@ Namespace OnTrack.XChange
         Public Function ObjectsByOrderNo() As IEnumerable(Of XConfigObjectEntry)
 
 
-            If Not Me.IsCreated And Not _IsLoaded Then
+            If Not Me.IsCreated And Not me.isloaded Then
                 Return New List(Of XConfigObjectEntry)
             End If
 
@@ -2395,7 +2395,7 @@ Namespace OnTrack.XChange
         Public Function Members() As List(Of iConfigMember)
             Dim aCollection As New List(Of iConfigMember)
 
-            If Not Me.IsCreated And Not _IsLoaded Then
+            If Not Me.IsCreated And Not me.isloaded Then
                 Return aCollection
                 Exit Function
             End If
@@ -2418,7 +2418,7 @@ Namespace OnTrack.XChange
         Public Function [Objects]() As List(Of XConfigObjectEntry)
             Dim aCollection As New List(Of XConfigObjectEntry)
 
-            If Not Me.IsCreated And Not _IsLoaded Then
+            If Not Me.IsCreated And Not me.isloaded Then
                 Return aCollection
             End If
 
@@ -2441,7 +2441,7 @@ Namespace OnTrack.XChange
                                             Optional ByVal tablename As String = "") As XConfigAttributeEntry
 
             Dim aMember As XConfigAttributeEntry
-            If Not Me.IsCreated And Not _IsLoaded Then
+            If Not Me.IsCreated And Not me.isloaded Then
                 AttributeByFieldName = Nothing
                 Exit Function
             End If
@@ -2501,7 +2501,7 @@ Namespace OnTrack.XChange
             Dim aCollection As IEnumerable
 
 
-            If Not Me.IsCreated And Not _IsLoaded Then
+            If Not Me.IsCreated And Not me.isloaded Then
                 AttributeByID = Nothing
                 Exit Function
             End If
@@ -2562,7 +2562,7 @@ Namespace OnTrack.XChange
         ''' <remarks></remarks>
         Public Function AttributesByordinal(ByVal ordinal As Ordinal) As List(Of iConfigMember)
 
-            If Not Me.IsCreated And Not _IsLoaded Then
+            If Not Me.IsCreated And Not me.isloaded Then
                 Return New List(Of iConfigMember)
             End If
 
@@ -2586,7 +2586,7 @@ Namespace OnTrack.XChange
             Dim aCollection As IEnumerable
 
 
-            If Not Me.IsCreated And Not _IsLoaded Then
+            If Not Me.IsCreated And Not me.isloaded Then
                 AttributeByAlias = Nothing
                 Exit Function
             End If
@@ -2614,7 +2614,7 @@ Namespace OnTrack.XChange
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function Attributes(Optional objectname As String = "") As IEnumerable(Of XConfigAttributeEntry)
-            If Not Me.IsCreated And Not _IsLoaded Then
+            If Not Me.IsCreated And Not me.isloaded Then
                 Return New List(Of clsOTDBXChangeMember)
             End If
 
@@ -2689,7 +2689,7 @@ Namespace OnTrack.XChange
                         End If
                     Next
                     '
-                    _IsLoaded = True
+                    '_isloaded = True
 
                 End If
 
@@ -4909,17 +4909,17 @@ Namespace OnTrack.XChange
             End If
 
             If Not dataobject.IsLoaded And Not dataobject.IsCreated Then
-                CoreMessageHandler(message:="data object needs to be loaded or created", tablename:=dataobject.TableID, subname:="XEnvelope.RunDefaultXCHange(dataobject)", messagetype:=otCoreMessageType.ApplicationError)
+                CoreMessageHandler(message:="data object needs to be loaded or created", tablename:=dataobject.primaryTableID, subname:="XEnvelope.RunDefaultXCHange(dataobject)", messagetype:=otCoreMessageType.ApplicationError)
                 Return False
             End If
 
-            Dim aXObject As XConfigObjectEntry = Me.Xchangeconfig.ObjectByName(objectname:=dataobject.TableID)
+            Dim aXObject As XConfigObjectEntry = Me.Xchangeconfig.ObjectByName(objectname:=dataobject.primaryTableID)
             If aXObject IsNot Nothing Then
                 result = Me.RunDefaultXchange(xobject:=aXObject, record:=dataobject.Record, nocompounds:=nocompounds, msglog:=msglog)
                 dataobject.Infuse(dataobject.Record) ' reinfuse
                 Return result
             Else
-                CoreMessageHandler(message:="dataobject's objectname is not in the xconfiguration " & Me.Xchangeconfig.Configname, tablename:=dataobject.TableID, subname:="xEnvelope.runDefaultXChange(Dataobject)", messagetype:=otCoreMessageType.ApplicationWarning)
+                CoreMessageHandler(message:="dataobject's objectname is not in the xconfiguration " & Me.Xchangeconfig.Configname, tablename:=dataobject.primaryTableID, subname:="xEnvelope.runDefaultXChange(Dataobject)", messagetype:=otCoreMessageType.ApplicationWarning)
                 Return False
             End If
 
@@ -5039,7 +5039,7 @@ Namespace OnTrack.XChange
             '**********************************************************
             '**** SPECIAL HANDLING OF tblschedules -> Milestones
             '**********************************************************
-            If TABLE.ID.ToLower = aSchedule.TableID.ToLower Then
+            If TABLE.ID.ToLower = aSchedule.primaryTableID.ToLower Then
                 Dim anUID As Long
                 Dim anUPDC As Long
 
@@ -5268,7 +5268,7 @@ Namespace OnTrack.XChange
         End Property
         ReadOnly Property Outline As XOutline
             Get
-                If Me._outlineid <> "" And (_IsLoaded Or Me.IsCreated) Then
+                If Me._outlineid <> "" And (me.isloaded Or Me.IsCreated) Then
                     If Not _outline.IsLoaded And Not _outline.IsCreated Then
                         If _outline.Inject(Me._outlineid) Then
                             Return _outline
@@ -5514,7 +5514,7 @@ Namespace OnTrack.XChange
         Public Function SetordinalForID(ByVal ID As String, ByVal ordinal As Object, Optional ByVal objectname As String = "") As Boolean
             Dim anEntry As New clsOTDBXChangeMember()
             ' Nothing
-            If Not _IsLoaded And Not Me.IsCreated Then
+            If Not me.isloaded And Not Me.IsCreated Then
                 SetordinalForID = False
                 Exit Function
             End If
@@ -5547,7 +5547,7 @@ Namespace OnTrack.XChange
             Dim aMember As New clsOTDBXChangeMember
 
             ' Nothing
-            If Not _IsLoaded And Not Me.IsCreated Then
+            If Not me.isloaded And Not Me.IsCreated Then
                 SetObjectXCmd = False
                 Exit Function
             End If
@@ -5665,7 +5665,7 @@ Namespace OnTrack.XChange
                                                 Optional ByVal [readonly] As Boolean = False) As Boolean
 
             ' Nothing
-            If Not _IsLoaded And Not Me.IsCreated Then
+            If Not me.isloaded And Not Me.IsCreated Then
 
                 AddAttributeByField = False
                 Exit Function
@@ -5698,7 +5698,7 @@ Namespace OnTrack.XChange
             Dim objectMember As clsOTDBXChangeMember
 
             ' Nothing
-            If Not _IsLoaded And Not Me.IsCreated Then
+            If Not me.isloaded And Not Me.IsCreated Then
                 AddAttributeByField = False
                 Exit Function
             End If
@@ -5805,7 +5805,7 @@ Namespace OnTrack.XChange
             AddAttributeByID = False
 
             ' Nothing
-            If Not _IsLoaded And Not Me.IsCreated Then
+            If Not me.isloaded And Not Me.IsCreated Then
                 AddAttributeByID = False
                 Exit Function
             End If
@@ -5863,7 +5863,7 @@ Namespace OnTrack.XChange
             Dim flag As Boolean
 
             ' Nothing
-            If Not _IsLoaded And Not Me.IsCreated Then
+            If Not me.isloaded And Not Me.IsCreated Then
                 Exists = False
                 Exit Function
             End If
@@ -5996,7 +5996,7 @@ Namespace OnTrack.XChange
 
 
             ' Nothing
-            If Not _IsLoaded And Not Me.IsCreated Then
+            If Not me.isloaded And Not Me.IsCreated Then
                 AddMember = False
                 Exit Function
             End If
@@ -6099,7 +6099,7 @@ Namespace OnTrack.XChange
             Dim anEntry As clsOTDBXChangeMember
 
 
-            If Not Me.IsCreated And Not _IsLoaded Then
+            If Not Me.IsCreated And Not me.isloaded Then
                 Delete = False
                 Exit Function
             End If
@@ -6113,7 +6113,7 @@ Namespace OnTrack.XChange
             ' reset it
             Me.Reset()
 
-            _IsCreated = True
+            'me.iscreated = True
             Me.IsDeleted = True
             Me.Unload()
 
@@ -6146,7 +6146,7 @@ Namespace OnTrack.XChange
         ''' <remarks></remarks>
         Public Function MemberIndexNo() As List(Of Long)
 
-            If Not Me.IsCreated And Not _IsLoaded Then
+            If Not Me.IsCreated And Not me.isloaded Then
                 Return New List(Of Long)
             End If
 
@@ -6161,7 +6161,7 @@ Namespace OnTrack.XChange
         Public Function ObjectsByOrderNo() As IEnumerable(Of clsOTDBXChangeMember)
 
 
-            If Not Me.IsCreated And Not _IsLoaded Then
+            If Not Me.IsCreated And Not me.isloaded Then
                 Return New List(Of clsOTDBXChangeMember)
             End If
 
@@ -6197,7 +6197,7 @@ Namespace OnTrack.XChange
         Public Function Members() As List(Of clsOTDBXChangeMember)
             Dim aCollection As New List(Of clsOTDBXChangeMember)
 
-            If Not Me.IsCreated And Not _IsLoaded Then
+            If Not Me.IsCreated And Not me.isloaded Then
                 Return aCollection
                 Exit Function
             End If
@@ -6220,7 +6220,7 @@ Namespace OnTrack.XChange
         Public Function Objects() As List(Of clsOTDBXChangeMember)
             Dim aCollection As New List(Of clsOTDBXChangeMember)
 
-            If Not Me.IsCreated And Not _IsLoaded Then
+            If Not Me.IsCreated And Not me.isloaded Then
                 Return aCollection
             End If
 
@@ -6243,7 +6243,7 @@ Namespace OnTrack.XChange
                                             Optional ByVal tablename As String = "") As clsOTDBXChangeMember
 
             Dim aMember As clsOTDBXChangeMember
-            If Not Me.IsCreated And Not _IsLoaded Then
+            If Not Me.IsCreated And Not me.isloaded Then
                 AttributeByFieldName = Nothing
                 Exit Function
             End If
@@ -6303,7 +6303,7 @@ Namespace OnTrack.XChange
             Dim aCollection As IEnumerable
 
 
-            If Not Me.IsCreated And Not _IsLoaded Then
+            If Not Me.IsCreated And Not me.isloaded Then
                 AttributeByID = Nothing
                 Exit Function
             End If
@@ -6370,7 +6370,7 @@ Namespace OnTrack.XChange
             Dim aCollection As IEnumerable
 
 
-            If Not Me.IsCreated And Not _IsLoaded Then
+            If Not Me.IsCreated And Not me.isloaded Then
                 AttributeByAlias = Nothing
                 Exit Function
             End If
@@ -6400,7 +6400,7 @@ Namespace OnTrack.XChange
             Dim i, j As Integer
             Dim relationID As Object
 
-            If Not Me.IsCreated And Not _IsLoaded Then
+            If Not Me.IsCreated And Not me.isloaded Then
                 AttributeByRelationID = Nothing
                 Exit Function
             End If
@@ -6444,7 +6444,7 @@ Namespace OnTrack.XChange
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function Attributes(Optional objectname As String = "") As IEnumerable(Of clsOTDBXChangeMember)
-            If Not Me.IsCreated And Not _IsLoaded Then
+            If Not Me.IsCreated And Not me.isloaded Then
                 Return New List(Of clsOTDBXChangeMember)
             End If
 
@@ -6484,7 +6484,7 @@ Namespace OnTrack.XChange
                 '** load
                 If MyBase.Inject(pkarry) Then
                     ' load the members
-                    aTable = GetTableStore(anEntry.TableID)
+                    aTable = GetTableStore(anEntry.primaryTableID)
                     Dim aCommand As ormSqlSelectCommand = aTable.CreateSqlSelectCommand(id:="Inject")
                     If Not aCommand.Prepared Then
                         aCommand.Where = clsOTDBXChangeMember.constFNID & " = @" & clsOTDBXChangeMember.constFNID
@@ -6512,7 +6512,7 @@ Namespace OnTrack.XChange
                         'End If
                     Next
                     '
-                    _IsLoaded = True
+                    '_isloaded = True
 
                 End If
 
@@ -7039,7 +7039,7 @@ Namespace OnTrack.XChange
             '**********************************************************
             '**** SPECIAL HANDLING OF tblschedules -> Milestones
             '**********************************************************
-            If TABLE.ID.ToLower = aSchedule.TableID.ToLower Then
+            If TABLE.ID.ToLower = aSchedule.primaryTableID.ToLower Then
                 Dim anUID As Long
                 Dim anUPDC As Long
 
@@ -8122,7 +8122,7 @@ Namespace OnTrack.XChange
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function SetByFieldDesc(fielddesc As ormFieldDescription) As Boolean
-            If Not _IsLoaded And Not Me.IsCreated Then
+            If Not me.isloaded And Not Me.IsCreated Then
                 SetByFieldDesc = False
                 Exit Function
             End If
@@ -9005,7 +9005,7 @@ Namespace OnTrack.XChange
             Dim m As Object
 
             ' empty
-            If Not _IsLoaded And Not Me.IsCreated Then
+            If Not me.isloaded And Not Me.IsCreated Then
                 AddOutlineItem = False
                 Exit Function
             End If
@@ -9041,7 +9041,7 @@ Namespace OnTrack.XChange
             Dim initialEntry As New XOutlineItem
             Dim m As Object
 
-            If Not Me.IsCreated And Not _IsLoaded Then
+            If Not Me.IsCreated And Not me.isloaded Then
                 Delete = False
                 Exit Function
             End If
@@ -9056,7 +9056,7 @@ Namespace OnTrack.XChange
             ' reset it
             s_cmids.Clear()
 
-            _IsCreated = True
+            'me.iscreated = True
             Me.IsDeleted = True
             Me.Unload()
 
@@ -9069,7 +9069,7 @@ Namespace OnTrack.XChange
         ''' <remarks></remarks>
         Public Function ordinals() As Collection
 
-            If Not Me.IsCreated And Not _IsLoaded Then
+            If Not Me.IsCreated And Not me.isloaded Then
                 Return Nothing
             End If
 
@@ -9085,7 +9085,7 @@ Namespace OnTrack.XChange
             Dim aCollection As New Collection
             Dim m As Object
 
-            If Not Me.IsCreated And Not _IsLoaded Then
+            If Not Me.IsCreated And Not me.isloaded Then
                 Items = Nothing
                 Exit Function
             End If
@@ -9119,10 +9119,10 @@ Namespace OnTrack.XChange
             Dim pkarry() As Object = {id}
 
             If MyBase.Inject(pkArray:=pkarry) Then
-                _IsLoaded = _IsLoaded And LoadItems(id:=id)
+                LoadItems(id:=id)
             End If
 
-            Return _IsLoaded
+            Return me.isloaded
         End Function
 
         ''' <summary>
@@ -9218,7 +9218,7 @@ Namespace OnTrack.XChange
                                        messagetype:=otCoreMessageType.ApplicationError)
                 Return False
             End If
-            If Not _IsLoaded And Not Me.IsCreated Then
+            If Not me.isloaded And Not Me.IsCreated Then
                 Return False
             ElseIf Not Me.DynamicAddRevisions Then
                 Return False
@@ -9265,7 +9265,7 @@ Namespace OnTrack.XChange
             Dim aFirstRevision As New Deliverable
             Dim returnCollection As New List(Of XOutlineItem)
 
-            If Not _IsLoaded And Not Me.IsCreated Then
+            If Not me.isloaded And Not Me.IsCreated Then
                 Return returnCollection
             ElseIf Not Me.DynamicAddRevisions Then
                 Return returnCollection

@@ -245,7 +245,7 @@ Namespace OnTrack.Database
         '** dynamic
         Private _columns As New Dictionary(Of String, ormSchemaTableColumnAttribute)
         Private _foreignkeys As New Dictionary(Of String, ormSchemaForeignKeyAttribute)
-
+        Private _pkcolumns As New SortedList(Of UShort, String)
         Public Sub New()
 
         End Sub
@@ -294,6 +294,10 @@ Namespace OnTrack.Database
                 _columns.Remove(entry.ColumnName.ToUpper)
             End If
             _columns.Add(key:=entry.ColumnName.ToUpper, value:=entry)
+            If entry.HasValuePrimaryKeyOrdinal Then
+                If _pkcolumns.ContainsKey(entry.PrimaryKeyOrdinal) Then _pkcolumns.Remove(entry.PrimaryKeyOrdinal)
+                _pkcolumns.Add(key:=entry.PrimaryKeyOrdinal, value:=entry.ColumnName)
+            End If
             Return True
         End Function
         ''' <summary>
@@ -307,6 +311,14 @@ Namespace OnTrack.Database
                 _columns.Remove(entry.ColumnName.ToUpper)
             End If
             _columns.Add(key:=entry.ColumnName.ToUpper, value:=entry)
+            If entry.HasValuePrimaryKeyOrdinal Then
+                If _pkcolumns.ContainsKey(entry.PrimaryKeyOrdinal) Then _pkcolumns.Remove(entry.PrimaryKeyOrdinal)
+                _pkcolumns.Add(key:=entry.PrimaryKeyOrdinal, value:=entry.ColumnName)
+            Else
+                If _pkcolumns.Values.Contains(entry.ColumnName) Then
+                    _pkcolumns.Remove(_pkcolumns.First(Function(x) x.Key = entry.ColumnName).Key)
+                End If
+            End If
             Return True
         End Function
         ''' <summary>
@@ -340,6 +352,9 @@ Namespace OnTrack.Database
         Public Function RemoveColumn(columnname As String) As Boolean
             If _columns.ContainsKey(columnname.ToUpper) Then
                 _columns.Remove(columnname.ToUpper)
+                If _pkcolumns.Values.Contains(columnname) Then
+                    _pkcolumns.Remove(_pkcolumns.First(Function(x) x.Key = columnname).Key)
+                End If
                 Return True
             Else
                 Return False
@@ -414,6 +429,17 @@ Namespace OnTrack.Database
         Public ReadOnly Property ForeignKeyAttributes As IEnumerable(Of ormSchemaForeignKeyAttribute)
             Get
                 Return _foreignkeys.Values.ToList
+            End Get
+        End Property
+        ''' <summary>
+        ''' returns the Names of the PrimaryKey Columns
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property PrimaryKeyColumnNames As String()
+            Get
+                Return _pkcolumns.Values.ToArray
             End Get
         End Property
         ''' <summary>
@@ -1035,7 +1061,7 @@ Namespace OnTrack.Database
         Protected _relation() As String = Nothing
         Protected _IsNullable As Nullable(Of Boolean)
         Protected _IsUnique As Nullable(Of Boolean)
-        Protected _DefaultValue As String = Nothing
+        Protected _DBDefaultValue As String = Nothing
         Protected _Version As Nullable(Of UShort)
         Protected _Posordinal As Nullable(Of UShort)
         Protected _ReferenceTableEntry As String = Nothing
@@ -1153,20 +1179,20 @@ Namespace OnTrack.Database
         End Property
 
         ''' <summary>
-        ''' Gets or sets the default value.
+        ''' Gets or sets the default value in DB presentation.
         ''' </summary>
         ''' <value>The default value.</value>
-        Public Property DefaultValue() As String
+        Public Property DBDefaultValue() As String
             Get
-                Return Me._DefaultValue
+                Return Me._DBDefaultValue
             End Get
             Set(value As String)
-                Me._DefaultValue = value
+                Me._DBDefaultValue = value
             End Set
         End Property
-        Public ReadOnly Property HasValueDefaultValue As Boolean
+        Public ReadOnly Property HasValueDBDefaultValue As Boolean
             Get
-                Return _DefaultValue IsNot Nothing
+                Return _DBDefaultValue IsNot Nothing
             End Get
         End Property
 
@@ -1652,7 +1678,7 @@ Namespace OnTrack.Database
 
         Private _Parameter As String = Nothing
         Private _KeyOrdinal As Nullable(Of UShort)
-        Private _DefaultValue As String = Nothing
+        Private _DefaultValue As Object = Nothing
         Private _Version As Nullable(Of UShort)
         Private _Posordinal As Nullable(Of UShort)
         Private _SpareFieldTag As Nullable(Of Boolean)
@@ -1932,6 +1958,23 @@ Namespace OnTrack.Database
         Public ReadOnly Property HasValueObjectName As Boolean
             Get
                 Return _objectName IsNot Nothing AndAlso _objectName <> ""
+            End Get
+        End Property
+        ''' <summary>
+        ''' Gets or sets the default value in DB presentation.
+        ''' </summary>
+        ''' <value>The default value.</value>
+        Public Property DefaultValue() As Object
+            Get
+                Return Me._DefaultValue
+            End Get
+            Set(value As Object)
+                Me._DefaultValue = value
+            End Set
+        End Property
+        Public ReadOnly Property HasValueDefaultValue As Boolean
+            Get
+                Return _DefaultValue IsNot Nothing
             End Get
         End Property
         ''' <summary>
@@ -2431,7 +2474,7 @@ Namespace OnTrack.Database
                 Return Me._ClassName
             End Get
             Set(value As String)
-                Me._ClassName = value.ToUpper
+                Me._ClassName = value
             End Set
         End Property
         Public ReadOnly Property HasValueClassname As Boolean

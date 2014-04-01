@@ -611,6 +611,9 @@ Namespace OnTrack
             Private _innerjoin As String = ""
             Private _orderby As String = ""
             Private _where As String = ""
+            Private _AllFieldsAdded As Boolean
+
+
 
             ''' <summary>
             ''' Class for Storing the select result fields per Table(store)
@@ -741,7 +744,15 @@ Namespace OnTrack
                 Call MyBase.New(ID:=ID)
                 _type = OTDBSQLCommandTypes.SELECT
             End Sub
-
+            ''' <summary>
+            ''' Gets the completefor object.
+            ''' </summary>
+            ''' <value>The completefor object.</value>
+            Public ReadOnly Property AllFieldsAdded() As Boolean
+                Get
+                    Return Me._AllFieldsAdded
+                End Get
+            End Property
             ''' <summary>
             ''' sets or gets the innerjoin 
             ''' </summary>
@@ -770,6 +781,7 @@ Namespace OnTrack
                 Set(value As String)
                     _select = value
                     Me.BuildTextRequired = True
+
                 End Set
             End Property
             ''' <summary>
@@ -851,7 +863,6 @@ Namespace OnTrack
 
                 If Not _tablestores.ContainsKey(key:=tableid) Then
                     _tablestores.Add(key:=tableid, value:=aTablestore)
-
                 End If
 
                 '*** include all fields
@@ -861,6 +872,7 @@ Namespace OnTrack
                             _fields.Add(key:=tableid & "." & aFieldname.ToUpper, value:=New ResultField(Me, tableid:=tableid, fieldname:=aFieldname.ToUpper))
                         End If
                     Next
+                    _AllFieldsAdded = True
                 End If
 
                 '** include specific fields
@@ -917,7 +929,10 @@ Namespace OnTrack
                         Return ""
                     End If
                 Else
+                    ''' TODO: add the additional parameter sql text
+                    ''' and keep allfieldsadded
                     Me._SqlText &= _select
+                    If _AllFieldsAdded Then _AllFieldsAdded = False ' reset the allfieldsadded in any case
                 End If
 
                 '*** build the tables
@@ -983,21 +998,39 @@ Namespace OnTrack
                     aParametervalues = parametervalues
                 End If
 
-                '*** run it
-                If Me.Prepared Then
-
-                    Return Me.DatabaseDriver.RunSqlSelectCommand(sqlcommand:=Me, parametervalues:=aParametervalues, nativeConnection:=nativeConnection)
+                ''' if we are running on one table only with all fields
+                ''' then use the tablestore select with type checking
+                If _tablestores.Count = 1 And _AllFieldsAdded Then
+                    Dim aStore As iormDataStore = _tablestores.Values.First
+                    '*** run it
+                    If Me.Prepared Then
+                        Return aStore.GetRecordsBySqlCommand(sqlcommand:=Me, parametervalues:=aParametervalues)
+                    Else
+                        If Me.Prepare() Then
+                            Return aStore.GetRecordsBySqlCommand(sqlcommand:=Me, parametervalues:=aParametervalues)
+                        Else
+                            Call CoreMessageHandler(subname:="clsOTDBSqlSelectCommand.runSelect", message:="Command is not prepared", arg1:=Me.ID, _
+                                                             messagetype:=otCoreMessageType.InternalError)
+                            Return New List(Of ormRecord)
+                        End If
+                    End If
                 Else
-                    If Me.Prepare() Then
+                    ''' else run against the database driver
+                    ''' 
+                    '*** run it
+                    If Me.Prepared Then
                         Return Me.DatabaseDriver.RunSqlSelectCommand(sqlcommand:=Me, parametervalues:=aParametervalues, nativeConnection:=nativeConnection)
                     Else
-                        Call CoreMessageHandler(subname:="clsOTDBSqlSelectCommand.runSelect", message:="Command is not prepared", arg1:=Me.ID, _
-                                                         messagetype:=otCoreMessageType.InternalError)
-                        Return New List(Of ormRecord)
+                        If Me.Prepare() Then
+                            Return Me.DatabaseDriver.RunSqlSelectCommand(sqlcommand:=Me, parametervalues:=aParametervalues, nativeConnection:=nativeConnection)
+                        Else
+                            Call CoreMessageHandler(subname:="clsOTDBSqlSelectCommand.runSelect", message:="Command is not prepared", arg1:=Me.ID, _
+                                                             messagetype:=otCoreMessageType.InternalError)
+                            Return New List(Of ormRecord)
+                        End If
                     End If
-
-
                 End If
+                
             End Function
         End Class
 
@@ -1247,6 +1280,23 @@ Namespace OnTrack
                                                        Optional isnullable As Boolean = False,
                                                         Optional defaultvalue As Object = Nothing) As Boolean Implements iormDatabaseDriver.Convert2DBData
 
+            ''' <summary>
+            ''' Convert2s the object data.
+            ''' </summary>
+            ''' <param name="invalue">The invalue.</param>
+            ''' <param name="outvalue">The outvalue.</param>
+            ''' <param name="sourceType">Type of the source.</param>
+            ''' <param name="isnullable">The isnullable.</param>
+            ''' <param name="defaultvalue">The defaultvalue.</param>
+            ''' <param name="abostrophNecessary">The abostroph necessary.</param>
+            ''' <returns></returns>
+            Public MustOverride Function Convert2ObjectData(invalue As Object, _
+                                                            ByRef outvalue As Object, _
+                                                            sourceType As Long, _
+                                                            Optional isnullable As Boolean? = Nothing, _
+                                                            Optional defaultvalue As Object = Nothing, _
+                                                            Optional ByRef abostrophNecessary As Boolean = False) As Boolean Implements iormDatabaseDriver.Convert2ObjectData
+            
             ''' Gets the catalog.
             ''' </summary>
             ''' <param name="FORCE">The FORCE.</param>
@@ -1306,7 +1356,7 @@ Namespace OnTrack
             ''' <param name="createOrAlter">The create on missing.</param>
             ''' <param name="addToSchemaDir">The add to schema dir.</param>
             ''' <returns></returns>
-           
+
             Public MustOverride Function GetIndex(ByRef nativeTable As Object, ByRef indexdefinition As IndexDefinition, _
            Optional ByVal forceCreation As Boolean = False, _
            Optional ByVal createOrAlter As Boolean = False, _
@@ -1390,6 +1440,8 @@ Namespace OnTrack
             ''' <returns></returns>
             Public MustOverride Function GetDBParameter(parametername As String, Optional ByRef nativeConnection As Object = Nothing, Optional silent As Boolean = False) As Object Implements iormDatabaseDriver.GetDBParameter
 
+
+
             ''' <summary>
             ''' validates the User, Passoword, Access Right in the Domain
             ''' </summary>
@@ -1434,7 +1486,7 @@ Namespace OnTrack
                         ''' check if Rights are covered
                         Return aAccessProperty.CoverRights(accessRequest)
                     End If
-                   
+
                 End If
             End Function
             ''' <summary>
@@ -1619,7 +1671,7 @@ Namespace OnTrack
                 _DbDriver = dbdriver
                 _tableid = tableID
                 If Not runtimeOnly Then
-                    Me.SetTable(tableID, forceReload:=False, fillDefaultValues:=fillDefaultValues)
+                    Me.SetTable(tableID, forceReload:=False, dbdriver:=dbdriver, fillDefaultValues:=fillDefaultValues)
                     _FixEntries = True
                 End If
             End Sub
@@ -1711,8 +1763,8 @@ Namespace OnTrack
                 Set(value As Boolean)
                     Me._isUnknown = value
                     If value Then
-                        _isCreated = False
-                        _isLoaded = False
+                        Me.iscreated = False
+                        Me.isloaded = False
                     End If
                 End Set
             End Property
@@ -1810,13 +1862,162 @@ Namespace OnTrack
 
             End Property
             ''' <summary>
+            ''' load a record into this record from the datareader
+            ''' </summary>
+            ''' <param name="datareader"></param>
+            ''' <returns></returns>
+            ''' <remarks></remarks>
+            Public Function LoadFrom(ByRef datarow As DataRow) As Boolean
+                Dim result As Boolean = True
+                Try
+                    ''' if tableset then only check which fields are in the datareader
+                    ''' 
+                    _isLoaded = True ' important
+
+                    If _IsTableSet Then
+                        For j = 1 To _TableStore.TableSchema.NoFields
+
+                            Dim aColumnname As String = _TableStore.TableSchema.Getfieldname(j)
+                            If datarow.Table.Columns.Contains(aColumnname) Then
+                                Dim aValue As Object = datarow.Item(aColumnname)
+                                If _TableStore.Convert2ObjectData(index:=j, invalue:=datarow.Item(aColumnname), outvalue:=aValue) Then
+                                    If Not SetValue(j, aValue) Then
+                                        CoreMessageHandler(message:="could not set value from data reader", arg1:=aValue, _
+                                                           columnname:=aColumnname, tablename:=_tableid, subname:="ormRecord.LoadFrom(Datarow)")
+                                        result = False
+                                    Else
+                                        result = result And True
+                                    End If
+                                Else
+                                    CoreMessageHandler(message:="could not convert value from data reader", arg1:=datarow.Item(aColumnname), _
+                                                       columnname:=aColumnname, tablename:=_tableid, subname:="ormRecord.LoadFrom(Datarow)")
+                                    result = False
+                                End If
+                            Else
+                                CoreMessageHandler(message:="column from table not in datareader - record uncomplete", columnname:=aColumnname, _
+                                                   tablename:=_tableid, subname:="ormRecord.LoadFrom(Datarow)")
+                                result = False
+                            End If
+                        Next j
+
+                        Return result
+                    Else
+                        ''' take all the values from datareader and move it 
+                        ''' 
+                        For j = 0 To datarow.Table.Columns.Count - 1
+                            Dim aColumnname As String = datarow.Table.Columns.Item(j).ColumnName
+                            Dim aValue As Object = datarow.Item(j)
+
+                            ''' how to convert ?!
+                            ''' 
+                            ''' datarow has system types !!
+                            ''' Dim Outvalue = CTypeDynamic (avalue, atype)
+                            '''
+                            If Not SetValue(datarow.Table.TableName.ToUpper & "." & aColumnname.ToUpper, aValue) Then
+                                CoreMessageHandler(message:="could not set value from data reader", arg1:=aValue, _
+                                                   columnname:=aColumnname, tablename:=_tableid, subname:="ormRecord.LoadFrom(Datarow)")
+                                result = False
+                            Else
+                                result = True
+                            End If
+                        Next
+
+                        Return result
+                    End If
+
+                Catch ex As Exception
+                    Call CoreMessageHandler(subname:="ormRecord.LoadFrom(Datarow)", exception:=ex, message:="Exception", tablename:=_tableid)
+                    Return False
+                End Try
+
+            End Function
+
+            ''' <summary>
+            ''' load a record into this record from the datareader
+            ''' </summary>
+            ''' <param name="datareader"></param>
+            ''' <returns></returns>
+            ''' <remarks></remarks>
+            Public Function LoadFrom(ByRef datareader As IDataReader) As Boolean
+                Dim result As Boolean = True
+
+                Try
+                    ''' if tableset then only check which fields are in the datareader
+                    ''' 
+                    _isLoaded = True ' important
+
+                    If _IsTableSet Then
+                        For j = 1 To _TableStore.TableSchema.NoFields
+                            Dim found As Integer = -1
+                            Dim aColumnname As String = _TableStore.TableSchema.Getfieldname(j)
+                            For i = 0 To datareader.FieldCount - 1
+                                If datareader.GetName(i) = aColumnname Then
+                                    ''' uuuh slow
+                                    ''' 
+                                    found = i
+                                    Exit For
+                                End If
+                            Next
+                            If found >= 0 Then
+                                Dim aValue As Object
+                                If _TableStore.Convert2ObjectData(index:=j, invalue:=datareader.Item(found), outvalue:=aValue) Then
+                                    If Not SetValue(j, aValue) Then
+                                        CoreMessageHandler(message:="ormRecord.LoadFrom(IDataReader)", arg1:=aValue, columnname:=aColumnname, tablename:=_tableid, subname:="ormRecord.LoadFrom")
+                                        result = False
+                                    Else
+                                        result = result And True
+                                    End If
+                                Else
+                                    CoreMessageHandler(message:="ormRecord.LoadFrom(IDataReader)", arg1:=datareader.Item(aColumnname), columnname:=aColumnname, tablename:=_tableid, subname:="ormRecord.LoadFrom")
+                                    result = False
+                                End If
+                            Else
+                                CoreMessageHandler(message:="column from table not in datareader - record uncomplete", columnname:=aColumnname, _
+                                                   tablename:=_tableid, subname:="ormRecord.LoadFrom(IDataReader)")
+                                result = False
+                            End If
+                        Next j
+
+                        Return result
+                    Else
+                        ''' take all the values from datareader and move it 
+                        ''' 
+                        For j = 0 To datareader.GetSchemaTable.Columns.Count - 1
+                            Dim aColumnname As String = datareader.GetSchemaTable.Columns.Item(j).ColumnName
+                            Dim aValue As Object = datareader.Item(j)
+
+                            ''' how to convert ?!
+                            ''' we have already system type
+
+                            If Not SetValue(aColumnname, aValue) Then
+                                CoreMessageHandler(message:="could not set value from data reader", arg1:=aValue, _
+                                                   columnname:=aColumnname, tablename:=_tableid, subname:="ormRecord.LoadFrom(IDataReader)")
+                                result = False
+                            Else
+                                result = result And True
+                            End If
+                        Next
+
+                        Return result
+                    End If
+
+                   
+                Catch ex As Exception
+                    Call CoreMessageHandler(subname:="ormRecord.LoadFrom(IDataReader)", exception:=ex, message:="Exception", _
+                                          arg1:=_tableid)
+                    Return False
+                End Try
+                
+            End Function
+
+            ''' <summary>
             ''' checkStatus if loaded or created by checking if Record exists in Table. Sets the isChanged / isLoaded Property
             ''' </summary>
             ''' <returns>true if successfully checked</returns>
             ''' <remarks></remarks>
             Public Function CheckStatus() As Boolean
                 '** not loaded and not created but alive ?!
-                If Not _isLoaded And Not _isCreated And Alive Then
+                If Not Me.IsLoaded And Not Me.IsCreated And Alive Then
 
                     Dim pkarr() As Object
                     Dim i, index As Integer
@@ -1832,9 +2033,9 @@ Namespace OnTrack
                         ' delete
                         aRecord = _TableStore.GetRecordByPrimaryKey(pkarr)
                         If Not aRecord Is Nothing Then
-                            _isLoaded = True
+                            Me.IsLoaded = True
                         Else
-                            _isCreated = True
+                            Me.IsCreated = True
                         End If
                     Catch ex As Exception
                         Call CoreMessageHandler(exception:=ex, message:="Exception", messagetype:=otCoreMessageType.InternalException, _
@@ -1881,8 +2082,9 @@ Namespace OnTrack
                 '* do not allow recursion on objectentrydefinition table itself
                 '* since this is not included 
 
-                If _TableStore.TableID.tolower <> AbstractEntryDefinition.ConstTableID.tolower Then
-                    '** get default value out o fthe object entry store not from the db itself
+                If _TableStore.TableID.ToLower <> AbstractEntryDefinition.ConstTableID.ToLower Then
+                    ''' get default value out of the object entry store not from the db itself
+                    ''' 
                     Dim anEntry As ColumnDefinition = CurrentSession.Objects.GetColumnEntry(columnname:=_TableStore.TableSchema.Getfieldname(i), tablename:=_TableStore.TableID)
                     If anEntry IsNot Nothing Then
                         Return anEntry.DefaultValue
@@ -2196,7 +2398,7 @@ Namespace OnTrack
                             '** strip tablename only check on set tables
                             Dim names = index.ToString.Split({CChar(ConstDelimiter), "."c})
                             If names.Count > 1 Then
-                                If _TableStore.TableID.tolower <> LCase(names(0)) Then
+                                If _TableStore.TableID.ToLower <> LCase(names(0)) Then
                                     CoreMessageHandler(message:="column name has wrong table id", arg1:=index, tablename:=_TableStore.TableID, _
                                                         messagetype:=otCoreMessageType.InternalError, subname:="ormRecord.SetValue")
                                     Return False  'wrong table
@@ -2246,7 +2448,7 @@ Namespace OnTrack
                             If anIndex.Contains(".") Then
                                 anIndex = LCase(anIndex.Substring(anIndex.IndexOf(".") + 1, anIndex.Length - (anIndex.IndexOf(".") + 1)))
                             Else
-                                anIndex = anIndex.tolower
+                                anIndex = anIndex.ToLower
                             End If
                             _entrynames(i) = anIndex
                             i = i + 1
@@ -2284,7 +2486,7 @@ Namespace OnTrack
                         Return SetValue
                     End If
 
-                        Return True
+                    Return True
 
 
                 Catch ex As Exception
@@ -2310,7 +2512,7 @@ Namespace OnTrack
             ''' <summary>
             ''' gets the Value of an Entry of the Record
             ''' </summary>
-            ''' <param name="anIndex">Index 0...n or name of the Field</param>
+            ''' <param name="anIndex">Index 1...n or name of the Field</param>
             ''' <returns>the value as object or Null of not found</returns>
             ''' <remarks></remarks>
             Public Function GetValue(index As Object, Optional ByRef isNull As Boolean = False, Optional ByRef notFound As Boolean = False) As Object
@@ -2425,6 +2627,7 @@ Namespace OnTrack
             Protected _cacheUserValidateon As UserValidation
             Protected _OTDBDatabaseDriver As iormDatabaseDriver
             Protected _useseek As Boolean 'use seek instead of SQL
+            Protected _lockObject As New Object ' use lock object for sync locking
 
             Protected WithEvents _ErrorLog As MessageLog
             Protected WithEvents _configurations As ComplexPropertyStore
@@ -3494,6 +3697,15 @@ Namespace OnTrack
             End Property
 
             ''' <summary>
+            ''' Gets the records by SQL command.
+            ''' </summary>
+            ''' <param name="sqlcommand">The sqlcommand.</param>
+            ''' <param name="parameters">The parameters.</param>
+            ''' <returns></returns>
+            Public MustOverride Function GetRecordsBySqlCommand(ByRef sqlcommand As ormSqlSelectCommand, Optional ByRef parametervalues As Dictionary(Of String, Object) = Nothing) As List(Of ormRecord) Implements iormDataStore.GetRecordsBySqlCommand
+            
+
+            ''' <summary>
             ''' Gets or sets the connection.
             ''' </summary>
             ''' <value>The connection.</value>
@@ -3650,7 +3862,7 @@ Namespace OnTrack
             ''' <param name="aRecordSet">A record set.</param>
             ''' <param name="silent">The silent.</param>
             ''' <returns></returns>
-            Public Overridable Function InfuseRecord(ByRef newRecord As ormRecord, ByRef RowObject As Object, Optional ByVal silent As Boolean = False) As Boolean Implements iormDataStore.InfuseRecord
+            Public Overridable Function InfuseRecord(ByRef newRecord As ormRecord, ByRef RowObject As Object, Optional ByVal silent As Boolean = False, Optional CreateNewRecord As Boolean = False) As Boolean Implements iormDataStore.InfuseRecord
                 ' TODO: Implement this method
                 Throw New NotImplementedException()
             End Function
@@ -3852,6 +4064,8 @@ Namespace OnTrack
 
             Protected _IsInitialized As Boolean = False
             Protected _DomainIDPrimaryKeyOrdinal As Short = -1 ' cache the Primary Key Ordinal of domainID for domainbehavior
+            Protected _lockObject As New Object ' Lock Object
+
             ''' <summary>
             ''' constructor
             ''' </summary>

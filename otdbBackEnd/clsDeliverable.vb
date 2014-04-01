@@ -32,7 +32,8 @@ Namespace OnTrack.Deliverables
     ''' Current target object points to the current clsOTDBDeliverableTarget 
     ''' </summary>
     ''' <remarks></remarks>
-    <ormObject(id:=CurrentTarget.ConstObjectID, modulename:=ConstModuleDeliverables, Version:=1, useCache:=True)> _
+    <ormObject(id:=CurrentTarget.ConstObjectID, description:="reference of the current target per workspace", _
+        modulename:=ConstModuleDeliverables, Version:=1, useCache:=True)> _
     Public Class CurrentTarget
         Inherits ormDataObject
         Implements iormInfusable
@@ -432,16 +433,14 @@ Namespace OnTrack.Deliverables
         End Function
 
     End Class
-    '************************************************************************************
-    '***** CLASS clsOTDBDeliverableTarget is the object for a OTDBRecord (which is the datastore)
-    '*****
-    '*****
+   
     ''' <summary>
     ''' target object for the deliverable class
     ''' </summary>
     ''' <remarks></remarks>
 
-    <ormObject(id:=OnTrack.Deliverables.Target.ConstObjectID, modulename:=ConstModuleDeliverables, Version:=1, useCache:=True)> _
+    <ormObject(id:=OnTrack.Deliverables.Target.ConstObjectID, description:="target definition per workspace of a deliverable e.g. date to be delivered", _
+        modulename:=ConstModuleDeliverables, Version:=1, useCache:=True)> _
     Public Class Target
         Inherits ormDataObject
         Implements iotXChangeable
@@ -955,7 +954,7 @@ Namespace OnTrack.Deliverables
 
             '** workspaceID
             If IsMissing(workspaceID) Or workspaceID = "" Then
-                If (_IsLoaded Or Me.IsCreated) AndAlso Me.workspaceID <> "" Then
+                If (me.isloaded Or Me.IsCreated) AndAlso Me.workspaceID <> "" Then
                     workspaceID = Me.workspaceID
                 Else
                     workspaceID = CurrentSession.CurrentWorkspaceID
@@ -968,7 +967,7 @@ Namespace OnTrack.Deliverables
 
             '** if UID is not provided than do use this TargetObject
             If UID = 0 Then
-                If Not _IsLoaded And Not Me.IsCreated Then
+                If Not me.isloaded And Not Me.IsCreated Then
                     PublishNewTarget = False
                     Exit Function
                 End If
@@ -1232,7 +1231,7 @@ Namespace OnTrack.Deliverables
                 ' check on set the current target (move to duplicate)
                 ' if the target date is touched
                 aVAlue = CHANGECONFIG.GetMemberValue(ID:="DT6", mapping:=MAPPING)
-                aChangeMember = CHANGECONFIG.AttributeByID("DT6", objectname:=Me.TableID)
+                aChangeMember = CHANGECONFIG.AttributeByID("DT6", objectname:=Me.primaryTableID)
                 If Not IsNull(aVAlue) AndAlso Not aChangeMember Is Nothing AndAlso _
                 (aChangeMember.XChangeCmd = otXChangeCommandType.Update OrElse _
                 aChangeMember.XChangeCmd = otXChangeCommandType.UpdateCreate OrElse _
@@ -1418,7 +1417,7 @@ Namespace OnTrack.Deliverables
             End If
 
             ' generell tests
-            anObject = CHANGECONFIG.ObjectByName(Me.TableID)
+            anObject = CHANGECONFIG.ObjectByName(Me.primaryTableID)
             runXPreCheckOLD = CHANGECONFIG.runDefaultXPreCheck(anObject:=anObject, _
                                                             aMapping:=MAPPING, MSGLOG:=MSGLOG)
 
@@ -1438,13 +1437,13 @@ Namespace OnTrack.Deliverables
 
             If pkarray.Length = 0 OrElse pkarray(0) Is Nothing OrElse pkarray(0) = 0 Then
                 Call CoreMessageHandler(message:="Deliverable UID cannot be 0 or Nothing or primary key array not set for clone - must be set", arg1:=pkarray, _
-                                        subname:="clsOTDBDeliverableTarget.Clone", messagetype:=otCoreMessageType.InternalError, tablename:=TableID)
+                                        subname:="clsOTDBDeliverableTarget.Clone", messagetype:=otCoreMessageType.InternalError, tablename:=primaryTableID)
                 Return Nothing
             End If
             If pkarray.Length = 1 OrElse pkarray(1) Is Nothing OrElse pkarray(0) = 0 Then
                 If Not Me.TableStore.CreateUniquePkValue(pkarray) Then
                     Call CoreMessageHandler(message:="failed to create an unique primary key value", arg1:=pkarray, _
-                                            subname:="clsOTDBDeliverableTarget.Clone", messagetype:=otCoreMessageType.InternalError, tablename:=TableID)
+                                            subname:="clsOTDBDeliverableTarget.Clone", messagetype:=otCoreMessageType.InternalError, tablename:=primaryTableID)
                     Return Nothing
                 End If
             End If
@@ -1474,7 +1473,8 @@ Namespace OnTrack.Deliverables
     ''' </summary>
     ''' <remarks></remarks>
 
-    <ormObject(id:=Track.ConstObjectID, modulename:=ConstModuleDeliverables, Version:=1, useCache:=True)> Public Class Track
+    <ormObject(id:=Track.ConstObjectID, description:="tracking status of a deliverable per target and schedule", _
+        modulename:=ConstModuleDeliverables, Version:=1, useCache:=True)> Public Class Track
         Inherits ormDataObject
         Implements iormPersistable
         Implements iormInfusable
@@ -2713,7 +2713,7 @@ Namespace OnTrack.Deliverables
             End If
 
             ' load or create
-            If Not Me.IsCreated And Not _IsLoaded Then
+            If Not Me.IsCreated And Not me.isloaded Then
                 If Not Me.Create(deliverableUID:=dlvUID, scheduleUID:=sUID, scheduleUPDC:=sUPDC, targetUPDC:=tUPDC) Then
                     Call Me.Inject(deliverableUID:=dlvUID, scheduleUID:=sUID, scheduleUPDC:=sUPDC, targetUPDC:=tUPDC)
                 End If
@@ -2854,7 +2854,7 @@ Namespace OnTrack.Deliverables
             End If
 
             ' load or create
-            If Not Me.IsCreated And Not _IsLoaded Then
+            If Not Me.IsCreated And Not me.isloaded Then
                 If Not Me.Create(deliverableUID:=dlvUID, scheduleUID:=sUID, scheduleUPDC:=sUPDC, targetUPDC:=tUPDC) Then
                     Call Me.Inject(deliverableUID:=dlvUID, scheduleUID:=sUID, scheduleUPDC:=sUPDC, targetUPDC:=tUPDC)
                 End If
@@ -3033,7 +3033,7 @@ Namespace OnTrack.Deliverables
             End If
 
             ' load or create
-            If Not Me.IsCreated And Not _IsLoaded Then
+            If Not Me.IsCreated And Not me.isloaded Then
                 If Not Me.Inject(deliverableUID:=dlvUID, scheduleUID:=sUID, scheduleUPDC:=sUPDC, targetUPDC:=tUPDC) Then
                     Call Me.Create(deliverableUID:=dlvUID, scheduleUID:=sUID, scheduleUPDC:=sUPDC, targetUPDC:=tUPDC)
                 End If
@@ -3071,7 +3071,7 @@ Namespace OnTrack.Deliverables
         ''' <remarks></remarks>
         Private Function SetTarget() As Boolean
             Dim aTarget As New Target
-            If Not _IsLoaded And Not Me.IsCreated Then
+            If Not me.isloaded And Not Me.IsCreated Then
                 SetTarget = False
                 Exit Function
             End If
@@ -3102,7 +3102,7 @@ Namespace OnTrack.Deliverables
         ''' <remarks></remarks>
         Private Function SetSchedule() As Boolean
             Dim aSchedule As New Schedule
-            If Not _IsLoaded And Not Me.IsCreated Then
+            If Not me.isloaded And Not Me.IsCreated Then
                 SetSchedule = False
                 Exit Function
             End If
@@ -3137,7 +3137,7 @@ Namespace OnTrack.Deliverables
             Dim actual As String
             Dim gap As Long
 
-            If Not _IsLoaded And Not Me.IsCreated Then
+            If Not me.isloaded And Not Me.IsCreated Then
                 CheckOnGap = False
                 Exit Function
             End If
@@ -3210,7 +3210,7 @@ Namespace OnTrack.Deliverables
             Dim aCE As New CalendarEntry
             Dim gap As Long
 
-            If Not _IsLoaded And Not Me.IsCreated Then
+            If Not me.isloaded And Not Me.IsCreated Then
                 CheckOnBaselineGap = False
                 Exit Function
             End If
@@ -3245,7 +3245,8 @@ Namespace OnTrack.Deliverables
     ''' Definition class for Deliverables
     ''' </summary>
     ''' <remarks></remarks>
-    <ormObject(id:=DeliverableType.ConstObjectID, modulename:=ConstModuleDeliverables, Version:=1, useCache:=True)> Public Class DeliverableType
+    <ormObject(id:=DeliverableType.ConstObjectID, description:="type definition of a deliverable. Defines default setting and some general logic.", _
+        modulename:=ConstModuleDeliverables, Version:=1, useCache:=True)> Public Class DeliverableType
         Inherits ormDataObject
         Implements iormInfusable
         Implements iormPersistable
@@ -3528,16 +3529,14 @@ Namespace OnTrack.Deliverables
         End Function
 #End Region
     End Class
-    '************************************************************************************
-    '***** CLASS Deliverable is the object for a OTDBRecord (which is the datastore)
-    '*****
-    '*****
+    
     ''' <summary>
-    ''' Deliverable Class
+    ''' Deliverable class for arbitrary tracking
     ''' </summary>
     ''' <remarks></remarks>
 
-    <ormObject(id:=Deliverable.ConstObjectID, modulename:=ConstModuleDeliverables, useCache:=True, Version:=1)> Public Class Deliverable
+    <ormObject(id:=Deliverable.ConstObjectID, description:="arbitrary object for tracking, scheduling, change and configuration", _
+        modulename:=ConstModuleDeliverables, useCache:=True, Version:=1)> Public Class Deliverable
         Inherits ormDataObject
         Implements iormInfusable
         Implements iormPersistable
@@ -4714,7 +4713,7 @@ Namespace OnTrack.Deliverables
         ''' <remarks></remarks>
         Public Function GetPart() As Part
             Dim pkarray() As Object = {Me.PartID}
-            If _IsLoaded Then
+            If me.isloaded Then
                 Return Part.Retrieve(Of Part)(pkarray)
             Else
                 Return Nothing
@@ -4824,7 +4823,7 @@ Namespace OnTrack.Deliverables
             End If
 
             '*
-            If _IsLoaded Or Me.IsCreated Then
+            If me.isloaded Or Me.IsCreated Then
                 ' check if in workspaceID any data -> fall back to default (should be base)
                 If aCurrTarget.Inject(Me.Uid, workspaceID:=aWorkspace) Then
                     GetCurrTarget = aCurrTarget
@@ -4872,7 +4871,7 @@ Namespace OnTrack.Deliverables
             If workspaceID = "" Then workspaceID = CurrentSession.CurrentWorkspaceID
 
             '*
-            If _IsLoaded Or Me.IsCreated Then
+            If me.isloaded Or Me.IsCreated Then
                 ' get
                 Dim aCurrSCHEDULE As CurrentSchedule = Me.GetCurrSchedule(workspaceID:=workspaceID)
                 ' load
@@ -4899,7 +4898,7 @@ Namespace OnTrack.Deliverables
             End If
 
             '*
-            If _IsLoaded Or Me.IsCreated Then
+            If me.isloaded Or Me.IsCreated Then
                 ' get
                 aCurrTarget = Me.GetCurrTarget(workspaceID:=workspaceID)
                 If aCurrTarget.IsLoaded Then
@@ -5119,7 +5118,7 @@ Namespace OnTrack.Deliverables
             Dim fieldname As String
 
 
-            If Not _IsLoaded Then
+            If Not me.isloaded Then
                 SetCartypes = False
                 Exit Function
             End If
@@ -5359,7 +5358,7 @@ Namespace OnTrack.Deliverables
 
             '****
             '****
-            If Not _IsLoaded And Not Me.IsCreated Then
+            If Not me.isloaded And Not Me.IsCreated Then
                 AddRevision = Nothing
                 Exit Function
             End If
@@ -5509,7 +5508,7 @@ Namespace OnTrack.Deliverables
             If pkArray(0) Is Nothing OrElse pkArray(0) = 0 Then
                 If Not Me.GetNewUID(pkArray(0), domainID:=Me.DomainID) Then
                     Call CoreMessageHandler(message:=" couldnot create unique primary key values - couldnot clone", arg1:=pkArray, _
-                                            tablename:=TableID, entryname:="uid", messagetype:=otCoreMessageType.InternalError)
+                                            tablename:=primaryTableID, entryname:="uid", messagetype:=otCoreMessageType.InternalError)
                     Return Nothing
                 End If
             End If

@@ -308,7 +308,7 @@ Namespace OnTrack.Xchange
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overloads Function Delete() As Boolean
-            If Not Me.IsCreated And Not _IsLoaded Then
+            If Not Me.IsCreated And Not me.isloaded Then
                 Delete = False
                 Exit Function
             End If
@@ -883,7 +883,7 @@ Namespace OnTrack.Xchange
         ''' <returns></returns>
         ''' <remarks></remarks>
         Function AddMember(ByRef member As clsOTDBMessageQueueMember) As Boolean
-            If Not Me.IsCreated And Not _IsLoaded Then
+            If Not Me.IsCreated And Not me.isloaded Then
                 AddMember = False
                 Exit Function
             End If
@@ -899,7 +899,7 @@ Namespace OnTrack.Xchange
         ''' <returns></returns>
         ''' <remarks></remarks>
         Function GetMember(ByVal i As Long) As clsOTDBMessageQueueMember
-            If Not Me.IsCreated And Not _IsLoaded Then
+            If Not Me.IsCreated And Not me.isloaded Then
                 getMember = Nothing
                 Exit Function
             End If
@@ -1068,7 +1068,7 @@ Namespace OnTrack.Xchange
         ''' <remarks></remarks>
         Public Overloads Function Delete() As Boolean
 
-            If Not Me.IsCreated And Not _IsLoaded Then
+            If Not Me.IsCreated And Not me.isloaded Then
                 Delete = False
                 Exit Function
             End If
@@ -1422,7 +1422,7 @@ Namespace OnTrack.Xchange
             Dim aValue As Object
 
 
-            If Not _IsLoaded And Not Me.IsCreated Then
+            If Not me.isloaded And Not Me.IsCreated Then
                 FillMapping = False
                 Exit Function
             End If
@@ -1495,7 +1495,7 @@ Namespace OnTrack.Xchange
             Dim aConfigmember As clsOTDBXChangeMember
 
 
-            If Not _IsLoaded And Not Me.IsCreated Then
+            If Not me.isloaded And Not Me.IsCreated Then
                 runXChange = False
                 Exit Function
             End If
@@ -1945,7 +1945,7 @@ Namespace OnTrack.Xchange
         '        End If
         '        s_isProcessable = CBool(record.GetValue("isprocessable"))
 
-        '        _IsLoaded = MyBase.Infuse(record)
+        '        me.isloaded = MyBase.Infuse(record)
         '        Return Me.IsLoaded
 
         '    Catch ex As Exception

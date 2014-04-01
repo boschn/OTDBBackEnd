@@ -649,7 +649,7 @@ Namespace OnTrack.Calendar
         ''' <remarks></remarks>
         Public Shared Function AllByDate(ByVal refDate As Date, Optional ByVal name As String = "", Optional domainID As String = "") As List(Of CalendarEntry)
             Dim aCollection As New List(Of CalendarEntry)
-            Dim aTable As iormDataStore
+            Dim aStore As iormDataStore
 
 
             If name = "" Then
@@ -657,31 +657,40 @@ Namespace OnTrack.Calendar
             End If
             If domainID = "" Then domainID = CurrentSession.CurrentDomainID
 
+
             Try
+                aStore = GetTableStore(ConstTableid)
+                Dim cached = aStore.GetProperty(ormTableStore.ConstTPNCacheProperty)
+                Dim aCommand As ormSqlSelectCommand = aStore.CreateSqlSelectCommand("AllByDate")
 
-                aTable = GetTableStore(ConstTableid)
-
-                'wherestr = "timestamp = #" & Format(refDate, "mm-dd-yyyy") & "# and cname='" & Name & "'"
-                'aRecordCollection = aTable.GetRecordsBySql(wherestr:=wherestr)
-                Dim aCommand As ormSqlSelectCommand = aTable.CreateSqlSelectCommand("AllByDate")
                 '** prepare the command if necessary
                 If Not aCommand.Prepared Then
+
                     aCommand.AddTable(ConstTableid, addAllFields:=True)
                     '** Depends on the server
-                    If aCommand.DatabaseDriver.DatabaseType = otDBServerType.SQLServer Then
+                    If aCommand.DatabaseDriver.DatabaseType = otDBServerType.SQLServer And cached Is Nothing Then
                         aCommand.Where = String.Format(" [{0}] = @cname and CONVERT(nvarchar, [{1}], 104) = @datestr and [{2}] = @domainID", _
                                                        {constFNName, constFNTimestamp, constFNDomainID})
                         aCommand.AddParameter(New ormSqlCommandParameter(ID:="@cname", datatype:=otFieldDataType.Text, columnname:=constFNName))
                         aCommand.AddParameter(New ormSqlCommandParameter(ID:="@datestr", datatype:=otFieldDataType.Text, notColumn:=True))
                         aCommand.AddParameter(New ormSqlCommandParameter(ID:="@domainID", datatype:=otFieldDataType.Text, notColumn:=True))
 
-                    ElseIf aCommand.DatabaseDriver.DatabaseType = otDBServerType.Access Then
+                    ElseIf aCommand.DatabaseDriver.DatabaseType = otDBServerType.Access And cached Is Nothing Then
                         aCommand.Where = String.Format(" [{0}] = @cname and [{1}] = @date and [{2}]=@domainID", _
                         {constFNName, constFNTimestamp, constFNDomainID})
                         aCommand.AddParameter(New ormSqlCommandParameter(ID:="@cname", datatype:=otFieldDataType.Text, columnname:=constFNName))
                         aCommand.AddParameter(New ormSqlCommandParameter(ID:="@date", datatype:=otFieldDataType.Date, notColumn:=True))
                         aCommand.AddParameter(New ormSqlCommandParameter(ID:="@domainID", datatype:=otFieldDataType.Text, notColumn:=True))
+
+                        ''' just cached against DataTable
+                    ElseIf cached IsNot Nothing Then
+                        aCommand.Where = String.Format(" [{0}] = @cname and [{1}] = @date and [{2}]=@domainID", _
+                       {constFNName, constFNTimestamp, constFNDomainID})
+                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@cname", datatype:=otFieldDataType.Text, columnname:=constFNName))
+                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@date", datatype:=otFieldDataType.Date, notColumn:=True))
+                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@domainID", datatype:=otFieldDataType.Text, notColumn:=True))
                     Else
+
                         CoreMessageHandler(message:="DatabaseType not recognized for SQL Statement", messagetype:=otCoreMessageType.InternalError, _
                                            subname:="CalendarEntry.AllByDate", tablename:=ConstTableid, arg1:=aCommand.DatabaseDriver.DatabaseType)
                         Return aCollection
@@ -693,7 +702,7 @@ Namespace OnTrack.Calendar
 
                 ' set Parameter
                 aCommand.SetParameterValue("@cname", name)
-                If aCommand.DatabaseDriver.DatabaseType = otDBServerType.SQLServer Then
+                If aCommand.DatabaseDriver.DatabaseType = otDBServerType.SQLServer And cached Is Nothing Then
                     aCommand.SetParameterValue("@datestr", Format("dd.MM.yyyy", refDate))
                 Else
                     aCommand.SetParameterValue("@date", refDate)
@@ -743,7 +752,7 @@ Namespace OnTrack.Calendar
 
                 'exists ?
                 aCollection = CalendarEntry.AllByDate(refDate:=currDate, name:=name, domainID:=domainID)
-                If aCollection Is Nothing Or aCollection.Count = 0 Then
+                If aCollection Is Nothing OrElse aCollection.Count = 0 Then
                     anEntry = CalendarEntry.Create(name:=name, domainID:=domainID)
                     If anEntry IsNot Nothing Then
                         With anEntry
@@ -810,7 +819,7 @@ Namespace OnTrack.Calendar
                                                 tablename:=ConstTableid, messagetype:=otCoreMessageType.InternalError)
                     Return Nothing
                 End If
-                primarykey = pkarray
+                primarykey = {name, pkarray(1), domainID}
             End If
             Return CreateDataObject(Of CalendarEntry)(pkArray:=primarykey, domainID:=domainID)
         End Function

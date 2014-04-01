@@ -80,6 +80,7 @@ Namespace OnTrack.Database
         Private _steps As UShort = 0
         Private _domainid As String = ""
         Private _deleted As Boolean?
+        Private _isObjectEnumerated = True
 
         ''' <summary>
         ''' constructors
@@ -114,7 +115,7 @@ Namespace OnTrack.Database
 
             ''' set the resulted object type
             ''' 
-            SetObjectType(type)
+            _isObjectEnumerated = SetObjectType(type)
 
             ''' Check Tablenames
             If tablenames IsNot Nothing AndAlso CheckTablenames(tablenames) Then
@@ -133,7 +134,7 @@ Namespace OnTrack.Database
 
             ''' set the resulted object type
             ''' 
-            SetObjectType(type)
+            _isObjectEnumerated = SetObjectType(type)
            
             ''' Check tablename
             ''' 
@@ -142,6 +143,19 @@ Namespace OnTrack.Database
             End If
             _select = command
         End Sub
+
+        ''' <summary>
+        ''' Gets or sets the is object enumerated.
+        ''' </summary>
+        ''' <value>The is object enumerated.</value>
+        Public Property AreObjectsEnumerated() As Object Implements iormQueriedEnumeration.AreObjectsEnumerated
+            Get
+                Return Me._isObjectEnumerated
+            End Get
+            Private Set(value As Object)
+                Me._isObjectEnumerated = value
+            End Set
+        End Property
 
         ''' <summary>
         ''' check the tablenames
@@ -172,7 +186,7 @@ Namespace OnTrack.Database
                 Next
                 ''' conclude
                 ''' 
-                If Not _otherobjectids.Contains(_objecttype.Name.ToUpper) Then
+                If Not _otherobjectids.Contains(_objectid.ToUpper) Then
                     CoreMessageHandler(message:="The supplied QueriedEnumeration type '" & _objecttype.Name & "' does not use the table '" & tablenames.ToString & "'", subname:="ormQueriedEnumeration.CheckTablename", _
                                         messagetype:=otCoreMessageType.InternalError)
                     Return False
@@ -198,7 +212,7 @@ Namespace OnTrack.Database
                     _objecttype = type
                     Dim aList As New List(Of String)
                     For Each anEntry In Me.GetObjectEntries
-                        aList.Add(anEntry.Entryname)
+                        If anEntry.IsMapped Then aList.Add(anEntry.Entryname)
                     Next
                     Me.ObjectEntriesNames = aList
                     Return True
@@ -208,13 +222,21 @@ Namespace OnTrack.Database
             End If
         End Function
         ''' <summary>
+        ''' returns the primary ClassDescription
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function GetObjectClassDescription() As ObjectClassDescription Implements iormQueriedEnumeration.GetObjectClassDescription
+            Return ot.GetObjectClassDescriptionByID(_objectid)
+        End Function
+        ''' <summary>
         ''' returns a list of iobject entries returned by this Queried Enumeration
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetObjectEntries() As IList(Of iormObjectEntry) Implements iormQueriedEnumeration.getObjectEntries
+        Public Function GetObjectEntries() As IEnumerable(Of iormObjectEntry) Implements iormQueriedEnumeration.getObjectEntries
             Dim anObjectDefinition As ObjectDefinition = CurrentSession.Objects.GetObject(objectname:=_objectid)
-            Return anObjectDefinition.Entries
+            Return anObjectDefinition.OrderedEntries
         End Function
         ''' <summary>
         ''' returns a list of iobject entries returned by this Queried Enumeration
@@ -237,10 +259,12 @@ Namespace OnTrack.Database
             End Get
             Set(value As IEnumerable(Of String))
                 _objectentriesOrdinal.Clear()
+                _objectentrienamess.Clear()
                 Dim i = 1
                 For Each aName In value
-                    If _objectentrienamess.Contains(aName) Then
+                    If Not _objectentrienamess.Contains(aName) Then
                         _objectentriesOrdinal.Add(i, aName)
+                        _objectentrienamess.Add(aName)
                         i += 1
                     Else
                         CoreMessageHandler(message:="entry name is not in query (" & _id & ") results entry names", arg1:=aName, subname:="ormQueriedEnumeration.EntryOrder", messagetype:=otCoreMessageType.InternalError)
@@ -506,16 +530,24 @@ Namespace OnTrack.Database
             If _select.Prepared Then
                 ''' instance just for some settings
                 ''' should be reworked
-                Dim anObject As iormPersistable = Activator.CreateInstance(_objecttype)
-
+                Dim anObjectDefinition As ObjectDefinition = CurrentSession.Objects.GetObject(_objectid)
+                Dim hasDomainBehavior As Boolean = False
+                If anObjectDefinition Is Nothing Then
+                    hasDomainBehavior = anObjectDefinition.HasDomainBehavior
+                End If
                 ''' run the statement
                 ''' 
                 Dim aRecordCollection = _select.RunSelect(parametervalues:=_parametervalues)
+                If aRecordCollection Is Nothing Then
+                    CoreMessageHandler(message:="no records returned due to previous errors", subname:="ormQueriedEnumeration.Run", arg1:=Me.Id, _
+                                        objectname:=_objectid, tablename:=_select.TableIDs.ToString, messagetype:=otCoreMessageType.InternalError)
+                    Return False
+                End If
 
-                If anObject.HasDomainBehavior And Domainid <> ConstGlobalDomain Then
+                If hasDomainBehavior And Domainid <> ConstGlobalDomain Then
 
                     Dim aDomainRecordCollection As New Dictionary(Of String, ormRecord)
-                    Dim pknames = anObject.TableStore.TableSchema.PrimaryKeys
+                    Dim pknames = CurrentSession.CurrentDBDriver.GetTableSchema(tableID:=_select.TableIDs.First).PrimaryKeys
                     '*** get all records and store either the currentdomain or the globaldomain if on domain behavior
                     '***
                     For Each aRecord As ormRecord In aRecordCollection

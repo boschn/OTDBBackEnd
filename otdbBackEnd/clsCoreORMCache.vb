@@ -1,4 +1,4 @@
-﻿REM ***********************************************************************************************************************************************
+REM ***********************************************************************************************************************************************
 REM *********** ON TRACK DATABASE BACKEND LIBRARY
 REM ***********
 REM *********** CACHE Class for ORM iormPersistables based on events
@@ -47,7 +47,7 @@ Namespace OnTrack.database
         ''' <param name="e"></param>
         ''' <remarks></remarks>
         Sub OnObjectClassDescriptionLoaded(sender As Object, e As ObjectClassRepository.EventArgs)
-        
+
         ''' <summary>
         ''' OnCreating Event Handler for the ORM Data Object
         ''' </summary>
@@ -138,7 +138,7 @@ Namespace OnTrack.database
     ''' Object Cache Manager Implementation
     ''' </summary>
     ''' <remarks></remarks>
-    
+
     Public Class ormObjectCacheManager
         Implements iormObjectCacheManager
         ''' <summary>
@@ -285,24 +285,30 @@ Namespace OnTrack.database
             ''' <returns></returns>
             ''' <remarks></remarks>
             Public Overrides Function Equals(obj As Object) As Boolean
-                Dim aKey As ObjectKeys(Of T) = TryCast(obj, ObjectKeys(Of T))
-                If aKey Is Nothing Then
-                    Return False
-                Else
-                    If (aKey.Keys Is Nothing AndAlso Me.Keys IsNot Nothing) OrElse _
-                        (aKey.Keys IsNot Nothing AndAlso Me.Keys Is Nothing) Then
+                Try
+                    Dim aKey As ObjectKeys(Of T) = TryCast(obj, ObjectKeys(Of T))
+                    If aKey Is Nothing Then
                         Return False
-                    End If
-                    If (aKey.Keys Is Nothing AndAlso Me.Keys Is Nothing)  Then
+                    Else
+                        If (aKey.Keys Is Nothing AndAlso _keys IsNot Nothing) OrElse _
+                            (aKey.Keys IsNot Nothing AndAlso _keys Is Nothing) Then
+                            Return False
+                        End If
+                        If (aKey.Keys Is Nothing AndAlso _keys Is Nothing) Then
+                            Return True
+                        End If
+
+                        If aKey.Keys.Count <> _keys.Count Then Return False
+                        For i = 0 To aKey.Keys.Count - 1
+                            If Not aKey.Keys(i).Equals(Me.Keys(i)) Then Return False
+                        Next
                         Return True
                     End If
 
-                    If aKey.Keys.Count <> Me.Keys.Count Then Return False
-                    For i = 0 To aKey.Keys.Count - 1
-                        If Not aKey.Keys(i).Equals(Me.Keys(i)) Then Return False
-                    Next
-                    Return True
-                    End If
+                Catch ex As Exception
+                    CoreMessageHandler(exception:=ex, subname:="ObjectKeys(ormObjectCacheManager).Equals")
+                    Return False
+                End Try
             End Function
             ''' <summary>
             ''' returns a hash value for the keys
@@ -552,7 +558,7 @@ Namespace OnTrack.database
             End Property
 #End Region
 
-            
+
         End Class
 
         ''' <summary>
@@ -708,8 +714,8 @@ Namespace OnTrack.database
             Try
 
                 If Not _registeredObjects.ContainsKey(key:=typename) Then
-                    Dim aType = ot.GetObjectClassType(objectname:=typename)
-                    If aType IsNot Nothing Then
+                    Dim aType = System.Type.GetType(typeName:=typename, throwOnError:=False, ignoreCase:=True)
+                    If aType IsNot Nothing And aType.GetInterface(GetType(iormPersistable).Name, ignoreCase:=True) IsNot Nothing Then
                         anEntry = New RegisteryEntry(Of iormPersistable)(aType)
                         _registeredObjects.Add(key:=typename, value:=anEntry)
                         '** WORKAROUND with ORM DataObjectisHooked :-(
@@ -991,7 +997,7 @@ Namespace OnTrack.database
                         e.AbortOperation = False
                         Exit Sub
                     End If
-                    
+
                 End If
 
 
@@ -1327,7 +1333,7 @@ Namespace OnTrack.database
                             e.AbortOperation = False
                             Exit Sub
                         End If
-                        
+
                     Else
                         e.AbortOperation = False
                         e.Result = True

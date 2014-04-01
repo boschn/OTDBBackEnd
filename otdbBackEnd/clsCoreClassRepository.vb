@@ -288,8 +288,8 @@ Namespace OnTrack
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function GetObjectClassType(objectname As String) As System.Type
-            If _DescriptionsByClassTypeDescriptionStore.ContainsKey(key:=objectname.ToUpper) Then
-                Return _DescriptionsByClassTypeDescriptionStore.Item(key:=objectname.ToUpper).Type
+            If _DescriptionsByIDDescriptionStore.ContainsKey(key:=objectname.ToUpper) Then
+                Return _DescriptionsByIDDescriptionStore.Item(key:=objectname.ToUpper).Type
             End If
             Return Nothing
         End Function
@@ -301,7 +301,7 @@ Namespace OnTrack
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function GetObjectClassDescription([type] As Type) As ObjectClassDescription
-            Return GetObjectClassDescription([type].Name)
+            Return GetObjectClassDescription([type].FullName)
         End Function
         ''' <summary>
         ''' returns the ObjectClassDescription for a ObjectDescription Class by name
@@ -312,8 +312,8 @@ Namespace OnTrack
         Public Function GetObjectClassDescription(typename As String) As ObjectClassDescription
             Me.Initialize()
 
-            If _DescriptionsByClassTypeDescriptionStore.ContainsKey(key:=typename.ToUpper) Then
-                Return _DescriptionsByClassTypeDescriptionStore.Item(key:=typename.ToUpper)
+            If _DescriptionsByClassTypeDescriptionStore.ContainsKey(key:=typename) Then
+                Return _DescriptionsByClassTypeDescriptionStore.Item(key:=typename)
             Else
                 Return Nothing
             End If
@@ -404,7 +404,7 @@ Namespace OnTrack
                         If .HasValueInnerTypeID And Not attribute.HasValueInnerTypeID Then attribute.InnerTypeid = .InnerTypeid
                         If .HasValueSize And Not attribute.HasValueSize Then attribute.Size = .Size
                         If .HasValueDescription And Not attribute.HasValueDescription Then attribute.Description = .Description
-                        If .HasValueDefaultValue And Not attribute.HasValueDefaultValue Then attribute.DefaultValue = .DefaultValue
+                        If .HasValueDBDefaultValue And Not attribute.HasValueDBDefaultValue Then attribute.DBDefaultValue = .DBDefaultValue
                         If .HasValueVersion And Not attribute.HasValueVersion Then attribute.Version = .Version
 
                         If .HasValueUseForeignKey And Not attribute.HasValueUseForeignKey Then attribute.UseForeignKey = .UseForeignKey
@@ -614,12 +614,15 @@ Namespace OnTrack
             '*** go through the classes in the assembly
             For Each aClass In adataObjectClassLists
                 '* add it to _classes
-                If _DescriptionsByClassTypeDescriptionStore.ContainsKey(aClass.Name.ToUpper) Then _DescriptionsByClassTypeDescriptionStore.Remove(key:=aClass.Name.ToUpper)
+                If _DescriptionsByClassTypeDescriptionStore.ContainsKey(aClass.FullName) Then _DescriptionsByClassTypeDescriptionStore.Remove(key:=aClass.FullName)
                 Dim anewDescription As New ObjectClassDescription(aClass, Me)
-                _DescriptionsByClassTypeDescriptionStore.Add(key:=anewDescription.Name.ToUpper, value:=anewDescription)
 
-                '** object attributes
+
+                ''' check the class type attributes
+                '''
                 For Each anAttribute As System.Attribute In aClass.GetCustomAttributes(False)
+                    ''' Object Attribute
+                    ''' 
                     If anAttribute.GetType().Equals(GetType(ormObjectAttribute)) Then
                         Dim anObjectAttribute = DirectCast(anAttribute, ormObjectAttribute)
                         '** bootstrapping classes ??
@@ -633,21 +636,26 @@ Namespace OnTrack
                         Else
                             anObjectAttribute.IsBootstrap = False ' default
                         End If
-                        '** add to ObjectID
+                        ''' remove ObjectID
                         If _DescriptionsByIDDescriptionStore.ContainsKey(key:=anObjectAttribute.ID) Then
                             _DescriptionsByIDDescriptionStore.Remove(key:=anObjectAttribute.ID)
                         End If
+                        ''' Add both
                         _DescriptionsByIDDescriptionStore.Add(key:=anObjectAttribute.ID, value:=anewDescription)
+                        _DescriptionsByClassTypeDescriptionStore.Add(key:=aClass.FullName, value:=anewDescription)
                     End If
                 Next
 
                 ''' get the Fieldlist especially collect the constants
-                aFieldList = aClass.GetFields(Reflection.BindingFlags.NonPublic Or Reflection.BindingFlags.Public Or Reflection.BindingFlags.Static)
+                ''' 
+                aFieldList = aClass.GetFields(Reflection.BindingFlags.NonPublic Or Reflection.BindingFlags.Public Or Reflection.BindingFlags.Static Or BindingFlags.FlattenHierarchy)
                 '** look into each Const Type (Fields)
                 For Each aFieldInfo As System.Reflection.FieldInfo In aFieldList
                     If aFieldInfo.MemberType = Reflection.MemberTypes.Field Then
                         '** Attributes
                         For Each anAttribute As System.Attribute In Attribute.GetCustomAttributes(aFieldInfo)
+                            ''' check for tables first to get them all before we process the
+                            ''' objects in details
                             If anAttribute.GetType().Equals(GetType(ormSchemaTableAttribute)) Then
                                 Dim alist As List(Of Type)
                                 '** Type Definition
@@ -674,6 +682,8 @@ Namespace OnTrack
                                 Me.AlterTableAttribute(anAttribute, fieldinfo:=aFieldInfo)
 
                                 '*** Object Attribute
+                                ''' check for Object Attributes bound to constants in the class
+                                ''' 
                             ElseIf anAttribute.GetType().Equals(GetType(ormObjectAttribute)) Then
                                 Dim anObjectAttribute = DirectCast(anAttribute, ormObjectAttribute)
                                 If anObjectAttribute.HasValueIsBootstap Then
@@ -685,6 +695,13 @@ Namespace OnTrack
                                 Else
                                     anObjectAttribute.IsBootstrap = False ' default
                                 End If
+                                ''' remove ObjectID
+                                If _DescriptionsByIDDescriptionStore.ContainsKey(key:=anObjectAttribute.ID) Then
+                                    _DescriptionsByIDDescriptionStore.Remove(key:=anObjectAttribute.ID)
+                                End If
+                                ''' Add both
+                                _DescriptionsByIDDescriptionStore.Add(key:=anObjectAttribute.ID, value:=anewDescription)
+                                _DescriptionsByClassTypeDescriptionStore.Add(key:=aClass.FullName, value:=anewDescription)
                             End If
 
                         Next
@@ -1160,7 +1177,7 @@ Namespace OnTrack
             Return _TableIndices.Item(key:=tablename).Values.ToList
         End Function
         ''' <summary>
-        ''' gets a List of all index attributes for a tablename
+        ''' gets the mapping attribute for a member name (of class)
         ''' </summary>
         ''' <value></value>
         ''' <returns></returns>
@@ -1237,7 +1254,7 @@ Namespace OnTrack
 
         End Function
         ''' <summary>
-        ''' returns the mapped FieldInfos for a given columnname and tablename
+        ''' returns the mapped FieldInfos for a given entryname
         ''' </summary>
         ''' <param name="columnname"></param>
         ''' <param name="tablename"></param>
@@ -1495,7 +1512,7 @@ Namespace OnTrack
                         globaleTableAttributes = _repository.GetTableAttribute(tablename)
                         If globaleTableAttributes IsNot Nothing Then
                             
-                            If globaleTableAttributes.HasColumn(anObjectEntryAttribute.ColumnName) Then
+                            If Not globaleTableAttributes.HasColumn(anObjectEntryAttribute.ColumnName) Then
                                 globaleTableAttributes.AddColumn(anObjectEntryAttribute)
                             Else
                                 globaleTableAttributes.UpdateColumn(anObjectEntryAttribute)
@@ -2206,7 +2223,7 @@ Namespace OnTrack
                 End If
 
                 '** defaults
-                If _ObjectAttribute.ClassName Is Nothing OrElse _ObjectAttribute.ClassName = "" Then
+                If Not _ObjectAttribute.HasValueClassname Then
                     _ObjectAttribute.ClassName = _Type.FullName
                 End If
                 If _ObjectAttribute.ID Is Nothing OrElse _ObjectAttribute.ID = "" Then
@@ -2353,7 +2370,7 @@ Namespace OnTrack
                         If anAttribute.GetType().Equals(GetType(ormObjectAttribute)) Then
                             _ObjectAttribute = anAttribute
                             '** defaults
-                            If Not _ObjectAttribute.HasValueClassname Then _ObjectAttribute.ClassName = _Type.Name
+                            If Not _ObjectAttribute.HasValueClassname Then _ObjectAttribute.ClassName = _Type.FullName
                             If Not _ObjectAttribute.HasValueID Then _ObjectAttribute.ID = _Type.Name
                             If Not _ObjectAttribute.HasValueModulename Then _ObjectAttribute.Modulename = _Type.Namespace
                             If Not _ObjectAttribute.HasValueDescription Then _ObjectAttribute.Description = ""
@@ -2411,7 +2428,7 @@ Namespace OnTrack
                     '*** get the Attributes in the fields
                     '***
                     aFieldList = _Type.GetFields(Reflection.BindingFlags.NonPublic Or Reflection.BindingFlags.Public Or _
-                    Reflection.BindingFlags.Static Or Reflection.BindingFlags.FlattenHierarchy)
+                                                 Reflection.BindingFlags.Static Or Reflection.BindingFlags.FlattenHierarchy)
 
                     For Each aFieldInfo As System.Reflection.FieldInfo In aFieldList
 
@@ -2470,7 +2487,7 @@ Namespace OnTrack
                                     InitializeOperationAttribute(attribute:=anAttribute, objectname:=aTablename, name:=aName, value:=aValue, overridesExisting:=overridesFlag)
 
                                     '** Queries
-                                ElseIf aFieldInfo.IsStatic AndAlso anAttribute.GetType().Equals(GetType(ormQueriedEnumeration)) Then
+                                ElseIf aFieldInfo.IsStatic AndAlso anAttribute.GetType().Equals(GetType(ormObjectQueryAttribute)) Then
                                     InitializeQueryAttribute(attribute:=anAttribute, queryname:=aName, value:=aValue, overridesExisting:=overridesFlag)
 
                                 End If

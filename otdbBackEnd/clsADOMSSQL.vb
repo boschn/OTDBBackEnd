@@ -187,8 +187,11 @@ Namespace OnTrack.Database
                         _ParametersTableAdapter = New SqlDataAdapter()
                         _ParametersTableAdapter.SelectCommand = aDBCommand
                         _ParametersTableAdapter.MissingSchemaAction = MissingSchemaAction.AddWithKey
-                        _ParametersTableAdapter.FillSchema(_OnTrackDataSet, SchemaType.Source)
-                        _ParametersTableAdapter.Fill(_OnTrackDataSet, _parametersTableName)
+                        SyncLock DirectCast(_primaryConnection.NativeInternalConnection, SqlConnection)
+                            _ParametersTableAdapter.FillSchema(_OnTrackDataSet, SchemaType.Source)
+                            _ParametersTableAdapter.Fill(_OnTrackDataSet, _parametersTableName)
+                        End SyncLock
+                       
                         ' build Commands
                         Call BuildParameterAdapter()
                         ' set the Table
@@ -264,6 +267,157 @@ Namespace OnTrack.Database
         Protected Overrides Sub RaiseRequestBootstrapInstall(sender As Object, ByRef e As EventArgs)
             RaiseEvent RequestBootstrapInstall(sender, e)
         End Sub
+        ''' <summary>
+        ''' returns a object from sourcetype of the column to Host interpretation (.net)
+        ''' </summary>
+        ''' <param name="invalue"></param>
+        ''' <param name="outvalue"></param>
+        ''' <param name="sourceType"></param>
+        ''' <param name="isnullable"></param>
+        ''' <param name="defaultvalue"></param>
+        ''' <param name="abostrophNecessary"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Overrides Function Convert2ObjectData(ByVal invalue As Object, _
+                                                     ByRef outvalue As Object, _
+                                                     sourceType As Long, _
+                                                     Optional isnullable As Boolean? = Nothing, _
+                                                     Optional defaultvalue As Object = Nothing, _
+                                                     Optional ByRef abostrophNecessary As Boolean = False) As Boolean Implements iormDatabaseDriver.Convert2ObjectData
+           
+            Dim result As Object = Nothing
+
+
+            Try
+
+              
+                abostrophNecessary = False
+
+                '*
+                '*
+                
+
+                If sourceType = SqlDataType.BigInt Or sourceType = SqlDataType.Int _
+                    Or sourceType = SqlDataType.SmallInt Or sourceType = SqlDataType.TinyInt Then
+
+                    If defaultvalue Is Nothing Then defaultvalue = Convert.ToInt64(0)
+                    If isnullable Then
+                        result = New Nullable(Of Long)
+                    Else
+                        result = New Long
+                    End If
+
+                    If isnullable AndAlso (Not IsNumeric(invalue) OrElse invalue Is Nothing OrElse _
+                                               DBNull.Value.Equals(invalue) OrElse String.IsNullOrWhiteSpace(invalue)) Then
+                        result = New Nullable(Of Long)
+                    ElseIf Not isnullable AndAlso (Not IsNumeric(invalue) OrElse invalue Is Nothing OrElse _
+                                               DBNull.Value.Equals(invalue) OrElse String.IsNullOrWhiteSpace(invalue)) Then
+                        result = Convert.ToInt64(defaultvalue)
+                    ElseIf IsNumeric(invalue) Then
+                        result = Convert.ToInt64(invalue)
+                    Else
+                        Call CoreMessageHandler(subname:="mssqlDBDriver.convert2ObjectData", messagetype:=otCoreMessageType.InternalError, _
+                                              message:="OTDB data '" & invalue & "' is not convertible to Integer", _
+                                              arg1:=sourceType)
+                        Return False
+                    End If
+
+                ElseIf sourceType = SqlDataType.Char Or sourceType = SqlDataType.NText _
+                     Or sourceType = SqlDataType.VarChar Or sourceType = SqlDataType.Text _
+                      Or sourceType = SqlDataType.NVarChar Or sourceType = SqlDataType.VarCharMax _
+                      Or sourceType = SqlDataType.NVarCharMax Then
+                    abostrophNecessary = True
+                    If defaultvalue Is Nothing Then defaultvalue = Convert.ToString("")
+
+                    If isnullable AndAlso (invalue Is Nothing OrElse DBNull.Value.Equals(invalue) OrElse _
+                                          String.IsNullOrWhiteSpace(invalue)) Then
+                        result = Nothing
+                    ElseIf Not isnullable AndAlso (invalue Is Nothing OrElse DBNull.Value.Equals(invalue) OrElse _
+                                          String.IsNullOrWhiteSpace(invalue)) Then
+                        result = Convert.ToString(defaultvalue)
+                    Else
+                        result = Convert.ToString(invalue)
+                    End If
+
+                ElseIf sourceType = SqlDataType.Date Or sourceType = SqlDataType.SmallDateTime Or sourceType = SqlDataType.Time _
+                Or sourceType = SqlDataType.Timestamp Or sourceType = SqlDataType.DateTime Or sourceType = SqlDataType.DateTime2 _
+                Or sourceType = SqlDataType.DateTimeOffset Then
+                    If defaultvalue Is Nothing Then defaultvalue = Convert.ToDateTime(ConstNullDate)
+                    If isnullable Then
+                        result = New Nullable(Of DateTime)
+                    Else
+                        result = New DateTime
+                    End If
+
+                    If isnullable AndAlso (Not IsDate(invalue) OrElse invalue Is Nothing OrElse DBNull.Value.Equals(invalue) _
+                                            OrElse String.IsNullOrWhiteSpace(invalue)) Then
+                        result = New Nullable(Of DateTime)
+                    ElseIf (Not IsDate(invalue) Or invalue Is Nothing Or DBNull.Value.Equals(invalue) Or IsError(invalue)) OrElse String.IsNullOrWhiteSpace(invalue) Then
+                        result = Convert.ToDateTime(defaultvalue)
+                    ElseIf IsDate(invalue) Then
+                        result = Convert.ToDateTime(invalue)
+                    Else
+                        Call CoreMessageHandler(subname:="mssqlDBDriver.convert2ObjectData", messagetype:=otCoreMessageType.InternalError, _
+                                              message:="OTDB data '" & invalue & "' is not convertible to Date", _
+                                              arg1:=sourceType)
+                        Return False
+                    End If
+
+                ElseIf sourceType = SqlDataType.Float Or sourceType = SqlDataType.Decimal _
+               Or sourceType = SqlDataType.Real Then
+                    If defaultvalue Is Nothing Then defaultvalue = Convert.ToDouble(0)
+                    If isnullable Then
+                        result = New Nullable(Of Double)
+                    Else
+                        result = New Double
+                    End If
+
+                    If isnullable AndAlso (Not IsNumeric(invalue) OrElse invalue Is Nothing OrElse _
+                        DBNull.Value.Equals(invalue) OrElse String.IsNullOrWhiteSpace(invalue)) Then
+                        result = New Nullable(Of Double)
+                    ElseIf isnullable AndAlso (Not IsNumeric(invalue) OrElse invalue Is Nothing OrElse _
+                        DBNull.Value.Equals(invalue) OrElse String.IsNullOrWhiteSpace(invalue)) Then
+                        result = Convert.ToDouble(defaultvalue)
+                    ElseIf IsNumeric(invalue) Then
+                        result = Convert.ToDouble(invalue)
+                    Else
+                        Call CoreMessageHandler(subname:="mssqlDBDriver.convert2ObjectData", messagetype:=otCoreMessageType.InternalError, _
+                                              message:="OTDB data '" & invalue & "' is not convertible to Double", _
+                                              arg1:=sourceType)
+                        Return False
+                    End If
+
+                ElseIf sourceType = SqlDataType.Bit Then
+                    If defaultvalue Is Nothing Then defaultvalue = Convert.ToBoolean(False)
+                    If isnullable Then
+                        result = New Nullable(Of Boolean)
+                    Else
+                        result = New Boolean
+                    End If
+
+                    If isnullable AndAlso (invalue Is Nothing OrElse DBNull.Value.Equals(invalue) _
+                                               OrElse invalue = False) OrElse String.IsNullOrWhiteSpace(invalue) Then
+                        result = New Nullable(Of Boolean)
+                    ElseIf Not isnullable AndAlso (invalue Is Nothing OrElse DBNull.Value.Equals(invalue) _
+                                               OrElse invalue = False) OrElse String.IsNullOrWhiteSpace(invalue) Then
+                        result = Convert.ToBoolean(False)
+                    Else
+                        result = True
+                    End If
+
+                End If
+
+                ' return
+                outvalue = result
+                Return True
+            Catch ex As Exception
+                Call CoreMessageHandler(showmsgbox:=False, subname:="mssqlmssqlDBDriver.convert2ObjData", _
+                                      arg1:=sourceType, exception:=ex, _
+                                      messagetype:=otCoreMessageType.InternalError)
+                Return False
+            End Try
+
+        End Function
         ''' <summary>
         ''' converts data to a specific native database type
         ''' </summary>
@@ -2160,7 +2314,9 @@ Namespace OnTrack.Database
                         '* save only if not in bootstrapping
                         Dim i = _ParametersTableAdapter.Update(_ParametersTable)
                         If i > 0 Then
-                            _ParametersTable.AcceptChanges()
+                            SyncLock _ParametersTableAdapter.SelectCommand.Connection
+                                _ParametersTable.AcceptChanges()
+                            End SyncLock
                             Return True
                         Else
                             Return False
@@ -2209,7 +2365,7 @@ Namespace OnTrack.Database
                 If Not Me.IsInitialized AndAlso Not Initialize() Then
                     Call CoreMessageHandler(subname:="mssqlDBDriver.getDBParameter", tablename:=ConstParameterTableName, _
                                        message:="couldnot initialize database driver", arg1:=Me.ID, entryname:=parametername)
-                    Return False
+                    Return Nothing
                 End If
 
                 '** on Bootstrapping out of the cache
@@ -2603,158 +2759,166 @@ Namespace OnTrack.Database
             Refresh = True
 
             Try
-                myConnection.IsNativeInternalLocked = True
-                Dim aTable As Table = New Table(myConnection.Database, name:=TableID)
-                If aTable Is Nothing Then
-                    Call CoreMessageHandler(subname:="mssqlTableSchema.refresh", _
-                                     message:="Table couldnot be loaded from SMO", _
-                                     tablename:=TableID, messagetype:=otCoreMessageType.InternalError)
+
+                SyncLock DirectCast(myConnection, adonetConnection).NativeInternalConnection
+
+                    myConnection.IsNativeInternalLocked = True
+                    Dim aTable As Table = New Table(myConnection.Database, name:=TableID)
+                    If aTable Is Nothing Then
+                        Call CoreMessageHandler(subname:="mssqlTableSchema.refresh", _
+                                         message:="Table couldnot be loaded from SMO", _
+                                         tablename:=TableID, messagetype:=otCoreMessageType.InternalError)
+                        myConnection.IsNativeInternalLocked = False
+                        _IsInitialized = False
+                        Return False
+                    End If
+
+
+
+                    '** reload the Table
+                    '**
+                    aTable.Refresh()
                     myConnection.IsNativeInternalLocked = False
-                    _IsInitialized = False
-                    Return False
-                End If
+                    If False Then
+                        Call CoreMessageHandler(subname:="mssqlTableSchema.refresh", _
+                                         message:="Table couldnot initialized from SMO", _
+                                         tablename:=TableID, messagetype:=otCoreMessageType.InternalError)
+                        _IsInitialized = False
+                        Return False
+                    End If
 
-               
+                    no = aTable.Columns.Count
+                    If no = 0 Then
+                        Call CoreMessageHandler(subname:="mssqlTableSchema.refresh", _
+                                                        message:="Table couldnot initialized from SMO - does it exist ????", _
+                                                        tablename:=TableID, messagetype:=otCoreMessageType.InternalError)
+                        _IsInitialized = False
+                        Return False
+                    Else
+                        ReDim _Fieldnames(no - 1)
+                        ReDim _Columns(no - 1)
+                    End If
 
-                '** reload the Table
-                '**
-                aTable.Refresh()
-                myConnection.IsNativeInternalLocked = False
-                If False Then
-                    Call CoreMessageHandler(subname:="mssqlTableSchema.refresh", _
-                                     message:="Table couldnot initialized from SMO", _
-                                     tablename:=TableID, messagetype:=otCoreMessageType.InternalError)
-                    _IsInitialized = False
-                    Return False
-                End If
-
-                no = aTable.Columns.Count
-                If no = 0 Then
-                    Call CoreMessageHandler(subname:="mssqlTableSchema.refresh", _
-                                                    message:="Table couldnot initialized from SMO - does it exist ????", _
-                                                    tablename:=TableID, messagetype:=otCoreMessageType.InternalError)
-                    _IsInitialized = False
-                    Return False
-                Else
-                    ReDim _fieldnames(no - 1)
-                    ReDim _Columns(no - 1)
-                End If
-
-                ' set the Dictionaries if reload
-                _fieldsDictionary = New Dictionary(Of String, Long)
-                _indexDictionary = New Dictionary(Of String, ArrayList)
-                aColumnCollection = New ArrayList
-                _NoPrimaryKeys = 0
-                Dim i As UShort = 0
-
-                '*
-                myConnection.IsNativeInternalLocked = True
-
-                '* each column
-                For Each aColumn As Column In aTable.Columns
+                    ' set the Dictionaries if reload
+                    _fieldsDictionary = New Dictionary(Of String, Long)
+                    _indexDictionary = New Dictionary(Of String, ArrayList)
+                    aColumnCollection = New ArrayList
+                    _NoPrimaryKeys = 0
+                    Dim i As UShort = 0
 
                     '*
-                    _fieldnames(i) = aColumn.Name.Clone
-                    '* set the description
-                    _Columns(i) = New adoNetColumnDescription
-                    With _Columns(i)
-                        .ColumnName = aColumn.Name.ToUpper
+                    myConnection.IsNativeInternalLocked = True
 
-                        '* time penalty to heavy for refreshing
-                        ' If Not aColumn.ExtendedProperties.Contains("MS_Description") Then aColumn.ExtendedProperties.Refresh()
-                        'If aColumn.ExtendedProperties.Contains("MS_Description") Then
-                        '.Description = aColumn.ExtendedProperties("MS_Description").Value
-                        'Else
-                        .Description = ""
-                        'End If
-                        If aColumn.Default <> "" Then
-                            .HasDefault = True
-                        Else
-                            .HasDefault = False
-                        End If
-                        'If aColumn.DataType.MaximumLength Is Nothing Then
-                        .CharacterMaxLength = aColumn.DataType.MaximumLength
-                        'End If
-                        .IsNullable = aColumn.Nullable
-                        .DataType = aColumn.DataType.SqlDataType
-                        .Ordinal = aColumn.ID
-                        .Default = aColumn.Default.Clone
-                        .Catalog = aColumn.DefaultSchema.Clone
-                        '.DateTimePrecision = aColumn.DataType.DateTimePrecision
-                        .NumericPrecision = aColumn.DataType.NumericPrecision
-                        .NumericScale = aColumn.DataType.NumericScale
-                        .CharachterOctetLength = aColumn.DataType.MaximumLength
-                    End With
-                    ' remove if existing
-                    If _fieldsDictionary.ContainsKey(_fieldnames(i)) Then
-                        _fieldsDictionary.Remove(_fieldnames(i))
-                    End If
-                    ' add
-                    _fieldsDictionary.Add(key:=_fieldnames(i), value:=i + 1) 'store no field 1... not the array index
+                    '* each column
+                    For Each aColumn As Column In aTable.Columns
 
-                    '* inc
-                    i += 1
-                Next
+                        '*
+                        _Fieldnames(i) = aColumn.Name.Clone
+                        '* set the description
+                        _Columns(i) = New adoNetColumnDescription
+                        With _Columns(i)
+                            .ColumnName = aColumn.Name.ToUpper
 
-                '** Crossreference the Indices
-                For Each anIndex As Index In aTable.Indexes
-                    'anIndex.Refresh()
-
-                    ' new
-                    aColumnCollection = New ArrayList
-
-                    For Each aColumn In anIndex.IndexedColumns
-
-                        ' indx no
-                        index = _fieldsDictionary.Item(aColumn.name.toupper)
-                        '
-                        '** check if primaryKey
-                        'fill old primary Key structure
-                        If anIndex.IndexKeyType = IndexKeyType.DriPrimaryKey Then
-                            _PrimaryKeyIndexName = anIndex.Name.ToUpper
-                            _NoPrimaryKeys = _NoPrimaryKeys + 1
-                            ReDim Preserve _Primarykeys(0 To _NoPrimaryKeys - 1)
-                            _Primarykeys(_NoPrimaryKeys - 1) = index - 1 ' set to the array 0...ubound
-                        End If
-
-                        aColumnCollection.Add(aColumn.name.toupper)
-
-                    Next
-
-                    '** store final
-
-                    If _indexDictionary.ContainsKey(anIndex.Name.ToUpper) Then
-                        _indexDictionary.Remove(key:=anIndex.Name.ToUpper)
-                    End If
-                    _indexDictionary.Add(key:=anIndex.Name.ToUpper, value:=aColumnCollection)
-                Next
-
-                myConnection.IsNativeInternalLocked = False
-
-                '**** read each Index
-                '****
-                Dim anIndexName As String = ""
-
-                '**** build the commands
-                '****
-                Dim enumValues As Array = System.[Enum].GetValues(GetType(CommandType))
-                For Each anIndexName In _indexDictionary.Keys
-                    Dim aNewCommand As SqlCommand
-                    For Each aCommandType In enumValues
-                        Dim aNewKey = New CommandKey(anIndexName, aCommandType)
-                        aNewCommand = BuildCommand(anIndexName, aCommandType)
-                        If Not aNewCommand Is Nothing Then
-                            If _CommandStore.ContainsKey(aNewKey) Then
-                                _CommandStore.Remove(aNewKey)
+                            '* time penalty to heavy for refreshing
+                            ' If Not aColumn.ExtendedProperties.Contains("MS_Description") Then aColumn.ExtendedProperties.Refresh()
+                            'If aColumn.ExtendedProperties.Contains("MS_Description") Then
+                            '.Description = aColumn.ExtendedProperties("MS_Description").Value
+                            'Else
+                            .Description = ""
+                            'End If
+                            If aColumn.Default <> "" Then
+                                .HasDefault = True
+                            Else
+                                .HasDefault = False
                             End If
-                            _CommandStore.Add(aNewKey, aNewCommand)
+                            'If aColumn.DataType.MaximumLength Is Nothing Then
+                            .CharacterMaxLength = aColumn.DataType.MaximumLength
+                            'End If
+                            .IsNullable = aColumn.Nullable
+                            .DataType = aColumn.DataType.SqlDataType
+                            .Ordinal = aColumn.ID
+                            .Default = aColumn.Default.Clone
+                            .Catalog = aColumn.DefaultSchema.Clone
+                            '.DateTimePrecision = aColumn.DataType.DateTimePrecision
+                            .NumericPrecision = aColumn.DataType.NumericPrecision
+                            .NumericScale = aColumn.DataType.NumericScale
+                            .CharachterOctetLength = aColumn.DataType.MaximumLength
+                        End With
+                        ' remove if existing
+                        If _fieldsDictionary.ContainsKey(_Fieldnames(i)) Then
+                            _fieldsDictionary.Remove(_Fieldnames(i))
                         End If
+                        ' add
+                        _fieldsDictionary.Add(key:=_Fieldnames(i), value:=i + 1) 'store no field 1... not the array index
+
+                        '* inc
+                        i += 1
                     Next
 
+                    '** Crossreference the Indices
+                    For Each anIndex As Index In aTable.Indexes
+                        'anIndex.Refresh()
 
-                Next
+                        ' new
+                        aColumnCollection = New ArrayList
 
-                _IsInitialized = True
+                        For Each aColumn In anIndex.IndexedColumns
+
+                            ' indx no
+                            index = _fieldsDictionary.Item(aColumn.name.toupper)
+                            '
+                            '** check if primaryKey
+                            'fill old primary Key structure
+                            If anIndex.IndexKeyType = IndexKeyType.DriPrimaryKey Then
+                                _PrimaryKeyIndexName = anIndex.Name.ToUpper
+                                _NoPrimaryKeys = _NoPrimaryKeys + 1
+                                ReDim Preserve _Primarykeys(0 To _NoPrimaryKeys - 1)
+                                _Primarykeys(_NoPrimaryKeys - 1) = index - 1 ' set to the array 0...ubound
+                            End If
+
+                            aColumnCollection.Add(aColumn.name.toupper)
+
+                        Next
+
+                        '** store final
+
+                        If _indexDictionary.ContainsKey(anIndex.Name.ToUpper) Then
+                            _indexDictionary.Remove(key:=anIndex.Name.ToUpper)
+                        End If
+                        _indexDictionary.Add(key:=anIndex.Name.ToUpper, value:=aColumnCollection)
+                    Next
+
+                    myConnection.IsNativeInternalLocked = False
+
+                    '**** read each Index
+                    '****
+                    Dim anIndexName As String = ""
+
+                    '**** build the commands
+                    '****
+                    Dim enumValues As Array = System.[Enum].GetValues(GetType(CommandType))
+                    For Each anIndexName In _indexDictionary.Keys
+                        Dim aNewCommand As SqlCommand
+                        For Each aCommandType In enumValues
+                            Dim aNewKey = New CommandKey(anIndexName, aCommandType)
+                            aNewCommand = BuildCommand(anIndexName, aCommandType)
+                            If Not aNewCommand Is Nothing Then
+                                If _CommandStore.ContainsKey(aNewKey) Then
+                                    _CommandStore.Remove(aNewKey)
+                                End If
+                                _CommandStore.Add(aNewKey, aNewCommand)
+                            End If
+                        Next
+
+
+                    Next
+
+                    _IsInitialized = True
+
+                End SyncLock
+
+
+
                 Return True
 
             Catch ex As Exception
@@ -2886,128 +3050,13 @@ Namespace OnTrack.Database
                 End If
                 abostrophNecessary = False
 
-                '*
-                '*
-                'If IsError(ainvalue) Then
-                '    System.Diagnostics.Debug.WriteLine "Error in Formular of field invalue " & ainvalue & " while updating OTDB"
-                '    ainvalue = ""
-                'End If
-
-                If aDBColumn.DataType = SqlDataType.BigInt Or aDBColumn.DataType = SqlDataType.Int _
-                    Or aDBColumn.DataType = SqlDataType.SmallInt Or aDBColumn.DataType = SqlDataType.TinyInt Then
-
-                    If defaultvalue Is Nothing Then defaultvalue = Convert.ToInt64(0)
-                    If isnullable Then
-                        result = New Nullable(Of Long)
-                    Else
-                        result = New Long
-                    End If
-
-                    If isnullable AndAlso (Not IsNumeric(invalue) OrElse invalue Is Nothing OrElse _
-                                               DBNull.Value.Equals(invalue) OrElse String.IsNullOrWhiteSpace(invalue)) Then
-                        result = New Nullable(Of Long)
-                    ElseIf Not isnullable AndAlso (Not IsNumeric(invalue) OrElse invalue Is Nothing OrElse _
-                                               DBNull.Value.Equals(invalue) OrElse String.IsNullOrWhiteSpace(invalue)) Then
-                        result = Convert.ToInt64(defaultvalue)
-                    ElseIf IsNumeric(invalue) Then
-                        result = Convert.ToInt64(invalue)
-                    Else
-                        Call CoreMessageHandler(subname:="mssqlTableStore.conver2ObjectData", messagetype:=otCoreMessageType.InternalError, _
-                                              message:="OTDB data '" & invalue & "' is not convertible to Integer", _
-                                              arg1:=aDBColumn.DataType, tablename:=Me.TableID, entryname:=aDBColumn.ColumnName)
-                        Return False
-                    End If
-
-                ElseIf aDBColumn.DataType = SqlDataType.Char Or aDBColumn.DataType = SqlDataType.NText _
-                     Or aDBColumn.DataType = SqlDataType.VarChar Or aDBColumn.DataType = SqlDataType.Text _
-                      Or aDBColumn.DataType = SqlDataType.NVarChar Or aDBColumn.DataType = SqlDataType.VarCharMax _
-                      Or aDBColumn.DataType = SqlDataType.NVarCharMax Then
-                    abostrophNecessary = True
-                    If defaultvalue Is Nothing Then defaultvalue = Convert.ToString("")
-
-                    If isnullable AndAlso (invalue Is Nothing OrElse DBNull.Value.Equals(invalue) OrElse _
-                                          String.IsNullOrWhiteSpace(invalue)) Then
-                        result = Nothing
-                    ElseIf Not isnullable AndAlso (invalue Is Nothing OrElse DBNull.Value.Equals(invalue) OrElse _
-                                          String.IsNullOrWhiteSpace(invalue)) Then
-                        result = Convert.ToString(defaultvalue)
-                    Else
-                        result = Convert.ToString(invalue)
-                    End If
-
-                ElseIf aDBColumn.DataType = SqlDataType.Date Or aDBColumn.DataType = SqlDataType.SmallDateTime Or aDBColumn.DataType = SqlDataType.Time _
-                Or aDBColumn.DataType = SqlDataType.Timestamp Or aDBColumn.DataType = SqlDataType.DateTime Or aDBColumn.DataType = SqlDataType.DateTime2 _
-                Or aDBColumn.DataType = SqlDataType.DateTimeOffset Then
-                    If defaultvalue Is Nothing Then defaultvalue = Convert.ToDateTime(ConstNullDate)
-                    If isnullable Then
-                        result = New Nullable(Of DateTime)
-                    Else
-                        result = New DateTime
-                    End If
-
-                    If isnullable AndAlso (Not IsDate(invalue) OrElse invalue Is Nothing OrElse DBNull.Value.Equals(invalue) _
-                                            OrElse String.IsNullOrWhiteSpace(invalue)) Then
-                        result = New Nullable(Of DateTime)
-                    ElseIf (Not IsDate(invalue) Or invalue Is Nothing Or DBNull.Value.Equals(invalue) Or IsError(invalue)) OrElse String.IsNullOrWhiteSpace(invalue) Then
-                        result = Convert.ToDateTime(defaultvalue)
-                    ElseIf IsDate(invalue) Then
-                        result = Convert.ToDateTime(invalue)
-                    Else
-                        Call CoreMessageHandler(subname:="mssqlTableStore.conver2ObjectData", messagetype:=otCoreMessageType.InternalError, _
-                                              message:="OTDB data '" & invalue & "' is not convertible to Date", _
-                                              arg1:=aDBColumn.DataType, tablename:=Me.TableID, entryname:=aDBColumn.ColumnName)
-                        Return False
-                    End If
-
-                ElseIf aDBColumn.DataType = SqlDataType.Float Or aDBColumn.DataType = SqlDataType.Decimal _
-               Or aDBColumn.DataType = SqlDataType.Real Then
-                    If defaultvalue Is Nothing Then defaultvalue = Convert.ToDouble(0)
-                    If isnullable Then
-                        result = New Nullable(Of Double)
-                    Else
-                        result = New Double
-                    End If
-
-                    If isnullable AndAlso (Not IsNumeric(invalue) OrElse invalue Is Nothing OrElse _
-                        DBNull.Value.Equals(invalue) OrElse String.IsNullOrWhiteSpace(invalue)) Then
-                        result = New Nullable(Of Double)
-                    ElseIf isnullable AndAlso (Not IsNumeric(invalue) OrElse invalue Is Nothing OrElse _
-                        DBNull.Value.Equals(invalue) OrElse String.IsNullOrWhiteSpace(invalue)) Then
-                        result = Convert.ToDouble(defaultvalue)
-                    ElseIf IsNumeric(invalue) Then
-                        result = Convert.ToDouble(invalue)
-                    Else
-                        Call CoreMessageHandler(subname:="mssqlTableStore.conver2ObjectData", messagetype:=otCoreMessageType.InternalError, _
-                                              message:="OTDB data '" & invalue & "' is not convertible to Double", _
-                                              arg1:=aDBColumn.DataType, tablename:=Me.TableID, entryname:=aDBColumn.ColumnName)
-                        Return False
-                    End If
-
-                ElseIf aDBColumn.DataType = SqlDataType.Bit Then
-                    If defaultvalue Is Nothing Then defaultvalue = Convert.ToBoolean(False)
-                    If isnullable Then
-                        result = New Nullable(Of Boolean)
-                    Else
-                        result = New Boolean
-                    End If
-
-                    If isnullable AndAlso (invalue Is Nothing OrElse DBNull.Value.Equals(invalue) _
-                                               OrElse invalue = False) OrElse String.IsNullOrWhiteSpace(invalue) Then
-                        result = New Nullable(Of Boolean)
-                    ElseIf Not isnullable AndAlso (invalue Is Nothing OrElse DBNull.Value.Equals(invalue) _
-                                               OrElse invalue = False) OrElse String.IsNullOrWhiteSpace(invalue) Then
-                        result = Convert.ToBoolean(False)
-                    Else
-                        result = True
-                    End If
-
-                End If
-
-                ' return
-                outvalue = result
-                Return True
+                '** return
+                Return Me.Connection.DatabaseDriver.Convert2ObjectData(invalue:=invalue, outvalue:=outvalue, _
+                                                                   sourceType:=aDBColumn.DataType, abostrophNecessary:=abostrophNecessary, _
+                                                                 isnullable:=isnullable, defaultvalue:=defaultvalue)
+                
             Catch ex As Exception
-                Call CoreMessageHandler(showmsgbox:=False, subname:="mssqlTableStore.cvt2ObjData", _
+                Call CoreMessageHandler(showmsgbox:=False, subname:="mssqlTableStore.convert2ObjectData", _
                                       arg1:=aDBColumn.DataType, tablename:=Me.TableID, entryname:=aDBColumn.ColumnName, exception:=ex, _
                                       messagetype:=otCoreMessageType.InternalError)
                 Return False
@@ -3054,9 +3103,12 @@ Namespace OnTrack.Database
                         selectstr &= " FROM " & Me.TableID
                         _cacheAdapter.SelectCommand = New SqlCommand(selectstr)
                         _cacheAdapter.SelectCommand.CommandType = CommandType.Text
-                        _cacheAdapter.SelectCommand.Connection = anativeConnection
-                        _cacheAdapter.FillSchema(aDataSet, SchemaType.Source)
-                        DirectCast(_cacheAdapter, SqlDataAdapter).Fill(aDataSet, Me.TableID)
+                        SyncLock anativeConnection
+                            _cacheAdapter.SelectCommand.Connection = anativeConnection
+                            _cacheAdapter.FillSchema(aDataSet, SchemaType.Source)
+                            DirectCast(_cacheAdapter, SqlDataAdapter).Fill(aDataSet, Me.TableID)
+                        End SyncLock
+
                         ' set the Table
                         _cacheTable = aDataSet.Tables(Me.TableID)
                         If _cacheTable Is Nothing Then

@@ -176,15 +176,7 @@ Namespace OnTrack.Deliverables
         End Property
 
 #End Region
-        ''' <summary>
-        ''' constructor
-        ''' </summary>
-        ''' <remarks></remarks>
-        Public Sub New()
-            MyBase.New()
-        End Sub
-       
-
+        
         ''' <summary>
         ''' Retrieve a trackitem from the data store
         ''' </summary>

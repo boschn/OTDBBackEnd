@@ -37,8 +37,8 @@ Public Module modHostData
         Dim aSchedule As New Schedule
         Dim aDependCheck As New clsOTDBDependCheck
 
-        Call registerHostApplicationFor(aSchedule.TableID, True)
-        Call registerHostApplicationFor(aDependCheck.TableID, True)
+        Call registerHostApplicationFor(aSchedule.primaryTableID, True)
+        Call registerHostApplicationFor(aDependCheck.primaryTableID, True)
 
         registerDefaultObjects = True
     End Function
@@ -49,8 +49,8 @@ Public Module modHostData
         Dim aSchedule As New Schedule
         Dim aDependCheck As New clsOTDBDependCheck
 
-        Call unregisterHostApplicationFor(aSchedule.TableID)
-        Call unregisterHostApplicationFor(aDependCheck.TableID)
+        Call unregisterHostApplicationFor(aSchedule.primaryTableID)
+        Call unregisterHostApplicationFor(aDependCheck.primaryTableID)
 
         unregisterDefaultObjects = True
     End Function
@@ -120,7 +120,7 @@ Public Module modHostData
 
         Select Case LCase(aRecord.TableID)
 
-            Case LCase(aSchedule.TableID)
+            Case LCase(aSchedule.primaryTableID)
 #If ExcelVersion <> "" Then
                 ' write it to
                 'Debug.Print "excel"
@@ -129,7 +129,7 @@ Public Module modHostData
         If Not overloadScheduleFromMSP(aRecord) Then
         End If
 #End If
-            Case LCase(aDependCheck.TableID)
+            Case LCase(aDependCheck.primaryTableID)
 
 #If projectVersion Then
         If Not overloadScheduleFromMSP(aRecord) Then
@@ -156,7 +156,7 @@ Public Module modHostData
 
 
         Select Case LCase(aRecord.TableID)
-            Case LCase(aSchedule.TableID)
+            Case LCase(aSchedule.primaryTableID)
 #If ExcelVersion <> "" Then
                 ' write it to
                 'Debug.Print "excel"
@@ -166,7 +166,7 @@ Public Module modHostData
         If Not overwriteScheduleToMSP(aRecord) Then
         End If
 #End If
-            Case LCase(aDependCheck.TableID)
+            Case LCase(aDependCheck.primaryTableID)
 
 #If projectVersion Then
         If Not overwriteDependCheckToMSP(aRecord) Then

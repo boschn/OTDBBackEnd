@@ -1114,7 +1114,7 @@ Namespace OnTrack.Scheduling
                     Exit Function
                 End If
             End If
-            If Not _IsLoaded And Not Me.IsCreated Then
+            If Not Me.isloaded And Not Me.IsCreated Then
                 Persist = False
                 Exit Function
             End If
@@ -1703,7 +1703,7 @@ Namespace OnTrack.Scheduling
                     Exit Function
                 End If
             End If
-            If Not _IsLoaded And Not Me.IsCreated Then
+            If Not Me.isloaded And Not Me.IsCreated Then
                 Persist = False
                 Exit Function
             End If
@@ -1937,7 +1937,7 @@ Namespace OnTrack.Scheduling
             Dim posno As Long
 
             ' Nothing
-            If Not _IsLoaded And Not Me.IsCreated Then
+            If Not Me.isloaded And Not Me.IsCreated Then
                 AddMilestoneByID = False
                 Exit Function
             End If
@@ -1974,7 +1974,7 @@ Namespace OnTrack.Scheduling
             Dim m As Object
 
             ' Nothing
-            If Not _IsLoaded And Not Me.IsCreated Then
+            If Not Me.isloaded And Not Me.IsCreated Then
                 AddMember = False
                 Exit Function
             End If
@@ -2021,7 +2021,7 @@ Namespace OnTrack.Scheduling
             Dim initialEntry As New ScheduleMilestoneDefinition
             Dim m As Object
 
-            If Not Me.IsCreated And Not _IsLoaded Then
+            If Not Me.IsCreated And Not Me.isloaded Then
                 Delete = False
                 Exit Function
             End If
@@ -2038,7 +2038,7 @@ Namespace OnTrack.Scheduling
             End If
             _members.Add(key:=anEntry.ID, value:=anEntry)
 
-            _IsCreated = True
+            'Me.iscreated = True
             Me.IsDeleted = True
             Me.Unload()
 
@@ -2057,7 +2057,7 @@ Namespace OnTrack.Scheduling
             Dim i As Integer
             Dim m As Object
 
-            If Not Me.IsCreated And Not _IsLoaded Then
+            If Not Me.IsCreated And Not Me.isloaded Then
                 Orderno = orders
                 Exit Function
             End If
@@ -2089,7 +2089,7 @@ Namespace OnTrack.Scheduling
             Dim order() As Object
 
 
-            If Not Me.IsCreated And Not _IsLoaded Then
+            If Not Me.IsCreated And Not Me.isloaded Then
                 MembersByOrderNo = Nothing
                 Exit Function
             End If
@@ -2125,7 +2125,7 @@ Namespace OnTrack.Scheduling
             Dim m As Object
             Dim i As Integer
 
-            If Not Me.IsCreated And Not _IsLoaded Then
+            If Not Me.IsCreated And Not Me.isloaded Then
                 Members = Nothing
                 Exit Function
             End If
@@ -3120,7 +3120,7 @@ Namespace OnTrack.Scheduling
             Dim aDate As Object
             Dim actDate As Object
 
-            If Not _IsLoaded And Not Me.IsCreated Then
+            If Not Me.isloaded And Not Me.IsCreated Then
                 MoveMilestone = False
                 Exit Function
             End If
@@ -3193,7 +3193,7 @@ Namespace OnTrack.Scheduling
             Dim aDate As Object
             Dim actDate As Object
 
-            If Not _IsLoaded And Not Me.IsCreated Then
+            If Not Me.isloaded And Not Me.IsCreated Then
                 MoveSchedule = False
                 Exit Function
             End If
@@ -3248,7 +3248,7 @@ Namespace OnTrack.Scheduling
             Dim aScheduleMSDef As New ScheduleMilestoneDefinition
             Dim aMilestoneDef As New MileStoneDefinition
 
-            If Not _IsLoaded And Not Me.IsCreated Then
+            If Not Me.isloaded And Not Me.IsCreated Then
                 GetDefScheduleMSbyOrder = Nothing
                 Exit Function
             End If
@@ -3713,7 +3713,7 @@ Namespace OnTrack.Scheduling
         Public Function AddMilestone(ByRef milestone As ScheduleMilestone) As Boolean
 
             ' Nothing
-            If Not _IsLoaded And Not Me.IsCreated Then
+            If Not Me.isloaded And Not Me.IsCreated Then
                 Return False
             End If
 
@@ -3806,7 +3806,7 @@ Namespace OnTrack.Scheduling
             If updc = 0 Then
                 If Not Me.GetMaxUpdc(max:=updc, workspaceID:=workspaceID) Then
                     Call CoreMessageHandler(message:=" primary key values could not be created - cannot create object", arg1:=pkArray, _
-                                            subname:="Schedule.create", tablename:=TableID, messagetype:=otCoreMessageType.InternalError)
+                                            subname:="Schedule.create", tablename:=primaryTableID, messagetype:=otCoreMessageType.InternalError)
                     Return False
                 End If
                 '* increase
@@ -3979,7 +3979,7 @@ Namespace OnTrack.Scheduling
         Public Function IsFinished() As Boolean
             Dim aVAlue As Object
 
-            If _IsLoaded Or Me.IsCreated Then
+            If Me.isloaded Or Me.IsCreated Then
                 '*** HACK !
                 If s_members.ContainsKey(LCase("bp10")) Then
                     aVAlue = Me.GetMilestoneValue("bp10")
@@ -4011,7 +4011,7 @@ Namespace OnTrack.Scheduling
             Dim aVAlue As Object
             Dim aTimeInterval As New clsTimeInterval
 
-            If Not _IsLoaded And Not Me.IsCreated Then
+            If Not Me.isloaded And Not Me.IsCreated Then
                 GetTimeInterval = Nothing
                 Exit Function
             End If
@@ -4607,7 +4607,7 @@ Namespace OnTrack.Scheduling
                 If Updc = 0 Then
                     If Not Me.GetMaxUpdc(max:=pkarray(1), workspaceID:=Me.workspaceID) Then
                         Call CoreMessageHandler(message:="cannot create unique primary key values - abort clone", arg1:=pkarray, _
-                                                     tablename:=TableID, messagetype:=otCoreMessageType.InternalError)
+                                                     tablename:=primaryTableID, messagetype:=otCoreMessageType.InternalError)
                         Return Nothing
                     End If
                     pkarray(1) += 1
@@ -4692,8 +4692,9 @@ Namespace OnTrack.Scheduling
                 End If
             End If
             '**
-            If Not aWorkspace.Inject(workspaceID) Then
-                Call CoreMessageHandler(arg1:=workspaceID, subname:="Schedule.cloneToWorkspace", message:="couldn't load workspaceID")
+            aWorkspace = Workspace.Retrieve(id:=workspaceID)
+            If aWorkspace Is Nothing Then
+                Call CoreMessageHandler(arg1:=workspaceID, subname:="Schedule.cloneToWorkspace", message:="couldn't load workspace")
                 CloneToWorkspace = False
                 Exit Function
             End If
@@ -4701,7 +4702,7 @@ Namespace OnTrack.Scheduling
             ' get the new updc
             If Me.GetMaxUpdc(max:=newUPDC, workspaceID:=workspaceID) Then
                 If newUPDC = 0 Then
-                    newUPDC = aWorkspace.Min_schedule_updc
+                    newUPDC = aWorkspace.MinScheduleUPDC
                 Else
                     newUPDC = newUPDC + 1
                 End If
@@ -4771,14 +4772,14 @@ Namespace OnTrack.Scheduling
                     If Not IsNull(theRecords.Item(0).GetValue(1)) And IsNumeric(theRecords.Item(0).GetValue(1)) Then
                         mymax = CLng(theRecords.Item(0).GetValue(1))
                         If Not aWorkspaceDef Is Nothing Then
-                            If mymax >= (aWorkspaceDef.Max_schedule_updc - 10) Then
+                            If mymax >= (aWorkspaceDef.MaxScheduleUPDC - 10) Then
                                 Call CoreMessageHandler(showmsgbox:=True, message:="Number range for workspaceID ends", _
                                                       arg1:=workspaceID, messagetype:=otCoreMessageType.ApplicationWarning)
                             End If
                         End If
                     Else
                         If aWorkspaceDef IsNot Nothing Then
-                            mymax = aWorkspaceDef.Min_schedule_updc
+                            mymax = aWorkspaceDef.MinScheduleUPDC
                         Else
                             GetMaxUpdc = False
                         End If
@@ -4788,7 +4789,7 @@ Namespace OnTrack.Scheduling
 
                 Else
                     If aWorkspaceDef IsNot Nothing Then
-                        mymax = aWorkspaceDef.Min_schedule_updc
+                        mymax = aWorkspaceDef.MinScheduleUPDC
                     Else
                         GetMaxUpdc = False
                     End If
@@ -5213,7 +5214,7 @@ Namespace OnTrack.Scheduling
             End If
 
             ' generell tests
-            anObject = CHANGECONFIG.ObjectByName(Me.TableID)
+            anObject = CHANGECONFIG.ObjectByName(Me.primaryTableID)
             runXPreCheckOLD = CHANGECONFIG.runDefaultXPreCheck(anObject:=anObject, _
                                                             aMapping:=MAPPING, MSGLOG:=MSGLOG)
 

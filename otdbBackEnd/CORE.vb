@@ -848,6 +848,17 @@ Namespace OnTrack
             End If
         End Function
         ''' <summary>
+        ''' Retrieves the schema table attribute by name
+        ''' </summary>
+        ''' <param name="tableid"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function GetTableAttribute(tableid As String) As ormSchemaTableAttribute
+            If IsInitialized OrElse Initialize() Then
+                Return _ObjectClassStore.GetTableAttribute(tablename:=tableid)
+            End If
+        End Function
+        ''' <summary>
         ''' Retrieves the ObjectClasses as system.type referenced by a tableid
         ''' </summary>
         ''' <param name="tableid"></param>
@@ -921,7 +932,7 @@ Namespace OnTrack
         ''' <remarks></remarks>
         Function GetObjectClassDescription(type As Type) As ObjectClassDescription
             If IsInitialized OrElse Initialize() Then
-                Return _ObjectClassStore.GetObjectClassDescription(typename:=type.Name)
+                Return _ObjectClassStore.GetObjectClassDescription(typename:=type.FullName)
             Else
                 Return Nothing
             End If

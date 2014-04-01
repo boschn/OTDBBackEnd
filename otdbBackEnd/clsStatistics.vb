@@ -320,7 +320,7 @@ Namespace OnTrack
 
 
 '            Infuse = True
-'            _IsLoaded = True
+'            me.isloaded = True
 '            Exit Function
 
 'errorhandle:
@@ -361,7 +361,7 @@ Namespace OnTrack
                 Exit Function
             Else
                 Me.Record = aRecord
-                '_IsLoaded = Me.Infuse(Me.Record)
+                'me.isloaded = Me.Infuse(Me.Record)
                 Inject = Me.IsLoaded
                 Exit Function
             End If
@@ -739,7 +739,7 @@ errorhandle:
                 s_dims(i) = dims(i)
             Next i
 
-            _IsCreated = True
+            'me.iscreated = True
             create = Me.IsCreated
 
         End Function

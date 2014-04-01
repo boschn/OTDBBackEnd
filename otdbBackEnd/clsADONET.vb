@@ -130,7 +130,12 @@ Namespace OnTrack.Database
         ''' <param name="e"></param>
         ''' <remarks></remarks>
         Public Sub OnEndOfBootstrap(sender As Object, e As SessionEventArgs) Handles _session.EndOfBootStrapInstallation
-            Initialize(Force:=True) ' reinitialize and save
+            If Not e.AbortOperation Then
+                Initialize(Force:=True) ' reinitialize and save
+            Else
+                Reset()
+            End If
+
         End Sub
         ''' <summary>
         ''' reset the Driver
@@ -143,12 +148,13 @@ Namespace OnTrack.Database
                 _OnTrackDataSet = Nothing
                 _ParametersTable = Nothing
                 _ParametersTableAdapter = Nothing
+                _BootStrapParameterCache.Clear()
 
                 Me.IsInitialized = False
                 Return True
             Catch ex As Exception
                 Me.IsInitialized = False
-                Call CoreMessageHandler(subname:="adonetDBDriver.reset", message:="couldnot de-Initialize Driver", _
+                Call CoreMessageHandler(subname:="adonetDBDriver.reset", message:="couldnot reset database driver", _
                                       exception:=ex)
                 Me.IsInitialized = False
                 Return True
@@ -947,7 +953,7 @@ Namespace OnTrack.Database
                 If sqlcommand.TableIDs.Count = 1 Then
                     atableid = sqlcommand.TableIDs.First
                     Dim aTablestore = Me.GetTableStore(sqlcommand.TableIDs.First)
-                    If aTablestore.HasProperty(ormTableStore.ConstTPNCacheProperty) Then
+                    If aTablestore.HasProperty(ormTableStore.ConstTPNCacheProperty) And sqlcommand.AllFieldsAdded Then
                         '*** BRANCH OUT
                         Return RunSqlSelectCommandCached(sqlcommand:=sqlcommand, parametervalues:=parametervalues, nativeConnection:=nativeConnection)
                     End If
@@ -1022,14 +1028,17 @@ Namespace OnTrack.Database
                 End If
 
                 aDataReader = aNativeCommand.ExecuteReader
-
+                Dim aRecord As ormRecord
                 While aDataReader.Read
-                    Dim aRecord As New ormRecord() 'free flow record
-                    For i = 0 To aDataReader.FieldCount - 1
-                        '** might be that we have no other datatypes than a infuse can cope with
-                        aRecord.SetValue(aDataReader.GetName(i), aDataReader.GetValue(i))
-                    Next
-                    theResults.Add(aRecord)
+                    If sqlcommand.TableIDs.Count = 1 And sqlcommand.AllFieldsAdded Then
+                        aRecord = New ormRecord(tableID:=sqlcommand.TableIDs.First, dbdriver:=Me)
+                    Else
+                        aRecord = New ormRecord() 'free flow record
+                    End If
+                    If aRecord.LoadFrom(aDataReader) Then
+                        theResults.Add(aRecord)
+                    End If
+                   
                 End While
 
                 aDataReader.Close()
@@ -1075,7 +1084,7 @@ Namespace OnTrack.Database
             Dim aTablestore As iormDataStore
 
             Try
-               
+
 
                 If sqlcommand.TableIDs.Count > 1 Then
                     Call CoreMessageHandler(message:="SqlCommand cannot run against multiple datatables", arg1:=sqlcommand.ID, _
@@ -1103,7 +1112,7 @@ Namespace OnTrack.Database
                         Return theResults
                     End If
                 End If
-               
+
                 '***  Assign the values
                 '** initial values
                 For i = 0 To sqlcommand.Parameters.Count - 1
@@ -1144,19 +1153,34 @@ Namespace OnTrack.Database
                 Next
 
 
-                Dim dataRows() As DataRow = DirectCast(aTablestore, adonetTableStore).cacheTable.Select(wherestr)
+                Dim dataRows() As DataRow = DirectCast(aTablestore, adonetTableStore).CacheTable.Select(wherestr)
+                Dim aNewRecord As ormRecord ' free style do not set to a table
                 ' not found
                 If dataRows.GetLength(0) = 0 Then
                     Return theResults
                 Else
                     For Each row In dataRows
-                        Dim anewEnt = New ormRecord
-                        If DirectCast(aTablestore, adonetTableStore).InfuseRecord(anewEnt, row) Then
-                            theResults.Add(item:=anewEnt)
+                        ''' infuse a record
+                        ''' 
+                        If sqlcommand.TableIDs.Count = 1 And sqlcommand.AllFieldsAdded Then
+                            aNewRecord = New ormRecord(tableID:=sqlcommand.TableIDs.First, dbdriver:=Me)
+                        Else
+                            aNewRecord = New ormRecord() 'free flow record
+                        End If
+
+                        If aNewRecord.LoadFrom(row) Then
+                            theResults.Add(item:=aNewRecord)
                         Else
                             Call CoreMessageHandler(subname:="adonetDBDriver.RunSqlSelectCommand", message:="couldnot infuse a record", _
-                                                  arg1:=anewEnt, tablename:=atableid, break:=False)
+                                                  arg1:=aNewRecord, tablename:=atableid, break:=False)
                         End If
+
+                        'If DirectCast(aTablestore, adonetTableStore).InfuseRecord(aNewRecord, row, CreateNewrecord:=True) Then
+                        '    theResults.Add(item:=aNewRecord)
+                        'Else
+                        '    Call CoreMessageHandler(subname:="adonetDBDriver.RunSqlSelectCommand", message:="couldnot infuse a record", _
+                        '                          arg1:=aNewRecord, tablename:=atableid, break:=False)
+                        'End If
                     Next
                 End If
                 Return theResults
@@ -1196,105 +1220,102 @@ Namespace OnTrack.Database
                     Return False
                 End If
 
-                'DirectCast(_primaryConnection, adonetConnection).IsNativeInternalLocked = True
-                '** flush the messages
-                SyncLock DirectCast(_primaryConnection, adonetConnection).NativeInternalConnection
-
-                    '** build the command
-                    If _ErrorLogPersistCommand Is Nothing Then
-                        '* get the schema
-                        _ErrorLogPersistTableschema = Me.GetTableSchema(SessionLogMessage.ConstTableID)
-                        If _ErrorLogPersistTableschema Is Nothing OrElse Not _ErrorLogPersistTableschema.IsInitialized Then
-                            Return False
-                        End If
-
-                        '** we need just the insert
-                        _ErrorLogPersistCommand = DirectCast(_ErrorLogPersistTableschema, adonetTableSchema). _
-                            BuildCommand(_ErrorLogPersistTableschema.PrimaryKeyIndexName, _
-                                         adonetTableSchema.CommandType.InsertType, _
-                                         nativeconnection:=DirectCast(_primaryConnection, adonetConnection).NativeInternalConnection)
-                        '** take it on the internal 
-                        If _ErrorLogPersistCommand Is Nothing Then
-                            'DirectCast(_primaryConnection, adonetConnection).IsNativeInternalLocked = False
-                            Return False
-                        End If
+                '** build the command
+                If _ErrorLogPersistCommand Is Nothing Then
+                    '* get the schema
+                    _ErrorLogPersistTableschema = Me.GetTableSchema(SessionLogMessage.ConstTableID)
+                    If _ErrorLogPersistTableschema Is Nothing OrElse Not _ErrorLogPersistTableschema.IsInitialized Then
+                        Return False
                     End If
 
+                    '** we need just the insert
+                    _ErrorLogPersistCommand = DirectCast(_ErrorLogPersistTableschema, adonetTableSchema). _
+                        BuildCommand(_ErrorLogPersistTableschema.PrimaryKeyIndexName, _
+                                     adonetTableSchema.CommandType.InsertType, _
+                                     nativeconnection:=DirectCast(_primaryConnection, adonetConnection).NativeInternalConnection)
+                    '** take it on the internal 
+                    If _ErrorLogPersistCommand Is Nothing Then
+                        'DirectCast(_primaryConnection, adonetConnection).IsNativeInternalLocked = False
+                        Return False
+                    End If
+                End If
 
-                    If _ErrorLogPersistCommand.Connection.State = ConnectionState.Open Then
-                        PersistLog = False
-                        Dim anError As SessionLogMessage
-                        Do
-                            anError = log.Retain
-                            If anError IsNot Nothing AndAlso Not anError.Processed Then
-                                'get all fields -> update
-                                For Each fieldname As String In _ErrorLogPersistTableschema.Fieldnames
-                                    ' assign values
-                                    If fieldname <> "" Then
-                                        With _ErrorLogPersistCommand.Parameters.Item("@" & fieldname)
-                                            '** set the value of parameter
-                                            Select Case fieldname
-                                                Case SessionLogMessage.ConstFNTag
-                                                    If anError.Tag = "" Then
-                                                        .value = CurrentSession.Errorlog.Tag
-                                                    Else
-                                                        .Value = anError.Tag
-                                                    End If
-                                                Case SessionLogMessage.ConstFNno
-                                                    .value = anError.Entryno
-                                                Case SessionLogMessage.ConstFNmessage
-                                                    .value = anError.Message
-                                                Case SessionLogMessage.ConstFNtimestamp
-                                                    .value = anError.Timestamp
-                                                Case SessionLogMessage.ConstFNID
-                                                    .value = ""
-                                                Case SessionLogMessage.ConstFNsubname
-                                                    .value = anError.Subname
-                                                Case SessionLogMessage.ConstFNtype
-                                                    .value = anError.messagetype
-                                                Case SessionLogMessage.ConstFNtablename
-                                                    .value = anError.Tablename
-                                                Case SessionLogMessage.ConstFNStack
-                                                    .value = anError.StackTrace
-                                                Case SessionLogMessage.ConstFNColumn
-                                                    .value = anError.Columnname
-                                                Case SessionLogMessage.ConstFNarg
-                                                    .value = anError.Arguments
-                                                Case SessionLogMessage.ConstFNUpdatedOn, SessionLogMessage.ConstFNCreatedOn
-                                                    .value = Date.Now
-                                                Case SessionLogMessage.ConstFNIsDeleted
-                                                    .value = False
-                                                Case SessionLogMessage.ConstFNDeletedOn
-                                                    .value = ConstNullDate
-                                                Case SessionLogMessage.ConstFNUsername
-                                                    .value = anError.Username
-                                                Case SessionLogMessage.ConstFNObjectname
-                                                    .value = anError.Objectname
-                                                Case SessionLogMessage.ConstFNObjectentry
-                                                    .value = anError.ObjectEntry
-                                                Case Else
-                                                    .value = DBNull.Value
-                                            End Select
-
-                                            If .value Is Nothing Then
+                If _ErrorLogPersistCommand.Connection.State = ConnectionState.Open Then
+                    PersistLog = False
+                    Dim anError As SessionLogMessage
+                    Do
+                        anError = log.Retain
+                        If anError IsNot Nothing AndAlso Not anError.Processed Then
+                            'get all fields -> update
+                            For Each fieldname As String In _ErrorLogPersistTableschema.Fieldnames
+                                ' assign values
+                                If fieldname <> "" Then
+                                    With _ErrorLogPersistCommand.Parameters.Item("@" & fieldname)
+                                        '** set the value of parameter
+                                        Select Case fieldname
+                                            Case SessionLogMessage.ConstFNTag
+                                                If anError.Tag = "" Then
+                                                    .value = CurrentSession.Errorlog.Tag
+                                                Else
+                                                    .Value = anError.Tag
+                                                End If
+                                            Case SessionLogMessage.ConstFNno
+                                                .value = anError.Entryno
+                                            Case SessionLogMessage.ConstFNmessage
+                                                .value = anError.Message
+                                            Case SessionLogMessage.ConstFNtimestamp
+                                                .value = anError.Timestamp
+                                            Case SessionLogMessage.ConstFNID
+                                                .value = ""
+                                            Case SessionLogMessage.ConstFNsubname
+                                                .value = anError.Subname
+                                            Case SessionLogMessage.ConstFNtype
+                                                .value = anError.messagetype
+                                            Case SessionLogMessage.ConstFNtablename
+                                                .value = anError.Tablename
+                                            Case SessionLogMessage.ConstFNStack
+                                                .value = anError.StackTrace
+                                            Case SessionLogMessage.ConstFNColumn
+                                                .value = anError.Columnname
+                                            Case SessionLogMessage.ConstFNarg
+                                                .value = anError.Arguments
+                                            Case SessionLogMessage.ConstFNUpdatedOn, SessionLogMessage.ConstFNCreatedOn
+                                                .value = Date.Now
+                                            Case SessionLogMessage.ConstFNIsDeleted
+                                                .value = False
+                                            Case SessionLogMessage.ConstFNDeletedOn
+                                                .value = ConstNullDate
+                                            Case SessionLogMessage.ConstFNUsername
+                                                .value = anError.Username
+                                            Case SessionLogMessage.ConstFNObjectname
+                                                .value = anError.Objectname
+                                            Case SessionLogMessage.ConstFNObjectentry
+                                                .value = anError.ObjectEntry
+                                            Case Else
                                                 .value = DBNull.Value
-                                            End If
-                                        End With
-                                    End If
-                                Next
+                                        End Select
 
+                                        If .value Is Nothing Then
+                                            .value = DBNull.Value
+                                        End If
+                                    End With
+                                End If
+                            Next
+
+                            SyncLock _ErrorLogPersistCommand.Connection
                                 If _ErrorLogPersistCommand.ExecuteNonQuery() > 0 Then
                                     anError.Processed = True
                                     PersistLog = PersistLog And True
                                 End If
+                            End SyncLock
 
-                            End If
-                        Loop Until anError Is Nothing
+                        End If
+                    Loop Until anError Is Nothing
 
-                        'DirectCast(_primaryConnection, adonetConnection).IsNativeInternalLocked = False
-                        Return PersistLog
-                    End If
-                End SyncLock
+                    'DirectCast(_primaryConnection, adonetConnection).IsNativeInternalLocked = False
+                    Return PersistLog
+                End If
+
             Catch ex As Exception
                 Console.WriteLine(Date.Now.ToLocalTime & ": could not flush error log to database")
                 'DirectCast(_primaryConnection, adonetConnection).IsNativeInternalLocked = False
@@ -1617,7 +1638,7 @@ Namespace OnTrack.Database
 
             '*** check On Track and just the kernel
             If Not Me.DatabaseDriver.VerifyOnTrackDatabase(install:=False) Then
-                Call CoreMessageHandler(showmsgbox:=True, message:="OnTrack Database isnot setup - start session to install it", _
+                Call CoreMessageHandler(showmsgbox:=True, message:="OnTrack Database Verify failed - use 'create Schema' in Setting form to re-install it", _
                                      subname:="adonetConnection.Connect", noOtdbAvailable:=True, messagetype:=otCoreMessageType.InternalError)
                 Return False
             End If
@@ -2381,7 +2402,7 @@ Namespace OnTrack.Database
         Protected Friend _cacheViews As New Dictionary(Of String, DataView) ' Dictionary for Dataview per Index
         Protected Friend _cacheAdapter As Data.IDbDataAdapter
 
-       
+
 
         ''' <summary>
         ''' constructor
@@ -2484,7 +2505,7 @@ Namespace OnTrack.Database
 
 
         End Function
-       
+
         ''' <summary>
         ''' converts data to object data
         ''' </summary>
@@ -2621,7 +2642,7 @@ Namespace OnTrack.Database
                                                       arg1:=aValue, messagetype:=otCoreMessageType.InternalError, entryname:=fieldname, tablename:=Me.TableID)
                                 Return Nothing
                             End If
-                            
+
                         End If
 
                     Next j
@@ -2705,7 +2726,7 @@ Namespace OnTrack.Database
             Dim wherestr As String = ""
             Dim abostrophNecessary As Boolean
             Dim aCvtValue As Object
-
+            Dim aDataReader As IDataReader
 
             If Not IsArray(primaryKeyArray) Then
                 Call CoreMessageHandler(subname:="adonetTableStore.getRecordsByPrimaryKey", message:="Empty Key Array")
@@ -2806,27 +2827,42 @@ Namespace OnTrack.Database
                         Else
                             '** Factory a new clsOTDBRecord
                             '**
-                            Dim aNewEnt As New ormRecord
-                            If InfuseRecord(record:=aNewEnt, dataobject:=dataRows(0)) Then
-                                Return aNewEnt
+                            Dim aNewRecord As New ormRecord(tableID:=Me.TableID, dbdriver:=Me.Connection.DatabaseDriver, runtimeOnly:=False)
+                            If aNewRecord.LoadFrom(dataRows(0)) Then
+                                Return aNewRecord
                             Else
-
                                 Return Nothing
                             End If
+                            'If InfuseRecord(record:=aNewEnt, dataobject:=dataRows(0), CreateNewrecord:=True) Then
+                            '    Return aNewEnt
+                            'Else
+
+                            '    Return Nothing
+                            'End If
                         End If
                     Else
-                        Dim aDataReader As IDataReader = aSqlSelectCommand.ExecuteReader
+                        ''' run the datareader
+                        ''' 
+                        aDataReader = aSqlSelectCommand.ExecuteReader
                         If aDataReader.Read Then
                             '** Factory a new clsOTDBRecord
                             '**
-                            Dim aNewEnt As New ormRecord
-                            If InfuseRecord(aNewEnt, aDataReader) Then
+                            Dim aNewRecord As New ormRecord(tableID:=Me.TableID, dbdriver:=Me.Connection.DatabaseDriver, runtimeOnly:=False)
+                            If aNewRecord.LoadFrom(aDataReader) Then
                                 aDataReader.Close()
-                                Return aNewEnt
+                                Return aNewRecord
                             Else
                                 aDataReader.Close()
                                 Return Nothing
                             End If
+                            'Dim aNewEnt As New ormRecord
+                            'If InfuseRecord(aNewEnt, aDataReader, CreateNewrecord:=True) Then
+                            '    aDataReader.Close()
+                            '    Return aNewEnt
+                            'Else
+                            '    aDataReader.Close()
+                            '    Return Nothing
+                            'End If
                         Else
                             aDataReader.Close()
                             Return Nothing
@@ -2836,15 +2872,10 @@ Namespace OnTrack.Database
                     End If
 
 
-
-                    '*****
-                    '***** Error Handling
-                    '*****
-
                 Catch ex As Exception
                     Call CoreMessageHandler(showmsgbox:=silent, subname:="adonetTableStore.getRecordByPrimaryKey", _
                                           tablename:=Me.TableID, arg1:=primaryKeyArray, exception:=ex)
-
+                    If aDataReader IsNot Nothing Then aDataReader.Close()
                     Return Nothing
                 End Try
 
@@ -2864,8 +2895,9 @@ Namespace OnTrack.Database
             Dim abostrophNecessary As Boolean
             Dim aCvtValue As Object
             Dim wherestr As String = ""
-            Dim anewEnt As ormRecord
+            Dim aNewRecord As ormRecord
             Dim aCollection As New List(Of ormRecord)
+            Dim aDataReader As IDataReader
 
             ' check if schema is initialized
             If Not Me.TableSchema.IsInitialized Then
@@ -2969,11 +3001,11 @@ Namespace OnTrack.Database
                     Return New List(Of ormRecord)
                 End Try
 
-
-                '**** read
-
+                ''' read section
+                ''' 
                 Try
-                    '*** check on Property Cached
+                    ''' try to read on the cache table if we have it
+                    ''' 
                     If Me.HasProperty(ConstTPNCacheProperty) AndAlso Me.IsCacheInitialized Then
                         Dim dataRows() As DataRow
                         If _cacheViews.ContainsKey(key:=indexname) Then
@@ -2989,29 +3021,43 @@ Namespace OnTrack.Database
                             Return aCollection
                         Else
                             For Each row In dataRows
-                                anewEnt = New ormRecord
-                                If InfuseRecord(anewEnt, row) Then
-                                    aCollection.Add(Item:=anewEnt)
+                                aNewRecord = New ormRecord(tableID:=Me.TableID, dbdriver:=Me.Connection.DatabaseDriver, runtimeOnly:=False)
+                                If aNewRecord.LoadFrom(row) Then
+                                    aCollection.Add(item:=aNewRecord)
                                 Else
                                     Call CoreMessageHandler(subname:="adonetTableStore.getRecordsBySQL", message:="couldnot infuse a record", _
-                                                          arg1:=anewEnt, tablename:=Me.TableID, break:=False)
+                                                         arg1:=aNewRecord, tablename:=Me.TableID, break:=False)
                                 End If
+
+                                'If InfuseRecord(aNewRecord, row, CreateNewrecord:=True) Then
+                                '    aCollection.Add(item:=aNewRecord)
+                                'Else
+                                '    Call CoreMessageHandler(subname:="adonetTableStore.getRecordsBySQL", message:="couldnot infuse a record", _
+                                '                          arg1:=aNewRecord, tablename:=Me.TableID, break:=False)
+                                'End If
                             Next
                         End If
                     Else
-                        Dim aDataReader As IDataReader
-
+                        ''' read from the data reader
+                        ''' 
                         aDataReader = aSqlSelectCommand.ExecuteReader
 
                         Do While aDataReader.Read
-                            '** Factory a new clsOTDBRecord
-                            anewEnt = New ormRecord
-                            If InfuseRecord(anewEnt, aDataReader) Then
-                                aCollection.Add(Item:=anewEnt)
+                            aNewRecord = New ormRecord(tableID:=Me.TableID, dbdriver:=Me.Connection.DatabaseDriver, runtimeOnly:=False)
+                            If aNewRecord.LoadFrom(aDataReader) Then
+                                aCollection.Add(item:=aNewRecord)
                             Else
                                 Call CoreMessageHandler(subname:="adonetTableStore.getRecordsBySQL", message:="couldnot infuse a record", _
-                                                      arg1:=anewEnt, tablename:=Me.TableID, break:=False)
+                                                     arg1:=aNewRecord, tablename:=Me.TableID, break:=False)
                             End If
+                            ''** Factory a new clsOTDBRecord
+                            'aNewRecord = New ormRecord
+                            'If InfuseRecord(aNewRecord, aDataReader, CreateNewrecord:=True) Then
+                            '    aCollection.Add(item:=aNewRecord)
+                            'Else
+                            '    Call CoreMessageHandler(subname:="adonetTableStore.getRecordsBySQL", message:="couldnot infuse a record", _
+                            '                          arg1:=aNewRecord, tablename:=Me.TableID, break:=False)
+                            'End If
 
                         Loop
 
@@ -3024,6 +3070,7 @@ Namespace OnTrack.Database
                 Catch ex As Exception
                     Call CoreMessageHandler(showmsgbox:=silent, subname:="adonetTableStore.getRecordsByIndex", _
                                           tablename:=Me.TableID, arg1:=keyArray, exception:=ex)
+                    If adatareader IsNot Nothing Then aDataReader.Close()
 
                     Return New List(Of ormRecord)
                 End Try
@@ -3061,7 +3108,7 @@ Namespace OnTrack.Database
             Dim i As Integer
             Dim cmdstr As String
             Dim aCollection As New List(Of ormRecord)
-            Dim aNewEnt As ormRecord
+            Dim aNewRecord As ormRecord
             Dim fieldstr As String
 
             ' Connection
@@ -3105,7 +3152,7 @@ Namespace OnTrack.Database
 
                 i = 0
                 fieldstr = ""
-                For Each field As String In Me.TableSchema.fieldnames
+                For Each field As String In Me.TableSchema.Fieldnames
                     If i = 0 Then
                         fieldstr = Me.TableID & ".[" & field & "]"
                         i += 1
@@ -3136,13 +3183,20 @@ Namespace OnTrack.Database
                         Return aCollection
                     Else
                         For Each row In dataRows
-                            aNewEnt = New ormRecord
-                            If InfuseRecord(aNewEnt, row) Then
-                                aCollection.Add(Item:=aNewEnt)
+                            ''' infuse the records
+                            aNewRecord = New ormRecord(tableID:=Me.TableID, dbdriver:=Me.Connection.DatabaseDriver)
+                            If aNewRecord.LoadFrom(row) Then
+                                aCollection.Add(item:=aNewRecord)
                             Else
                                 Call CoreMessageHandler(subname:="adonetTableStore.getRecordsBySQL", message:="couldnot infuse a record", _
-                                                      arg1:=aNewEnt, tablename:=Me.TableID, break:=False)
+                                                      arg1:=aNewRecord, tablename:=Me.TableID, break:=False)
                             End If
+                            'If InfuseRecord(aNewRecord, row, CreateNewrecord:=True) Then
+                            '    aCollection.Add(item:=aNewRecord)
+                            'Else
+                            '    Call CoreMessageHandler(subname:="adonetTableStore.getRecordsBySQL", message:="couldnot infuse a record", _
+                            '                          arg1:=aNewRecord, tablename:=Me.TableID, break:=False)
+                            'End If
                         Next
                     End If
                 Else
@@ -3152,14 +3206,22 @@ Namespace OnTrack.Database
                         ' read
                         aDataReader = aSqlCommand.ExecuteReader
                         Do While aDataReader.Read
-                            '** Factory a new clsOTDBRecord
-                            aNewEnt = New ormRecord
-                            If InfuseRecord(aNewEnt, aDataReader) Then
-                                aCollection.Add(item:=aNewEnt)
+                            ''' infuse the records
+                            aNewRecord = New ormRecord(tableID:=Me.TableID, dbdriver:=Me.Connection.DatabaseDriver)
+                            If aNewRecord.LoadFrom(aDataReader) Then
+                                aCollection.Add(item:=aNewRecord)
                             Else
                                 Call CoreMessageHandler(subname:="adonetTableStore.getRecordsBySQL", message:="couldnot infuse a record", _
-                                                      arg1:=aNewEnt, tablename:=Me.TableID, break:=False)
+                                                      arg1:=aNewRecord, tablename:=Me.TableID, break:=False)
                             End If
+                            ''** Factory a new clsOTDBRecord
+                            'aNewRecord = New ormRecord
+                            'If InfuseRecord(aNewRecord, aDataReader, CreateNewrecord:=True) Then
+                            '    aCollection.Add(item:=aNewRecord)
+                            'Else
+                            '    Call CoreMessageHandler(subname:="adonetTableStore.getRecordsBySQL", message:="couldnot infuse a record", _
+                            '                          arg1:=aNewRecord, tablename:=Me.TableID, break:=False)
+                            'End If
 
                         Loop
 
@@ -3290,13 +3352,21 @@ Namespace OnTrack.Database
                             Return aCollection
                         Else
                             For Each row In dataRows
-                                Dim aNewEnt = New ormRecord
-                                If InfuseRecord(aNewEnt, row) Then
-                                    aCollection.Add(item:=aNewEnt)
+                                ''' infuse the records
+                                Dim aNewRecord As New ormRecord(tableID:=Me.TableID, dbdriver:=Me.Connection.DatabaseDriver)
+                                If aNewRecord.LoadFrom(row) Then
+                                    aCollection.Add(item:=aNewRecord)
                                 Else
                                     Call CoreMessageHandler(subname:="adonetTableStore.getRecordsBySQLCommand", message:="couldnot infuse a record", _
-                                                          arg1:=aNewEnt, tablename:=Me.TableID, break:=False)
+                                                          arg1:=aNewRecord, tablename:=Me.TableID, break:=False)
                                 End If
+                                'Dim aNewEnt = New ormRecord
+                                'If InfuseRecord(aNewEnt, row, CreateNewrecord:=True) Then
+                                '    aCollection.Add(item:=aNewEnt)
+                                'Else
+                                '    Call CoreMessageHandler(subname:="adonetTableStore.getRecordsBySQLCommand", message:="couldnot infuse a record", _
+                                '                          arg1:=aNewEnt, tablename:=Me.TableID, break:=False)
+                                'End If
                             Next
                         End If
 
@@ -3323,7 +3393,20 @@ Namespace OnTrack.Database
 
 
         End Function
+        ''' <summary>
+        ''' return a collection of records for a sqlcommand on a table
+        ''' </summary>
+        ''' <param name="sqlcommand"></param>
+        ''' <param name="parameters"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
 
+        Public Overrides Function GetRecordsBySqlCommand(ByRef sqlcommand As ormSqlSelectCommand, _
+                                                         Optional ByRef parametervalues As Dictionary(Of String, Object) = Nothing) As List(Of ormRecord) _
+                                                        Implements iormDataStore.GetRecordsBySqlCommand
+
+            Return Me.Connection.DatabaseDriver.RunSqlSelectCommand(sqlcommand:=sqlcommand, parametervalues:=parametervalues)
+        End Function
         ''' <summary>
         ''' infuse a Record with the Help of the Datareader Object
         ''' </summary>
@@ -3332,9 +3415,8 @@ Namespace OnTrack.Database
         ''' <param name="silent">no messages</param>
         ''' <returns>True if successfull and read</returns>
         ''' <remarks></remarks>
-        Public Overrides Function InfuseRecord(ByRef record As ormRecord, _
-        ByRef dataobject As Object, _
-        Optional ByVal silent As Boolean = False) As Boolean _
+        Public Overrides Function InfuseRecord(ByRef record As ormRecord, ByRef dataobject As Object, _
+        Optional ByVal silent As Boolean = False, Optional CreateNewrecord As Boolean = False) As Boolean _
         Implements iormDataStore.InfuseRecord
             Dim aDBColumn As adonetTableSchema.adoNetColumnDescription
             Dim cvtvalue, Value As Object
@@ -3372,7 +3454,8 @@ Namespace OnTrack.Database
 
                 '** Factory a new clsOTDBRecord
                 '**
-                record = New ormRecord(TableID)
+                ''' if record is not supplied take a bound record
+                If record Is Nothing OrElse CreateNewrecord Then record = New ormRecord(TableID, dbdriver:=Me.Connection.DatabaseDriver)
                 record.IsLoaded = True ' definitely loaded ! not created
 
                 For j = 1 To Me.TableSchema.NoFields
@@ -3416,7 +3499,7 @@ Namespace OnTrack.Database
                                 Call CoreMessageHandler(subname:="adonetTableStore.infuseRecord", message:="could not convert db value", arg1:=Value, _
                                                   columnname:=aDBColumn.ColumnName, tablename:=Me.TableID, messagetype:=otCoreMessageType.InternalError)
                             End If
-                           
+
                         End If
                     Else
                         Call CoreMessageHandler(subname:="adonetTableStore.infuseRecord", message:="DBColumn missing - Field not in DataReader", _
@@ -3571,7 +3654,7 @@ Namespace OnTrack.Database
                             End If
 
                         End If
-                        End If
+                    End If
                 Next j
                 ' Update the record
                 If changedRecord Then
@@ -3760,7 +3843,7 @@ Namespace OnTrack.Database
                         For j = 1 To Me.TableSchema.NoFields
                             ' get fields
                             fieldname = Me.TableSchema.Getfieldname(j)
-                           
+
 
                             If Not Me.TableSchema.HasprimaryKeyfieldname(fieldname) Then
                                 If fieldname <> ConstFNUpdatedOn And fieldname <> "" And fieldname <> ConstFNCreatedOn Then
@@ -3792,7 +3875,7 @@ Namespace OnTrack.Database
                                     CoreMessageHandler(message:="primary key parameter value could not be converted", arg1:=aValue, columnname:=fieldname, tablename:=Me.TableSchema.TableID, _
                                                      subname:="adonetTableStore.PersistDirect", messagetype:=otCoreMessageType.InternalWarning)
                                 End If
-                                
+
                             End If
 
                         Next j

@@ -92,7 +92,7 @@ Namespace OnTrack.Parts
             Dim posno As Long
 
             ' empty
-            If Not _IsLoaded And Not Me.IsCreated Then
+            If Not me.isloaded And Not Me.IsCreated Then
                 addPartID = False
                 Exit Function
             End If
@@ -127,7 +127,7 @@ Namespace OnTrack.Parts
             Dim m As Object
 
             ' empty
-            If Not _IsLoaded And Not Me.IsCreated Then
+            If Not me.isloaded And Not Me.IsCreated Then
                 addComponent = False
                 Exit Function
             End If
@@ -151,7 +151,7 @@ Namespace OnTrack.Parts
             Dim initialEntry As New clsOTDBBOMMember
             Dim m As Object
 
-            If Not Me.IsCreated And Not _IsLoaded Then
+            If Not Me.IsCreated And Not me.isloaded Then
                 delete = False
                 Exit Function
             End If
@@ -172,7 +172,7 @@ Namespace OnTrack.Parts
             End If
             s_cmids.Add(key:=0, value:=anEntry)
 
-            _IsCreated = True
+            'me.iscreated = True
             Me.IsDeleted = True
             Me.Unload()
 
@@ -182,7 +182,7 @@ Namespace OnTrack.Parts
         '****
         Public Function posno() As Object
 
-            If Not Me.IsCreated And Not _IsLoaded Then
+            If Not Me.IsCreated And Not me.isloaded Then
                 posno = Nothing
                 Exit Function
             End If
@@ -199,7 +199,7 @@ Namespace OnTrack.Parts
             Dim aCollection As New Collection
             Dim m As Object
 
-            If Not Me.IsCreated And Not _IsLoaded Then
+            If Not Me.IsCreated And Not me.isloaded Then
                 Members = Nothing
                 Exit Function
             End If
@@ -247,7 +247,7 @@ Namespace OnTrack.Parts
                 Exit Function
             Else
                 s_pnid = pnid
-                _IsLoaded = True
+                '
                 ' records read
                 For Each aRecord In aRecordCollection
                     posno = aRecord.GetValue("posno")
@@ -261,7 +261,7 @@ Namespace OnTrack.Parts
                     End If
                 Next aRecord
                 '
-                _IsLoaded = True
+                'me.isloaded = True
                 Inject = True
                 Exit Function
             End If
@@ -332,7 +332,7 @@ errorhandle:
             End If
             s_cmids.Add(key:=0, value:=anEntry)
 
-            _IsCreated = True
+            'me.iscreated = True
             create = Me.IsCreated
 
         End Function
@@ -418,7 +418,7 @@ errorhandle:
             _createdOn = CDate(aRecord.GetValue(ConstFNCreatedOn))
 
             infuse = True
-            _IsLoaded = True
+            'me.isloaded = True
             Exit Function
 
 errorhandle:
@@ -447,7 +447,7 @@ errorhandle:
                 Exit Function
             Else
                 Me.Record = aRecord
-                _IsLoaded = Me.infuse(Me.Record)
+                'me.isloaded = Me.infuse(Me.Record)
                 Inject = Me.IsLoaded
                 Exit Function
             End If
@@ -627,7 +627,7 @@ errorhandle:
             s_cmid = cmid
             s_qty = qty
 
-            _IsCreated = True
+            'me.iscreated = True
             create = Me.IsCreated
 
         End Function

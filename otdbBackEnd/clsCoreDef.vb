@@ -136,6 +136,8 @@ Namespace OnTrack.Database
     ''' <remarks></remarks>
     Public Interface iormDatabaseDriver
 
+        Function Convert2ObjectData(invalue As Object, ByRef outvalue As Object, sourceType As Long, Optional isnullable As Boolean? = Nothing, Optional defaultvalue As Object = Nothing, Optional ByRef abostrophNecessary As Boolean = False) As Boolean
+
         ''' <summary>
         ''' validates the User against the Database with a accessrequest
         ''' </summary>
@@ -466,6 +468,14 @@ Namespace OnTrack.Database
     ''' <remarks></remarks>
 
     Public Interface iormDataStore
+        ''' <summary>
+        ''' get the records by a sqlcommand
+        ''' </summary>
+        ''' <param name="sqlcommand"></param>
+        ''' <param name="parametervalues"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Function GetRecordsBySqlCommand(ByRef sqlcommand As ormSqlSelectCommand, Optional ByRef parametervalues As Dictionary(Of String, Object) = Nothing) As List(Of ormRecord)
 
 
         ''' <summary>
@@ -573,7 +583,7 @@ Namespace OnTrack.Database
         ''' <param name="silent"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Function InfuseRecord(ByRef newRecord As ormRecord, ByRef rowObject As Object, Optional ByVal silent As Boolean = False) As Boolean
+        Function InfuseRecord(ByRef newRecord As ormRecord, ByRef rowObject As Object, Optional ByVal silent As Boolean = False, Optional CreateNewRecord As Boolean = False) As Boolean
         '******** persist Record
         ''' <summary>
         ''' persists a clsotdbRecord to the data store
@@ -1093,13 +1103,17 @@ Namespace OnTrack.Database
     ''' <remarks></remarks>
     Public Interface iormQueriedEnumeration
 
+        Function GetObjectClassDescription() As ObjectClassDescription
+
         ReadOnly Property ID As String
 
         Property ObjectEntryNames As IEnumerable(Of String)
 
+        Property AreObjectsEnumerated As Object
+
         Function GetObjectEntry(name As String) As iormObjectEntry
 
-        Function getObjectEntries() As IList(Of iormObjectEntry)
+        Function GetObjectEntries() As IEnumerable(Of iormObjectEntry)
 
         Function Reset() As Boolean
 
@@ -1134,6 +1148,12 @@ Namespace OnTrack.Database
     ''' </summary>
     ''' <remarks></remarks>
     Public Interface iormPersistable
+
+        ReadOnly Property IsInfused As Boolean
+
+        ReadOnly Property ObjectClassDescription As OnTrack.ObjectClassDescription
+
+
 
         Function getValue(entryname As String, Optional ByRef fieldmembername As String = "") As Object
 
@@ -1179,13 +1199,13 @@ Namespace OnTrack.Database
 
         Function Feed(Optional record As ormRecord = Nothing) As Boolean
 
-        Function isalive(Optional throwError As Boolean = True, Optional subname As String = "") As Boolean
+        Function isAlive(Optional throwError As Boolean = True, Optional subname As String = "") As Boolean
 
-        Property ObjectClassDescription As ObjectClassDescription
+
 
         Function Create(ByRef record As ormRecord, Optional domainID As String = "", Optional checkUnique As Boolean = False, Optional runtimeOnly As Boolean = False) As Boolean
 
-        Property DatabaseDriver As iormDatabaseDriver
+        ReadOnly Property DatabaseDriver As iormDatabaseDriver
         ''' <summary>
         ''' Tablestore associated with this data object
         ''' </summary>
@@ -1206,7 +1226,7 @@ Namespace OnTrack.Database
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        ReadOnly Property TableID As String
+        ReadOnly Property primaryTableID As String
         ''' <summary>
         ''' True if data object is loaded from data store
         ''' </summary>
@@ -1255,7 +1275,7 @@ Namespace OnTrack.Database
         ''' <param name="pkArray"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Function Inject(ByRef pkArray() As Object, Optional domainID As String = "", Optional loadDeleted As Boolean = False) As Boolean
+        Function Inject(ByRef pkArray() As Object, Optional domainID As String = "", Optional dbdriver As iormDatabaseDriver = Nothing, Optional loadDeleted As Boolean = False) As Boolean
         ''' <summary>
         ''' create a persistable dataobject
         ''' </summary>
@@ -1390,6 +1410,13 @@ Namespace OnTrack
     ''' <remarks></remarks>
     Public Interface iormObjectEntry
         Inherits iormPersistable
+        ''' <summary>
+        ''' returns true if the Entry is mapped to a class member field
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        ReadOnly Property IsMapped As Boolean
 
         ''' <summary>
         ''' True if ObjectEntry has a defined lower value

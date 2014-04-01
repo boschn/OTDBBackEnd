@@ -28,9 +28,9 @@ Namespace OnTrack.UI
 
         Private _queriedenumeration As iormQueriedEnumeration
         Private _isInitialized As Boolean = False
-        Private _isLoaded As Boolean = False
+        Private _isloaded As Boolean = False
 
-        Private Const constQRYRowReference = "$$QRYRowReference"
+        Public Const constQRYRowReference = "$$QRYRowReference"
         ''' <summary>
         ''' constructor
         ''' </summary>
@@ -48,10 +48,10 @@ Namespace OnTrack.UI
         ''' <value>The is loaded.</value>
         Public Property IsLoaded() As Boolean
             Get
-                Return Me._isLoaded
+                Return _isloaded
             End Get
             Private Set(value As Boolean)
-                Me._isLoaded = Value
+                _isloaded = value
             End Set
         End Property
 
@@ -89,27 +89,84 @@ Namespace OnTrack.UI
             Try
                 ''' set up the columns
                 ''' 
-                Dim RowColumn As DataColumn
+                Dim RowColumn As DataColumn = New DataColumn
                 With RowColumn
                     .AllowDBNull = False
                     .ColumnName = constQRYRowReference
                     .DataType = GetType(Long)
                     .Unique = True
                 End With
-                Dim i As Integer = 2
+                Me.Columns.Add(RowColumn)
+                Dim i As Integer = 1
                 For Each aName In _queriedenumeration.ObjectEntryNames
-                    Dim aColumn As DataColumn
+                    Dim aColumn As New DataColumn
                     Dim anObjectEntry As iormObjectEntry = _queriedenumeration.GetObjectEntry(aName)
                     With aColumn
-                        .AllowDBNull = anObjectEntry.IsNullable
                         .ColumnName = anObjectEntry.Entryname
-                        .DefaultValue = anObjectEntry.DefaultValue
-                        .DataType = ot.DatatypeMapping(anObjectEntry.Datatype)
-                        .SetOrdinal(i)
-                        .MaxLength = anObjectEntry.Size
                         .Caption = anObjectEntry.Title
+                        If _queriedenumeration.AreObjectsEnumerated Then
+                            Dim aDescription = _queriedenumeration.GetObjectClassDescription
+                            Dim aFieldinfo As Reflection.FieldInfo = aDescription.GetEntryFieldInfos(entryname:=aName).First
+                            If aFieldinfo.FieldType.IsValueType OrElse aFieldinfo.FieldType.Equals(GetType(String)) Then
+                                If Nullable.GetUnderlyingType(aFieldinfo.FieldType) IsNot Nothing Then
+                                    .AllowDBNull = True
+                                    .DataType = Nullable.GetUnderlyingType(aFieldinfo.FieldType)
+                                ElseIf aFieldinfo.FieldType.Equals(GetType(String)) Then
+                                    ''' TO DO String is not nullable but might be nothing
+                                    ''' 
+                                    If anObjectEntry.IsNullable Then
+                                        .AllowDBNull = True
+                                    Else
+                                        .AllowDBNull = False
+                                        .DefaultValue = ""
+                                    End If
+                                ElseIf aFieldinfo.FieldType.Equals(GetType(Object)) Then
+                                    ''' TO DO String is not nullable but might be nothing
+                                    ''' 
+                                    If anObjectEntry.IsNullable Then
+                                        .AllowDBNull = True
+                                    Else
+                                        .AllowDBNull = False
+                                        .DefaultValue = ""
+                                    End If
+                                Else
+                                    .DataType = aFieldinfo.FieldType
+                                    .AllowDBNull = False
+                                End If
+                                If anObjectEntry.DefaultValue IsNot Nothing Then
+                                    If .DataType.IsEnum Then
+                                        .DefaultValue = CTypeDynamic([Enum].Parse(.DataType, anObjectEntry.DefaultValue), .DataType)
+                                    Else
+                                        ' .DefaultValue = CTypeDynamic(anObjectEntry.DefaultValue, .DataType)
+                                    End If
+                                End If
+
+                                ' ERROR
+                                'If .DataType.Equals(GetType(String)) Then .MaxLength = anObjectEntry.Size
+                                '
+                            Else
+                                .DataType = GetType(String)
+                                .DefaultValue = TryCast(anObjectEntry.DefaultValue, String)
+                            End If
+                        Else
+                            Dim aType = ot.DatatypeMapping(anObjectEntry.Datatype)
+                            If aType.IsValueType Then
+                                .DataType = aType
+                                .DefaultValue = anObjectEntry.DefaultValue
+                                If .DataType.Equals(GetType(String)) Then .MaxLength = anObjectEntry.Size
+                                .AllowDBNull = anObjectEntry.IsNullable
+                            Else
+                                .DataType = GetType(String)
+                                .DefaultValue = anObjectEntry.DefaultValue
+                            End If
+
+
+                        End If
+
+
                     End With
                     Me.Columns.Add(aColumn)
+                    aColumn.SetOrdinal(i)
                     i += 1
                 Next
 
@@ -120,7 +177,7 @@ Namespace OnTrack.UI
                 CoreMessageHandler(exception:=ex, subname:="ormModelTable.Initialize")
                 Return False
             End Try
-           
+
         End Function
 
         ''' <summary>
@@ -134,7 +191,7 @@ Namespace OnTrack.UI
             Try
                 ''' fill all the object entries in the corresponding columns
                 ''' 
-                For i As Long = 0 To _queriedenumeration.Count
+                For i As Long = 0 To _queriedenumeration.Count - 1
                     Dim anObject As iormPersistable = _queriedenumeration.GetObject(i)
 
                     Dim aRow As DataRow = Me.NewRow
@@ -143,21 +200,29 @@ Namespace OnTrack.UI
                     aRow.Item(Me.constQRYRowReference) = i
                     ''' set the fields in the datatable
                     ''' 
-                    Dim j As Integer = 2
+                    Dim j As Integer = 1
                     For Each aName In _queriedenumeration.ObjectEntryNames
-                        aRow.Item(j) = anObject.getValue(aName)
+                        Dim aValue = anObject.getValue(aName)
+                        If aValue Is Nothing Then aValue = DBNull.Value
+
+                        If (aValue.GetType.IsValueType OrElse aValue.GetType.Equals(GetType(String))) AndAlso Not aValue.GetType.IsArray Then
+                            aRow.Item(j) = CTypeDynamic(aValue, Me.Columns.Item(j).DataType)
+                        ElseIf Not DBNull.Value.Equals(aValue) Then
+                            aRow.Item(j) = Converter.Enumerable2String(aValue)
+                        End If
+
                         j += 1
                     Next
                     Me.Rows.Add(aRow)
                 Next
 
-                _isLoaded = True
+                Me.isloaded = True
                 Return True
             Catch ex As Exception
                 CoreMessageHandler(exception:=ex, subname:="ormModelTable.Load")
                 Return False
             End Try
-          
+
         End Function
     End Class
 End Namespace

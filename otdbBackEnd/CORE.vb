@@ -35,8 +35,8 @@ Namespace OnTrack
     Public Module ot
 
         ' max size
-        Public Const Const_MaxTextSize = 255
-        Public Const Const_MaxMemoSize = 16000
+        Public Const ConstDBDriverMaxTextSize = 255
+        Public Const constDBDriverMaxMemoSize = 16000
 
         'Depend TypeIDs
         ''' <summary>
@@ -1299,12 +1299,48 @@ Namespace OnTrack
         End Function
 
         ''' <summary>
+        ''' returns the Standard Default Values for a datatype of OnTrack Datatypes
+        ''' </summary>
+        ''' <param name="datatype"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function GetDefaultValue(datatype As otFieldDataType) As Object
+
+            Select Case datatype
+                Case otFieldDataType.Bool
+                    Return False
+                Case otFieldDataType.Date
+                    Return ConstNullDate
+                Case otFieldDataType.List
+                    ''' To do implement inner Type
+                    ''' or accept Object()
+                    Dim aValue As New List(Of String)
+                    Return aValue.ToArray
+                Case otFieldDataType.Long
+                    Return 0
+                Case otFieldDataType.Memo
+                    Return ""
+                Case otFieldDataType.Numeric
+                    Return 0
+                Case otFieldDataType.Text
+                    Return ""
+                Case otFieldDataType.Time
+                    Return ConstNullTime
+                Case otFieldDataType.Timestamp
+                    Return ConstNullDate
+                Case Else
+                    CoreMessageHandler(message:="datatype must be implemented", messagetype:=otCoreMessageType.InternalError, subname:="DefaultValue")
+                    Return Nothing
+            End Select
+
+        End Function
+        ''' <summary>
         ''' Mapping of otdb Datatypes to native .NET Datatypes
         ''' </summary>
         ''' <param name="datatype"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function DatatypeMapping(datatype As otFieldDataType) As System.Type
+        Public Function GetDatatypeMappingOf(datatype As otFieldDataType) As System.Type
 
             Select Case datatype
                 Case otFieldDataType.Date
@@ -1429,7 +1465,9 @@ Namespace OnTrack
                     .Username = username
                 End If
             End With
-            '** Add to Log
+
+            ''' Add to Log for flushing later
+            ''' 
             AddErrorToLog(aNewError)
 
 

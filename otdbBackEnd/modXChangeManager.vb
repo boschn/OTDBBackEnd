@@ -80,7 +80,7 @@ Namespace Ontrack
                 aNewConfig.AddObjectByName(anObjectName)
                 i = 1
                 '
-                For Each aFieldDef As AbstractEntryDefinition In anObjectDefinition.Entries
+                For Each aFieldDef As AbstractEntryDefinition In anObjectDefinition.GetEntries
                     If aFieldDef.XID <> "" Then
                         Call aNewConfig.AddAttributeByField(objectentry:=aFieldDef, ordinal:=New Ordinal(i), xcmd:=xcmd)
                         i = i + 1

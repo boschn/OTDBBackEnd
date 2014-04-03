@@ -136,6 +136,8 @@ Namespace OnTrack.Database
     ''' <remarks></remarks>
     Public Interface iormDatabaseDriver
 
+        Function RunSqlCommand(ByRef sqlcommand As ormSqlCommand, Optional ByRef parametervalues As Dictionary(Of String, Object) = Nothing, Optional nativeConnection As Object = Nothing) As Boolean
+
         Function Convert2ObjectData(invalue As Object, ByRef outvalue As Object, sourceType As Long, Optional isnullable As Boolean? = Nothing, Optional defaultvalue As Object = Nothing, Optional ByRef abostrophNecessary As Boolean = False) As Boolean
 
         ''' <summary>
@@ -1094,7 +1096,7 @@ Namespace OnTrack.Database
         ''' <param name="enryname"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Function Validate(enryname As String, value As Object) As otValidationResultType
+        Function Validate(enryname As String, ByVal value As Object) As otValidationResultType
 
     End Interface
     ''' <summary>
@@ -1102,6 +1104,12 @@ Namespace OnTrack.Database
     ''' </summary>
     ''' <remarks></remarks>
     Public Interface iormQueriedEnumeration
+
+        Function GetObjectDefinition() As ObjectDefinition
+
+        Function DeleteObject(no As ULong) As Boolean
+
+        Function AddObject(dataobject As iormPersistable, Optional ByRef no As ULong? = Nothing) As Boolean
 
         Function GetObjectClassDescription() As ObjectClassDescription
 
@@ -1113,7 +1121,7 @@ Namespace OnTrack.Database
 
         Function GetObjectEntry(name As String) As iormObjectEntry
 
-        Function GetObjectEntries() As IEnumerable(Of iormObjectEntry)
+        Function GetObjectEntries() As IOrderedEnumerable(Of iormObjectEntry)
 
         Function Reset() As Boolean
 
@@ -1123,9 +1131,9 @@ Namespace OnTrack.Database
 
         ReadOnly Property Count As ULong
 
-        Function getvalue(name As String, ByRef value As Object) As Boolean
+        Function GetValue(name As String, ByRef value As Object) As Boolean
 
-        Function setvalue(name As String, value As Object) As Boolean
+        Function SetValue(name As String, value As Object) As Boolean
 
     End Interface
     ''' <summary>
@@ -1153,11 +1161,15 @@ Namespace OnTrack.Database
 
         ReadOnly Property ObjectClassDescription As OnTrack.ObjectClassDescription
 
+        Property isChanged As Boolean
+
+        ReadOnly Property ChangeTimeStamp As Date
 
 
-        Function getValue(entryname As String, Optional ByRef fieldmembername As String = "") As Object
 
-        Function setvalue(entryname As String, value As Object) As Boolean
+        Function GetValue(entryname As String, Optional ByRef fieldmembername As String = "") As Object
+
+        Function SetValue(entryname As String, ByVal value As Object) As Boolean
 
         Function DetermineLiveStatus() As Boolean
 
@@ -1182,9 +1194,9 @@ Namespace OnTrack.Database
 
         ReadOnly Property GUID As Guid
 
-        ReadOnly Property HasDomainBehavior As Boolean
+        ReadOnly Property ObjectHasDomainBehavior As Boolean
 
-        ReadOnly Property hasDeletePerFlagBehavior As Boolean
+        ReadOnly Property ObjectHasDeletePerFlagBehavior As Boolean
 
 
         ''' <summary>
@@ -1203,7 +1215,7 @@ Namespace OnTrack.Database
 
 
 
-        Function Create(ByRef record As ormRecord, Optional domainID As String = "", Optional checkUnique As Boolean = False, Optional runtimeOnly As Boolean = False) As Boolean
+        Function Create(ByRef record As ormRecord, Optional domainID As String = "", Optional checkUnique As Boolean = True, Optional runtimeOnly As Boolean = False) As Boolean
 
         ReadOnly Property DatabaseDriver As iormDatabaseDriver
         ''' <summary>
@@ -1283,14 +1295,14 @@ Namespace OnTrack.Database
         ''' <param name="checkUnique"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Function Create(ByRef pkArray() As Object, Optional domainID As String = "", Optional checkUnique As Boolean = False, Optional runTimeonly As Boolean = False) As Boolean
+        Function Create(ByRef pkArray() As Object, Optional domainID As String = "", Optional checkUnique As Boolean = True, Optional runTimeonly As Boolean = False) As Boolean
 
         ''' <summary>
         ''' deletes a persistable object in the datastore
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Function Delete() As Boolean
+        Function Delete(Optional timestamp As DateTime = ConstNullDate) As Boolean
 
         ''' <summary>
         ''' Perists the object in the datastore
@@ -1333,6 +1345,8 @@ Namespace OnTrack.Database
         ''' <param name="e"></param>
         ''' <remarks></remarks>
         Event OnInfused(sender As Object, e As ormDataObjectEventArgs)
+
+        Event OnDefaultValuesNeeded(sender As Object, e As ormDataObjectEventArgs)
 
         ''' <summary>
         ''' Infuse the object with data from the record
@@ -1432,7 +1446,7 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Property LowerRangeValue() As Object
+        Property LowerRangeValue() As Long
 
         ''' <summary>
         ''' True if ObjectEntry has a defined upper value
@@ -1448,7 +1462,7 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Property UpperRangeValue() As Object
+        Property UpperRangeValue() As Long
 
         ''' <summary>
         ''' gets the list of possible values
@@ -1464,7 +1478,7 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Property PossibleValues() As List(Of String)
+        Property PossibleValues() As List(Of Object)
 
         ''' <summary>
         ''' Gets or sets the description.
@@ -1510,7 +1524,7 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Property SpareFieldTag() As Object
+        Property IsSpareField() As Boolean
 
         '''' <summary>
         '''' returns the field data type
@@ -1585,17 +1599,17 @@ Namespace OnTrack
 
         ReadOnly Property HasValidationProperties As Boolean
 
-        Property Validationproperties As String()
+        Property ValidationProperties As List(Of ObjectValidationProperty)
 
         ReadOnly Property HasValidateRegExpression As Boolean
 
         Property ValidateRegExpression As String
 
-        Property Validate As Boolean
+        Property IsValidating As Boolean
 
         ReadOnly Property HasRenderProperties As Boolean
 
-        Property RenderProperties As String()
+        Property RenderProperties As List(Of RenderProperty)
 
         ReadOnly Property HasRenderRegExpression As Boolean
 
@@ -1603,19 +1617,23 @@ Namespace OnTrack
 
         Property RenderRegExpPattern As String
 
-        Property Render As Boolean
+        Property IsRendering As Boolean
 
         Property Properties As List(Of ObjectEntryProperty)
 
-        Property Size As UShort
+        Property Size As Long?
 
         Property IsNullable As Boolean
 
         Property PrimaryKeyOrdinal As UShort
 
-        Property InnerDatatype As otFieldDataType
+        Property InnerDatatype As otFieldDataType?
 
         Property Ordinal As UShort
+
+        Property IsReadonly As Boolean
+
+        Property IsActive As Boolean
 
         Function SetByAttribute(attribute As ormObjectEntryAttribute) As Boolean
 

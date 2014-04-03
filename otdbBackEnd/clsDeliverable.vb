@@ -33,7 +33,7 @@ Namespace OnTrack.Deliverables
     ''' </summary>
     ''' <remarks></remarks>
     <ormObject(id:=CurrentTarget.ConstObjectID, description:="reference of the current target per workspace", _
-        modulename:=ConstModuleDeliverables, Version:=1, useCache:=True)> _
+        modulename:=ConstModuleDeliverables, Version:=1, useCache:=True, adddeletefieldbehavior:=True)> _
     Public Class CurrentTarget
         Inherits ormDataObject
         Implements iormInfusable
@@ -42,7 +42,7 @@ Namespace OnTrack.Deliverables
 
         Public Const ConstObjectID = "CurrentTarget"
         '** Schema Table
-        <ormSchemaTable(Version:=3, adddeletefieldbehavior:=True, addDomainBehavior:=True, addspareFields:=True)> Public Const ConstTableID = "tblCurrTargets"
+        <ormSchemaTable(Version:=3)> Public Const ConstTableID = "tblCurrTargets"
 
         '** PrimaryKey
         <ormObjectEntry(referenceObjectEntry:=Workspace.ConstObjectID & "." & Workspace.ConstFNID, primarykeyordinal:=1, _
@@ -61,13 +61,9 @@ Namespace OnTrack.Deliverables
           title:="is active", description:="is the target active", XID:="DT4")> Public Const ConstFNIsActive = "isactive"
 
         ' change FK Action since we have the workspace as FK (leads also to domians)
-        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, _
-            title:="Domain", description:="domain of the business Object", _
-            defaultvalue:=ConstGlobalDomain, _
-            useforeignkey:=otForeignKeyImplementation.NativeDatabase, _
-            foreignkeyProperties:={ForeignKeyProperty.OnDelete & "(" & ForeignKeyActionProperty.NOOP & ")", _
-                                   ForeignKeyProperty.OnUpdate & "(" & ForeignKeyActionProperty.NOOP & ")"})> _
-        Public Const ConstFNDomainID = Domain.ConstFNDomainID
+       <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, _
+             useforeignkey:=otForeignKeyImplementation.None)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
+
         '** mappings
         <ormEntryMapping(EntryName:=ConstFNWorkspace)> Private _workspace As String = ""
         <ormEntryMapping(EntryName:=ConstFNUid)> Private _uid As Long
@@ -440,7 +436,7 @@ Namespace OnTrack.Deliverables
     ''' <remarks></remarks>
 
     <ormObject(id:=OnTrack.Deliverables.Target.ConstObjectID, description:="target definition per workspace of a deliverable e.g. date to be delivered", _
-        modulename:=ConstModuleDeliverables, Version:=1, useCache:=True)> _
+        modulename:=ConstModuleDeliverables, Version:=1, useCache:=True, adddeletefieldbehavior:=True)> _
     Public Class Target
         Inherits ormDataObject
         Implements iotXChangeable
@@ -499,12 +495,8 @@ Namespace OnTrack.Deliverables
 
         ' change FK Action since we have the workspace as FK (leads also to domians)
         <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, _
-            title:="Domain", description:="domain of the business Object", _
-            defaultvalue:=ConstGlobalDomain, _
-            useforeignkey:=otForeignKeyImplementation.NativeDatabase, _
-            foreignkeyProperties:={ForeignKeyProperty.OnDelete & "(" & ForeignKeyActionProperty.NOOP & ")", _
-                                   ForeignKeyProperty.OnUpdate & "(" & ForeignKeyActionProperty.NOOP & ")"})> _
-        Public Const ConstFNDomainID = Domain.ConstFNDomainID
+            useforeignkey:=otForeignKeyImplementation.None)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
+
 
         '*** variables
         <ormEntryMapping(EntryName:=constFNUid)> Private _uid As Long
@@ -954,7 +946,7 @@ Namespace OnTrack.Deliverables
 
             '** workspaceID
             If IsMissing(workspaceID) Or workspaceID = "" Then
-                If (me.isloaded Or Me.IsCreated) AndAlso Me.workspaceID <> "" Then
+                If (Me.IsLoaded Or Me.IsCreated) AndAlso Me.workspaceID <> "" Then
                     workspaceID = Me.workspaceID
                 Else
                     workspaceID = CurrentSession.CurrentWorkspaceID
@@ -967,7 +959,7 @@ Namespace OnTrack.Deliverables
 
             '** if UID is not provided than do use this TargetObject
             If UID = 0 Then
-                If Not me.isloaded And Not Me.IsCreated Then
+                If Not Me.IsLoaded And Not Me.IsCreated Then
                     PublishNewTarget = False
                     Exit Function
                 End If
@@ -1231,7 +1223,7 @@ Namespace OnTrack.Deliverables
                 ' check on set the current target (move to duplicate)
                 ' if the target date is touched
                 aVAlue = CHANGECONFIG.GetMemberValue(ID:="DT6", mapping:=MAPPING)
-                aChangeMember = CHANGECONFIG.AttributeByID("DT6", objectname:=Me.primaryTableID)
+                aChangeMember = CHANGECONFIG.AttributeByID("DT6", objectname:=Me.PrimaryTableID)
                 If Not IsNull(aVAlue) AndAlso Not aChangeMember Is Nothing AndAlso _
                 (aChangeMember.XChangeCmd = otXChangeCommandType.Update OrElse _
                 aChangeMember.XChangeCmd = otXChangeCommandType.UpdateCreate OrElse _
@@ -1417,7 +1409,7 @@ Namespace OnTrack.Deliverables
             End If
 
             ' generell tests
-            anObject = CHANGECONFIG.ObjectByName(Me.primaryTableID)
+            anObject = CHANGECONFIG.ObjectByName(Me.PrimaryTableID)
             runXPreCheckOLD = CHANGECONFIG.runDefaultXPreCheck(anObject:=anObject, _
                                                             aMapping:=MAPPING, MSGLOG:=MSGLOG)
 
@@ -1437,13 +1429,13 @@ Namespace OnTrack.Deliverables
 
             If pkarray.Length = 0 OrElse pkarray(0) Is Nothing OrElse pkarray(0) = 0 Then
                 Call CoreMessageHandler(message:="Deliverable UID cannot be 0 or Nothing or primary key array not set for clone - must be set", arg1:=pkarray, _
-                                        subname:="clsOTDBDeliverableTarget.Clone", messagetype:=otCoreMessageType.InternalError, tablename:=primaryTableID)
+                                        subname:="clsOTDBDeliverableTarget.Clone", messagetype:=otCoreMessageType.InternalError, tablename:=PrimaryTableID)
                 Return Nothing
             End If
             If pkarray.Length = 1 OrElse pkarray(1) Is Nothing OrElse pkarray(0) = 0 Then
                 If Not Me.TableStore.CreateUniquePkValue(pkarray) Then
                     Call CoreMessageHandler(message:="failed to create an unique primary key value", arg1:=pkarray, _
-                                            subname:="clsOTDBDeliverableTarget.Clone", messagetype:=otCoreMessageType.InternalError, tablename:=primaryTableID)
+                                            subname:="clsOTDBDeliverableTarget.Clone", messagetype:=otCoreMessageType.InternalError, tablename:=PrimaryTableID)
                     Return Nothing
                 End If
             End If
@@ -1464,17 +1456,14 @@ Namespace OnTrack.Deliverables
         End Function
     End Class
 
-    '************************************************************************************
-    '***** CLASS Track is the object for a OTDBRecord (which is the data store)
-    '*****
-    '*****
+   
     ''' <summary>
     ''' deliverable track class
     ''' </summary>
     ''' <remarks></remarks>
 
     <ormObject(id:=Track.ConstObjectID, description:="tracking status of a deliverable per target and schedule", _
-        modulename:=ConstModuleDeliverables, Version:=1, useCache:=True)> Public Class Track
+        modulename:=ConstModuleDeliverables, Version:=1, useCache:=True, adddeletefieldbehavior:=True)> Public Class Track
         Inherits ormDataObject
         Implements iormPersistable
         Implements iormInfusable
@@ -1483,7 +1472,7 @@ Namespace OnTrack.Deliverables
 
         Public Const ConstObjectID = "Track"
         '** Table
-        <ormSchemaTable(version:=2, addDomainBehavior:=True, addsparefields:=True)> Public Const ConstTableID = "tblDeliverableTracks"
+        <ormSchemaTable(version:=2)> Public Const ConstTableID = "tblDeliverableTracks"
         '** Index
         <ormSchemaIndex(columnname1:=ConstFNWorkspace, columnname2:=constFNDeliverableUid, columnname3:=constFNScheduleUid, columnname4:=constFNScheduleUpdc, columnname5:=constFNTargetUpdc)> _
         Public Const constIndWSpace = "indWorkspace"
@@ -1506,6 +1495,10 @@ Namespace OnTrack.Deliverables
         <ormObjectEntry(referenceobjectentry:=Target.ConstObjectID & "." & Target.constFNUpdc, primarykeyordinal:=4, _
            XID:="DTR5", aliases:={"DT2"})> Public Const constFNTargetUpdc = "tupdc"
 
+        ''' <summary>
+        ''' foreign key
+        ''' </summary>
+        ''' <remarks></remarks>
         <ormSchemaForeignKey(useforeignkey:=otForeignKeyImplementation.NativeDatabase, _
             entrynames:={constFNDeliverableUid, constFNTargetUpdc}, _
             foreignkeyreferences:={Target.ConstObjectID & "." & Target.constFNUid, _
@@ -1579,12 +1572,7 @@ Namespace OnTrack.Deliverables
 
         ' change FK Action since we have the workspace as FK (leads also to domians)
         <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, _
-            title:="Domain", description:="domain of the business Object", _
-            defaultvalue:=ConstGlobalDomain, _
-            useforeignkey:=otForeignKeyImplementation.NativeDatabase, _
-            foreignkeyProperties:={ForeignKeyProperty.OnDelete & "(" & ForeignKeyActionProperty.NOOP & ")", _
-                                   ForeignKeyProperty.OnUpdate & "(" & ForeignKeyActionProperty.NOOP & ")"})> _
-        Public Const ConstFNDomainID = Domain.ConstFNDomainID
+            useforeignkey:=otForeignKeyImplementation.None)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
         '*** MAPPING
         <ormEntryMapping(EntryName:=constFNDeliverableUid)> Private _deliverableUID As Long
@@ -2713,7 +2701,7 @@ Namespace OnTrack.Deliverables
             End If
 
             ' load or create
-            If Not Me.IsCreated And Not me.isloaded Then
+            If Not Me.IsCreated And Not Me.IsLoaded Then
                 If Not Me.Create(deliverableUID:=dlvUID, scheduleUID:=sUID, scheduleUPDC:=sUPDC, targetUPDC:=tUPDC) Then
                     Call Me.Inject(deliverableUID:=dlvUID, scheduleUID:=sUID, scheduleUPDC:=sUPDC, targetUPDC:=tUPDC)
                 End If
@@ -2854,7 +2842,7 @@ Namespace OnTrack.Deliverables
             End If
 
             ' load or create
-            If Not Me.IsCreated And Not me.isloaded Then
+            If Not Me.IsCreated And Not Me.IsLoaded Then
                 If Not Me.Create(deliverableUID:=dlvUID, scheduleUID:=sUID, scheduleUPDC:=sUPDC, targetUPDC:=tUPDC) Then
                     Call Me.Inject(deliverableUID:=dlvUID, scheduleUID:=sUID, scheduleUPDC:=sUPDC, targetUPDC:=tUPDC)
                 End If
@@ -3033,7 +3021,7 @@ Namespace OnTrack.Deliverables
             End If
 
             ' load or create
-            If Not Me.IsCreated And Not me.isloaded Then
+            If Not Me.IsCreated And Not Me.IsLoaded Then
                 If Not Me.Inject(deliverableUID:=dlvUID, scheduleUID:=sUID, scheduleUPDC:=sUPDC, targetUPDC:=tUPDC) Then
                     Call Me.Create(deliverableUID:=dlvUID, scheduleUID:=sUID, scheduleUPDC:=sUPDC, targetUPDC:=tUPDC)
                 End If
@@ -3071,7 +3059,7 @@ Namespace OnTrack.Deliverables
         ''' <remarks></remarks>
         Private Function SetTarget() As Boolean
             Dim aTarget As New Target
-            If Not me.isloaded And Not Me.IsCreated Then
+            If Not Me.IsLoaded And Not Me.IsCreated Then
                 SetTarget = False
                 Exit Function
             End If
@@ -3102,7 +3090,7 @@ Namespace OnTrack.Deliverables
         ''' <remarks></remarks>
         Private Function SetSchedule() As Boolean
             Dim aSchedule As New Schedule
-            If Not me.isloaded And Not Me.IsCreated Then
+            If Not Me.IsLoaded And Not Me.IsCreated Then
                 SetSchedule = False
                 Exit Function
             End If
@@ -3137,7 +3125,7 @@ Namespace OnTrack.Deliverables
             Dim actual As String
             Dim gap As Long
 
-            If Not me.isloaded And Not Me.IsCreated Then
+            If Not Me.IsLoaded And Not Me.IsCreated Then
                 CheckOnGap = False
                 Exit Function
             End If
@@ -3210,7 +3198,7 @@ Namespace OnTrack.Deliverables
             Dim aCE As New CalendarEntry
             Dim gap As Long
 
-            If Not me.isloaded And Not Me.IsCreated Then
+            If Not Me.IsLoaded And Not Me.IsCreated Then
                 CheckOnBaselineGap = False
                 Exit Function
             End If
@@ -3246,7 +3234,7 @@ Namespace OnTrack.Deliverables
     ''' </summary>
     ''' <remarks></remarks>
     <ormObject(id:=DeliverableType.ConstObjectID, description:="type definition of a deliverable. Defines default setting and some general logic.", _
-        modulename:=ConstModuleDeliverables, Version:=1, useCache:=True)> Public Class DeliverableType
+        modulename:=ConstModuleDeliverables, Version:=1, useCache:=True, adddeletefieldbehavior:=True, addDomainBehavior:=True)> Public Class DeliverableType
         Inherits ormDataObject
         Implements iormInfusable
         Implements iormPersistable
@@ -3254,42 +3242,48 @@ Namespace OnTrack.Deliverables
 
         Public Const ConstObjectID = "DeliverableType"
         '** Table
-        <ormSchemaTable(version:=2, adddeletefieldbehavior:=True, addDomainBehavior:=True, addsparefields:=True)> _
-        Public Const ConstTableID = "tblDefDeliverableTypes"
+        <ormSchemaTable(version:=2, usecache:=True)> Public Const ConstTableID = "tblDefDeliverableTypes"
 
         '** indexes
         <ormSchemaIndex(columnName1:=ConstFNDomainID, columnname2:=constFNTypeID, columnname3:=ConstFNIsDeleted)> Public Const constIndexDomain = "indDomains"
 
-        '*** Fields
+        ''' <summary>
+        ''' keys
+        ''' </summary>
+        ''' <remarks></remarks>
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, primarykeyordinal:=1, defaultValue:="", _
            title:="Type", description:="type of the deliverable", XID:="DLVT1")> Public Const constFNTypeID = "id"
+        ' switch FK too NOOP since we have a dependency to deliverables
+        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=2, _
+            useforeignkey:=otForeignKeyImplementation.ORM, _
+            foreignkeyProperties:={ForeignKeyProperty.OnDelete & "(" & ForeignKeyActionProperty.NOOP & ")", _
+                                    ForeignKeyProperty.OnUpdate & "(" & ForeignKeyActionProperty.NOOP & ")"})> _
+        Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
-        <ormObjectEntry(referenceobjectentry:=ScheduleDefinition.ConstObjectID & "." & ScheduleDefinition.ConstFNType, defaultValue:="", _
-            title:="Schedule Type", description:="default schedule type of the deliverable", XID:="DLVT21")> _
-        Public Const constFNDefScheduleType = "defscheduletype"
+        ''' <summary>
+        ''' Fields
+        ''' </summary>
+        ''' <remarks></remarks>
+        <ormObjectEntry(referenceobjectentry:=ScheduleDefinition.ConstObjectID & "." & ScheduleDefinition.ConstFNType, isnullable:=True, _
+            title:="Schedule Type", description:="default schedule type of the deliverable", XID:="DLVT21")> Public Const constFNDefScheduleType = "defscheduletype"
 
-        <ormObjectEntry(referenceobjectentry:=OrgUnit.ConstObjectID & "." & OrgUnit.ConstFNID, defaultValue:="", _
-            title:="Organization Unit", description:="default organization unit responsible of the deliverable", XID:="DLVT22")> _
-        Public Const constFNDefRespOU = "defrespOU"
+        <ormObjectEntry(referenceobjectentry:=OrgUnit.ConstObjectID & "." & OrgUnit.ConstFNID, isnullable:=True, _
+            title:="Organization Unit", description:="default organization unit responsible of the deliverable", XID:="DLVT22")> Public Const constFNDefRespOU = "defrespOU"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, defaultValue:="", _
-           title:="Function", description:="default function type of the deliverable", XID:="DLVT23")> _
-        Public Const constFNDefFunction = "deffunction"
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, defaultValue:="", isnullable:=True, _
+           title:="Function", description:="default function type of the deliverable", XID:="DLVT23")> Public Const constFNDefFunction = "deffunction"
 
-        <ormObjectEntry(referenceobjectentry:=OrgUnit.ConstObjectID & "." & OrgUnit.ConstFNID, defaultValue:="", _
-          title:="Function", description:="default target responsible organization Unit", XID:="DLVT24")> _
-        Public Const constFNTargetOU = "deftargetOu"
+        <ormObjectEntry(referenceobjectentry:=OrgUnit.ConstObjectID & "." & OrgUnit.ConstFNID, isnullable:=True, _
+          title:="Function", description:="default target responsible organization Unit", XID:="DLVT24")> Public Const constFNTargetOU = "deftargetOu"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Bool, size:=50, defaultValue:="0", _
-          title:="Target Necessary", description:="has mandatory target data", XID:="DLVT25")> _
-        Public Const constFNhastarget = "hastargetdata"
+        <ormObjectEntry(typeid:=otFieldDataType.Bool, defaultValue:=False, _
+          title:="Target Necessary", description:="has mandatory target data", XID:="DLVT25")> Public Const constFNhastarget = "hastargetdata"
 
 
-        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=255, defaultValue:="", _
-         title:="Description", description:="description of the deliverable type", XID:="DLVT3")> _
-        Public Const constFNDescription = "desc"
+        <ormObjectEntry(typeid:=otFieldDataType.Text, isnullable:=True, _
+         title:="Description", description:="description of the deliverable type", XID:="DLVT3")> Public Const constFNDescription = "desc"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Memo, defaultValue:="", _
+        <ormObjectEntry(typeid:=otFieldDataType.Memo, isnullable:=True, _
         title:="comment", description:="comments of the deliverable", XID:="DLVT10")> Public Const constFNComment = "cmt"
 
         '*** Mapping
@@ -3535,8 +3529,8 @@ Namespace OnTrack.Deliverables
     ''' </summary>
     ''' <remarks></remarks>
 
-    <ormObject(id:=Deliverable.ConstObjectID, description:="arbitrary object for tracking, scheduling, change and configuration", _
-        modulename:=ConstModuleDeliverables, useCache:=True, Version:=1)> Public Class Deliverable
+    <ormObject(id:=Deliverable.ConstObjectID, description:="arbitrary object for tracking, scheduling, change and configuration mgmt.", _
+        modulename:=ConstModuleDeliverables, useCache:=True, adddeletefieldbehavior:=True, addDomainBehavior:=False, Version:=1)> Public Class Deliverable
         Inherits ormDataObject
         Implements iormInfusable
         Implements iormPersistable
@@ -3544,8 +3538,7 @@ Namespace OnTrack.Deliverables
 
         Public Const ConstObjectID = "Deliverable"
         '** Table
-        <ormSchemaTable(version:=2, adddeletefieldbehavior:=True, addDomainBehavior:=False, addsparefields:=True)> _
-        Public Const ConstTableID = "tblDeliverables"
+        <ormSchemaTable(version:=2, usecache:=True)> Public Const ConstTableID = "tblDeliverables"
 
         '** indexes
         <ormSchemaIndex(columnName1:=ConstFNDomainID, columnname2:=constFNUid, columnname3:=ConstFNIsDeleted)> Public Const constIndexDomain = "indDomains"
@@ -3576,18 +3569,23 @@ Namespace OnTrack.Deliverables
 
         ' change FK Action since we have the workspace as FK (leads also to domians)
         <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, _
-            title:="Domain", description:="domain of the business Object", _
-            defaultvalue:=ConstGlobalDomain, _
-            useforeignkey:=otForeignKeyImplementation.NativeDatabase, _
-            foreignkeyProperties:={ForeignKeyProperty.OnDelete & "(" & ForeignKeyActionProperty.NOOP & ")", _
-                                   ForeignKeyProperty.OnUpdate & "(" & ForeignKeyActionProperty.NOOP & ")"})> _
-        Public Const ConstFNDomainID = Domain.ConstFNDomainID
-        '
-        <ormObjectEntry(referenceobjectentry:=Workspace.ConstObjectID & "." & Workspace.ConstFNID, _
-            Description:="workspaceID ID of the deliverable", defaultvalue:="@", _
+            isnullable:=True, _
+            dbdefaultvalue:=ConstGlobalDomain, _
             useforeignkey:=otForeignKeyImplementation.ORM, _
             foreignkeyProperties:={ForeignKeyProperty.OnDelete & "(" & ForeignKeyActionProperty.SetDefault & ")", _
-                                   ForeignKeyProperty.OnUpdate & "(" & ForeignKeyActionProperty.SetDefault & ")"})> Public Const ConstFNWorkspace = Workspace.ConstFNID
+                                   ForeignKeyProperty.OnUpdate & "(" & ForeignKeyActionProperty.Cascade & ")"})> _
+        Public Const ConstFNDomain = "DOMAIN" '' different name since we donot want to get it deactivated due to missing domain behavior
+
+        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, _
+            description:="not used and should be not active", _
+            useforeignkey:=otForeignKeyImplementation.None)> _
+        Public Const ConstFNDomainID = Domain.ConstFNDomainID  '' const not overidable
+        '
+        <ormObjectEntry(referenceobjectentry:=Workspace.ConstObjectID & "." & Workspace.ConstFNID, _
+            Description:="workspaceID ID of the deliverable", dbdefaultvalue:="@", isnullable:=True, _
+            useforeignkey:=otForeignKeyImplementation.ORM, _
+            foreignkeyProperties:={ForeignKeyProperty.OnDelete & "(" & ForeignKeyActionProperty.SetDefault & ")", _
+                                   ForeignKeyProperty.OnUpdate & "(" & ForeignKeyActionProperty.Cascade & ")"})> Public Const ConstFNWorkspace = Workspace.ConstFNID
 
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, defaultValue:="", _
             title:="Revision", description:="revision of the deliverable", XID:="DLV6")> Public Const constFNRevision = "drev"
@@ -4713,7 +4711,7 @@ Namespace OnTrack.Deliverables
         ''' <remarks></remarks>
         Public Function GetPart() As Part
             Dim pkarray() As Object = {Me.PartID}
-            If me.isloaded Then
+            If Me.IsLoaded Then
                 Return Part.Retrieve(Of Part)(pkarray)
             Else
                 Return Nothing
@@ -4823,7 +4821,7 @@ Namespace OnTrack.Deliverables
             End If
 
             '*
-            If me.isloaded Or Me.IsCreated Then
+            If Me.IsLoaded Or Me.IsCreated Then
                 ' check if in workspaceID any data -> fall back to default (should be base)
                 If aCurrTarget.Inject(Me.Uid, workspaceID:=aWorkspace) Then
                     GetCurrTarget = aCurrTarget
@@ -4871,7 +4869,7 @@ Namespace OnTrack.Deliverables
             If workspaceID = "" Then workspaceID = CurrentSession.CurrentWorkspaceID
 
             '*
-            If me.isloaded Or Me.IsCreated Then
+            If Me.IsLoaded Or Me.IsCreated Then
                 ' get
                 Dim aCurrSCHEDULE As CurrentSchedule = Me.GetCurrSchedule(workspaceID:=workspaceID)
                 ' load
@@ -4898,7 +4896,7 @@ Namespace OnTrack.Deliverables
             End If
 
             '*
-            If me.isloaded Or Me.IsCreated Then
+            If Me.IsLoaded Or Me.IsCreated Then
                 ' get
                 aCurrTarget = Me.GetCurrTarget(workspaceID:=workspaceID)
                 If aCurrTarget.IsLoaded Then
@@ -5118,7 +5116,7 @@ Namespace OnTrack.Deliverables
             Dim fieldname As String
 
 
-            If Not me.isloaded Then
+            If Not Me.IsLoaded Then
                 SetCartypes = False
                 Exit Function
             End If
@@ -5358,7 +5356,7 @@ Namespace OnTrack.Deliverables
 
             '****
             '****
-            If Not me.isloaded And Not Me.IsCreated Then
+            If Not Me.IsLoaded And Not Me.IsCreated Then
                 AddRevision = Nothing
                 Exit Function
             End If
@@ -5508,7 +5506,7 @@ Namespace OnTrack.Deliverables
             If pkArray(0) Is Nothing OrElse pkArray(0) = 0 Then
                 If Not Me.GetNewUID(pkArray(0), domainID:=Me.DomainID) Then
                     Call CoreMessageHandler(message:=" couldnot create unique primary key values - couldnot clone", arg1:=pkArray, _
-                                            tablename:=primaryTableID, entryname:="uid", messagetype:=otCoreMessageType.InternalError)
+                                            tablename:=PrimaryTableID, entryname:="uid", messagetype:=otCoreMessageType.InternalError)
                     Return Nothing
                 End If
             End If

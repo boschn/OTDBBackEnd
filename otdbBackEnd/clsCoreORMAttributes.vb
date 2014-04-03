@@ -1676,6 +1676,8 @@ Namespace OnTrack.Database
         Private _Title As String = Nothing
         Private _EntryType As Nullable(Of otObjectEntryDefinitiontype) = otObjectEntryDefinitiontype.Column
 
+        Private _isReadonly As Nullable(Of Boolean)
+        Private _isActive As Nullable(Of Boolean)
         Private _Parameter As String = Nothing
         Private _KeyOrdinal As Nullable(Of UShort)
         Private _DefaultValue As Object = Nothing
@@ -1691,15 +1693,15 @@ Namespace OnTrack.Database
         Private _properties As ObjectEntryProperty()
 
         Private _validate As Nullable(Of Boolean)
-        Private _LowerRange As String = Nothing
-        Private _upperRange As String = Nothing
-        Private _Values As String()
+        Private _LowerRange As Nullable(Of Long) = Nothing
+        Private _upperRange As Nullable(Of Long) = Nothing
+        Private _Values As Object()
         Private _lookupCondition As String = Nothing
-        Private _ValidationProperties As String()
+        Private _ValidationProperties As ObjectValidationProperty()
         Private _validateRegExp As String = Nothing
 
         Private _render As Nullable(Of Boolean)
-        Private _RenderProperties As String()
+        Private _RenderProperties As RenderProperty()
         Private _RenderRegExpMatch As String
         Private _RenderRegExpPattern As String
         ''' <summary>
@@ -1811,17 +1813,75 @@ Namespace OnTrack.Database
         ''' Gets or sets the render properties.
         ''' </summary>
         ''' <value>The render properties.</value>
-        Public Property RenderProperties() As String()
+        '''  ''' <summary>
+        ''' Gets or sets the object entry properties.
+        ''' </summary>
+        ''' <value>The render properties.</value>
+        Public Property RenderPropertyStrings() As String()
+            Get
+                Dim aList As New List(Of String)
+                For Each aP In _RenderProperties
+                    aList.Add(aP.ToString)
+                Next
+                Return aList.ToArray
+            End Get
+            Set(value As String())
+                Try
+                    Dim aList As New List(Of RenderProperty)
+                    For Each aValue In value
+                        aList.Add(New RenderProperty(aValue))
+                    Next
+                    Me._RenderProperties = aList.ToArray
+                Catch ex As Exception
+                    CoreMessageHandler(exception:=ex, subname:="ormObjectEntryAttribute.RenderPropertyStrings")
+                End Try
+            End Set
+        End Property
+        Public Property RenderProperties() As RenderProperty()
             Get
                 Return Me._RenderProperties
             End Get
-            Set
+            Set(value As RenderProperty())
                 Me._RenderProperties = Value
             End Set
         End Property
         Public ReadOnly Property HasValueRenderProperties As Boolean
             Get
                 Return _RenderProperties IsNot Nothing AndAlso _RenderProperties.Count > 0
+            End Get
+        End Property
+        ''' <summary>
+        ''' Gets or sets the isActive flag
+        ''' </summary>
+        ''' <value>The render.</value>
+        Public Property IsActive As Boolean
+            Get
+                Return Me._isActive
+            End Get
+            Set(value As Boolean)
+                Me._isActive = value
+            End Set
+        End Property
+        Public ReadOnly Property HasValueIsActive As Boolean
+            Get
+                Return _isActive.HasValue
+            End Get
+        End Property
+        ''' <summary>
+        ''' Gets or sets the readonly flag
+        ''' </summary>
+        ''' <value>The render.</value>
+        Public Property [IsReadOnly] As Boolean
+            Get
+                Return Me._isReadonly
+            End Get
+            Set(value As Boolean)
+                Me._isReadonly = value
+            End Set
+        End Property
+        Public ReadOnly Property HasValueIsReadonly As Boolean
+            Get
+                Return _isReadonly.HasValue
             End Get
         End Property
         ''' <summary>
@@ -1862,12 +1922,33 @@ Namespace OnTrack.Database
         ''' Gets or sets the validation properties.
         ''' </summary>
         ''' <value>The validation properties.</value>
-        Public Property ValidationProperties() As String()
+        '''  
+        Public Property ValidationPropertyStrings() As String()
+            Get
+                Dim aList As New List(Of String)
+                For Each aP In _ValidationProperties
+                    aList.Add(aP.ToString)
+                Next
+                Return aList.ToArray
+            End Get
+            Set(value As String())
+                Try
+                    Dim aList As New List(Of ObjectValidationProperty)
+                    For Each aValue In value
+                        aList.Add(New ObjectValidationProperty(aValue))
+                    Next
+                    Me._ValidationProperties = aList.ToArray
+                Catch ex As Exception
+                    CoreMessageHandler(exception:=ex, subname:="ormObjectEntryAttribute.ValidationPropertyStrings")
+                End Try
+            End Set
+        End Property
+        Public Property ValidationProperties() As ObjectValidationProperty()
             Get
                 Return Me._ValidationProperties
             End Get
-            Set
-                Me._ValidationProperties = Value
+            Set(value As ObjectValidationProperty())
+                Me._ValidationProperties = value
             End Set
         End Property
         Public ReadOnly Property HasValueValidationproperties As Boolean
@@ -1879,12 +1960,12 @@ Namespace OnTrack.Database
         ''' Gets or sets the values.
         ''' </summary>
         ''' <value>The values.</value>
-        Public Property Values() As String()
+        Public Property Values() As Object()
             Get
                 Return Me._Values
             End Get
-            Set
-                Me._Values = Value
+            Set(value As Object())
+                Me._Values = value
             End Set
         End Property
         Public ReadOnly Property HasValueValues As Boolean
@@ -1896,34 +1977,34 @@ Namespace OnTrack.Database
         ''' Gets or sets the upper range.
         ''' </summary>
         ''' <value>The upper range.</value>
-        Public Property UpperRange() As String
+        Public Property UpperRange() As Long
             Get
                 Return Me._upperRange
             End Get
-            Set
-                Me._upperRange = Value
+            Set(value As Long)
+                Me._upperRange = value
             End Set
         End Property
         Public ReadOnly Property HasValueUpperRange As Boolean
             Get
-                Return _upperRange IsNot Nothing AndAlso _upperRange <> ""
+                Return _upperRange.HasValue
             End Get
         End Property
         ''' <summary>
         ''' Gets or sets the lower range.
         ''' </summary>
         ''' <value>The lower range.</value>
-        Public Property LowerRange() As String
+        Public Property LowerRange() As Long
             Get
                 Return Me._LowerRange
             End Get
-            Set
-                Me._LowerRange = Value
+            Set(value As Long)
+                Me._LowerRange = value
             End Set
         End Property
         Public ReadOnly Property HasValueLowerRange As Boolean
             Get
-                Return _LowerRange IsNot Nothing AndAlso _LowerRange <> ""
+                Return _LowerRange.HasValue
             End Get
         End Property
         ''' <summary>
@@ -1934,7 +2015,7 @@ Namespace OnTrack.Database
             Get
                 Return Me._validate
             End Get
-            Set
+            Set(value As Boolean?)
                 Me._validate = Value
             End Set
         End Property
@@ -2054,7 +2135,7 @@ Namespace OnTrack.Database
         End Property
 
 
-       
+
         ''' <summary>
         ''' set or gets if this field is a spare field
         ''' </summary>
@@ -2347,7 +2428,7 @@ Namespace OnTrack.Database
         ''' Gets or sets the add domain behavior flag.
         ''' </summary>
         ''' <value>The add domain behavior flag.</value>
-        Public Property AddDomainBehaviorFlag() As Boolean
+        Public Property AddDomainBehavior() As Boolean
             Get
                 Return Me._AddDomainBehaviorFlag
             End Get
@@ -2364,7 +2445,7 @@ Namespace OnTrack.Database
         ''' Gets or sets the spare fields flag.
         ''' </summary>
         ''' <value>The spare fields flag.</value>
-        Public Property SpareFieldsFlag() As Boolean
+        Public Property AddSpareFieldsBehavior() As Boolean
             Get
                 Return Me._SpareFieldsFlag
             End Get
@@ -2372,7 +2453,7 @@ Namespace OnTrack.Database
                 Me._SpareFieldsFlag = value
             End Set
         End Property
-        Public ReadOnly Property HasValueSpareFields As Boolean
+        Public ReadOnly Property HasValueSpareFieldsBehavior As Boolean
             Get
                 Return _SpareFieldsFlag.HasValue
             End Get
@@ -2381,7 +2462,7 @@ Namespace OnTrack.Database
         ''' Gets or sets the delete field flag.
         ''' </summary>
         ''' <value>The delete field flag.</value>
-        Public Property DeleteFieldFlag() As Boolean
+        Public Property AddDeleteFieldBehavior() As Boolean
             Get
                 Return Me._DeleteFieldFlag
             End Get
@@ -2389,7 +2470,7 @@ Namespace OnTrack.Database
                 Me._DeleteFieldFlag = value
             End Set
         End Property
-        Public ReadOnly Property HasValueDeleteField As Boolean
+        Public ReadOnly Property HasValueDeleteFieldBehavior As Boolean
             Get
                 Return _DeleteFieldFlag.HasValue
             End Get

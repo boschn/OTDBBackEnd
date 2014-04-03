@@ -477,7 +477,7 @@ Namespace OnTrack.Database
                         result = Convert.ToString(defaultvalue)
                     Else
                         If maxsize < Len(CStr(invalue)) And maxsize > 1 Then
-                            result = Mid(Convert.ToString(invalue), 0, maxsize - 1)
+                            result = Mid(Convert.ToString(invalue), 1, maxsize - 1)
                         Else
                             result = Convert.ToString(invalue)
                         End If
@@ -658,19 +658,19 @@ Namespace OnTrack.Database
                         If maxsize = 0 Then aParameter.Size = 7
                         aParameter.SqlValue = ot.ConstNullTime
                     Case otFieldDataType.List
-                        If maxsize = 0 Then aParameter.Size = Const_MaxTextSize
+                        If maxsize = 0 Then aParameter.Size = ConstDBDriverMaxTextSize
                         aParameter.SqlValue = ""
                     Case otFieldDataType.[Long]
                         aParameter.SqlValue = 0
                     Case otFieldDataType.Memo
-                        If maxsize = 0 Then aParameter.Size = Const_MaxMemoSize
+                        If maxsize = 0 Then aParameter.Size = constDBDriverMaxMemoSize
                         aParameter.SqlValue = ""
                     Case otFieldDataType.Numeric
                         aParameter.SqlValue = 0
                     Case otFieldDataType.Timestamp
                         aParameter.SqlValue = ConstNullDate
                     Case otFieldDataType.Text
-                        If maxsize = 0 Then aParameter.Size = Const_MaxTextSize
+                        If maxsize = 0 Then aParameter.Size = ConstDBDriverMaxTextSize
                         aParameter.SqlValue = ""
 
                 End Select
@@ -1760,10 +1760,10 @@ Namespace OnTrack.Database
 
                             Case otFieldDataType.List, otFieldDataType.Text
                                 aDatatype.SqlDataType = SqlDataType.NVarChar
-                                If columndefinition.Size > 0 Then
+                                If columndefinition.Size.HasValue Then
                                     aDatatype.MaximumLength = columndefinition.Size
                                 Else
-                                    aDatatype.MaximumLength = Const_MaxTextSize
+                                    aDatatype.MaximumLength = ConstDBDriverMaxTextSize
                                 End If
                             Case otFieldDataType.Memo
                                 aDatatype.SqlDataType = SqlDataType.NVarCharMax
@@ -1789,25 +1789,29 @@ Namespace OnTrack.Database
                         newColumn.DataType = aDatatype
                         ' default value
                         If columndefinition.DefaultValue IsNot Nothing Then
+                            If newColumn.DefaultConstraint IsNot Nothing Then newColumn.DefaultConstraint.Drop()
+
                             If columndefinition.Datatype = otFieldDataType.Time Then
-                                newColumn.AddDefaultConstraint("DEFAULT_" & nativeTable.name & "." & columndefinition.Name).Text = _
+                                newColumn.AddDefaultConstraint("DEFAULT_" & nativeTable.name & "_" & columndefinition.Name).Text = _
                                     "'" & CDate(columndefinition.DefaultValue).ToString("HH:mm:ss") & "'"
                             ElseIf columndefinition.Datatype = otFieldDataType.Date Then
-                                newColumn.AddDefaultConstraint("DEFAULT_" & nativeTable.name & "." & columndefinition.Name).Text = _
+                                newColumn.AddDefaultConstraint("DEFAULT_" & nativeTable.name & "_" & columndefinition.Name).Text = _
                                 "'" & CDate(columndefinition.DefaultValue).ToString("yyyy-MM-dd") & "T00:00:00Z'"
                             ElseIf columndefinition.Datatype = otFieldDataType.Timestamp Then
-                                newColumn.AddDefaultConstraint("DEFAULT_" & nativeTable.name & "." & columndefinition.Name).Text = _
+                                newColumn.AddDefaultConstraint("DEFAULT_" & nativeTable.name & "_" & columndefinition.Name).Text = _
                                     "'" & (Convert.ToDateTime(columndefinition.DefaultValue).ToString("yyyy-MM-ddTHH:mm:ssZ")) & "'"
                             ElseIf columndefinition.Datatype = otFieldDataType.Bool Then
                                 If columndefinition.DefaultValue Then
-                                    newColumn.AddDefaultConstraint("DEFAULT_" & nativeTable.name & "." & columndefinition.Name).Text = "1"
+                                    newColumn.AddDefaultConstraint("DEFAULT_" & nativeTable.name & "_" & columndefinition.Name).Text = "1"
                                 Else
-                                    newColumn.AddDefaultConstraint("DEFAULT_" & nativeTable.name & "." & columndefinition.Name).Text = "0"
+                                    newColumn.AddDefaultConstraint("DEFAULT_" & nativeTable.name & "_" & columndefinition.Name).Text = "0"
                                 End If
                             ElseIf columndefinition.Datatype = otFieldDataType.Text OrElse columndefinition.Datatype = otFieldDataType.List Then
-                                newColumn.AddDefaultConstraint("DEFAULT_" & nativeTable.name & "." & columndefinition.Name).Text = "'" & columndefinition.DefaultValueString & "'"
+                                newColumn.AddDefaultConstraint("DEFAULT_" & nativeTable.name & "_" & columndefinition.Name).Text = "'" & columndefinition.DefaultValueString & "'"
+                            ElseIf columndefinition.Datatype = otFieldDataType.Long OrElse columndefinition.Datatype = otFieldDataType.Numeric Then
+                                newColumn.AddDefaultConstraint("DEFAULT_" & nativeTable.name & "_" & columndefinition.Name).Text = columndefinition.DefaultValue.ToString
                             ElseIf columndefinition.DefaultValueString <> "" Then
-                                newColumn.AddDefaultConstraint("DEFAULT_" & nativeTable.name & "." & columndefinition.Name).Text = columndefinition.DefaultValueString
+                                newColumn.AddDefaultConstraint("DEFAULT_" & nativeTable.name & "_" & columndefinition.Name).Text = columndefinition.DefaultValueString
                             End If
 
 
@@ -1840,7 +1844,7 @@ Namespace OnTrack.Database
                         '** add it
                         If addColumn Then aTable.Columns.Add(newColumn)
                         '** unique ?
-                        
+
                         '*** return new column
                         Return newColumn
 
@@ -2705,7 +2709,7 @@ Namespace OnTrack.Database
                 '** set the length
                 If IsNativeDBTypeOfVar(aDBColumnDescription.DataType) Then
                     If aDBColumnDescription.CharacterMaxLength = 0 Then
-                        aParameter.Size = Const_MaxMemoSize
+                        aParameter.Size = constDBDriverMaxMemoSize
                     Else
                         aParameter.Size = aDBColumnDescription.CharacterMaxLength
                     End If

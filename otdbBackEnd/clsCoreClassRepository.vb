@@ -428,7 +428,7 @@ Namespace OnTrack
         ''' <param name="attribute"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetReferenceObject(ByRef attribute As ormObjectEntryAttribute) As Boolean
+        Public Function SubstituteReferencedObjectEntry(ByRef attribute As ormObjectEntryAttribute) As Boolean
             '*** REFERENCE OBJECT ENTRY
             If attribute.HasValueReferenceObjectEntry Then
                 Dim refObjectName As String = ""
@@ -945,7 +945,8 @@ Namespace OnTrack
             Get
                 Dim aList As New List(Of ormObjectEntryAttribute)
                 For Each anAttribute In _ObjectEntryAttributes.Values
-                    _repository.GetReferenceObject(attribute:=anAttribute)
+                    _repository.SubstituteReferencedObjectEntry(attribute:=anAttribute)
+                    SubstituteDefaultValues(attribute:=anAttribute)
                     aList.Add(anAttribute)
                 Next
                 Return aList
@@ -1078,6 +1079,23 @@ Namespace OnTrack
             End If
 
         End Function
+
+        ''' <summary>
+        ''' substitute the default values for object entry attributes
+        ''' </summary>
+        ''' <param name="attribute"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Private Function SubstituteDefaultValues(attribute As ormObjectEntryAttribute) As Boolean
+
+            ''' check if we have a value otherwise take these as default
+            If Not attribute.HasValueIsReadonly Then attribute.IsReadOnly = False
+            If Not attribute.HasValueIsNullable Then attribute.IsNullable = False
+            If Not attribute.HasValueIsUnique Then attribute.IsUnique = False
+            If Not attribute.HasValueIsActive Then attribute.IsActive = True
+
+            Return True
+        End Function
         ''' <summary>
         ''' returns the schemaColumnAttribute for a given columnname and tablename
         ''' </summary>
@@ -1106,7 +1124,11 @@ Namespace OnTrack
 
             If _ObjectEntryAttributes.ContainsKey(key:=anEntryname) Then
                 Dim anAttribute As ormObjectEntryAttribute = _ObjectEntryAttributes.Item(key:=anEntryname)
-                _repository.GetReferenceObject(attribute:=anAttribute)
+                '' substitute entries
+                _repository.SubstituteReferencedObjectEntry(attribute:=anAttribute)
+                '' set default values on non-set 
+                Me.substituteDefaultValues(attribute:=anAttribute)
+                ''return final
                 Return anAttribute
             Else
                 Return Nothing
@@ -1487,6 +1509,13 @@ Namespace OnTrack
                 If Not anObjectEntryAttribute.HasValueObjectName Then anObjectEntryAttribute.ObjectName = _ObjectAttribute.ID.ToUpper
                 If Not anObjectEntryAttribute.HasValueEntryName Then anObjectEntryAttribute.EntryName = name.ToUpper
                 If Not anObjectEntryAttribute.HasValueVersion Then anObjectEntryAttribute.Version = 1
+               
+                ' if we set an default value here - we cannot reference anymore :-(
+                ' only possible for values which cannot be referenced !!
+                ' put it in substitutedefaultvalues routine
+                'If Not anObjectEntryAttribute.HasValueIsReadonly Then anObjectEntryAttribute.IsReadOnly = False
+                'If Not anObjectEntryAttribute.HasValueIsNullable Then anObjectEntryAttribute.IsNullable = False
+                'If Not anObjectEntryAttribute.HasValueIsUnique Then anObjectEntryAttribute.IsUnique = False
 
                 If Not anObjectEntryAttribute.hasValuePosOrdinal Then
                     anObjectEntryAttribute.Posordinal = _ObjectEntryAttributes.Count + 1
@@ -2208,17 +2237,16 @@ Namespace OnTrack
                     _ObjectAttribute = attribute
                 Else
                     With DirectCast(attribute, ormObjectAttribute)
-                        If .HasValueDomainBehavior Then _ObjectAttribute.AddDomainBehaviorFlag = .AddDomainBehaviorFlag
+                        If .HasValueDomainBehavior Then _ObjectAttribute.AddDomainBehavior = .AddDomainBehavior
                         If .HasValueClassname Then _ObjectAttribute.ClassName = .ClassName
-                        If .HasValueDeleteField Then _ObjectAttribute.DeleteFieldFlag = .DeleteFieldFlag
+                        If .HasValueDeleteFieldBehavior Then _ObjectAttribute.AddDeleteFieldBehavior = .AddDeleteFieldBehavior
                         If .HasValueDescription Then _ObjectAttribute.Description = .Description
-                        If .HasValueDomainBehavior Then _ObjectAttribute.AddDomainBehaviorFlag = .AddDomainBehaviorFlag
+                        If .HasValueDomainBehavior Then _ObjectAttribute.AddDomainBehavior = .AddDomainBehavior
                         If .HasValueID Then _ObjectAttribute.ID = .ID
                         If .HasValueIsActive Then _ObjectAttribute.IsActive = .IsActive
                         If .HasValueModulename Then _ObjectAttribute.Modulename = .Modulename
-                        If .HasValueSpareFields Then _ObjectAttribute.SpareFieldsFlag = .SpareFieldsFlag
+                        If .HasValueSpareFieldsBehavior Then _ObjectAttribute.AddSpareFieldsBehavior = .AddSpareFieldsBehavior
                         If .HasValuePrimaryKeys Then _ObjectAttribute.PrimaryKeys = .PrimaryKeys
-
                     End With
                 End If
 

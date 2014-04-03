@@ -139,14 +139,14 @@ Namespace OnTrack.Configurables
                 Call s_items.Remove(key:=ITEM.ID)
             End If
             ' load aliases
-            If aTableEntry.Inject(objectname:=ourTableName, entryname:=ITEM.ID) Then
-                For Each m In aTableEntry.Aliases
-                    If s_aliases.ContainsKey(key:=LCase(m)) Then
-                        Call s_aliases.Remove(key:=LCase(m))
-                    End If
-                    Call s_aliases.Add(key:=LCase(m), value:=ITEM.ID)
-                Next m
-            End If
+            'If aTableEntry.Inject(objectname:=ourTableName, entryname:=ITEM.ID) Then
+            '    For Each m In aTableEntry.Aliases
+            '        If s_aliases.ContainsKey(key:=LCase(m)) Then
+            '            Call s_aliases.Remove(key:=LCase(m))
+            '        End If
+            '        Call s_aliases.Add(key:=LCase(m), value:=ITEM.ID)
+            '    Next m
+            'End If
             ' add entry
             s_items.Add(key:=ITEM.ID, value:=ITEM)
 

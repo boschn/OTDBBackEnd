@@ -29,7 +29,8 @@ Namespace OnTrack.Deliverables
     ''' List of Tracking Items
     ''' </summary>
     ''' <remarks></remarks>
-    <ormObject(id:=TrackItem.constobjectID, version:=1, modulename:=ot.ConstModuleDeliverables, Description:="member of tracking lists" _
+    <ormObject(id:=TrackItem.constObjectID, version:=1, adddeletefieldbehavior:=True, usecache:=True, _
+        modulename:=ot.ConstModuleDeliverables, Description:="member of tracking lists" _
         )> Public Class TrackItem
         Inherits ormDataObject
         Implements iormInfusable
@@ -38,35 +39,42 @@ Namespace OnTrack.Deliverables
         '***
         Public Const constObjectID = "TrackItem"
         '*** TABLE
-        <ormSchemaTableAttribute(version:=1, addsparefields:=True, adddeletefieldbehavior:=True)> Public Const constTableID = "tblTrackItems"
+        <ormSchemaTableAttribute(version:=1)> Public Const constTableID = "tblTrackItems"
+
         '** Index
         <ormSchemaIndexAttribute(columnname1:=constFNID, columnname2:=constFNOrdinal)> Public Const constIndexOrder = "orderby"
         <ormSchemaIndexAttribute(columnname1:=constFNID)> Public Const constIndexList = "lists"
 
         '** Primary Keys
         <ormObjectEntry(XID:="TI1", title:="List ID", description:="name of the tracking item list", _
+            properties:={ObjectEntryProperty.Keyword}, validationPropertystrings:={ObjectValidationProperty.NotEmpty}, _
             typeid:=otFieldDataType.Text, size:=50, primaryKeyordinal:=1)> Public Const constFNID = "listid"
 
         <ormObjectEntry(XID:="TI2", title:="List Pos", description:="entry number in the tracking item list", _
+            lowerrange:=0, _
             typeid:=otFieldDataType.Long, primaryKeyordinal:=2)> Public Const constFNPos = "posno"
 
         '*** fields
         <ormObjectEntry(referenceObjectentry:=Parts.Part.ConstObjectID & "." & Parts.Part.ConstFNPartID, _
-            XID:="TI3", description:="part id of the item to be tracked", _
-           isnullable:=True, useforeignkey:=otForeignKeyImplementation.ORM)> Public Const constFNPartid = "partid"
+            XID:="TI3", description:="part id of the item to be tracked", isnullable:=True, _
+           isnullable:=True, useforeignkey:=otForeignKeyImplementation.ORM)> Public Const constFNPartid = Parts.Part.ConstFNPartID
 
         <ormObjectEntry(XID:="TI4", title:="order", description:="ordinal in the list to be sorted", _
            typeid:=otFieldDataType.Long)> Public Const constFNOrdinal = "order"
 
-        <ormObjectEntry(XID:="TI5", title:="matchcode", description:="matchcode for items", _
+        <ormObjectEntry(XID:="TI5", title:="matchcode", description:="matchcode for items", isnullable:=True, _
            typeid:=otFieldDataType.Text, size:=100)> Public Const constFNMatchCode = "MATCHCODE"
 
         <ormObjectEntry(referenceObjectentry:=Deliverables.Deliverable.ConstObjectID & "." & Deliverables.Deliverable.constFNUid, _
-                XID:="TI7", description:="UID of the deliverable to be tracked", _
-          isnullable:=True, useforeignkey:=otForeignKeyImplementation.ORM)> Public Const constFNDLVUID = "DLVUID"
+                XID:="TI7", description:="UID of the deliverable to be tracked", isnullable:=True, _
+          isnullable:=True, useforeignkey:=otForeignKeyImplementation.ORM)> Public Const constFNDLVUID = Deliverables.Deliverable.constFNUid
 
-        <ormObjectEntry(XID:="TI6", title:="Comments", description:="comment for the item", _
+        <ormObjectEntry(XID:="TI6", title:="Comments", description:="comment for the item", isnullable:=True, _
          typeid:=otFieldDataType.Memo)> Public Const constFNComment = "cmt"
+
+        ' deactivate ForeignKEy we do not have this object in domains
+        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, _
+            useforeignkey:=otForeignKeyImplementation.None)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
         '*** Mappings
         <ormEntryMapping(EntryName:=constFNID)> Private _listid As String = ""
@@ -176,7 +184,7 @@ Namespace OnTrack.Deliverables
         End Property
 
 #End Region
-        
+
         ''' <summary>
         ''' Retrieve a trackitem from the data store
         ''' </summary>
@@ -189,7 +197,7 @@ Namespace OnTrack.Deliverables
             Return ormDataObject.Retrieve(Of TrackItem)(primarykey)
         End Function
 
-       
+
         ''' <summary>
         ''' create a persistable track list item
         ''' </summary>

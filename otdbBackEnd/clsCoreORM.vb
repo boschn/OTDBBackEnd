@@ -133,6 +133,7 @@ Namespace OnTrack
                 End Get
                 Set(value As String)
                     _SqlStatement = value
+                    _SqlText = value
                     Me.BuildTextRequired = False
                 End Set
             End Property
@@ -201,90 +202,98 @@ Namespace OnTrack
                 End If
 
                 '** TABLENAME
-                If parameter.Tablename = "" And Me.TableIDs(0) <> "" And Not parameter.NotColumn Then
-                    parameter.Tablename = Me.TableIDs(0)
-                    Call CoreMessageHandler(subname:="ormSqlCommand.AddParameter", arg1:=Me.ID, _
-                                          message:=" tablename not set in parameter for sql command - first table used", _
-                                          messagetype:=otCoreMessageType.InternalWarning, tablename:=Me.TableIDs(0))
+                If Not parameter.NotColumn Then
+                    If Me.TableIDs.Count = 0 Then
+                        Call CoreMessageHandler(subname:="ormSqlCommand.AddParameter", arg1:=Me.ID, _
+                                              message:="no tablename  set in parameter for sql command", _
+                                              messagetype:=otCoreMessageType.InternalError)
+                        Return False
+                    ElseIf parameter.Tablename = "" And Me.TableIDs(0) <> "" Then
+                        parameter.Tablename = Me.TableIDs(0)
+                        Call CoreMessageHandler(subname:="ormSqlCommand.AddParameter", arg1:=Me.ID, _
+                                              message:=" tablename not set in parameter for sql command - first table used", _
+                                              messagetype:=otCoreMessageType.InternalWarning, tablename:=Me.TableIDs(0))
 
-                ElseIf parameter.Tablename = "" And Me.TableIDs(0) = "" And Not parameter.NotColumn Then
-                    Call CoreMessageHandler(subname:="ormSqlCommand.AddParameter", arg1:=Me.ID, _
-                                          message:=" tablename not set in parameter for sql command - no default table", _
-                                         messagetype:=otCoreMessageType.InternalError)
+                    ElseIf parameter.Tablename = "" And Me.TableIDs(0) = "" Then
+                        Call CoreMessageHandler(subname:="ormSqlCommand.AddParameter", arg1:=Me.ID, _
+                                              message:=" tablename not set in parameter for sql command - no default table", _
+                                             messagetype:=otCoreMessageType.InternalError)
 
-                    Return False
-                End If
-                '** fieldnames
-                If parameter.Fieldname = "" And parameter.ID = "" Then
-                    Call CoreMessageHandler(subname:="ormSqlCommand.AddParameter", arg1:=Me.ID, _
-                                          message:=" fieldname not set in parameter for sql command", _
-                                          messagetype:=otCoreMessageType.InternalError)
-                    Return False
-                ElseIf parameter.ID <> "" And parameter.Fieldname = "" And Not parameter.NotColumn Then
-                    Call CoreMessageHandler(subname:="ormSqlCommand.AddParameter", arg1:=Me.ID, _
-                                         message:=" fieldname not set in parameter for sql command - use ID without @", _
-                                         messagetype:=otCoreMessageType.InternalWarning, tablename:=parameter.Tablename, entryname:=parameter.ID)
-                    If parameter.ID.First = "@" Then
-                        parameter.Fieldname = parameter.ID.Substring(2)
-                    Else
-                        parameter.Fieldname = parameter.ID
-                    End If
-                End If
-                '** table name ?!
-                If parameter.Tablename = "" And Not parameter.NotColumn Then
-                    Call CoreMessageHandler(subname:="ormSqlCommand.AddParameter", tablename:=parameter.Tablename, _
-                                          message:="table name is blank", arg1:=parameter.ID)
-                    Return False
-                End If
-                If Not parameter.NotColumn And parameter.Tablename <> "" AndAlso Not GetTableStore(parameter.Tablename).TableSchema.IsInitialized Then
-                    Call CoreMessageHandler(subname:="ormSqlCommand.AddParameter", tablename:=parameter.Tablename, _
-                                           message:="couldnot initialize table schema")
-                    Return False
-                End If
-
-                If Not parameter.NotColumn AndAlso Not Me._tablestores.ContainsKey(parameter.Tablename) Then
-                    Call CoreMessageHandler(subname:="ormSqlCommand.AddParameter", arg1:=Me.ID, entryname:=parameter.ID, _
-                                          message:=" tablename of parameter is not used in sql command", _
-                                      messagetype:=otCoreMessageType.InternalError, tablename:=parameter.Tablename)
-                    Return False
-                ElseIf Not parameter.NotColumn AndAlso Not Me._tablestores.Item(key:=parameter.Tablename).TableSchema.Hasfieldname(parameter.Fieldname) Then
-                    Call CoreMessageHandler(subname:="ormSqlCommand.AddParameter", arg1:=Me.ID, entryname:=parameter.Fieldname, _
-                                         message:=" fieldname of parameter is not used in table schema", _
-                                     messagetype:=otCoreMessageType.InternalError, tablename:=parameter.Tablename)
-                    Return False
-
-                End If
-
-
-                ''' datatype
-                If parameter.NotColumn And parameter.Datatype = 0 Then
-                    Call CoreMessageHandler(subname:="ormSqlCommand.AddParameter", _
-                                          arg1:=Me.ID, message:=" datatype not set in parameter for sql command", _
-                                          messagetype:=otCoreMessageType.InternalError)
-                    Return False
-                    ''' datatype lookup
-                ElseIf Not parameter.NotColumn AndAlso parameter.Datatype = 0 Then
-
-                    ''' look up internally first
-                    ''' 
-                    Dim anAttribute As ormObjectEntryAttribute = ot.GetSchemaTableColumnAttribute(tablename:=parameter.Tablename, columnname:=parameter.Fieldname)
-                    If anAttribute IsNot Nothing AndAlso anAttribute.HasValueTypeID Then
-                        parameter.Datatype = anAttribute.Typeid
-                    End If
-                    ''' datatype still not resolved
-                    If parameter.Datatype = 0 Then
-                        Dim aSchemaEntry As ColumnDefinition = CurrentSession.Objects.GetColumnEntry(columnname:=parameter.Fieldname, tablename:=parameter.Tablename)
-                        If aSchemaEntry IsNot Nothing Then parameter.Datatype = aSchemaEntry.Datatype
-
+                        Return False
                     End If
                 End If
 
-                '** add the paramter
-                If _parameters.ContainsKey(key:=parameter.ID) Then
-                    _parameters.Remove(key:=parameter.ID)
-                End If
-                _parameters.Add(key:=parameter.ID, value:=parameter)
-                Return True
+                    '** fieldnames
+                    If parameter.Fieldname = "" And parameter.ID = "" Then
+                        Call CoreMessageHandler(subname:="ormSqlCommand.AddParameter", arg1:=Me.ID, _
+                                              message:=" fieldname not set in parameter for sql command", _
+                                              messagetype:=otCoreMessageType.InternalError)
+                        Return False
+                    ElseIf parameter.ID <> "" And parameter.Fieldname = "" And Not parameter.NotColumn Then
+                        Call CoreMessageHandler(subname:="ormSqlCommand.AddParameter", arg1:=Me.ID, _
+                                             message:=" fieldname not set in parameter for sql command - use ID without @", _
+                                             messagetype:=otCoreMessageType.InternalWarning, tablename:=parameter.Tablename, entryname:=parameter.ID)
+                        If parameter.ID.First = "@" Then
+                            parameter.Fieldname = parameter.ID.Substring(2)
+                        Else
+                            parameter.Fieldname = parameter.ID
+                        End If
+                    End If
+                    '** table name ?!
+                    If parameter.Tablename = "" And Not parameter.NotColumn Then
+                        Call CoreMessageHandler(subname:="ormSqlCommand.AddParameter", tablename:=parameter.Tablename, _
+                                              message:="table name is blank", arg1:=parameter.ID)
+                        Return False
+                    End If
+                    If Not parameter.NotColumn And parameter.Tablename <> "" AndAlso Not GetTableStore(parameter.Tablename).TableSchema.IsInitialized Then
+                        Call CoreMessageHandler(subname:="ormSqlCommand.AddParameter", tablename:=parameter.Tablename, _
+                                               message:="couldnot initialize table schema")
+                        Return False
+                    End If
+
+                    If Not parameter.NotColumn AndAlso Not Me._tablestores.ContainsKey(parameter.Tablename) Then
+                        Call CoreMessageHandler(subname:="ormSqlCommand.AddParameter", arg1:=Me.ID, entryname:=parameter.ID, _
+                                              message:=" tablename of parameter is not used in sql command", _
+                                          messagetype:=otCoreMessageType.InternalError, tablename:=parameter.Tablename)
+                        Return False
+                    ElseIf Not parameter.NotColumn AndAlso Not Me._tablestores.Item(key:=parameter.Tablename).TableSchema.Hasfieldname(parameter.Fieldname) Then
+                        Call CoreMessageHandler(subname:="ormSqlCommand.AddParameter", arg1:=Me.ID, entryname:=parameter.Fieldname, _
+                                             message:=" fieldname of parameter is not used in table schema", _
+                                         messagetype:=otCoreMessageType.InternalError, tablename:=parameter.Tablename)
+                        Return False
+
+                    End If
+
+
+                    ''' datatype
+                    If parameter.NotColumn And parameter.Datatype = 0 Then
+                        Call CoreMessageHandler(subname:="ormSqlCommand.AddParameter", _
+                                              arg1:=Me.ID, message:=" datatype not set in parameter for sql command", _
+                                              messagetype:=otCoreMessageType.InternalError)
+                        Return False
+                        ''' datatype lookup
+                    ElseIf Not parameter.NotColumn AndAlso parameter.Datatype = 0 Then
+
+                        ''' look up internally first
+                        ''' 
+                        Dim anAttribute As ormObjectEntryAttribute = ot.GetSchemaTableColumnAttribute(tablename:=parameter.Tablename, columnname:=parameter.Fieldname)
+                        If anAttribute IsNot Nothing AndAlso anAttribute.HasValueTypeID Then
+                            parameter.Datatype = anAttribute.Typeid
+                        End If
+                        ''' datatype still not resolved
+                        If parameter.Datatype = 0 Then
+                            Dim aSchemaEntry As ColumnDefinition = CurrentSession.Objects.GetColumnEntry(columnname:=parameter.Fieldname, tablename:=parameter.Tablename)
+                            If aSchemaEntry IsNot Nothing Then parameter.Datatype = aSchemaEntry.Datatype
+
+                        End If
+                    End If
+
+                    '** add the paramter
+                    If _parameters.ContainsKey(key:=parameter.ID) Then
+                        _parameters.Remove(key:=parameter.ID)
+                    End If
+                    _parameters.Add(key:=parameter.ID, value:=parameter)
+                    Return True
             End Function
             ''' Sets the parameter value.
             ''' </summary>
@@ -381,7 +390,8 @@ Namespace OnTrack
                     '**
                     If aSqlText = "" Then
                         Call CoreMessageHandler(message:="No SQL statement could'nt be build", arg1:=Me.ID, _
-                                               subname:="ormSqlCommand.Prepare", messagetype:=otCoreMessageType.InternalError)
+                                               subname:="ormSqlCommand.Prepare", _
+                                               messagetype:=otCoreMessageType.InternalError)
                         Return False
                     End If
                     'DatabaseDriver.StoreSqlCommand(me)
@@ -389,7 +399,10 @@ Namespace OnTrack
                     Me.NativeCommand = aNativeCommand
                     '** prepare
                     aNativeCommand.CommandText = aSqlText
-                    aNativeCommand.Connection = aNativeConnection
+                    If aNativeCommand.Connection Is Nothing Then
+                        aNativeCommand.Connection = aNativeConnection
+                    End If
+
                     aNativeCommand.CommandType = Data.CommandType.Text
                     '** add Parameter
                     For Each aParameter In Me.Parameters
@@ -467,6 +480,43 @@ Namespace OnTrack
             ''' <remarks></remarks>
             Protected Function IncBuildVersion() As UShort
                 Return (_buildVersion = _buildVersion + 1)
+            End Function
+            ''' <summary>
+            ''' Run the Sql Select Statement and returns a List of ormRecords
+            ''' </summary>
+            ''' <param name="parameters">parameters of value</param>
+            ''' <param name="connection">a optional native connection</param>
+            ''' <returns>list of ormRecords (might be empty)</returns>
+            ''' <remarks></remarks>
+            Public Function Run(Optional ByRef parametervalues As Dictionary(Of String, Object) = Nothing, _
+                                               Optional nativeConnection As Object = Nothing) As Boolean
+                '** set the parameters value to current command parameters value 
+                '** if not specified
+                Dim aParametervalues As Dictionary(Of String, Object)
+                If parametervalues Is Nothing Then
+                    aParametervalues = _parametervalues
+                Else
+                    aParametervalues = parametervalues
+                End If
+
+                ''' if we are running on one table only with all fields
+                ''' then use the tablestore select with type checking
+
+                ''' else run against the database driver
+                ''' 
+                '*** run it 
+                If Me.Prepared Then
+                    Return Me.DatabaseDriver.RunSqlCommand(sqlcommand:=Me, parametervalues:=aParametervalues, nativeConnection:=nativeConnection)
+                Else
+                    If Me.Prepare() Then
+                        Return Me.DatabaseDriver.RunSqlCommand(sqlcommand:=Me, parametervalues:=aParametervalues, nativeConnection:=nativeConnection)
+                    Else
+                        Call CoreMessageHandler(subname:="clsOTDBSqlSelectCommand.run", message:="Command is not prepared", arg1:=Me.ID, _
+                                                         messagetype:=otCoreMessageType.InternalError)
+                        Return False
+                    End If
+                End If
+
             End Function
         End Class
 
@@ -1281,6 +1331,18 @@ Namespace OnTrack
                                                         Optional defaultvalue As Object = Nothing) As Boolean Implements iormDatabaseDriver.Convert2DBData
 
             ''' <summary>
+            ''' Runs the SQL select command.
+            ''' </summary>
+            ''' <param name="sqlcommand">The sqlcommand.</param>
+            ''' <param name="parametervalues">The parametervalues.</param>
+            ''' <param name="nativeConnection">The native connection.</param>
+            ''' <returns></returns>
+            Public MustOverride Function RunSqlCommand(ByRef sqlcommand As ormSqlCommand, _
+                                                       Optional ByRef parametervalues As Dictionary(Of String, Object) = Nothing, _
+                                                       Optional nativeConnection As Object = Nothing) As Boolean Implements iormDatabaseDriver.RunSqlCommand
+
+
+            ''' <summary>
             ''' Convert2s the object data.
             ''' </summary>
             ''' <param name="invalue">The invalue.</param>
@@ -1296,7 +1358,7 @@ Namespace OnTrack
                                                             Optional isnullable As Boolean? = Nothing, _
                                                             Optional defaultvalue As Object = Nothing, _
                                                             Optional ByRef abostrophNecessary As Boolean = False) As Boolean Implements iormDatabaseDriver.Convert2ObjectData
-            
+
             ''' Gets the catalog.
             ''' </summary>
             ''' <param name="FORCE">The FORCE.</param>
@@ -1463,31 +1525,26 @@ Namespace OnTrack
                         Return False
                     End If
 
-                    ''' if there is a connection - just check against the the access there
-                    If _primaryConnection IsNot Nothing AndAlso _primaryConnection.IsConnected Then
-                        Return _primaryConnection.ValidateAccessRequest(accessRequest:=accessRequest)
-                    Else
-                        '** check against the validation
-                        Dim aAccessProperty As AccessRightProperty
+                    '** check against the validation
+                    Dim aAccessProperty As AccessRightProperty
 
-                        If aValidation.ValidEntry Then
-                            If aValidation.HasAlterSchemaRights Then
-                                aAccessProperty = New AccessRightProperty(otAccessRight.AlterSchema)
-                            ElseIf aValidation.HasUpdateRights Then
-                                aAccessProperty = New AccessRightProperty(otAccessRight.ReadUpdateData)
-                            ElseIf aValidation.HasReadRights Then
-                                aAccessProperty = New AccessRightProperty(otAccessRight.ReadOnly)
-                            Else
-                                Return False 'return if no Right in the validation
-                            End If
+                    If aValidation.ValidEntry Then
+                        If aValidation.HasAlterSchemaRights Then
+                            aAccessProperty = New AccessRightProperty(otAccessRight.AlterSchema)
+                        ElseIf aValidation.HasUpdateRights Then
+                            aAccessProperty = New AccessRightProperty(otAccessRight.ReadUpdateData)
+                        ElseIf aValidation.HasReadRights Then
+                            aAccessProperty = New AccessRightProperty(otAccessRight.ReadOnly)
+                        Else
+                            Return False 'return if no Right in the validation
                         End If
-                        ''' ToDo: forbidd access for domains
-                        ''' 
-                        ''' check if Rights are covered
-                        Return aAccessProperty.CoverRights(accessRequest)
                     End If
-
+                    ''' ToDo: forbidd access for domains
+                    ''' 
+                    ''' check if Rights are covered
+                    Return aAccessProperty.CoverRights(accessRequest)
                 End If
+
             End Function
             ''' <summary>
             ''' Gets the def user.
@@ -1982,16 +2039,17 @@ Namespace OnTrack
                     Else
                         ''' take all the values from datareader and move it 
                         ''' 
-                        For j = 0 To datareader.GetSchemaTable.Columns.Count - 1
-                            Dim aColumnname As String = datareader.GetSchemaTable.Columns.Item(j).ColumnName
+                        For j = 0 To datareader.FieldCount - 1
+                            Dim aName As String = datareader.GetName(j)
+                            If aName = "" Then aName = j.ToString
                             Dim aValue As Object = datareader.Item(j)
 
                             ''' how to convert ?!
                             ''' we have already system type
 
-                            If Not SetValue(aColumnname, aValue) Then
+                            If Not SetValue(aName, aValue) Then
                                 CoreMessageHandler(message:="could not set value from data reader", arg1:=aValue, _
-                                                   columnname:=aColumnname, tablename:=_tableid, subname:="ormRecord.LoadFrom(IDataReader)")
+                                                    tablename:=_tableid, subname:="ormRecord.LoadFrom(IDataReader)")
                                 result = False
                             Else
                                 result = result And True
@@ -2192,6 +2250,8 @@ Namespace OnTrack
                 '** only on success
                 If _IsTableSet Then
                     If timestamp = ConstNullDate Then timestamp = Date.Now
+                    '' check for status
+                    If Not Me.IsCreated AndAlso Not Me.IsLoaded Then CheckStatus()
                     '* switch to loaded
                     If _TableStore.PersistRecord(Me, timestamp:=timestamp) Then
                         Me.IsLoaded = True
@@ -2570,7 +2630,7 @@ Namespace OnTrack
                             Next
 
                             If Not found Then
-                                Call CoreMessageHandler(message:="not numeric index of " & index & " does not exist in record ", _
+                                Call CoreMessageHandler(message:="the non-numeric index of '" & index & "' does not exist in record ", _
                                             subname:="ormRecord.getValue", messagetype:=otCoreMessageType.InternalError)
                                 notFound = True
                                 Return Nothing

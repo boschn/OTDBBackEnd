@@ -1060,6 +1060,146 @@ Namespace OnTrack.Database
 
 
         End Function
+
+        ''' <summary>
+        ''' runs a Sql  Command with parameters
+        ''' </summary>
+        ''' <param name="sqlcommand">a clsOTDBSqlSelectCommand</param>
+        ''' <param name="parameters"></param>
+        ''' <param name="nativeConnection"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Overrides Function RunSqlCommand(ByRef sqlcommand As ormSqlCommand, _
+                                           Optional ByRef parametervalues As Dictionary(Of String, Object) = Nothing, _
+                                           Optional nativeConnection As Object = Nothing) As Boolean _
+                                            Implements iormDatabaseDriver.RunSqlCommand
+
+
+            Dim cvtvalue As Object
+            '*** Execute and get Results
+            Dim aDataReader As IDataReader
+            Dim theResults As New List(Of ormRecord)
+            Dim atableid As String = ""
+
+            Try
+               
+
+                '**** NORMAL PROCEDURE RUNS AGAINST DATABASE
+                '****
+                If Not sqlcommand.Prepared Then
+                    If Not sqlcommand.Prepare Then
+                        Call CoreMessageHandler(message:="SqlCommand couldn't be prepared", arg1:=sqlcommand.ID, _
+                                               subname:="adonetDBDriver.runsqlCommand", messagetype:=otCoreMessageType.InternalError)
+                        Return False
+                    End If
+                End If
+
+                '****
+                '**** CHECK HERE IF WE CAN TAKE A CACHED DATATABLE FOR THE SQL SELECT
+                '****
+                If sqlcommand.TableIDs.Count = 1 Then
+                    atableid = sqlcommand.TableIDs.First
+                    Dim aTablestore = Me.GetTableStore(sqlcommand.TableIDs.First)
+                    If aTablestore.HasProperty(ormTableStore.ConstTPNCacheProperty) Then
+                        '*** BRANCH OUT BUT NOT RETURN !
+                        '' RunSqlCommandCached(sqlcommand:=sqlcommand, parametervalues:=parametervalues, nativeConnection:=nativeConnection)
+                        ' DATATABLE Doesnot accept general SQL Statements
+                        ' this means that we have to recache at the end
+
+                    End If
+                End If
+
+                Dim aNativeCommand As IDbCommand
+                aNativeCommand = sqlcommand.NativeCommand
+
+                '***  Assign the values
+                '** initial values
+                For Each aParameter In sqlcommand.Parameters
+                    If Not aParameter.NotColumn AndAlso (aParameter.Fieldname <> "" And aParameter.Tablename <> "") Then
+                        Dim aTablestore As iormDataStore = Me.GetTableStore(aParameter.Tablename)
+                        If aTablestore.Convert2ColumnData(aParameter.Fieldname, invalue:=aParameter.Value, outvalue:=cvtvalue) Then
+                            aNativeCommand.Parameters(aParameter.ID).value = cvtvalue
+                        Else
+                            CoreMessageHandler(message:=" parameter value could not be converted", arg1:=aParameter.Value, columnname:=aParameter.Fieldname, tablename:=aParameter.Tablename, _
+                                                subname:="adonetdbdriver.RunSqlCommand", messagetype:=otCoreMessageType.InternalError)
+                        End If
+                    Else
+                        If Convert2DBData(invalue:=aParameter.Value, outvalue:=cvtvalue, targetType:=GetTargetTypeFor(aParameter.Datatype)) Then
+                            aNativeCommand.Parameters(aParameter.ID).value = cvtvalue
+                        Else
+                            CoreMessageHandler(message:=" parameter value could not be converted", arg1:=aParameter.Value, _
+                                                subname:="adonetdbdriver.RunSqlCommand", messagetype:=otCoreMessageType.InternalError)
+                        End If
+                    End If
+
+                Next
+                '** Input Parameters 
+                If Not parametervalues Is Nothing Then
+                    ' overwrite the initial values
+                    For Each kvp As KeyValuePair(Of String, Object) In parametervalues
+                        If aNativeCommand.Parameters.Contains(kvp.Key) Then
+                            Dim aParameter = sqlcommand.Parameters.Find(Function(x) x.ID = kvp.Key)
+
+                            If Not aParameter.NotColumn And aParameter.Fieldname <> "" And aParameter.Tablename <> "" Then
+                                Dim aTablestore As iormDataStore = Me.GetTableStore(aParameter.Tablename)
+                                If aTablestore.Convert2ColumnData(aParameter.Fieldname, invalue:=kvp.Value, outvalue:=cvtvalue) Then
+                                    aNativeCommand.Parameters(aParameter.ID).value = cvtvalue
+                                Else
+                                    CoreMessageHandler(message:=" parameter value could not be converted", arg1:=kvp.Value, columnname:=aParameter.Fieldname, tablename:=aParameter.Tablename, _
+                                                        subname:="adonetdbdriver.RunSqlCommand", messagetype:=otCoreMessageType.InternalError)
+                                End If
+                            Else
+                                If Convert2DBData(invalue:=kvp.Value, outvalue:=cvtvalue, targetType:=GetTargetTypeFor(aParameter.Datatype)) Then
+                                    aNativeCommand.Parameters(aParameter.ID).value = cvtvalue
+                                Else
+                                    CoreMessageHandler(message:=" parameter value could not be converted", arg1:=kvp.Value, _
+                                                        subname:="adonetdbdriver.RunSqlCommand", messagetype:=otCoreMessageType.InternalError)
+                                End If
+
+                            End If
+
+                        End If
+                    Next
+                End If
+
+                '''
+                ''' execute
+                Dim result As Integer = aNativeCommand.ExecuteNonQuery()
+
+                '****
+                '**** CHECK HERE IF WE CAN TAKE A CACHED DATATABLE FOR THE SQL SELECT
+                '****
+                If sqlcommand.TableIDs.Count = 1 Then
+                    atableid = sqlcommand.TableIDs.First
+                    Dim aTablestore As iormDataStore = Me.GetTableStore(sqlcommand.TableIDs.First)
+                    If aTablestore.HasProperty(ormTableStore.ConstTPNCacheProperty) Then
+                        '*** BRANCH OUT BUT NOT RETURN !
+                        '' RunSqlCommandCached(sqlcommand:=sqlcommand, parametervalues:=parametervalues, nativeConnection:=nativeConnection)
+                        ' DATATABLE Doesnot accept general SQL Statements
+                        ' this means that we have to recache at the end
+                        DirectCast(aTablestore, adonetTableStore).InitializeCache(force:=True)
+                    End If
+                End If
+
+                Return True
+
+            Catch ex As OleDb.OleDbException
+                Call CoreMessageHandler(exception:=ex, subname:="adonetDBDriver.runSqlCommand", arg1:=sqlcommand.SqlText, messagetype:=otCoreMessageType.InternalException)
+                If Not aDataReader Is Nothing Then aDataReader.Close()
+                Return False
+            Catch ex As SqlException
+                Call CoreMessageHandler(exception:=ex, subname:="adonetDBDriver.runSqlCommand", arg1:=sqlcommand.SqlText, messagetype:=otCoreMessageType.InternalException)
+                If Not aDataReader Is Nothing Then aDataReader.Close()
+                Return False
+            Catch ex As Exception
+                Call CoreMessageHandler(exception:=ex, subname:="adonetDBDriver.runSqlCommand", arg1:=sqlcommand.SqlText, messagetype:=otCoreMessageType.InternalException)
+                If Not aDataReader Is Nothing Then aDataReader.Close()
+                Return False
+            End Try
+
+
+        End Function
+       
         ''' <summary>
         ''' runs a Sql Select Command and returns a List of Records
         ''' </summary>
@@ -1459,10 +1599,12 @@ Namespace OnTrack.Database
         ''' <value>The native connection.</value>
         Friend Overrides ReadOnly Property NativeConnection() As Object
             Get
-                If _nativeConnection Is Nothing Then
+                If _nativeConnection Is Nothing AndAlso Not _Session.IsBootstrappingInstallationRequested Then
                     Return Nothing
-                ElseIf _nativeConnection.State <> ConnectionState.Open Then
+                ElseIf _nativeConnection IsNot Nothing AndAlso _nativeConnection.State <> ConnectionState.Open AndAlso Not _Session.IsBootstrappingInstallationRequested Then
                     Throw New ormNoConnectionException(message:="connection to database lost - state is not open", subname:="adonetConnection.NativeConnection", path:=Me.PathOrAddress)
+                ElseIf _Session.IsBootstrappingInstallationRequested AndAlso _nativeinternalConnection IsNot Nothing Then
+                    Return _nativeinternalConnection
                 Else
                     Return Me._nativeConnection
                 End If

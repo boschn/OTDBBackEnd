@@ -437,7 +437,7 @@ Namespace OnTrack
 
 #Region "Properties"
         ''' <summary>
-        ''' Gets or sets the domain.
+        ''' Gets or sets the domain ID (if setting then the domains will be switched).
         ''' </summary>
         ''' <value>The domain.</value>
         Public Property CurrentDomainID() As String
@@ -445,9 +445,17 @@ Namespace OnTrack
                 Return Me._CurrentDomainID
             End Get
             Set(value As String)
-
                 Call SwitchToDomain(value)
             End Set
+        End Property
+        ''' <summary>
+        ''' Gets  the domain.
+        ''' </summary>
+        ''' <value>The domain.</value>
+        Public ReadOnly Property CurrentDomain() As Domain
+            Get
+                Return Me._CurrentDomain
+            End Get
         End Property
         ''' <summary>
         ''' Gets or sets the default deliverable type ID.
@@ -1130,7 +1138,7 @@ Namespace OnTrack
                         CoreMessageHandler(message:="Operation Name is missing in operation name", arg1:=opname, subname:="Session.validateOTDBAccessLevel", messagetype:=otCoreMessageType.InternalError)
                         result = result And False
                     Else
-                        Dim aObjectDefinition = Me.Objects.GetObject(objectname:=anObjectname, runtimeOnly:=Me.IsBootstrappingInstallationRequested)
+                        Dim aObjectDefinition = Me.Objects.GetObject(objectid:=anObjectname, runtimeOnly:=Me.IsBootstrappingInstallationRequested)
                         If aObjectDefinition Is Nothing And Not Me.IsBootstrappingInstallationRequested Then
                             CoreMessageHandler(message:="Object is missing in object repository", arg1:=opname, subname:="Session.validateOTDBAccessLevel", messagetype:=otCoreMessageType.InternalError)
                             result = result And False
@@ -1291,7 +1299,7 @@ Namespace OnTrack
                     Me.UILogin.PossibleDomains = New List(Of String)
                     Me.UILogin.enableAccess = True
                     Me.UILogin.PossibleRights = AccessRightProperty.GetHigherAccessRequests(accessRequest)
-                    Me.UILogin.Configset = _UseConfigSetName
+                    Me.UILogin.Configset = ot.CurrentConfigSetName
                     Me.UILogin.EnableChangeConfigSet = False
                     Me.UILogin.Accessright = accessRequest
                     If messagetext <> "" Then
@@ -1366,7 +1374,7 @@ Namespace OnTrack
                     Me.UILogin.PossibleDomains = New List(Of String)
                     Me.UILogin.enableAccess = True
                     Me.UILogin.PossibleRights = AccessRightProperty.GetHigherAccessRequests(accessRequest)
-                    Me.UILogin.Configset = _UseConfigSetName
+                    Me.UILogin.Configset = ot.CurrentConfigSetName
                     Me.UILogin.EnableChangeConfigSet = False
                     Me.UILogin.Accessright = accessRequest
                     If messagetext <> "" Then
@@ -2167,7 +2175,8 @@ Namespace OnTrack
     ''' </summary>
     ''' <remarks></remarks>
 
-    <ormObject(id:=SessionLogMessage.ConstObjectID, description:="message generated during an OnTrack session", modulename:=ConstModuleCore, Version:=1)> Public Class SessionLogMessage
+    <ormObject(id:=SessionLogMessage.ConstObjectID, description:="message generated during an OnTrack session", modulename:=ConstModuleCore, Version:=1)> _
+    Public Class SessionLogMessage
         Inherits ormDataObject
         Implements iormPersistable
         Implements iormInfusable
@@ -2239,13 +2248,18 @@ Namespace OnTrack
         <ormEntryMapping(EntryName:=ConstFNtype)> Private _ErrorType As otCoreMessageType
         <ormEntryMapping(EntryName:=ConstFNUsername)> Private _Username As String = ""
         <ormEntryMapping(EntryName:=ConstFNStack)> Private _StackTrace As String = ""
-
-        Private _processed As Boolean = False
-        Private _Exception As Exception
         <ormEntryMapping(EntryName:=ConstFNarg)> Private _Arguments As String = ""
 
+        '** dynamic
+        Private _processed As Boolean = False
+        Private _Exception As Exception
+
+        ''' <summary>
+        ''' constructor
+        ''' </summary>
+        ''' <remarks></remarks>
         Public Sub New()
-            Call MyBase.New(ConstTableID)
+            Call MyBase.New()
             _ErrorType = otCoreMessageType.ApplicationInfo
             _Timestamp = DateTime.Now()
         End Sub
@@ -2460,35 +2474,30 @@ Namespace OnTrack
         End Property
 #End Region
 
-        '''
-#Region "DataObject"
-        ''' <summary>
-        ''' create the schema for this object
-        ''' </summary>
-        ''' <param name="silent"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Shared Function CreateSchema(Optional silent As Boolean = True) As Boolean
-            Return ormDataObject.CreateDataObjectSchema(Of SessionLogMessage)()
-        End Function
+
 
         ''' <summary>
         ''' create a persistable Error
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Function Create(ByVal sessiontag As String, ByVal entryno As Long) As Boolean
+        Public Shared Function CreateDataObject(ByVal sessiontag As String, ByVal entryno As Long) As SessionLogMessage
             Dim primarykey() As Object = {sessiontag, entryno}
             ' create
-            If MyBase.Create(primarykey, checkUnique:=False, runtimeOnly:=True) Then
-                _tag = sessiontag
-                _entryno = entryno
-                Return Me.IsCreated
-            Else
-                Return False
-            End If
+            Return ormDataObject.CreateDataObject(Of SessionLogMessage)(primarykey, checkUnique:=False, runtimeOnly:=True)
         End Function
 
+        ''' <summary>
+        ''' create an object after it was used
+        ''' </summary>
+        ''' <param name="sessiontag"></param>
+        ''' <param name="entryno"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function Create(ByVal sessiontag As String, ByVal entryno As Long) As Boolean
+            Dim primarykey() As Object = {sessiontag, entryno}
+            Return MyBase.Create(primarykey, checkUnique:=False, runtimeOnly:=True)
+        End Function
         ''' <summary>
         ''' load and infuse the object by primary key
         ''' </summary>
@@ -2496,21 +2505,13 @@ Namespace OnTrack
         ''' <param name="entryname"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Function Inject(ByVal sessiontag As String, ByVal entryno As Long) As Boolean
+        Public Shared Function Retrieve(ByVal sessiontag As String, ByVal entryno As Long) As SessionLogMessage
             Dim primarykey() As Object = {sessiontag, entryno}
-            Return MyBase.Inject(primarykey)
-        End Function
-        ''' <summary>
-        ''' Persist the data object to the datastore
-        ''' </summary>
-        ''' <param name="timestamp"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Overloads Function Persist(Optional timestamp As Date = ot.ConstNullDate) As Boolean
-            Return MyBase.Persist(timestamp)
+            Return ormDataObject.Retrieve(Of SessionLogMessage)(pkArray:=primarykey)
         End Function
 
-#End Region
+
+
         ''' <summary>
         ''' clone the error
         ''' </summary>
@@ -2757,11 +2758,9 @@ Namespace OnTrack
 
                 SyncLock _lockObject
                     For Each anError As SessionLogMessage In _log.Values
-                        If Not anError.Processed Then
-                            If anError.Create(sessiontag:=_tag, entryno:=anError.Entryno) Then
-                                anError.Persist()
-                                anError.Processed = True ' do not again
-                            End If
+                        If Not anError.Processed And anError.IsAlive Then
+                            anError.Persist()
+                            anError.Processed = True ' do not again
                         End If
                     Next
                 End SyncLock

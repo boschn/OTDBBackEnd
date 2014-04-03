@@ -32,7 +32,8 @@ Namespace OnTrack.Parts
     ''' part and assembly definition with reference link to deliverables
     ''' </summary>
     ''' <remarks></remarks>
-    <ormObject(id:=Part.ConstObjectID, description:="part and assembly definition with reference link to deliverables", modulename:=ConstModuleParts, Version:=1)> _
+    <ormObject(id:=Part.ConstObjectID, description:="part and assembly definition with reference link to deliverables", _
+        modulename:=ConstModuleParts, Version:=1, AdddeleteFieldBehavior:=True)> _
     Public Class Part
         Inherits ormDataObject
         Implements iormInfusable
@@ -41,7 +42,7 @@ Namespace OnTrack.Parts
         Public Const ConstObjectID = "Part"
 
         '*** SCHEMA TABLE
-        <ormSchemaTable(Version:=2, AdddeleteFieldBehavior:=True, addsparefields:=True)> Public Const ConstTableID As String = "tblParts"
+        <ormSchemaTable(Version:=2)> Public Const ConstTableID As String = "tblParts"
 
         '*** Primary key
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, primarykeyOrdinal:=1, _
@@ -56,39 +57,67 @@ Namespace OnTrack.Parts
         <ormSchemaIndex(columnName1:=ConstFNDomainID, columnname2:=ConstFNPartID, columnname3:=ConstFNIsDeleted)> Public Const constIndexDomain = "indDomains"
 
         '*** Fields
-        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
-        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=150, _
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=150, isnullable:=True, _
             XID:="pt2", Title:="Description", description:="description of the part")> Public Const ConstFNDescription = "desc"
-        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=150, _
+
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=150, isnullable:=True, _
            XID:="pt3", aliases:={"DLV31"}, Title:="Workpackage", description:="workpackage of the part")> Public Const ConstFNWorkpackage = "wkpk"
+
         <ormObjectEntry(referenceobjectentry:=OnTrack.Workspace.ConstObjectID & "." & OnTrack.Workspace.ConstFNID, _
            Description:="workspaceID ID of the part")> Public Const ConstFNWorkspace = OnTrack.Workspace.ConstFNID
+
         <ormObjectEntry(referenceobjectentry:=Deliverables.Deliverable.ConstObjectID & "." & Deliverables.Deliverable.constFNUid, isnullable:=True, _
            XID:="DLV1", aliases:={"UID"}, Description:="deliverable UID of the part")> Public Const ConstFNDeliverableUID = Deliverables.Deliverable.constFNUid
-        <ormObjectEntry(referenceobjectentry:=OrgUnit.ConstObjectID & "." & OrgUnit.ConstFNID, _
+
+        <ormObjectEntry(referenceobjectentry:=OrgUnit.ConstObjectID & "." & OrgUnit.ConstFNID, isnullable:=True, _
             XID:="pt4", Title:="Responsible", description:="responsible person for the deliverable", XID:="DLV16")> Public Const constFNResponsiblePerson = "resp"
-        <ormObjectEntry(referenceobjectentry:=OrgUnit.ConstObjectID & "." & OrgUnit.ConstFNID, _
+
+        <ormObjectEntry(referenceobjectentry:=OrgUnit.ConstObjectID & "." & OrgUnit.ConstFNID, isnullable:=True, _
             XID:="pt5", title:="Responsible OrgUnit", description:=" organization unit responsible for the part", XID:="")> Public Const constFNRespOU = "respou"
-        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, _
+
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, isnullable:=True, _
             XID:="pt6", title:="Type", description:="type of the part", XID:="DLV13")> Public Const constFNTypeID = "typeid"
-        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=150, _
+
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=150, isnullable:=True, _
             XID:="pt7", title:="Category", description:="category of the part", XID:="DLV13")> Public Const constFNCategory = "cat"
-        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, defaultValue:="", _
+
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, isnullable:=True, _
             XID:="pt8", title:="blocking item reference", description:="blocking item reference id for the deliverable", aliases:={"DLV17"})> Public Const constFNBlockingItemReference = "blitemid"
-        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, defaultValue:="", _
+
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, isnullable:=True, _
             XID:="pt9", aliases:={"dlv8"}, title:="Change Reference", description:="change reference of the deliverable")> Public Const constFNChangeRef = "chref"
-        <ormObjectEntry(typeid:=otFieldDataType.Memo, defaultValue:="", _
+
+        <ormObjectEntry(typeid:=otFieldDataType.Memo, isnullable:=True, _
             XID:="pt10", title:="comment", description:="comments of the part", XID:="DLV18")> Public Const constFNComment = "cmt"
-        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, defaultValue:="", _
+
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, isnullable:=True, _
             XID:="pt11", title:="Matchcode", description:="match code of the part")> Public Const constFNMatchCode = "matchcode"
-        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, defaultValue:="", _
+
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, isnullable:=True, _
              XID:="pt12", Title:="Function", description:="function of the deliverable")> Public Const constFNFunction = "function"
 
-        <ormObjectEntry(referenceObjectEntry:=ObjectLogMessage.ConstObjectID & "." & ObjectLogMessage.ConstFNTag)> Public Const ConstFNmsglogtag = ObjectLogMessage.ConstFNTag
-        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=255, defaultValue:="", _
+        <ormObjectEntry(referenceObjectEntry:=ObjectLogMessage.ConstObjectID & "." & ObjectLogMessage.ConstFNTag, isnullable:=True)> _
+        Public Const ConstFNmsglogtag = ObjectLogMessage.ConstFNTag
+
+        <ormObjectEntry(typeid:=otFieldDataType.Text, isnullable:=True, _
             title:="ConfigTag", description:="config tag for the part")> Public Const constFNConfigTag = "cnftag"
-        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=255, defaultValue:="", _
+
+        <ormObjectEntry(typeid:=otFieldDataType.Text, isnullable:=True, _
             title:="ActivityTag", description:="activity tag for the part")> Public Const constFNActiveTag = "acttag"
+
+        ' change FK Action since we have the workspace as FK (leads also to domians)
+        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, _
+            isnullable:=True, _
+            dbdefaultvalue:=ConstGlobalDomain, _
+            useforeignkey:=otForeignKeyImplementation.ORM, _
+            foreignkeyProperties:={ForeignKeyProperty.OnDelete & "(" & ForeignKeyActionProperty.SetDefault & ")", _
+                                   ForeignKeyProperty.OnUpdate & "(" & ForeignKeyActionProperty.Cascade & ")"})> _
+        Public Const ConstFNDomain = "DOMAIN" '' different name since we donot want to get it deactivated due to missing domain behavior
+
+        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, _
+             description:="not used and should be not active", _
+          useforeignkey:=otForeignKeyImplementation.None)> _
+        Public Const ConstFNDomainID = Domain.ConstFNDomainID  '' const not overidable
 
         '*** Mappings
         <ormEntryMapping(EntryName:=ConstFNDescription)> Private _description As String
@@ -108,6 +137,7 @@ Namespace OnTrack.Parts
         <ormEntryMapping(EntryName:=constFNMatchCode)> Private _matchcode As String
         <ormEntryMapping(EntryName:=constFNConfigTag)> Private _configtag As String
         <ormEntryMapping(EntryName:=constFNActiveTag)> Private _activetag As String
+        <ormEntryMapping(EntryName:=ConstFNDomain)> Private _domainid As String
         ' dynamic
         Private s_interfaceCollection As New Collection
 
@@ -133,6 +163,20 @@ Namespace OnTrack.Parts
                 PartID = _partID
             End Get
 
+        End Property
+        ''' <summary>
+        ''' sets or gets the domain id
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Overrides Property Domainid() As String
+            Get
+                Return _domainid
+            End Get
+            Set(value As String)
+                SetValue(ConstFNDomain, value)
+            End Set
         End Property
         ''' <summary>
         ''' sets or gets the linkes Deliverable UID
@@ -816,7 +860,7 @@ error_handler:
             Dim aCollection As List(Of Deliverable)
             Dim aDocument As Deliverable
 
-            If me.isloaded Then
+            If Me.IsLoaded Then
                 ' get the Table from the Factory
                 aCollection = aDeliverable.AllByPnid(Me.PartID)
                 If Not aCollection Is Nothing And aCollection.Count > 0 Then
@@ -837,7 +881,7 @@ error_handler:
             Dim substrings() As String
 
             On Error GoTo error_handler
-            If me.isloaded Then
+            If Me.IsLoaded Then
                 substrings = Split(Me.PartID, "-")
                 If UBound(substrings) < 3 And UBound(substrings) > 0 Then
                     assycode = Mid(substrings(1), 1, 2) & "." & Mid(substrings(1), 3, 2) & "." & Mid(substrings(1), 5, 2)
@@ -869,7 +913,7 @@ error_handler:
             Throw New NotImplementedException()
 
 
-            If me.isloaded Then
+            If Me.IsLoaded Then
 
                 ourAssyCode = Me.GetAssycode()
                 'get the interfaces
@@ -937,7 +981,7 @@ error_handler:
             Dim aDir As New Dictionary(Of String, Object)
             Dim flag As Boolean
 
-            If me.isloaded Then
+            If Me.IsLoaded Then
 
                 'get AssyCode of this Assy
                 ourAssyCode = Me.GetAssycode()
@@ -1038,7 +1082,7 @@ error_handler:
             If reload Or s_interfaceCollection.Count = 0 Then
             End If
 
-            If me.isloaded Then
+            If Me.IsLoaded Then
                 selectCartypes = Me.GetCartypes
                 If Me.GetCartypes.nousedCars = 0 Then
                     Call CoreMessageHandler(subname:="Part.getInterfaces", message:="cartypes are not selected for any car", break:=False)
@@ -1058,7 +1102,7 @@ error_handler:
         '****** getDeliverables return the Documents in a Collection
         '******
         Public Function GetDeliverables() As List(Of Deliverable)
-            If me.isloaded Then
+            If Me.IsLoaded Then
                 ' get the Table from the Factory
                 Return Deliverable.AllByPnid(partid:=Me.PartID)
             Else
@@ -1074,7 +1118,7 @@ error_handler:
             Dim i As Integer
             Dim ourCartypes As clsCartypes
 
-            If Not me.isloaded And Not Me.IsCreated Then
+            If Not Me.IsLoaded And Not Me.IsCreated Then
                 MatchWithCartypes = False
             End If
 
@@ -1103,7 +1147,7 @@ error_handler:
             Dim fieldname As String
 
 
-            If Not me.isloaded Then
+            If Not Me.IsLoaded Then
                 GetCartypes = Nothing
                 Exit Function
             End If
@@ -1144,7 +1188,7 @@ error_handler:
         '*********
         Public Function GetPrecode() As String
 
-            If me.isloaded Or Me.IsCreated Then
+            If Me.IsLoaded Or Me.IsCreated Then
                 GetPrecode = Mid(Me.PartID, 1, 1) & "." & UCase(Mid(Me.PartID, 2, 3)) & "-"
             Else
                 GetPrecode = ""

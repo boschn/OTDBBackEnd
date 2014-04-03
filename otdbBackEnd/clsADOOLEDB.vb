@@ -623,19 +623,19 @@ Namespace OnTrack.Database
                     Case otFieldDataType.Time
                         aParameter.Value = ot.ConstNullTime
                     Case otFieldDataType.List
-                        If maxsize = 0 Then aParameter.Size = Const_MaxTextSize
+                        If maxsize = 0 Then aParameter.Size = ConstDBDriverMaxTextSize
                         aParameter.Value = ""
                     Case otFieldDataType.[Long]
                         aParameter.Value = 0
                     Case otFieldDataType.Memo
-                        If maxsize = 0 Then aParameter.Size = Const_MaxMemoSize
+                        If maxsize = 0 Then aParameter.Size = constDBDriverMaxMemoSize
                         aParameter.Value = ""
                     Case otFieldDataType.Numeric
                         aParameter.Value = 0
                     Case otFieldDataType.Timestamp
                         aParameter.Value = ConstNullDate
                     Case otFieldDataType.Text
-                        If maxsize = 0 Then aParameter.Size = Const_MaxTextSize
+                        If maxsize = 0 Then aParameter.Size = ConstDBDriverMaxTextSize
                         aParameter.Value = ""
 
                 End Select
@@ -1373,14 +1373,14 @@ Namespace OnTrack.Database
                             If Me.DatabaseType = otDBServerType.Access Then
                                 aStatement &= " MEMO "
                             Else
-                                aStatement &= " NVARCHAR(" & Const_MaxMemoSize.ToString & ")"
+                                aStatement &= " NVARCHAR(" & constDBDriverMaxMemoSize.ToString & ")"
                             End If
                         Case otFieldDataType.Numeric
                             aStatement &= " FLOAT "
                         Case otFieldDataType.Text, otFieldDataType.List
                             aStatement &= " NVARCHAR("
-                            If columndefinition.Size = 0 Then
-                                aStatement &= Const_MaxTextSize.ToString
+                            If Not columndefinition.Size.HasValue Then
+                                aStatement &= ConstDBDriverMaxTextSize.ToString
                                 aStatement &= ")"
                             ElseIf Me.DatabaseType = otDBServerType.Access And columndefinition.Size <= 255 Then
                                 aStatement &= columndefinition.Size.ToString
@@ -1840,7 +1840,7 @@ Namespace OnTrack.Database
                 '** set the length
                 If isNativeDBTypeOfVar(aDBColumnDescription.DataType) Then
                     If aDBColumnDescription.CharacterMaxLength = 0 Then
-                        aParameter.Size = Const_MaxMemoSize
+                        aParameter.Size = constDBDriverMaxMemoSize
                     Else
                         aParameter.Size = aDBColumnDescription.CharacterMaxLength
                     End If

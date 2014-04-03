@@ -112,6 +112,7 @@
     <Compile Include="clsCoreClassRepository.vb" />
     <Compile Include="clsCoreORMCache.vb" />
     <Compile Include="clsCoreORMDataObject.vb" />
+    <Compile Include="clsCoreORMValidator.vb" />
     <Compile Include="clsCorePropertyFunctions.vb" />
     <Compile Include="clsCoreUI.vb" />
     <Compile Include="clsCoreUIDataModel.vb">

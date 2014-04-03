@@ -30,19 +30,21 @@ Namespace OnTrack.Scheduling
     ''' </summary>
     ''' <remarks></remarks>
     <ormObject(version:=1, ID:=MileStoneDefinition.ConstObjectID, Modulename:=ConstModuleScheduling, _
-        Description:="definition of milestones for all schedule types", useCache:=True)> _
+        Description:="definition of milestones for all schedule types", useCache:=True, addDomainBehavior:=True, adddeletefieldbehavior:=True)> _
     Public Class MileStoneDefinition
         Inherits ormDataObject
         Implements iormPersistable
         Implements iormInfusable
 
         Public Const ConstObjectID = "MilestoneDefinition"
-        <ormSchemaTable(version:=2, addDomainBehavior:=True, addsparefields:=True, adddeletefieldbehavior:=True)> Public Const ConstTableID As String = "tblDefMilestones"
+        <ormSchemaTable(version:=2, usecache:=True)> Public Const ConstTableID As String = "tblDefMilestones"
 
         '** keys
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=20, defaultValue:="", primarykeyordinal:=1, _
             XID:="bpd1", title:="ID", description:="id of the milestone")> Public Const ConstFNID = "id"
-        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=2)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
+        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=2, _
+            useforeignkey:=otForeignKeyImplementation.NativeDatabase)> _
+        Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
         '** fields
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=255, _
@@ -1201,7 +1203,8 @@ Namespace OnTrack.Scheduling
     ''' </summary>
     ''' <remarks></remarks>
     <ormObject(id:=ScheduleMilestoneDefinition.ConstObjectID, modulename:=ConstModuleScheduling, _
-        Version:=1, description:="declaration of milestones specific in a schedule type", useCache:=True)> _
+        Version:=1, description:="declaration of milestones specific in a schedule type", _
+        addDomainBehavior:=True, adddeletefieldbehavior:=True, useCache:=True)> _
     Public Class ScheduleMilestoneDefinition
         Inherits ormDataObject
         Implements iormPersistable
@@ -1210,7 +1213,7 @@ Namespace OnTrack.Scheduling
         Public Const ConstObjectID = "ScheduleMilestoneDefinition"
 
         '** Schema Table
-        <ormSchemaTable(version:=2, addDomainBehavior:=True, adddeletefieldbehavior:=True, addSpareFields:=True)> Public Const ConstTableID As String = "tblDefScheduleMilestones"
+        <ormSchemaTable(version:=2, usecache:=True)> Public Const ConstTableID As String = "tblDefScheduleMilestones"
         '*** Index
         <ormSchemaIndex(columnname1:=ConstFNType, columnname2:=ConstFNOrderNo)> Public Const ConstIndOrder = "orderby"
 
@@ -1219,7 +1222,8 @@ Namespace OnTrack.Scheduling
             description:=" type of schedule definition")> Public Const ConstFNType = "scheduletype"
         <ormObjectEntry(XID:="BPD1", typeid:=otFieldDataType.Text, size:=50, primaryKeyordinal:=2, title:="milestone id", _
             description:=" id of milestone in schedule")> Public Const ConstFNID = "id"
-        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=3, useforeignkey:=otForeignKeyImplementation.NativeDatabase)> _
+        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=3, _
+            useforeignkey:=otForeignKeyImplementation.NativeDatabase)> _
         Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
         '*** fields
@@ -1694,7 +1698,7 @@ Namespace OnTrack.Scheduling
         Public Function Persist(Optional timestamp As Date = ot.ConstNullDate) As Boolean
             Dim aDefMS As MileStoneDefinition
             Dim aCompDesc As New ormCompoundDesc
-            Dim aSchemaDefTable As ObjectDefinition = CurrentSession.Objects.GetObject(objectname:=Schedule.ConstTableID)
+            Dim aSchemaDefTable As ObjectDefinition = CurrentSession.Objects.GetObject(objectid:=Schedule.ConstTableID)
 
             '* init
             If Not Me.IsInitialized Then
@@ -1703,7 +1707,7 @@ Namespace OnTrack.Scheduling
                     Exit Function
                 End If
             End If
-            If Not Me.isloaded And Not Me.IsCreated Then
+            If Not Me.IsLoaded And Not Me.IsCreated Then
                 Persist = False
                 Exit Function
             End If
@@ -1824,7 +1828,7 @@ Namespace OnTrack.Scheduling
     ''' </summary>
     ''' <remarks></remarks>
     <ormObject(id:=ScheduleDefinition.ConstObjectID, modulename:=ConstModuleScheduling, Version:=1, _
-        description:="definition of schedules (types)", useCache:=True)> Public Class ScheduleDefinition
+        description:="definition of schedules (types)", useCache:=True, adddeletefieldbehavior:=True, addDomainBehavior:=True)> Public Class ScheduleDefinition
         Inherits ormDataObject
         Implements iormPersistable
         Implements iormInfusable
@@ -1832,11 +1836,17 @@ Namespace OnTrack.Scheduling
         Public Const ConstObjectID = "ScheduleDefinition"
 
         '*** Schema Tabble
-        <ormSchemaTable(version:=2, adddeletefieldbehavior:=True, addDomainBehavior:=True)> Public Const ConstTableID = "tblDefSchedules"
+        <ormSchemaTable(version:=2, usecache:=True)> Public Const ConstTableID = "tblDefSchedules"
 
-        '*** Keys
+        ''' <summary>
+        ''' keys
+        ''' </summary>
+        ''' <remarks></remarks>
         <ormObjectEntry(typeid:=otFieldDataType.Text, title:="unique ID", size:=50, Description:="Unique ID of the schedule type definition", _
             primaryKeyordinal:=1, id:="SCT1", aliases:={"bs4"})> Public Const ConstFNType = "scheduletype"
+
+        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=2, _
+           useforeignkey:=otForeignKeyImplementation.NativeDatabase)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
         '** Fields
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=255, title:="description", Description:="description of the schedule definition", _
@@ -1937,7 +1947,7 @@ Namespace OnTrack.Scheduling
             Dim posno As Long
 
             ' Nothing
-            If Not Me.isloaded And Not Me.IsCreated Then
+            If Not Me.IsLoaded And Not Me.IsCreated Then
                 AddMilestoneByID = False
                 Exit Function
             End If
@@ -1974,7 +1984,7 @@ Namespace OnTrack.Scheduling
             Dim m As Object
 
             ' Nothing
-            If Not Me.isloaded And Not Me.IsCreated Then
+            If Not Me.IsLoaded And Not Me.IsCreated Then
                 AddMember = False
                 Exit Function
             End If
@@ -2021,7 +2031,7 @@ Namespace OnTrack.Scheduling
             Dim initialEntry As New ScheduleMilestoneDefinition
             Dim m As Object
 
-            If Not Me.IsCreated And Not Me.isloaded Then
+            If Not Me.IsCreated And Not Me.IsLoaded Then
                 Delete = False
                 Exit Function
             End If
@@ -2057,7 +2067,7 @@ Namespace OnTrack.Scheduling
             Dim i As Integer
             Dim m As Object
 
-            If Not Me.IsCreated And Not Me.isloaded Then
+            If Not Me.IsCreated And Not Me.IsLoaded Then
                 Orderno = orders
                 Exit Function
             End If
@@ -2089,7 +2099,7 @@ Namespace OnTrack.Scheduling
             Dim order() As Object
 
 
-            If Not Me.IsCreated And Not Me.isloaded Then
+            If Not Me.IsCreated And Not Me.IsLoaded Then
                 MembersByOrderNo = Nothing
                 Exit Function
             End If
@@ -2125,7 +2135,7 @@ Namespace OnTrack.Scheduling
             Dim m As Object
             Dim i As Integer
 
-            If Not Me.IsCreated And Not Me.isloaded Then
+            If Not Me.IsCreated And Not Me.IsLoaded Then
                 Members = Nothing
                 Exit Function
             End If
@@ -2343,7 +2353,9 @@ Namespace OnTrack.Scheduling
     ''' schedule class
     ''' </summary>
     ''' <remarks></remarks>
-    <ormObject(Version:=1, ID:=Schedule.ConstObjectID, modulename:=constModuleScheduling, Title:="Schedule", Description:="schedules for business objects")> _
+    <ormObject(Version:=1, ID:=Schedule.ConstObjectID, modulename:=ConstModuleScheduling, _
+        addDomainBehavior:=False, AddDeleteFieldBehavior:=True, _
+        Title:="Schedule", Description:="schedules for business objects")> _
     Public Class Schedule
         Inherits ormDataObject
         Implements iotXChangeable
@@ -2355,8 +2367,7 @@ Namespace OnTrack.Scheduling
         Public Const ConstObjectID = "Schedule"
 
         '** Schema Table
-        <ormSchemaTableAttribute(Version:=2, addDomainBehavior:=False, AddDeleteFieldBehavior:=True, addsparefields:=True)> _
-        Public Const ConstTableID = "tblschedules"
+        <ormSchemaTableAttribute(Version:=2)> Public Const ConstTableID = "tblschedules"
         '** Indexes
         <ormSchemaIndexAttribute(columnname1:=ConstFNWorkspace, columnname2:=ConstFNUid, columnname3:=ConstFNUpdc)> Public Const ConstIndexWS = "workspaceID"
         <ormSchemaIndexAttribute(columnname1:=ConstFNUid)> Public Const ConstIndexUID = "uidIndex"
@@ -2376,14 +2387,9 @@ Namespace OnTrack.Scheduling
              foreignkeyProperties:={ForeignKeyProperty.OnDelete & "(" & ForeignKeyActionProperty.NOOP & ")", _
                                    ForeignKeyProperty.OnUpdate & "(" & ForeignKeyActionProperty.NOOP & ")"})> Public Const ConstFNWorkspace = Workspace.ConstFNID
 
-        ' change FK Action since we have the workspace as FK (leads also to domians)
+        ' deactivate ForeignKEy we do not have this object in domains
         <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, _
-            title:="Domain", description:="domain of the business Object", _
-            defaultvalue:=ConstGlobalDomain, _
-            useforeignkey:=otForeignKeyImplementation.NativeDatabase, _
-            foreignkeyProperties:={ForeignKeyProperty.OnDelete & "(" & ForeignKeyActionProperty.NOOP & ")", _
-                                   ForeignKeyProperty.OnUpdate & "(" & ForeignKeyActionProperty.NOOP & ")"})> _
-        Public Const ConstFNDomainID = Domain.ConstFNDomainID
+            useforeignkey:=otForeignKeyImplementation.None)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, title:="revision", Description:="revision of the schedule", _
             XID:="SC5", aliases:={"BS2"}, Defaultvalue:="")> Public Const ConstFNPlanRev = "plrev"
@@ -3120,7 +3126,7 @@ Namespace OnTrack.Scheduling
             Dim aDate As Object
             Dim actDate As Object
 
-            If Not Me.isloaded And Not Me.IsCreated Then
+            If Not Me.IsLoaded And Not Me.IsCreated Then
                 MoveMilestone = False
                 Exit Function
             End If
@@ -3193,7 +3199,7 @@ Namespace OnTrack.Scheduling
             Dim aDate As Object
             Dim actDate As Object
 
-            If Not Me.isloaded And Not Me.IsCreated Then
+            If Not Me.IsLoaded And Not Me.IsCreated Then
                 MoveSchedule = False
                 Exit Function
             End If
@@ -3248,7 +3254,7 @@ Namespace OnTrack.Scheduling
             Dim aScheduleMSDef As New ScheduleMilestoneDefinition
             Dim aMilestoneDef As New MileStoneDefinition
 
-            If Not Me.isloaded And Not Me.IsCreated Then
+            If Not Me.IsLoaded And Not Me.IsCreated Then
                 GetDefScheduleMSbyOrder = Nothing
                 Exit Function
             End If
@@ -3713,7 +3719,7 @@ Namespace OnTrack.Scheduling
         Public Function AddMilestone(ByRef milestone As ScheduleMilestone) As Boolean
 
             ' Nothing
-            If Not Me.isloaded And Not Me.IsCreated Then
+            If Not Me.IsLoaded And Not Me.IsCreated Then
                 Return False
             End If
 
@@ -3806,7 +3812,7 @@ Namespace OnTrack.Scheduling
             If updc = 0 Then
                 If Not Me.GetMaxUpdc(max:=updc, workspaceID:=workspaceID) Then
                     Call CoreMessageHandler(message:=" primary key values could not be created - cannot create object", arg1:=pkArray, _
-                                            subname:="Schedule.create", tablename:=primaryTableID, messagetype:=otCoreMessageType.InternalError)
+                                            subname:="Schedule.create", tablename:=PrimaryTableID, messagetype:=otCoreMessageType.InternalError)
                     Return False
                 End If
                 '* increase
@@ -3979,7 +3985,7 @@ Namespace OnTrack.Scheduling
         Public Function IsFinished() As Boolean
             Dim aVAlue As Object
 
-            If Me.isloaded Or Me.IsCreated Then
+            If Me.IsLoaded Or Me.IsCreated Then
                 '*** HACK !
                 If s_members.ContainsKey(LCase("bp10")) Then
                     aVAlue = Me.GetMilestoneValue("bp10")
@@ -4011,7 +4017,7 @@ Namespace OnTrack.Scheduling
             Dim aVAlue As Object
             Dim aTimeInterval As New clsTimeInterval
 
-            If Not Me.isloaded And Not Me.IsCreated Then
+            If Not Me.IsLoaded And Not Me.IsCreated Then
                 GetTimeInterval = Nothing
                 Exit Function
             End If
@@ -4607,7 +4613,7 @@ Namespace OnTrack.Scheduling
                 If Updc = 0 Then
                     If Not Me.GetMaxUpdc(max:=pkarray(1), workspaceID:=Me.workspaceID) Then
                         Call CoreMessageHandler(message:="cannot create unique primary key values - abort clone", arg1:=pkarray, _
-                                                     tablename:=primaryTableID, messagetype:=otCoreMessageType.InternalError)
+                                                     tablename:=PrimaryTableID, messagetype:=otCoreMessageType.InternalError)
                         Return Nothing
                     End If
                     pkarray(1) += 1
@@ -5214,7 +5220,7 @@ Namespace OnTrack.Scheduling
             End If
 
             ' generell tests
-            anObject = CHANGECONFIG.ObjectByName(Me.primaryTableID)
+            anObject = CHANGECONFIG.ObjectByName(Me.PrimaryTableID)
             runXPreCheckOLD = CHANGECONFIG.runDefaultXPreCheck(anObject:=anObject, _
                                                             aMapping:=MAPPING, MSGLOG:=MSGLOG)
 
@@ -5314,9 +5320,9 @@ Namespace OnTrack.Scheduling
             End If
             '***
             '*** Add all compounds to the envelope
-            Dim anObjectDef As ObjectDefinition = CurrentSession.Objects.GetObject(objectname:=Me.ConstTableID)
-            For Each anEntry In anObjectDef.Entries
-                Dim anAttribute As Xchange.XConfigAttributeEntry = envelope.Xchangeconfig.AttributeByID(ID:=anEntry.XID, objectname:=Me.ConstTableID)
+            Dim anObjectDef As ObjectDefinition = CurrentSession.Objects.GetObject(objectid:=Me.ObjectID)
+            For Each anEntry In anObjectDef.GetEntries
+                Dim anAttribute As XChange.XConfigAttributeEntry = envelope.Xchangeconfig.AttributeByID(ID:=anEntry.XID, objectname:=Me.ConstTableID)
                 If anAttribute IsNot Nothing AndAlso anAttribute.IsCompound Then
                     '** COMPOUNDS ARE ALWAYS MILESTONES FOR SCHEDULES
                     '**
@@ -5340,7 +5346,8 @@ Namespace OnTrack.Scheduling
     ''' Schedule Milestone Class
     ''' </summary>
     ''' <remarks></remarks>
-    <ormObject(id:=ScheduleMilestone.ConstObjectID, modulename:=constModuleScheduling, Version:=1, description:="milestone data for schedules")> Public Class ScheduleMilestone
+    <ormObject(id:=ScheduleMilestone.ConstObjectID, modulename:=ConstModuleScheduling, Version:=1, adddeletefieldbehavior:=True, _
+        description:="milestone data for schedules")> Public Class ScheduleMilestone
         Inherits ormDataObject
         Implements iormPersistable
         Implements iotCloneable(Of ScheduleMilestone)
@@ -5349,7 +5356,7 @@ Namespace OnTrack.Scheduling
         Public Const ConstObjectID = "ScheduleMilestone"
 
         '** Table
-        <ormSchemaTable(version:=2, adddeletefieldbehavior:=True, addsparefields:=True)> Public Const constTableID = "tblScheduleMilestones"
+        <ormSchemaTable(version:=2)> Public Const constTableID = "tblScheduleMilestones"
 
         '** Index
         <ormSchemaIndex(columnname1:=ConstFNUid, columnname2:=ConstFNUpdc)> Public constIndexCompound = ConstDefaultCompoundIndexName
@@ -5392,14 +5399,10 @@ Namespace OnTrack.Scheduling
 
         <ormObjectEntry(referenceObjectEntry:=Workspace.ConstObjectID & "." & Workspace.ConstFNID, _
              Description:="workspaceID ID of the schedule", useforeignkey:=otForeignKeyImplementation.NativeDatabase)> Public Const ConstFNWorkspace = Workspace.ConstFNID
-        ' change FK Action since we have the workspace as FK (leads also to domians)
+
+        ' deactivate ForeignKEy we do not have this object in domains
         <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, _
-            title:="Domain", description:="domain of the business Object", _
-            defaultvalue:=ConstGlobalDomain, _
-            useforeignkey:=otForeignKeyImplementation.NativeDatabase, _
-            foreignkeyProperties:={ForeignKeyProperty.OnDelete & "(" & ForeignKeyActionProperty.NOOP & ")", _
-                                   ForeignKeyProperty.OnUpdate & "(" & ForeignKeyActionProperty.NOOP & ")"})> _
-        Public Const ConstFNDomainID = Domain.ConstFNDomainID
+            useforeignkey:=otForeignKeyImplementation.None)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
         <ormObjectEntry(typeid:=otFieldDataType.Memo, defaultvalue:="", _
                      title:="comment", Description:="comment", XID:="MST14")> Public Const ConstFNcmt = "cmt"
@@ -6105,7 +6108,8 @@ Namespace OnTrack.Scheduling
     ''' the current schedule class links the current schedule updc to a scheduled object 
     ''' </summary>
     ''' <remarks></remarks>
-    <ormObject(id:=ScheduleLink.ConstObjectID, modulename:=constModuleScheduling, Version:=1, description:="link definitions between schedules and other business objects")> _
+    <ormObject(id:=ScheduleLink.ConstObjectID, modulename:=ConstModuleScheduling, Version:=1, adddeletefieldbehavior:=True, _
+        description:="link definitions between schedules and other business objects")> _
     Public Class ScheduleLink
         Inherits ormDataObject
         Implements iormInfusable
@@ -6114,7 +6118,7 @@ Namespace OnTrack.Scheduling
         Public Const ConstObjectID = "ScheduleLink"
 
         '** Schema Table
-        <ormSchemaTable(version:=1, addsparefields:=True, adddeletefieldbehavior:=True)> Public Const ConstTableID = "tblScheduleLinks"
+        <ormSchemaTable(version:=1)> Public Const ConstTableID = "tblScheduleLinks"
 
         '** index
         <ormSchemaIndex(columnname1:=ConstFNToTagObject, columnname2:=ConstFNToTaguid, columnname3:=ConstFNFromTagObject, columnname4:=ConstFNFromTaguid)> Public Const ConstIndTag = "used"
@@ -6134,7 +6138,9 @@ Namespace OnTrack.Scheduling
         <ormObjectEntry(referenceobjectentry:=MileStoneDefinition.ConstObjectID & "." & MileStoneDefinition.ConstFNID, primarykeyordinal:=6, defaultValue:="", _
             XID:="SL6", title:="Linked to Milestone", description:="uid link to the scheduled object milestone")> Public Const ConstFNToMilestone = "2ms"
 
-
+        ' deactivate ForeignKEy we do not have this object in domains
+        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, _
+            useforeignkey:=otForeignKeyImplementation.None)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
         '** fields
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, _
             XID:="SL7", title:="Linke Type", description:="object link type")> Public Const ConstFNTypeID = "typeid"
@@ -6278,7 +6284,9 @@ Namespace OnTrack.Scheduling
     ''' the current schedule class links the current schedule updc  in a given workspace
     ''' </summary>
     ''' <remarks></remarks>
-    <ormObject(id:=CurrentSchedule.ConstObjectID, modulename:=ConstModuleScheduling, Version:=1, description:="pointer declaration (updc) to the current schedule in a workspace")> _
+    <ormObject(id:=CurrentSchedule.ConstObjectID, modulename:=ConstModuleScheduling, Version:=1, _
+        adddeletefieldbehavior:=True, adddomainbehavior:=False, _
+        description:="pointer declaration (updc) to the current schedule in a workspace")> _
     Public Class CurrentSchedule
         Inherits ormDataObject
         Implements iormInfusable
@@ -6286,7 +6294,7 @@ Namespace OnTrack.Scheduling
 
         Public Const ConstObjectID = "CurrentSchedule"
         '** Table Schema
-        <ormSchemaTable(version:=2, adddeletefieldbehavior:=True)> Public Const ConstTableID = "tblCurrSchedule"
+        <ormSchemaTable(version:=2)> Public Const ConstTableID = "tblCurrSchedule"
 
         '** index
         <ormSchemaIndex(columnname1:=ConstFNTagObject, columnname2:=ConstFNTaguid, columnname3:=ConstFNUID, columnname4:=ConstFNWorkspaceID)> Public Const ConstIndTag = "tags"
@@ -6307,12 +6315,7 @@ Namespace OnTrack.Scheduling
 
         ' change FK Action since we have the workspace as FK (leads also to domians)
         <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, _
-            title:="Domain", description:="domain of the business Object", _
-            defaultvalue:=ConstGlobalDomain, _
-            useforeignkey:=otForeignKeyImplementation.NativeDatabase, _
-            foreignkeyProperties:={ForeignKeyProperty.OnDelete & "(" & ForeignKeyActionProperty.NOOP & ")", _
-                                   ForeignKeyProperty.OnUpdate & "(" & ForeignKeyActionProperty.NOOP & ")"})> _
-        Public Const ConstFNDomainID = Domain.ConstFNDomainID
+            useforeignkey:=otForeignKeyImplementation.None)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
         '** Mapping
         <ormEntryMapping(EntryName:=ConstFNWorkspaceID)> Private _workspaceID As String

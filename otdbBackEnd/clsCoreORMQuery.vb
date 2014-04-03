@@ -82,6 +82,11 @@ Namespace OnTrack.Database
         Private _deleted As Boolean?
         Private _isObjectEnumerated = True
 
+        Private _qrystopwatch As New Stopwatch
+        Private _qryStart As DateTime
+        Private _qryEnd As DateTime
+        Private _qrycount As ULong
+
         ''' <summary>
         ''' constructors
         ''' </summary>
@@ -143,110 +148,8 @@ Namespace OnTrack.Database
             End If
             _select = command
         End Sub
-
-        ''' <summary>
-        ''' Gets or sets the is object enumerated.
-        ''' </summary>
-        ''' <value>The is object enumerated.</value>
-        Public Property AreObjectsEnumerated() As Object Implements iormQueriedEnumeration.AreObjectsEnumerated
-            Get
-                Return Me._isObjectEnumerated
-            End Get
-            Private Set(value As Object)
-                Me._isObjectEnumerated = value
-            End Set
-        End Property
-
-        ''' <summary>
-        ''' check the tablenames
-        ''' </summary>
-        ''' <param name="tablenames"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Private Function CheckTablenames(tablenames As IEnumerable(Of String)) As Boolean
-            Dim found As Boolean = False
-
-            If _objecttype Is Nothing Then Return True
-
-            ''' check the tablename
-            ''' 
-            If tablenames IsNot Nothing Then
-                ''' check each tablename
-                For Each tablename In tablenames
-                    Dim theDescriptions = ot.GetObjectClassDescriptionByTable(tablename)
-                    If theDescriptions Is Nothing Then
-                        CoreMessageHandler(message:="The supplied QueriedEnumeration type '" & _objecttype.Name & "' has no class description for table '" & tablename & "'", subname:="ormQueriedEnumeration.CheckTablename", _
-                                          messagetype:=otCoreMessageType.InternalError)
-                        Return False
-                    Else
-                        For Each aDescription In theDescriptions
-                            If Not _otherobjectids.Contains(aDescription.ObjectAttribute.ID) Then _otherobjectids.Add(aDescription.ObjectAttribute.ID)
-                        Next
-                    End If
-                Next
-                ''' conclude
-                ''' 
-                If Not _otherobjectids.Contains(_objectid.ToUpper) Then
-                    CoreMessageHandler(message:="The supplied QueriedEnumeration type '" & _objecttype.Name & "' does not use the table '" & tablenames.ToString & "'", subname:="ormQueriedEnumeration.CheckTablename", _
-                                        messagetype:=otCoreMessageType.InternalError)
-                    Return False
-                End If
-            End If
-        End Function
-
-        ''' <summary>
-        ''' set the Object Type
-        ''' </summary>
-        ''' <param name="type"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Private Function SetObjectType(type As System.Type) As Boolean
-            ''' Check Type
-            ''' 
-            If type.GetInterface(name:=GetType(iormPersistable).Name) IsNot Nothing Then
-                Dim aDescription = ot.GetObjectClassDescription(type)
-                If aDescription Is Nothing Then
-                    Throw New ORMException(message:="The supplied type '" & type.Name & "' has not been found in the Class Repository ")
-                Else
-                    _objectid = aDescription.ObjectAttribute.ID
-                    _objecttype = type
-                    Dim aList As New List(Of String)
-                    For Each anEntry In Me.GetObjectEntries
-                        If anEntry.IsMapped Then aList.Add(anEntry.Entryname)
-                    Next
-                    Me.ObjectEntriesNames = aList
-                    Return True
-                End If
-            Else
-                Throw New ORMException(message:="The supplied type '" & type.Name & "' is not implementing " & GetType(iormPersistable).Name)
-            End If
-        End Function
-        ''' <summary>
-        ''' returns the primary ClassDescription
-        ''' </summary>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Function GetObjectClassDescription() As ObjectClassDescription Implements iormQueriedEnumeration.GetObjectClassDescription
-            Return ot.GetObjectClassDescriptionByID(_objectid)
-        End Function
-        ''' <summary>
-        ''' returns a list of iobject entries returned by this Queried Enumeration
-        ''' </summary>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Function GetObjectEntries() As IEnumerable(Of iormObjectEntry) Implements iormQueriedEnumeration.getObjectEntries
-            Dim anObjectDefinition As ObjectDefinition = CurrentSession.Objects.GetObject(objectname:=_objectid)
-            Return anObjectDefinition.OrderedEntries
-        End Function
-        ''' <summary>
-        ''' returns a list of iobject entries returned by this Queried Enumeration
-        ''' </summary>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Function GetObjectEntry(name As String) As iormObjectEntry Implements iormQueriedEnumeration.GetObjectEntry
-            Dim anObjectDefinition As ObjectDefinition = CurrentSession.Objects.GetObject(objectname:=_objectid)
-            Return anObjectDefinition.GetEntry(entryname:=name)
-        End Function
+       
+#Region "Properties"
         ''' <summary>
         ''' sets entry order for 
         ''' </summary>
@@ -274,36 +177,60 @@ Namespace OnTrack.Database
         End Property
 
         ''' <summary>
-        ''' sets the value of parameter
+        ''' returns the elapsed timespan in milliseconds for the query to fetch all records
         ''' </summary>
-        ''' <param name="name"></param>
-        ''' <param name="value"></param>
+        ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function SetValue(name As String, value As Object) As Boolean Implements iormQueriedEnumeration.setvalue
-            If _parametervalues.ContainsKey(name) Then
-                Return False
-            Else
-                _parametervalues.Add(name, value)
-            End If
-        End Function
+        Public ReadOnly Property QryElapsedMilliseconds As Long
+            Get
+                If _run Then Return _qrystopwatch.ElapsedMilliseconds
+                Return 0
+            End Get
+        End Property
         ''' <summary>
-        ''' sets the value of parameter
+        ''' Gets the qrycount.
         ''' </summary>
-        ''' <param name="name"></param>
-        ''' <param name="value"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Function GetValue(name As String, ByRef value As Object) As Boolean Implements iormQueriedEnumeration.getvalue
-            If _parametervalues.ContainsKey(name) Then
-                value = _parametervalues.Item(key:=name)
-                Return True
-            Else
-                Return False
-            End If
-        End Function
+        ''' <value>The qrycount.</value>
+        Public ReadOnly Property Qrycount() As ULong
+            Get
+                Return Me._qrycount
+            End Get
+        End Property
 
-#Region "Properties"
+        ''' <summary>
+        ''' Gets the qry end.
+        ''' </summary>
+        ''' <value>The qry end.</value>
+        Public ReadOnly Property QryEnd() As DateTime
+            Get
+                Return Me._qryEnd
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Gets the qry start.
+        ''' </summary>
+        ''' <value>The qry start.</value>
+        Public ReadOnly Property QryStart() As DateTime
+            Get
+                Return Me._qryStart
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the is object enumerated.
+        ''' </summary>
+        ''' <value>The is object enumerated.</value>
+        Public Property AreObjectsEnumerated() As Object Implements iormQueriedEnumeration.AreObjectsEnumerated
+            Get
+                Return Me._isObjectEnumerated
+            End Get
+            Private Set(value As Object)
+                Me._isObjectEnumerated = value
+            End Set
+        End Property
+
         ''' <summary>
         ''' returns the size of the records list
         ''' </summary>
@@ -455,6 +382,136 @@ Namespace OnTrack.Database
 
 #End Region
 
+
+        ''' <summary>
+        ''' check the tablenames
+        ''' </summary>
+        ''' <param name="tablenames"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Private Function CheckTablenames(tablenames As IEnumerable(Of String)) As Boolean
+            Dim found As Boolean = False
+
+            If _objecttype Is Nothing Then Return True
+
+            ''' check the tablename
+            ''' 
+            If tablenames IsNot Nothing Then
+                ''' check each tablename
+                For Each tablename In tablenames
+                    Dim theDescriptions = ot.GetObjectClassDescriptionByTable(tablename)
+                    If theDescriptions Is Nothing Then
+                        CoreMessageHandler(message:="The supplied QueriedEnumeration type '" & _objecttype.Name & "' has no class description for table '" & tablename & "'", subname:="ormQueriedEnumeration.CheckTablename", _
+                                          messagetype:=otCoreMessageType.InternalError)
+                        Return False
+                    Else
+                        For Each aDescription In theDescriptions
+                            If Not _otherobjectids.Contains(aDescription.ObjectAttribute.ID) Then _otherobjectids.Add(aDescription.ObjectAttribute.ID)
+                        Next
+                    End If
+                Next
+                ''' conclude
+                ''' 
+                If Not _otherobjectids.Contains(_objectid.ToUpper) Then
+                    CoreMessageHandler(message:="The supplied QueriedEnumeration type '" & _objecttype.Name & "' does not use the table '" & tablenames.ToString & "'", subname:="ormQueriedEnumeration.CheckTablename", _
+                                        messagetype:=otCoreMessageType.InternalError)
+                    Return False
+                End If
+            End If
+        End Function
+
+        ''' <summary>
+        ''' set the Object Type
+        ''' </summary>
+        ''' <param name="type"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Private Function SetObjectType(type As System.Type) As Boolean
+            ''' Check Type
+            ''' 
+            If type.GetInterface(name:=GetType(iormPersistable).Name) IsNot Nothing Then
+                Dim aDescription = ot.GetObjectClassDescription(type)
+                If aDescription Is Nothing Then
+                    Throw New ORMException(message:="The supplied type '" & type.Name & "' has not been found in the Class Repository ")
+                Else
+                    _objectid = aDescription.ObjectAttribute.ID
+                    _objecttype = type
+                    Dim aList As New List(Of String)
+                    For Each anEntry In Me.GetObjectEntries
+                        If anEntry.IsMapped Then aList.Add(anEntry.Entryname)
+                    Next
+                    Me.ObjectEntriesNames = aList
+                    Return True
+                End If
+            Else
+                Throw New ORMException(message:="The supplied type '" & type.Name & "' is not implementing " & GetType(iormPersistable).Name)
+            End If
+        End Function
+        ''' <summary>
+        ''' returns the primary ClassDescription
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function GetObjectClassDescription() As ObjectClassDescription Implements iormQueriedEnumeration.GetObjectClassDescription
+            Return ot.GetObjectClassDescriptionByID(_objectid)
+        End Function
+        ''' <summary>
+        ''' returns the primary Object Definition
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function GetObjectDefinition() As ObjectDefinition Implements iormQueriedEnumeration.GetObjectDefinition
+            Return CurrentSession.Objects.GetObject(_objectid)
+        End Function
+        ''' <summary>
+        ''' returns a list of iobject entries returned by this Queried Enumeration
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function GetObjectEntries() As IOrderedEnumerable(Of iormObjectEntry) Implements iormQueriedEnumeration.GetObjectEntries
+            Dim anObjectDefinition As ObjectDefinition = CurrentSession.Objects.GetObject(objectid:=_objectid)
+            Return anObjectDefinition.GetOrderedEntries
+        End Function
+        ''' <summary>
+        ''' returns a list of iobject entries returned by this Queried Enumeration
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function GetObjectEntry(name As String) As iormObjectEntry Implements iormQueriedEnumeration.GetObjectEntry
+            Dim anObjectDefinition As ObjectDefinition = CurrentSession.Objects.GetObject(objectid:=_objectid)
+            Return anObjectDefinition.GetEntry(entryname:=name)
+        End Function
+
+        ''' <summary>
+        ''' sets the value of parameter
+        ''' </summary>
+        ''' <param name="name"></param>
+        ''' <param name="value"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function SetValue(name As String, value As Object) As Boolean Implements iormQueriedEnumeration.setvalue
+            If _parametervalues.ContainsKey(name) Then
+                Return False
+            Else
+                _parametervalues.Add(name, value)
+            End If
+        End Function
+        ''' <summary>
+        ''' sets the value of parameter
+        ''' </summary>
+        ''' <param name="name"></param>
+        ''' <param name="value"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function GetValue(name As String, ByRef value As Object) As Boolean Implements iormQueriedEnumeration.getvalue
+            If _parametervalues.ContainsKey(name) Then
+                value = _parametervalues.Item(key:=name)
+                Return True
+            Else
+                Return False
+            End If
+        End Function
+
         ''' <summary>
         ''' resets the result but not the query itself
         ''' </summary>
@@ -490,6 +547,49 @@ Namespace OnTrack.Database
                         Return newObject
                     End If
                 End If
+            End If
+            Return Nothing
+        End Function
+        ''' <summary>
+        ''' adds object out of the zero-based number or results
+        ''' </summary>
+        ''' <param name="no"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function AddObject(dataobject As iormPersistable, Optional ByRef no As ULong? = Nothing) As Boolean Implements iormQueriedEnumeration.AddObject
+            If Not _run Then
+                If Not Me.Run() Then
+                    CoreMessageHandler(message:="failed to run query", subname:="ormQueriedEnumeration.GetObject", messagetype:=otCoreMessageType.InternalError)
+                    Return False
+                End If
+            End If
+            If _run Then
+                _records.Add(dataobject.Record)
+                If no.HasValue Then no = _records.Count - 1
+            End If
+            Return True
+        End Function
+        ''' <summary>
+        ''' adds object out of the zero-based number or results
+        ''' </summary>
+        ''' <param name="no"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function DeleteObject(no As ULong) As Boolean Implements iormQueriedEnumeration.DeleteObject
+            If Not _run Then
+                If Not Me.Run() Then
+                    CoreMessageHandler(message:="failed to run query", subname:="ormQueriedEnumeration.DeleteObject", messagetype:=otCoreMessageType.InternalError)
+                    Return Nothing
+                End If
+            End If
+            If _run Then
+                Dim newObject As iormPersistable = Activator.CreateInstance(_objecttype)
+                ''' this will get the object from the cache
+                If ormDataObject.InfuseDataObject(_records.ElementAt(no), dataobject:=newObject, mode:=otInfuseMode.OnInject) Then
+                    Return newObject.Delete
+                End If
+                ' keep the record - all references would be lost
+                ' _records.RemoveAt(no)
             End If
             Return Nothing
         End Function
@@ -533,16 +633,24 @@ Namespace OnTrack.Database
                 Dim anObjectDefinition As ObjectDefinition = CurrentSession.Objects.GetObject(_objectid)
                 Dim hasDomainBehavior As Boolean = False
                 If anObjectDefinition Is Nothing Then
-                    hasDomainBehavior = anObjectDefinition.HasDomainBehavior
+                    hasDomainBehavior = anObjectDefinition.ObjectHasDomainBehavior
                 End If
                 ''' run the statement
                 ''' 
+                _qryStart = DateTime.Now
+                _qrystopwatch.Start()
                 Dim aRecordCollection = _select.RunSelect(parametervalues:=_parametervalues)
                 If aRecordCollection Is Nothing Then
                     CoreMessageHandler(message:="no records returned due to previous errors", subname:="ormQueriedEnumeration.Run", arg1:=Me.Id, _
                                         objectname:=_objectid, tablename:=_select.TableIDs.ToString, messagetype:=otCoreMessageType.InternalError)
                     Return False
                 End If
+                _qryEnd = DateTime.Now
+                _qrystopwatch.Stop()
+                _qrycount = aRecordCollection.Count
+                Call CoreMessageHandler(message:="query " & Me.Id & " run on " & Format(QryStart, "yyyy-mm-dd hh:mm:ss") & " for " & _
+                                    _qrystopwatch.ElapsedMilliseconds & " ms and returned " & _qrycount & " records", _
+                                   messagetype:=otCoreMessageType.InternalInfo, subname:="ormQueriedEnumeration.Run")
 
                 If hasDomainBehavior And Domainid <> ConstGlobalDomain Then
 

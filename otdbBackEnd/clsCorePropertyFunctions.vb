@@ -536,7 +536,7 @@ Namespace OnTrack
         Public Const Trim = "TRIM"
         Public Const Capitalize = "CAPITALIZE"
         Public Const Keyword = "KEYWORD"
-
+        Public Const Encrypted = "ENCRYPTED"
         ''' <summary>
         ''' constructor
         ''' </summary>
@@ -587,6 +587,9 @@ Namespace OnTrack
                 Case otObjectEntryProperty.Capitalize
                     [out] = Globalization.CultureInfo.CurrentCulture.TextInfo.ToTitleCase([in].ToString)
                     Return True
+                Case otObjectEntryProperty.Encrypted
+                    [out] = [in].ToString.Trim
+                    Return True
                 Case Else
                     CoreMessageHandler(message:="Property function is not implemented", arg1:=_property.ToString, messagetype:=otCoreMessageType.InternalError, _
                                        subname:="ObjectEntryProperty.Apply")
@@ -612,6 +615,109 @@ Namespace OnTrack
         <Description(ObjectEntryProperty.Trim)> Trim
         <Description(ObjectEntryProperty.Capitalize)> Capitalize
         <Description(ObjectEntryProperty.Keyword)> Keyword
+        <Description(ObjectEntryProperty.Encrypted)> Encrypted
+    End Enum
+
+    ''' <summary>
+    ''' ObjectEntry Validation Property Class
+    ''' </summary>
+    ''' <remarks></remarks>
+    Public Class ObjectValidationProperty
+        Inherits AbstractPropertyFunction(Of otObjectValidationProperty)
+        Public Const Unique = "UNIQUE"
+        Public Const NotEmpty = "NOTEMPTY"
+        ''' <summary>
+        ''' constructor
+        ''' </summary>
+        ''' <param name="propertystring"></param>
+        ''' <remarks></remarks>
+        Public Sub New(propertystring As String)
+            MyBase.New(propertystring:=propertystring)
+        End Sub
+        ''' <summary>
+        ''' Apply the Property function to a value
+        ''' </summary>
+        ''' <param name="in"></param>
+        ''' <param name="out"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function Apply(ByVal [in] As String()) As Boolean
+            Dim result As Boolean = True
+            If [in] Is Nothing Then Return True
+            For i = 0 To [in].Count - 1
+                result = result And Me.Apply([in]:=[in](i))
+            Next
+            Return result
+        End Function
+        ''' <summary>
+        ''' Apply the Property function to a value
+        ''' </summary>
+        ''' <param name="in"></param>
+        ''' <param name="out"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function Apply(ByVal [in] As Object) As Boolean
+            Select Case _property
+                Case otObjectValidationProperty.Unique
+                    Return True
+                Case Else
+                    CoreMessageHandler(message:="Property function is not implemented", arg1:=_property.ToString, messagetype:=otCoreMessageType.InternalError, _
+                                       subname:="ObjectValidationProperty.Apply")
+                    Return False
+            End Select
+        End Function
+        ''' <summary>
+        ''' returns the enumeration value
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function ToEnum() As otObjectValidationProperty
+            Return AbstractPropertyFunction(Of otObjectValidationProperty).ToEnum(_property)
+        End Function
+    End Class
+    ''' <summary>
+    ''' Enumeration of the validation properties
+    ''' </summary>
+    ''' <remarks></remarks>
+    Public Enum otObjectValidationProperty
+        <Description(ObjectValidationProperty.Unique)> Unique
+        <Description(ObjectValidationProperty.NotEmpty)> NotEmpty
+    End Enum
+
+
+    ''' <summary>
+    ''' Render Property Class
+    ''' </summary>
+    ''' <remarks></remarks>
+    Public Class RenderProperty
+        Inherits AbstractPropertyFunction(Of otRenderProperty)
+        Public Const PASSWORD = "PASSWORD"
+
+        ''' <summary>
+        ''' constructor
+        ''' </summary>
+        ''' <param name="propertystring"></param>
+        ''' <remarks></remarks>
+        Public Sub New(propertystring As String)
+            MyBase.New(propertystring:=propertystring)
+        End Sub
+        
+        ''' <summary>
+        ''' returns the enumeration value
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function ToEnum() As otRenderProperty
+            Return AbstractPropertyFunction(Of otRenderProperty).ToEnum(_property)
+        End Function
+    End Class
+    ''' <summary>
+    ''' Enumeration of the validation properties
+    ''' </summary>
+    ''' <remarks></remarks>
+    Public Enum otRenderProperty
+        <Description(RenderProperty.PASSWORD)> Password
+
     End Enum
     '*************************************************************************************
     '*************************************************************************************

@@ -926,7 +926,7 @@ Namespace OnTrack.Database
             Dim result As Boolean = True
 
             For Each anObjectID In objects
-                Dim anObjectDefinition = ot.CurrentSession.Objects.GetObject(objectname:=anObjectID, runtimeOnly:=CurrentSession.IsBootstrappingInstallationRequested)
+                Dim anObjectDefinition = ot.CurrentSession.Objects.GetObject(objectid:=anObjectID, runtimeOnly:=CurrentSession.IsBootstrappingInstallationRequested)
                 If anObjectDefinition IsNot Nothing Then
                     theObjects.Add(anObjectDefinition)
                 End If

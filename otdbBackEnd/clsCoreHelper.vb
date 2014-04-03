@@ -107,7 +107,7 @@ Namespace OnTrack.Database
         ''' <param name="datatype"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Shared Function String2DBType(input As String, datatype As otFieldDataType) As Object
+        Public Shared Function Object2otObject(input As Object, datatype As otFieldDataType) As Object 
             Select Case datatype
                 Case otFieldDataType.Bool
                     If input Is Nothing Then
@@ -180,7 +180,7 @@ Namespace OnTrack.Database
     ''' <remarks></remarks>
     Public Class Reflector
         ''' <summary>
-        ''' returns true if the type is nullable
+        ''' returns true if the type is nullable or string (which is also nullable)
         ''' </summary>
         ''' <param name="myType"></param>
         ''' <returns></returns>
@@ -189,6 +189,15 @@ Namespace OnTrack.Database
             Return ([type] Is GetType(String)) OrElse ([type].IsGenericType) AndAlso ([type].GetGenericTypeDefinition() Is GetType(Nullable(Of )))
         End Function
 
+        ''' <summary>
+        ''' returns true if the type is nullable
+        ''' </summary>
+        ''' <param name="myType"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Shared Function IsNullable(ByVal [type] As Type) As Boolean
+            Return ([type].IsGenericType) AndAlso ([type].GetGenericTypeDefinition() Is GetType(Nullable(Of )))
+        End Function
         ''' <summary>
         ''' create a IList from a Type
         ''' </summary>
@@ -577,14 +586,14 @@ Namespace OnTrack.Database
                     '** avoid loops during startup
                 ElseIf CurrentSession.IsStartingUp AndAlso ot.GetBootStrapObjectClassIDs.Contains(aTargetObjectDescriptor.ID) Then
                     Dim anObjectClassdDescription = ot.GetObjectClassDescriptionByID(id:=aTargetObjectDescriptor.ID)
-                    domainBehavior = anObjectClassdDescription.ObjectAttribute.AddDomainBehaviorFlag
-                    deletebehavior = anObjectClassdDescription.ObjectAttribute.DeleteFieldFlag
+                    domainBehavior = anObjectClassdDescription.ObjectAttribute.AddDomainBehavior
+                    deletebehavior = anObjectClassdDescription.ObjectAttribute.AddDeleteFieldBehavior
 
                     '** normal way
                 Else
-                    Dim anObjectDefinition As ObjectDefinition = ot.CurrentSession.Objects.GetObject(objectname:=aTargetObjectDescriptor.ID)
-                    domainBehavior = anObjectDefinition.DomainBehavior
-                    deletebehavior = anObjectDefinition.DeletePerFlagBehavior
+                    Dim anObjectDefinition As ObjectDefinition = ot.CurrentSession.Objects.GetObject(objectid:=aTargetObjectDescriptor.ID)
+                    domainBehavior = anObjectDefinition.hasDomainBehavior
+                    deletebehavior = anObjectDefinition.HasDeleteFieldBehavior
                 End If
                 theKeyvalues = Reflector.GetValues(dataobject:=dataobject, entrynames:=attribute.FromEntries)
                 Dim wherekey As String = ""
@@ -685,7 +694,147 @@ Namespace OnTrack.Database
 
 
         End Function
+        ''' <summary>
+        ''' deletes related objects from a relation attribute for a object class described by a classdescriptor
+        ''' </summary>
+        ''' <param name="attribute"></param>
+        ''' <param name="dataobject"></param>
+        ''' <param name="classdescriptor"></param>
+        ''' <param name="dbdriver"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Shared Function DeleteRelatedObjects(attribute As ormSchemaRelationAttribute, _
+                                                 dataobject As iormPersistable, _
+                                                 classdescriptor As ObjectClassDescription, _
+                                                 Optional dbdriver As iormDatabaseDriver = Nothing, _
+                                                 Optional timestamp As DateTime? = Nothing) As List(Of iormPersistable)
+            Dim theKeyvalues As New List(Of Object)
+            Dim theObjectList As New List(Of iormPersistable)
+            If dbdriver Is Nothing Then dbdriver = dataobject.DatabaseDriver
+            If dbdriver Is Nothing Then dbdriver = CurrentDBDriver
+            Dim aTargetObjectDescriptor As ObjectClassDescription = ot.GetObjectClassDescription(attribute.LinkObject)
+            Dim aTargetType As System.Type = aTargetObjectDescriptor.Type
 
+            Dim domainBehavior As Boolean
+            Dim deletebehavior As Boolean
+            Dim FNDomainID As String = Domain.ConstFNDomainID
+            Dim FNDeleted As String = ConstFNIsDeleted
+            Dim domainID As String = CurrentSession.CurrentDomainID
+            Dim fromTablename As String = classdescriptor.Tables.First
+            Dim toTablename = aTargetObjectDescriptor.Tables.First ' First Tablename if multiple
+
+
+            '** get the keys althoug determining if TOEntries are by Primarykey is a bit obsolete
+            If Not attribute.HasValueFromEntries OrElse Not attribute.HasValueToEntries Then
+                CoreMessageHandler(message:="relation attribute has nor fromEntries or ToEntries set", _
+                                    arg1:=attribute.Name, objectname:=dataobject.ObjectID, _
+                                     subname:="Reflector.DeleteRelatedObjects", messagetype:=otCoreMessageType.InternalError)
+                Return theObjectList
+            ElseIf attribute.ToEntries.Count > attribute.FromEntries.Count Then
+                CoreMessageHandler(message:="relation attribute has nor mot ToEntries than FromEntries set", _
+                                    arg1:=attribute.Name, objectname:=dataobject.ObjectID, _
+                                     subname:="Reflector.DeleteRelatedObjects", messagetype:=otCoreMessageType.InternalError)
+                Return theObjectList
+
+            End If
+
+            If Not aTargetType.GetInterfaces.Contains(GetType(iormPersistable)) And Not aTargetType.GetInterfaces.Contains(GetType(iormInfusable)) Then
+                CoreMessageHandler(message:="target type has neither iormperistable nor iorminfusable interface", _
+                                   arg1:=attribute.Name, objectname:=dataobject.ObjectID, _
+                                    subname:="Reflector.DeleteRelatedObjects", messagetype:=otCoreMessageType.InternalError)
+                Return theObjectList
+            End If
+            '***
+            Try
+                '** return if we are bootstrapping
+                'If CurrentSession.IsBootstrappingInstallationRequested Then
+                '    CoreMessageHandler(message:="query for relations not possible during bootstrapping installation", _
+                '                        arg1:=attribute.Name, objectname:=dataobject.ObjectID, _
+                '                         subname:="Reflector.DeleteRelatedObjects", messagetype:=otCoreMessageType.InternalWarning)
+                '    Return theObjectList
+
+                '    '** avoid loops during startup
+                'ElseIf CurrentSession.IsStartingUp AndAlso ot.GetBootStrapObjectClassIDs.Contains(aTargetObjectDescriptor.ID) Then
+                '    Dim anObjectClassdDescription = ot.GetObjectClassDescriptionByID(id:=aTargetObjectDescriptor.ID)
+                '    domainBehavior = anObjectClassdDescription.ObjectAttribute.AddDomainBehavior
+                '    deletebehavior = anObjectClassdDescription.ObjectAttribute.AddDeleteFieldBehavior
+
+                '    '** normal way
+                'Else
+                '    Dim anObjectDefinition As ObjectDefinition = ot.CurrentSession.Objects.GetObject(objectid:=aTargetObjectDescriptor.ID)
+                '    domainBehavior = anObjectDefinition.HasDomainBehavior
+                '    deletebehavior = anObjectDefinition.HasDeleteFieldBehavior
+                'End If
+                theKeyvalues = Reflector.GetValues(dataobject:=dataobject, entrynames:=attribute.FromEntries)
+                Dim wherekey As String = ""
+
+                '** get a Store
+                Dim aStore As iormDataStore = dbdriver.GetTableStore(toTablename)
+                Dim aCommand As ormSqlCommand = aStore.CreateSqlCommand(id:="DeleteAllbyRelation_" & attribute.Name)
+                If Not aCommand.Prepared Then
+                    aCommand.DatabaseDriver = dbdriver
+                    Dim aSqlText = String.Format("DELETE FROM {0} WHERE ", toTablename)
+                    ' build the key part
+                    For i = 0 To attribute.ToEntries.Count - 1
+                        If i > 0 Then aSqlText &= " AND "
+                        '** if where is run against select of datatable the tablename is creating an error
+                        aSqlText &= "[" & attribute.ToEntries(i) & "] = @" & attribute.ToEntries(i)
+                    Next
+
+                    If attribute.HasValueLinkJOin Then
+                        aSqlText &= " " & attribute.LinkJoin
+                    End If
+                    '** additional behavior
+                    If timestamp.HasValue Then aSqlText &= " AND [" & ConstFNUpdatedOn & "] < @" & ConstFNUpdatedOn
+                    'If deletebehavior Then aSqlText &= " AND " & FNDeleted & " = @deleted "
+                    'If domainBehavior Then aSqlText &= " AND ([" & FNDomainID & "] = @domainID OR [" & FNDomainID & "] = @globalID)"
+
+                    '** parameters
+                    For i = 0 To attribute.ToEntries.Count - 1
+                        Dim anEntryAttribute As ormObjectEntryAttribute = classdescriptor.GetObjectEntryAttribute(entryname:=attribute.ToEntries(i))
+                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@" & attribute.ToEntries(i), datatype:=anEntryAttribute.Typeid, notColumn:=True))
+                    Next
+                    If timestamp.HasValue Then aCommand.AddParameter(New ormSqlCommandParameter(ID:="@" & ConstFNUpdatedOn, datatype:=otFieldDataType.Timestamp, notColumn:=True))
+                    'If deletebehavior Then aCommand.AddParameter(New ormSqlCommandParameter(ID:="@deleted", ColumnName:=FNDeleted, tablename:=toTablename))
+                    'If domainBehavior Then aCommand.AddParameter(New ormSqlCommandParameter(ID:="@domainID", ColumnName:=FNDomainID, tablename:=toTablename))
+                    'If domainBehavior Then aCommand.AddParameter(New ormSqlCommandParameter(ID:="@globalID", ColumnName:=FNDomainID, tablename:=toTablename))
+                    aCommand.CustomerSqlStatement = aSqlText
+                    aCommand.Prepare()
+                End If
+                '** parameters
+                For i = 0 To attribute.ToEntries.Count - 1
+                    aCommand.SetParameterValue(ID:="@" & attribute.ToEntries(i), value:=theKeyvalues(i))
+                Next
+                '** set the values
+                If timestamp.HasValue Then aCommand.SetParameterValue(ID:="@" & ConstFNUpdatedOn, value:=timestamp)
+                'If aCommand.HasParameter(ID:="@deleted") Then aCommand.SetParameterValue(ID:="@deleted", value:=False)
+                'If aCommand.HasParameter(ID:="@domainID") Then aCommand.SetParameterValue(ID:="@domainID", value:=domainID)
+                'If aCommand.HasParameter(ID:="@globalID") Then aCommand.SetParameterValue(ID:="@globalID", value:=ConstGlobalDomain)
+
+                ' Infuse
+                If Not aCommand.Run() Then
+                    CoreMessageHandler(message:="command failed to run", subname:="Reflector.DeleteRelatedObjects", messagetype:=otCoreMessageType.InternalError, _
+                                       arg1:=aCommand.SqlText)
+                End If
+
+                'return finally
+                Return theObjectList
+
+
+            Catch ex As Exception
+                CoreMessageHandler(exception:=ex, _
+                                    arg1:=attribute.Name, objectname:=dataobject.ObjectID, _
+                                     subname:="Reflector.DeleteRelatedObjects")
+                Return theObjectList
+            End Try
+
+
+
+
+        End Function
+
+
+      
         ''' <summary>
         ''' set the member field value with conversion of a dataobject
         ''' </summary>
@@ -710,13 +859,22 @@ Namespace OnTrack.Database
                                        subname:="Reflector.SetFieldValue", messagetype:=otCoreMessageType.InternalError)
                 End If
 
-                'SyncLock dataobject
-                If field.Name = "_typeid" Then
-                    ' Debug.Assert(False)
-                    Console.Write("")
+                ''' if we have a null somehow
+                ''' 
+                If DBNull.Value.Equals(value) AndAlso Reflector.IsNullableTypeOrString(field.FieldType) Then
+                    value = Nothing
                 End If
+
+                ''' determine the targettype
+                Dim targettype As System.Type
+                If Reflector.IsNullable(field.FieldType) Then
+                    targettype = Nullable.GetUnderlyingType(field.FieldType)
+                Else
+                    targettype = field.FieldType
+                End If
+
                 ' do nothing leave the value
-                If field.FieldType.IsArray Then
+                If targettype.IsArray Then
                     Dim anArray As String()
                     If value.GetType.IsArray Then
                         anArray = value
@@ -732,13 +890,13 @@ Namespace OnTrack.Database
                     '''
                     ''' setter for all types of list interfaces
                     ''' 
-                ElseIf field.FieldType.GetInterfaces.Contains(GetType(IList)) Then
+                ElseIf targettype.GetInterfaces.Contains(GetType(IList)) Then
                     Dim anArray As String()
                     Dim aList As Object
                     If value.GetType.IsArray Then
                         anArray = value
                         If anArray.Count = 0 Then
-                            aList = Reflector.CreateInstanceOfIlist(field.FieldType.GetGenericArguments.First)
+                            aList = Reflector.CreateInstanceOfIlist(targettype.GetGenericArguments.First)
                         Else
                             aList = anArray.ToList
                         End If
@@ -746,7 +904,7 @@ Namespace OnTrack.Database
                         ''' make sure that the inner type of the list 
                         ''' are casted as well before we pass it
                         Dim innertype As System.Type = value.GetType.GetGenericArguments.First
-                        aList = Reflector.CreateInstanceOfIlist(field.FieldType.GetGenericArguments.First)
+                        aList = Reflector.CreateInstanceOfIlist(targettype.GetGenericArguments.First)
                         For i = 0 To DirectCast(value, IList).Count - 1
                             '' try to cast
                             Dim item As Object = CTypeDynamic(DirectCast(value, IList).Item(i), innertype)
@@ -773,14 +931,14 @@ Namespace OnTrack.Database
                         field.SetValue(dataobject, aList)
                     End If
 
-                ElseIf value Is Nothing OrElse field.FieldType.Equals(value.GetType) Then
+                ElseIf value Is Nothing OrElse targettype.Equals(value.GetType) Then
                     If aSetter IsNot Nothing Then
                         aSetter(dataobject, value)
                     Else
                         field.SetValue(dataobject, value)
                     End If
 
-                ElseIf converter.GetType.Equals(GetType(EnumConverter)) Then
+                ElseIf targettype.IsEnum Then
                     Dim anewValue As Object
                     If value.GetType.Equals(GetType(String)) Then
                         '* transform
@@ -801,48 +959,48 @@ Namespace OnTrack.Database
                     Else
                         field.SetValue(dataobject, anewvalue)
                     End If
-                ElseIf field.FieldType.Equals(GetType(Long)) AndAlso IsNumeric(value) Then
+                ElseIf targettype.Equals(GetType(Long)) AndAlso IsNumeric(value) Then
                     If aSetter IsNot Nothing Then
                         aSetter(dataobject, CLng(value))
                     Else
                         field.SetValue(dataobject, CLng(value))
                     End If
-                ElseIf field.FieldType.Equals(GetType(Boolean)) Then
+                ElseIf targettype.Equals(GetType(Boolean)) Then
                     If aSetter IsNot Nothing Then
                         aSetter(dataobject, CBool(value))
                     Else
                         field.SetValue(dataobject, CBool(value))
                     End If
 
-                ElseIf field.FieldType.Equals(GetType(String)) Then
+                ElseIf targettype.Equals(GetType(String)) Then
                     If aSetter IsNot Nothing Then
                         aSetter(dataobject, CStr(value))
                     Else
                         field.SetValue(dataobject, CStr(value))
                     End If
                     field.SetValue(dataobject, CStr(value))
-                ElseIf field.FieldType.Equals(GetType(Integer)) AndAlso IsNumeric(value) Then
+                ElseIf targettype.Equals(GetType(Integer)) AndAlso IsNumeric(value) Then
                     If aSetter IsNot Nothing Then
                         aSetter(dataobject, CInt(value))
                     Else
                         field.SetValue(dataobject, CInt(value))
                     End If
 
-                ElseIf field.FieldType.Equals(GetType(UInteger)) AndAlso IsNumeric(value) _
+                ElseIf targettype.Equals(GetType(UInteger)) AndAlso IsNumeric(value) _
                     AndAlso value >= UInteger.MinValue AndAlso value <= UInteger.MaxValue Then
                     If aSetter IsNot Nothing Then
                         aSetter(dataobject, CUInt(value))
                     Else
                         field.SetValue(dataobject, CUInt(value))
                     End If
-                ElseIf field.FieldType.Equals(GetType(UShort)) And IsNumeric(value) _
+                ElseIf targettype.Equals(GetType(UShort)) And IsNumeric(value) _
                     AndAlso value >= UShort.MinValue AndAlso value <= UShort.MaxValue Then
                     If aSetter IsNot Nothing Then
                         aSetter(dataobject, CUShort(value))
                     Else
                         field.SetValue(dataobject, CUShort(value))
                     End If
-                ElseIf field.FieldType.Equals(GetType(ULong)) And IsNumeric(value) _
+                ElseIf targettype.Equals(GetType(ULong)) And IsNumeric(value) _
                      AndAlso value >= ULong.MinValue AndAlso value <= ULong.MaxValue Then
                     If aSetter IsNot Nothing Then
                         aSetter(dataobject, CULng(value))
@@ -850,21 +1008,21 @@ Namespace OnTrack.Database
                         field.SetValue(dataobject, CULng(value))
                     End If
 
-                ElseIf field.FieldType.Equals(GetType(Double)) And IsNumeric(value) _
+                ElseIf targettype.Equals(GetType(Double)) And IsNumeric(value) _
                     AndAlso value >= Double.MinValue AndAlso value <= Double.MaxValue Then
                     If aSetter IsNot Nothing Then
                         aSetter(dataobject, CDbl(value))
                     Else
                         field.SetValue(dataobject, CDbl(value))
                     End If
-                ElseIf field.FieldType.Equals(GetType(Decimal)) And IsNumeric(value) _
+                ElseIf targettype.Equals(GetType(Decimal)) And IsNumeric(value) _
                   AndAlso value >= Decimal.MinValue AndAlso value <= Decimal.MaxValue Then
                     If aSetter IsNot Nothing Then
                         aSetter(dataobject, CDec(value))
                     Else
                         field.SetValue(dataobject, CDec(value))
                     End If
-                ElseIf field.FieldType.Equals(GetType(Object)) Then
+                ElseIf targettype.Equals(GetType(Object)) Then
                     If aSetter IsNot Nothing Then
                         aSetter(dataobject, value)
                     Else

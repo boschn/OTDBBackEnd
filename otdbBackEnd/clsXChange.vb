@@ -1,4 +1,16 @@
-﻿Option Explicit On
+﻿
+REM ***********************************************************************************************************************************************
+REM *********** ON TRACK DATABASE BACKEND LIBRARY
+REM ***********
+REM *********** XChangeManager Classes for On Track Database Backend Library
+REM ***********
+REM *********** Version: X.YY
+REM ***********
+REM *********** Change Log:
+REM ***********
+REM *********** (C) by Boris Schneider 2013
+REM ***********************************************************************************************************************************************
+Option Explicit On
 Imports System.Diagnostics.Debug
 Imports System.Collections.Specialized
 
@@ -11,17 +23,7 @@ Imports OnTrack.Configurables
 Imports OnTrack.XChange.ConvertRequestEventArgs
 
 
-REM ***********************************************************************************************************************************************
-REM *********** ON TRACK DATABASE BACKEND LIBRARY
-REM ***********
-REM *********** XChangeManager Classes for On Track Database Backend Library
-REM ***********
-REM *********** Version: X.YY
-REM ***********
-REM *********** Change Log:
-REM ***********
-REM *********** (C) by Boris Schneider 2013
-REM ***********************************************************************************************************************************************
+
 Namespace OnTrack.XChange
     ''' <summary>
     ''' Arguments for the ConvertRequest and Result Arguments
@@ -704,24 +706,45 @@ Namespace OnTrack.XChange
     ''' </summary>
     ''' <remarks></remarks>
 
-    <ormObject(id:=XConfigMember.ConstObjectID, Modulename:=ConstModuleXChange, Description:="member definition for X config")> _
+    <ormObject(id:=XConfigMember.ConstObjectID, usecache:=True, adddeletefieldbehavior:=True, adddomainbehavior:=True, _
+        Modulename:=ConstModuleXChange, Description:="member definition for X config")> _
     Public Class XConfigMember
         Inherits ormDataObject
         Implements iormInfusable, iormPersistable, iConfigMember
 
         Public Const ConstObjectID = "XConfigMember"
-        '***
-        '*** Meta Definition PErsistency
-        <ormSchemaTableAttribute(version:=3)> Public Const ConstTableID = "tblXChangeConfigMembers"
+        ''' <summary>
+        ''' Table
+        ''' </summary>
+        ''' <remarks></remarks>
+        <ormSchemaTableAttribute(version:=3, usecache:=True)> Public Const ConstTableID = "tblXChangeConfigMembers"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, primaryKeyordinal:=1,
-                        title:="XChangeConfigID", description:="name of the XchangeConfiguration")>
-        Public Const ConstFNID = "configname"
+        ''' <summary>
+        ''' keys
+        ''' </summary>
+        ''' <remarks></remarks>
+        <ormObjectEntry(referenceObjectEntry:=XConfig.constObjectID & "." & XConfig.constFNID, primaryKeyordinal:=1, _
+                        title:="XChangeConfigID", description:="name of the XchangeConfiguration")> Public Const ConstFNID = XConfig.constFNID
 
         <ormObjectEntry(typeid:=otFieldDataType.Long, primaryKeyordinal:=2,
-                        title:="IndexNo", description:="position in the the XchangeConfiguration")>
-        Public Const ConstFNIDNo = "idno"
+                        title:="IndexNo", description:="position in the the XchangeConfiguration")> Public Const ConstFNIDNo = "idno"
 
+        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=3, _
+           useforeignkey:=otForeignKeyImplementation.None)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
+
+        ''' <summary>
+        ''' foreign key
+        ''' </summary>
+        ''' <remarks></remarks>
+        <ormSchemaForeignKey(useforeignkey:=otForeignKeyImplementation.NativeDatabase, _
+            entrynames:={ConstFNID, ConstFNDomainID}, _
+            foreignkeyreferences:={XConfig.constObjectID & "." & XConfig.constFNID, _
+            XConfig.constObjectID & "." & XConfig.ConstFNDomainID})> Public Const constFKXConfig = "FK_XCONFIG"
+
+        ''' <summary>
+        ''' fields
+        ''' </summary>
+        ''' <remarks></remarks>
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100,
                         title:="ObjectName", description:="Name of the ObjectDefinition")>
         Public Const constFNObjectname = "objectname"
@@ -775,8 +798,7 @@ Namespace OnTrack.XChange
         Public Const constFNIsNotXChanged = "isnxchg"
 
         <ormObjectEntry(typeid:=otFieldDataType.List, size:=50, parameter:="parameter_xcmd_list",
-                        title:="XChange Command", description:="XChangeCommand to run on this")>
-        Public Const constFNXCMD = "xcmd"
+                        title:="XChange Command", description:="XChangeCommand to run on this")> Public Const constFNXCMD = "xcmd"
 
         <ormObjectEntry(typeid:=otFieldDataType.Long, title:="Order Number", description:="Order number in which entriy is processed")>
         Public Const constFNOrderNo = "orderno"
@@ -784,7 +806,10 @@ Namespace OnTrack.XChange
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=250, title:="MessageLogTag", description:="Message Log Tag")>
         Public Const constFNMsgLogTag = "msglogtag"
 
-        ' fields
+        ''' <summary>
+        ''' Mappings
+        ''' </summary>
+        ''' <remarks></remarks>
         <ormEntryMapping(EntryName:=ConstFNID)> Protected _configname As String = ""
         <ormEntryMapping(EntryName:=ConstFNIDNo)> Protected _idno As Long
         <ormEntryMapping(EntryName:=constFNXID)> Protected _xid As String = ""
@@ -1036,7 +1061,7 @@ Namespace OnTrack.XChange
         ''' <remarks></remarks>
         Public Property Ordinal() As Ordinal Implements iConfigMember.ordinal
             Get
-                ordinal = _ordinal
+                Ordinal = _ordinal
             End Get
             Set(value As Ordinal)
                 _ordinal = value
@@ -1371,13 +1396,12 @@ Namespace OnTrack.XChange
 
     End Class
 
-
-    '************************************************************************************
-    '***** CLASS XConfig defines how data can be exchanged with the XChange Manager
-    '*****      
-    '*****
-
-    <ormObject(ID:=XConfig.constObjectID, version:=1, modulename:=ConstModuleXChange, description:="defines how data can be exchanged with the XChange Manager")> _
+    ''' <summary>
+    ''' CLASS XConfig defines how data can be exchanged with the XChange Manager
+    ''' </summary>
+    ''' <remarks></remarks>
+    <ormObject(ID:=XConfig.constObjectID, version:=1, usecache:=True, adddomainbehavior:=True, adddeletefieldbehavior:=True, _
+        modulename:=ConstModuleXChange, description:="defines how data can be exchanged with the XChange Manager")> _
     Public Class XConfig
         Inherits ormDataObject
         Implements iormInfusable
@@ -1385,39 +1409,46 @@ Namespace OnTrack.XChange
 
         'Implements iOTDBXChange
         Public Const constObjectID = "XConfig"
-        <ormSchemaTableAttribute(Version:=2)> Public Const constTableID = "tblXChangeConfigs"
+        <ormSchemaTableAttribute(Version:=2, usecache:=True)> Public Const constTableID = "tblXChangeConfigs"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, primaryKeyordinal:=1,
-             Title:="Name", Description:="Name of XChange Configuration")>
-        Public Const constFNID = "configname"
+        ''' <summary>
+        ''' Keys
+        ''' </summary>
+        ''' <remarks></remarks>
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, primaryKeyordinal:=1, _
+             properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty}, _
+             Title:="Name", Description:="Name of XChange Configuration")> Public Const constFNID = "configname"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=255,
+        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=2, _
+           useforeignkey:=otForeignKeyImplementation.NativeDatabase)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
+
+        ''' <summary>
+        ''' Fields
+        ''' </summary>
+        ''' <remarks></remarks>
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=255, isnullable:=True,
              Title:="Description", Description:="Description of XChange Configuration")>
         Public Const constFNDesc = "desc"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Memo,
-             Title:="Comments", Description:="Comments")>
-        Public Const constFNTitle = "cmt"
+        <ormObjectEntry(typeid:=otFieldDataType.Memo, isnullable:=True,
+             Title:="Comments", Description:="Comments")> Public Const constFNTitle = "cmt"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Bool,
-             Title:="IsDynamic", Description:="the XChange Config accepts dynamic addition of XChangeIDs")>
-        Public Const constFNDynamic = "isdynamic"
+        <ormObjectEntry(typeid:=otFieldDataType.Bool, defaultvalue:=False,
+             Title:="IsDynamic", Description:="the XChange Config accepts dynamic addition of XChangeIDs")> Public Const constFNDynamic = "isdynamic"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50,
-               Title:="Outline ID", Description:="ID to the associated Outline")>
-        Public Const constFNOutline = "outline"
+        <ormObjectEntry(referenceObjectEntry:=XOutline.constobjectid & "." & XOutline.constFNID, isnullable:=True, _
+               Title:="Outline ID", Description:="ID to the associated Outline")> Public Const constFNOutline = "outline"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=255,
-              Title:="Message Log Tag", Description:="Message Log Tag")>
-        Public Const constFNMsgLogTag = "msglogtag"
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=255, isnullable:=True,
+              Title:="Message Log Tag", Description:="Message Log Tag")> Public Const constFNMsgLogTag = "msglogtag"
 
 
         ' fields
         <ormEntryMapping(EntryName:=constFNID)> Private _configname As String = ""
-        <ormEntryMapping(EntryName:=constFNDesc)> Private _description As String = ""
-        <ormEntryMapping(EntryName:=constFNMsgLogTag)> Private _msglogtag As String = ""
+        <ormEntryMapping(EntryName:=constFNDesc)> Private _description As String
+        <ormEntryMapping(EntryName:=constFNMsgLogTag)> Private _msglogtag As String
         <ormEntryMapping(EntryName:=constFNDynamic)> Private _DynamicAttributes As Boolean
-        <ormEntryMapping(EntryName:=constFNOutline)> Private _outlineid As String = ""
+        <ormEntryMapping(EntryName:=constFNOutline)> Private _outlineid As String
 
 
         Private _msglog As New ObjectLog
@@ -1460,6 +1491,7 @@ Namespace OnTrack.XChange
         ''' <value>The S outlineid.</value>
         Public Property OutlineID() As String
             Get
+                If _outlineid Is Nothing Then Return ""
                 Return Me._outlineid
             End Get
             Set(value As String)
@@ -1469,7 +1501,7 @@ Namespace OnTrack.XChange
         End Property
         ReadOnly Property Outline As XOutline
             Get
-                If Me._outlineid <> "" And (me.isloaded Or Me.IsCreated) Then
+                If Me._outlineid <> "" And (Me.IsLoaded Or Me.IsCreated) Then
                     If Not _outline.IsLoaded And Not _outline.IsCreated Then
                         If _outline.Inject(Me._outlineid) Then
                             Return _outline
@@ -1508,7 +1540,7 @@ Namespace OnTrack.XChange
         End Function
         ReadOnly Property Msglogtag() As String
             Get
-                If _msglogtag = "" Then
+                If _msglogtag Is Nothing Then
                     _msglogtag = GetUniqueTag()
                 End If
                 Msglogtag = _msglogtag
@@ -1715,7 +1747,7 @@ Namespace OnTrack.XChange
         Public Function SetordinalForID(ByVal ID As String, ByVal ordinal As Object, Optional ByVal objectname As String = "") As Boolean
             Dim anEntry As New XConfigAttributeEntry()
             ' Nothing
-            If Not me.isloaded And Not Me.IsCreated Then
+            If Not Me.IsLoaded And Not Me.IsCreated Then
                 SetordinalForID = False
                 Exit Function
             End If
@@ -1731,7 +1763,7 @@ Namespace OnTrack.XChange
             If Not TypeOf ordinal Is OnTrack.Ordinal Then
                 ordinal = New Ordinal(ordinal)
             End If
-            anEntry.ordinal = ordinal
+            anEntry.Ordinal = ordinal
             AddordinalReference(anEntry)
             Return True
         End Function
@@ -1748,7 +1780,7 @@ Namespace OnTrack.XChange
             Dim aMember As New XConfigObjectEntry
 
             ' Nothing
-            If Not me.isloaded And Not Me.IsCreated Then
+            If Not Me.IsLoaded And Not Me.IsCreated Then
                 SetObjectXCmd = False
                 Exit Function
             End If
@@ -1822,7 +1854,7 @@ Namespace OnTrack.XChange
             ' add the component
             aMember = New XConfigObjectEntry
             If aMember.Create(Me.Configname, Me.GetMaxIndexNo + 1) Then
-                aMember.ordinal.Value = New Ordinal(0)
+                aMember.Ordinal.Value = New Ordinal(0)
                 aMember.Objectname = name
 
 
@@ -1831,7 +1863,7 @@ Namespace OnTrack.XChange
                 Else
                     aMember.Orderno = orderno
                 End If
-                aMember.ordinal.Value = orderno
+                aMember.Ordinal.Value = orderno
                 If IsMissing(xcmd) Then
                     xcmd = otXChangeCommandType.Read
                 End If
@@ -1863,7 +1895,7 @@ Namespace OnTrack.XChange
                                                 Optional ByVal [readonly] As Boolean = False) As Boolean
 
             ' Nothing
-            If Not me.isloaded And Not Me.IsCreated Then
+            If Not Me.IsLoaded And Not Me.IsCreated Then
 
                 AddAttributeByField = False
                 Exit Function
@@ -1896,7 +1928,7 @@ Namespace OnTrack.XChange
             Dim objectMember As XConfigObjectEntry
 
             ' Nothing
-            If Not me.isloaded And Not Me.IsCreated Then
+            If Not Me.IsLoaded And Not Me.IsCreated Then
                 AddAttributeByField = False
                 Exit Function
             End If
@@ -1914,7 +1946,7 @@ Namespace OnTrack.XChange
                     aMember = Me.AttributeByID(ID:=[alias])
                     If aMember IsNot Nothing Then
                         If aMember.IsLoaded Or aMember.IsCreated Then
-                            ordinal = aMember.ordinal
+                            ordinal = aMember.Ordinal
                             Exit For
                         End If
                     End If
@@ -1963,7 +1995,7 @@ Namespace OnTrack.XChange
                     ordinal = New Ordinal(ordinal)
                 End If
 
-                aMember.ordinal = ordinal ' create an ordinal 
+                aMember.Ordinal = ordinal ' create an ordinal 
                 aMember.Entryname = objectentry.Entryname
                 aMember.IsXChanged = isxchanged
                 aMember.IsReadOnly = [readonly]
@@ -2001,7 +2033,7 @@ Namespace OnTrack.XChange
             AddAttributeByID = False
 
             ' Nothing
-            If Not me.isloaded And Not Me.IsCreated Then
+            If Not Me.IsLoaded And Not Me.IsCreated Then
                 AddAttributeByID = False
                 Exit Function
             End If
@@ -2059,7 +2091,7 @@ Namespace OnTrack.XChange
             Dim flag As Boolean
 
             ' Nothing
-            If Not me.isloaded And Not Me.IsCreated Then
+            If Not Me.IsLoaded And Not Me.IsCreated Then
                 Exists = False
                 Exit Function
             End If
@@ -2192,7 +2224,7 @@ Namespace OnTrack.XChange
 
 
             ' Nothing
-            If Not me.isloaded And Not Me.IsCreated Then
+            If Not Me.IsLoaded And Not Me.IsCreated Then
                 AddMember = False
                 Exit Function
             End If
@@ -2288,34 +2320,7 @@ Namespace OnTrack.XChange
             _members.Clear()
             _membersByordinal.Clear()
         End Function
-        ''' <summary>
-        ''' deletes an objects in persistency store
-        ''' </summary>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Overrides Function Delete() As Boolean
-            Dim anEntry As iConfigMember
-
-
-            If Not Me.IsCreated And Not me.isloaded Then
-                Delete = False
-                Exit Function
-            End If
-
-            ' delete each entry
-            For Each anEntry In _members.Values
-                anEntry.Delete()
-            Next
-            MyBase.Delete()
-
-            ' reset it
-            Me.Reset()
-
-            'me.iscreated = True
-            Me.IsDeleted = True
-            Me.Unload()
-
-        End Function
+       
 
         ''' <summary>
         ''' retrieves an Object by its name or nothing
@@ -2344,7 +2349,7 @@ Namespace OnTrack.XChange
         ''' <remarks></remarks>
         Public Function MemberIndexNo() As List(Of Long)
 
-            If Not Me.IsCreated And Not me.isloaded Then
+            If Not Me.IsCreated And Not Me.IsLoaded Then
                 Return New List(Of Long)
             End If
 
@@ -2359,7 +2364,7 @@ Namespace OnTrack.XChange
         Public Function ObjectsByOrderNo() As IEnumerable(Of XConfigObjectEntry)
 
 
-            If Not Me.IsCreated And Not me.isloaded Then
+            If Not Me.IsCreated And Not Me.IsLoaded Then
                 Return New List(Of XConfigObjectEntry)
             End If
 
@@ -2395,7 +2400,7 @@ Namespace OnTrack.XChange
         Public Function Members() As List(Of iConfigMember)
             Dim aCollection As New List(Of iConfigMember)
 
-            If Not Me.IsCreated And Not me.isloaded Then
+            If Not Me.IsCreated And Not Me.IsLoaded Then
                 Return aCollection
                 Exit Function
             End If
@@ -2418,7 +2423,7 @@ Namespace OnTrack.XChange
         Public Function [Objects]() As List(Of XConfigObjectEntry)
             Dim aCollection As New List(Of XConfigObjectEntry)
 
-            If Not Me.IsCreated And Not me.isloaded Then
+            If Not Me.IsCreated And Not Me.IsLoaded Then
                 Return aCollection
             End If
 
@@ -2441,7 +2446,7 @@ Namespace OnTrack.XChange
                                             Optional ByVal tablename As String = "") As XConfigAttributeEntry
 
             Dim aMember As XConfigAttributeEntry
-            If Not Me.IsCreated And Not me.isloaded Then
+            If Not Me.IsCreated And Not Me.IsLoaded Then
                 AttributeByFieldName = Nothing
                 Exit Function
             End If
@@ -2501,7 +2506,7 @@ Namespace OnTrack.XChange
             Dim aCollection As IEnumerable
 
 
-            If Not Me.IsCreated And Not me.isloaded Then
+            If Not Me.IsCreated And Not Me.IsLoaded Then
                 AttributeByID = Nothing
                 Exit Function
             End If
@@ -2562,7 +2567,7 @@ Namespace OnTrack.XChange
         ''' <remarks></remarks>
         Public Function AttributesByordinal(ByVal ordinal As Ordinal) As List(Of iConfigMember)
 
-            If Not Me.IsCreated And Not me.isloaded Then
+            If Not Me.IsCreated And Not Me.IsLoaded Then
                 Return New List(Of iConfigMember)
             End If
 
@@ -2586,7 +2591,7 @@ Namespace OnTrack.XChange
             Dim aCollection As IEnumerable
 
 
-            If Not Me.IsCreated And Not me.isloaded Then
+            If Not Me.IsCreated And Not Me.IsLoaded Then
                 AttributeByAlias = Nothing
                 Exit Function
             End If
@@ -2614,7 +2619,7 @@ Namespace OnTrack.XChange
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function Attributes(Optional objectname As String = "") As IEnumerable(Of XConfigAttributeEntry)
-            If Not Me.IsCreated And Not me.isloaded Then
+            If Not Me.IsCreated And Not Me.IsLoaded Then
                 Return New List(Of clsOTDBXChangeMember)
             End If
 
@@ -5017,7 +5022,7 @@ Namespace OnTrack.XChange
             Dim specialHandling As Boolean
 
             ' store each Compound
-            For Each m In TABLE.Entries
+            For Each m In TABLE.GetEntries
                 anObjectEntry = m
                 If anObjectEntry.XID <> "" And anObjectEntry.isCompound Then
                     If aCompTableDir.ContainsKey(key:=DirectCast(anObjectEntry, ObjectCompoundEntry).CompoundTablename) Then
@@ -5097,7 +5102,7 @@ Namespace OnTrack.XChange
                 '**********************************************************
                 If LCase(aTableName) = ScheduleMilestone.constTableID.ToLower And specialHandling Then
 
-                    For Each anObjectEntry In TABLE.Entries
+                    For Each anObjectEntry In TABLE.GetEntries
                         'aTableEntry = m
                         If anObjectEntry.XID <> "" And anObjectEntry.isCompound Then
                             aCompValue = aSchedule.GetMilestoneValue(ID:=anObjectEntry.XID)
@@ -5268,7 +5273,7 @@ Namespace OnTrack.XChange
         End Property
         ReadOnly Property Outline As XOutline
             Get
-                If Me._outlineid <> "" And (me.isloaded Or Me.IsCreated) Then
+                If Me._outlineid <> "" And (Me.isloaded Or Me.IsCreated) Then
                     If Not _outline.IsLoaded And Not _outline.IsCreated Then
                         If _outline.Inject(Me._outlineid) Then
                             Return _outline
@@ -5514,7 +5519,7 @@ Namespace OnTrack.XChange
         Public Function SetordinalForID(ByVal ID As String, ByVal ordinal As Object, Optional ByVal objectname As String = "") As Boolean
             Dim anEntry As New clsOTDBXChangeMember()
             ' Nothing
-            If Not me.isloaded And Not Me.IsCreated Then
+            If Not Me.isloaded And Not Me.IsCreated Then
                 SetordinalForID = False
                 Exit Function
             End If
@@ -5547,7 +5552,7 @@ Namespace OnTrack.XChange
             Dim aMember As New clsOTDBXChangeMember
 
             ' Nothing
-            If Not me.isloaded And Not Me.IsCreated Then
+            If Not Me.isloaded And Not Me.IsCreated Then
                 SetObjectXCmd = False
                 Exit Function
             End If
@@ -5665,7 +5670,7 @@ Namespace OnTrack.XChange
                                                 Optional ByVal [readonly] As Boolean = False) As Boolean
 
             ' Nothing
-            If Not me.isloaded And Not Me.IsCreated Then
+            If Not Me.isloaded And Not Me.IsCreated Then
 
                 AddAttributeByField = False
                 Exit Function
@@ -5698,7 +5703,7 @@ Namespace OnTrack.XChange
             Dim objectMember As clsOTDBXChangeMember
 
             ' Nothing
-            If Not me.isloaded And Not Me.IsCreated Then
+            If Not Me.isloaded And Not Me.IsCreated Then
                 AddAttributeByField = False
                 Exit Function
             End If
@@ -5805,7 +5810,7 @@ Namespace OnTrack.XChange
             AddAttributeByID = False
 
             ' Nothing
-            If Not me.isloaded And Not Me.IsCreated Then
+            If Not Me.isloaded And Not Me.IsCreated Then
                 AddAttributeByID = False
                 Exit Function
             End If
@@ -5863,7 +5868,7 @@ Namespace OnTrack.XChange
             Dim flag As Boolean
 
             ' Nothing
-            If Not me.isloaded And Not Me.IsCreated Then
+            If Not Me.isloaded And Not Me.IsCreated Then
                 Exists = False
                 Exit Function
             End If
@@ -5996,7 +6001,7 @@ Namespace OnTrack.XChange
 
 
             ' Nothing
-            If Not me.isloaded And Not Me.IsCreated Then
+            If Not Me.isloaded And Not Me.IsCreated Then
                 AddMember = False
                 Exit Function
             End If
@@ -6090,34 +6095,7 @@ Namespace OnTrack.XChange
             _members.Clear()
             _membersByordinal.Clear()
         End Function
-        ''' <summary>
-        ''' deletes an objects in persistency store
-        ''' </summary>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Overrides Function Delete() As Boolean
-            Dim anEntry As clsOTDBXChangeMember
-
-
-            If Not Me.IsCreated And Not me.isloaded Then
-                Delete = False
-                Exit Function
-            End If
-
-            ' delete each entry
-            For Each anEntry In _members.Values
-                anEntry.Delete()
-            Next
-            MyBase.Delete()
-
-            ' reset it
-            Me.Reset()
-
-            'me.iscreated = True
-            Me.IsDeleted = True
-            Me.Unload()
-
-        End Function
+        
 
         ''' <summary>
         ''' retrieves an Object by its name or nothing
@@ -6146,7 +6124,7 @@ Namespace OnTrack.XChange
         ''' <remarks></remarks>
         Public Function MemberIndexNo() As List(Of Long)
 
-            If Not Me.IsCreated And Not me.isloaded Then
+            If Not Me.IsCreated And Not Me.isloaded Then
                 Return New List(Of Long)
             End If
 
@@ -6161,7 +6139,7 @@ Namespace OnTrack.XChange
         Public Function ObjectsByOrderNo() As IEnumerable(Of clsOTDBXChangeMember)
 
 
-            If Not Me.IsCreated And Not me.isloaded Then
+            If Not Me.IsCreated And Not Me.isloaded Then
                 Return New List(Of clsOTDBXChangeMember)
             End If
 
@@ -6197,7 +6175,7 @@ Namespace OnTrack.XChange
         Public Function Members() As List(Of clsOTDBXChangeMember)
             Dim aCollection As New List(Of clsOTDBXChangeMember)
 
-            If Not Me.IsCreated And Not me.isloaded Then
+            If Not Me.IsCreated And Not Me.isloaded Then
                 Return aCollection
                 Exit Function
             End If
@@ -6220,7 +6198,7 @@ Namespace OnTrack.XChange
         Public Function Objects() As List(Of clsOTDBXChangeMember)
             Dim aCollection As New List(Of clsOTDBXChangeMember)
 
-            If Not Me.IsCreated And Not me.isloaded Then
+            If Not Me.IsCreated And Not Me.isloaded Then
                 Return aCollection
             End If
 
@@ -6243,7 +6221,7 @@ Namespace OnTrack.XChange
                                             Optional ByVal tablename As String = "") As clsOTDBXChangeMember
 
             Dim aMember As clsOTDBXChangeMember
-            If Not Me.IsCreated And Not me.isloaded Then
+            If Not Me.IsCreated And Not Me.isloaded Then
                 AttributeByFieldName = Nothing
                 Exit Function
             End If
@@ -6303,7 +6281,7 @@ Namespace OnTrack.XChange
             Dim aCollection As IEnumerable
 
 
-            If Not Me.IsCreated And Not me.isloaded Then
+            If Not Me.IsCreated And Not Me.isloaded Then
                 AttributeByID = Nothing
                 Exit Function
             End If
@@ -6370,7 +6348,7 @@ Namespace OnTrack.XChange
             Dim aCollection As IEnumerable
 
 
-            If Not Me.IsCreated And Not me.isloaded Then
+            If Not Me.IsCreated And Not Me.isloaded Then
                 AttributeByAlias = Nothing
                 Exit Function
             End If
@@ -6400,7 +6378,7 @@ Namespace OnTrack.XChange
             Dim i, j As Integer
             Dim relationID As Object
 
-            If Not Me.IsCreated And Not me.isloaded Then
+            If Not Me.IsCreated And Not Me.isloaded Then
                 AttributeByRelationID = Nothing
                 Exit Function
             End If
@@ -6444,7 +6422,7 @@ Namespace OnTrack.XChange
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function Attributes(Optional objectname As String = "") As IEnumerable(Of clsOTDBXChangeMember)
-            If Not Me.IsCreated And Not me.isloaded Then
+            If Not Me.IsCreated And Not Me.isloaded Then
                 Return New List(Of clsOTDBXChangeMember)
             End If
 
@@ -6926,7 +6904,7 @@ Namespace OnTrack.XChange
                     End If
                     '*** check each Entry of Schema
                     '*** -> only Fields no Compounds
-                    For Each m In aDefTable.Entries
+                    For Each m In aDefTable.GetEntries
                         anObjectEntry = m
 
                         If anObjectEntry.XID <> "" And anObjectEntry.IsColumn Then
@@ -7017,7 +6995,7 @@ Namespace OnTrack.XChange
             Dim specialHandling As Boolean
 
             ' store each Compound
-            For Each m In TABLE.Entries
+            For Each m In TABLE.GetEntries
                 anObjectEntry = m
                 If anObjectEntry.XID <> "" And anObjectEntry.isCompound Then
                     If aCompTableDir.ContainsKey(key:=DirectCast(anObjectEntry, ObjectCompoundEntry).CompoundTablename) Then
@@ -7097,7 +7075,7 @@ Namespace OnTrack.XChange
                 '**********************************************************
                 If LCase(aTableName) = ScheduleMilestone.constTableID.ToLower And specialHandling Then
 
-                    For Each anObjectEntry In TABLE.Entries
+                    For Each anObjectEntry In TABLE.GetEntries
                         'aTableEntry = m
                         If anObjectEntry.XID <> "" And anObjectEntry.isCompound Then
                             aCompValue = aSchedule.GetMilestoneValue(ID:=anObjectEntry.XID)
@@ -7279,7 +7257,7 @@ Namespace OnTrack.XChange
 
             flag = True
             ' run through the definition and get the mapped value -> check on it
-            For Each m In aDefTable.Entries
+            For Each m In aDefTable.GetEntries
                 aFieldDef = m
                 If aFieldDef.XID <> "" Then
 
@@ -7424,7 +7402,7 @@ Namespace OnTrack.XChange
 
             aDefTable = ObjectDef.[ObjectDefinition]
             ' go through the table and overwrite the Record if the rights are there
-            For Each m In aDefTable.Entries
+            For Each m In aDefTable.GetEntries
                 aFieldDef = m
                 If aFieldDef.XID <> "" Then
                     aConfigmember = Me.AttributeByFieldName(aFieldDef.Entryname, tablename:=aFieldDef.Objectname)
@@ -8883,7 +8861,8 @@ Namespace OnTrack.XChange
     ''' describes a XChange Outline data structure
     ''' </summary>
     ''' <remarks></remarks>
-    <ormObject(ID:=XOutline.constobjectid, version:=1, modulename:=ConstModuleXChange, description:="describes a XChange Outline data structure")> _
+    <ormObject(ID:=XOutline.constobjectid, version:=1, usecache:=True, adddeletefieldbehavior:=True, adddomainbehavior:=True, _
+        modulename:=ConstModuleXChange, description:="describes a XChange Outline data structure")> _
     Public Class XOutline
         Inherits ormDataObject
         Implements iormInfusable
@@ -8893,14 +8872,23 @@ Namespace OnTrack.XChange
         Public Const constobjectid = "XOutline"
 
         <ormSchemaTableAttribute(Version:=1)> Public Const constTableID = "tblXOutlines"
-        <ormObjectEntry(XID:="otl1", primaryKeyordinal:=1,
-                typeid:=otFieldDataType.Text, size:=50,
+
+        ''' <summary>
+        ''' Keys
+        ''' </summary>
+        ''' <remarks></remarks>
+        <ormObjectEntry(XID:="otl1", primaryKeyordinal:=1, typeid:=otFieldDataType.Text, size:=50,
                 description:="identifier of the outline", Title:="ID")> Public Const constFNID = "id"
-        <ormObjectEntry(XID:="otl2",
-               typeid:=otFieldDataType.Text, size:=255,
+
+        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=2, _
+                        useforeignkey:=otForeignKeyImplementation.NativeDatabase)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
+        ''' <summary>
+        '''  Fields
+        ''' </summary>
+        ''' <remarks></remarks>
+        <ormObjectEntry(XID:="otl2", typeid:=otFieldDataType.Text, isnullable:=True, _
                 description:="description of the outline", Title:="description")> Public Const constFNdesc = "desc"
-        <ormObjectEntry(XID:="otl3",
-                       typeid:=otFieldDataType.Bool,
+        <ormObjectEntry(XID:="otl3", typeid:=otFieldDataType.Bool, defaultvalue:=False,
                         description:="True if deliverable revisions are added dynamically", Title:="DynRev")> Public Const constFNRev = "addrev"
 
 
@@ -8908,6 +8896,8 @@ Namespace OnTrack.XChange
         <ormEntryMapping(EntryName:=constFNID)> Private _id As String = ""
         <ormEntryMapping(EntryName:=constFNdesc)> Private _desc As String = ""
         <ormEntryMapping(EntryName:=constFNRev)> Private _DynamicAddRevisions As Boolean
+
+
         ' components itself per key:=posno, item:=cmid
         Private s_cmids As New OrderedDictionary()
 
@@ -9005,7 +8995,7 @@ Namespace OnTrack.XChange
             Dim m As Object
 
             ' empty
-            If Not me.isloaded And Not Me.IsCreated Then
+            If Not Me.IsLoaded And Not Me.IsCreated Then
                 AddOutlineItem = False
                 Exit Function
             End If
@@ -9032,36 +9022,7 @@ Namespace OnTrack.XChange
 
             Return _IsInitialized
         End Function
-        ''' <summary>
-        ''' deletes the object and components from the datastore
-        ''' </summary>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Overrides Function Delete() As Boolean
-            Dim initialEntry As New XOutlineItem
-            Dim m As Object
-
-            If Not Me.IsCreated And Not me.isloaded Then
-                Delete = False
-                Exit Function
-            End If
-
-            ' delete each entry
-            For Each anEntry As XOutlineItem In s_cmids.Values
-                anEntry.Delete()
-            Next
-            '* delete itself
-            MyBase.Delete()
-
-            ' reset it
-            s_cmids.Clear()
-
-            'me.iscreated = True
-            Me.IsDeleted = True
-            Me.Unload()
-
-        End Function
-
+       
         ''' <summary>
         ''' ordinals of the components
         ''' </summary>
@@ -9069,7 +9030,7 @@ Namespace OnTrack.XChange
         ''' <remarks></remarks>
         Public Function ordinals() As Collection
 
-            If Not Me.IsCreated And Not me.isloaded Then
+            If Not Me.IsCreated And Not Me.IsLoaded Then
                 Return Nothing
             End If
 
@@ -9085,7 +9046,7 @@ Namespace OnTrack.XChange
             Dim aCollection As New Collection
             Dim m As Object
 
-            If Not Me.IsCreated And Not me.isloaded Then
+            If Not Me.IsCreated And Not Me.IsLoaded Then
                 Items = Nothing
                 Exit Function
             End If
@@ -9122,7 +9083,7 @@ Namespace OnTrack.XChange
                 LoadItems(id:=id)
             End If
 
-            Return me.isloaded
+            Return Me.IsLoaded
         End Function
 
         ''' <summary>
@@ -9218,7 +9179,7 @@ Namespace OnTrack.XChange
                                        messagetype:=otCoreMessageType.ApplicationError)
                 Return False
             End If
-            If Not me.isloaded And Not Me.IsCreated Then
+            If Not Me.IsLoaded And Not Me.IsCreated Then
                 Return False
             ElseIf Not Me.DynamicAddRevisions Then
                 Return False
@@ -9265,7 +9226,7 @@ Namespace OnTrack.XChange
             Dim aFirstRevision As New Deliverable
             Dim returnCollection As New List(Of XOutlineItem)
 
-            If Not me.isloaded And Not Me.IsCreated Then
+            If Not Me.IsLoaded And Not Me.IsCreated Then
                 Return returnCollection
             ElseIf Not Me.DynamicAddRevisions Then
                 Return returnCollection
@@ -9322,51 +9283,14 @@ Namespace OnTrack.XChange
     ''' </summary>
     ''' <remarks></remarks>
 
-    <ormObject(ID:=XOutlineItem.constObjectID, version:=1, modulename:=ConstModuleXChange, description:="describes a XChange Outline Item")> _
+    <ormObject(ID:=XOutlineItem.constObjectID, version:=1, usecache:=True, adddeletefieldbehavior:=True, adddomainbehavior:=True, _
+        modulename:=ConstModuleXChange, description:="describes a XChange Outline Item")> _
     Public Class XOutlineItem
         Inherits ormDataObject
         Implements iormInfusable
         Implements iormPersistable
 
-        ''' <summary>
-        ''' Gets or sets the text.
-        ''' </summary>
-        ''' <value>The text.</value>
-        Public Property Text() As String
-            Get
-                Return Me._text
-            End Get
-            Set(value As String)
-                Me._text = value
-            End Set
-        End Property
-
-        ''' <summary>
-        ''' Gets or sets the is text.
-        ''' </summary>
-        ''' <value>The is text.</value>
-        Public Property IsText() As Boolean
-            Get
-                Return Me._isText
-            End Get
-            Set(value As Boolean)
-                Me._isText = value
-            End Set
-        End Property
-
-        ''' <summary>
-        ''' Gets or sets the is group.
-        ''' </summary>
-        ''' <value>The is group.</value>
-        Public Property IsGroup() As Boolean
-            Get
-                Return Me._isGroup
-            End Get
-            Set(value As Boolean)
-                Me._isGroup = value
-            End Set
-        End Property
-
+       
         ''' <summary>
         ''' OutlineKey Class as subclass of outline item to make it flexible
         ''' </summary>
@@ -9418,37 +9342,58 @@ Namespace OnTrack.XChange
         <ormSchemaIndexAttribute(columnname1:=constFNID, columnname2:=ConstFNordinall)> Public Const constIndexLongOutline = "longOutline"
         <ormSchemaIndexAttribute(columnname1:=ConstFNUid, columnname2:="id", columnname3:=ConstFNordinals)> Public Const constIndexUsedOutline = "UsedOutline"
 
-        <ormObjectEntry(XID:="otl1", primaryKeyordinal:=1, typeid:=otFieldDataType.Text, size:=50,
-            title:="Outline ID", description:="identifier of the outline")> Public Const constFNID = "id"
+        ''' <summary>
+        ''' keys
+        ''' </summary>
+        ''' <remarks></remarks>
+        <ormObjectEntry(XID:="otl1", primaryKeyordinal:=1, referenceObjectEntry:=XOutline.constobjectid & "." & XOutline.constFNID, _
+            title:="Outline ID", description:="identifier of the outline")> Public Const constFNID = XOutline.constFNID
 
+        <ormObjectEntry(XID:="otli3", primaryKeyordinal:=2, typeid:=otFieldDataType.Text, size:=255,
+         title:="ordinals", description:="ordinal as string of the outline item")> Public Const ConstFNordinals = "ordials"
+
+        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=3, _
+            useforeignkey:=otForeignKeyImplementation.None)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
+
+        ''' <summary>
+        ''' foreign key
+        ''' </summary>
+        ''' <remarks></remarks>
+        <ormSchemaForeignKey(useforeignkey:=otForeignKeyImplementation.NativeDatabase, _
+            entrynames:={constFNID, ConstFNDomainID}, _
+            foreignkeyreferences:={XOutline.constobjectid & "." & XOutline.constFNID, _
+            XOutline.constobjectid & "." & XOutline.ConstFNDomainID})> Public Const constFKXOUTLINE = "FK_XOUTLINE"
+
+        ''' <summary>
+        ''' fields
+        ''' </summary>
+        ''' <remarks></remarks>
         <ormObjectEntry(XID:="otli2", typeid:=otFieldDataType.Long,
            title:="ordinal", description:="ordinal as long of the outline")> Public Const ConstFNordinall = "ordiall"
 
-        <ormObjectEntry(XID:="otli3", primaryKeyordinal:=2, typeid:=otFieldDataType.Text, size:=255,
-          title:="ordinals", description:="ordinal as string of the outline item")> Public Const ConstFNordinals = "ordials"
+        <ormObjectEntry(XID:="dlvuid", referenceobjectentry:=Deliverable.ConstObjectID & "." & Deliverable.constFNUid, _
+        isnullable:=True, useforeignkey:=otForeignKeyImplementation.NativeDatabase,
+         title:="deliverable uid", description:="uid of the deliverable")> Public Const ConstFNUid = Deliverable.constFNUid
 
-        <ormObjectEntry(XID:="dlvuid", typeid:=otFieldDataType.Long,
-         title:="deliverable uid", description:="uid of the deliverable")> Public Const ConstFNUid = "uid"
-
-        <ormObjectEntry(XID:="otli4", typeid:=otFieldDataType.Long,
+        <ormObjectEntry(XID:="otli4", typeid:=otFieldDataType.Long, defaultvalue:=1,
           title:="identlevel", description:="identlevel as string of the outline")> Public Const ConstFNIdent = "level"
 
-        <ormObjectEntry(XID:="otli10", typeid:=otFieldDataType.Text, size:=255, innertypeid:=otFieldDataType.Text,
+        <ormObjectEntry(XID:="otli10", typeid:=otFieldDataType.List, innertypeid:=otFieldDataType.Text,
          title:="Types", description:="types the outline key")> Public Const ConstFNTypes = "types"
 
-        <ormObjectEntry(XID:="otli11", typeid:=otFieldDataType.Text, size:=255, innertypeid:=otFieldDataType.Text,
+        <ormObjectEntry(XID:="otli11", typeid:=otFieldDataType.List, innertypeid:=otFieldDataType.Text,
          title:="IDs", description:="ids the outline key")> Public Const ConstFNIDs = "ids"
 
-        <ormObjectEntry(XID:="otli12", typeid:=otFieldDataType.Text, size:=255, innertypeid:=otFieldDataType.Text,
+        <ormObjectEntry(XID:="otli12", typeid:=otFieldDataType.List, innertypeid:=otFieldDataType.Text,
         title:="Values", description:="values the outline key")> Public Const ConstFNValues = "values"
 
-        <ormObjectEntry(XID:="otli13", typeid:=otFieldDataType.Bool,
+        <ormObjectEntry(XID:="otli13", typeid:=otFieldDataType.Bool, defaultvalue:=False,
         title:="Grouping Item", description:="check if this an grouping item")> Public Const ConstFNisgroup = "isgrouped"
 
-        <ormObjectEntry(XID:="otli14", typeid:=otFieldDataType.Bool,
+        <ormObjectEntry(XID:="otli14", typeid:=otFieldDataType.Bool, defaultvalue:=False,
        title:="Text Item", description:="check if this an text item")> Public Const ConstFNisText = "istext"
 
-        <ormObjectEntry(XID:="otli14", typeid:=otFieldDataType.Text, size:=255,
+        <ormObjectEntry(XID:="otli14", typeid:=otFieldDataType.Text, isnullable:=True,
        title:="Text", description:="Text if a text item")> Public Const ConstFNText = "text"
 
         <ormEntryMapping(EntryName:=constFNID)> Private _id As String = ""   ' ID of the outline
@@ -9462,6 +9407,44 @@ Namespace OnTrack.XChange
         <ormEntryMapping(EntryName:=ConstFNText)> Private _text As String = ""
 
 #Region "properties"
+        ''' <summary>
+        ''' Gets or sets the text.
+        ''' </summary>
+        ''' <value>The text.</value>
+        Public Property Text() As String
+            Get
+                Return Me._text
+            End Get
+            Set(value As String)
+                Me._text = value
+            End Set
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the is text.
+        ''' </summary>
+        ''' <value>The is text.</value>
+        Public Property IsText() As Boolean
+            Get
+                Return Me._isText
+            End Get
+            Set(value As Boolean)
+                Me._isText = value
+            End Set
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the is group.
+        ''' </summary>
+        ''' <value>The is group.</value>
+        Public Property IsGroup() As Boolean
+            Get
+                Return Me._isGroup
+            End Get
+            Set(value As Boolean)
+                Me._isGroup = value
+            End Set
+        End Property
 
         ReadOnly Property OutlineID() As String
             Get

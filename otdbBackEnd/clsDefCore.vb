@@ -27,14 +27,14 @@ Namespace OnTrack
     ''' </summary>
     ''' <remarks></remarks>
     <ormObject(id:=ValueEntry.ConstObjectID, modulename:=ConstModuleCore, Version:=1, Description:="lookup value pairs for general use", _
-        useCache:=True)> Public Class ValueEntry
+        useCache:=True, adddeletefieldbehavior:=True, addDomainBehavior:=True)> Public Class ValueEntry
         Inherits ormDataObject
         Implements iormInfusable
         Implements iormPersistable
 
         Public Const ConstObjectID = "ValueEntry"
         '** Table Schema
-        <ormSchemaTableAttribute(adddeletefieldbehavior:=True, addDomainBehavior:=True, addsparefields:=True, Version:=1)> Public Const ConstTableID As String = "tblDefValueEntries"
+        <ormSchemaTableAttribute(Version:=1, usecache:=True)> Public Const ConstTableID As String = "tblDefValueEntries"
 
         '*** Primary Keys
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, primaryKeyordinal:=1, _
@@ -50,7 +50,7 @@ Namespace OnTrack
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=255, _
            XID:="VE4", title:="selector", description:="")> Const ConstFNSelector = "selector"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Long, _
+        <ormObjectEntry(typeid:=otFieldDataType.Long, defaultvalue:=otFieldDataType.Text, dbdefaultvalue:="3", _
           XID:="VE5", title:="datatype", description:="datatype of the  value")> Const ConstFNDatatype = "datatype"
 
         ' fields
@@ -59,6 +59,7 @@ Namespace OnTrack
         <ormEntryMapping(EntryName:=ConstFNSelector)> Private _selector As String = ""
         <ormEntryMapping(EntryName:=ConstFNValue)> Private _valuestring As String = ""
         <ormEntryMapping(EntryName:=ConstFNDatatype)> Private _datatype As otFieldDataType = 0
+
         ''' <summary>
         ''' constructor of a clsOTDBDefWorkspace
         ''' </summary>
@@ -265,33 +266,31 @@ Namespace OnTrack
 
         '** const
         Public Const ConstObjectID = "DomainSetting"
-        '** 
-        <ormSchemaTableAttribute(adddeletefieldbehavior:=True, usecache:=True, Version:=1)> Public Const ConstTableID As String = "tblDefDomainSettings"
+        '** will be cached over domains
+        <ormSchemaTableAttribute(adddeletefieldbehavior:=False, usecache:=False, Version:=1)> Public Const ConstTableID As String = "tblDefDomainSettings"
 
         <ormObjectEntry(XID:="DMS1", _
             referenceobjectentry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, _
-            title:="domain", Description:="domain identifier", _
+            title:="domain", Description:="domain identifier", defaultvalue:=ConstGlobalDomain, _
             primaryKeyordinal:=1, _
             useforeignkey:=otForeignKeyImplementation.ORM)> _
         Const ConstFNDomainID As String = Domain.ConstFNDomainID
 
         <ormObjectEntry(XID:="DMS2", _
            typeid:=otFieldDataType.Text, size:=100, primaryKeyordinal:=2, _
+           properties:={ObjectEntryProperty.Keyword}, _
            title:="Setting", description:="ID of the setting per domain")> _
         Const ConstFNSettingID = "id"
 
         <ormObjectEntry(XID:="DMS3", _
-            typeid:=otFieldDataType.Text, size:=100, _
-            title:="Description")> _
+            typeid:=otFieldDataType.Text, size:=100, title:="Description")> _
         Const ConstFNDescription = "desc"
 
-        <ormObjectEntry(XID:="DMS4", _
-           typeid:=otFieldDataType.Text, size:=255, _
+        <ormObjectEntry(XID:="DMS4", typeid:=otFieldDataType.Memo, _
            title:="value", description:="value of the domain setting in string presentation")> _
         Const ConstFNValue = "value"
 
-        <ormObjectEntry(XID:="DMS5", _
-          typeid:=otFieldDataType.Long, _
+        <ormObjectEntry(XID:="DMS5", typeid:=otFieldDataType.Long, defaultvalue:=otFieldDataType.Text, _
           title:="datatype", description:="datatype of the domain setting value")> _
         Const ConstFNDatatype = "datatype"
 
@@ -480,7 +479,7 @@ Namespace OnTrack
     ''' </summary>
     ''' <remarks></remarks>
     <ormObject(id:=Group.ConstObjectID, description:="group definition for users", _
-        modulename:=ConstModuleCore, Version:=1, usecache:=True, isbootstrap:=False)> _
+        modulename:=ConstModuleCore, Version:=1, usecache:=True, adddomainbehavior:=True, adddeletefieldbehavior:=True, isbootstrap:=False)> _
     Public Class Group
         Inherits ormDataObject
 
@@ -489,7 +488,7 @@ Namespace OnTrack
         Public Const ConstObjectID = "Group"
 
         '*** Schema Table
-        <ormSchemaTable(version:=1, adddomainbehavior:=True, addsparefields:=True, adddeletefieldbehavior:=True)> Public Const ConstTableID As String = "tblDefGroups"
+        <ormSchemaTable(version:=1, usecache:=True)> Public Const ConstTableID As String = "tblDefGroups"
 
         '*** Primary Keys
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, primarykeyordinal:=1, _
@@ -501,20 +500,20 @@ Namespace OnTrack
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=255, _
         XID:="G5", title:="description", description:="description of the OnTrack user group")> Public Const ConstFNDescription = "desc"
 
-        <ormObjectEntry(referenceobjectentry:=Workspace.ConstObjectID & "." & Workspace.ConstFNID, _
+        <ormObjectEntry(referenceobjectentry:=Workspace.ConstObjectID & "." & Workspace.ConstFNID, isnullable:=True, _
             XID:="G10", title:="Default Workspace", description:="default workspace of the OnTrack user")> Public Const ConstFNDefaultWorkspace = "defws"
-        <ormObjectEntry(referenceobjectentry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, _
+        <ormObjectEntry(referenceobjectentry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, isnullable:=True, _
            XID:="G11", title:="Default Domain", description:="default domain of the OnTrack user")> Public Const ConstFNDefaultDomainID = "defdomain"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Bool, _
+        <ormObjectEntry(typeid:=otFieldDataType.Bool, defaultvalue:=False, _
            XID:="UR1", title:="Alter Schema Right", description:="has user the right to alter the database schema")> _
         Public Const ConstFNAlterSchema = "alterschema"
-        <ormObjectEntry(typeid:=otFieldDataType.Bool, _
+        <ormObjectEntry(typeid:=otFieldDataType.Bool, defaultvalue:=False, _
           XID:="UR2", title:="Update Data Right", description:="has user the right to update data (new/change/delete)")> _
         Public Const ConstFNUpdateData = "updatedata"
-        <ormObjectEntry(typeid:=otFieldDataType.Bool, _
+        <ormObjectEntry(typeid:=otFieldDataType.Bool, defaultvalue:=True, _
           XID:="UR3", title:="Read Data Right", description:="has user the right to read the database data")> Public Const ConstFNReadData = "readdata"
-        <ormObjectEntry(typeid:=otFieldDataType.Bool, _
+        <ormObjectEntry(typeid:=otFieldDataType.Bool, defaultvalue:=False, _
           XID:="UR4", title:="No Access", description:="has user no access")> Public Const ConstFNNoAccess = "noright"
 
         '* Relations
@@ -715,7 +714,7 @@ Namespace OnTrack
     ''' </summary>
     ''' <remarks></remarks>
     <ormObject(id:=GroupMember.ConstObjectID, description:="group member definition of n:m relation from user to groups", _
-        modulename:=ConstModuleCore, Version:=1, usecache:=True, isbootstrap:=False)> _
+        modulename:=ConstModuleCore, Version:=1, usecache:=True, isbootstrap:=False, adddomainbehavior:=True, adddeletefieldbehavior:=True)> _
     Public Class GroupMember
         Inherits ormDataObject
 
@@ -724,7 +723,7 @@ Namespace OnTrack
         Public Const ConstObjectID = "GroupMember"
 
         '*** Schema Table
-        <ormSchemaTable(version:=1, adddomainbehavior:=True, addsparefields:=True, adddeletefieldbehavior:=True)> Public Const ConstTableID As String = "tblDefGroupMembers"
+        <ormSchemaTable(version:=1)> Public Const ConstTableID As String = "tblDefGroupMembers"
         <ormSchemaIndex(columnname1:=ConstFNUsername, columnname2:=ConstFNDomainID, columnname3:=ConstFNGroupname)> Public Const ConstIndUser As String = "indUser"
 
         '*** Primary Keys
@@ -825,7 +824,7 @@ Namespace OnTrack
     ''' </summary>
     ''' <remarks></remarks>
     <ormObject(id:=User.ConstObjectID, description:="user definition for OnTrack login users", _
-        modulename:=ConstModuleCore, Version:=1, isbootstrap:=True, usecache:=True)> _
+        modulename:=ConstModuleCore, Version:=1, isbootstrap:=True, usecache:=True, adddeletefieldbehavior:=True)> _
     Public Class User
         Inherits ormDataObject
         Implements iormCloneable
@@ -834,40 +833,43 @@ Namespace OnTrack
         '*** Object ID
         Public Const ConstObjectID = "User"
         '*** Schema Table
-        <ormSchemaTable(version:=2, usecache:=True, addsparefields:=True, adddeletefieldbehavior:=True)> Public Const ConstTableID As String = "tblDefUsers"
+        <ormSchemaTable(version:=2, usecache:=True)> Public Const ConstTableID As String = "tblDefUsers"
 
         '*** Primary Keys
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, primarykeyordinal:=1, _
           XID:="U1", title:="username", description:="name of the OnTrack user")> Public Const ConstFNUsername = "username"
 
         '*** Fields
-        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=20, _
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=20, properties:={ObjectEntryProperty.Encrypted}, _
+            validationPropertyStrings:={ObjectValidationProperty.NotEmpty}, _
            XID:="U2", title:="password", description:="password of the OnTrack user")> Public Const ConstFNPassword = "password"
 
-        <ormObjectEntry(referenceobjectentry:=Person.ConstObjectID & "." & Person.constFNID, _
+        <ormObjectEntry(referenceobjectentry:=Person.ConstObjectID & "." & Person.constFNID, isnullable:=True, _
          XID:="U4", aliases:={"p1"})> Public Const ConstFNPerson = "person"
+
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=255, _
         XID:="U5", title:="description", description:="description of the OnTrack user")> Public Const ConstFNDescription = "desc"
-        <ormObjectEntry(typeid:=otFieldDataType.Bool, _
+        <ormObjectEntry(typeid:=otFieldDataType.Bool, defaultvalue:=False, _
             XID:="U6", title:="is anonymous", description:="is user an anonymous user")> Public Const ConstFNIsAnonymous = "isanon"
-        <ormObjectEntry(typeid:=otFieldDataType.Bool, _
-            XID:="U7", title:="is group", description:="is user an anonymous user")> Public Const ConstFNIsGroup = "isgroup"
 
-        <ormObjectEntry(referenceobjectentry:=Workspace.ConstObjectID & "." & Workspace.ConstFNID, _
+        <ormObjectEntry(referenceobjectentry:=Workspace.ConstObjectID & "." & Workspace.ConstFNID, isnullable:=True, _
             XID:="U10", title:="Default Workspace", description:="default workspace of the OnTrack user")> Public Const ConstFNDefaultWorkspace = "defws"
-        <ormObjectEntry(referenceobjectentry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, _
+
+        <ormObjectEntry(referenceobjectentry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, isnullable:=True, _
             XID:="U10", title:="Default Domain", description:="default domain of the OnTrack user")> Public Const ConstFNDefaultDomainID = "defdomain"
-        <ormObjectEntry(typeid:=otFieldDataType.Bool, _
+
+        <ormObjectEntry(typeid:=otFieldDataType.Bool, defaultvalue:=False, _
            XID:="UR1", title:="Alter Schema Right", description:="has user the right to alter the database schema")> _
         Public Const ConstFNAlterSchema = "alterschema"
-        <ormObjectEntry(typeid:=otFieldDataType.Bool, _
+        <ormObjectEntry(typeid:=otFieldDataType.Bool, defaultvalue:=False, _
           XID:="UR2", title:="Update Data Right", description:="has user the right to update data (new/change/delete)")> _
         Public Const ConstFNUpdateData = "updatedata"
-        <ormObjectEntry(typeid:=otFieldDataType.Bool, _
+        <ormObjectEntry(typeid:=otFieldDataType.Bool, defaultvalue:=True, dbdefaultvalue:="1", _
           XID:="UR3", title:="Read Data Right", description:="has user the right to read the database data")> Public Const ConstFNReadData = "readdata"
-        <ormObjectEntry(typeid:=otFieldDataType.Bool, _
+        <ormObjectEntry(typeid:=otFieldDataType.Bool, defaultvalue:=False, _
           XID:="UR4", title:="No Access", description:="has user no access")> Public Const ConstFNNoAccess = "noright"
-        'overwrite the Domain ID
+
+        'overwrite the Domain ID makes no sense
         <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, _
             defaultvalue:=ConstGlobalDomain, dbdefaultvalue:=ConstGlobalDomain, _
             useforeignkey:=otForeignKeyImplementation.None)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
@@ -900,8 +902,6 @@ Namespace OnTrack
 
 
 #Region "Properties"
-
-
 
         Public Property Description() As String
             Get
@@ -1075,11 +1075,10 @@ Namespace OnTrack
         ''' <remarks></remarks>
         Public Property IsAnonymous() As Boolean
             Get
-                IsAnonymous = _isAnonymous
+                Return _isAnonymous
             End Get
             Set(value As Boolean)
                 SetValue(entryname:=ConstFNIsAnonymous, value:=value)
-
             End Set
         End Property
 
@@ -1363,16 +1362,17 @@ Namespace OnTrack
 
         '** Fields
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, primaryKeyordinal:=2, _
+                    validationPropertyStrings:={ObjectValidationProperty.NotEmpty}, _
            XID:="US2", title:="Setting", description:="ID of the setting per user")> Const ConstFNSettingID = "id"
 
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, _
             XID:="US3", title:="Description")> Const ConstFNDescription = "desc"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=255, _
+        <ormObjectEntry(typeid:=otFieldDataType.Memo, _
            XID:="US4", title:="value", description:="value of the user setting in string presentation")> Const ConstFNValue = "value"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Long, _
-          XID:="US5", title:="datatype", description:="datatype of the user setting value")> Const ConstFNDatatype = "datatype"
+        <ormObjectEntry(typeid:=otFieldDataType.Long, defaultvalue:=otFieldDataType.Text, _
+          XID:="US5", title:="datatype", description:="data type of the user setting value")> Const ConstFNDatatype = "datatype"
 
         ' fields
         <ormEntryMapping(EntryName:=ConstFNUsername)> Private _Username As String = ""
@@ -1564,15 +1564,12 @@ Namespace OnTrack
     End Class
 
 
-    '************************************************************************************
-    '***** CLASS clsOTDBDefPerson describes additional database schema information
-    '*****
     ''' <summary>
     ''' the person definition class
     ''' </summary>
     ''' <remarks></remarks>
     <ormObject(id:=Person.ConstObjectID, modulename:=ConstModuleCore, description:="person definition", _
-        usecache:=True, Version:=1)> Public Class Person
+        usecache:=True, Version:=1, addDomainBehavior:=True, adddeletefieldbehavior:=True)> Public Class Person
         Inherits ormDataObject
         Implements iormInfusable
         Implements iormPersistable
@@ -1580,7 +1577,7 @@ Namespace OnTrack
         '** Object ID
         Public Const ConstObjectID = "Person"
         '** Table
-        <ormSchemaTable(version:=2, addDomainBehavior:=True, addsparefields:=True, adddeletefieldbehavior:=True)> Public Const constTableID As String = "tblDefPersons"
+        <ormSchemaTable(version:=2, usecache:=True)> Public Const constTableID As String = "tblDefPersons"
 
         '** primary keys
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, primarykeyordinal:=1, _
@@ -1969,7 +1966,7 @@ Namespace OnTrack
 
         Public Const ConstObjectID = "ObjectLogMessageDefinition"
         '* Schema Mapping
-        <ormSchemaTable(version:=1, addsparefields:=True, addDomainBehavior:=True)> Public Const ConstTableID As String = "tblDefObjectLogMessages"
+        <ormSchemaTable(version:=1, addDomainBehavior:=True)> Public Const ConstTableID As String = "tblDefObjectLogMessages"
 
         '* primary keys
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=20, primarykeyordinal:=1, _
@@ -2440,7 +2437,7 @@ Namespace OnTrack
     ''' </summary>
     ''' <remarks></remarks>
     <ormObject(id:=StatusItem.ConstObjectID, description:="status item description for object messages and others", _
-        modulename:=ConstModuleCore, Version:=1)> Public Class StatusItem
+        modulename:=ConstModuleCore, Version:=1, usecache:=True, addDomainBehavior:=True, adddeletefieldbehavior:=True)> Public Class StatusItem
         Inherits ormDataObject
         Implements iormPersistable
         Implements iormInfusable
@@ -2449,7 +2446,7 @@ Namespace OnTrack
         Public Const ConstObjectID = "StatusItem"
 
         '** Table
-        <ormSchemaTable(version:=2, addsparefields:=True, addDomainBehavior:=True)> Public Const ConstTableID As String = "tblDefStatusItems"
+        <ormSchemaTable(version:=2, usecache:=True)> Public Const ConstTableID As String = "tblDefStatusItems"
 
         '* primary Key
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, primarykeyordinal:=1, _
@@ -2825,14 +2822,12 @@ Namespace OnTrack
 
     End Class
 
-    '************************************************************************************
-    '***** CLASS clsOTDBDefWorkspace describes additional database schema information
-    '*****
     ''' <summary>
     ''' Workspace Definition Class
     ''' </summary>
     ''' <remarks></remarks>
-    <ormObject(id:=Workspace.ConstObjectID, modulename:=ConstModuleCore, description:="workspace definition for vertical grouping in scheduling", _
+    <ormObject(id:=Workspace.ConstObjectID, adddomainBehavior:=False, adddeletefieldbehavior:=True, usecache:=True, _
+        modulename:=ConstModuleCore, description:="workspace definition for vertical grouping in scheduling", _
         Version:=1, useCache:=True)> Public Class Workspace
         Inherits ormDataObject
         Implements iormInfusable
@@ -2841,14 +2836,16 @@ Namespace OnTrack
         Public Const ConstObjectID = "Workspace"
 
         '** Table Schema
-        <ormSchemaTableAttribute(Version:=2, adddomainBehavior:=False, adddeletefieldbehavior:=True)> Public Const ConstTableID As String = "tblDefWorkspaces"
+        <ormSchemaTableAttribute(Version:=2, usecache:=True)> Public Const ConstTableID As String = "tblDefWorkspaces"
 
         '** primary Keys
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, primaryKeyordinal:=1, _
+            properties:={ObjectEntryProperty.Keyword}, validationPropertystrings:={ObjectValidationProperty.NotEmpty}, _
             XID:="WS", title:="Workspace", Description:="workspaceID identifier")> Public Const ConstFNID As String = "wspace"
 
+
         '** Fields
-        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=255, _
+        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=255, isnullable:=True, _
             XID:="WS1", title:="Description")> Public Const ConstFNDescription = "desc"
 
         <ormObjectEntry(typeid:=otFieldDataType.List, innertypeid:=otFieldDataType.Text, _
@@ -2859,31 +2856,40 @@ Namespace OnTrack
             XID:="WS3", title:="actual lookup order", description:="Actual milestones are looked up in this order. Must include this workspaceID ID")> _
         Public Const ConstFNActRelyOn = "actrelyOn"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Bool, _
+        <ormObjectEntry(typeid:=otFieldDataType.Bool, defaultvalue:=False, dbdefaultvalue:="0", _
             XID:="WS4", title:="Base", description:="if set this workspaceID is a base workspaceID")> Public Const ConstFNIsBase = "isbase"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Bool, _
+        <ormObjectEntry(typeid:=otFieldDataType.Bool, defaultvalue:=True, dbdefaultvalue:="1", _
               XID:="WS5", title:="has actuals", description:="if set this workspaceID has actual milestones") _
                > Public Const ConstFNHasAct = "hasact"
 
-        <ormObjectEntry(typeid:=otFieldDataType.List, innertypeid:=otFieldDataType.Text, size:=255, _
+        <ormObjectEntry(typeid:=otFieldDataType.List, innertypeid:=otFieldDataType.Text, isnullable:=True,
           XID:="WS6", title:="accesslist", description:="Accesslist")> Public Const ConstFNAccesslist = "acclist"
 
-        <ormObjectEntry(typeid:=otFieldDataType.[Long], defaultValue:=0, _
+        <ormObjectEntry(typeid:=otFieldDataType.[Long], defaultValue:=0, isnullable:=True, _
               XID:="WS7", title:="min schedule updc", description:="Minimum update counter for schedules of this workspaceID") _
                > Public Const ConstFNMinScheduleUPC = "minsupdc"
 
-        <ormObjectEntry(typeid:=otFieldDataType.[Long], defaultValue:=9999, _
+        <ormObjectEntry(typeid:=otFieldDataType.[Long], defaultValue:=9999, isnullable:=True, _
               XID:="WS8", title:="max schedule updc", description:="Maximum update counter for schedules of this workspaceID") _
                > Public Const ConstFNMaxScheduleUPC = "maxsupdc"
 
-        <ormObjectEntry(typeid:=otFieldDataType.[Long], defaultValue:=0, _
+        <ormObjectEntry(typeid:=otFieldDataType.[Long], defaultValue:=0, isnullable:=True, _
               XID:="WS9", title:="min target updc", description:="Minimum update counter for targets of this workspaceID") _
                > Public Const ConstFNMinTargetUPDC = "mintupdc"
 
-        <ormObjectEntry(typeid:=otFieldDataType.[Long], defaultValue:=9999, _
+        <ormObjectEntry(typeid:=otFieldDataType.[Long], defaultValue:=9999, isnullable:=True, _
               XID:="WS10", title:="max target updc", description:="Minimum update counter for target of this workspaceID") _
                > Public Const ConstFNMaxTargetUPDC = "maxtupdc"
+
+        ''' <summary>
+        '''  deactivate foreign keys to domain since this would end up in a mess - all the schedule and deliverable object would be
+        ''' in domains then also
+        ''' </summary>
+        ''' <remarks></remarks>
+        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID,
+            useforeignkey:=otForeignKeyImplementation.None)> Public Shadows Const ConstFNDomainID = Domain.ConstFNDomainID
+
 
         ' fields
         <ormEntryMapping(EntryName:=ConstFNID)> Private _ID As String = ""
@@ -2991,8 +2997,8 @@ Namespace OnTrack
 
         Public Property ACTRelyingOn() As String()
             Get
-               
-                    Return _actrelyingOn
+
+                Return _actrelyingOn
             End Get
             Set(value As String())
                 SetValue(ConstFNActRelyOn, value)
@@ -3080,21 +3086,23 @@ Namespace OnTrack
         ''' <param name="id"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Retrieve(ByVal id As String, Optional forcereload As Boolean = False) As Workspace
+        Public Overloads Shared Function Retrieve(ByVal id As String, Optional domainid As String = "", Optional forcereload As Boolean = False) As Workspace
+            If domainid = "" Then domainid = CurrentSession.CurrentDomainID
             Dim pkarray() As Object = {UCase(id)}
-            Return Retrieve(Of Workspace)(pkArray:=pkarray, forceReload:=forcereload)
+            Return Retrieve(Of Workspace)(pkArray:=pkarray, domainID:=domainid, forceReload:=forcereload)
         End Function
 
-       
+
         ''' <summary>
         ''' creates with this object a new persistable Def workspaceID
         ''' </summary>
         ''' <param name="workspaceID"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Create(ByVal workspaceID As String) As Workspace
-            Dim primarykey() As Object = {UCase(workspaceID)}
-            Return ormDataObject.CreateDataObject(Of Workspace)(pkArray:=primarykey, checkUnique:=True)
+        Public Overloads Shared Function Create(ByVal workspaceID As String, Optional ByVal domainid As String = "") As Workspace
+            If domainid = "" Then domainid = CurrentSession.CurrentDomainID
+            Dim primarykey() As Object = {workspaceID.ToUpper}
+            Return ormDataObject.CreateDataObject(Of Workspace)(pkArray:=primarykey, domainID:=domainid, checkUnique:=True)
         End Function
 
 
@@ -3127,6 +3135,7 @@ Namespace OnTrack
         '** key
         <ormObjectEntry(XID:="DM1", _
             typeid:=otFieldDataType.Text, size:=50, Properties:={ObjectEntryProperty.Keyword}, _
+            validationPropertyStrings:={ObjectValidationProperty.NotEmpty}, _
             title:="Domain", Description:="domain identifier", _
             primaryKeyordinal:=1, isnullable:=False, useforeignkey:=otForeignKeyImplementation.None)> Public Const ConstFNDomainID As String = "DOMAINID"
 
@@ -3140,11 +3149,11 @@ Namespace OnTrack
              > Public Const ConstFNIsGlobal = "isglobal"
 
         <ormObjectEntry(XID:="DM10", _
-              typeid:=otFieldDataType.[Long], defaultValue:="0", _
+              typeid:=otFieldDataType.[Long], defaultValue:=0, dbdefaultvalue:="0", _
               title:="min deliverable uid", description:="Minimum deliverable uid for domain")> Public Const ConstFNMinDeliverableUID = "mindlvuid"
 
         <ormObjectEntry(XID:="DM11", _
-              typeid:=otFieldDataType.[Long], defaultValue:="0", _
+              typeid:=otFieldDataType.[Long], defaultValue:=999999, dbdefaultvalue:="999999", _
               title:="max deliverable uid", description:="Maximum deliverable uid for domain")> Public Const ConstFNMaxDeliverableUID = "maxdlvuid"
 
 
@@ -3357,12 +3366,12 @@ Namespace OnTrack
             End If
         End Function
         ''' <summary>
-        ''' sets the setting valid in the domain
+        ''' sets (add or overwrites) the setting valid in the domain
         ''' </summary>
         ''' <param name="id"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function SetSetting(id As String, datatype As otFieldDataType, value As Object) As Boolean
+        Public Function SetSetting(id As String, datatype As otFieldDataType, value As Object, Optional description As String = "") As Boolean
             Dim aSetting As New DomainSetting
             If Me.HasSetting(id:=id) Then
                 aSetting = Me.GetSetting(id:=id)
@@ -3376,6 +3385,7 @@ Namespace OnTrack
             End If
             aSetting.Datatype = datatype
             aSetting.value = value
+            aSetting.Description = description
 
             If Not Me.HasSetting(id:=id) Then _settings.Add(key:=aSetting.ID, value:=aSetting)
             Return True
@@ -3484,7 +3494,7 @@ Namespace OnTrack
     ''' <remarks></remarks>
 
     <ormObject(id:=OrgUnit.ConstObjectID, modulename:=ConstModuleCore, description:="recursive organization unit for a group of persons", _
-        Version:=1, useCache:=True)> Public Class OrgUnit
+        Version:=1, useCache:=True, adddeletefieldbehavior:=True, addDomainBehavior:=True)> Public Class OrgUnit
         Inherits ormDataObject
         Implements iormPersistable
         Implements iormInfusable
@@ -3492,7 +3502,7 @@ Namespace OnTrack
         '**
         Public Const ConstObjectID = "OrgUnit"
         '** Table
-        <ormSchemaTable(version:=2, addsparefields:=True, adddeletefieldbehavior:=True, addDomainBehavior:=True)> Public Const ConstTableID As String = "tblDefOrgUnits"
+        <ormSchemaTable(version:=2, usecache:=True)> Public Const ConstTableID As String = "tblDefOrgUnits"
 
         '** primary Keys
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, primaryKeyOrdinal:=1, _
@@ -3598,7 +3608,7 @@ Namespace OnTrack
         Public Overloads Shared Function Retrieve(ByVal id As String, Optional domainID As String = "", Optional forcereload As Boolean = False) As OrgUnit
             Return Retrieve(Of OrgUnit)(pkArray:={domainID, id}, domainID:=domainID, forceReload:=forcereload)
         End Function
-       
+
 
         ''' <summary>
         ''' returns a collection of all objects
@@ -3623,7 +3633,8 @@ Namespace OnTrack
     ''' Site Definition Class
     ''' </summary>
     ''' <remarks></remarks>
-    <ormObject(id:=Site.ConstObjectiD, description:="site (geographic units) definition for organization units", modulename:=ConstModuleCore, Version:=1, useCache:=True)> Public Class Site
+    <ormObject(id:=Site.ConstObjectiD, description:="site (geographic units) definition for organization units", modulename:=ConstModuleCore, _
+        Version:=1, useCache:=True, addDomainBehavior:=True, adddeletefieldbehavior:=True)> Public Class Site
         Inherits ormDataObject
         Implements iormInfusable
         Implements iormPersistable
@@ -3631,7 +3642,7 @@ Namespace OnTrack
         '** ObjectID
         Public Const ConstObjectiD = "Site"
         '** Table
-        <ormSchemaTable(version:=2, addDomainBehavior:=True, addsparefields:=True)> Public Const ConstTableID As String = "tblDefOUSites"
+        <ormSchemaTable(version:=2, useCache:=True)> Public Const ConstTableID As String = "tblDefOUSites"
 
         '** keys
         <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, primarykeyordinal:=1, _

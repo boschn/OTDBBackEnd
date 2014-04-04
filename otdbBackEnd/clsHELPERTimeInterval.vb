@@ -21,7 +21,7 @@ Imports System.Diagnostics.Debug
 
 Imports OnTrack
 
-Public Class clsTimeInterval
+Public Class clsHELPERTimeInterval
     '**************************************************************************************************
     '******* class TimeInterval defines a time with start and end
 
@@ -95,7 +95,7 @@ Public Class clsTimeInterval
         End If
     End Function
     '******* calculates the overlapping time between 2 TimeIntervals
-    Public Function overlapp(anotherTI As clsTimeInterval) As Long
+    Public Function overlapp(anotherTI As clsHELPERTimeInterval) As Long
         Dim result As Long
 
         ' mystart > otherend

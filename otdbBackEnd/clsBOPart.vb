@@ -900,7 +900,7 @@ error_handler:
         Public Function getInterfacingParts(Optional Sender As Boolean = True, Optional Receiver As Boolean = True) As Collection
             Dim aColInterfaces As New Collection
             Dim anInterface As IFM.clsOTDBInterface
-            Dim aCartypes As clsCartypes
+            Dim aCartypes As clsLEGACYCartypes
             Dim ourAssyCode As String
             Dim otherAssycode As String
             Dim otherPartCollection As Collection
@@ -971,7 +971,7 @@ error_handler:
         Public Function CreateDependencyFromInterfaces(ifcdepends As Scheduling.clsOTDBDependency) As Boolean
             Dim aColInterfaces As New Collection
             Dim anInterface As IFM.clsOTDBInterface
-            Dim aCartypes As clsCartypes
+            Dim aCartypes As clsLEGACYCartypes
             Dim ourAssyCode As String
             Dim otherAssycode As String
             Dim otherPartCollection As Collection
@@ -1076,7 +1076,7 @@ error_handler:
         Public Function GetInterfaces(Optional reload = False) As Collection
             Dim aCollection As Collection
             Dim assycode As String
-            Dim selectCartypes As clsCartypes
+            Dim selectCartypes As clsLEGACYCartypes
             Dim anInterface As New IFM.clsOTDBInterface
 
             If reload Or s_interfaceCollection.Count = 0 Then
@@ -1112,11 +1112,11 @@ error_handler:
 
         '************** matchWithCartypes: check if me.cartypes have at least one in common with anOthercartypes
         '**************
-        Public Function MatchWithCartypes(anOthercartypes As clsCartypes) As Boolean
+        Public Function MatchWithCartypes(anOthercartypes As clsLEGACYCartypes) As Boolean
 
 
             Dim i As Integer
-            Dim ourCartypes As clsCartypes
+            Dim ourCartypes As clsLEGACYCartypes
 
             If Not Me.IsLoaded And Not Me.IsCreated Then
                 MatchWithCartypes = False
@@ -1137,11 +1137,11 @@ error_handler:
 
         '****** getCartypes of the part -> Document
         '******
-        Public Function GetCartypes() As clsCartypes
+        Public Function GetCartypes() As clsLEGACYCartypes
             Dim aTable As iormDataStore
             Dim aRecord As ormRecord
             Dim pkarry() As Object
-            Dim aCartypes As New clsCartypes
+            Dim aCartypes As New clsLEGACYCartypes
             Dim i As Integer
             Dim amount As Integer
             Dim fieldname As String

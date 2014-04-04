@@ -3,7 +3,7 @@
 REM ***********************************************************************************************************************************************''' <summary>
 REM *********** ON TRACK DATABASE BACKEND LIBRARY
 REM ***********
-REM *********** CORE DEFINITION Classes for On Track Database Backend Library
+REM *********** COMMON BUSINESS OBJECT DEFINITION Classes 
 REM ***********
 REM *********** Version: X.YY
 REM *********** Created: 2013-08-08

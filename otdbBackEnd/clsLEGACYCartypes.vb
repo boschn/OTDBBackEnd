@@ -23,7 +23,7 @@ Imports OTDB
 Imports OnTrack
 
 
-Public Class clsCartypes
+Public Class clsLEGACYCartypes
     '***********************************************************************
     '***** CLASS Cartypes is a representation class of cartypes collection
     '*****
@@ -134,7 +134,7 @@ Public Class clsCartypes
             printout = show()
         End Get
     End Property
-            '** Helper function show_CarTypes(cartypes() as boolean) -> Generates string of cartypes
+    '** Helper function show_CarTypes(cartypes() as boolean) -> Generates string of cartypes
     Function nousedCars() As Integer
         Dim result As Integer
         Dim i As Integer

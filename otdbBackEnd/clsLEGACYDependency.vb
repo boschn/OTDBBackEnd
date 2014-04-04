@@ -3039,8 +3039,8 @@ errorhandle:
             Dim UID As Long
             Dim anInterface As New clsOTDBInterface
 
-            Dim ourTimeI As New clsTimeInterval
-            Dim DependTimeI As New clsTimeInterval
+            Dim ourTimeI As New clsHELPERTimeInterval
+            Dim DependTimeI As New clsHELPERTimeInterval
             Dim overlapp As Long
             Dim maxoverlapp As Long
 

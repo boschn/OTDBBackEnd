@@ -4013,9 +4013,9 @@ Namespace OnTrack.Scheduling
         ''' <param name="TaskTypeID"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetTimeInterval(TaskTypeID As String) As clsTimeInterval
+        Public Function GetTimeInterval(TaskTypeID As String) As clsHELPERTimeInterval
             Dim aVAlue As Object
-            Dim aTimeInterval As New clsTimeInterval
+            Dim aTimeInterval As New clsHELPERTimeInterval
 
             If Not Me.IsLoaded And Not Me.IsCreated Then
                 GetTimeInterval = Nothing

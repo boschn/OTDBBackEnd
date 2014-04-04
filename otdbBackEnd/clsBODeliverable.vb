@@ -3238,7 +3238,6 @@ Namespace OnTrack.Deliverables
         Inherits ormDataObject
         Implements iormInfusable
         Implements iormPersistable
-        Implements iotCloneable(Of DeliverableType)
 
         Public Const ConstObjectID = "DeliverableType"
         '** Table
@@ -3274,7 +3273,7 @@ Namespace OnTrack.Deliverables
            title:="Function", description:="default function type of the deliverable", XID:="DLVT23")> Public Const constFNDefFunction = "deffunction"
 
         <ormObjectEntry(referenceobjectentry:=OrgUnit.ConstObjectID & "." & OrgUnit.ConstFNID, isnullable:=True, _
-          title:="Function", description:="default target responsible organization Unit", XID:="DLVT24")> Public Const constFNTargetOU = "deftargetOu"
+          title:="Function", description:="default target responsible organization Unit", XID:="DLVT24")> Public Const constFNDefTargetOU = "deftargetOu"
 
         <ormObjectEntry(typeid:=otFieldDataType.Bool, defaultValue:=False, _
           title:="Target Necessary", description:="has mandatory target data", XID:="DLVT25")> Public Const constFNhastarget = "hastargetdata"
@@ -3288,9 +3287,13 @@ Namespace OnTrack.Deliverables
 
         '*** Mapping
         <ormEntryMapping(EntryName:=constFNTypeID)> Private _typeid As String = ""
-        <ormEntryMapping(EntryName:=constFNDescription)> Private _description As String = ""
-        <ormEntryMapping(EntryName:=constFNComment)> Private _comment As String = ""
-        <ormEntryMapping(EntryName:=constFNDefScheduleType)> Private _defScheduleType As String = ""
+        <ormEntryMapping(EntryName:=constFNDescription)> Private _description As String
+        <ormEntryMapping(EntryName:=constFNComment)> Private _comment As String
+        <ormEntryMapping(EntryName:=constFNDefScheduleType)> Private _defScheduleType As String
+        <ormEntryMapping(EntryName:=constFNDefFunction)> Private _deffunction As String
+        <ormEntryMapping(EntryName:=constFNDefRespOU)> Private _defRespOU As String
+        <ormEntryMapping(EntryName:=constFNDefTargetOU)> Private _defTargetOU As String
+        <ormEntryMapping(EntryName:=constFNhastarget)> Private _hasAlwasyTarget As Boolean = False
 
         ''' <summary>
         ''' constructor
@@ -3303,6 +3306,58 @@ Namespace OnTrack.Deliverables
 #Region "Properties"
 
         ''' <summary>
+        ''' Gets or sets the has alwasy target.
+        ''' </summary>
+        ''' <value>The has alwasy target.</value>
+        Public Property HasAlwasyTarget() As Boolean
+            Get
+                Return Me._hasAlwasyTarget
+            End Get
+            Set(value As Boolean)
+                SetValue(constFNhastarget, value)
+            End Set
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the def target OU.
+        ''' </summary>
+        ''' <value>The def target OU.</value>
+        Public Property DefTargetOU() As String
+            Get
+                Return Me._defTargetOU
+            End Get
+            Set
+                SetValue(constfndefTargetOU, Value)
+            End Set
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the def resp OU.
+        ''' </summary>
+        ''' <value>The def resp OU.</value>
+        Public Property DefRespOU() As String
+            Get
+                Return Me._defRespOU
+            End Get
+            Set
+                SetValue(constFNDefRespOU, Value)
+            End Set
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the deffunction.
+        ''' </summary>
+        ''' <value>The deffunction.</value>
+        Public Property Deffunction() As String
+            Get
+                Return Me._deffunction
+            End Get
+            Set
+                SetValue(constFNDefFunction, Value)
+            End Set
+        End Property
+
+        ''' <summary>
         ''' Gets or sets the type of the def schedule.
         ''' </summary>
         ''' <value>The type of the def schedule.</value>
@@ -3311,7 +3366,7 @@ Namespace OnTrack.Deliverables
                 Return Me._defScheduleType
             End Get
             Set(value As String)
-                Me._defScheduleType = value
+                SetValue(constFNDefScheduleType, value)
             End Set
         End Property
 
@@ -3324,7 +3379,7 @@ Namespace OnTrack.Deliverables
                 Return Me._comment
             End Get
             Set(value As String)
-                Me._comment = value
+                SetValue(constFNComment, value)
             End Set
         End Property
 
@@ -3337,7 +3392,7 @@ Namespace OnTrack.Deliverables
                 Return Me._description
             End Get
             Set(value As String)
-                Me._description = value
+                SetValue(constFNDescription, value)
             End Set
         End Property
 
@@ -3359,38 +3414,15 @@ Namespace OnTrack.Deliverables
         ''' <param name="workspaceID"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Function Create(ByVal typeid As String, Optional ByVal domainID As String = "") As Boolean
+        Public Shared Function Create(ByVal typeid As String, Optional ByVal domainID As String = "") As DeliverableType
             If domainID = "" Then domainID = CurrentSession.CurrentDomainID
             Dim primarykey() As Object = {typeid, domainID}
-            If MyBase.Create(primarykey, checkUnique:=True) Then
-                _typeid = typeid
-                _domainID = UCase(domainID)
-                Return True
-            Else
-                Return False
-            End If
+            Return CreateDataObject(Of DeliverableType)(pkArray:=primarykey, domainID:=domainID, checkUnique:=True)
         End Function
 
+       
         ''' <summary>
-        ''' loads and infuse the deliverable type by domainID first
-        ''' </summary>
-        ''' <param name="UID"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Overloads Function Inject(typeid As String, Optional domainID As String = "") As Boolean
-
-            If domainID = "" Then domainID = CurrentSession.CurrentDomainID
-            Dim pkarray() As Object = {typeid, domainID}
-
-            If MyBase.Inject(pkarray) Then
-                Return True
-            Else
-                Dim pkarrayGlobal() As Object = {typeid, ConstGlobalDomain}
-                Return MyBase.Inject(pkarrayGlobal)
-            End If
-        End Function
-        ''' <summary>
-        ''' Retrieve the workspaceID Cache Object
+        ''' Retrieve a deliverable Type object
         ''' </summary>
         ''' <param name="id"></param>
         ''' <returns></returns>
@@ -3398,70 +3430,9 @@ Namespace OnTrack.Deliverables
         Public Overloads Shared Function Retrieve(ByVal typeid As String, Optional ByVal domainID As String = "", Optional forcereload As Boolean = False) As DeliverableType
             If domainID = "" Then domainID = CurrentSession.CurrentDomainID
             Dim pkarray() As Object = {typeid, domainID}
-            Dim aType As DeliverableType = Retrieve(Of DeliverableType)(pkArray:=pkarray, forceReload:=forcereload)
-            If aType Is Nothing Then
-                Dim pkGlobalArray() As Object = {typeid, ConstGlobalDomain}
-                Return Retrieve(Of DeliverableType)(pkArray:=pkGlobalArray, forceReload:=forcereload)
-            End If
+            Return Retrieve(Of DeliverableType)(pkArray:=pkarray, forceReload:=forcereload)
         End Function
-        ''' <summary>
-        ''' Clone the object with its primary key array.
-        ''' </summary>
-        ''' <param name="pkArray"></param>
-        ''' <returns>the new object or nothing</returns>
-        ''' <remarks></remarks>
-        Public Overloads Function Clone(pkArray() As Object) As DeliverableType Implements iotCloneable(Of DeliverableType).Clone
-            '*** now we copy the object
-            Dim aNewObject As New DeliverableType
-
-            '* must be loaded
-            If Not IsLoaded And Not IsCreated Then
-                Return Nothing
-            End If
-
-            '* init
-            If Not Me.IsInitialized Then
-                If Not Me.Initialize() Then
-                    Return Nothing
-                End If
-            End If
-            '* update the record
-            If Not MyBase.Feed() Then
-                Return Nothing
-            End If
-
-            '** clone it
-            aNewObject = Me.Clone(Of DeliverableType)(pkArray)
-            If Not aNewObject Is Nothing Then
-                aNewObject.Record.SetValue(constFNTypeID, pkArray(0))
-                aNewObject._typeid = pkArray(0)
-                aNewObject.Record.SetValue(ConstFNDomainID, pkArray(1))
-                aNewObject._domainID = pkArray(0)
-            End If
-
-            Return aNewObject
-        End Function
-        ''' <summary>
-        ''' Clone the deliverable type
-        ''' </summary>
-        ''' <param name="typeid"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Overloads Function Clone(ByVal typeid As String, Optional domainID As String = "") As DeliverableType
-            If domainID = "" Then domainID = CurrentSession.CurrentDomainID
-            Return Me.Clone({typeid, domainID})
-        End Function
-        ''' <summary>
-        ''' create the persistency schema
-        ''' </summary>
-        ''' <param name="silent"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-
-        Public Shared Function CreateSchema(Optional silent As Boolean = True) As Boolean
-            Return ormDataObject.CreateDataObjectSchema(Of DeliverableType)(silent:=silent)
-        End Function
-
+        
 #Region "static routines"
         ''' <summary>
         ''' returns a List(of Delivertype) for the DomainID
@@ -4093,307 +4064,6 @@ Namespace OnTrack.Deliverables
 
 
         ''' <summary>
-        ''' create the persistency schema
-        ''' </summary>
-        ''' <param name="silent"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-
-        Public Shared Function CreateSchema(Optional silent As Boolean = True) As Boolean
-            Return ormDataObject.CreateDataObjectSchema(Of Deliverable)(silent:=silent)
-            'Dim aFieldDesc As New ormFieldDescription
-            'Dim primaryColumnNames As New Collection
-            'Dim aTable As New ObjectDefinition
-
-
-            'aFieldDesc.ID = ""
-            'aFieldDesc.Parameter = ""
-            'aFieldDesc.Relation = New String() {}
-            'aFieldDesc.Aliases = New String() {}
-            'aFieldDesc.Tablename = ConstTableID
-
-            'With aTable
-            '    .Create(ConstTableID)
-            '    .Delete()
-
-            '    '***
-            '    '*** Fields
-            '    '****
-
-            '    'Type
-            '    aFieldDesc.Datatype = otFieldDataType.[Long]
-            '    aFieldDesc.Title = "uid of the deliverable"
-            '    aFieldDesc.ColumnName = constFNUid
-            '    aFieldDesc.Aliases = New String() {"uid"}
-            '    aFieldDesc.ID = "dlv1"
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-            '    primaryColumnNames.Add(aFieldDesc.ColumnName)
-
-            '    aFieldDesc.Datatype = otFieldDataType.Text
-            '    aFieldDesc.Title = "category"
-            '    aFieldDesc.ColumnName = "cat"
-            '    aFieldDesc.ID = "dlv12"
-            '    aFieldDesc.Aliases = New String() {}
-            '    aFieldDesc.Size = 50
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    aFieldDesc.Datatype = otFieldDataType.Text
-            '    aFieldDesc.Title = "deliverable id"
-            '    aFieldDesc.ColumnName = "dlvid"
-            '    aFieldDesc.ID = "dlv3"
-            '    aFieldDesc.Size = 50
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    aFieldDesc.Datatype = otFieldDataType.Text
-            '    aFieldDesc.Title = "precode"
-            '    aFieldDesc.ColumnName = constFNMatchCode
-            '    aFieldDesc.ID = "dlv4"
-            '    aFieldDesc.Aliases = New String() {"c3"}
-            '    aFieldDesc.Size = 50
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    aFieldDesc.Datatype = otFieldDataType.Text
-            '    aFieldDesc.Title = "assycode"
-            '    aFieldDesc.ColumnName = "dasy"
-            '    aFieldDesc.ID = "dlv5"
-            '    aFieldDesc.Aliases = New String() {"c4"}
-            '    aFieldDesc.Size = 50
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    aFieldDesc.Datatype = otFieldDataType.Text
-            '    aFieldDesc.Title = "deliverable revision"
-            '    aFieldDesc.ColumnName = constFNRevision
-            '    aFieldDesc.ID = "dlv6"
-            '    aFieldDesc.Aliases = New String() {"c16"}
-            '    aFieldDesc.Size = 20
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    aFieldDesc.Datatype = otFieldDataType.[Long]
-            '    aFieldDesc.Title = "first revision uid"
-            '    aFieldDesc.ColumnName = constFNfuid
-            '    aFieldDesc.ID = "dlv7"
-            '    aFieldDesc.Aliases = New String() {"c21"}
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    aFieldDesc.Datatype = otFieldDataType.Text
-            '    aFieldDesc.Title = "change reference tag"
-            '    aFieldDesc.ColumnName = "chref"
-            '    aFieldDesc.ID = "dlv8"
-            '    aFieldDesc.Aliases = New String() {"c20"}
-            '    aFieldDesc.Size = 50
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    aFieldDesc.Datatype = otFieldDataType.Text
-            '    aFieldDesc.Title = "format"
-            '    aFieldDesc.ColumnName = "frmt"
-            '    aFieldDesc.ID = "dlv9"
-            '    aFieldDesc.Aliases = New String() {"c5"}
-            '    aFieldDesc.Size = 50
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    aFieldDesc.Datatype = otFieldDataType.Text
-            '    aFieldDesc.Title = "description"
-            '    aFieldDesc.ColumnName = constFNDescription
-            '    aFieldDesc.ID = "dlv10"
-            '    aFieldDesc.Aliases = New String() {"c6"}
-            '    aFieldDesc.Size = 255
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    aFieldDesc.Datatype = otFieldDataType.Text
-            '    aFieldDesc.Title = "responsible OU name"
-            '    aFieldDesc.ColumnName = "respou"
-            '    aFieldDesc.ID = "dlv11"
-            '    aFieldDesc.Aliases = New String() {}
-            '    aFieldDesc.Size = 50
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    aFieldDesc.Datatype = otFieldDataType.Text
-            '    aFieldDesc.Title = "parts-id"
-            '    aFieldDesc.ColumnName = constFNPartID
-            '    aFieldDesc.ID = "dlv12"
-            '    aFieldDesc.Aliases = New String() {"c10"}
-            '    aFieldDesc.Size = 50
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    aFieldDesc.Datatype = otFieldDataType.Text
-            '    aFieldDesc.Title = "type of deliverable"
-            '    aFieldDesc.ColumnName = constFNTypeID
-            '    aFieldDesc.ID = "dlv13"
-            '    aFieldDesc.Aliases = New String() {}
-            '    aFieldDesc.Size = 50
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    aFieldDesc.Datatype = otFieldDataType.Text
-            '    aFieldDesc.Title = "customer OU"
-            '    aFieldDesc.ColumnName = constFNCustomerOU
-            '    aFieldDesc.ID = "dlv15"
-            '    aFieldDesc.Aliases = New String() {"c12"}
-            '    aFieldDesc.Size = 50
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    aFieldDesc.Datatype = otFieldDataType.Text
-            '    aFieldDesc.Title = "responsible"
-            '    aFieldDesc.ColumnName = "resp"
-            '    aFieldDesc.ID = "dlv16"
-            '    aFieldDesc.Aliases = New String() {"c14"}
-            '    aFieldDesc.Size = 50
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    aFieldDesc.Datatype = otFieldDataType.Text
-            '    aFieldDesc.Title = "blocking item"
-            '    aFieldDesc.ColumnName = "blitemid"
-            '    aFieldDesc.ID = "dlv17"
-            '    aFieldDesc.Aliases = New String() {"bs5"}
-            '    aFieldDesc.Size = 50
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    ' cmt
-            '    aFieldDesc.Datatype = otFieldDataType.Memo
-            '    aFieldDesc.Title = "comments"
-            '    aFieldDesc.ColumnName = "cmt"
-            '    aFieldDesc.ID = "dlv18"
-            '    aFieldDesc.Size = 0
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    '**** configtag
-            '    aFieldDesc.Datatype = otFieldDataType.Text
-            '    aFieldDesc.Title = "tag of config"
-            '    aFieldDesc.ID = "dlv19"
-            '    aFieldDesc.Aliases = New String() {"cnfl4"}
-            '    aFieldDesc.ColumnName = "cnftag"
-            '    aFieldDesc.Size = 100
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-            '    '**** activeTag
-            '    aFieldDesc.Datatype = otFieldDataType.Text
-            '    aFieldDesc.Title = "tag of activitiy"
-            '    aFieldDesc.ID = "dlv20"
-            '    aFieldDesc.Aliases = New String() {}
-            '    aFieldDesc.ColumnName = "acttag"
-            '    aFieldDesc.Size = 100
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-
-            '    ' msglogtag
-            '    aFieldDesc.Datatype = otFieldDataType.Text
-            '    aFieldDesc.Title = "message log tag"
-            '    aFieldDesc.ColumnName = "msglogtag"
-            '    aFieldDesc.Size = 255
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    aFieldDesc.Datatype = otFieldDataType.Bool
-            '    aFieldDesc.Title = "deleted flag"
-            '    aFieldDesc.ColumnName = ConstFNIsDeleted
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    aFieldDesc.Datatype = otFieldDataType.Timestamp
-            '    aFieldDesc.Title = "deleted date"
-            '    aFieldDesc.ColumnName = ConstFNDeletedOn
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    ' parameter_txt 1
-            '    aFieldDesc.Datatype = otFieldDataType.Text
-            '    aFieldDesc.Title = "parameter_txt 1 of condition"
-            '    aFieldDesc.ColumnName = "param_txt1"
-            '    aFieldDesc.Size = 255
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    ' parameter_txt 2
-            '    aFieldDesc.Datatype = otFieldDataType.Text
-            '    aFieldDesc.Title = "parameter_txt 2 of condition"
-            '    aFieldDesc.ColumnName = "param_txt2"
-            '    aFieldDesc.Size = 255
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    ' parameter_txt 2
-            '    aFieldDesc.Datatype = otFieldDataType.Text
-            '    aFieldDesc.Title = "parameter_txt 3 of condition"
-            '    aFieldDesc.ColumnName = "param_txt3"
-            '    aFieldDesc.Size = 255
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    ' parameter_num 1
-            '    aFieldDesc.Datatype = otFieldDataType.Numeric
-            '    aFieldDesc.Title = "parameter numeric 1 of condition"
-            '    aFieldDesc.ColumnName = "param_num1"
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    ' parameter_num 2
-            '    aFieldDesc.Datatype = otFieldDataType.Numeric
-            '    aFieldDesc.Title = "parameter numeric 2 of condition"
-            '    aFieldDesc.ColumnName = "param_num2"
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-            '    ' parameter_num 2
-            '    aFieldDesc.Datatype = otFieldDataType.Numeric
-            '    aFieldDesc.Title = "parameter numeric 3 of condition"
-            '    aFieldDesc.ColumnName = "param_num3"
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    ' parameter_date 1
-            '    aFieldDesc.Datatype = otFieldDataType.[Date]
-            '    aFieldDesc.Title = "parameter date 1 of condition"
-            '    aFieldDesc.ColumnName = "param_date1"
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    ' parameter_date 2
-            '    aFieldDesc.Datatype = otFieldDataType.[Date]
-            '    aFieldDesc.Title = "parameter date 2 of condition"
-            '    aFieldDesc.ColumnName = "param_date2"
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-            '    ' parameter_date 3
-            '    aFieldDesc.Datatype = otFieldDataType.[Date]
-            '    aFieldDesc.Title = "parameter date 3 of condition"
-            '    aFieldDesc.ColumnName = "param_date3"
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-            '    ' parameter_flag 1
-            '    aFieldDesc.Datatype = otFieldDataType.Bool
-            '    aFieldDesc.Title = "parameter flag 1 of condition"
-            '    aFieldDesc.ColumnName = "param_flag1"
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    ' parameter_flag 2
-            '    aFieldDesc.Datatype = otFieldDataType.Bool
-            '    aFieldDesc.Title = "parameter flag 2 of condition"
-            '    aFieldDesc.ColumnName = "param_flag2"
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-            '    ' parameter_flag 3
-            '    aFieldDesc.Datatype = otFieldDataType.Bool
-            '    aFieldDesc.Title = "parameter flag 3 of condition"
-            '    aFieldDesc.ColumnName = "param_flag3"
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-            '    '***
-            '    '*** TIMESTAMP
-            '    '****
-            '    aFieldDesc.Datatype = otFieldDataType.Timestamp
-            '    aFieldDesc.Title = "last Update"
-            '    aFieldDesc.ColumnName = ConstFNUpdatedOn
-            '    aFieldDesc.Aliases = New String() {}
-            '    aFieldDesc.Relation = New String() {}
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '    aFieldDesc.Datatype = otFieldDataType.Timestamp
-            '    aFieldDesc.Title = "creation Date"
-            '    aFieldDesc.ColumnName = ConstFNCreatedOn
-            '    aFieldDesc.Aliases = New String() {}
-            '    aFieldDesc.Relation = New String() {}
-            '    Call .AddFieldDesc(fielddesc:=aFieldDesc)
-            '    ' Index
-            '    Call .AddIndex("PrimaryKey", primaryColumnNames, isprimarykey:=True)
-            '    Dim deletedCollection As New Collection
-            '    deletedCollection.Add(ConstFNDeletedOn)
-            '    Call .AddIndex("deleted", deletedCollection, isprimarykey:=False)
-            '    ' persist
-            '    .Persist()
-            '    ' change the database
-            '    .AlterSchema()
-            'End With
-
-            'CreateSchema = True
-            'Exit Function
-
-
-        End Function
-
-        ''' <summary>
         ''' Purge revisions of a deliverable
         ''' </summary>
         ''' <returns></returns>
@@ -4448,6 +4118,7 @@ Namespace OnTrack.Deliverables
             End If
         End Function
 
+
         ''' <summary>
         ''' loads and infuse the deliverable by primary key from the data store
         ''' </summary>
@@ -4460,6 +4131,18 @@ Namespace OnTrack.Deliverables
         End Function
 
 #Region "Static"
+
+        ''' <summary>
+        ''' Retrieve the Deliverable
+        ''' </summary>
+        ''' <param name="uid"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Shared Function Retrieve(uid As Long) As Deliverable
+            Dim pkarray() As Object = {uid}
+            Return ormDataObject.Retrieve(Of Deliverable)(pkArray:=pkarray)
+        End Function
+
         ''' <summary>
         ''' returns a collection of all deliverables (not deleted)
         ''' </summary>
@@ -4927,7 +4610,7 @@ Namespace OnTrack.Deliverables
             Dim aCarNo As Integer
 
             Dim aChangeMember As New clsOTDBXChangeMember
-            Dim aCartypes As New clsCartypes
+            Dim aCartypes As New clsLEGACYCartypes
 
             Dim anUID As Long
 
@@ -4935,7 +4618,7 @@ Namespace OnTrack.Deliverables
             Dim aFlag As Boolean
 
 
-            Dim aDeliverable As New Deliverable
+            Dim aDeliverable As Deliverable
 
             Dim anObjectDef As New clsOTDBXChangeMember
             Dim anAttribute As New clsOTDBXChangeMember
@@ -4986,7 +4669,8 @@ Namespace OnTrack.Deliverables
             End If
 
             '** load the deliverable
-            If Not aDeliverable.Inject(uid:=anUID) Then
+            aDeliverable = Deliverable.Retrieve(uid:=anUID)
+            If aDeliverable Is Nothing Then
                 Call MSGLOG.AddMsg("203", Nothing, Nothing, "UID", CHANGECONFIG.Configname, anUID)
                 runCartypesXChange = False
                 Exit Function
@@ -5068,11 +4752,11 @@ Namespace OnTrack.Deliverables
         End Function
         '****** getCartypes of the Document
         '******
-        Public Function GetCartypes(Optional ByVal uid As Long = 0) As clsCartypes
+        Public Function GetCartypes(Optional ByVal uid As Long = 0) As clsLEGACYCartypes
             Dim aTable As iormDataStore
             Dim aRecord As ormRecord
             Dim pkarry() As Object
-            Dim aCartypes As New clsCartypes
+            Dim aCartypes As New clsLEGACYCartypes
             Dim i As Integer
             Dim amount As Integer
             Dim fieldname As String
@@ -5106,7 +4790,7 @@ Namespace OnTrack.Deliverables
 
         '****** HACK:setCartypes : persist the Cartypes for this Deliverable
         '******
-        Public Function SetCartypes(Cartypes As clsCartypes) As Boolean
+        Public Function SetCartypes(Cartypes As clsLEGACYCartypes) As Boolean
             Dim aTable As iormDataStore
             Dim aRecord As ormRecord
             Dim pkarry() As Object
@@ -5451,11 +5135,11 @@ Namespace OnTrack.Deliverables
 
         '****** getCartypes of the Document
         '******
-        Public Function CloneCartypes(ByVal newUID As Long) As clsCartypes
+        Public Function CloneCartypes(ByVal newUID As Long) As clsLEGACYCartypes
             Dim aTable As iormDataStore
             Dim aRecord As ormRecord
             Dim pkarry() As Object
-            Dim aCartypes As New clsCartypes
+            Dim aCartypes As New clsLEGACYCartypes
             Dim i As Integer
             Dim amount As Integer
             Dim fieldname As String

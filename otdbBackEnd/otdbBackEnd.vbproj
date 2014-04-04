@@ -98,10 +98,10 @@
     <Compile Include="clsADOMSSQL.vb" />
     <Compile Include="clsADONET.vb" />
     <Compile Include="clsADOOLEDB.vb" />
-    <Compile Include="clsBOM.vb" />
-    <Compile Include="clsCalender.vb" />
-    <Compile Include="clsCartypes.vb" />
-    <Compile Include="clsConfigurable.vb" />
+    <Compile Include="clsLEGACYBOM.vb" />
+    <Compile Include="clsBOCalender.vb" />
+    <Compile Include="clsLEGACYCartypes.vb" />
+    <Compile Include="clsBOConfigurable.vb" />
     <Compile Include="clsCore.vb" />
     <Compile Include="clsCoreDef.vb" />
     <Compile Include="clsCoreHelper.vb" />
@@ -118,16 +118,16 @@
     <Compile Include="clsCoreUIDataModel.vb">
       <SubType>Component</SubType>
     </Compile>
-    <Compile Include="clsDefCore.vb" />
-    <Compile Include="clsDeliverable.vb" />
-    <Compile Include="clsDependency.vb" />
-    <Compile Include="clsInterfaces.vb" />
-    <Compile Include="clsMQF.vb" />
-    <Compile Include="clsPart.vb" />
-    <Compile Include="clsSchedules.vb" />
-    <Compile Include="clsStatistics.vb" />
-    <Compile Include="clsTimeInterval.vb" />
-    <Compile Include="clsTracking.vb" />
+    <Compile Include="clsBOCommons.vb" />
+    <Compile Include="clsBODeliverable.vb" />
+    <Compile Include="clsLEGACYDependency.vb" />
+    <Compile Include="clsLEGACYInterfaces.vb" />
+    <Compile Include="clsBOMQF.vb" />
+    <Compile Include="clsBOPart.vb" />
+    <Compile Include="clsBOSchedules.vb" />
+    <Compile Include="clsLEGACYStatistics.vb" />
+    <Compile Include="clsHELPERTimeInterval.vb" />
+    <Compile Include="clsBOTracking.vb" />
     <Compile Include="UIWinFormLogin.Designer.vb">
       <DependentUpon>UIWinFormLogin.vb</DependentUpon>
     </Compile>
@@ -135,10 +135,10 @@
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="UIWinFormMessageBox.vb" />
-    <Compile Include="clsXChange.vb" />
-    <Compile Include="CORE.vb" />
-    <Compile Include="createDatabase.vb" />
-    <Compile Include="Dependency.vb" />
+    <Compile Include="clsBOXChange.vb" />
+    <Compile Include="modCORE.vb" />
+    <Compile Include="modCoreInstall.vb" />
+    <Compile Include="modDependency.vb" />
     <Compile Include="modHelperString.vb" />
     <Compile Include="modHelperVBA.vb" />
     <Compile Include="modHostData.vb" />

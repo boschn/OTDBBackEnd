@@ -41,847 +41,830 @@ Namespace OnTrack.Database
 
 
 
-            Dim aSchedule As New Schedule
-            If Not Schedule.CreateSchema() Then
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_Schedule", _
-                                             message:="Schema Schedle couldn't be created")
-            Else
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_Schedule", message:="Schedule is up-to-date", _
-                                             messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aSchedule.primaryTableID)
-
-            End If
-            ' Create the CurrSchedule
-            If Not CurrentSchedule.CreateSchema() Then
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="createDatabase", _
-                                             message:="Schema CurrSchedule couldn't be created")
-            Else
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_Schedule", message:="CurrentSchedule is up-to-date", _
-                                             messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aCurrSCHEDULE.primaryTableID)
-
-
-            End If
-            If Not CurrentTarget.CreateSchema() Then
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="createDatabase", message:="currTarget couldn't be created")
-            Else
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_Schedule", message:="Current Target is up-to-date", _
-                                             messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aCurrTarget.primaryTableID)
-
-
-            End If
-
-
-            Dim aMilestone As New ScheduleMilestone
-            If Not ScheduleMilestone.CreateSchema() Then
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="createDatabase", _
-                                             message:="Schema aMQF couldn't be created")
-            Else
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_Schedule", message:="Schedule Milestone is up-to-date", _
-                                             messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aMilestone.primaryTableID)
-
-
-            End If
-
-            Dim aScheduleDef As New ScheduleDefinition
-            If Not ScheduleDefinition.CreateSchema() Then
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="createDatabase", _
-                                             message:="Schema " & aScheduleDef.primaryTableID & " couldn't be created")
-            Else
-
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_Schedule", message:="Schedule Defintion is up-to-date", _
-                                             messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aScheduleDef.primaryTableID)
-
-
-                aScheduleDef = New ScheduleDefinition
-                With aScheduleDef
-                    If Not .Create("full") Then .Inject("full")
-                    .description = "full engineering cycle (3D Design)"
-                    .Persist()
-
-                End With
-                aScheduleDef = New ScheduleDefinition
-                With aScheduleDef
-                    If Not .Create("pdm") Then .Inject("pdm")
-                    .description = "pdm entry cycle for non 3D Design items"
-                    .Persist()
-
-                End With
-                aScheduleDef = New ScheduleDefinition
-                With aScheduleDef
-                    If Not .Create("none") Then
-                        .description = "no schedule"
-                        .Persist()
-                    End If
-                End With
-                aScheduleDef = New ScheduleDefinition
-                With aScheduleDef
-                    If Not .Create("nocad") Then .Inject("nocad")
-                    .description = "design for non-mechanical (3D) design"
-                    .Persist()
-
-                End With
-            End If
-
-
-            Dim aScheduleDefM As New ScheduleMilestoneDefinition
-            If Not ScheduleMilestoneDefinition.CreateSchema() Then
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="createDatabase", _
-                                             message:="Schema " & aScheduleDefM.primaryTableID & " couldn't be created")
-            Else
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_Schedule", message:="Schedule Milestone Defintion is up-to-date", _
-                                             messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aScheduleDefM.primaryTableID)
-
-                '****
-                '**** full
-                '****
-
-                aScheduleDefM = New ScheduleMilestoneDefinition
-                With aScheduleDefM
-                    If Not .Create("full", "bp11") Then .Inject("full", "bp11")
-                    .ActualOfFC = ""
-                    .IsForecast = True
-                    .IsMandatory = True
-                    .Orderno = 10
-                    .Description = "start work"
-                    .Persist()
-
-                End With
-                aScheduleDefM = New ScheduleMilestoneDefinition
-                With aScheduleDefM
-                    If Not .Create("full", "bp12") Then .Inject("full", "bp12")
-                    .ActualOfFC = "bp11"
-                    .IsForecast = False
-                    .IsMandatory = True
-                    .Orderno = 10
-                    .Description = "start work"
-                    .Persist()
-
-                End With
-                aScheduleDefM = New ScheduleMilestoneDefinition
-                With aScheduleDefM
-                    If Not .Create("full", "bp1") Then .Inject("full", "bp1")
-                    .ActualOfFC = ""
-                    .IsForecast = True
-                    .IsFacultative = True
-                    .Orderno = 20
-                    .Description = "ifm freeze"
-                    .Persist()
-                End With
-                aScheduleDefM = New ScheduleMilestoneDefinition
-                With aScheduleDefM
-                    If Not .Create("full", "bp2") Then .Inject("full", "bp2")
-                    .ActualOfFC = "bp1"
-                    .IsForecast = False
-                    .IsMandatory = True
-                    .Orderno = 20
-                    .Description = "ifm freeze"
-                    .Persist()
-
-                End With
-                aScheduleDefM = New ScheduleMilestoneDefinition
-                With aScheduleDefM
-                    If Not .Create("full", "bp13") Then .Inject("full", "bp13")
-                    .ActualOfFC = ""
-                    .IsForecast = True
-                    .IsFacultative = True
-                    .Orderno = 20
-                    .Description = "ifm status"
-                    .Persist()
-
-                End With
-                aScheduleDefM = New ScheduleMilestoneDefinition
-                With aScheduleDefM
-                    If Not .Create("full", "bp3") Then .Inject("full", "bp3")
-                    .ActualOfFC = ""
-                    .IsForecast = True
-                    .IsMandatory = True
-                    .Orderno = 30
-                    .Description = "fap"
-                    .Persist()
-                End With
-                aScheduleDefM = New ScheduleMilestoneDefinition
-                With aScheduleDefM
-                    If Not .Create("full", "bp4") Then .Inject("full", "bp4")
-                    .ActualOfFC = "bp3"
-                    .IsForecast = False
-                    .IsMandatory = True
-                    .Orderno = 30
-                    .Description = "fap"
-                    .Persist()
-
-                End With
-                aScheduleDefM = New ScheduleMilestoneDefinition
-                With aScheduleDefM
-                    If Not .Create("full", "bp5") Then .Inject("full", "bp5")
-                    .ActualOfFC = ""
-                    .IsForecast = False
-                    .IsMandatory = True
-                    .Orderno = 35
-                    .Description = "dmu status"
-                    .Persist()
-
-                End With
-                aScheduleDefM = New ScheduleMilestoneDefinition
-                With aScheduleDefM
-                    If Not .Create("full", "bp6") Then .Inject("full", "bp6")
-                    .ActualOfFC = ""
-                    .IsForecast = False
-                    .IsMandatory = True
-                    .Orderno = 35
-                    .Description = "dmu date"
-                    .Persist()
-
-                End With
-                aScheduleDefM = New ScheduleMilestoneDefinition
-                With aScheduleDefM
-                    If Not .Create("full", "bp20") Then .Inject("full", "bp20")
-                    .ActualOfFC = ""
-                    .IsForecast = True
-                    .IsFacultative = True
-                    .Orderno = 40
-                    .Description = "fc fem"
-                    .Persist()
-
-                End With
-                aScheduleDefM = New ScheduleMilestoneDefinition
-                With aScheduleDefM
-                    If Not .Create("full", "bp21") Then .Inject("full", "bp21")
-                    .ActualOfFC = ""
-                    .IsForecast = False
-                    .IsMandatory = True
-                    .Orderno = 40
-                    .Description = "fem status"
-                    .Persist()
-
-                End With
-                aScheduleDefM = New ScheduleMilestoneDefinition
-                With aScheduleDefM
-                    If Not .Create("full", "bp22") Then .Inject("full", "bp22")
-                    .ActualOfFC = "bp20"
-                    .IsForecast = False
-                    .IsMandatory = True
-                    .Orderno = 40
-                    .Description = "fem status date"
-                    .Persist()
-                End With
-                aScheduleDefM = New ScheduleMilestoneDefinition
-                With aScheduleDefM
-                    If Not .Create("full", "bp7") Then .Inject("full", "bp7")
-                    .ActualOfFC = ""
-                    .IsForecast = True
-                    .IsMandatory = True
-                    .Orderno = 80
-                    .Description = "pdm entry"
-                    .Persist()
-
-                End With
-                aScheduleDefM = New ScheduleMilestoneDefinition
-                With aScheduleDefM
-                    If Not .Create("full", "bp8") Then .Inject("full", "bp8")
-                    .ActualOfFC = "bp7"
-                    .IsForecast = False
-                    .IsMandatory = True
-                    .Orderno = 80
-                    .Description = "pdm entry"
-                    .Persist()
-
-                End With
-                aScheduleDefM = New ScheduleMilestoneDefinition
-                With aScheduleDefM
-
-                    If Not .Create("full", "bp9") Then .Inject("full", "bp9")
-                    .ActualOfFC = ""
-                    .IsForecast = True
-                    .IsMandatory = True
-                    .Orderno = 90
-                    .Description = "pdm approval"
-                    .Persist()
-
-                End With
-                aScheduleDefM = New ScheduleMilestoneDefinition
-                With aScheduleDefM
-                    If Not .Create("full", "bp10") Then .Inject("full", "bp10")
-                    .ActualOfFC = "bp9"
-                    .IsForecast = False
-                    .IsMandatory = True
-                    .Orderno = 90
-                    .Description = "pdm approval"
-                    .Persist()
-
-                End With
-                aScheduleDefM = New ScheduleMilestoneDefinition
-                With aScheduleDefM
-                    If Not .Create("full", "bp80") Then .Inject("full", "bp80")
-                    .ActualOfFC = "bp9"
-                    .IsForecast = False
-                    .IsMandatory = True
-                    .Orderno = 95
-                    .Description = "pdm first approval"
-                    .Persist()
-                End With
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_Schedule", message:="Schedule Defintion for 'FULL' is updated", _
-                                             messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aScheduleDef.primaryTableID)
-
-                '****
-                '**** nocad
-                '****
-
-                aScheduleDefM = New ScheduleMilestoneDefinition
-                With aScheduleDefM
-                    If Not .Create("nocad", "bp11") Then .Inject("nocad", "bp11")
-                    .ActualOfFC = ""
-                    .IsForecast = True
-                    .IsFacultative = False
-                    .Orderno = 10
-                    .Description = "start work"
-                    .Persist()
-                End With
-                aScheduleDefM = New ScheduleMilestoneDefinition
-                With aScheduleDefM
-                    If Not .Create("nocad", "bp12") Then .Inject("nocad", "bp12")
-                    .ActualOfFC = "bp11"
-                    .IsForecast = False
-                    .IsFacultative = False
-                    .Orderno = 10
-                    .Description = "start work"
-                    .Persist()
-
-                End With
-                aScheduleDefM = New ScheduleMilestoneDefinition
-                With aScheduleDefM
-                    If Not .Create("nocad", "bp1") Then .Inject("nocad", "bp1")
-                    .ActualOfFC = ""
-                    .IsForecast = True
-                    .IsForbidden = True
-                    .Orderno = 20
-                    .Description = "ifm freeze"
-                    .Persist()
-
-                End With
-                aScheduleDefM = New ScheduleMilestoneDefinition
-                With aScheduleDefM
-                    If Not .Create("nocad", "bp2") Then .Inject("nocad", "bp2")
-                    .ActualOfFC = "bp3"
-                    .IsForecast = False
-                    .IsForbidden = True
-                    .Orderno = 20
-                    .Description = "ifm freeze"
-                    .Persist()
-
-                End With
-                aScheduleDefM = New ScheduleMilestoneDefinition
-                With aScheduleDefM
-                    If Not .Create("nocad", "bp3") Then .Inject("nocad", "bp3")
-                    .ActualOfFC = ""
-                    .IsForecast = True
-                    .IsFacultative = True
-                    .Orderno = 30
-                    .Description = "design freeze"
-                    .Persist()
-
-                End With
-                aScheduleDefM = New ScheduleMilestoneDefinition
-                With aScheduleDefM
-                    If Not .Create("nocad", "bp4") Then .Inject("nocad", "bp4")
-                    .ActualOfFC = "bp3"
-                    .IsForecast = False
-                    .IsFacultative = True
-                    .Orderno = 30
-                    .Description = "design freeze"
-                    .Persist()
-
-                End With
-
-                aScheduleDefM = New ScheduleMilestoneDefinition
-                With aScheduleDefM
-                    If Not .Create("nocad", "bp7") Then .Inject("nocad", "bp7")
-                    .ActualOfFC = ""
-                    .IsForecast = True
-                    .IsFacultative = True
-                    .Orderno = 80
-                    .Description = "pdm entry"
-                    .Persist()
-
-                End With
-                aScheduleDefM = New ScheduleMilestoneDefinition
-                With aScheduleDefM
-                    If Not .Create("nocad", "bp8") Then .Inject("nocad", "bp8")
-                    .ActualOfFC = "bp7"
-                    .IsForecast = False
-                    .IsFacultative = True
-                    .Orderno = 80
-                    .Description = "pdm entry"
-                    .Persist()
-
-                End With
-                aScheduleDefM = New ScheduleMilestoneDefinition
-                With aScheduleDefM
-                    If Not .Create("nocad", "bp9") Then .Inject("nocad", "bp9")
-                    .ActualOfFC = ""
-                    .IsForecast = True
-                    .IsMandatory = False
-                    .Orderno = 90
-                    .Description = "pdm approval"
-                    .Persist()
-
-                End With
-                aScheduleDefM = New ScheduleMilestoneDefinition
-                With aScheduleDefM
-                    If Not .Create("nocad", "bp10") Then .Inject("nocad", "bp10")
-                    .ActualOfFC = "bp9"
-                    .IsForecast = False
-                    .IsMandatory = True
-                    .Orderno = 90
-                    .Description = "pdm approval"
-                    .Persist()
-
-                End With
-                aScheduleDefM = New ScheduleMilestoneDefinition
-                With aScheduleDefM
-                    If Not .Create("nocad", "bp80") Then .Inject("nocad", "bp80")
-                    .ActualOfFC = "bp9"
-                    .IsForecast = False
-                    .IsMandatory = True
-                    .Orderno = 95
-                    .Description = "pdm first approval"
-                    .Persist()
-
-                End With
-
-                '****
-                '**** pdm
-                '****
-
-                aScheduleDefM = New ScheduleMilestoneDefinition
-                With aScheduleDefM
-                    If Not .Create("pdm", "bp11") Then .Inject("pdm", "bp11")
-                    .ActualOfFC = ""
-                    .IsForecast = True
-                    .IsFacultative = True
-                    .Orderno = 10
-                    .Description = "start work"
-                    .Persist()
-
-                End With
-                aScheduleDefM = New ScheduleMilestoneDefinition
-                With aScheduleDefM
-                    If Not .Create("pdm", "bp12") Then .Inject("pdm", "bp12")
-                    .ActualOfFC = "bp11"
-                    .IsForecast = False
-                    .IsFacultative = True
-                    .Orderno = 10
-                    .Description = "start work"
-                    .Persist()
-
-                End With
-                aScheduleDefM = New ScheduleMilestoneDefinition
-                With aScheduleDefM
-                    If Not .Create("pdm", "bp1") Then .Inject("pdm", "bp1")
-                    .ActualOfFC = ""
-                    .IsForecast = True
-                    .IsForbidden = True
-                    .Orderno = 20
-                    .Description = "ifm freeze"
-                    .Persist()
-
-                End With
-                aScheduleDefM = New ScheduleMilestoneDefinition
-                With aScheduleDefM
-                    If Not .Create("pdm", "bp2") Then .Inject("pdm", "bp2")
-                    .ActualOfFC = "bp3"
-                    .IsForecast = False
-                    .IsForbidden = True
-                    .Orderno = 20
-                    .Description = "ifm freeze"
-                    .Persist()
-
-                End With
-                aScheduleDefM = New ScheduleMilestoneDefinition
-                With aScheduleDefM
-                    If Not .Create("pdm", "bp3") Then .Inject("pdm", "bp3")
-                    .ActualOfFC = ""
-                    .IsForecast = True
-                    .IsForbidden = True
-                    .Orderno = 30
-                    .Description = "fap"
-                    .Persist()
-
-                End With
-                aScheduleDefM = New ScheduleMilestoneDefinition
-                With aScheduleDefM
-                    If Not .Create("pdm", "bp4") Then .Inject("pdm", "bp4")
-                    .ActualOfFC = "bp3"
-                    .IsForecast = False
-                    .IsForbidden = True
-                    .Orderno = 30
-                    .Description = "fap"
-                    .Persist()
-
-                End With
-
-                aScheduleDefM = New ScheduleMilestoneDefinition
-                With aScheduleDefM
-                    If Not .Create("pdm", "bp7") Then .Inject("pdm", "bp7")
-                    .ActualOfFC = ""
-                    .IsForecast = True
-                    .IsFacultative = True
-                    .Orderno = 80
-                    .Description = "pdm entry"
-                    .Persist()
-
-                End With
-                aScheduleDefM = New ScheduleMilestoneDefinition
-                With aScheduleDefM
-                    If Not .Create("pdm", "bp8") Then .Inject("pdm", "bp8")
-                    .ActualOfFC = "bp7"
-                    .IsForecast = False
-                    .IsFacultative = True
-                    .Orderno = 80
-                    .Description = "pdm entry"
-                    .Persist()
-
-                End With
-                aScheduleDefM = New ScheduleMilestoneDefinition
-                With aScheduleDefM
-                    If Not .Create("pdm", "bp9") Then .Inject("pdm", "bp9")
-                    .ActualOfFC = ""
-                    .IsForecast = True
-                    .IsMandatory = True
-                    .Orderno = 90
-                    .Description = "pdm approval"
-                    .Persist()
-
-                End With
-                aScheduleDefM = New ScheduleMilestoneDefinition
-                With aScheduleDefM
-                    If Not .Create("pdm", "bp10") Then .Inject("pdm", "bp10")
-                    .ActualOfFC = "bp9"
-                    .IsForecast = False
-                    .IsMandatory = True
-                    .Orderno = 90
-                    .Description = "pdm approval"
-                    .Persist()
-
-                End With
-                aScheduleDefM = New ScheduleMilestoneDefinition
-                With aScheduleDefM
-                    If Not .Create("pdm", "bp80") Then .Inject("pdm", "bp80")
-                    .ActualOfFC = "bp9"
-                    .IsForecast = False
-                    .IsMandatory = True
-                    .Orderno = 95
-                    .Description = "pdm first approval"
-                    .Persist()
-                End With
-
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_Schedule", message:="Schedule Defintion for 'PDM' is up-to-date", _
-                                             messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aScheduleDef.primaryTableID)
-
-                aScheduleDefM = New ScheduleMilestoneDefinition
-                With aScheduleDefM
-                    If Not .Create("none", "bp80") Then .Inject("none", "bp80")
-                    .ActualOfFC = ""
-                    .IsForecast = False
-                    .IsFacultative = True
-                    .Orderno = 95
-                    .Description = "pdm first approval"
-                    .Persist()
-
-                End With
-            End If
-
-
-            Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_Schedule", message:="Schedule Defintion for 'NONE' is up-to-date", _
-                                         messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aScheduleDef.primaryTableID)
-
-            Dim aScheduleTaskDef As New clsOTDBDefScheduleTask
-            If Not aScheduleTaskDef.CreateSchema() Then
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="createDatabase", _
-                                             message:="Schema " & aScheduleTaskDef.primaryTableID & " couldn't be created")
-            Else
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_Schedule", message:="Schedule Task Defintion is up-to-date", _
-                                             messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aScheduleTaskDef.primaryTableID)
-
-                aScheduleTaskDef = New clsOTDBDefScheduleTask
-                With aScheduleTaskDef
-                    If Not .Create("full", "synchro") Then .Inject("full", "synchro")
-                    .Description = "task for synchronization"
-                    .StartID = "bp11"
-                    .ActstartID = "bp12"
-                    .AlternativeStartIDs = New String() {"bp1", "bp3"}
-                    .FinishID = "bp3"
-                    .ActfinishID = "bp4"
-                    .AlternativeFinishIDs = New String() {""}
-                    .takeActualIfFCisMissing = True
-                    .IsFacultative = True
-                    .parameter_txt1 = "bp1"
-                    .Persist()
-
-                End With
-                aScheduleTaskDef = New clsOTDBDefScheduleTask
-                With aScheduleTaskDef
-                    If Not .Create("full", "development") Then .Inject("full", "development")
-                    .Description = "3D Development"
-                    .StartID = "bp11"
-                    .ActstartID = "bp12"
-                    .AlternativeStartIDs = New String() {"bp1", "bp3"}
-                    .FinishID = "bp7"
-                    .ActfinishID = "bp8"
-                    .AlternativeFinishIDs = New String() {""}
-                    .takeActualIfFCisMissing = True
-                    .IsMandatory = True
-                    .Persist()
-
-                End With
-                aScheduleTaskDef = New clsOTDBDefScheduleTask
-                With aScheduleTaskDef
-                    If Not .Create("full", "approve") Then .Inject("full", "approve")
-                    .Description = "approval"
-                    .StartID = "bp7"
-                    .ActstartID = "bp8"
-                    .AlternativeStartIDs = New String() {"bp9"}
-                    .FinishID = "bp9"
-                    .ActfinishID = "bp10"
-                    .AlternativeFinishIDs = New String() {""}
-                    .takeActualIfFCisMissing = True
-                    .Persist()
-
-                End With
-                aScheduleTaskDef = New clsOTDBDefScheduleTask
-                With aScheduleTaskDef
-                    If Not .Create("pdm", "approve") Then .Inject("pdm", "approve")
-                    .Description = "approval"
-                    .StartID = "bp7"
-                    .ActstartID = "bp8"
-                    .AlternativeStartIDs = New String() {"bp9"}
-                    .IsMandatory = True
-                    .FinishID = "bp9"
-                    .ActfinishID = "bp10"
-                    .AlternativeFinishIDs = New String() {""}
-                    .takeActualIfFCisMissing = True
-                    .Persist()
-
-                End With
-
-            End If
-
-            Dim aDefMilestone As New MileStoneDefinition
-            If Not MileStoneDefinition.CreateSchema() Then
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="createDatabase", _
-                                             message:="Schema " & aMilestone.primaryTableID & " couldn't be created")
-            Else
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_Schedule", message:="Milestone Definition is up-to-date", _
-                                             messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aDefMilestone.primaryTableID)
-
-                aDefMilestone = New MileStoneDefinition
-                With aDefMilestone
-                    If Not .Create("bp11") Then .Inject("bp11")
-                    .Description = "FC start work"
-                    .Datatype = otFieldDataType.[Date]
-                    .IsForecast = True
-                    .IsOfDate = True
-                    .Persist()
-                End With
-                aDefMilestone = New MileStoneDefinition
-                With aDefMilestone
-                    If Not .Create("bp12") Then .Inject("bp12")
-                    .Description = "start work"
-                    .IsForecast = False
-                    .Datatype = otFieldDataType.[Date]
-                    .IsOfDate = True
-                    .Persist()
-
-                End With
-                aDefMilestone = New MileStoneDefinition
-                With aDefMilestone
-                    If Not .Create("bp1") Then .Inject("bp1")
-                    .Description = "FC IFM freeze gate"
-                    .IsForecast = True
-                    .Datatype = otFieldDataType.[Date]
-                    .IsOfDate = True
-                    .Persist()
-
-                End With
-                aDefMilestone = New MileStoneDefinition
-                With aDefMilestone
-                    If Not .Create("bp2") Then .Inject("bp2")
-                    .Description = "IFM freeze gate"
-                    .IsForecast = False
-                    .Datatype = otFieldDataType.[Date]
-                    .IsOfDate = True
-                    .Persist()
-
-                End With
-                aDefMilestone = New MileStoneDefinition
-                With aDefMilestone
-                    If Not .Create("bp13") Then .Inject("bp13")
-                    .Description = "current IFM freeze status"
-                    .IsForecast = False
-                    .IsOfStatus = True
-                    .Datatype = otFieldDataType.Text
-                    .statustypeid = "ifmstatus"
-                    .referingToID = "bp15"
-                    .Persist()
-
-                End With
-                aDefMilestone = New MileStoneDefinition
-                With aDefMilestone
-                    If Not .Create("bp15") Then .Inject("bp15")
-                    .Description = "current IFM freeze status date"
-                    .IsForecast = False
-                    .Datatype = otFieldDataType.[Date]
-                    .IsOfDate = True
-                    .referingToID = "bp13"
-                    .Persist()
-
-                End With
-                aDefMilestone = New MileStoneDefinition
-                With aDefMilestone
-                    If Not .Create("bp3") Then .Inject("bp3")
-                    .Description = "FC FAP / Design Freeze status date"
-                    .Datatype = otFieldDataType.[Date]
-                    .IsForecast = True
-                    .IsOfDate = True
-                    .Persist()
-
-                End With
-                aDefMilestone = New MileStoneDefinition
-                With aDefMilestone
-                    If Not .Create("bp4") Then .Inject("bp4")
-                    .Description = "FAP / Design Freeze gate"
-                    .Datatype = otFieldDataType.[Date]
-                    .IsForecast = False
-                    .IsOfDate = True
-                    .Persist()
-
-                End With
-                aDefMilestone = New MileStoneDefinition
-                With aDefMilestone
-                    If Not .Create("bp5") Then .Inject("bp5")
-                    .Description = "dmu status"
-                    .Datatype = otFieldDataType.Text
-                    .IsForecast = False
-                    .IsOfStatus = True
-                    .statustypeid = "dmustatus"
-                    .referingToID = "bp6"
-                    .Persist()
-
-                End With
-                aDefMilestone = New MileStoneDefinition
-                With aDefMilestone
-                    If Not .Create("bp6") Then .Inject("bp6")
-                    .Description = "dmu status date"
-                    .Datatype = otFieldDataType.[Date]
-                    .IsForecast = False
-                    .IsOfDate = True
-                    .referingToID = "bp5"
-                    .Persist()
-
-                End With
-                aDefMilestone = New MileStoneDefinition
-                With aDefMilestone
-                    If Not .Create("bp20") Then .Inject("bp20")
-                    .Description = "FC FEM result date"
-                    .Datatype = otFieldDataType.[Date]
-                    .IsForecast = False
-                    .IsOfDate = True
-                    .Persist()
-
-                End With
-                aDefMilestone = New MileStoneDefinition
-                With aDefMilestone
-                    If Not .Create("bp22") Then .Inject("bp22")
-                    .Description = "FEM status date"
-                    .Datatype = otFieldDataType.[Date]
-                    .IsForecast = False
-                    .IsOfDate = True
-                    .referingToID = "bp21"
-                    .Persist()
-
-                End With
-                aDefMilestone = New MileStoneDefinition
-                With aDefMilestone
-                    If Not .Create("bp21") Then .Inject("bp21")
-                    .Description = "FEM Status"
-                    .Datatype = otFieldDataType.Text
-                    .IsForecast = False
-                    .IsOfStatus = True
-                    .statustypeid = "femstatus"
-                    .referingToID = "bp22"
-                    .Persist()
-
-                End With
-                aDefMilestone = New MileStoneDefinition
-                With aDefMilestone
-                    If Not .Create("bp7") Then .Inject("bp7")
-                    .Description = "FC PDM entry date (outgoing ENG)"
-                    .Datatype = otFieldDataType.[Date]
-                    .IsForecast = True
-                    .IsOfDate = True
-                    .Persist()
-
-                End With
-                aDefMilestone = New MileStoneDefinition
-                With aDefMilestone
-                    If Not .Create("bp8") Then .Inject("bp8")
-                    .Description = "entry PDM date"
-                    .Datatype = otFieldDataType.[Date]
-                    .IsForecast = False
-                    .IsOfDate = True
-                    .Persist()
-
-                End With
-                aDefMilestone = New MileStoneDefinition
-                With aDefMilestone
-                    If Not .Create("bp14") Then .Inject("bp14")
-                    .Description = "outgoing PDM DRL date"
-                    .Datatype = otFieldDataType.[Date]
-                    .IsForecast = False
-                    .IsOfDate = True
-                    .Persist()
-
-                End With
-                aDefMilestone = New MileStoneDefinition
-                With aDefMilestone
-                    If Not .Create("bp9") Then .Inject("bp9")
-                    .Description = "FC PDM approval date"
-                    .Datatype = otFieldDataType.[Date]
-                    .IsForecast = True
-                    .IsOfDate = True
-                    .Persist()
-
-                End With
-                aDefMilestone = New MileStoneDefinition
-                With aDefMilestone
-                    If Not .Create("bp10") Then .Inject("bp10")
-                    .Description = "PDM approval date"
-                    .Datatype = otFieldDataType.[Date]
-                    .IsForecast = False
-                    .IsOfDate = True
-                    .Persist()
-
-                End With
-                aDefMilestone = New MileStoneDefinition
-                With aDefMilestone
-                    If Not .Create("bp80") Then .Inject("bp80")
-                    .Description = "first PDM approval date"
-                    .Datatype = otFieldDataType.[Date]
-                    .IsForecast = False
-                    .IsOfDate = True
-                    .Persist()
-
-                End With
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_Schedule", message:="Milestone sample definition created", _
-                                             messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aScheduleDef.primaryTableID)
-
-            End If
-
-            If Not ScheduleLink.CreateSchema() Then
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="createDatabase", _
-                                             message:="Schema " & ScheduleLink.ConstTableID & " couldn't be created")
-            Else
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_Schedule", message:="Schedule Link Definition is up-to-date", _
-                                             messagetype:=otCoreMessageType.ApplicationInfo, tablename:=ScheduleLink.ConstTableID)
-            End If
+            'Dim aSchedule As New Schedule
+            'If Not Schedule.CreateSchema() Then
+            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_Schedule", _
+            '                                 message:="Schema Schedle couldn't be created")
+            'Else
+            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_Schedule", message:="Schedule is up-to-date", _
+            '                                 messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aSchedule.primaryTableID)
+
+            'End If
+           
+            'If Not CurrentTarget.CreateSchema() Then
+            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="createDatabase", message:="currTarget couldn't be created")
+            'Else
+            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_Schedule", message:="Current Target is up-to-date", _
+            '                                 messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aCurrTarget.primaryTableID)
+
+
+            'End If
+
+
+            'Dim aMilestone As New ScheduleMilestone
+            'If Not ScheduleMilestone.CreateSchema() Then
+            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="createDatabase", _
+            '                                 message:="Schema aMQF couldn't be created")
+            'Else
+            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_Schedule", message:="Schedule Milestone is up-to-date", _
+            '                                 messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aMilestone.primaryTableID)
+
+
+            'End If
+
+            'Dim aScheduleDef As New ScheduleDefinition
+            'If Not ScheduleDefinition.CreateSchema() Then
+            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="createDatabase", _
+            '                                 message:="Schema " & aScheduleDef.primaryTableID & " couldn't be created")
+            'Else
+
+            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_Schedule", message:="Schedule Defintion is up-to-date", _
+            '                                 messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aScheduleDef.primaryTableID)
+
+
+            '    aScheduleDef = New ScheduleDefinition
+            '    With aScheduleDef
+            '        If Not .Create("full") Then .Inject("full")
+            '        .description = "full engineering cycle (3D Design)"
+            '        .Persist()
+
+            '    End With
+            '    aScheduleDef = New ScheduleDefinition
+            '    With aScheduleDef
+            '        If Not .Create("pdm") Then .Inject("pdm")
+            '        .description = "pdm entry cycle for non 3D Design items"
+            '        .Persist()
+
+            '    End With
+            '    aScheduleDef = New ScheduleDefinition
+            '    With aScheduleDef
+            '        If Not .Create("none") Then
+            '            .description = "no schedule"
+            '            .Persist()
+            '        End If
+            '    End With
+            '    aScheduleDef = New ScheduleDefinition
+            '    With aScheduleDef
+            '        If Not .Create("nocad") Then .Inject("nocad")
+            '        .description = "design for non-mechanical (3D) design"
+            '        .Persist()
+
+            '    End With
+            'End If
+
+
+            'Dim aScheduleDefM As New ScheduleMilestoneDefinition
+            'If Not ScheduleMilestoneDefinition.CreateSchema() Then
+            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="createDatabase", _
+            '                                 message:="Schema " & aScheduleDefM.primaryTableID & " couldn't be created")
+            'Else
+            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_Schedule", message:="Schedule Milestone Defintion is up-to-date", _
+            '                                 messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aScheduleDefM.primaryTableID)
+
+            '    '****
+            '    '**** full
+            '    '****
+
+            '    aScheduleDefM = New ScheduleMilestoneDefinition
+            '    With aScheduleDefM
+            '        If Not .Create("full", "bp11") Then .Inject("full", "bp11")
+            '        .ActualOfFC = ""
+            '        .IsForecast = True
+            '        .IsMandatory = True
+            '        .Ordinal = 10
+            '        .Description = "start work"
+            '        .Persist()
+
+            '    End With
+            '    aScheduleDefM = New ScheduleMilestoneDefinition
+            '    With aScheduleDefM
+            '        If Not .Create("full", "bp12") Then .Inject("full", "bp12")
+            '        .ActualOfFC = "bp11"
+            '        .IsForecast = False
+            '        .IsMandatory = True
+            '        .Ordinal = 10
+            '        .Description = "start work"
+            '        .Persist()
+
+            '    End With
+            '    aScheduleDefM = New ScheduleMilestoneDefinition
+            '    With aScheduleDefM
+            '        If Not .Create("full", "bp1") Then .Inject("full", "bp1")
+            '        .ActualOfFC = ""
+            '        .IsForecast = True
+            '        .IsFacultative = True
+            '        .Ordinal = 20
+            '        .Description = "ifm freeze"
+            '        .Persist()
+            '    End With
+            '    aScheduleDefM = New ScheduleMilestoneDefinition
+            '    With aScheduleDefM
+            '        If Not .Create("full", "bp2") Then .Inject("full", "bp2")
+            '        .ActualOfFC = "bp1"
+            '        .IsForecast = False
+            '        .IsMandatory = True
+            '        .Ordinal = 20
+            '        .Description = "ifm freeze"
+            '        .Persist()
+
+            '    End With
+            '    aScheduleDefM = New ScheduleMilestoneDefinition
+            '    With aScheduleDefM
+            '        If Not .Create("full", "bp13") Then .Inject("full", "bp13")
+            '        .ActualOfFC = ""
+            '        .IsForecast = True
+            '        .IsFacultative = True
+            '        .Ordinal = 20
+            '        .Description = "ifm status"
+            '        .Persist()
+
+            '    End With
+            '    aScheduleDefM = New ScheduleMilestoneDefinition
+            '    With aScheduleDefM
+            '        If Not .Create("full", "bp3") Then .Inject("full", "bp3")
+            '        .ActualOfFC = ""
+            '        .IsForecast = True
+            '        .IsMandatory = True
+            '        .Ordinal = 30
+            '        .Description = "fap"
+            '        .Persist()
+            '    End With
+            '    aScheduleDefM = New ScheduleMilestoneDefinition
+            '    With aScheduleDefM
+            '        If Not .Create("full", "bp4") Then .Inject("full", "bp4")
+            '        .ActualOfFC = "bp3"
+            '        .IsForecast = False
+            '        .IsMandatory = True
+            '        .Ordinal = 30
+            '        .Description = "fap"
+            '        .Persist()
+
+            '    End With
+            '    aScheduleDefM = New ScheduleMilestoneDefinition
+            '    With aScheduleDefM
+            '        If Not .Create("full", "bp5") Then .Inject("full", "bp5")
+            '        .ActualOfFC = ""
+            '        .IsForecast = False
+            '        .IsMandatory = True
+            '        .Ordinal = 35
+            '        .Description = "dmu status"
+            '        .Persist()
+
+            '    End With
+            '    aScheduleDefM = New ScheduleMilestoneDefinition
+            '    With aScheduleDefM
+            '        If Not .Create("full", "bp6") Then .Inject("full", "bp6")
+            '        .ActualOfFC = ""
+            '        .IsForecast = False
+            '        .IsMandatory = True
+            '        .Ordinal = 35
+            '        .Description = "dmu date"
+            '        .Persist()
+
+            '    End With
+            '    aScheduleDefM = New ScheduleMilestoneDefinition
+            '    With aScheduleDefM
+            '        If Not .Create("full", "bp20") Then .Inject("full", "bp20")
+            '        .ActualOfFC = ""
+            '        .IsForecast = True
+            '        .IsFacultative = True
+            '        .Ordinal = 40
+            '        .Description = "fc fem"
+            '        .Persist()
+
+            '    End With
+            '    aScheduleDefM = New ScheduleMilestoneDefinition
+            '    With aScheduleDefM
+            '        If Not .Create("full", "bp21") Then .Inject("full", "bp21")
+            '        .ActualOfFC = ""
+            '        .IsForecast = False
+            '        .IsMandatory = True
+            '        .Ordinal = 40
+            '        .Description = "fem status"
+            '        .Persist()
+
+            '    End With
+            '    aScheduleDefM = New ScheduleMilestoneDefinition
+            '    With aScheduleDefM
+            '        If Not .Create("full", "bp22") Then .Inject("full", "bp22")
+            '        .ActualOfFC = "bp20"
+            '        .IsForecast = False
+            '        .IsMandatory = True
+            '        .Ordinal = 40
+            '        .Description = "fem status date"
+            '        .Persist()
+            '    End With
+            '    aScheduleDefM = New ScheduleMilestoneDefinition
+            '    With aScheduleDefM
+            '        If Not .Create("full", "bp7") Then .Inject("full", "bp7")
+            '        .ActualOfFC = ""
+            '        .IsForecast = True
+            '        .IsMandatory = True
+            '        .Ordinal = 80
+            '        .Description = "pdm entry"
+            '        .Persist()
+
+            '    End With
+            '    aScheduleDefM = New ScheduleMilestoneDefinition
+            '    With aScheduleDefM
+            '        If Not .Create("full", "bp8") Then .Inject("full", "bp8")
+            '        .ActualOfFC = "bp7"
+            '        .IsForecast = False
+            '        .IsMandatory = True
+            '        .Ordinal = 80
+            '        .Description = "pdm entry"
+            '        .Persist()
+
+            '    End With
+            '    aScheduleDefM = New ScheduleMilestoneDefinition
+            '    With aScheduleDefM
+
+            '        If Not .Create("full", "bp9") Then .Inject("full", "bp9")
+            '        .ActualOfFC = ""
+            '        .IsForecast = True
+            '        .IsMandatory = True
+            '        .Ordinal = 90
+            '        .Description = "pdm approval"
+            '        .Persist()
+
+            '    End With
+            '    aScheduleDefM = New ScheduleMilestoneDefinition
+            '    With aScheduleDefM
+            '        If Not .Create("full", "bp10") Then .Inject("full", "bp10")
+            '        .ActualOfFC = "bp9"
+            '        .IsForecast = False
+            '        .IsMandatory = True
+            '        .Ordinal = 90
+            '        .Description = "pdm approval"
+            '        .Persist()
+
+            '    End With
+            '    aScheduleDefM = New ScheduleMilestoneDefinition
+            '    With aScheduleDefM
+            '        If Not .Create("full", "bp80") Then .Inject("full", "bp80")
+            '        .ActualOfFC = "bp9"
+            '        .IsForecast = False
+            '        .IsMandatory = True
+            '        .Ordinal = 95
+            '        .Description = "pdm first approval"
+            '        .Persist()
+            '    End With
+            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_Schedule", message:="Schedule Defintion for 'FULL' is updated", _
+            '                                 messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aScheduleDef.primaryTableID)
+
+            '    '****
+            '    '**** nocad
+            '    '****
+
+            '    aScheduleDefM = New ScheduleMilestoneDefinition
+            '    With aScheduleDefM
+            '        If Not .Create("nocad", "bp11") Then .Inject("nocad", "bp11")
+            '        .ActualOfFC = ""
+            '        .IsForecast = True
+            '        .IsFacultative = False
+            '        .Ordinal = 10
+            '        .Description = "start work"
+            '        .Persist()
+            '    End With
+            '    aScheduleDefM = New ScheduleMilestoneDefinition
+            '    With aScheduleDefM
+            '        If Not .Create("nocad", "bp12") Then .Inject("nocad", "bp12")
+            '        .ActualOfFC = "bp11"
+            '        .IsForecast = False
+            '        .IsFacultative = False
+            '        .Ordinal = 10
+            '        .Description = "start work"
+            '        .Persist()
+
+            '    End With
+            '    aScheduleDefM = New ScheduleMilestoneDefinition
+            '    With aScheduleDefM
+            '        If Not .Create("nocad", "bp1") Then .Inject("nocad", "bp1")
+            '        .ActualOfFC = ""
+            '        .IsForecast = True
+            '        .IsProhibited = True
+            '        .Ordinal = 20
+            '        .Description = "ifm freeze"
+            '        .Persist()
+
+            '    End With
+            '    aScheduleDefM = New ScheduleMilestoneDefinition
+            '    With aScheduleDefM
+            '        If Not .Create("nocad", "bp2") Then .Inject("nocad", "bp2")
+            '        .ActualOfFC = "bp3"
+            '        .IsForecast = False
+            '        .IsProhibited = True
+            '        .Ordinal = 20
+            '        .Description = "ifm freeze"
+            '        .Persist()
+
+            '    End With
+            '    aScheduleDefM = New ScheduleMilestoneDefinition
+            '    With aScheduleDefM
+            '        If Not .Create("nocad", "bp3") Then .Inject("nocad", "bp3")
+            '        .ActualOfFC = ""
+            '        .IsForecast = True
+            '        .IsFacultative = True
+            '        .Ordinal = 30
+            '        .Description = "design freeze"
+            '        .Persist()
+
+            '    End With
+            '    aScheduleDefM = New ScheduleMilestoneDefinition
+            '    With aScheduleDefM
+            '        If Not .Create("nocad", "bp4") Then .Inject("nocad", "bp4")
+            '        .ActualOfFC = "bp3"
+            '        .IsForecast = False
+            '        .IsFacultative = True
+            '        .Ordinal = 30
+            '        .Description = "design freeze"
+            '        .Persist()
+
+            '    End With
+
+            '    aScheduleDefM = New ScheduleMilestoneDefinition
+            '    With aScheduleDefM
+            '        If Not .Create("nocad", "bp7") Then .Inject("nocad", "bp7")
+            '        .ActualOfFC = ""
+            '        .IsForecast = True
+            '        .IsFacultative = True
+            '        .Ordinal = 80
+            '        .Description = "pdm entry"
+            '        .Persist()
+
+            '    End With
+            '    aScheduleDefM = New ScheduleMilestoneDefinition
+            '    With aScheduleDefM
+            '        If Not .Create("nocad", "bp8") Then .Inject("nocad", "bp8")
+            '        .ActualOfFC = "bp7"
+            '        .IsForecast = False
+            '        .IsFacultative = True
+            '        .Ordinal = 80
+            '        .Description = "pdm entry"
+            '        .Persist()
+
+            '    End With
+            '    aScheduleDefM = New ScheduleMilestoneDefinition
+            '    With aScheduleDefM
+            '        If Not .Create("nocad", "bp9") Then .Inject("nocad", "bp9")
+            '        .ActualOfFC = ""
+            '        .IsForecast = True
+            '        .IsMandatory = False
+            '        .Ordinal = 90
+            '        .Description = "pdm approval"
+            '        .Persist()
+
+            '    End With
+            '    aScheduleDefM = New ScheduleMilestoneDefinition
+            '    With aScheduleDefM
+            '        If Not .Create("nocad", "bp10") Then .Inject("nocad", "bp10")
+            '        .ActualOfFC = "bp9"
+            '        .IsForecast = False
+            '        .IsMandatory = True
+            '        .Ordinal = 90
+            '        .Description = "pdm approval"
+            '        .Persist()
+
+            '    End With
+            '    aScheduleDefM = New ScheduleMilestoneDefinition
+            '    With aScheduleDefM
+            '        If Not .Create("nocad", "bp80") Then .Inject("nocad", "bp80")
+            '        .ActualOfFC = "bp9"
+            '        .IsForecast = False
+            '        .IsMandatory = True
+            '        .Ordinal = 95
+            '        .Description = "pdm first approval"
+            '        .Persist()
+
+            '    End With
+
+            '    '****
+            '    '**** pdm
+            '    '****
+
+            '    aScheduleDefM = New ScheduleMilestoneDefinition
+            '    With aScheduleDefM
+            '        If Not .Create("pdm", "bp11") Then .Inject("pdm", "bp11")
+            '        .ActualOfFC = ""
+            '        .IsForecast = True
+            '        .IsFacultative = True
+            '        .Ordinal = 10
+            '        .Description = "start work"
+            '        .Persist()
+
+            '    End With
+            '    aScheduleDefM = New ScheduleMilestoneDefinition
+            '    With aScheduleDefM
+            '        If Not .Create("pdm", "bp12") Then .Inject("pdm", "bp12")
+            '        .ActualOfFC = "bp11"
+            '        .IsForecast = False
+            '        .IsFacultative = True
+            '        .Ordinal = 10
+            '        .Description = "start work"
+            '        .Persist()
+
+            '    End With
+            '    aScheduleDefM = New ScheduleMilestoneDefinition
+            '    With aScheduleDefM
+            '        If Not .Create("pdm", "bp1") Then .Inject("pdm", "bp1")
+            '        .ActualOfFC = ""
+            '        .IsForecast = True
+            '        .IsProhibited = True
+            '        .Ordinal = 20
+            '        .Description = "ifm freeze"
+            '        .Persist()
+
+            '    End With
+            '    aScheduleDefM = New ScheduleMilestoneDefinition
+            '    With aScheduleDefM
+            '        If Not .Create("pdm", "bp2") Then .Inject("pdm", "bp2")
+            '        .ActualOfFC = "bp3"
+            '        .IsForecast = False
+            '        .IsProhibited = True
+            '        .Ordinal = 20
+            '        .Description = "ifm freeze"
+            '        .Persist()
+
+            '    End With
+            '    aScheduleDefM = New ScheduleMilestoneDefinition
+            '    With aScheduleDefM
+            '        If Not .Create("pdm", "bp3") Then .Inject("pdm", "bp3")
+            '        .ActualOfFC = ""
+            '        .IsForecast = True
+            '        .IsProhibited = True
+            '        .Ordinal = 30
+            '        .Description = "fap"
+            '        .Persist()
+
+            '    End With
+            '    aScheduleDefM = New ScheduleMilestoneDefinition
+            '    With aScheduleDefM
+            '        If Not .Create("pdm", "bp4") Then .Inject("pdm", "bp4")
+            '        .ActualOfFC = "bp3"
+            '        .IsForecast = False
+            '        .IsProhibited = True
+            '        .Ordinal = 30
+            '        .Description = "fap"
+            '        .Persist()
+
+            '    End With
+
+            '    aScheduleDefM = New ScheduleMilestoneDefinition
+            '    With aScheduleDefM
+            '        If Not .Create("pdm", "bp7") Then .Inject("pdm", "bp7")
+            '        .ActualOfFC = ""
+            '        .IsForecast = True
+            '        .IsFacultative = True
+            '        .Ordinal = 80
+            '        .Description = "pdm entry"
+            '        .Persist()
+
+            '    End With
+            '    aScheduleDefM = New ScheduleMilestoneDefinition
+            '    With aScheduleDefM
+            '        If Not .Create("pdm", "bp8") Then .Inject("pdm", "bp8")
+            '        .ActualOfFC = "bp7"
+            '        .IsForecast = False
+            '        .IsFacultative = True
+            '        .Ordinal = 80
+            '        .Description = "pdm entry"
+            '        .Persist()
+
+            '    End With
+            '    aScheduleDefM = New ScheduleMilestoneDefinition
+            '    With aScheduleDefM
+            '        If Not .Create("pdm", "bp9") Then .Inject("pdm", "bp9")
+            '        .ActualOfFC = ""
+            '        .IsForecast = True
+            '        .IsMandatory = True
+            '        .Ordinal = 90
+            '        .Description = "pdm approval"
+            '        .Persist()
+
+            '    End With
+            '    aScheduleDefM = New ScheduleMilestoneDefinition
+            '    With aScheduleDefM
+            '        If Not .Create("pdm", "bp10") Then .Inject("pdm", "bp10")
+            '        .ActualOfFC = "bp9"
+            '        .IsForecast = False
+            '        .IsMandatory = True
+            '        .Ordinal = 90
+            '        .Description = "pdm approval"
+            '        .Persist()
+
+            '    End With
+            '    aScheduleDefM = New ScheduleMilestoneDefinition
+            '    With aScheduleDefM
+            '        If Not .Create("pdm", "bp80") Then .Inject("pdm", "bp80")
+            '        .ActualOfFC = "bp9"
+            '        .IsForecast = False
+            '        .IsMandatory = True
+            '        .Ordinal = 95
+            '        .Description = "pdm first approval"
+            '        .Persist()
+            '    End With
+
+            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_Schedule", message:="Schedule Defintion for 'PDM' is up-to-date", _
+            '                                 messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aScheduleDef.primaryTableID)
+
+            '    aScheduleDefM = New ScheduleMilestoneDefinition
+            '    With aScheduleDefM
+            '        If Not .Create("none", "bp80") Then .Inject("none", "bp80")
+            '        .ActualOfFC = ""
+            '        .IsForecast = False
+            '        .IsFacultative = True
+            '        .Ordinal = 95
+            '        .Description = "pdm first approval"
+            '        .Persist()
+
+            '    End With
+            'End If
+
+
+            'Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_Schedule", message:="Schedule Defintion for 'NONE' is up-to-date", _
+            '                             messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aScheduleDef.primaryTableID)
+
+            'Dim aScheduleTaskDef As New clsOTDBDefScheduleTask
+            'If Not aScheduleTaskDef.CreateSchema() Then
+            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="createDatabase", _
+            '                                 message:="Schema " & aScheduleTaskDef.primaryTableID & " couldn't be created")
+            'Else
+            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_Schedule", message:="Schedule Task Defintion is up-to-date", _
+            '                                 messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aScheduleTaskDef.primaryTableID)
+
+            '    aScheduleTaskDef = New clsOTDBDefScheduleTask
+            '    With aScheduleTaskDef
+            '        If Not .Create("full", "synchro") Then .Inject("full", "synchro")
+            '        .Description = "task for synchronization"
+            '        .StartID = "bp11"
+            '        .ActstartID = "bp12"
+            '        .AlternativeStartIDs = New String() {"bp1", "bp3"}
+            '        .FinishID = "bp3"
+            '        .ActfinishID = "bp4"
+            '        .AlternativeFinishIDs = New String() {""}
+            '        .takeActualIfFCisMissing = True
+            '        .IsFacultative = True
+            '        .parameter_txt1 = "bp1"
+            '        .Persist()
+
+            '    End With
+            '    aScheduleTaskDef = New clsOTDBDefScheduleTask
+            '    With aScheduleTaskDef
+            '        If Not .Create("full", "development") Then .Inject("full", "development")
+            '        .Description = "3D Development"
+            '        .StartID = "bp11"
+            '        .ActstartID = "bp12"
+            '        .AlternativeStartIDs = New String() {"bp1", "bp3"}
+            '        .FinishID = "bp7"
+            '        .ActfinishID = "bp8"
+            '        .AlternativeFinishIDs = New String() {""}
+            '        .takeActualIfFCisMissing = True
+            '        .IsMandatory = True
+            '        .Persist()
+
+            '    End With
+            '    aScheduleTaskDef = New clsOTDBDefScheduleTask
+            '    With aScheduleTaskDef
+            '        If Not .Create("full", "approve") Then .Inject("full", "approve")
+            '        .Description = "approval"
+            '        .StartID = "bp7"
+            '        .ActstartID = "bp8"
+            '        .AlternativeStartIDs = New String() {"bp9"}
+            '        .FinishID = "bp9"
+            '        .ActfinishID = "bp10"
+            '        .AlternativeFinishIDs = New String() {""}
+            '        .takeActualIfFCisMissing = True
+            '        .Persist()
+
+            '    End With
+            '    aScheduleTaskDef = New clsOTDBDefScheduleTask
+            '    With aScheduleTaskDef
+            '        If Not .Create("pdm", "approve") Then .Inject("pdm", "approve")
+            '        .Description = "approval"
+            '        .StartID = "bp7"
+            '        .ActstartID = "bp8"
+            '        .AlternativeStartIDs = New String() {"bp9"}
+            '        .IsMandatory = True
+            '        .FinishID = "bp9"
+            '        .ActfinishID = "bp10"
+            '        .AlternativeFinishIDs = New String() {""}
+            '        .takeActualIfFCisMissing = True
+            '        .Persist()
+
+            '    End With
+
+            'End If
+
+            'Dim aDefMilestone As New MileStoneDefinition
+            'If Not MileStoneDefinition.CreateSchema() Then
+            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="createDatabase", _
+            '                                 message:="Schema " & aMilestone.primaryTableID & " couldn't be created")
+            'Else
+            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_Schedule", message:="Milestone Definition is up-to-date", _
+            '                                 messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aDefMilestone.primaryTableID)
+
+            '    aDefMilestone = New MileStoneDefinition
+            '    With aDefMilestone
+            '        If Not .Create("bp11") Then .Inject("bp11")
+            '        .Description = "FC start work"
+            '        .Datatype = otFieldDataType.[Date]
+            '        .IsForecast = True
+            '        .IsOfDate = True
+            '        .Persist()
+            '    End With
+            '    aDefMilestone = New MileStoneDefinition
+            '    With aDefMilestone
+            '        If Not .Create("bp12") Then .Inject("bp12")
+            '        .Description = "start work"
+            '        .IsForecast = False
+            '        .Datatype = otFieldDataType.[Date]
+            '        .IsOfDate = True
+            '        .Persist()
+
+            '    End With
+            '    aDefMilestone = New MileStoneDefinition
+            '    With aDefMilestone
+            '        If Not .Create("bp1") Then .Inject("bp1")
+            '        .Description = "FC IFM freeze gate"
+            '        .IsForecast = True
+            '        .Datatype = otFieldDataType.[Date]
+            '        .IsOfDate = True
+            '        .Persist()
+
+            '    End With
+            '    aDefMilestone = New MileStoneDefinition
+            '    With aDefMilestone
+            '        If Not .Create("bp2") Then .Inject("bp2")
+            '        .Description = "IFM freeze gate"
+            '        .IsForecast = False
+            '        .Datatype = otFieldDataType.[Date]
+            '        .IsOfDate = True
+            '        .Persist()
+
+            '    End With
+            '    aDefMilestone = New MileStoneDefinition
+            '    With aDefMilestone
+            '        If Not .Create("bp13") Then .Inject("bp13")
+            '        .Description = "current IFM freeze status"
+            '        .IsForecast = False
+            '        .IsOfStatus = True
+            '        .Datatype = otFieldDataType.Text
+            '        .statustypeid = "ifmstatus"
+            '        .referingToID = "bp15"
+            '        .Persist()
+
+            '    End With
+            '    aDefMilestone = New MileStoneDefinition
+            '    With aDefMilestone
+            '        If Not .Create("bp15") Then .Inject("bp15")
+            '        .Description = "current IFM freeze status date"
+            '        .IsForecast = False
+            '        .Datatype = otFieldDataType.[Date]
+            '        .IsOfDate = True
+            '        .referingToID = "bp13"
+            '        .Persist()
+
+            '    End With
+            '    aDefMilestone = New MileStoneDefinition
+            '    With aDefMilestone
+            '        If Not .Create("bp3") Then .Inject("bp3")
+            '        .Description = "FC FAP / Design Freeze status date"
+            '        .Datatype = otFieldDataType.[Date]
+            '        .IsForecast = True
+            '        .IsOfDate = True
+            '        .Persist()
+
+            '    End With
+            '    aDefMilestone = New MileStoneDefinition
+            '    With aDefMilestone
+            '        If Not .Create("bp4") Then .Inject("bp4")
+            '        .Description = "FAP / Design Freeze gate"
+            '        .Datatype = otFieldDataType.[Date]
+            '        .IsForecast = False
+            '        .IsOfDate = True
+            '        .Persist()
+
+            '    End With
+            '    aDefMilestone = New MileStoneDefinition
+            '    With aDefMilestone
+            '        If Not .Create("bp5") Then .Inject("bp5")
+            '        .Description = "dmu status"
+            '        .Datatype = otFieldDataType.Text
+            '        .IsForecast = False
+            '        .IsOfStatus = True
+            '        .statustypeid = "dmustatus"
+            '        .referingToID = "bp6"
+            '        .Persist()
+
+            '    End With
+            '    aDefMilestone = New MileStoneDefinition
+            '    With aDefMilestone
+            '        If Not .Create("bp6") Then .Inject("bp6")
+            '        .Description = "dmu status date"
+            '        .Datatype = otFieldDataType.[Date]
+            '        .IsForecast = False
+            '        .IsOfDate = True
+            '        .referingToID = "bp5"
+            '        .Persist()
+
+            '    End With
+            '    aDefMilestone = New MileStoneDefinition
+            '    With aDefMilestone
+            '        If Not .Create("bp20") Then .Inject("bp20")
+            '        .Description = "FC FEM result date"
+            '        .Datatype = otFieldDataType.[Date]
+            '        .IsForecast = False
+            '        .IsOfDate = True
+            '        .Persist()
+
+            '    End With
+            '    aDefMilestone = New MileStoneDefinition
+            '    With aDefMilestone
+            '        If Not .Create("bp22") Then .Inject("bp22")
+            '        .Description = "FEM status date"
+            '        .Datatype = otFieldDataType.[Date]
+            '        .IsForecast = False
+            '        .IsOfDate = True
+            '        .referingToID = "bp21"
+            '        .Persist()
+
+            '    End With
+            '    aDefMilestone = New MileStoneDefinition
+            '    With aDefMilestone
+            '        If Not .Create("bp21") Then .Inject("bp21")
+            '        .Description = "FEM Status"
+            '        .Datatype = otFieldDataType.Text
+            '        .IsForecast = False
+            '        .IsOfStatus = True
+            '        .statustypeid = "femstatus"
+            '        .referingToID = "bp22"
+            '        .Persist()
+
+            '    End With
+            '    aDefMilestone = New MileStoneDefinition
+            '    With aDefMilestone
+            '        If Not .Create("bp7") Then .Inject("bp7")
+            '        .Description = "FC PDM entry date (outgoing ENG)"
+            '        .Datatype = otFieldDataType.[Date]
+            '        .IsForecast = True
+            '        .IsOfDate = True
+            '        .Persist()
+
+            '    End With
+            '    aDefMilestone = New MileStoneDefinition
+            '    With aDefMilestone
+            '        If Not .Create("bp8") Then .Inject("bp8")
+            '        .Description = "entry PDM date"
+            '        .Datatype = otFieldDataType.[Date]
+            '        .IsForecast = False
+            '        .IsOfDate = True
+            '        .Persist()
+
+            '    End With
+            '    aDefMilestone = New MileStoneDefinition
+            '    With aDefMilestone
+            '        If Not .Create("bp14") Then .Inject("bp14")
+            '        .Description = "outgoing PDM DRL date"
+            '        .Datatype = otFieldDataType.[Date]
+            '        .IsForecast = False
+            '        .IsOfDate = True
+            '        .Persist()
+
+            '    End With
+            '    aDefMilestone = New MileStoneDefinition
+            '    With aDefMilestone
+            '        If Not .Create("bp9") Then .Inject("bp9")
+            '        .Description = "FC PDM approval date"
+            '        .Datatype = otFieldDataType.[Date]
+            '        .IsForecast = True
+            '        .IsOfDate = True
+            '        .Persist()
+
+            '    End With
+            '    aDefMilestone = New MileStoneDefinition
+            '    With aDefMilestone
+            '        If Not .Create("bp10") Then .Inject("bp10")
+            '        .Description = "PDM approval date"
+            '        .Datatype = otFieldDataType.[Date]
+            '        .IsForecast = False
+            '        .IsOfDate = True
+            '        .Persist()
+
+            '    End With
+            '    aDefMilestone = New MileStoneDefinition
+            '    With aDefMilestone
+            '        If Not .Create("bp80") Then .Inject("bp80")
+            '        .Description = "first PDM approval date"
+            '        .Datatype = otFieldDataType.[Date]
+            '        .IsForecast = False
+            '        .IsOfDate = True
+            '        .Persist()
+
+            '    End With
+            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_Schedule", message:="Milestone sample definition created", _
+            '                                 messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aScheduleDef.primaryTableID)
+
+            'End If
 
 
             Dim aDependCheck As New clsOTDBDependCheck
@@ -1234,8 +1217,8 @@ Namespace OnTrack.Database
                 With acalentry
                     ' additional
                     .Datevalue = CDate("29.03.2013")
-                    .entrytype = otCalendarEntryType.DayEntry
-                    .notAvailable = True
+                    .Type = otCalendarEntryType.DayEntry
+                    .IsNotAvailable = True
                     .description = "Karfreitag (Eastern)"
                     .Persist()
                 End With
@@ -1245,8 +1228,8 @@ Namespace OnTrack.Database
             If acalentry IsNot Nothing Then
                 With acalentry
                     .Datevalue = CDate("01.04.2013")
-                    .entrytype = otCalendarEntryType.DayEntry
-                    .notAvailable = True
+                    .Type = otCalendarEntryType.DayEntry
+                    .IsNotAvailable = True
                     .description = "EasterMonday (Eastern)"
                     .Persist()
                 End With
@@ -1255,8 +1238,8 @@ Namespace OnTrack.Database
             If acalentry IsNot Nothing Then
                 With acalentry
                     .Datevalue = CDate("09.05.2013")
-                    .entrytype = otCalendarEntryType.DayEntry
-                    .notAvailable = True
+                    .Type = otCalendarEntryType.DayEntry
+                    .IsNotAvailable = True
                     .description = "Christi Himmelfahrt"
                     .Persist()
                 End With
@@ -1266,8 +1249,8 @@ Namespace OnTrack.Database
             If acalentry IsNot Nothing Then
                 With acalentry
                     .Datevalue = CDate("10.05.2013")
-                    .entrytype = otCalendarEntryType.DayEntry
-                    .notAvailable = True
+                    .Type = otCalendarEntryType.DayEntry
+                    .IsNotAvailable = True
                     .description = "Christi Himmelfahrt Brückentag"
                     .Persist()
                 End With
@@ -1276,8 +1259,8 @@ Namespace OnTrack.Database
             If acalentry IsNot Nothing Then
                 With acalentry
                     .Datevalue = CDate("20.05.2013")
-                    .entrytype = otCalendarEntryType.DayEntry
-                    .notAvailable = True
+                    .Type = otCalendarEntryType.DayEntry
+                    .IsNotAvailable = True
                     .description = "Pfingsten"
                     .Persist()
                 End With
@@ -1286,8 +1269,8 @@ Namespace OnTrack.Database
             If acalentry IsNot Nothing Then
                 With acalentry
                     .Datevalue = CDate("31.10.2013")
-                    .entrytype = otCalendarEntryType.DayEntry
-                    .notAvailable = True
+                    .Type = otCalendarEntryType.DayEntry
+                    .IsNotAvailable = True
                     .description = "Reformationstag (Sachsen)"
                   End With
             End If
@@ -1295,8 +1278,8 @@ Namespace OnTrack.Database
             If acalentry IsNot Nothing Then
                 With acalentry
                     .Datevalue = CDate("20.11.2013")
-                    .entrytype = otCalendarEntryType.DayEntry
-                    .notAvailable = True
+                    .Type = otCalendarEntryType.DayEntry
+                    .IsNotAvailable = True
                     .description = "Buß- und Bettag (Sachsen)"
                     .Persist()
                 End With
@@ -1305,8 +1288,8 @@ Namespace OnTrack.Database
             If acalentry IsNot Nothing Then
                 With acalentry
                     .Datevalue = CDate("18.04.2014")
-                    .entrytype = otCalendarEntryType.DayEntry
-                    .notAvailable = True
+                    .Type = otCalendarEntryType.DayEntry
+                    .IsNotAvailable = True
                     .description = "Karfreitag (Eastern)"
                     .Persist()
                 End With
@@ -1315,8 +1298,8 @@ Namespace OnTrack.Database
             If acalentry IsNot Nothing Then
                 With acalentry
                     .Datevalue = CDate("01.04.2014")
-                    .entrytype = otCalendarEntryType.DayEntry
-                    .notAvailable = True
+                    .Type = otCalendarEntryType.DayEntry
+                    .IsNotAvailable = True
                     .description = "EasterMonday (Eastern)"
                     .Persist()
                 End With
@@ -1325,8 +1308,8 @@ Namespace OnTrack.Database
             If acalentry IsNot Nothing Then
                 With acalentry
                     .Datevalue = CDate("29.05.2013")
-                    .entrytype = otCalendarEntryType.DayEntry
-                    .notAvailable = True
+                    .Type = otCalendarEntryType.DayEntry
+                    .IsNotAvailable = True
                     .description = "Christi Himmelfahrt"
                     .Persist()
                 End With
@@ -1335,8 +1318,8 @@ Namespace OnTrack.Database
             If acalentry IsNot Nothing Then
                 With acalentry
                     .Datevalue = CDate("20.05.2014")
-                    .entrytype = otCalendarEntryType.DayEntry
-                    .notAvailable = True
+                    .Type = otCalendarEntryType.DayEntry
+                    .IsNotAvailable = True
                     .description = "Pfingsten"
                     .Persist()
                 End With
@@ -1345,8 +1328,8 @@ Namespace OnTrack.Database
             If acalentry IsNot Nothing Then
                 With acalentry
                     .Datevalue = CDate("31.10.2014")
-                    .entrytype = otCalendarEntryType.DayEntry
-                    .notAvailable = True
+                    .Type = otCalendarEntryType.DayEntry
+                    .IsNotAvailable = True
                     .description = "Reformationstag (Sachsen)"
                     .Persist()
                End With
@@ -1354,8 +1337,8 @@ Namespace OnTrack.Database
             If acalentry IsNot Nothing Then
                 With acalentry
                     .Datevalue = CDate("19.11.2014")
-                    .entrytype = otCalendarEntryType.DayEntry
-                    .notAvailable = True
+                    .Type = otCalendarEntryType.DayEntry
+                    .IsNotAvailable = True
                     .description = "Buß- und Bettag (Sachsen)"
                     .Persist()
                 End With
@@ -1364,8 +1347,8 @@ Namespace OnTrack.Database
             If acalentry IsNot Nothing Then
                 With acalentry
                     .Datevalue = CDate("03.04.2015")
-                    .entrytype = otCalendarEntryType.DayEntry
-                    .notAvailable = True
+                    .Type = otCalendarEntryType.DayEntry
+                    .IsNotAvailable = True
                     .description = "Karfreitag (Eastern)"
                     .Persist()
                 End With
@@ -1374,8 +1357,8 @@ Namespace OnTrack.Database
             If acalentry IsNot Nothing Then
                 With acalentry
                     .Datevalue = CDate("06.04.2015")
-                    .entrytype = otCalendarEntryType.DayEntry
-                    .notAvailable = True
+                    .Type = otCalendarEntryType.DayEntry
+                    .IsNotAvailable = True
                     .description = "EasterMonday (Eastern)"
                     .Persist()
                 End With
@@ -1384,8 +1367,8 @@ Namespace OnTrack.Database
             If acalentry IsNot Nothing Then
                 With acalentry
                     .Datevalue = CDate("14.05.2015")
-                    .entrytype = otCalendarEntryType.DayEntry
-                    .notAvailable = True
+                    .Type = otCalendarEntryType.DayEntry
+                    .IsNotAvailable = True
                     .description = "Christi Himmelfahrt"
                     .Persist()
                 End With
@@ -1394,8 +1377,8 @@ Namespace OnTrack.Database
             If acalentry IsNot Nothing Then
                 With acalentry
                     .Datevalue = CDate("25.05.2015")
-                    .entrytype = otCalendarEntryType.DayEntry
-                    .notAvailable = True
+                    .Type = otCalendarEntryType.DayEntry
+                    .IsNotAvailable = True
                     .description = "Pfingsten"
                     .Persist()
                 End With
@@ -1404,8 +1387,8 @@ Namespace OnTrack.Database
             If acalentry IsNot Nothing Then
                 With acalentry
                     .Datevalue = CDate("31.10.2015")
-                    .entrytype = otCalendarEntryType.DayEntry
-                    .notAvailable = True
+                    .Type = otCalendarEntryType.DayEntry
+                    .IsNotAvailable = True
                     .description = "Reformationstag (Sachsen)"
                     .Persist()
                 End With
@@ -1414,8 +1397,8 @@ Namespace OnTrack.Database
             If acalentry IsNot Nothing Then
                 With acalentry
                     .Datevalue = CDate("18.11.2015")
-                    .entrytype = otCalendarEntryType.DayEntry
-                    .notAvailable = True
+                    .Type = otCalendarEntryType.DayEntry
+                    .IsNotAvailable = True
                     .description = "Buß- und Bettag (Sachsen)"
                     .Persist()
 

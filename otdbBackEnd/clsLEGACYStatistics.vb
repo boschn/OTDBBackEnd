@@ -722,7 +722,7 @@ errorhandle:
             Next i
 
             'PKArry(3) = dependfrompartid
-            aTable = Me.TableStore
+            aTable = Me.PrimaryTableStore
             aRecord = aTable.GetRecordByPrimaryKey(pkarry)
 
             If Not aRecord Is Nothing Then

@@ -349,7 +349,7 @@ Namespace OnTrack.IFM
             pkarry(0) = UID
 
 
-            aTable = GetTableStore(Me.Record.TableID)
+            'aTable = GetTableStore(Me.Record.TableIDs)
             aRecord = aTable.GetRecordByPrimaryKey(pkarry)
 
             If aRecord Is Nothing Then
@@ -414,7 +414,7 @@ Namespace OnTrack.IFM
 
             On Error GoTo error_handler
 
-            aTable = GetTableStore(Me.Record.TableID)
+            ' aTable = GetTableStore(Me.Record.TableIDs)
             aRecordCollection = aTable.GetRecordsBySql(wherestr, silent:=True)
 
             If aRecordCollection Is Nothing Then
@@ -754,7 +754,7 @@ error_handler:
             End If
 
 
-            aTable = GetTableStore(Me.Record.TableID)
+            'aTable = GetTableStore(Me.Record.TableIDs)
             aRecord = aTable.GetRecordByPrimaryKey(pkarry)
 
             If aRecord Is Nothing Then

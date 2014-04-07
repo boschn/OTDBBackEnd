@@ -373,7 +373,7 @@ Namespace OnTrack
         ''' <param name="attribute"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetReferenceTableColumn(ByRef attribute As ormSchemaTableColumnAttribute) As Boolean
+        Public Function SubstituteReferencedTableColumn(ByRef attribute As ormSchemaTableColumnAttribute) As Boolean
             '*** REFERENCE OBJECT ENTRY
             If attribute.HasValueReferenceObjectEntry Then
                 Dim refObjectName As String = ""
@@ -449,7 +449,7 @@ Namespace OnTrack
                 If anReferenceAttribute IsNot Nothing Then
                     With anReferenceAttribute
                         '** read table column elements and then the object references
-                        If GetReferenceTableColumn(attribute:=attribute) Then
+                        If SubstituteReferencedTableColumn(attribute:=attribute) Then
                             If .HasValueEntryType And Not attribute.HasValueEntryType Then attribute.EntryType = .EntryType
                             If .HasValueTitle And Not attribute.HasValueTitle Then attribute.Title = .Title
 
@@ -476,7 +476,7 @@ Namespace OnTrack
 
                 Else
                     CoreMessageHandler(message:="referenceObjectEntry  object id '" & refObjectName & "' and column name '" & refObjectEntry & "' not found for column schema", _
-                                       entryname:=attribute.EntryName, objectname:=attribute.ObjectName, subname:="ObjectClassRepository.getReferenceObject", messagetype:=otCoreMessageType.InternalError)
+                                       entryname:=attribute.EntryName, objectname:=attribute.ObjectName, subname:="ObjectClassRepository.SubstituteReferencedObjectEntry", messagetype:=otCoreMessageType.InternalError)
                 End If
                 Return True
             Else
@@ -518,7 +518,7 @@ Namespace OnTrack
             If _TableAttributesStore.ContainsKey(key:=tablename.ToUpper) Then
                 anAttribute = _TableAttributesStore.Item(key:=aTablename).GetColumn(aFieldname)
                 '*** substitute references
-                 GetReferenceTableColumn(attribute:=anAttribute) 
+                 SubstituteReferencedTableColumn(attribute:=anAttribute) 
                 '** return
                 Return anAttribute
 
@@ -533,9 +533,12 @@ Namespace OnTrack
         ''' <param name="tablename"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetObjectClassDescriptionsByTable(tablename As String) As List(Of ObjectClassDescription)
+        Public Function GetObjectClassDescriptionsByTable(tablename As String, Optional onlyenabled As Boolean = True) As List(Of ObjectClassDescription)
             Me.Initialize()
             Dim alist As New List(Of ObjectClassDescription)
+            If Not _TableAttributesStore.ContainsKey(tablename.ToUpper) Then Return alist
+            If onlyenabled AndAlso Not _TableAttributesStore.Item(tablename.ToUpper).Enabled Then Return alist
+
             If _Table2ObjectClassStore.ContainsKey(tablename.ToUpper) Then
                 For Each aObjectType In _Table2ObjectClassStore.Item(tablename.ToUpper)
                     alist.Add(GetObjectClassDescription(aObjectType))
@@ -573,8 +576,11 @@ Namespace OnTrack
         ''' <param name="tablename"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetObjectClasses(tablename As String) As List(Of Type)
+        Public Function GetObjectClassesForTable(tablename As String, Optional onlyenabled As Boolean = True) As List(Of Type)
             Me.Initialize()
+            If Not _TableAttributesStore.ContainsKey(tablename.ToUpper) Then Return New List(Of Type)
+            If onlyenabled AndAlso Not _TableAttributesStore.Item(tablename.ToUpper).Enabled Then Return New List(Of Type)
+
             If _Table2ObjectClassStore.ContainsKey(key:=tablename.ToUpper) Then
                 Return _Table2ObjectClassStore.Item(key:=tablename.ToUpper)
             Else
@@ -648,7 +654,10 @@ Namespace OnTrack
 
                 ''' get the Fieldlist especially collect the constants
                 ''' 
-                aFieldList = aClass.GetFields(Reflection.BindingFlags.NonPublic Or Reflection.BindingFlags.Public Or Reflection.BindingFlags.Static Or BindingFlags.FlattenHierarchy)
+               
+                aFieldList = aClass.GetFields(Reflection.BindingFlags.NonPublic Or Reflection.BindingFlags.Public Or _
+                                              Reflection.BindingFlags.Static Or BindingFlags.FlattenHierarchy)
+
                 '** look into each Const Type (Fields)
                 For Each aFieldInfo As System.Reflection.FieldInfo In aFieldList
                     If aFieldInfo.MemberType = Reflection.MemberTypes.Field Then
@@ -658,28 +667,38 @@ Namespace OnTrack
                             ''' objects in details
                             If anAttribute.GetType().Equals(GetType(ormSchemaTableAttribute)) Then
                                 Dim alist As List(Of Type)
-                                '** Type Definition
-                                If _Table2ObjectClassStore.ContainsKey(aFieldInfo.GetValue(Nothing).ToString.ToUpper) Then
-                                    alist = _Table2ObjectClassStore.Item(aFieldInfo.GetValue(Nothing).ToString.ToUpper)
-                                Else
-                                    alist = New List(Of Type)
-                                    _Table2ObjectClassStore.Add(key:=aFieldInfo.GetValue(Nothing).ToString.ToUpper, value:=alist)
-                                End If
-                                If Not alist.Contains(item:=aClass) Then
-                                    alist.Add(aClass)
-                                End If
 
-                                '*** Calculate the Checksum from the Tableversions in the Bootstrapclasses
-                                If _BootstrapObjectClasses.Contains(aClass) Then
-                                    If Not DirectCast(anAttribute, ormSchemaTableAttribute).HasValueVersion Then
-                                        DirectCast(anAttribute, ormSchemaTableAttribute).Version = 1
+                                ''' do we have the same const variable name herited from other classes ?
+                                ''' take then only the local / const variable with attributes from the herited class (overwriting)
+
+                                Dim localfield As FieldInfo = aClass.GetField(name:=aFieldInfo.Name, bindingAttr:=Reflection.BindingFlags.NonPublic Or Reflection.BindingFlags.Public Or _
+                                              Reflection.BindingFlags.Static)
+                                If localfield Is Nothing OrElse (localfield IsNot Nothing AndAlso aFieldInfo.DeclaringType.Equals(localfield.ReflectedType)) Then
+
+
+                                    '** Type Definition
+                                    If _Table2ObjectClassStore.ContainsKey(aFieldInfo.GetValue(Nothing).ToString.ToUpper) Then
+                                        alist = _Table2ObjectClassStore.Item(aFieldInfo.GetValue(Nothing).ToString.ToUpper)
+                                    Else
+                                        alist = New List(Of Type)
+                                        _Table2ObjectClassStore.Add(key:=aFieldInfo.GetValue(Nothing).ToString.ToUpper, value:=alist)
                                     End If
-                                    Dim i = _BootstrapObjectClasses.IndexOf(aClass)
-                                    _BootStrapSchemaCheckSum += DirectCast(anAttribute, ormSchemaTableAttribute).Version * Math.Pow(10, i)
-                                End If
+                                    If Not alist.Contains(item:=aClass) Then
+                                        alist.Add(aClass)
+                                    End If
 
-                                '*** add to global tableattribute store
-                                Me.AlterTableAttribute(anAttribute, fieldinfo:=aFieldInfo)
+                                    '*** Calculate the Checksum from the Tableversions in the Bootstrapclasses
+                                    If _BootstrapObjectClasses.Contains(aClass) Then
+                                        If Not DirectCast(anAttribute, ormSchemaTableAttribute).HasValueVersion Then
+                                            DirectCast(anAttribute, ormSchemaTableAttribute).Version = 1
+                                        End If
+                                        Dim i = _BootstrapObjectClasses.IndexOf(aClass)
+                                        _BootStrapSchemaCheckSum += DirectCast(anAttribute, ormSchemaTableAttribute).Version * Math.Pow(10, i)
+                                    End If
+
+                                    '*** add to global tableattribute store
+                                    Me.AlterTableAttribute(anAttribute, fieldinfo:=aFieldInfo)
+                                End If
 
                                 '*** Object Attribute
                                 ''' check for Object Attributes bound to constants in the class
@@ -754,6 +773,8 @@ Namespace OnTrack
 
         Public Const ConstMTRetrieve = "RETRIEVE"
         Public Const ConstMTCreateDataObject = "CREATEDATAOBJECT"
+
+
         Public Delegate Function MappingGetter(dataobject As Object) As Object
 
         Private _Type As Type
@@ -762,8 +783,7 @@ Namespace OnTrack
         Private _ObjectEntryAttributes As New Dictionary(Of String, ormObjectEntryAttribute) 'name of object entry to Attribute
         Private _ObjectOperationAttributes As New Dictionary(Of String, ormObjectOperationAttribute) 'name of object entry to Attribute
         Private _ObjectEntriesPerTable As New Dictionary(Of String, Dictionary(Of String, ormObjectEntryAttribute)) ' dictionary of tables to dictionary of columns
-        Private _ColumnsPerTable As New Dictionary(Of String, Dictionary(Of String, ormSchemaTableColumnAttribute)) ' dictionary of tables to dictionary of columns
-
+       
         Private _TableColumnsMappings As New Dictionary(Of String, Dictionary(Of String, List(Of FieldInfo))) ' dictionary of tables to dictionary of fieldmappings
         Private _ColumnEntryMapping As New Dictionary(Of String, List(Of FieldInfo)) ' dictionary of columns to mappings
         Private _MappingSetterDelegates As New Dictionary(Of String, Action(Of ormDataObject, Object)) ' dictionary of field to setter delegates
@@ -783,6 +803,13 @@ Namespace OnTrack
 
         Private _isInitalized As Boolean = False
         Private _lock As New Object
+
+        '' caches
+        Private _cachedMappedColumnnames As List(Of String) = Nothing
+        Private _cachedColumnnames As List(Of String) = Nothing
+        Private _cachedEntrynames As List(Of String) = Nothing
+        Private _cachedQuerynames As List(Of String) = Nothing
+        Private _cachedTablenames As List(Of String) = Nothing
 
         '** backreference
         Private _repository As ObjectClassRepository
@@ -876,7 +903,15 @@ Namespace OnTrack
         ''' <remarks></remarks>
         Public ReadOnly Property Tables As List(Of String)
             Get
-                Return _TableAttributes.Keys.ToList
+                If _cachedTablenames Is Nothing Then
+                    Dim theNames As New List(Of String)
+                    Dim aList = _TableAttributes.Values.Where(Function(x) x.Enabled = True) ' only the enabled
+                    If aList IsNot Nothing Then
+                        theNames = aList.Select(Function(x) x.TableName).ToList ' get the remaining keynames
+                    End If
+                    _cachedTablenames = theNames
+                End If
+                Return _cachedTablenames
             End Get
         End Property
         ''' <summary>
@@ -887,7 +922,15 @@ Namespace OnTrack
         ''' <remarks></remarks>
         Public ReadOnly Property Querynames As List(Of String)
             Get
-                Return _QueryAttributes.Keys.ToList
+                If _cachedQuerynames Is Nothing Then
+                    Dim theNames As New List(Of String)
+                    Dim aList = _QueryAttributes.Where(Function(x) x.Value.Enabled = True) ' only the enabled
+                    If aList IsNot Nothing Then
+                        theNames = aList.Select(Function(x) x.Key).ToList ' get the remaining keynames
+                    End If
+                    _cachedQuerynames = theNames
+                End If
+                Return _cachedQuerynames
             End Get
         End Property
         ''' <summary>
@@ -898,29 +941,40 @@ Namespace OnTrack
         ''' <remarks></remarks>
         Public ReadOnly Property Entrynames As List(Of String)
             Get
-                Dim aList As New List(Of String)
-                For Each aName In _ObjectEntryAttributes.Keys
-                    If Not aList.Contains(aName) Then aList.Add(aName)
-                Next
-                Return aList
+                If _cachedEntrynames Is Nothing Then
+                    Dim aList As New List(Of String)
+                    For Each anAttribute In _ObjectEntryAttributes.Values.Where(Function(x) x.Enabled = True)
+                        If anAttribute.Enabled Then
+                            If anAttribute.HasValueEntryName AndAlso Not aList.Contains(anAttribute.EntryName) Then aList.Add(anAttribute.EntryName)
+                        End If
+                    Next
+                    _cachedEntrynames = aList
+                End If
+                Return _cachedEntrynames
             End Get
         End Property
         ''' <summary>
-        ''' gets a List of all column names
+        ''' gets a List of all enabled column names
         ''' </summary>
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public ReadOnly Property ColumnNames As List(Of String)
             Get
-                Dim aList As New List(Of String)
-                For Each aTablename In _ObjectEntriesPerTable.Keys
-                    Dim aList2 As List(Of String) = _ObjectEntriesPerTable.Item(key:=aTablename).Keys.ToList
-                    For Each aColumnname In aList2
-                        aList.Add(item:=aColumnname)
+                If _CachedColumnnames Is Nothing Then
+                    Dim aList As New List(Of String)
+                    For Each perTable In _ObjectEntriesPerTable
+                        If _TableAttributes.Item(perTable.Key).Enabled Then
+                            Dim entriesperTables = _ObjectEntriesPerTable.Item(key:=perTable.Key)
+                            For Each anEntry In entriesperTables.Values
+                                If anEntry.Enabled Then aList.Add(item:=anEntry.ColumnName)
+                            Next
+                        End If
                     Next
-                Next
-                Return aList
+                    _CachedColumnnames = aList
+                End If
+
+                Return _CachedColumnnames
             End Get
         End Property
         ''' <summary>
@@ -931,8 +985,7 @@ Namespace OnTrack
         ''' <remarks></remarks>
         Public ReadOnly Property OperationAttributes As List(Of ormObjectOperationAttribute)
             Get
-
-                Return _ObjectOperationAttributes.Values.ToList
+                Return _ObjectOperationAttributes.Values.Where(Function(x) x.Enabled = True).ToList ' only the enabled
             End Get
         End Property
         ''' <summary>
@@ -944,7 +997,7 @@ Namespace OnTrack
         Public ReadOnly Property ObjectEntryAttributes As List(Of ormObjectEntryAttribute)
             Get
                 Dim aList As New List(Of ormObjectEntryAttribute)
-                For Each anAttribute In _ObjectEntryAttributes.Values
+                For Each anAttribute In _ObjectEntryAttributes.Values.Where(Function(x) x.Enabled = True)
                     _repository.SubstituteReferencedObjectEntry(attribute:=anAttribute)
                     SubstituteDefaultValues(attribute:=anAttribute)
                     aList.Add(anAttribute)
@@ -960,14 +1013,19 @@ Namespace OnTrack
         ''' <remarks></remarks>
         Public ReadOnly Property MappedColumnNames As List(Of String)
             Get
-                Dim aList As New List(Of String)
-                For Each aTablename In _TableColumnsMappings.Keys
-                    Dim aDir As Dictionary(Of String, List(Of FieldInfo)) = _TableColumnsMappings.Item(key:=aTablename)
-                    For Each aColumnName In aDir.Keys
-                        aList.Add(item:=aTablename & "." & aColumnName)
+                If _cachedMappedcolumnnames Is Nothing Then
+                    Dim aList As New List(Of String)
+                    For Each aTableAttribute In _TableAttributes.Values.Where(Function(x) x.Enabled = True)
+                        Dim theColumns = _TableAttributes.Item(key:=aTableAttribute.TableName).ColumnAttributes.Where(Function(x) x.Enabled = True).Select(Function(x) x.ColumnName)
+                        Dim aDir As Dictionary(Of String, List(Of FieldInfo)) = _TableColumnsMappings.Item(key:=aTableAttribute.TableName)
+                        For Each aColumnName In aDir.Keys
+                            If theColumns.Contains(aColumnName) Then aList.Add(item:=aTableAttribute.TableName & "." & aColumnName)
+                        Next
                     Next
-                Next
-                Return aList
+                    _cachedMappedcolumnnames = aList
+                End If
+
+                Return _cachedMappedcolumnnames
             End Get
         End Property
 
@@ -981,8 +1039,10 @@ Namespace OnTrack
             Get
                 Dim aList As New List(Of ormSchemaIndexAttribute)
                 For Each aTablename In _ObjectEntriesPerTable.Keys
-                    Dim aList2 As List(Of ormSchemaIndexAttribute) = _TableIndices.Item(key:=aTablename).Values.ToList
-                    aList.AddRange(aList2)
+                    If _TableAttributes.ContainsKey(aTablename) AndAlso _TableAttributes.Item(aTablename).Enabled Then
+                        Dim aList2 As List(Of ormSchemaIndexAttribute) = _TableIndices.Item(key:=aTablename).Values.Where(Function(x) x.Enabled = True).ToList
+                        aList.AddRange(aList2)
+                    End If
                 Next
                 Return aList
             End Get
@@ -995,7 +1055,7 @@ Namespace OnTrack
         ''' <remarks></remarks>
         Public ReadOnly Property RelationAttributes As List(Of ormSchemaRelationAttribute)
             Get
-                Return _Relations.Values.ToList
+                Return _Relations.Values.Where(Function(x) x.Enabled = True).ToList
             End Get
         End Property
         ''' <summary>
@@ -1006,7 +1066,7 @@ Namespace OnTrack
         ''' <remarks></remarks>
         Public ReadOnly Property TableAttributes As List(Of ormSchemaTableAttribute)
             Get
-                Return _TableAttributes.Values.ToList
+                Return _TableAttributes.Values.Where(Function(x) x.Enabled = True).ToList
             End Get
         End Property
 
@@ -1016,9 +1076,19 @@ Namespace OnTrack
         ''' <param name="tablename"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetSchemaTableAttribute(tablename As String) As ormSchemaTableAttribute
+        Public Function GetSchemaTableAttribute(tablename As String, Optional OnlyEnabled As Boolean = True) As ormSchemaTableAttribute
             If _TableAttributes.ContainsKey(key:=tablename) Then
-                Return _TableAttributes.Item(tablename)
+                Dim anAttribute As ormSchemaTableAttribute = _TableAttributes.Item(tablename)
+                If OnlyEnabled Then
+                    If anAttribute.Enabled Then
+                        Return anAttribute
+                    Else
+                        Return Nothing
+                    End If
+                Else
+                    Return anAttribute
+                End If
+
             Else
                 Return Nothing
             End If
@@ -1052,7 +1122,7 @@ Namespace OnTrack
         ''' <param name="tablename"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetObjectOperationAttribute(name As String) As ormObjectOperationAttribute
+        Public Function GetObjectOperationAttribute(name As String, Optional onlyEnabled As Boolean = True) As ormObjectOperationAttribute
             Dim anEntryname As String = ""
             Dim anObjectname As String = ""
             Dim names() As String = name.ToUpper.Split({CChar(ConstDelimiter), "."c})
@@ -1073,11 +1143,19 @@ Namespace OnTrack
 
             If _ObjectOperationAttributes.ContainsKey(key:=anEntryname) Then
                 Dim anAttribute As ormObjectOperationAttribute = _ObjectOperationAttributes.Item(key:=anEntryname)
-                Return anAttribute
+                If OnlyEnabled Then
+                    If anAttribute.Enabled Then
+                        Return anAttribute
+                    Else
+                        Return Nothing
+                    End If
+                Else
+                    Return anAttribute
+                End If
+
             Else
                 Return Nothing
             End If
-
         End Function
 
         ''' <summary>
@@ -1103,7 +1181,7 @@ Namespace OnTrack
         ''' <param name="tablename"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetObjectEntryAttribute(entryname As String) As ormObjectEntryAttribute
+        Public Function GetObjectEntryAttribute(entryname As String, Optional onlyenabled As Boolean = True) As ormObjectEntryAttribute
             Dim anEntryname As String = ""
             Dim anObjectname As String = ""
             Dim names() As String = entryname.ToUpper.Split({CChar(ConstDelimiter), "."c})
@@ -1124,10 +1202,12 @@ Namespace OnTrack
 
             If _ObjectEntryAttributes.ContainsKey(key:=anEntryname) Then
                 Dim anAttribute As ormObjectEntryAttribute = _ObjectEntryAttributes.Item(key:=anEntryname)
+                If onlyenabled AndAlso Not anAttribute.Enabled Then Return Nothing
+
                 '' substitute entries
                 _repository.SubstituteReferencedObjectEntry(attribute:=anAttribute)
                 '' set default values on non-set 
-                Me.substituteDefaultValues(attribute:=anAttribute)
+                Me.SubstituteDefaultValues(attribute:=anAttribute)
                 ''return final
                 Return anAttribute
             Else
@@ -1142,7 +1222,7 @@ Namespace OnTrack
         ''' <param name="tablename"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetRelationAttribute(relationname As String) As ormSchemaRelationAttribute
+        Public Function GetRelationAttribute(relationname As String, Optional onlyenabled As Boolean = False) As ormSchemaRelationAttribute
             Dim aRelationName As String = ""
             Dim names() As String = relationname.ToUpper.Split({CChar(ConstDelimiter), "."c})
 
@@ -1160,7 +1240,9 @@ Namespace OnTrack
 
             '** return
             If _Relations.ContainsKey(key:=aRelationName) Then
-                Return _Relations.Item(key:=aRelationName)
+                Dim anattribute As ormSchemaRelationAttribute = _Relations.Item(key:=relationname)
+                If onlyenabled AndAlso Not anAttribute.Enabled Then Return Nothing
+                Return anattribute
             Else
                 Return Nothing
             End If
@@ -1171,7 +1253,7 @@ Namespace OnTrack
         ''' <param name="name"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetQueryAttribute(name As String) As ormObjectQueryAttribute
+        Public Function GetQueryAttribute(name As String, Optional onlyenabled As Boolean = True) As ormObjectQueryAttribute
             Dim aQueryname As String = ""
             Dim names() As String = name.ToUpper.Split({CChar(ConstDelimiter), "."c})
 
@@ -1184,7 +1266,9 @@ Namespace OnTrack
 
             '** return
             If _QueryAttributes.ContainsKey(key:=aQueryname) Then
-                Return _QueryAttributes.Item(key:=aQueryname)
+                Dim anattribute As ormObjectQueryAttribute = _QueryAttributes.Item(key:=name.ToUpper)
+                If onlyenabled AndAlso Not anattribute.Enabled Then Return Nothing
+                Return anattribute
             Else
                 Return Nothing
             End If
@@ -1195,8 +1279,9 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetIndexAttributes(tablename As String) As List(Of ormSchemaIndexAttribute)
-            Return _TableIndices.Item(key:=tablename).Values.ToList
+        Public Function GetIndexAttributes(tablename As String, Optional onlyenabled As Boolean = True) As List(Of ormSchemaIndexAttribute)
+            If Not onlyenabled Then Return _TableIndices.Item(key:=tablename).Values.ToList
+            Return _TableIndices.Item(key:=tablename).Values.Where(Function(x) x.Enabled = True).ToList
         End Function
         ''' <summary>
         ''' gets the mapping attribute for a member name (of class)
@@ -1204,8 +1289,14 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetEntryMappingAttributes(membername As String) As ormEntryMapping
-            Return _EntryMappings.Item(key:=membername)
+        Public Function GetEntryMappingAttributes(membername As String, Optional onlyenabled As Boolean = True) As ormEntryMapping
+            If _EntryMappings.ContainsKey(key:=membername) Then
+                Dim anAttribute As ormEntryMapping = _EntryMappings.Item(key:=membername)
+                If onlyenabled AndAlso Not anAttribute.Enabled Then Return Nothing
+                Return anAttribute
+            Else
+                Return Nothing
+            End If
         End Function
         ''' <summary>
         ''' gets the setter delegate for the member field
@@ -1240,7 +1331,9 @@ Namespace OnTrack
         ''' <param name="tablename"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetMappedColumnFieldInfos(columnname As String, Optional tablename As String = "") As List(Of FieldInfo)
+        Public Function GetMappedColumnFieldInfos(columnname As String, _
+                                                  Optional tablename As String = "", _
+                                                  Optional onlyenabled As Boolean = True) As List(Of FieldInfo)
             Dim aFieldname As String = ""
             Dim aTablename As String = ""
             Dim names() As String = columnname.ToUpper.Split({CChar(ConstDelimiter), "."c})
@@ -1265,6 +1358,13 @@ Namespace OnTrack
 
             '** return
             If _TableColumnsMappings.ContainsKey(key:=aTablename) Then
+                ''' check on the enabled table
+                If onlyenabled Then
+                    If Not _TableAttributes.ContainsKey(aTablename) OrElse Not _TableAttributes.Item(key:=aTablename).Enabled Then
+                        Return New List(Of FieldInfo)
+                    End If
+                    
+                End If
                 If _TableColumnsMappings.Item(key:=aTablename).ContainsKey(key:=aFieldname) Then
                     Return _TableColumnsMappings.Item(key:=aTablename).Item(key:=aFieldname)
                 Else
@@ -1282,11 +1382,12 @@ Namespace OnTrack
         ''' <param name="tablename"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetEntryFieldInfos(entryname As String) As List(Of FieldInfo)
+        Public Function GetEntryFieldInfos(entryname As String, Optional onlyenabled As Boolean = True) As List(Of FieldInfo)
             Dim anObjectEntry = Me.GetObjectEntryAttribute(entryname:=entryname)
-            If anObjectEntry Is Nothing Then
+            If anObjectEntry Is Nothing OrElse (onlyenabled AndAlso Not anObjectEntry.Enabled) Then
                 Return New List(Of FieldInfo)
             End If
+
             Dim aFieldname As String = anObjectEntry.ColumnName
             Dim aTablename As String = anObjectEntry.Tablename
 
@@ -1310,7 +1411,9 @@ Namespace OnTrack
         ''' <param name="tablename"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetMappedRelationFieldInfos(relationName As String, Optional tablename As String = "") As List(Of FieldInfo)
+        Public Function GetMappedRelationFieldInfos(relationName As String, _
+                                                    Optional tablename As String = "", _
+                                                    Optional onlyenabled As Boolean = True) As List(Of FieldInfo)
             Dim aRelationName As String = ""
             Dim aTablename As String = ""
             Dim names() As String = relationName.ToUpper.Split({CChar(ConstDelimiter), "."c})
@@ -1333,6 +1436,7 @@ Namespace OnTrack
                 End If
             End If
 
+
             '** return
             If _TableRelationMappings.ContainsKey(key:=aTablename) Then
                 If _TableRelationMappings.Item(key:=aTablename).ContainsKey(key:=aRelationName) Then
@@ -1352,8 +1456,22 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetColumnNames(tablename As String) As List(Of String)
-            Return _ObjectEntriesPerTable.Item(key:=tablename).Keys.ToList
+        Public Function GetColumnNames(tablename As String, Optional onlyenabled As Boolean = True) As IList(Of String)
+            If onlyenabled Then
+                '' check the table and the object entries per table
+                If Not _TableAttributes.ContainsKey(tablename.ToUpper) OrElse Not _TableAttributes.Item(tablename.ToUpper).Enabled _
+                   OrElse Not _ObjectEntriesPerTable.ContainsKey(key:=tablename.ToUpper) Then
+                    Return New List(Of String)
+                End If
+
+                Return _ObjectEntriesPerTable.Item(tablename.ToUpper).Values.Where(Function(x) x.Enabled = True)
+
+            ElseIf _ObjectEntriesPerTable.ContainsKey(key:=tablename.ToUpper) Then
+
+                Return _ObjectEntriesPerTable.Item(key:=tablename.ToUpper).Keys.ToList
+            End If
+
+            Return New List(Of String)
         End Function
         ''' <summary>
         ''' initialize a table attribute to the Description
@@ -1444,6 +1562,7 @@ Namespace OnTrack
                 ElseIf _QueryAttributes.ContainsKey(key:=queryname) And Not overridesExisting Then
                     Return True '* do nothing since we have a ClassOverrides attribute
                 End If
+              
 
                 '** default values
                 With aQueryAttribute
@@ -1524,14 +1643,19 @@ Namespace OnTrack
                 If Not name.Contains(".") AndAlso Not name.Contains(ConstDelimiter) Then
                     anObjectEntryName = _ObjectAttribute.ID.ToUpper & "." & name.ToUpper
                 End If
+
+                
+
                 '* save to global
                 If Not _ObjectEntryAttributes.ContainsKey(key:=name) Then
                     _ObjectEntryAttributes.Add(key:=name, value:=anObjectEntryAttribute)
                 ElseIf Not overridesExisting Then
                 ElseIf overridesExisting Then
-                    _ObjectEntryAttributes.Remove(key:=name)
+                    _ObjectEntryAttributes.Remove(key:=name) ' if not enabled still please remove the entry
                     _ObjectEntryAttributes.Add(key:=name, value:=anObjectEntryAttribute)
                 End If
+
+              
                 '** save in object description per Table as well as in global TableAttributes Store
                 '** of the repository
                 Dim aDictionary = _ObjectEntriesPerTable.Item(key:=tablename)
@@ -1540,7 +1664,7 @@ Namespace OnTrack
                         aDictionary.Add(key:=anObjectEntryName, value:=anObjectEntryAttribute)
                         globaleTableAttributes = _repository.GetTableAttribute(tablename)
                         If globaleTableAttributes IsNot Nothing Then
-                            
+
                             If Not globaleTableAttributes.HasColumn(anObjectEntryAttribute.ColumnName) Then
                                 globaleTableAttributes.AddColumn(anObjectEntryAttribute)
                             Else
@@ -1577,6 +1701,18 @@ Namespace OnTrack
                     CoreMessageHandler(message:="_tablecolumns does not exist", arg1:=tablename, messagetype:=otCoreMessageType.InternalError, _
                                        subname:="ObjectClassDescription.InitializeObjectEntryAttribute", objectname:=_Type.Name)
                 End If
+
+
+                ''' if not enabled delete the entry if we have one
+                ''' doe it here so we could also do bookkeeping on deleting everything
+                ''' BEWARE: Entries are stored under their FIELD VALUE = NAME not under the FIELD NAME (which are overwritten in the class)
+                ''' 
+                'If Not anObjectEntryAttribute.Enabled Then
+                '    If overridesExisting Then
+                '        If _ObjectEntryAttributes.ContainsKey(key:=name) Then _ObjectEntryAttributes.Remove(key:=name)
+                '    End If
+                '    Return True
+                'End If
 
                 '** create a foreign key attribute and store it with the global table
                 '** use the reference object entry as foreign key reference
@@ -1730,6 +1866,14 @@ Namespace OnTrack
                         Return False
                     End If
 
+                    If Not _ObjectEntryAttributes.ContainsKey(key:=anID) Then
+                        CoreMessageHandler(message:="the to be mapped entry attribute does not exist", tablename:=tablename, _
+                                           arg1:=aMappingAttribute.ID, _
+                                          messagetype:=otCoreMessageType.InternalError, _
+                                          subname:="ObjectClassDescription.InitializeEntryMapping", objectname:=_Type.Name)
+                    Else
+                        aMappingAttribute.enabled = _ObjectEntryAttributes.Item(key:=anID).Enabled
+                    End If
                     '***
                     '*** RELATION SETTING
                 ElseIf aMappingAttribute.HasValueRelationName Then
@@ -1745,12 +1889,22 @@ Namespace OnTrack
                         Return False
                     End If
 
+                    If Not _Relations.ContainsKey(key:=anID) Then
+                        CoreMessageHandler(message:="the to be mapped entry attribute does not exist", tablename:=tablename, _
+                                           arg1:=aMappingAttribute.ID, _
+                                          messagetype:=otCoreMessageType.InternalError, _
+                                          subname:="ObjectClassDescription.InitializeEntryMapping", objectname:=_Type.Name)
+                    Else
+                        aMappingAttribute.Enabled = _Relations.Item(key:=anID).Enabled
+                    End If
                 Else
                     CoreMessageHandler(message:="EntryMapping Attribute has no link to object entries nor relation", arg1:=aMappingAttribute.ID, _
                                        messagetype:=otCoreMessageType.InternalError, _
                                        subname:="ObjectClassDescription.InitializeEntryMapping", objectname:=_Type.Name)
                     Return False
                 End If
+
+
 
                 '** add the fieldinfo to the global list for per Mapping.ID (which is the entryname or the relationname)
                 Dim aList As List(Of FieldInfo)
@@ -1806,7 +1960,7 @@ Namespace OnTrack
                     _MappingSetterDelegates.Add(key:=fieldinfo.Name, value:=setter)
                 End If
                 '*** create the getter
-                If Not _MappingGetterDelegates.Containskey(key:=fieldinfo.Name) Then
+                If Not _MappingGetterDelegates.ContainsKey(key:=fieldinfo.Name) Then
                     Dim getter = CreateILGGetterDelegate(Of Object, Object)(_Type, fieldinfo)
                     _MappingGetterDelegates.Add(key:=fieldinfo.Name, value:=getter)
                 End If
@@ -1857,6 +2011,7 @@ Namespace OnTrack
                     _Relations.Remove(key:=name)
                     _Relations.Add(key:=name, value:=aRelationAttribute)
                 End If
+
                 '** save to tablewise
                 Dim aDictionary = _TableRelations.Item(key:=tablename)
                 If aDictionary IsNot Nothing Then
@@ -2143,7 +2298,7 @@ Namespace OnTrack
                     _ObjectOperationAttributes.Remove(key:=name)
                     _ObjectOperationAttributes.Add(key:=name, value:=aOperationAttribute)
                 End If
-
+               
                 '** validate rules
                 If aOperationAttribute.HasValuePermissionRules Then
                     For Each Rule In aOperationAttribute.PermissionRules
@@ -2200,6 +2355,7 @@ Namespace OnTrack
                     _Indices.Remove(key:=name)
                     _Indices.Add(key:=name, value:=anIndexAttribute)
                 End If
+
                 '** save
                 Dim aDictionary = _TableIndices.Item(key:=tablename)
                 If aDictionary IsNot Nothing Then
@@ -2423,6 +2579,8 @@ Namespace OnTrack
 
                     '** look into each Const Type (Fields) to check for tablenames first !
                     '**
+                  
+
                     Dim overridesFlag As Boolean = False
                     For Each aFieldInfo As System.Reflection.FieldInfo In aFieldList
                         If aFieldInfo.IsStatic AndAlso aFieldInfo.MemberType = Reflection.MemberTypes.Field Then
@@ -2440,12 +2598,21 @@ Namespace OnTrack
 
                                     '*** TABLE ATTRIBUTES
                                 ElseIf anAttribute.GetType().Equals(GetType(ormSchemaTableAttribute)) Then
-                                    If DirectCast(anAttribute, ormSchemaTableAttribute).TableName Is Nothing OrElse
-                                    DirectCast(anAttribute, ormSchemaTableAttribute).TableName = "" Then
-                                        aTablename = aFieldInfo.GetValue(Nothing).ToString.ToUpper
+                                    ''' do we have the same const variable name herited from other classes ?
+                                    ''' take then only the local / const variable with attributes from the herited class (overwriting)
+
+                                    Dim localfield As FieldInfo = _Type.GetField(name:=aFieldInfo.Name, bindingAttr:=Reflection.BindingFlags.NonPublic Or Reflection.BindingFlags.Public Or _
+                                                  Reflection.BindingFlags.Static)
+                                    If localfield Is Nothing OrElse (localfield IsNot Nothing AndAlso aFieldInfo.DeclaringType.Equals(localfield.ReflectedType)) Then
+
+                                        If DirectCast(anAttribute, ormSchemaTableAttribute).TableName Is Nothing OrElse
+                                        DirectCast(anAttribute, ormSchemaTableAttribute).TableName = "" Then
+                                            aTablename = aFieldInfo.GetValue(Nothing).ToString.ToUpper
+                                        End If
+                                        If DirectCast(anAttribute, ormSchemaTableAttribute).Enabled Then InitializeTableAttribute(attribute:=anAttribute, tablename:=aTablename, overridesExisting:=overridesFlag)
                                     End If
-                                    InitializeTableAttribute(attribute:=anAttribute, tablename:=aTablename, overridesExisting:=overridesFlag)
                                 End If
+
                             Next
                         End If
                     Next
@@ -2497,7 +2664,7 @@ Namespace OnTrack
                                 '**
                                 If aFieldInfo.IsStatic AndAlso anAttribute.GetType().Equals(GetType(ormObjectEntryAttribute)) Then
                                     InitializeObjectEntryAttribute(attribute:=anAttribute, name:=aName, tablename:=aTablename, fieldvalue:=aValue, _
-                                                                   overridesExisting:=overridesFlag)
+                                                              overridesExisting:=overridesFlag)
                                     '** Foreign Keys
                                 ElseIf aFieldInfo.IsStatic AndAlso anAttribute.GetType().Equals(GetType(ormSchemaForeignKeyAttribute)) Then
                                     InitializeForeignKeyAttribute(attribute:=anAttribute, name:=aName, tablename:=aTablename, value:=aValue, overridesExisting:=overridesFlag)
@@ -2514,8 +2681,10 @@ Namespace OnTrack
                                 ElseIf aFieldInfo.IsStatic AndAlso anAttribute.GetType().Equals(GetType(ormObjectOperationAttribute)) Then
                                     InitializeOperationAttribute(attribute:=anAttribute, objectname:=aTablename, name:=aName, value:=aValue, overridesExisting:=overridesFlag)
 
+
                                     '** Queries
                                 ElseIf aFieldInfo.IsStatic AndAlso anAttribute.GetType().Equals(GetType(ormObjectQueryAttribute)) Then
+
                                     InitializeQueryAttribute(attribute:=anAttribute, queryname:=aName, value:=aValue, overridesExisting:=overridesFlag)
 
                                 End If
@@ -2589,6 +2758,7 @@ Namespace OnTrack
 
                 End SyncLock
 
+               
                 _isInitalized = True
                 Return True
             Catch ex As Exception

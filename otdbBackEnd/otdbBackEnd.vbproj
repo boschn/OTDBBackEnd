@@ -98,9 +98,9 @@
     <Compile Include="clsADOMSSQL.vb" />
     <Compile Include="clsADONET.vb" />
     <Compile Include="clsADOOLEDB.vb" />
+    <Compile Include="clsBOProperties.vb" />
     <Compile Include="clsLEGACYBOM.vb" />
     <Compile Include="clsBOCalender.vb" />
-    <Compile Include="clsLEGACYCartypes.vb" />
     <Compile Include="clsBOConfigurable.vb" />
     <Compile Include="clsCore.vb" />
     <Compile Include="clsCoreDef.vb" />
@@ -120,6 +120,7 @@
     </Compile>
     <Compile Include="clsBOCommons.vb" />
     <Compile Include="clsBODeliverable.vb" />
+    <Compile Include="clsLEGACYCartypes.vb" />
     <Compile Include="clsLEGACYDependency.vb" />
     <Compile Include="clsLEGACYInterfaces.vb" />
     <Compile Include="clsBOMQF.vb" />

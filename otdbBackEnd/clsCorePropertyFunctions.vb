@@ -626,6 +626,7 @@ Namespace OnTrack
         Inherits AbstractPropertyFunction(Of otObjectValidationProperty)
         Public Const Unique = "UNIQUE"
         Public Const NotEmpty = "NOTEMPTY"
+        Public Const UseLookup = "USELOOKUP"
         ''' <summary>
         ''' constructor
         ''' </summary>
@@ -680,8 +681,49 @@ Namespace OnTrack
     ''' </summary>
     ''' <remarks></remarks>
     Public Enum otObjectValidationProperty
-        <Description(ObjectValidationProperty.Unique)> Unique
+        <Description(ObjectValidationProperty.Unique)> Unique = 1
         <Description(ObjectValidationProperty.NotEmpty)> NotEmpty
+        <Description(ObjectValidationProperty.UseLookup)> UseLookup
+    End Enum
+
+    ''' <summary>
+    ''' ObjectEntry Validation Property Class
+    ''' </summary>
+    ''' <remarks></remarks>
+    Public Class LookupProperty
+        Inherits AbstractPropertyFunction(Of otLookupProperty)
+        Public Const UseAttributeReference = "USEREFERENCE"
+        Public Const UseAttributeValues = "USEATTRIBUTEVALUES"
+        Public Const UseForeignKey = "USEFOREIGNKEY"
+        Public Const UseObject = "USEOBJECT"
+        ''' <summary>
+        ''' constructor
+        ''' </summary>
+        ''' <param name="propertystring"></param>
+        ''' <remarks></remarks>
+        Public Sub New(propertystring As String)
+            MyBase.New(propertystring:=propertystring)
+        End Sub
+       
+        ''' <summary>
+        ''' returns the enumeration value
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function ToEnum() As otObjectValidationProperty
+            Return AbstractPropertyFunction(Of otObjectValidationProperty).ToEnum(_property)
+        End Function
+    End Class
+    ''' <summary>
+    ''' Enumeration of the validation properties
+    ''' </summary>
+    ''' <remarks></remarks>
+    Public Enum otLookupProperty
+        <Description(LookupProperty.UseAttributeReference)> UseAttributeReference = 1
+        <Description(LookupProperty.UseForeignKey)> UseForeignKey
+        <Description(LookupProperty.UseObject)> UseObject
+        <Description(LookupProperty.UseAttributeValues)> UseAttributeValues
+
     End Enum
 
 

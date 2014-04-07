@@ -56,7 +56,7 @@ Namespace OnTrack.Calendar
           XID:="CAL8", title:="RefID", description:="entry refID in the calendar")> Public Const constFNRefID = "refid"
 
         <ormObjectEntry(typeid:=otFieldDataType.Bool, XID:="cal9", title:="Not Available", description:="not available")> _
-        Public Const constFNNotAvail = "notavail"
+        Public Const constFNIsNotAvailable = "notavail"
         <ormObjectEntry(typeid:=otFieldDataType.Bool, XID:="cal10", title:="Is Important", description:="is important entry (prioritized)")> _
         Public Const constFNIsImportant = "isimp"
 
@@ -97,7 +97,7 @@ Namespace OnTrack.Calendar
         ' fields
         <ormEntryMapping(EntryName:=ConstFNTypeID)> Private _EntryType As otCalendarEntryType
         <ormEntryMapping(EntryName:=constFNIsImportant)> Private s_isImportant As Boolean = False
-        <ormEntryMapping(EntryName:=constFNNotAvail)> Private s_notAvailable As Boolean = False
+        <ormEntryMapping(EntryName:=constFNIsNotAvailable)> Private _notAvailable As Boolean = False
         <ormEntryMapping(EntryName:=ConstFNDescription)> Private s_description As String = ""
 
 
@@ -111,28 +111,41 @@ Namespace OnTrack.Calendar
         End Sub
 
 #Region "Properties"
-
+        ''' <summary>
+        ''' gets the name of the calendar of the entry
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
 
         ReadOnly Property Name() As String
             Get
-                Name = _name
+                Return _name
             End Get
-
         End Property
-
+        ''' <summary>
+        ''' gets the id of the calendar entry
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
         ReadOnly Property ID() As Long
             Get
-                ID = _entryid
+                Return _entryid
             End Get
-
         End Property
-        Public Property entrytype() As otCalendarEntryType
+        ''' <summary>
+        ''' gets or sets the Entry Type of the calendar
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Property Type() As otCalendarEntryType
             Get
-                entrytype = _EntryType
+                Return _EntryType
             End Get
             Set(value As otCalendarEntryType)
-                _EntryType = value
-                Me.IsChanged = True
+                SetValue(ConstFNTypeID, value)
             End Set
         End Property
         ''' <summary>
@@ -143,11 +156,10 @@ Namespace OnTrack.Calendar
         ''' <remarks></remarks>
         Public Property Timestamp() As Date
             Get
-                Timestamp = _timestamp
+                Return _timestamp
             End Get
             Set(value As Date)
-                _timestamp = value
-                Me.IsChanged = True
+                SetValue(constFNTimestamp, value)
             End Set
         End Property
         ''' <summary>
@@ -161,21 +173,24 @@ Namespace OnTrack.Calendar
                 Datevalue = _timestamp.Date
             End Get
             Set(value As Date)
-                _timestamp = New DateTime(year:=value.Year, month:=value.Month, day:=value.Day, _
+                Me.Timestamp = New DateTime(year:=value.Year, month:=value.Month, day:=value.Day, _
                                            hour:=_timestamp.Hour, minute:=_timestamp.Minute, [second]:=_timestamp.Second, millisecond:=_timestamp.Millisecond)
                 's_timestamp = CDate(Format(value, "dd.mm.yyyy") & " " & Format(CDate(s_timestamp), "hh:mm"))
-                Me.IsChanged = True
             End Set
         End Property
 
-        ' length of an entry in minutes
+        ''' <summary>
+        ''' length of an entry
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
         Public Property Length() As Long
             Get
-                Length = _length
+                Return _length
             End Get
             Set(value As Long)
-                _length = value
-                Me.IsChanged = True
+                SetValue(constFNLength, value)
             End Set
         End Property
         ''' <summary>
@@ -196,119 +211,186 @@ Namespace OnTrack.Calendar
                 Me.IsChanged = True
             End Set
         End Property
-
-        Public Property description() As String
+        ''' <summary>
+        ''' sets or gets the description
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Property Description() As String
             Get
-                description = s_description
+                Return s_description
             End Get
             Set(value As String)
-                s_description = value
-                Me.IsChanged = True
+                SetValue(ConstFNDescription, value)
             End Set
         End Property
-
-        ReadOnly Property weekofyear() As String
+        ''' <summary>
+        ''' gets the week-of-year presentation of the timestamp as string
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        ReadOnly Property Weekofyear() As String
             Get
                 Dim myear As Integer
-                myear = Me.year
-                If Me.month = 1 And Me.week >= 52 Then
+                myear = Me.Year
+                If Me.Month = 1 And Me.week >= 52 Then
                     myear = myear - 1
                 End If
 
-                weekofyear = CStr(myear) & "-" & Format(DatePart("ww", _timestamp, vbMonday, vbFirstFourDays), "0#")
+                Return CStr(myear) & "-" & Format(DatePart("ww", _timestamp, vbMonday, vbFirstFourDays), "0#")
             End Get
 
         End Property
-
-        ReadOnly Property week() As Integer
+        ''' <summary>
+        ''' gets the week number
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        ReadOnly Property Week() As UShort
             Get
-                week = DatePart("ww", _timestamp, vbMonday, vbFirstFourDays)
+                Return DatePart("ww", _timestamp, vbMonday, vbFirstFourDays)
             End Get
         End Property
-        ReadOnly Property weekday() As DayOfWeek
+        ''' <summary>
+        ''' gets the weekday
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        ReadOnly Property WeekDay() As DayOfWeek
             Get
-                weekday = DatePart("w", _timestamp)
+                Return DatePart("w", _timestamp)
             End Get
         End Property
-
-        ReadOnly Property dayofyear() As Integer
+        ''' <summary>
+        ''' gets the day of year number
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        ReadOnly Property DayofYear() As UShort
             Get
-                dayofyear = DatePart("y", _timestamp)
-            End Get
-
-        End Property
-        ReadOnly Property dayofmonth() As Integer
-            Get
-                dayofmonth = DatePart("d", _timestamp)
-            End Get
-
-        End Property
-
-        ReadOnly Property month() As Integer
-            Get
-                month = DatePart("m", _timestamp)
-            End Get
-
-        End Property
-        ReadOnly Property year() As Integer
-            Get
-                year = DatePart("yyyy", _timestamp)
+                Return DatePart("y", _timestamp)
             End Get
 
         End Property
-        ReadOnly Property quarter() As Integer
+        ''' <summary>
+        ''' gets the Day of month number
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        ReadOnly Property DayOfMonth() As UShort
             Get
-                quarter = DatePart("q", _timestamp)
+                Return DatePart("d", _timestamp)
             End Get
 
         End Property
-
-        ReadOnly Property hour() As Integer
+        ''' <summary>
+        ''' get the month as number
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        ReadOnly Property Month() As UShort
             Get
-                hour = DatePart("h", _timestamp)
+                Return DatePart("m", _timestamp)
             End Get
 
         End Property
-        ReadOnly Property minute() As Integer
+        ''' <summary>
+        ''' gets the year as number
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        ReadOnly Property Year() As UShort
             Get
-                minute = DatePart("m", _timestamp)
+                Return DatePart("yyyy", _timestamp)
             End Get
 
         End Property
-
-        Public Property isImportant() As Boolean
+        ''' <summary>
+        ''' gets the Quarter as number
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        ReadOnly Property Quarter() As UShort
             Get
-                isImportant = s_isImportant
+                Return DatePart("q", _timestamp)
+            End Get
+
+        End Property
+        ''' <summary>
+        ''' gets the hour as number
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        ReadOnly Property Hour() As UShort
+            Get
+                Return DatePart("h", _timestamp)
+            End Get
+
+        End Property
+        ''' <summary>
+        ''' gets the minutes as number
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        ReadOnly Property Minute() As UShort
+            Get
+                Return DatePart("m", _timestamp)
+            End Get
+
+        End Property
+        ''' <summary>
+        ''' gets or sets the Important flag
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Property IsImportant() As Boolean
+            Get
+                Return s_isImportant
             End Get
             Set(value As Boolean)
-                s_isImportant = value
-                Me.IsChanged = True
+                SetValue(constFNIsImportant, value)
             End Set
         End Property
-
-        Public Property notAvailable() As Boolean
+        ''' <summary>
+        ''' gets or sets the not available flag 
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Property IsNotAvailable() As Boolean
             Get
-                notAvailable = s_notAvailable
+                Return _notAvailable
             End Get
             Set(value As Boolean)
-                s_notAvailable = value
-                Me.IsChanged = True
+                SetValue(constFNIsNotAvailable, value)
             End Set
         End Property
 
 #End Region
 
-        Public Function deltaYear(newDate As Date) As Long
+        Public Function DeltaYear(newDate As Date) As Long
             deltaYear = DateDiff("y", _timestamp, newDate)
         End Function
-        Public Function deltaMonth(newDate As Date) As Long
+        Public Function DeltaMonth(newDate As Date) As Long
             deltaMonth = DateDiff("m", _timestamp, newDate)
         End Function
-        Public Function deltaWeek(newDate As Date) As Long
+        Public Function DeltaWeek(newDate As Date) As Long
             deltaWeek = DateDiff("ww", _timestamp, newDate)
         End Function
 
-        Public Function deltaDay(ByVal newDate As Date, _
+        Public Function DeltaDay(ByVal newDate As Date, _
         Optional ByVal considerAvailibilty As Boolean = True, _
         Optional ByVal calendarname As String = "") As Long
             Dim anEntry As New CalendarEntry
@@ -340,23 +422,23 @@ Namespace OnTrack.Calendar
             End If
 
         End Function
-        Public Function deltaHour(newDate As Date) As Long
+        Public Function DeltaHour(newDate As Date) As Long
             deltaHour = DateDiff("h", _timestamp, newDate)
         End Function
-        Public Function deltaMinute(newDate As Date) As Long
+        Public Function DeltaMinute(newDate As Date) As Long
             deltaMinute = DateDiff("m", _timestamp, newDate)
         End Function
 
-        Public Function addYear(aVAlue As Integer) As Date
-            addYear = DateAdd("y", aVAlue, _timestamp)
+        Public Function AddYear(aVAlue As Integer) As Date
+            AddYear = DateAdd("y", aVAlue, _timestamp)
         End Function
-        Public Function addMonth(aVAlue As Integer) As Date
-            addMonth = DateAdd("m", aVAlue, _timestamp)
+        Public Function AddMonth(aVAlue As Integer) As Date
+            AddMonth = DateAdd("m", aVAlue, _timestamp)
         End Function
-        Public Function addWeek(aVAlue As Integer) As Date
-            addWeek = DateAdd("ww", aVAlue, _timestamp)
+        Public Function AddWeek(aVAlue As Integer) As Date
+            AddWeek = DateAdd("ww", aVAlue, _timestamp)
         End Function
-        Public Function addDay(ByVal aVAlue As Integer, _
+        Public Function AddDay(ByVal aVAlue As Integer, _
         Optional ByVal considerAvailibilty As Boolean = True, _
         Optional ByVal calendarname As String = "") As Date
             Dim anEntry As New CalendarEntry
@@ -365,44 +447,44 @@ Namespace OnTrack.Calendar
             Dim delta As Long
             Dim exitflag As Boolean
             ' delta
-            addDay = DateAdd("d", aVAlue, _timestamp)
+            AddDay = DateAdd("d", aVAlue, _timestamp)
             '
             If considerAvailibilty Then
                 currDate = _timestamp
-                addDay = Me.NextAvailableDate(currDate, aVAlue, calendarname)
+                AddDay = Me.NextAvailableDate(currDate, aVAlue, calendarname)
                 Exit Function
             End If
 
         End Function
-        Public Function addHour(aVAlue As Integer) As Date
+        Public Function AddHour(aVAlue As Integer) As Date
             addHour = DateAdd("h", aVAlue, _timestamp)
         End Function
-        Public Function addMinute(aVAlue As Integer) As Date
+        Public Function AddMinute(aVAlue As Integer) As Date
             addMinute = DateAdd("m", aVAlue, _timestamp)
         End Function
 
-        Public Function incYear(aVAlue As Integer) As Date
-            Me.Timestamp = Me.addYear(aVAlue)
+        Public Function IncYear(aVAlue As Integer) As Date
+            Me.Timestamp = Me.AddYear(aVAlue)
             incYear = Me.Timestamp
         End Function
-        Public Function incMonth(aVAlue As Integer) As Date
-            Me.Timestamp = Me.addMonth(aVAlue)
+        Public Function IncMonth(aVAlue As Integer) As Date
+            Me.Timestamp = Me.AddMonth(aVAlue)
             incMonth = Me.Timestamp
         End Function
-        Public Function incDay(aVAlue As Integer) As Date
-            Me.Timestamp = Me.addDay(aVAlue)
+        Public Function IncDay(aVAlue As Integer) As Date
+            Me.Timestamp = Me.AddDay(aVAlue)
             incDay = Me.Timestamp
         End Function
-        Public Function incWeek(aVAlue As Integer) As Date
-            Me.Timestamp = Me.addWeek(aVAlue)
+        Public Function IncWeek(aVAlue As Integer) As Date
+            Me.Timestamp = Me.AddWeek(aVAlue)
             incWeek = Me.Timestamp
         End Function
-        Public Function incHour(aVAlue As Integer) As Date
-            Me.Timestamp = Me.addHour(aVAlue)
+        Public Function IncHour(aVAlue As Integer) As Date
+            Me.Timestamp = Me.AddHour(aVAlue)
             incHour = Me.Timestamp
         End Function
-        Public Function incMinute(aVAlue As Integer) As Date
-            Me.Timestamp = Me.addMinute(aVAlue)
+        Public Function IncMinute(aVAlue As Integer) As Date
+            Me.Timestamp = Me.AddMinute(aVAlue)
             incMinute = Me.Timestamp
         End Function
 
@@ -478,7 +560,7 @@ Namespace OnTrack.Calendar
                 If Not aCommand.Prepared Then
                     aCommand.select = "count(id)"
                     aCommand.Where = String.Format("[{0}}=@cname and [{1}] > @date1 and [{1}] <@date2 and [{2}] <> @avail and [{3}]=@typeID and ([{5}]=@domainid )", _
-                    {constFNName, constFNTimestamp, constFNNotAvail, constFNDomainID})
+                    {constFNName, constFNTimestamp, constFNIsNotAvailable, constFNDomainID})
                     aCommand.AddParameter(New ormSqlCommandParameter(ID:="@cname", columnname:="cname", tablename:=ConstTableid))
                     aCommand.AddParameter(New ormSqlCommandParameter(ID:="@date1", datatype:=otFieldDataType.Date, notColumn:=True))
                     aCommand.AddParameter(New ormSqlCommandParameter(ID:="@date2", datatype:=otFieldDataType.Date, notColumn:=True))
@@ -545,7 +627,7 @@ Namespace OnTrack.Calendar
                     If Not aCommand.Prepared Then
                         aCommand.select = "[" & constFNTimestamp & "]"
                         aCommand.Where = String.Format("[{0}]=@cname and [{1}] < @date1  and [{2}] <> @avail and [{3}]=@typeID and [{4}]=@domainID", _
-                            {constFNName, constFNTimestamp, constFNNotAvail, ConstFNTypeID, constFNDomainID})
+                            {constFNName, constFNTimestamp, constFNIsNotAvailable, ConstFNTypeID, constFNDomainID})
 
                         aCommand.OrderBy = "[" & constFNTimestamp & "] desc"
                         aCommand.AddParameter(New ormSqlCommandParameter(ID:="@cname", columnname:="cname", tablename:=ConstTableid))
@@ -563,7 +645,7 @@ Namespace OnTrack.Calendar
 
                         aCommand.select = "[" & constFNTimestamp & "]"
                         aCommand.Where = String.Format("[{0}]=@cname and [{1}] > @date1  and [{2}] <> @avail and [{3}]=@typeID and [{4}]=@domainID", _
-                           {constFNName, constFNTimestamp, constFNNotAvail, ConstFNTypeID, constFNDomainID})
+                           {constFNName, constFNTimestamp, constFNIsNotAvailable, ConstFNTypeID, constFNDomainID})
 
                         aCommand.OrderBy = "[" & constFNTimestamp & "] asc"
 
@@ -629,8 +711,8 @@ Namespace OnTrack.Calendar
             End If
 
             For Each anEntry In aCollection
-                If anEntry.entrytype = otCalendarEntryType.DayEntry Or anEntry.entrytype = otCalendarEntryType.AbsentEntry Then
-                    If anEntry.notAvailable Then
+                If anEntry.Type = otCalendarEntryType.DayEntry Or anEntry.Type = otCalendarEntryType.AbsentEntry Then
+                    If anEntry.IsNotAvailable Then
                         IsAvailableOn = False
                         Exit Function
                     End If
@@ -757,34 +839,34 @@ Namespace OnTrack.Calendar
                     If anEntry IsNot Nothing Then
                         With anEntry
                             .Datevalue = currDate
-                            .notAvailable = False
+                            .IsNotAvailable = False
                             .description = "working day"
                             ' weekend
                             If .weekday = vbSaturday Or .weekday = vbSunday Then
-                                .notAvailable = True
+                                .IsNotAvailable = True
                                 .description = "weekend"
                             Else
-                                .notAvailable = False
+                                .IsNotAvailable = False
                             End If
                             ' new year
                             If .month = 1 And (.dayofmonth = 1) Then
-                                .notAvailable = True
+                                .IsNotAvailable = True
                                 .description = "new year"
                             ElseIf .month = 10 And .dayofmonth = 3 Then
-                                .notAvailable = True
+                                .IsNotAvailable = True
                                 .description = "reunifcation day in germany"
                             ElseIf .month = 5 And .dayofmonth = 1 Then
-                                .notAvailable = True
+                                .IsNotAvailable = True
                                 .description = "labor day in germany"
                             ElseIf .month = 11 And .dayofmonth = 1 Then
-                                .notAvailable = True
+                                .IsNotAvailable = True
                                 .description = "allerseelen in germany"
                                 ' christmas
                             ElseIf .month = 12 And (.dayofmonth = 24 Or .dayofmonth = 26 Or .dayofmonth = 25) Then
-                                .notAvailable = True
+                                .IsNotAvailable = True
                                 .description = "christmas"
                             End If
-                            .entrytype = otCalendarEntryType.DayEntry
+                            .Type = otCalendarEntryType.DayEntry
                             .Persist()
                         End With
                     End If

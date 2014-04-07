@@ -4776,7 +4776,7 @@ Namespace OnTrack.XChange
 
             '* get the config
             If xobject Is Nothing Then
-                xobject = Me.Xchangeconfig.ObjectByName(objectname:=record.TableID)
+                'xobject = Me.Xchangeconfig.ObjectByName(objectname:=record.TableIDs)
             End If
 
             ' set msglog
@@ -5060,7 +5060,8 @@ Namespace OnTrack.XChange
                 End If
                 ' found
                 If anUPDC <> 0 And anUID <> 0 Then
-                    If aSchedule.Inject(UID:=anUID, updc:=anUPDC) Then
+                    aSchedule = Schedule.Retrieve(UID:=anUID, updc:=anUPDC)
+                    If aSchedule IsNot Nothing Then
                         specialHandling = True
                     Else
                         specialHandling = False
@@ -6687,7 +6688,7 @@ Namespace OnTrack.XChange
 
                         ' HACK: CARTYPES
                     Case "tblconfigs"
-                        flag = flag And aDeliverable.runCartypesXChange(aMapping, Me, msglog)
+                        'flag = flag And aDeliverable.runCartypesXChange(aMapping, Me, msglog)
 
                         ' schedules
                     Case Schedule.constTableID.tolower
@@ -7033,7 +7034,8 @@ Namespace OnTrack.XChange
                 End If
                 ' found
                 If anUPDC <> 0 And anUID <> 0 Then
-                    If aSchedule.Inject(UID:=anUID, updc:=anUPDC) Then
+                    aSchedule = Schedule.Retrieve(UID:=anUID, updc:=anUPDC)
+                    If aSchedule IsNot Nothing Then
                         specialHandling = True
                     Else
                         specialHandling = False

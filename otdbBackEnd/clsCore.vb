@@ -33,6 +33,347 @@ Imports System.Reflection
 Namespace OnTrack
 
     ''' <summary>
+    ''' Enumerator for QueryEnumeration
+    ''' </summary>
+    ''' <remarks></remarks>
+    Public Class ormRelationCollectionEnumerator(Of T As {New, iormInfusable, iormPersistable})
+        Implements IEnumerator
+
+        Private _collection As ormRelationCollection(Of T)
+        Private _counter As Integer = 0
+        Private _keys As IList
+        Public Sub New(collection As ormRelationCollection(Of T))
+            _collection = collection
+            _keys = _collection.Keys
+        End Sub
+        Public ReadOnly Property Current As Object Implements IEnumerator.Current
+            Get
+                If _counter >= 0 And _counter < _keys.Count Then Return _collection.Item(_keys.Item(_counter))
+                ' throw else
+                Throw New InvalidOperationException()
+            End Get
+        End Property
+
+        Public Function MoveNext() As Boolean Implements IEnumerator.MoveNext
+            _counter += 1
+            Return (_counter < _keys.Count)
+            ' throw else
+            Throw New InvalidOperationException()
+        End Function
+
+        Public Sub Reset() Implements IEnumerator.Reset
+            _counter = 0
+        End Sub
+    End Class
+
+    ''' <summary>
+    '''  Interface
+    ''' </summary>
+    ''' <typeparam name="T"></typeparam>
+    ''' <remarks></remarks>
+    Public Interface iormRelationalCollection(Of T)
+        Inherits ICollection(Of T)
+
+        Property item(keys As Object) As T
+        Property item(keys As Object()) As T
+
+        Function containsKey(keys As Object()) As Boolean
+        Function containsKey(keys As Object) As Boolean
+
+
+        Function getKeyvalues(item As T) As Object()
+
+        Function GetKeyNames() As String()
+    End Interface
+
+    ''' <summary>
+    ''' Implementation of an Relational Collection
+    ''' </summary>
+    ''' <typeparam name="T"></typeparam>
+    ''' <remarks></remarks>
+    
+    Public Class ormRelationCollection(Of T As {New, iormInfusable, iormPersistable})
+        Implements iormRelationalCollection(Of T)
+
+        Public Class EventArgs
+            Inherits CancelEventArgs
+
+            Private _dataobject As T
+
+            Public Sub New(ByRef dataobject As T)
+                _dataobject = dataobject
+            End Sub
+
+
+            ''' <summary>
+            ''' Gets or sets the dataobject.
+            ''' </summary>
+            ''' <value>The dataobject.</value>
+            Public Property Dataobject() As T
+                Get
+                    Return Me._dataobject
+                End Get
+                Set(value As T)
+                    Me._dataobject = value
+                End Set
+            End Property
+
+        End Class
+
+        Private _dictionary As New SortedDictionary(Of Object, iormPersistable)
+        Private _container As iormPersistable
+        Private _keyentries As String()
+
+        Public Event OnNew(sender As Object, e As ormRelationCollection(Of T).EventArgs)
+
+        Public Event OnAdding(sender As Object, e As ormRelationCollection(Of T).EventArgs)
+        Public Event OnAdded(sender As Object, e As ormRelationCollection(Of T).EventArgs)
+
+        Public Event OnDeleting(sender As Object, e As ormRelationCollection(Of T).EventArgs)
+        Public Event OnDeleted(sender As Object, e As ormRelationCollection(Of T).EventArgs)
+
+        ''' <summary>
+        ''' constructor with the container object (of iormpersistable) 
+        ''' and keyentrynames of T
+        ''' </summary>
+        ''' <param name="containerobject"></param>
+        ''' <param name="keynames"></param>
+        ''' <remarks></remarks>
+        Public Sub New(container As iormPersistable, keyentrynames As String())
+            _container = container
+            _keyentries = keyentrynames
+        End Sub
+
+        ''' <summary>
+        ''' gets the list of keys in the collection
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property Keys As IList
+            Get
+                Return _dictionary.Keys.ToList
+            End Get
+
+        End Property
+        ''' <summary>
+        ''' returns the entry names for the keys in the collection
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function GetKeyNames() As String() Implements iormRelationalCollection(Of T).GetKeyNames
+            Return _keyentries
+        End Function
+
+        ''' <summary>
+        ''' extract the key values of the item (keyentries)
+        ''' </summary>
+        ''' <param name="item"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function GetKeyValues(item As T) As Object() Implements iormRelationalCollection(Of T).getKeyvalues
+            Dim keys As Object()
+            ReDim keys(_keyentries.Count - 1)
+            For i = 0 To _keyentries.Count - 1
+                keys(i) = item.GetValue(_keyentries(i))
+            Next i
+            Return keys
+        End Function
+
+        ''' <summary>
+        ''' create a new item already stored in this collection
+        ''' </summary>
+        ''' <param name="keys"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function AddNew(keys As Object()) As T
+            Dim anItem As T = Activator.CreateInstance(Of T)()
+
+            ' set the values in the object
+            For i = 0 To _keyentries.Count - 1
+                keys(i) = anItem.SetValue(_keyentries(i), keys(i))
+            Next i
+
+            Dim args = New ormRelationCollection(Of T).EventArgs(anItem)
+            RaiseEvent OnNew(Me, args)
+            If args.Cancel Then Return Nothing
+
+            Dim arecord As New ormRecord
+            If args.Dataobject.Feed(arecord) Then
+                anItem = ormDataObject.CreateDataObject(Of T)(arecord)
+                If anItem IsNot Nothing Then
+                    Me.Add(anItem)
+                    Return anItem
+                End If
+            End If
+            Return Nothing
+        End Function
+
+        ''' <summary>
+        ''' add an item to the collection - notifies container
+        ''' </summary>
+        ''' <param name="item"></param>
+        ''' <remarks></remarks>
+        Public Sub Add(item As T) Implements ICollection(Of T).Add
+            Dim args = New ormRelationCollection(Of T).EventArgs(item)
+            RaiseEvent OnAdding(Me, args)
+            If args.Cancel Then Return
+
+            ''' get the keys
+            Dim keys = GetKeyValues(item)
+
+            '' no error if we are already in this collection
+            If Not Me.ContainsKey(keys) Then
+                ''' add the handler for the delete event
+                AddHandler item.OnDeleting, AddressOf iormPersistable_OnDelete
+                ''' add to the dictionary
+                _dictionary.Add(key:=keys, value:=item)
+                ''' raise the event
+                RaiseEvent OnAdded(Me, args)
+            End If
+
+        End Sub
+
+        ''' <summary>
+        ''' handler for the OnDeleting Event
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Private Sub IormPersistable_OnDelete(sender As Object, e As ormDataObjectEventArgs)
+            Dim anItem As iormPersistable = e.DataObject
+            Me.Remove(anItem)
+        End Sub
+        ''' <summary>
+        ''' clear the Collection - is not a remove with handler
+        ''' </summary>
+        ''' <remarks></remarks>
+        Public Sub Clear() Implements ICollection(Of T).Clear
+            _dictionary.Clear()
+        End Sub
+        ''' <summary>
+        ''' returns true if the key is in the collection
+        ''' </summary>
+        ''' <param name="keys"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function ContainsKey(keys As Object()) As Boolean Implements iormRelationalCollection(Of T).containsKey
+            Return _dictionary.ContainsKey(key:=keys)
+        End Function
+
+        ''' <summary>
+        ''' returns true if the key is in the collection
+        ''' </summary>
+        ''' <param name="keys"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function ContainsKey(keys As Object) As Boolean Implements iormRelationalCollection(Of T).containsKey
+            Return _dictionary.ContainsKey(key:={keys})
+        End Function
+        ''' <summary>
+        ''' returns true if the item is in the collection. based on same keys
+        ''' </summary>
+        ''' <param name="item"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function Contains(item As T) As Boolean Implements ICollection(Of T).Contains
+            Dim keys = GetKeyValues(item)
+            Return ContainsKey(keys)
+        End Function
+        ''' <summary>
+        ''' copy out to an array
+        ''' </summary>
+        ''' <param name="array"></param>
+        ''' <param name="arrayIndex"></param>
+        ''' <remarks></remarks>
+        Public Sub CopyTo(array() As T, arrayIndex As Integer) Implements ICollection(Of T).CopyTo
+            array = _dictionary.Values.ToArray
+        End Sub
+        ''' <summary>
+        ''' count the number of items in the collection
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property Count As Integer Implements ICollection(Of T).Count
+            Get
+                Return _dictionary.Count
+            End Get
+        End Property
+        ''' <summary>
+        ''' return true if readonly
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property IsReadOnly As Boolean Implements ICollection(Of T).IsReadOnly
+            Get
+                Return False
+            End Get
+        End Property
+        ''' <summary>
+        ''' remove an item from the collection - the delete handler of the container will be called 
+        ''' which might lead to an delete of the item itself
+        ''' </summary>
+        ''' <param name="item"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function Remove(item As T) As Boolean Implements ICollection(Of T).Remove
+            Dim args = New ormRelationCollection(Of T).EventArgs(item)
+            RaiseEvent OnDeleting(Me, args)
+
+            Dim keys = GetKeyValues(item)
+            Dim result = _dictionary.Remove(key:=keys)
+
+            RaiseEvent OnDeleted(Me, args)
+            Return result
+        End Function
+        ''' <summary>
+        ''' gets an item by keys
+        ''' </summary>
+        ''' <param name="keys"></param>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Property Item(keys As Object()) As T Implements iormRelationalCollection(Of T).item
+            Get
+                If ContainsKey(keys) Then Return _dictionary.Item(key:=keys)
+            End Get
+            Set(value As T)
+                If Not ContainsKey(keys) Then _dictionary.Add(key:=keys, value:=value)
+            End Set
+        End Property
+        ''' <summary>
+        ''' gets an item by keys
+        ''' </summary>
+        ''' <param name="keys"></param>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Property Item(keys As Object) As T Implements iormRelationalCollection(Of T).item
+            Get
+                If ContainsKey({keys}) Then Return _dictionary.Item(key:={keys})
+            End Get
+            Set(value As T)
+                If Not ContainsKey({keys}) Then _dictionary.Add(key:={keys}, value:=value)
+            End Set
+        End Property
+        ''' <summary>
+        ''' returns an enumerator
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function GetEnumerator() As IEnumerator(Of T) Implements IEnumerable(Of T).GetEnumerator
+            Return New ormRelationCollectionEnumerator(Of T)(Me)
+        End Function
+
+        Public Function GetEnumerator1() As IEnumerator Implements IEnumerable.GetEnumerator
+            Return _dictionary.GetEnumerator
+        End Function
+    End Class
+   
+
+    ''' <summary>
     ''' class for a Property Store with weighted properties for multiple property sets
     ''' </summary>
     ''' <remarks></remarks>
@@ -323,7 +664,7 @@ Namespace OnTrack
                 Return False
             End If
         End Function
-       
+
     End Class
 
     ''' <summary>
@@ -867,7 +1208,7 @@ Namespace OnTrack
 
                 '** create ObjectStore
                 Dim aStore As New ObjectRepository(Me)
-                aStore.registerCache(_ObjectCache)
+                aStore.RegisterCache(_ObjectCache)
 
                 _DomainObjectsDir.Clear()
                 _DomainObjectsDir.Add(key:=ConstGlobalDomain, value:=aStore)
@@ -1485,7 +1826,7 @@ Namespace OnTrack
             Return True
 
         End Function
-       
+
 
         ''' <summary>
         ''' Initiate/Start a new Session or do nothing if a Session is already initiated
@@ -1610,7 +1951,7 @@ Namespace OnTrack
                                                       OTDBUsername:=OTDBUsername, _
                                                       OTDBPassword:=OTDBPassword, _
                                                       doLogin:=True) Then
-                       
+
                         ''' start up message
                         CoreMessageHandler(message:="Could not connect to OnTrack Database though primary connection", arg1:=_primaryConnection.ID, _
                                                       messagetype:=otCoreMessageType.InternalError, subname:="Session.Startup")
@@ -1620,7 +1961,7 @@ Namespace OnTrack
                         Me.IsStartingUp = False
                         Return False
                     End If
-                   
+
                     '** Initialize through events
                 Else
                     CoreMessageHandler(message:="user could not be verified - abort to start up a session", messagetype:=otCoreMessageType.InternalInfo, arg1:=OTDBUsername, _
@@ -1979,7 +2320,7 @@ Namespace OnTrack
     ''' <remarks></remarks>
 
     Public Class ObjectDefintionEventArgs
-    Inherits EventArgs
+        Inherits EventArgs
 
         Private _objectname As String
 
@@ -2007,7 +2348,7 @@ Namespace OnTrack
     ''' <remarks></remarks>
 
     Public Class SessionEventArgs
-    Inherits EventArgs
+        Inherits EventArgs
 
         Private _Session As Session
         Private _NewDomain As Domain
@@ -2061,7 +2402,7 @@ Namespace OnTrack
     ''' <remarks></remarks>
 
     Public Class DomainEventArgs
-    Inherits EventArgs
+        Inherits EventArgs
 
         Private _Session As Session
         Private _Domain As Domain
@@ -2169,7 +2510,7 @@ Namespace OnTrack
         End Sub
 
     End Class
-   
+
     ''' <summary>
     ''' describes a persistable Session Log Message
     ''' </summary>
@@ -3222,7 +3563,7 @@ Namespace OnTrack
             Dim initialEntry As New ObjectLogMessage
             Dim m As Object
 
-            If Not Me.IsCreated And Not Me.isloaded Then
+            If Not Me.IsCreated And Not Me.IsLoaded Then
                 Delete = False
                 Exit Function
             End If

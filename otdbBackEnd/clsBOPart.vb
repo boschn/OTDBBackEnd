@@ -99,11 +99,6 @@ Namespace OnTrack.Parts
         <ormObjectEntry(referenceObjectEntry:=ObjectLogMessage.ConstObjectID & "." & ObjectLogMessage.ConstFNTag, isnullable:=True)> _
         Public Const ConstFNmsglogtag = ObjectLogMessage.ConstFNTag
 
-        <ormObjectEntry(typeid:=otFieldDataType.Text, isnullable:=True, _
-            title:="ConfigTag", description:="config tag for the part")> Public Const constFNConfigTag = "cnftag"
-
-        <ormObjectEntry(typeid:=otFieldDataType.Text, isnullable:=True, _
-            title:="ActivityTag", description:="activity tag for the part")> Public Const constFNActiveTag = "acttag"
 
         ' change FK Action since we have the workspace as FK (leads also to domians)
         <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, _
@@ -133,25 +128,16 @@ Namespace OnTrack.Parts
         <ormEntryMapping(EntryName:=constFNComment)> Private _comment As String
         <ormEntryMapping(EntryName:=ConstFNmsglogtag)> Private _msglogtag As String
         <ormEntryMapping(EntryName:=constFNBlockingItemReference)> Private _blockingitemID As String
-        <ormEntryMapping(EntryName:=constFNCategory)> Private _cat As String
+        <ormEntryMapping(EntryName:=constFNCategory)> Private _categoryID As String
         <ormEntryMapping(EntryName:=constFNMatchCode)> Private _matchcode As String
-        <ormEntryMapping(EntryName:=constFNConfigTag)> Private _configtag As String
-        <ormEntryMapping(EntryName:=constFNActiveTag)> Private _activetag As String
         <ormEntryMapping(EntryName:=ConstFNDomain)> Private _domainid As String
         ' dynamic
         Private s_interfaceCollection As New Collection
 
 
-        ''' <summary>
-        ''' constructor
-        ''' </summary>
-        ''' <remarks></remarks>
-        Public Sub New()
-            Call MyBase.New(ConstTableID)
-        End Sub
 
 
-#Region "properties"
+#Region "Properties"
         ''' <summary>
         ''' gets the unique PARTID
         ''' </summary>
@@ -186,13 +172,10 @@ Namespace OnTrack.Parts
         ''' <remarks></remarks>
         Public Property DeliverableUID() As Long
             Get
-                DeliverableUID = _deliverableUID
+                Return _deliverableUID
             End Get
             Set(value As Long)
-                If _deliverableUID <> value Then
-                    _deliverableUID = value
-                    Me.IsChanged = True
-                End If
+                SetValue(ConstFNDeliverableUID, value)
             End Set
         End Property
         ''' <summary>
@@ -203,13 +186,10 @@ Namespace OnTrack.Parts
         ''' <remarks></remarks>
         Public Property Workpackage() As String
             Get
-                Workpackage = _workpackage
+                Return _workpackage
             End Get
             Set(value As String)
-                If _workpackage <> value Then
-                    _workpackage = value
-                    Me.IsChanged = True
-                End If
+                SetValue(ConstFNWorkpackage, value)
             End Set
         End Property
         ''' <summary>
@@ -220,13 +200,10 @@ Namespace OnTrack.Parts
         ''' <remarks></remarks>
         Public Property Workspace() As String
             Get
-                Workspace = _workspaceID
+                Return _workspaceID
             End Get
             Set(value As String)
-                If _workspaceID <> value Then
-                    _workspaceID = value
-                    Me.IsChanged = True
-                End If
+                SetValue(ConstFNWorkspace, value)
             End Set
         End Property
         ''' <summary>
@@ -237,13 +214,10 @@ Namespace OnTrack.Parts
         ''' <remarks></remarks>
         Public Property Description() As String
             Get
-                Description = _description
+                Return _description
             End Get
             Set(value As String)
-                If value <> _description Then
-                    _description = value
-                    Me.IsChanged = True
-                End If
+                SetValue(ConstFNDescription, value)
             End Set
         End Property
         ''' <summary>
@@ -252,15 +226,12 @@ Namespace OnTrack.Parts
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property Category() As String
+        Public Property CategoryID() As String
             Get
-                Category = _cat
+                Return _categoryID
             End Get
             Set(value As String)
-                If value <> _cat Then
-                    _cat = value
-                    Me.IsChanged = True
-                End If
+                SetValue(constFNCategory, value)
             End Set
         End Property
         ''' <summary>
@@ -272,7 +243,7 @@ Namespace OnTrack.Parts
                 Return Me._Function
             End Get
             Set(value As String)
-                Me._Function = value
+                SetValue(constFNFunction, value)
             End Set
         End Property
 
@@ -302,13 +273,10 @@ Namespace OnTrack.Parts
         ''' <remarks></remarks>
         Public Property ResponsibleOU() As String
             Get
-                ResponsibleOU = _respOU
+                Return _respOU
             End Get
             Set(value As String)
-                If value <> _respOU Then
-                    _respOU = value
-                    Me.IsChanged = True
-                End If
+                SetValue(constFNRespOU, value)
             End Set
         End Property
         ''' <summary>
@@ -319,13 +287,10 @@ Namespace OnTrack.Parts
         ''' <remarks></remarks>
         Public Property BlockingItemID() As String
             Get
-                BlockingItemID = _blockingitemID
+                Return _blockingitemID
             End Get
             Set(value As String)
-                If _blockingitemID <> value Then
-                    _blockingitemID = value
-                    Me.IsChanged = True
-                End If
+                SetValue(constFNBlockingItemReference, value)
             End Set
         End Property
         ''' <summary>
@@ -335,15 +300,12 @@ Namespace OnTrack.Parts
         ''' <returns></returns>
         ''' <remarks></remarks>
 
-        Public Property Parttype() As String
+        Public Property TypeID() As String
             Get
-                Parttype = _typeid
+                Return _typeid
             End Get
             Set(value As String)
-                If _typeid <> value Then
-                    _typeid = value
-                    Me.IsChanged = True
-                End If
+                SetValue(constFNTypeID, value)
             End Set
         End Property
         ''' <summary>
@@ -355,13 +317,10 @@ Namespace OnTrack.Parts
 
         Public Property Matchcode() As String
             Get
-                Matchcode = _matchcode
+                Return _matchcode
             End Get
             Set(value As String)
-                If _matchcode <> value Then
-                    _matchcode = value
-                    Me.IsChanged = True
-                End If
+                SetValue(constFNMatchCode, value)
             End Set
         End Property
         ''' <summary>
@@ -372,13 +331,10 @@ Namespace OnTrack.Parts
         ''' <remarks></remarks>
         Public Property ChangeReferenceID() As String
             Get
-                ChangeReferenceID = _changerefID
+                Return _changerefID
             End Get
             Set(value As String)
-                If _changerefID <> value Then
-                    _changerefID = value
-                    Me.IsChanged = True
-                End If
+                SetValue(constFNChangeRef, value)
             End Set
         End Property
         ''' <summary>
@@ -389,11 +345,10 @@ Namespace OnTrack.Parts
         ''' <remarks></remarks>
         Public Property Comment() As String
             Get
-                Comment = _comment
+                Return _comment
             End Get
             Set(value As String)
-                _comment = value
-                Me.IsChanged = True
+                SetValue(constFNComment, value)
             End Set
         End Property
 
@@ -411,14 +366,6 @@ Namespace OnTrack.Parts
 
         End Property
 
-        ReadOnly Property Configtag()
-            Get
-                If _configtag = "" Then
-                    _configtag = getUniqueTag()
-                End If
-                Configtag = _configtag
-            End Get
-        End Property
 #End Region
 
         ''' <summary>
@@ -512,314 +459,26 @@ error_handler:
         ''' <param name="pnid"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function Inject(pnid As String) As Boolean
+        Public Overloads Shared Function Retrieve(pnid As String) As Part
             Dim primarykey() As Object = {pnid}
-            Return MyBase.Inject(primarykey)
+            Return ormDataObject.Retrieve(Of Part)(primarykey)
         End Function
-
-        ''' <summary>
-        ''' create persistency Schema
-        ''' </summary>
-        ''' <param name="silent"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Shared Function CreateSchema(Optional silent As Boolean = True) As Boolean
-            Return ormDataObject.CreateDataObjectSchema(Of Part)(silent:=silent)
-            '            Dim aFieldDesc As New ormFieldDescription
-            '            Dim PrimaryColumnNames As New Collection
-            '            Dim aTable As New ObjectDefinition
-
-
-            '            aFieldDesc.ID = ""
-            '            aFieldDesc.Parameter = ""
-            '            aFieldDesc.Relation = New String() {}
-            '            aFieldDesc.Aliases = New String() {}
-            '            aFieldDesc.Tablename = constTableID
-
-            '            With aTable
-            '                .Create(constTableID)
-            '                .Delete()
-
-            '                '***
-            '                '*** Fields
-            '                '****
-
-            '                'Type
-            '                aFieldDesc.Datatype = otFieldDataType.Text
-            '                aFieldDesc.Title = "partid"
-            '                aFieldDesc.ColumnName = constFNPartID
-            '                aFieldDesc.Aliases = New String() {"c10"}
-            '                aFieldDesc.ID = "pt1"
-            '                aFieldDesc.Size = 50
-            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-            '                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
-
-            '                aFieldDesc.Datatype = otFieldDataType.Text
-            '                aFieldDesc.Title = "category"
-            '                aFieldDesc.ColumnName = "cat"
-            '                aFieldDesc.ID = "pt2"
-            '                aFieldDesc.Aliases = New String() {}
-            '                aFieldDesc.Size = 50
-            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '                aFieldDesc.Datatype = otFieldDataType.Text
-            '                aFieldDesc.Title = "site"
-            '                aFieldDesc.ColumnName = constFNSite
-            '                aFieldDesc.Aliases = New String() {"c7"}
-            '                aFieldDesc.ID = "pt3"
-            '                aFieldDesc.Size = 50
-            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '                aFieldDesc.Datatype = otFieldDataType.Text
-            '                aFieldDesc.Title = "department"
-            '                aFieldDesc.ColumnName = constFNdept
-            '                aFieldDesc.ID = "pt4"
-            '                aFieldDesc.Aliases = New String() {"c8"}
-            '                aFieldDesc.Size = 50
-            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '                aFieldDesc.Datatype = otFieldDataType.Text
-            '                aFieldDesc.Title = "workpackage delegated site"
-            '                aFieldDesc.ColumnName = constFNWkPk
-            '                aFieldDesc.ID = "pt5"
-            '                aFieldDesc.Aliases = New String() {"c9"}
-            '                aFieldDesc.Size = 50
-            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '                aFieldDesc.Datatype = otFieldDataType.Text
-            '                aFieldDesc.Title = "type of part"
-            '                aFieldDesc.ColumnName = "typeid"
-            '                aFieldDesc.ID = "pt6"
-            '                aFieldDesc.Aliases = New String() {"c11"}
-            '                aFieldDesc.Size = 50
-            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '                aFieldDesc.Datatype = otFieldDataType.Text
-            '                aFieldDesc.Title = "design assurance area"
-            '                aFieldDesc.ColumnName = "daar"
-            '                aFieldDesc.ID = "pt7"
-            '                aFieldDesc.Aliases = New String() {"c13"}
-            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '                aFieldDesc.Datatype = otFieldDataType.Text
-            '                aFieldDesc.Title = "change reference tag"
-            '                aFieldDesc.ColumnName = "chref"
-            '                aFieldDesc.ID = "pt8"
-            '                aFieldDesc.Aliases = New String() {}
-            '                aFieldDesc.Size = 50
-            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '                aFieldDesc.Datatype = otFieldDataType.Text
-            '                aFieldDesc.Title = "responsible"
-            '                aFieldDesc.ColumnName = "resp"
-            '                aFieldDesc.ID = "pt9"
-            '                aFieldDesc.Aliases = New String() {"c14"}
-            '                aFieldDesc.Size = 100
-            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '                aFieldDesc.Datatype = otFieldDataType.Text
-            '                aFieldDesc.Title = "description"
-            '                aFieldDesc.ColumnName = "desc"
-            '                aFieldDesc.ID = "pt10"
-            '                aFieldDesc.Aliases = New String() {"c6"}
-            '                aFieldDesc.Size = 0
-            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '                aFieldDesc.Datatype = otFieldDataType.Text
-            '                aFieldDesc.Title = "responsible OU name"
-            '                aFieldDesc.ColumnName = "respou"
-            '                aFieldDesc.ID = "pt11"
-            '                aFieldDesc.Aliases = New String() {}
-            '                aFieldDesc.Size = 50
-            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '                aFieldDesc.Datatype = otFieldDataType.[Date]
-            '                aFieldDesc.Title = "last change date"
-            '                aFieldDesc.ColumnName = "chg"
-            '                aFieldDesc.ID = "pt12"
-            '                aFieldDesc.Aliases = New String() {}
-            '                aFieldDesc.Size = 0
-            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '                aFieldDesc.Datatype = otFieldDataType.Text
-            '                aFieldDesc.Title = "blocking item"
-            '                aFieldDesc.ColumnName = "blitemid"
-            '                aFieldDesc.ID = "pt17"
-            '                aFieldDesc.Aliases = New String() {"bs5"}
-            '                aFieldDesc.Size = 50
-            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '                ' dlvUID
-            '                aFieldDesc.Datatype = otFieldDataType.[Long]
-            '                aFieldDesc.Title = "deliverable UID"
-            '                aFieldDesc.ColumnName = "dlvuid"
-            '                aFieldDesc.ID = "pt20"
-            '                aFieldDesc.Aliases = New String() {"uid"}
-            '                aFieldDesc.Size = 0
-            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '                ' cmt
-            '                aFieldDesc.Datatype = otFieldDataType.Memo
-            '                aFieldDesc.Title = "comments"
-            '                aFieldDesc.ColumnName = "cmt"
-            '                aFieldDesc.ID = "pt18"
-            '                aFieldDesc.Size = 0
-            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '                '**** configtag
-            '                aFieldDesc.Datatype = otFieldDataType.Text
-            '                aFieldDesc.Title = "tag of config"
-            '                aFieldDesc.ID = "pt19"
-            '                aFieldDesc.Aliases = New String() {"cnfl4"}
-            '                aFieldDesc.Size = 100
-            '                aFieldDesc.ColumnName = "cnftag"
-            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '                ' msglogtag
-            '                aFieldDesc.Datatype = otFieldDataType.Text
-            '                aFieldDesc.Title = "message log tag"
-            '                aFieldDesc.ColumnName = "msglogtag"
-            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '                ' parameter_txt 1
-            '                aFieldDesc.Datatype = otFieldDataType.Text
-            '                aFieldDesc.Title = "parameter_txt 1 of condition"
-            '                aFieldDesc.ColumnName = "param_txt1"
-            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '                ' parameter_txt 2
-            '                aFieldDesc.Datatype = otFieldDataType.Text
-            '                aFieldDesc.Title = "parameter_txt 2 of condition"
-            '                aFieldDesc.ColumnName = "param_txt2"
-            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '                ' parameter_txt 2
-            '                aFieldDesc.Datatype = otFieldDataType.Text
-            '                aFieldDesc.Title = "parameter_txt 3 of condition"
-            '                aFieldDesc.ColumnName = "param_txt3"
-            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '                ' parameter_num 1
-            '                aFieldDesc.Datatype = otFieldDataType.Numeric
-            '                aFieldDesc.Title = "parameter numeric 1 of condition"
-            '                aFieldDesc.ColumnName = "param_num1"
-            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '                ' parameter_num 2
-            '                aFieldDesc.Datatype = otFieldDataType.Numeric
-            '                aFieldDesc.Title = "parameter numeric 2 of condition"
-            '                aFieldDesc.ColumnName = "param_num2"
-            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-            '                ' parameter_num 2
-            '                aFieldDesc.Datatype = otFieldDataType.Numeric
-            '                aFieldDesc.Title = "parameter numeric 3 of condition"
-            '                aFieldDesc.ColumnName = "param_num3"
-            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '                ' parameter_date 1
-            '                aFieldDesc.Datatype = otFieldDataType.[Date]
-            '                aFieldDesc.Title = "parameter date 1 of condition"
-            '                aFieldDesc.ColumnName = "param_date1"
-            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '                ' parameter_date 2
-            '                aFieldDesc.Datatype = otFieldDataType.[Date]
-            '                aFieldDesc.Title = "parameter date 2 of condition"
-            '                aFieldDesc.ColumnName = "param_date2"
-            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-            '                ' parameter_date 3
-            '                aFieldDesc.Datatype = otFieldDataType.[Date]
-            '                aFieldDesc.Title = "parameter date 3 of condition"
-            '                aFieldDesc.ColumnName = "param_date3"
-            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-            '                ' parameter_flag 1
-            '                aFieldDesc.Datatype = otFieldDataType.Bool
-            '                aFieldDesc.Title = "parameter flag 1 of condition"
-            '                aFieldDesc.ColumnName = "param_flag1"
-            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '                ' parameter_flag 2
-            '                aFieldDesc.Datatype = otFieldDataType.Bool
-            '                aFieldDesc.Title = "parameter flag 2 of condition"
-            '                aFieldDesc.ColumnName = "param_flag2"
-            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-            '                ' parameter_flag 3
-            '                aFieldDesc.Datatype = otFieldDataType.Bool
-            '                aFieldDesc.Title = "parameter flag 3 of condition"
-            '                aFieldDesc.ColumnName = "param_flag3"
-            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-            '                '***
-            '                '*** TIMESTAMP
-            '                '****
-            '                aFieldDesc.Datatype = otFieldDataType.Timestamp
-            '                aFieldDesc.Title = "last Update"
-            '                aFieldDesc.ColumnName = ConstFNUpdatedOn
-            '                aFieldDesc.Aliases = New String() {}
-            '                aFieldDesc.Relation = New String() {}
-            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '                aFieldDesc.Datatype = otFieldDataType.Timestamp
-            '                aFieldDesc.Title = "creation Date"
-            '                aFieldDesc.ColumnName = ConstFNCreatedOn
-            '                aFieldDesc.Aliases = New String() {}
-            '                aFieldDesc.Relation = New String() {}
-            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '                aFieldDesc.Datatype = otFieldDataType.Timestamp
-            '                aFieldDesc.Title = "deletion Date"
-            '                aFieldDesc.ColumnName = ConstFNDeletedOn
-            '                aFieldDesc.Aliases = New String() {}
-            '                aFieldDesc.Relation = New String() {}
-            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '                ' parameter_flag 1
-            '                aFieldDesc.Datatype = otFieldDataType.Bool
-            '                aFieldDesc.Title = "Deleted"
-            '                aFieldDesc.Description = "flag if field is deleted"
-            '                aFieldDesc.ColumnName = ConstFNIsDeleted
-            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '                ' Index
-            '                Call .AddIndex("PrimaryKey", PrimaryColumnNames, isprimarykey:=True)
-            '                ' persist
-            '                .Persist()
-            '                ' change the database
-            '                .AlterSchema()
-            '            End With
-
-            '            CreateSchema = True
-            '            Exit Function
-
-            '            '* reload the tablestore
-            '            If CurrentSession.IsRunning Then
-            '                CurrentSession.CurrentDBDriver.GetTableStore(tableID:=constTableID, force:=True)
-            '            End If
-            '            ' Handle the error
-            'error_handle:
-            '            Call CoreMessageHandler(subname:="clsOTDBdlviverable.createSchema")
-            '            CreateSchema = False
-        End Function
-
         ''' <summary>
         ''' Create an Object in the datastore
         ''' </summary>
         ''' <param name="partid"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function Create(ByVal partid As String, Optional domainid As String = "", Optional workspaceID As String = "") As Boolean
-            Dim primarykey() As Object = {partid}
+        Public Overloads Shared Function Create(ByVal partid As String, Optional domainid As String = "", Optional workspaceID As String = "") As Part
             If domainid = "" Then domainid = CurrentSession.CurrentDomainID
             If workspaceID = "" Then workspaceID = CurrentSession.CurrentWorkspaceID
-
-            If MyBase.Create(primarykey, checkUnique:=True) Then
-                ' set the primaryKey
-                _partID = partid
-                _domainID = domainid
-                _workspaceID = workspaceID
-                Return Me.IsCreated
-            Else
-                Return False
-            End If
+            Dim aRecord As New ormRecord
+            With aRecord
+                .SetValue(ConstFNDomain, domainid)
+                .SetValue(ConstFNWorkspace, workspaceID)
+                .SetValue(ConstFNPartID, partid)
+            End With
+            Return ormDataObject.CreateDataObject(Of Part)(aRecord, domainID:=domainid, checkUnique:=True)
 
         End Function
 
@@ -922,7 +581,7 @@ error_handler:
                     getInterfacingParts = Nothing
                     Exit Function
                 End If
-                aCartypes = Me.GetCartypes
+                aCartypes = Me.LEGACY_GetCartypes
                 ' go through all interfaces and get the parts
                 For Each anInterface In aColInterfaces
                     flag = True    ' to cointue
@@ -947,7 +606,7 @@ error_handler:
                         If Not otherPartCollection Is Nothing Then
                             For Each otherPart In otherPartCollection
                                 ' check if otherPart has a hit in cartypes as this part
-                                If Me.MatchWithCartypes(otherPart.GetCartypes) Then
+                                If Me.LEGACY_MatchWithCartypes(otherPart.LEGACY_GetCartypes) Then
                                     If Not aDir.ContainsKey(otherPart.PartID) Then
                                         InterfacingParts.Add(Item:=otherPart)
                                         aDir.Add(otherPart.PartID, value:=otherPart)
@@ -994,7 +653,7 @@ error_handler:
                 End If
 
                 ' our cartypes
-                aCartypes = Me.GetCartypes
+                aCartypes = Me.LEGACY_GetCartypes
 
                 ' go through all interfaces and get the parts
                 For Each anInterface In aColInterfaces
@@ -1039,7 +698,7 @@ error_handler:
                             ' add the Interfacing Parts for each Interface
                             For Each otherPart In otherPartCollection
                                 ' check if otherPart has a hit in cartypes as this part
-                                If Me.MatchWithCartypes(otherPart.GetCartypes) Then
+                                If Me.LEGACY_MatchWithCartypes(otherPart.LEGACY_GetCartypes) Then
                                     aDependM = ifcdepends.AddPartID(typeid:=ConstDepTypeIDIFC, partid:=otherPart.PartID)
                                     If Not aDependM Is Nothing Then
                                         If anInterface.status <> "r2" Then
@@ -1083,8 +742,8 @@ error_handler:
             End If
 
             If Me.IsLoaded Then
-                selectCartypes = Me.GetCartypes
-                If Me.GetCartypes.nousedCars = 0 Then
+                selectCartypes = Me.LEGACY_GetCartypes
+                If Me.LEGACY_GetCartypes.nousedCars = 0 Then
                     Call CoreMessageHandler(subname:="Part.getInterfaces", message:="cartypes are not selected for any car", break:=False)
                 End If
                 ' get the assycode in the form xx.xx.xx
@@ -1112,88 +771,87 @@ error_handler:
 
         '************** matchWithCartypes: check if me.cartypes have at least one in common with anOthercartypes
         '**************
-        Public Function MatchWithCartypes(anOthercartypes As clsLEGACYCartypes) As Boolean
+        Public Function LEGACY_MatchWithCartypes(anOthercartypes As clsLEGACYCartypes) As Boolean
 
+            ''' LEGACY
+            ''' 
+            Throw New NotImplementedException
 
-            Dim i As Integer
-            Dim ourCartypes As clsLEGACYCartypes
+            'Dim i As Integer
+            'Dim ourCartypes As clsLEGACYCartypes
 
-            If Not Me.IsLoaded And Not Me.IsCreated Then
-                MatchWithCartypes = False
-            End If
+            'If Not Me.IsLoaded And Not Me.IsCreated Then
+            '    MatchWithCartypes = False
+            'End If
 
-            ourCartypes = Me.GetCartypes
-            For i = 1 To ourCartypes.getNoCars
-                If ourCartypes.getCar(i) = anOthercartypes.getCar(i) And ourCartypes.getCar(i) = True Then
-                    MatchWithCartypes = True
-                    Exit Function
-                End If
-            Next i
+            'ourCartypes = Me.GetCartypes
+            'For i = 1 To ourCartypes.getNoCars
+            '    If ourCartypes.getCar(i) = anOthercartypes.getCar(i) And ourCartypes.getCar(i) = True Then
+            '        MatchWithCartypes = True
+            '        Exit Function
+            '    End If
+            'Next i
 
-            'return false
-            MatchWithCartypes = False
+            ''return false
+            'MatchWithCartypes = False
 
         End Function
 
         '****** getCartypes of the part -> Document
         '******
-        Public Function GetCartypes() As clsLEGACYCartypes
-            Dim aTable As iormDataStore
-            Dim aRecord As ormRecord
-            Dim pkarry() As Object
-            Dim aCartypes As New clsLEGACYCartypes
-            Dim i As Integer
-            Dim amount As Integer
-            Dim fieldname As String
+        Public Function LEGACY_GetCartypes() As clsLEGACYCartypes
+
+            ''' should be done via a configuration
+            ''' getProperties
+            Throw New NotImplementedException
+
+            'Dim aTable As iormDataStore
+            'Dim aRecord As ormRecord
+            'Dim pkarry() As Object
+            'Dim aCartypes As New clsLEGACYCartypes
+            'Dim i As Integer
+            'Dim amount As Integer
+            'Dim fieldname As String
 
 
-            If Not Me.IsLoaded Then
-                GetCartypes = Nothing
-                Exit Function
-            End If
+            'If Not Me.IsLoaded Then
+            '    LEGACY_GetCartypes = Nothing
+            '    Exit Function
+            'End If
 
-            ' set the primaryKey
-            ReDim pkarry(0)
-            If Me.DeliverableUID <> 0 Then
-                pkarry(0) = Me.DeliverableUID
-            Else
-                Dim aCollection As List(Of Deliverable) = Deliverable.AllByPnid(partid:=Me.PartID)
-                If aCollection.Count = 0 Then Debug.Assert(False)
-                Dim aDeliverable As Deliverable = aCollection.Item(1)
-                pkarry(0) = aDeliverable.Uid
-            End If
+            '' set the primaryKey
+            'ReDim pkarry(0)
+            'If Me.DeliverableUID <> 0 Then
+            '    pkarry(0) = Me.DeliverableUID
+            'Else
+            '    Dim aCollection As List(Of Deliverable) = Deliverable.AllByPnid(partid:=Me.PartID)
+            '    If aCollection.Count = 0 Then Debug.Assert(False)
+            '    Dim aDeliverable As Deliverable = aCollection.Item(1)
+            '    pkarry(0) = aDeliverable.Uid
+            'End If
 
 
-            ''' HACK !
-            aTable = GetTableStore("tblcartypes")
-            aRecord = aTable.GetRecordByPrimaryKey(pkarry)
+            '''' HACK !
+            'aTable = GetTableStore("tblcartypes")
+            'aRecord = aTable.GetRecordByPrimaryKey(pkarry)
 
-            If aRecord Is Nothing Then
-                GetCartypes = Nothing
-                Exit Function
-            Else
-                For i = 1 To aCartypes.getNoCars
-                    fieldname = "ct" & Format(i, "0#")
-                    amount = CInt(aRecord.GetValue(fieldname))
-                    If amount > 0 Then Call aCartypes.addCartypeAmountByIndex(i, amount)
-                Next i
-                GetCartypes = aCartypes
-                Exit Function
-            End If
+            'If aRecord Is Nothing Then
+            '    LEGACY_GetCartypes = Nothing
+            '    Exit Function
+            'Else
+            '    For i = 1 To aCartypes.getNoCars
+            '        fieldname = "ct" & Format(i, "0#")
+            '        amount = CInt(aRecord.GetValue(fieldname))
+            '        If amount > 0 Then Call aCartypes.addCartypeAmountByIndex(i, amount)
+            '    Next i
+            '    LEGACY_GetCartypes = aCartypes
+            '    Exit Function
+            'End If
 
 
         End Function
 
-        '********* getPrecode helper to create a Precode out of a PartID in the FORM 3HXX-YYYYYY-000 to 3.HXX
-        '*********
-        Public Function GetPrecode() As String
-
-            If Me.IsLoaded Or Me.IsCreated Then
-                GetPrecode = Mid(Me.PartID, 1, 1) & "." & UCase(Mid(Me.PartID, 2, 3)) & "-"
-            Else
-                GetPrecode = ""
-            End If
-        End Function
+        
 
 
     End Class

@@ -1165,6 +1165,8 @@ Namespace OnTrack.Database
 
         ReadOnly Property ChangeTimeStamp As Date
 
+        ReadOnly Property TableIDs As String()
+
 
 
         Function GetValue(entryname As String, Optional ByRef fieldmembername As String = "") As Object
@@ -1224,7 +1226,7 @@ Namespace OnTrack.Database
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        ReadOnly Property TableStore As iormDataStore
+        ReadOnly Property PrimaryTableStore As iormDataStore
         ''' <summary>
         ''' TableID associated with this data object
         ''' </summary>
@@ -1635,6 +1637,10 @@ Namespace OnTrack
 
         Property IsActive As Boolean
 
+        Property LookupProperties As List(Of LookupProperty)
+
+        ReadOnly Property HasLookupProperties As Boolean
+
         Function SetByAttribute(attribute As ormObjectEntryAttribute) As Boolean
 
         ''' <summary>
@@ -1759,10 +1765,7 @@ Namespace OnTrack
         IntervalInvalid = -2
 
     End Enum
-    ' Type of links between objects
-    Public Enum otScheduleLinkType
-        Deliverable = 1
-    End Enum
+   
     'LogMessageTypes
 
     Public Enum otAppLogMessageType

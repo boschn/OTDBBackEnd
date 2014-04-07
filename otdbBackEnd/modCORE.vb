@@ -52,7 +52,7 @@ Namespace OnTrack
         Public Const OTDBConst_DependStatus_r2 As String = "r2"
         Public Const OTDBConst_DependStatus_r3 As String = "r3"    ' r3 no valid schedules
         ' public const
-        Public Const ConstNullDate As Date = #1/1/1900#
+        Public Const constNullDate As Date = #1/1/1900#
         Public Const ConstNullTime As Date = #12:00:00 AM#
         Public Const ConstNullTimestampString = "1900-01-01T00:00:00"
         '** common fieldnames
@@ -159,6 +159,7 @@ Namespace OnTrack
         Public Const ConstModuleMeta = "Repository"
         Public Const ConstModuleCalendar = "Calendar"
         Public Const ConstModuleConfiguration = "Configuration"
+        Public Const ConstModuleProperties = "Properties"
         Public Const ConstModuleScheduling = "Scheduling"
         Public Const ConstModuleParts = "Parts"
         Public Const ConstModuleDeliverables = "Deliverables"
@@ -866,7 +867,7 @@ Namespace OnTrack
         ''' <remarks></remarks>
         Public Function GetObjectClassByTable(tableid As String) As List(Of System.Type)
             If IsInitialized OrElse Initialize() Then
-                Return _ObjectClassStore.GetObjectClasses(tablename:=tableid)
+                Return _ObjectClassStore.GetObjectClassesForTable(tablename:=tableid)
             End If
         End Function
         ''' <summary>

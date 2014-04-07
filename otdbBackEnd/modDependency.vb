@@ -261,28 +261,28 @@ Namespace OnTrack.Scheduling
 
         '***** testme
         '*****
-        Public Sub testme()
-            Dim aDependency As New clsOTDBDependency
-            Dim aPart As New Part
-            Dim clusterid As String
+        'Public Sub testme()
+        '    Dim aDependency As New clsOTDBDependency
+        '    Dim aPart As New Part
+        '    Dim clusterid As String
 
-            Call aPart.Inject("3H03-391025-000")
+        '    Call aPart.Inject("3H03-391025-000")
 
-            aDependency = New clsOTDBDependency
-            If Not aDependency.loadbyDependant(aPart.PartID) Then
-                aDependency.create(aPart.PartID)
-                'Else
-                '    aDependency.delete
-            End If
-            clusterid = aDependency.clusterid(ConstDepTypeIDIFC)
-            'If clusterid = "" Then
-            clusterid = createClusterID(ConstDepTypeIDIFC)
-            Call aDependency.generateCluster(ConstDepTypeIDIFC, aClusterID:=clusterid, aLevel:=1)
-            'End If
-            If aPart.CreateDependencyFromInterfaces(aDependency) Then
-                aDependency.Persist()
-            End If
-        End Sub
+        '    aDependency = New clsOTDBDependency
+        '    If Not aDependency.loadbyDependant(aPart.PartID) Then
+        '        aDependency.create(aPart.PartID)
+        '        'Else
+        '        '    aDependency.delete
+        '    End If
+        '    clusterid = aDependency.clusterid(ConstDepTypeIDIFC)
+        '    'If clusterid = "" Then
+        '    clusterid = createClusterID(ConstDepTypeIDIFC)
+        '    Call aDependency.generateCluster(ConstDepTypeIDIFC, aClusterID:=clusterid, aLevel:=1)
+        '    'End If
+        '    If aPart.CreateDependencyFromInterfaces(aDependency) Then
+        '        aDependency.Persist()
+        '    End If
+        'End Sub
 
 
 
@@ -620,7 +620,7 @@ Namespace OnTrack.Scheduling
                                              ByRef dependency As clsOTDBDependency, _
                                              Optional workspaceID As String = "") As Boolean
 
-            Dim aPart As New Part
+            Dim aPart As Part = Part.Retrieve(partID)
 
             Dim aSenderColl As New Collection
             Dim aReceiverColl As New Collection
@@ -630,7 +630,7 @@ Namespace OnTrack.Scheduling
             Dim flag As Boolean
 
             ' load the part
-            If Not aPart.Inject(partID) Then
+            If aPart Is Nothing Then
                 CheckDependenciesFor = False
                 Exit Function
             End If

@@ -113,30 +113,30 @@ Public Module modHostData
         Dim aDependCheck As New clsOTDBDependCheck
 
         ' if not registered
-        If Not isRegisteredAtHostApplication(aRecord.TableID) Then
-            overloadFromHostApplication = False
-            Exit Function
-        End If
+        'If Not isRegisteredAtHostApplication(aRecord.TableIDs) Then
+        '           overloadFromHostApplication = False
+        'Exit Function
+        'End If
 
-        Select Case LCase(aRecord.TableID)
+'        Select Case LCase(aRecord.TableIDs)
 
-            Case LCase(aSchedule.primaryTableID)
-#If ExcelVersion <> "" Then
-                ' write it to
-                'Debug.Print "excel"
-#End If
-#If projectVersion Then
-        If Not overloadScheduleFromMSP(aRecord) Then
-        End If
-#End If
-            Case LCase(aDependCheck.primaryTableID)
+'            Case LCase(aSchedule.PrimaryTableID)
+'#If ExcelVersion <> "" Then
+'                ' write it to
+'                'Debug.Print "excel"
+'#End If
+'#If projectVersion Then
+'        If Not overloadScheduleFromMSP(aRecord) Then
+'        End If
+'#End If
+'            Case LCase(aDependCheck.PrimaryTableID)
 
-#If projectVersion Then
-        If Not overloadScheduleFromMSP(aRecord) Then
-        End If
-#End If
-                ' load it from
-        End Select
+'#If projectVersion Then
+'        If Not overloadScheduleFromMSP(aRecord) Then
+'        End If
+'#End If
+'                ' load it from
+'        End Select
 
         overloadFromHostApplication = True
     End Function
@@ -149,30 +149,30 @@ Public Module modHostData
         Dim aDependCheck As New clsOTDBDependCheck
 
         ' if not registered
-        If Not isRegisteredAtHostApplication(aRecord.TableID) Then
-            overwriteToHostApplication = False
-            Exit Function
-        End If
+'        If Not isRegisteredAtHostApplication(aRecord.TableIDs) Then
+'            overwriteToHostApplication = False
+'            Exit Function
+'        End If
 
 
-        Select Case LCase(aRecord.TableID)
-            Case LCase(aSchedule.primaryTableID)
-#If ExcelVersion <> "" Then
-                ' write it to
-                'Debug.Print "excel"
-#End If
-#If ProjectVersion Then
+'        Select Case LCase(aRecord.TableIDs)
+'            Case LCase(aSchedule.primaryTableID)
+'#If ExcelVersion <> "" Then
+'                ' write it to
+'                'Debug.Print "excel"
+'#End If
+'#If ProjectVersion Then
 
-        If Not overwriteScheduleToMSP(aRecord) Then
-        End If
-#End If
-            Case LCase(aDependCheck.primaryTableID)
+'        If Not overwriteScheduleToMSP(aRecord) Then
+'        End If
+'#End If
+'            Case LCase(aDependCheck.primaryTableID)
 
-#If projectVersion Then
-        If Not overwriteDependCheckToMSP(aRecord) Then
-        End If
-#End If
-        End Select
+'#If projectVersion Then
+'        If Not overwriteDependCheckToMSP(aRecord) Then
+'        End If
+'#End If
+'        End Select
 
         overwriteToHostApplication = True
     End Function

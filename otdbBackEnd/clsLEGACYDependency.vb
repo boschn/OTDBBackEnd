@@ -3128,7 +3128,8 @@ errorhandle:
                 'Exit Function
             End If
             ' get a the other Schedule to compare
-            If aDependPart.Inject(DEPENDMEMBER.dependfromPartID) And Not aDependPart.IsDeleted Then
+            aDependPart = Parts.Part.Retrieve(DEPENDMEMBER.dependfromPartID)
+            If aDependPart IsNot Nothing AndAlso Not aDependPart.IsDeleted Then
                 aDependDelivColl = aDependPart.GetDeliverables
 
                 '** go through each delivarble of the other member (multiple deliverables per part)
@@ -3161,8 +3162,8 @@ errorhandle:
                             Me.msgno = "0010"
                             Me.comment = Me.msgno & ": ifc uid# " & anInterface.UID & " results in part with no valid milestones (" & ourTimeI.startcmt & "," & ourTimeI.endcmt & _
                                          ") for development could be found in depend " & _
-                                         Me.PARTID & " with schedule " & _
-                                         Me.scheduleUPDC & " -> correct first"
+                                         Me.PartID & " with schedule " & _
+                                         Me.ScheduleUPDC & " -> correct first"
                             '
                             runIFC1 = True
                             Exit Function
@@ -3179,8 +3180,8 @@ errorhandle:
                                 Me.status = OTDBConst_DependStatus_r2
                                 Me.msgno = "0011"
                                 Me.comment = Me.msgno & ": ifc uid# " & anInterface.UID & " results in part milestones (" & ourTimeI.startcmt & "," & ourTimeI.endcmt & ") for development of depend " & _
-                                             Me.PARTID & " with schedule " & _
-                                             Me.scheduleUPDC & "are in the past -> correct first"
+                                             Me.PartID & " with schedule " & _
+                                             Me.ScheduleUPDC & "are in the past -> correct first"
                                 runIFC1 = True
                                 Exit Function
                             Else
@@ -3214,8 +3215,8 @@ errorhandle:
                                 Me.status = OTDBConst_DependStatus_r1
                                 Me.msgno = "0013"
                                 Me.comment = Me.msgno & ": (ifc uid#" & anInterface.UID & ") overlapping time between " & aDependPart.PartID & _
-                                             " with deliverable " & aDependDeliv.Uid & " and " & Me.PARTID & " with schedule " & _
-                                             Me.scheduleUPDC & " has less overlapping of " & overlapp & " which is less then 7 days -> not sync"
+                                             " with deliverable " & aDependDeliv.Uid & " and " & Me.PartID & " with schedule " & _
+                                             Me.ScheduleUPDC & " has less overlapping of " & overlapp & " which is less then 7 days -> not sync"
                                 runIFC1 = True
                                 Exit Function
                             Else
@@ -3261,16 +3262,17 @@ errorhandle:
             End If
 
             ' get a Schedule
-            If aPart.Inject(DEPENDMEMBER.PARTID) And Not aPart.IsDeleted Then
+            aPart = Parts.Part.Retrieve(DEPENDMEMBER.PartID)
+            If aPart IsNot Nothing AndAlso Not aPart.IsDeleted Then
                 aDelivColl = aPart.GetDeliverables
                 If aDelivColl Is Nothing Then
-                    Call CoreMessageHandler(message:="no deliverables for part", arg1:=DEPENDMEMBER.PARTID, break:=False)
+                    Call CoreMessageHandler(message:="no deliverables for part", arg1:=DEPENDMEMBER.PartID, break:=False)
 
                     run = False
                     Exit Function
                 End If
                 If aDelivColl.Count = 0 Then
-                    Call CoreMessageHandler(message:="no deliverables for part", arg1:=DEPENDMEMBER.PARTID, break:=False)
+                    Call CoreMessageHandler(message:="no deliverables for part", arg1:=DEPENDMEMBER.PartID, break:=False)
 
                     run = False
                     Exit Function
@@ -3283,7 +3285,7 @@ errorhandle:
                         ' set it all -> create through the backdoor
                         ' we donot want to save if we are in a host enviorement
                         s_typeid = DEPENDMEMBER.TypeID
-                        s_partID = DEPENDMEMBER.PARTID
+                        s_partID = DEPENDMEMBER.PartID
                         s_posno = DEPENDMEMBER.PosNo
                         s_suid = aSchedule.Uid
                         s_supdc = aSchedule.Updc

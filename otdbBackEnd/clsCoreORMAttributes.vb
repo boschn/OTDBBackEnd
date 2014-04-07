@@ -44,6 +44,20 @@ Namespace OnTrack.Database
         Private _relationName As String '** if a relation definition is used
         Private _keyentries As String() ' name of the entries for keys (if the datastructure has a key such as dictionary)
         Private _InfuseMode As Nullable(Of otInfuseMode)
+        Private _enabled As Boolean = True
+
+        ''' <summary>
+        ''' Gets or sets the enabled.
+        ''' </summary>
+        ''' <value>The enabled.</value>
+        Public Property Enabled() As Boolean
+            Get
+                Return Me._enabled
+            End Get
+            Set
+                Me._enabled = Value
+            End Set
+        End Property
 
         ''' <summary>
         ''' Gets or sets the infuse mode.
@@ -241,6 +255,8 @@ Namespace OnTrack.Database
         Private _PrimaryKeyName As String
         Private _CacheProperties As String()
         Private _useCache As Nullable(Of Boolean)
+        Private _enabled As Boolean = True
+
 
         '** dynamic
         Private _columns As New Dictionary(Of String, ormSchemaTableColumnAttribute)
@@ -249,6 +265,19 @@ Namespace OnTrack.Database
         Public Sub New()
 
         End Sub
+        ''' <summary>
+        ''' Gets or sets the enabled.
+        ''' </summary>
+        ''' <value>The enabled.</value>
+        Public Property Enabled() As Boolean
+            Get
+                Return Me._enabled
+            End Get
+            Set
+                Me._enabled = Value
+            End Set
+        End Property
+
         ''' <summary>
         ''' Gets or sets the cache is active.
         ''' </summary>
@@ -327,9 +356,11 @@ Namespace OnTrack.Database
         ''' <param name="columnname"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetColumn(columnname As String) As ormSchemaTableColumnAttribute
+        Public Function GetColumn(columnname As String, Optional onlyenabled As Boolean = True) As ormSchemaTableColumnAttribute
             If _columns.ContainsKey(columnname.ToUpper) Then
-                Return _columns.Item(columnname.ToUpper)
+                Dim anAttribute As ormSchemaTableColumnAttribute = _columns.Item(key:=columnname.ToUpper)
+                If onlyenabled AndAlso Not anAttribute.Enabled Then Return Nothing
+                Return anAttribute
             Else
                 Return Nothing
             End If
@@ -340,8 +371,12 @@ Namespace OnTrack.Database
         ''' <param name="columnname"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function HasColumn(columnname As String) As Boolean
-            Return _columns.ContainsKey(columnname.ToUpper)
+        Public Function HasColumn(columnname As String, Optional onlyenabled As Boolean = Nothing) As Boolean
+            Dim result As Boolean = _columns.ContainsKey(columnname.ToUpper)
+            If onlyenabled AndAlso result Then
+                result = _columns.Item(columnname.ToUpper).Enabled
+            End If
+            Return result
         End Function
         ''' <summary>
         ''' remove an entry by columnname 
@@ -368,7 +403,7 @@ Namespace OnTrack.Database
         ''' <remarks></remarks>
         Public ReadOnly Property ColumnAttributes As IEnumerable(Of ormSchemaTableColumnAttribute)
             Get
-                Return _columns.Values.ToList
+                Return _columns.Values.Where(Function(x) x.Enabled = True).ToList
             End Get
         End Property
         ''' <summary>
@@ -390,9 +425,11 @@ Namespace OnTrack.Database
         ''' <param name="columnname"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetForeignkey(id As String) As ormSchemaForeignKeyAttribute
+        Public Function GetForeignkey(id As String, Optional enabledonly As Boolean = True) As ormSchemaForeignKeyAttribute
             If _foreignkeys.ContainsKey(id.ToUpper) Then
-                Return _foreignkeys.Item(id.ToUpper)
+                Dim anAttribute As ormSchemaForeignKeyAttribute = _foreignkeys.Item(id.ToUpper)
+                If enabledonly AndAlso Not anAttribute.Enabled Then Return Nothing
+                Return anAttribute
             Else
                 Return Nothing
             End If
@@ -403,8 +440,13 @@ Namespace OnTrack.Database
         ''' <param name="columnname"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function HasForeignkey(id As String) As Boolean
-            Return _foreignkeys.ContainsKey(id.ToUpper)
+        Public Function HasForeignkey(id As String, Optional enabledonly As Boolean = True) As Boolean
+            Dim result As Boolean = _foreignkeys.ContainsKey(id.ToUpper)
+            If enabledonly And result Then
+                Dim anAttribute As ormSchemaForeignKeyAttribute = _foreignkeys.Item(id.ToUpper)
+                If Not anAttribute.Enabled Then Return False
+            End If
+            Return result
         End Function
         ''' <summary>
         ''' remove a foreign key entry
@@ -428,7 +470,7 @@ Namespace OnTrack.Database
         ''' <remarks></remarks>
         Public ReadOnly Property ForeignKeyAttributes As IEnumerable(Of ormSchemaForeignKeyAttribute)
             Get
-                Return _foreignkeys.Values.ToList
+                Return _foreignkeys.Values.Where(Function(x) x.Enabled = True).ToList
             End Get
         End Property
         ''' <summary>
@@ -450,7 +492,7 @@ Namespace OnTrack.Database
         ''' <remarks></remarks>
         Public ReadOnly Property ColumnNames As IEnumerable(Of String)
             Get
-                Return _columns.Keys.ToList
+                Return _columns.Values.Where(Function(x) x.Enabled = True).SelectMany(Function(x) x.ColumnName).ToList
             End Get
         End Property
         ''' <summary>
@@ -627,6 +669,7 @@ Namespace OnTrack.Database
         Private _Name As String
         Private _Version As Nullable(Of UShort)
         Private _TableName As String
+        Private _enabled As Boolean = True
         Private _LinkedwithObject As System.Type
         Private _LinkJoin As String
         Private _FromEntries As String()
@@ -639,6 +682,19 @@ Namespace OnTrack.Database
         Public Sub New()
 
         End Sub
+
+        ''' <summary>
+        ''' Gets or sets the enabled.
+        ''' </summary>
+        ''' <value>The enabled.</value>
+        Public Property Enabled() As Boolean
+            Get
+                Return Me._enabled
+            End Get
+            Set
+                Me._enabled = Value
+            End Set
+        End Property
 
         ''' <summary>
         ''' Gets or sets the cascade on update.
@@ -844,11 +900,25 @@ Namespace OnTrack.Database
 
         Private _indexName As String
         Private _ColumnNames() As String = {}
+        Private _enabled As Boolean = True
         Private _Version As Nullable(Of UShort)
         Private _TableName As String = Nothing
         Private _description As String
         Private _isprimaryKey As Nullable(Of Boolean) = False
         Private _isunique As Nullable(Of Boolean) = False
+        ''' <summary>
+        ''' Gets or sets the enabled.
+        ''' </summary>
+        ''' <value>The enabled.</value>
+        Public Property Enabled() As Boolean
+            Get
+                Return Me._enabled
+            End Get
+            Set
+                Me._enabled = Value
+            End Set
+        End Property
+
         ''' <summary>
         ''' Gets or sets the name of the table.
         ''' </summary>
@@ -1071,6 +1141,21 @@ Namespace OnTrack.Database
         Protected _ForeignKeyProperties As ForeignKeyProperty()
         Protected _ColumnName As String = Nothing
         Protected _Description As String = Nothing
+        Protected _enabled As Boolean = True
+
+        ''' <summary>
+        ''' Gets or sets the enabled.
+        ''' </summary>
+        ''' <value>The enabled.</value>
+        Public Property Enabled() As Boolean
+            Get
+                Return Me._enabled
+            End Get
+            Set
+                Me._enabled = Value
+            End Set
+        End Property
+
         ''' <summary>
         ''' Gets or sets the ID.
         ''' </summary>
@@ -1463,6 +1548,7 @@ Namespace OnTrack.Database
         Inherits Attribute
         Private _ID As String
         Private _TableID As String = Nothing
+        Private _enabled As Boolean = True
         Private _ObjectID As String = Nothing
         Private _Version As Nullable(Of UShort)
         Private _UseForeignKey As Nullable(Of otForeignKeyImplementation) = otForeignKeyImplementation.None
@@ -1470,6 +1556,19 @@ Namespace OnTrack.Database
         Private _ForeignKeyProperties As ForeignKeyProperty()
         Private _Entrynames As String() = {}
         Private _Description As String = Nothing
+        ''' <summary>
+        ''' Gets or sets the enabled.
+        ''' </summary>
+        ''' <value>The enabled.</value>
+        Public Property Enabled() As Boolean
+            Get
+                Return Me._enabled
+            End Get
+            Set
+                Me._enabled = Value
+            End Set
+        End Property
+
         ''' <summary>
         ''' Gets or sets the name of the column.
         ''' </summary>
@@ -1672,7 +1771,6 @@ Namespace OnTrack.Database
         Inherits ormSchemaTableColumnAttribute
 
 
-
         Private _Title As String = Nothing
         Private _EntryType As Nullable(Of otObjectEntryDefinitiontype) = otObjectEntryDefinitiontype.Column
 
@@ -1697,6 +1795,7 @@ Namespace OnTrack.Database
         Private _upperRange As Nullable(Of Long) = Nothing
         Private _Values As Object()
         Private _lookupCondition As String = Nothing
+        Private _LookupProperties As LookupProperty()
         Private _ValidationProperties As ObjectValidationProperty()
         Private _validateRegExp As String = Nothing
 
@@ -1704,6 +1803,8 @@ Namespace OnTrack.Database
         Private _RenderProperties As RenderProperty()
         Private _RenderRegExpMatch As String
         Private _RenderRegExpPattern As String
+       
+
         ''' <summary>
         ''' Gets or sets the type of the entry.
         ''' </summary>
@@ -1919,6 +2020,44 @@ Namespace OnTrack.Database
             End Get
         End Property
         ''' <summary>
+        ''' Gets or sets the Lookup properties.
+        ''' </summary>
+        ''' <value>The validation properties.</value>
+        '''  
+        Public Property LookupPropertyStrings() As String()
+            Get
+                Dim aList As New List(Of String)
+                For Each aP In _ValidationProperties
+                    aList.Add(aP.ToString)
+                Next
+                Return aList.ToArray
+            End Get
+            Set(value As String())
+                Try
+                    Dim aList As New List(Of LookupProperty)
+                    For Each aValue In value
+                        aList.Add(New LookupProperty(aValue))
+                    Next
+                    Me._LookupProperties = aList.ToArray
+                Catch ex As Exception
+                    CoreMessageHandler(exception:=ex, subname:="ormObjectEntryAttribute.LookupPropertyStrings")
+                End Try
+            End Set
+        End Property
+        Public Property LookupProperties() As LookupProperty()
+            Get
+                Return Me._LookupProperties
+            End Get
+            Set(value As LookupProperty())
+                Me._LookupProperties = value
+            End Set
+        End Property
+        Public ReadOnly Property HasValueLookupProperties As Boolean
+            Get
+                Return _LookupProperties IsNot Nothing AndAlso _LookupProperties.Count > 0
+            End Get
+        End Property
+        ''' <summary>
         ''' Gets or sets the validation properties.
         ''' </summary>
         ''' <value>The validation properties.</value>
@@ -1951,7 +2090,7 @@ Namespace OnTrack.Database
                 Me._ValidationProperties = value
             End Set
         End Property
-        Public ReadOnly Property HasValueValidationproperties As Boolean
+        Public ReadOnly Property HasValueValidationProperties As Boolean
             Get
                 Return _ValidationProperties IsNot Nothing AndAlso _ValidationProperties.Count > 0
             End Get
@@ -2591,11 +2730,25 @@ Namespace OnTrack.Database
         Inherits Attribute
         Private _ID As String = Nothing
         Private _OperationName As String = Nothing
+        Private _enabled As Boolean = True
         Private _Title As String = Nothing
         Private _Description As String = Nothing
         Private _Version As Nullable(Of UShort) = 1
         Private _PermissionRules As String()
         Private _DefaultAllowPermission As Nullable(Of Boolean) = True
+
+        ''' <summary>
+        ''' Gets or sets the enabled.
+        ''' </summary>
+        ''' <value>The enabled.</value>
+        Public Property Enabled() As Boolean
+            Get
+                Return Me._enabled
+            End Get
+            Set
+                Me._enabled = Value
+            End Set
+        End Property
 
         ''' <summary>
         ''' Gets or sets the description.
@@ -2831,12 +2984,26 @@ Namespace OnTrack.Database
     Public Class ormObjectQueryAttribute
         Inherits Attribute
         Private _ID As String = Nothing
+        Private _enabled As Boolean = True
         Private _where As String = Nothing
         Private _orderBy As String = Nothing
         Private _Description As String = Nothing
         Private _Version As Nullable(Of UShort) = 1
         Private _addAllFields As Nullable(Of Boolean)
         Private _Entrynames As String()
+
+        ''' <summary>
+        ''' Gets or sets the enabled.
+        ''' </summary>
+        ''' <value>The enabled.</value>
+        Public Property Enabled() As Boolean
+            Get
+                Return Me._enabled
+            End Get
+            Set
+                Me._enabled = Value
+            End Set
+        End Property
 
         ''' <summary>
         ''' Gets or sets the where part of a query.

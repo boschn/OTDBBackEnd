@@ -395,7 +395,7 @@ Namespace OnTrack.Database
                         End If
 
                         aList.Add(aValue)
-                    ElseIf aFieldlist Is Nothing Then
+                    ElseIf aFieldlist Is Nothing OrElse aFieldlist.Count = 0 Then
                         CoreMessageHandler(message:="Object Entry not mapped to a FieldMember of the class ", _
                                        arg1:=dataobject.GetType.Name, entryname:=anEntryname, objectname:=dataobject.ObjectID, _
                                        subname:="Reflector.Getvalues", messagetype:=otCoreMessageType.InternalWarning)

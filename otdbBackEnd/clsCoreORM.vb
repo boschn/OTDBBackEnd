@@ -1705,8 +1705,8 @@ Namespace OnTrack
             Inherits Dynamic.DynamicObject
 
             Private _FixEntries As Boolean = False
-            Private _IsTableSet As Boolean = False
-            Private _TableStore As iormDataStore = Nothing
+            Private _isBound As Boolean = False
+            Private _TableStores As iormDataStore() = {}
             Private _DbDriver As iormDatabaseDriver = Nothing
             Private _entrynames() As String = {}
             Private _Values() As Object = {}
@@ -1715,27 +1715,43 @@ Namespace OnTrack
             Private _isUnknown As Boolean = True
             Private _isLoaded As Boolean = False
             Private _isChanged As Boolean = False
-            Private _tableid As String = ""
+            Private _tableids As String() = {}
+            Private _upperRangeofTable As ULong() = {}
+            Private _isnullable As Boolean() = {}
 
             '** initialize
             Public Sub New()
 
             End Sub
+
             Public Sub New(ByVal tableID As String, _
                            Optional dbdriver As iormDatabaseDriver = Nothing, _
                            Optional fillDefaultValues As Boolean = False, _
                            Optional runtimeOnly As Boolean = False)
                 _DbDriver = dbdriver
-                _tableid = tableID
+                ReDim _tableids(0)
+                _tableids(0) = tableID
                 If Not runtimeOnly Then
                     Me.SetTable(tableID, forceReload:=False, dbdriver:=dbdriver, fillDefaultValues:=fillDefaultValues)
                     _FixEntries = True
                 End If
             End Sub
 
-            Public Sub Finalize()
+            Public Sub New(ByVal tableIDs As String(), _
+                           Optional dbdriver As iormDatabaseDriver = Nothing, _
+                           Optional fillDefaultValues As Boolean = False, _
+                           Optional runtimeOnly As Boolean = False)
+                _DbDriver = dbdriver
+                _tableids = tableIDs
+                If Not runtimeOnly Then
+                    Me.SetTables(tableIDs, forceReload:=False, dbdriver:=dbdriver, fillDefaultValues:=fillDefaultValues)
+                    _FixEntries = True
+                End If
+            End Sub
 
-                _TableStore = Nothing
+            Public Sub Finalize()
+                _DbDriver = Nothing
+                _TableStores = Nothing
                 _Values = Nothing
                 _OriginalValues = Nothing
             End Sub
@@ -1784,9 +1800,9 @@ Namespace OnTrack
             ''' Gets the is table set.
             ''' </summary>
             ''' <value>The is table set.</value>
-            Public ReadOnly Property IsTableBound() As Boolean
+            Public ReadOnly Property IsBound() As Boolean
                 Get
-                    Return Me._IsTableSet
+                    Return Me._isBound
                 End Get
             End Property
 
@@ -1865,7 +1881,7 @@ Namespace OnTrack
             Public ReadOnly Property Alive As Boolean
                 Get
                     If _FixEntries Then
-                        Return _IsTableSet
+                        Return _isBound
                     Else
                         Return True
                     End If
@@ -1889,35 +1905,65 @@ Namespace OnTrack
             ''' <value></value>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public Property TableID As String
+            Public Property TableIDs As String()
                 Get
-                    If _TableStore IsNot Nothing Then
-                        _tableid = _TableStore.TableID
-                        Return _TableStore.TableID
-                    Else
-                        Return _tableid
-                    End If
+                    Return TableIDs
                 End Get
-                Private Set(value As String)
-                    _tableid = value
+                Private Set(value As String())
+                    If Not _isBound Then
+                        _tableids = value
+                    Else
+                        CoreMessageHandler(message:="tableids cannot be assigned after binding a record", subname:="ormRecord.tableids")
+                        Throw New ORMException(message:="tableids cannot be assigned after binding a record")
+                    End If
                 End Set
             End Property
+
             ''' <summary>
-            ''' returns the tablestore or nothing
+            ''' returns the tablestore for the tableid if bound
+            ''' </summary>
+            ''' <param name="tableid"></param>
+            ''' <returns></returns>
+            ''' <remarks></remarks>
+            Public Function GetTablestore(tableid As String) As iormDataStore
+                If _isBound Then
+                    Dim i As Integer = Array.IndexOf(_tableids, tableid.ToUpper)
+                    If i >= 0 Then Return _TableStores(i)
+                    Return Nothing
+                Else
+                    Return Nothing
+                End If
+
+            End Function
+            ''' <summary>
+            ''' returns the tablestores or nothing
             ''' </summary>
             ''' <value></value>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public ReadOnly Property TableStore As iormDataStore
+            Public ReadOnly Property TableStores As iormDataStore()
                 Get
                     If Alive Then
-                        Return _TableStore
+                        Return _TableStores
                     Else
                         Return Nothing
                     End If
                 End Get
 
             End Property
+
+            ''' <summary>
+            ''' returns the values
+            ''' </summary>
+            ''' <value></value>
+            ''' <returns></returns>
+            ''' <remarks></remarks>
+            Public ReadOnly Property Values As List(Of Object)
+                Get
+                    Return _Values.ToList
+                End Get
+            End Property
+
             ''' <summary>
             ''' load a record into this record from the datareader
             ''' </summary>
@@ -1931,31 +1977,44 @@ Namespace OnTrack
                     ''' 
                     _isLoaded = True ' important
 
-                    If _IsTableSet Then
-                        For j = 1 To _TableStore.TableSchema.NoFields
+                    If _isBound Then
+                        Dim flagColumnNameCheck As Boolean = False
+                        If _TableStores.Length > 1 OrElse datarow.Table.TableName.ToUpper <> _TableStores(0).TableSchema.TableID.ToUpper Then
+                            flagColumnNameCheck = True
+                        End If
 
-                            Dim aColumnname As String = _TableStore.TableSchema.Getfieldname(j)
-                            If datarow.Table.Columns.Contains(aColumnname) Then
-                                Dim aValue As Object = datarow.Item(aColumnname)
-                                If _TableStore.Convert2ObjectData(index:=j, invalue:=datarow.Item(aColumnname), outvalue:=aValue) Then
-                                    If Not SetValue(j, aValue) Then
-                                        CoreMessageHandler(message:="could not set value from data reader", arg1:=aValue, _
-                                                           columnname:=aColumnname, tablename:=_tableid, subname:="ormRecord.LoadFrom(Datarow)")
-                                        result = False
+                        ''' run through
+                        For n = 0 To _TableStores.Length - 1
+                            For j = 1 To _TableStores(n).TableSchema.NoFields
+                                Dim aColumnname As String = _TableStores(n).TableSchema.Getfieldname(j)
+                                If datarow.Table.Columns.Contains(aColumnname) Then
+                                    Dim aValue As Object = datarow.Item(aColumnname)
+                                    If flagColumnNameCheck AndAlso ZeroBasedIndexOf(_TableStores(n).TableID & "." & aColumnname) < 0 Then
+                                        CoreMessageHandler(message:="column doesnot exist in record ?!", arg1:=datarow.Item(aColumnname), _
+                                                            columnname:=aColumnname, tablename:=datarow.Table.TableName, subname:="ormRecord.LoadFrom(Datarow)")
+                                        '''convert and set the value
+                                    ElseIf _TableStores(n).Convert2ObjectData(index:=j, invalue:=datarow.Item(aColumnname), outvalue:=aValue) Then
+                                        If Not SetValue(j, aValue) Then
+                                            CoreMessageHandler(message:="could not set value from data reader", arg1:=aValue, _
+                                                               columnname:=aColumnname, tablename:=datarow.Table.TableName, subname:="ormRecord.LoadFrom(Datarow)")
+                                            result = False
+                                        Else
+                                            result = result And True
+                                        End If
                                     Else
-                                        result = result And True
+                                        CoreMessageHandler(message:="could not convert value from data reader", arg1:=datarow.Item(aColumnname), _
+                                                           columnname:=aColumnname, tablename:=datarow.Table.TableName, subname:="ormRecord.LoadFrom(Datarow)")
+                                        result = False
                                     End If
+
                                 Else
-                                    CoreMessageHandler(message:="could not convert value from data reader", arg1:=datarow.Item(aColumnname), _
-                                                       columnname:=aColumnname, tablename:=_tableid, subname:="ormRecord.LoadFrom(Datarow)")
+                                    CoreMessageHandler(message:="column from table not in datareader - record uncomplete", columnname:=aColumnname, _
+                                                       tablename:=datarow.Table.TableName, subname:="ormRecord.LoadFrom(Datarow)")
                                     result = False
                                 End If
-                            Else
-                                CoreMessageHandler(message:="column from table not in datareader - record uncomplete", columnname:=aColumnname, _
-                                                   tablename:=_tableid, subname:="ormRecord.LoadFrom(Datarow)")
-                                result = False
-                            End If
-                        Next j
+                            Next j
+                        Next
+
 
                         Return result
                     Else
@@ -1972,7 +2031,7 @@ Namespace OnTrack
                             '''
                             If Not SetValue(datarow.Table.TableName.ToUpper & "." & aColumnname.ToUpper, aValue) Then
                                 CoreMessageHandler(message:="could not set value from data reader", arg1:=aValue, _
-                                                   columnname:=aColumnname, tablename:=_tableid, subname:="ormRecord.LoadFrom(Datarow)")
+                                                   columnname:=aColumnname, tablename:=datarow.Table.TableName, subname:="ormRecord.LoadFrom(Datarow)")
                                 result = False
                             Else
                                 result = True
@@ -1983,7 +2042,7 @@ Namespace OnTrack
                     End If
 
                 Catch ex As Exception
-                    Call CoreMessageHandler(subname:="ormRecord.LoadFrom(Datarow)", exception:=ex, message:="Exception", tablename:=_tableid)
+                    Call CoreMessageHandler(subname:="ormRecord.LoadFrom(Datarow)", exception:=ex, message:="Exception", tablename:=datarow.Table.TableName)
                     Return False
                 End Try
 
@@ -2003,37 +2062,50 @@ Namespace OnTrack
                     ''' 
                     _isLoaded = True ' important
 
-                    If _IsTableSet Then
-                        For j = 1 To _TableStore.TableSchema.NoFields
-                            Dim found As Integer = -1
-                            Dim aColumnname As String = _TableStore.TableSchema.Getfieldname(j)
-                            For i = 0 To datareader.FieldCount - 1
-                                If datareader.GetName(i) = aColumnname Then
-                                    ''' uuuh slow
-                                    ''' 
-                                    found = i
-                                    Exit For
-                                End If
-                            Next
-                            If found >= 0 Then
-                                Dim aValue As Object
-                                If _TableStore.Convert2ObjectData(index:=j, invalue:=datareader.Item(found), outvalue:=aValue) Then
-                                    If Not SetValue(j, aValue) Then
-                                        CoreMessageHandler(message:="ormRecord.LoadFrom(IDataReader)", arg1:=aValue, columnname:=aColumnname, tablename:=_tableid, subname:="ormRecord.LoadFrom")
-                                        result = False
-                                    Else
-                                        result = result And True
+                    If _isBound Then
+                        ''' go through each tablestore
+                        For n = 0 To _TableStores.Length - 1
+                            For j = 1 To _TableStores(n).TableSchema.NoFields
+                                Dim found As Integer = -1
+                                Dim aColumnname As String = _TableStores(n).TableSchema.Getfieldname(j)
+                                For i = 0 To datareader.FieldCount - 1
+                                    If datareader.GetName(i) = aColumnname Then
+                                        ''' uuuh slow
+                                        ''' 
+                                        found = i
+                                        Exit For
                                     End If
+                                Next
+                                If found >= 0 Then
+                                    Dim aValue As Object
+                                    Dim index As Integer = ZeroBasedIndexOf(_TableStores(n).TableID & "." & aColumnname) + 1
+                                    If index >= 0 Then
+                                        If _TableStores(n).Convert2ObjectData(index:=j, invalue:=datareader.Item(found), outvalue:=aValue) Then
+                                            If Not SetValue(index, aValue) Then
+                                                CoreMessageHandler(message:="set value failed", arg1:=aValue, columnname:=aColumnname, tablename:=_tableids(n), subname:="ormRecord.LoadFrom")
+                                                result = False
+                                            Else
+                                                result = result And True
+                                            End If
+                                        Else
+                                            CoreMessageHandler(message:="data conversion failed", arg1:=datareader.Item(aColumnname), columnname:=aColumnname, _
+                                                               tablename:=_tableids(n), subname:="ormRecord.LoadFrom")
+                                            result = False
+                                        End If
+                                    Else
+                                        CoreMessageHandler(message:="index in record failed - canonical name doesnot exist ?", _
+                                                           arg1:=datareader.Item(aColumnname), columnname:=aColumnname, tablename:=_tableids(n), subname:="ormRecord.LoadFrom")
+                                        result = False
+                                    End If
+
                                 Else
-                                    CoreMessageHandler(message:="ormRecord.LoadFrom(IDataReader)", arg1:=datareader.Item(aColumnname), columnname:=aColumnname, tablename:=_tableid, subname:="ormRecord.LoadFrom")
+                                    CoreMessageHandler(message:="column from table not in datareader - record uncomplete", columnname:=aColumnname, _
+                                                       tablename:=_tableids(n), subname:="ormRecord.LoadFrom(IDataReader)")
                                     result = False
                                 End If
-                            Else
-                                CoreMessageHandler(message:="column from table not in datareader - record uncomplete", columnname:=aColumnname, _
-                                                   tablename:=_tableid, subname:="ormRecord.LoadFrom(IDataReader)")
-                                result = False
-                            End If
-                        Next j
+                            Next j
+                        Next
+
 
                         Return result
                     Else
@@ -2041,15 +2113,15 @@ Namespace OnTrack
                         ''' 
                         For j = 0 To datareader.FieldCount - 1
                             Dim aName As String = datareader.GetName(j)
-                            If aName = "" Then aName = j.ToString
+                            If aName = "" Then aName = "column" & j.ToString
                             Dim aValue As Object = datareader.Item(j)
 
                             ''' how to convert ?!
                             ''' we have already system type
 
-                            If Not SetValue(aName, aValue) Then
+                            If Not SetValue(aName.ToString, aValue) Then
                                 CoreMessageHandler(message:="could not set value from data reader", arg1:=aValue, _
-                                                    tablename:=_tableid, subname:="ormRecord.LoadFrom(IDataReader)")
+                                                    messagetype:=otCoreMessageType.InternalError, subname:="ormRecord.LoadFrom(IDataReader)")
                                 result = False
                             Else
                                 result = result And True
@@ -2059,13 +2131,13 @@ Namespace OnTrack
                         Return result
                     End If
 
-                   
+
                 Catch ex As Exception
                     Call CoreMessageHandler(subname:="ormRecord.LoadFrom(IDataReader)", exception:=ex, message:="Exception", _
-                                          arg1:=_tableid)
+                                          arg1:=_tableids)
                     Return False
                 End Try
-                
+
             End Function
 
             ''' <summary>
@@ -2073,36 +2145,54 @@ Namespace OnTrack
             ''' </summary>
             ''' <returns>true if successfully checked</returns>
             ''' <remarks></remarks>
-            Public Function CheckStatus() As Boolean
+            Public Function CheckStatus(Optional ByRef status As Boolean() = Nothing) As Boolean
+                Dim aLoad As Boolean = False
+                Dim aCreate As Boolean = False
+
                 '** not loaded and not created but alive ?!
-                If Not Me.IsLoaded And Not Me.IsCreated And Alive Then
+                If Not Me.IsLoaded AndAlso Not Me.IsCreated AndAlso Alive Then
 
-                    Dim pkarr() As Object
-                    Dim i, index As Integer
-                    Dim value As Object
-                    Dim aRecord As ormRecord
-                    Try
-                        ReDim pkarr(0 To _TableStore.TableSchema.NoPrimaryKeyFields - 1)
-                        For i = 1 To _TableStore.TableSchema.NoPrimaryKeyFields
-                            index = _TableStore.TableSchema.GetordinalOfPrimaryKeyField(i)
-                            value = Me.GetValue(index)
-                            pkarr(i - 1) = value
-                        Next i
-                        ' delete
-                        aRecord = _TableStore.GetRecordByPrimaryKey(pkarr)
-                        If Not aRecord Is Nothing Then
-                            Me.IsLoaded = True
-                        Else
-                            Me.IsCreated = True
-                        End If
-                    Catch ex As Exception
-                        Call CoreMessageHandler(exception:=ex, message:="Exception", messagetype:=otCoreMessageType.InternalException, _
-                                              subname:="ormRecord.checkStatus")
-                        Return False
-                    End Try
+                    ReDim status(_tableids.Length - 1)
+                    For n = 0 To _TableStores.Length - 1
+                        Dim pkarr() As Object
+                        Dim i, index As Integer
+                        Dim value As Object
 
+                        Dim aRecord As ormRecord
+                        Try
+                            ReDim pkarr(0 To _TableStores(n).TableSchema.NoPrimaryKeyFields - 1)
+                            For i = 1 To _TableStores(n).TableSchema.NoPrimaryKeyFields
+                                index = _TableStores(n).TableSchema.GetordinalOfPrimaryKeyField(i)
+                                value = Me.GetValue(index)
+                                pkarr(i - 1) = value
+                            Next i
+                            ' delete
+                            aRecord = _TableStores(n).GetRecordByPrimaryKey(pkarr)
+                            status(n) = aRecord IsNot Nothing
+
+                            If aRecord Is Nothing Then
+                                aCreate = True
+                            Else
+                                aLoad = True
+                            End If
+                        Catch ex As Exception
+                            Call CoreMessageHandler(exception:=ex, message:="Exception", messagetype:=otCoreMessageType.InternalException, _
+                                                  subname:="ormRecord.checkStatus")
+                            Return False
+                        End Try
+                    Next
+
+                    If aLoad And Not aCreate Then
+                        Me.IsLoaded = True
+                    ElseIf aCreate And Not aLoad Then
+                        Me.IsCreated = True
+                    Else
+                        Me.IsUnknown = True
+                        'not determinable
+                    End If
 
                 End If
+
 
                 Return True
             End Function
@@ -2116,18 +2206,18 @@ Namespace OnTrack
             ''' <remarks></remarks>
             Public Function GetDefaultValue(index As Object) As Object
                 Dim i As Integer
-
-                If Not Me.Alive Or Not Me.IsTableBound Then
+                ''' only on bound
+                ''' 
+                If Not Me.Alive Or Not Me.IsBound Then
                     Return Nothing
                 End If
 
                 If IsNumeric(index) Then
-                    i = CInt(index)
+                    i = CInt(index) - 1
                 Else
-                    If Not _TableStore.TableSchema.Hasfieldname(index) Then
+                    i = ZeroBasedIndexOf(index)
+                    If i < 0 Then
                         Return Nothing
-                    Else
-                        i = _TableStore.TableSchema.GetFieldordinal(index)
                     End If
                 End If
 
@@ -2140,97 +2230,170 @@ Namespace OnTrack
                 '* do not allow recursion on objectentrydefinition table itself
                 '* since this is not included 
 
-                If _TableStore.TableID.ToLower <> AbstractEntryDefinition.ConstTableID.ToLower Then
-                    ''' get default value out of the object entry store not from the db itself
-                    ''' 
-                    Dim anEntry As ColumnDefinition = CurrentSession.Objects.GetColumnEntry(columnname:=_TableStore.TableSchema.Getfieldname(i), tablename:=_TableStore.TableID)
-                    If anEntry IsNot Nothing Then
-                        Return anEntry.DefaultValue
-                    Else
-                        '* try to get defaults from the underlying database -> default might also be nothing
-                        Return _TableStore.TableSchema.GetDefaultValue(i)
-                    End If
+                Dim names As String() = index.ToString.ToUpper.Split({CChar(ConstDelimiter), "."c})
+                Dim n As Integer = Array.IndexOf(_tableids, names(0))
+                If n >= 0 Then
+                    Return _TableStores(n).TableSchema.GetDefaultValue(i)
                 Else
-                    '* try to get defaults from the underlying database -> default might also be nothing
-                    Return _TableStore.TableSchema.GetDefaultValue(i)
+                    Return Nothing
                 End If
+
             End Function
+
             ''' <summary>
-            ''' Assign a TableStore to this Record
+            ''' set the table of this records and bind it to it
             ''' </summary>
-            ''' <param name="TableID">Name of the Table</param>
-            ''' <param name="ForceReload">Forece to reaassign</param>
-            ''' <returns>True if ssuccessfull</returns>
+            ''' <param name="tableID"></param>
+            ''' <param name="dbdriver"></param>
+            ''' <param name="tablestore"></param>
+            ''' <param name="forceReload"></param>
+            ''' <param name="fillDefaultValues"></param>
+            ''' <returns></returns>
             ''' <remarks></remarks>
+
             Public Function SetTable(ByVal tableID As String, _
                                      Optional dbdriver As iormDatabaseDriver = Nothing, _
                                      Optional tablestore As iormDataStore = Nothing, _
                                      Optional forceReload As Boolean = False, _
                                      Optional fillDefaultValues As Boolean = False) As Boolean
+                Return Me.SetTables(tableIDs:={tableID}, dbdriver:=dbdriver, forceReload:=forceReload, fillDefaultValues:=fillDefaultValues)
+            End Function
 
-                If Not _IsTableSet Or forceReload Then
 
-                    If tablestore Is Nothing Then
+            ''' <summary>
+            ''' set the tables of this record and bind it to them !
+            ''' </summary>
+            ''' <param name="TableID">Name of the Table</param>
+            ''' <param name="ForceReload">Forece to reaassign</param>
+            ''' <returns>True if ssuccessfull</returns>
+            ''' <remarks></remarks>
+            ''' 
+            Public Function SetTables(ByVal tableIDs() As String, _
+                                     Optional dbdriver As iormDatabaseDriver = Nothing, _
+                                     Optional forceReload As Boolean = False, _
+                                     Optional fillDefaultValues As Boolean = False) As Boolean
+
+                If Not _isBound Or forceReload Then
+
+                    ReDim _TableStores(tableIDs.Length - 1)
+                    ReDim _upperRangeofTable(tableIDs.Length - 1)
+                    Dim totalsize As ULong = 0
+
+                    ''' PHASE I: get the tablestores
+                    '''
+                    For I = 0 To _TableStores.Length - 1
                         If dbdriver Is Nothing Then
-                            tablestore = GetTableStore(tableID, force:=forceReload)
+                            _TableStores(I) = ot.GetTableStore(tableIDs(I))
                         Else
-                            tablestore = dbdriver.GetTableStore(tableID, force:=forceReload)
+                            _TableStores(I) = dbdriver.GetTableStore(tableIDs(I))
                         End If
-                    End If
 
+                        If _TableStores(I) Is Nothing OrElse _TableStores(I).TableSchema Is Nothing _
+                            OrElse Not _TableStores(I).TableSchema.IsInitialized Then
 
-                    If Not tablestore Is Nothing AndAlso Not tablestore.TableSchema Is Nothing _
-                        AndAlso tablestore.TableSchema.IsInitialized Then
+                            CoreMessageHandler(message:="record cannot be bound to table - tablestore cannot be initialized", arg1:=tableIDs(I), _
+                                               subname:="ormRecord.setTables")
+                            Return False
+                        Else
+                            '' set the upper ranges in the record
+                            _upperRangeofTable(I) = _TableStores(I).TableSchema.NoFields - 1
+                            totalsize += _upperRangeofTable(I)
+                        End If
 
-                        _TableStore = tablestore
-                        _IsTableSet = True
-                        _FixEntries = True
+                    Next I
 
-                        ' get the number of fields
-                        If _TableStore.TableSchema.NoFields > 0 Then
+                    ''' PHASE II : resize the internals
+                    ''' 
+                    '*** redim else and set the default values
+                    ReDim Preserve _Values(totalsize)
+                    ReDim Preserve _OriginalValues(totalsize)
+                    ReDim Preserve _isnullable(totalsize)
+                    'ReDim Preserve _entrynames(totalsize) ' not here we rely on _entrynames to see if we are used before binding
+                    _tableids = tableIDs
 
-                            '*** if there have been entries before or was set to another table
-                            '*** preserve as much as possible
-                            If _entrynames.GetUpperBound(0) > 0 Then
+                    ''' set the values and entries
+                    _isBound = True
+                    _FixEntries = True
+
+                    ' get the number of fields
+                    If totalsize > 0 Then
+
+                        '*** if there have been entries before or was set to another table
+                        '*** preserve as much as possible
+                        If _entrynames.GetUpperBound(0) > 0 Then
+
+                            Dim newValues(totalsize) As Object
+                            Dim newOrigValues(totalsize) As Object
+                            Dim newEntrynames(totalsize) As String
+
+                            For I = 0 To _TableStores.Length - 1
+                                Dim aTablename As String = _TableStores(I).TableID.ToUpper
                                 '** re-sort 
-                                Dim newValues(_TableStore.TableSchema.NoFields - 1) As Object
-                                Dim newOrigValues(_TableStore.TableSchema.NoFields - 1) As Object
-                                For Each fieldname In tablestore.TableSchema.Fieldnames
-                                    If _entrynames.Contains(fieldname) Then
-                                        newValues(_TableStore.TableSchema.GetFieldordinal(fieldname) - 1) = _Values(Array.IndexOf(_entrynames, fieldname))
-                                        newOrigValues(_TableStore.TableSchema.GetFieldordinal(fieldname) - 1) = _OriginalValues(Array.IndexOf(_entrynames, fieldname))
-                                    End If
-                                Next
-                                '** change over
-                                _Values = newValues
-                                _OriginalValues = newOrigValues
-                                _entrynames = tablestore.TableSchema.Fieldnames.ToArray
-                            Else
-                                '*** redim else and set the default values
-                                ReDim Preserve _Values(0 To _TableStore.TableSchema.NoFields - 1)
-                                ReDim Preserve _OriginalValues(0 To _TableStore.TableSchema.NoFields - 1)
-                                _entrynames = tablestore.TableSchema.Fieldnames.ToArray
-                                '* set the default values
-                                If fillDefaultValues Then
-                                    For i = 1 To _TableStore.TableSchema.NoFields
-                                        If Not tablestore.TableSchema.GetNullable(i) Then
-                                            _Values(i - 1) = Me.GetDefaultValue(i)
-                                        Else
-                                            _Values(i - 1) = Nothing
-                                        End If
+                                For j = 1 To _TableStores(I).TableSchema.NoFields
 
-                                        _OriginalValues(i - 1) = _Values(i - 1)
-                                    Next
-                                End If
-                            End If
+                                    ''' calculate new index
+                                    Dim index As UShort = 0
+                                    If I > 0 Then index = _upperRangeofTable(I - 1)
+                                    index += j - 1
+                                    Dim aFieldname As String = _TableStores(I).TableSchema.Getfieldname(j).ToUpper
+                                    Dim aCanonicalName As String = aTablename & "." & aFieldname
+                                    newEntrynames(index) = aCanonicalName
+                                    ''' fill the nullable
+                                    _isnullable(index) = _TableStores(I).TableSchema.GetNullable(j)
+                                    '' get old index 
+                                    Dim oldindex As Integer = Array.FindIndex(_entrynames, Function(x) x IsNot Nothing AndAlso (x.ToUpper = aFieldname OrElse x.ToUpper = aCanonicalName))
+                                    If oldindex >= 0 Then
+                                        newValues(index) = _Values(oldindex)
+                                        newOrigValues(index) = _Values(oldindex)
+                                    Else
+                                        ' can be - default value ? CoreMessageHandler(message:="index not found", subname:="ormRecord.SetTables", messagetype:=otCoreMessageType.InternalError)
+                                    End If
+
+                                Next
+                            Next
+
+                            '** change over
+                            _Values = newValues
+                            _OriginalValues = newOrigValues
+                            _entrynames = newEntrynames
+                        Else
+                            ReDim Preserve _entrynames(totalsize)
+                            ''' set the entry names and initial values
+                            ''' for each table
+                            For I = 0 To _TableStores.Length - 1
+                                For j = 1 To _TableStores(I).TableSchema.NoFields
+                                    ''' calculate index
+                                    Dim index As UShort = 0
+                                    If I > 0 Then index = _upperRangeofTable(I - 1)
+                                    index += j - 1
+                                    ''' set fieldname
+                                    _entrynames(index) = _TableStores(I).TableID.ToUpper & "." & _TableStores(I).TableSchema.Getfieldname(j).ToUpper
+                                    ''' fill the nullable
+                                    _isnullable(index) = _TableStores(I).TableSchema.GetNullable(j)
+                                    ''' fill default from tablestore
+                                    If fillDefaultValues Then
+                                        If Not _TableStores(I).TableSchema.GetNullable(j) Then
+                                            _Values(index) = Me.GetDefaultValue(j)
+                                        Else
+                                            _Values(index) = Nothing
+                                        End If
+                                    End If
+                                    ''' set the orginal values with default values
+                                    _OriginalValues(index) = _Values(index)
+
+                                Next
+                            Next
+
                         End If
-                        Return _IsTableSet
+
+                        Return _isBound
 
                     Else
-                        Call CoreMessageHandler(message:="Tablestore or tableschema is not initialized", subname:="ormRecord.setTable", _
-                                              messagetype:=otCoreMessageType.InternalError, tablename:=tableID)
+                        Call CoreMessageHandler(message:="Tablestore or tableschema is not initialized", subname:="ormRecord.setTables", _
+                                              messagetype:=otCoreMessageType.InternalError)
                         Return False
                     End If
+
                     Return False
                 Else
                     Return True 'already set
@@ -2243,28 +2406,36 @@ Namespace OnTrack
             ''' <returns>true if successfull</returns>
             ''' <remarks></remarks>
             Public Function Persist(Optional ByVal timestamp As Date = ot.ConstNullDate) As Boolean
+                Dim result As Boolean = True
+                Dim aStatus As Boolean()
                 '** try to set the table
-                If Not _IsTableSet And _tableid <> "" Then
-                    Me.SetTable(tableID:=_tableid)
+                If Not _isBound And _tableids.Length <> 0 Then
+                    Me.SetTables(tableIDs:=_tableids)
                 End If
                 '** only on success
-                If _IsTableSet Then
+                If _isBound Then
                     If timestamp = ConstNullDate Then timestamp = Date.Now
                     '' check for status
-                    If Not Me.IsCreated AndAlso Not Me.IsLoaded Then CheckStatus()
-                    '* switch to loaded
-                    If _TableStore.PersistRecord(Me, timestamp:=timestamp) Then
+                    If Not Me.IsCreated AndAlso Not Me.IsLoaded Then CheckStatus(aStatus)
+                    '* persist in each store
+                    For i = 0 To _TableStores.Length - 1
+                        result = result And _TableStores(i).PersistRecord(Me, timestamp:=timestamp)
+                    Next i
+                    '* result
+                    If result Then
                         Me.IsLoaded = True
                         Me.IsCreated = False
                         Me.IsChanged = False
                         Return True
                     End If
+                Else
+                    CoreMessageHandler(message:="unbound record cannot be persisted", messagetype:=otCoreMessageType.InternalError, subname:="ormRecord.Persist")
+                    Return False
                 End If
-                Return False
             End Function
 
             ''' <summary>
-            ''' Deletes the Record in the Database
+            ''' Deletes the Record in all tablestores
             ''' </summary>
             ''' <returns>true if successfull</returns>
             ''' <remarks></remarks>
@@ -2272,25 +2443,37 @@ Namespace OnTrack
             Public Function Delete() As Boolean
                 Dim pkarr() As Object
                 Dim i, index As Integer
-                Dim Value, cvtvalue As Object
+                Dim result As Boolean = True
 
-                If _IsTableSet Then
-                    ReDim pkarr(0 To _TableStore.TableSchema.NoPrimaryKeyFields - 1)
-                    For i = 0 To _TableStore.TableSchema.NoPrimaryKeyFields - 1
-                        index = _TableStore.TableSchema.GetordinalOfPrimaryKeyField(i + 1)
-                        Value = Me.GetValue(index)
-                        ' cvtvalue = s_Table.cvt2ColumnData(index, value) -> done by delRecord
-                        pkarr(i) = Value
-                    Next i
-                    ' delete
-                    Return _TableStore.DelRecordByPrimaryKey(pkarr)
-                    Exit Function
+                If _isBound Then
+                    For n = 0 To _TableStores.Length - 1
+                        ReDim pkarr(0 To _TableStores(n).TableSchema.NoPrimaryKeyFields - 1)
+                        For i = 0 To _TableStores(n).TableSchema.NoPrimaryKeyFields - 1
+                            ''' get index
+                            If i > 0 Then
+                                index = _upperRangeofTable(n - 1)
+                            Else
+                                index = 0
+                            End If
+                            index += _TableStores(n).TableSchema.GetordinalOfPrimaryKeyField(i + 1)
+                            If Me.HasIndex(index) Then
+                                pkarr(i) = Me.GetValue(index)
+                            Else
+                                CoreMessageHandler(message:="part of primary key for tablestore is not in record", columnname:=index, _
+                                                   tablename:=_TableStores(n).TableID, subname:="ormRecord.Delete", messagetype:=otCoreMessageType.InternalError)
+                            End If
+
+                        Next i
+                        ' delete
+                        result = result And _TableStores(n).DelRecordByPrimaryKey(pkarr)
+                    Next
+                    Return result
                 Else
                     Call CoreMessageHandler(subname:="ormRecord.delete", message:="Record not bound to a TableStore", _
                                           messagetype:=otCoreMessageType.InternalError)
                     Return False
                 End If
-                Delete = False
+                Return False
             End Function
             ''' <summary>
             ''' returns true if the record has the index either numerical (1..) or by name
@@ -2301,29 +2484,14 @@ Namespace OnTrack
             ''' <remarks></remarks>
             Public Function HasIndex(index As Object) As Boolean
                 If IsNumeric(index) Then
-                    Dim i = CInt(index)
-                    If (i - 1) >= LBound(_Values) And (i - 1) <= UBound(_Values) Then
+                    Dim i = CInt(index) - 1
+                    If i >= LBound(_Values) And i <= UBound(_Values) Then
                         Return True
                     Else
                         Return False
                     End If
                 Else
-                    '** strip tablename only check on set tables
-                    Dim names = index.ToString.Split({CChar(ConstDelimiter), "."c})
-                    If names.Count > 1 Then
-                        If _IsTableSet Then
-                            If _TableStore.TableID.ToUpper <> names(0).ToUpper Then
-                                Return False  'wrong table
-                            End If
-                        End If
-                        index = names(1)
-                    Else
-                        index = index.ToString
-                    End If
-
-                    Return Me.Keys.Find(Function(x)
-                                            Return x.ToUpper = index.ToString.ToUpper
-                                        End Function) IsNot Nothing
+                    If ZeroBasedIndexOf(index) >= 0 Then Return True
                 End If
 
             End Function
@@ -2336,13 +2504,52 @@ Namespace OnTrack
             Public Function Keys() As List(Of String)
                 ' no table ?!
                 If Not Me.Alive Then
-                    Keys = New List(Of String)
-                    Exit Function
-                ElseIf _IsTableSet Then
-                    Keys = _TableStore.TableSchema.Fieldnames
+                    Return New List(Of String)
+                ElseIf _isBound And _entrynames.Length = 0 Then
+                    Dim aList As New List(Of String)
+                    For n = 0 To _TableStores.Length - 1
+                        aList.AddRange(_TableStores(n).TableSchema.Fieldnames)
+                    Next
                 Else
                     Keys = _entrynames.ToList
                 End If
+            End Function
+
+
+
+
+            ''' <summary>
+            ''' gets the index of an entryname 0 ... n !!
+            ''' </summary>
+            ''' <param name="index"></param>
+            ''' <returns></returns>
+            ''' <remarks></remarks>
+            Private Function ZeroBasedIndexOf(entryname As String) As Integer
+                entryname = entryname.ToUpper
+                Dim i As Integer = Array.IndexOf(_entrynames, entryname.ToUpper)
+                If i < 0 Then
+                    Dim names As String() = entryname.ToUpper.Split({CChar(ConstDelimiter), "."c})
+                    If names.Count > 1 Then
+                        If _isBound Then
+                            i = 0
+                            Dim n As Integer = Array.IndexOf(_tableids, names(0))
+                            If n < 0 Then Return -1
+                            If n > 0 Then i = _upperRangeofTable(n - 1)
+                            i += _TableStores(n).TableSchema.GetFieldordinal(names(1)) - 1
+                            Return i
+                        Else
+                            Dim acolumnname As String = entryname.Split({CChar(ConstDelimiter), "."c}).Last
+                            Return Array.FindIndex(_entrynames, Function(x) x IsNot Nothing AndAlso (x.ToUpper = entryname OrElse x = acolumnname OrElse entryname = x.Split({CChar(ConstDelimiter), "."c}).Last.ToUpper))
+                        End If
+                    Else
+
+                        Return Array.FindIndex(_entrynames, Function(x) x IsNot Nothing AndAlso (x.ToUpper = entryname.ToUpper OrElse entryname.ToUpper = x.Split({CChar(ConstDelimiter), "."c}).Last.ToUpper))
+                    End If
+
+                Else
+                    Return i 'if found or not bound
+                End If
+
             End Function
             ''' <summary>
             ''' returns True if Value of anIndex is Changed
@@ -2350,23 +2557,24 @@ Namespace OnTrack
             ''' <param name="anIndex">index in Number 1..n or fieldname</param>
             ''' <returns>True on Change</returns>
             ''' <remarks></remarks>
-            Public Function IsValueChanged(ByVal anIndex As Object) As Boolean
+            Public Function IsValueChanged(ByVal index As Object) As Boolean
                 Dim i As Integer
 
                 ' no table ?!
-                If Not _IsTableSet Then
-                    Call CoreMessageHandler(subname:="ormRecord.isValueChanged", arg1:=anIndex, message:="record is not bound to table")
+                If Not _isBound Then
+                    Call CoreMessageHandler(subname:="ormRecord.isValueChanged", arg1:=index, message:="record is not bound to table")
                     Return False
                 End If
 
-                If IsNumeric(anIndex) Then
-                    i = CInt(anIndex)
+                If IsNumeric(index) Then
+                    i = CInt(index) - 1
                 Else
-                    i = _TableStore.TableSchema.GetFieldordinal(anIndex)
+                    i = ZeroBasedIndexOf(index)
+                    If i < 0 Then Return False
                 End If
                 ' set the value
-                If (i - 1) >= LBound(_Values) And (i - 1) <= UBound(_Values) Then
-                    If (Not _OriginalValues(i - 1) Is Nothing AndAlso Not _OriginalValues(i - 1).Equals(_Values(i - 1)) _
+                If (i) >= LBound(_Values) And (i) <= UBound(_Values) Then
+                    If (Not _OriginalValues(i) Is Nothing AndAlso Not _OriginalValues(i).Equals(_Values(i)) _
                         OrElse IsCreated) Then
                         Return True
                     Else
@@ -2376,8 +2584,9 @@ Namespace OnTrack
 
                 Else
 
-                    Call CoreMessageHandler(message:="Index of " & anIndex & " is out of bound of OTDBTableEnt '" & _TableStore.TableID & "'", _
-                                          subname:="ormRecord.isIndexChangedValue", arg1:=anIndex, entryname:=anIndex, tablename:=_TableStore.TableID, noOtdbAvailable:=True)
+                    Call CoreMessageHandler(message:="Index of " & index & " is out of bound of OTDBTableEnt ", _
+                                          subname:="ormRecord.isIndexChangedValue", arg1:=index, _
+                                          messagetype:=otCoreMessageType.InternalError)
                     Return False
                 End If
 
@@ -2436,8 +2645,7 @@ Namespace OnTrack
             ''' <returns></returns>
             ''' <remarks></remarks>
             Public Function SetValue(ByVal index As Object, ByVal value As Object, Optional ByVal force As Boolean = False) As Boolean
-                Dim i As Long
-                Dim isNullable As Boolean = False
+                Dim i As Integer
 
                 Try
                     ' no table ?!
@@ -2449,101 +2657,81 @@ Namespace OnTrack
                     If DBNull.Value.Equals(value) Then
                         value = Nothing
                     End If
-                    '*** if fixed entries
-                    If _IsTableSet Then
-                        If IsNumeric(index) Then
-                            i = CLng(index)
 
-                        Else
-                            '** strip tablename only check on set tables
-                            Dim names = index.ToString.Split({CChar(ConstDelimiter), "."c})
-                            If names.Count > 1 Then
-                                If _TableStore.TableID.ToLower <> LCase(names(0)) Then
-                                    CoreMessageHandler(message:="column name has wrong table id", arg1:=index, tablename:=_TableStore.TableID, _
-                                                        messagetype:=otCoreMessageType.InternalError, subname:="ormRecord.SetValue")
-                                    Return False  'wrong table
-                                End If
-                                index = names(1)
-                            Else
-                                index = index.ToString
-                            End If
-                            '** get index
-                            i = _TableStore.TableSchema.GetFieldordinal(index)
+                    If IsNumeric(index) Then
+                        i = CLng(index) - 1
+                        If i > _entrynames.GetUpperBound(0) OrElse i < 0 Then
+                            CoreMessageHandler(message:="index is out of range 0.." & _entrynames.GetUpperBound(0), arg1:=i, _
+                                                messagetype:=otCoreMessageType.InternalError, subname:="ormRecord.SetValue")
+                            Return False  'wrong table
                         End If
-                        isNullable = _TableStore.TableSchema.GetNullable(index)
-                        '*** else dynamic extend
+
                     Else
-                        Dim found As Boolean = False
-
-                        If IsNumeric(index) Then
-                            If (index - 1) < _Values.GetUpperBound(0) Then
-                                i = index
-                                found = True
-                            End If
-                        Else
-                            '** strip tablename only check on set tables
-                            Dim names = index.ToString.Split({CChar(ConstDelimiter), "."c})
-                            If names.Count > 1 Then
-                                index = names(1)
-                            Else
-                                index = index.ToString
-                            End If
-
-                            '** compare the entry names
-                            For j = 0 To _entrynames.GetUpperBound(0)
-                                If LCase(_entrynames(j)) = index.tolower Then
-                                    i = j + 1
-                                    found = True
-                                    Exit For
-                                End If
-                            Next
-                        End If
-                        '** extend
-                        If Not found Then
-                            i = _entrynames.GetUpperBound(0) + 1
-                            ReDim Preserve _entrynames(i)
-                            ReDim Preserve _Values(i)
-                            ReDim Preserve _OriginalValues(i)
-                            Dim anIndex As String = CStr(index)
-                            If anIndex.Contains(".") Then
-                                anIndex = LCase(anIndex.Substring(anIndex.IndexOf(".") + 1, anIndex.Length - (anIndex.IndexOf(".") + 1)))
-                            Else
-                                anIndex = anIndex.ToLower
-                            End If
-                            _entrynames(i) = anIndex
-                            i = i + 1
+                        i = ZeroBasedIndexOf(index)
+                        If i < 0 And _isBound Then
+                            CoreMessageHandler(message:="column name was not found as index in record", arg1:=index, _
+                                                messagetype:=otCoreMessageType.InternalError, subname:="ormRecord.SetValue")
+                            Return False  'wrong table
                         End If
 
                     End If
+                    '*** else dynamic extend
 
-                    ' set the value
-                    If (i - 1) >= LBound(_Values) And (i - 1) <= UBound(_Values) Then
-                        _OriginalValues(i - 1) = _Values(i - 1)
-                        If (value Is Nothing AndAlso isNullable) Then
-                            _Values(i - 1) = Nothing
-                        ElseIf value Is Nothing AndAlso isNullable AndAlso Reflector.IsNullableTypeOrString(value) Then
-                            _Values(i - 1) = Nothing
-                        ElseIf value Is Nothing And Not isNullable Then
-                            _Values(i - 1) = GetDefaultValue(i)
+                    '** extend if not found
+                    If i < 0 Then
+                        i = _entrynames.GetUpperBound(0) + 1
+
+                        ReDim Preserve _entrynames(i)
+                        ReDim Preserve _Values(i)
+                        ReDim Preserve _OriginalValues(i)
+                        ReDim Preserve _isnullable(i)
+
+                        If index.ToString.Contains("."c) OrElse index.ToString.Contains(ConstDelimiter) Then
+                            _entrynames(i) = index.ToString.ToUpper
+                        ElseIf _tableids.Count = 1 Then
+                            _entrynames(i) = _tableids(0) & "." & index.ToString.ToUpper
                         Else
-                            _Values(i - 1) = value
+                            _entrynames(i) = index.ToString.ToUpper
                         End If
 
-                        If _OriginalValues(i - 1) Is Nothing Then
+                        _isnullable(i) = True
+                    End If
+
+                    '''' set the value
+                    '''
+
+                    If (i) >= LBound(_Values) And (i) <= UBound(_Values) Then
+                        ' save old value
+                        _OriginalValues(i) = _Values(i)
+                        ' condition to accept nothing
+                        If (value Is Nothing AndAlso _isnullable(i)) Then
+                            _Values(i) = Nothing
+                        ElseIf value Is Nothing AndAlso _isnullable(i) AndAlso Reflector.IsNullableTypeOrString(value) Then
+                            _Values(i) = Nothing
+                        ElseIf value Is Nothing And Not _isnullable(i) Then
+                            _Values(i) = GetDefaultValue(i)
+                        Else
+                            If (value.GetType.GetInterfaces.Contains(GetType(ICloneable))) Then
+                                _Values(i) = value.clone
+                            Else
+                                _Values(i) = value
+                            End If
+                        End If
+
+                        If _OriginalValues(i) Is Nothing Then
                             _isChanged = False
-                        ElseIf (Not _OriginalValues(i - 1) Is Nothing And Not _Values(i - 1) Is Nothing) _
-                            AndAlso ((_OriginalValues(i - 1).GetType().Equals(_Values(i - 1)) AndAlso _OriginalValues(i - 1) <> _Values(i - 1))) _
-                            OrElse (Not _OriginalValues(i - 1).GetType().Equals(_Values(i - 1))) Then
+                        ElseIf (Not _OriginalValues(i) Is Nothing And Not _Values(i) Is Nothing) _
+                            AndAlso ((_OriginalValues(i).GetType().Equals(_Values(i)) AndAlso _OriginalValues(i) <> _Values(i))) _
+                            OrElse (Not _OriginalValues(i).GetType().Equals(_Values(i))) Then
                             _isChanged = True
-                        ElseIf (Not _OriginalValues(i - 1) Is Nothing And _Values(i - 1) Is Nothing) Then
+                        ElseIf (Not _OriginalValues(i) Is Nothing And _Values(i) Is Nothing) Then
                             _isChanged = True
                         End If
                     Else
 
-                        Call CoreMessageHandler(message:="Index of " & index & " is out of bound of OTDBTableEnt '" & _TableStore.TableID & "'", _
-                                              subname:="ormRecord.setValue", arg1:=value, entryname:=index, tablename:=_TableStore.TableID, noOtdbAvailable:=True)
-                        SetValue = False
-                        Return SetValue
+                        Call CoreMessageHandler(message:="Index of " & index & " is out of bound of", _
+                                              subname:="ormRecord.setValue", arg1:=value, entryname:=index, messagetype:=otCoreMessageType.InternalError)
+                        Return False
                     End If
 
                     Return True
@@ -2577,7 +2765,6 @@ Namespace OnTrack
             ''' <remarks></remarks>
             Public Function GetValue(index As Object, Optional ByRef isNull As Boolean = False, Optional ByRef notFound As Boolean = False) As Object
                 Dim i As Long
-                Dim isNullable As Boolean = False
 
                 Try
 
@@ -2587,76 +2774,40 @@ Namespace OnTrack
                         Exit Function
                     End If
 
-                    '*** if fixed entries
-                    If _IsTableSet Then
-                        If IsNumeric(index) Then
-                            i = CLng(index)
-                        Else
-                            '** strip tablename only check on set tables
-                            Dim names = index.ToString.Split({CChar(ConstDelimiter), "."c})
-                            If names.Count > 1 Then
-                                If _TableStore.TableID.ToLower <> LCase(names(0)) Then
-                                    CoreMessageHandler(message:="column name has wrong table id", arg1:=index, tablename:=_TableStore.TableID, _
-                                                        messagetype:=otCoreMessageType.InternalError, subname:="ormRecord.GetValue")
-                                    Return Nothing  'wrong table
-                                End If
-                                index = names(1)
-                            Else
-                                index = index.ToString
-                            End If
 
-                            i = _TableStore.TableSchema.GetFieldordinal(index)
-                        End If
-                        isNullable = _TableStore.TableSchema.GetNullable(index)
+                    If IsNumeric(index) Then
+                        i = CLng(index) - 1
                     Else
-                        If IsNumeric(index) Then
-                            i = CLng(index)
-                        Else
-                            Dim found As Boolean
-                            '** strip tablename only check on set tables
-                            Dim names = index.ToString.Split({CChar(ConstDelimiter), "."c})
-                            If names.Count > 1 Then
-                                index = names(1)
-                            Else
-                                index = index.ToString
-                            End If
-
-                            For j = 0 To _entrynames.GetUpperBound(0)
-                                If LCase(_entrynames(j)) = index.tolower Then
-                                    i = j + 1
-                                    found = True
-                                    Exit For
-                                End If
-                            Next
-
-                            If Not found Then
-                                Call CoreMessageHandler(message:="the non-numeric index of '" & index & "' does not exist in record ", _
-                                            subname:="ormRecord.getValue", messagetype:=otCoreMessageType.InternalError)
-                                notFound = True
-                                Return Nothing
-                            End If
+                        i = ZeroBasedIndexOf(index)
+                        If i < 0 Then
+                            CoreMessageHandler(message:="column name could not be found", arg1:=index, _
+                                                messagetype:=otCoreMessageType.InternalError, subname:="ormRecord.GetValue")
+                            notFound = True
+                            Return Nothing  'wrong table
                         End If
                     End If
 
-                    ' Get the value
-                    If (i - 1) >= LBound(_Values) And (i - 1) <= UBound(_Values) Then
-                        If DBNull.Value.Equals(_Values(i - 1)) Then
+
+                    ''' Get the value
+                    ''' 
+                    If (i) >= LBound(_Values) And (i) <= UBound(_Values) Then
+                        If DBNull.Value.Equals(_Values(i)) Then
                             isNull = True
                             Return Nothing
                         Else
                             isNull = False
-                            Return _Values(i - 1)
+                            Return _Values(i)
                         End If
                     Else
-                        Call CoreMessageHandler(message:="Index of " & index & " is out of bound of tablestore or doesnot exist in record '" & _TableStore.TableID & "'", _
-                                              subname:="ormRecord.getValue", entryname:=index, tablename:=_TableStore.TableID, messagetype:=otCoreMessageType.InternalError)
+                        Call CoreMessageHandler(message:="Index of " & index & " is out of bound of tablestore or doesnot exist in record '", _
+                                              subname:="ormRecord.getValue", entryname:=index, messagetype:=otCoreMessageType.InternalError)
                         notFound = True
-                        Return DBNull.Value
+                        Return Nothing
                     End If
 
                 Catch ex As Exception
                     Call CoreMessageHandler(subname:="ormRecord.getValue", exception:=ex)
-                    Return DBNull.Value
+                    Return Nothing
                 End Try
             End Function
 

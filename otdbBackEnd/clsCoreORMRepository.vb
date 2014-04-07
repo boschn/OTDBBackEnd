@@ -4281,6 +4281,9 @@ Namespace OnTrack
             Dim anObjectDescription As ObjectClassDescription = ot.GetObjectClassDescription(type:=objecttype)
             Dim bootstrap As Boolean = runtimeOnly
 
+            If objecttype.Equals(GetType(Configurables.ConfigCondition)) Then
+                Debug.WriteLine("")
+            End If
             If anObjectDescription Is Nothing Then
                 CoreMessageHandler(message:="object was not found by type", arg1:=objecttype.Name, objectname:=objecttype.Name, _
                                   subname:="objectdefinition.SetupByClassDescription(Shared)", messagetype:=otCoreMessageType.InternalError)
@@ -5037,8 +5040,11 @@ Namespace OnTrack
             title:="Render Entry", Description:="set if the object entry will be rendered to a string presentation")> _
         Public Const ConstFNRender As String = "render"
 
-        <ormObjectEntry(typeid:=otFieldDataType.List, isnullable:=True, _
+        <ormObjectEntry(typeid:=otFieldDataType.List, innertypeid:=otFieldDataType.Text, isnullable:=True, _
             title:="List of Values", Description:="list of possible values")> Public Const ConstFNValues As String = "values"
+
+        <ormObjectEntry(typeid:=otFieldDataType.List, isnullable:=True, _
+          title:="Lookup Properties", Description:="list of lookup properties")> Public Const ConstFNLookupProperties As String = "lproperties"
 
         <ormObjectEntry(typeid:=otFieldDataType.List, isnullable:=True, _
            title:="Dynamic Lookup Condition", Description:="lookup condition of possible values")> Public Const ConstFNLookup As String = "lookup"
@@ -5086,6 +5092,7 @@ Namespace OnTrack
         <ormEntryMapping(entryname:=ConstFNValidate)> Protected _validate As Boolean = False
         <ormEntryMapping(entryname:=ConstFNRender)> Protected _render As Boolean = False
         <ormEntryMapping(entryname:=ConstFNValues)> Protected _listOfValues As List(Of Object) = New List(Of Object)
+        <ormEntryMapping(entryname:=ConstFNLookupProperties)> Protected _LookupPropertyStrings As String() = {}
         <ormEntryMapping(entryname:=ConstFNLookup)> Protected _lookupcondition As String = ""
         <ormEntryMapping(entryname:=ConstFNLowerRange)> Protected _lowerRangeValue As Long?
         <ormEntryMapping(entryname:=ConstFNUpperRange)> Protected _upperRangeValue As Long?
@@ -5102,6 +5109,7 @@ Namespace OnTrack
         Private _renderProperties As New List(Of RenderProperty)
         Private _runTimeOnly As Boolean = False 'dynmaic
         Private _validateProperties As New List(Of ObjectValidationProperty)
+        Private _lookupProperties As New List(Of LookupProperty)
 
         ''' <summary>
         ''' constructor of a SchemaDefTableEntry
@@ -5394,6 +5402,39 @@ Namespace OnTrack
             End Get
             Set(value As String)
                 SetValue(entryname:=ConstFNRenderRegexPattern, value:=value)
+            End Set
+        End Property
+        ''' <summary>
+        ''' returns true if there are validation properties
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property HasLookupProperties As Boolean Implements iormObjectEntry.HasLookupProperties
+            Get
+                If Not Me.IsAlive(subname:="HasLookupProperties") Then Return False
+                Return (_lookupProperties IsNot Nothing AndAlso _lookupProperties.Count > 0)
+            End Get
+        End Property
+        ''' <summary>
+        ''' gets or sets the validation properties
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Property LookupProperties As List(Of LookupProperty) Implements iormObjectEntry.LookupProperties
+            Get
+                Return _lookupProperties
+            End Get
+            Set(value As List(Of LookupProperty))
+                Dim aPropertyString As New List(Of String)
+                For Each aP In value
+                    aPropertyString.Add(aP.ToString)
+                Next
+                If SetValue(entryname:=ConstFNLookupProperties, value:=aPropertyString.ToArray) Then
+                    _lookupProperties = value
+                End If
+
             End Set
         End Property
         ''' <summary>
@@ -5780,7 +5821,8 @@ Namespace OnTrack
                 If .HasValueValidate Then Me.IsValidating = .Validate
                 If .HasValueLowerRange Then Me.LowerRangeValue = .LowerRange
                 If .HasValueUpperRange Then Me.UpperRangeValue = .UpperRange
-                If .HasValueValidationproperties Then Me.Validationproperties = .ValidationProperties.ToList
+                If .HasValueValidationProperties Then Me.Validationproperties = .ValidationProperties.ToList
+                If .HasValueLookupProperties Then Me.LookupProperties = .LookupProperties.ToList
                 If .HasValueLookupCondition Then Me.LookupCondition = .LookupCondition
                 If .HasValueValues Then Me.PossibleValues = .Values.ToList
 
@@ -5790,16 +5832,6 @@ Namespace OnTrack
             Return True
         End Function
 
-
-        ''' <summary>
-        ''' infuses the object from a record
-        ''' </summary>
-        ''' <param name="aRecord"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Sub OnInfusing(sender As Object, e As ormDataObjectEventArgs) Handles MyBase.OnInfusing
-
-        End Sub
 
         ''' <summary>
         ''' infuses the object from a record
@@ -6446,8 +6478,12 @@ Namespace OnTrack
             ColumnDefinition.ConstObjectID & "." & ColumnDefinition.ConstFNColumnname})> Public Const constFKColumns = "FKColumns"
 
         '* relation to the ColumnDefinition
+        ''' <summary>
+        ''' relation to the columndefinition
+        ''' </summary>
+        ''' <remarks></remarks>
         <ormSchemaRelation(linkobject:=GetType(ColumnDefinition), toPrimarykeys:={ConstFNTableName, ConstFNColumnname}, _
-            cascadeonCreate:=True, cascadeOnUpdate:=True)> Public Const constRColumnDefinition = "column"
+            cascadeonCreate:=True, cascadeOnUpdate:=False)> Public Const constRColumnDefinition = "column"
         '** the real thing
         <ormEntryMapping(relationName:=constRColumnDefinition, InfuseMode:=otInfuseMode.OnCreate Or otInfuseMode.OnInject Or otInfuseMode.OnDefault)> _
         Private _columndefinition As ColumnDefinition

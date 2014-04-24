@@ -15,10 +15,177 @@ Option Explicit On
 Imports System.Collections.Generic
 Imports System.IO
 Imports System.Diagnostics.Debug
+Imports OnTrack.Commons
 
 
 Namespace OnTrack.Database
 
+    ''' <summary>
+    ''' Query based parts of the ormDataObject
+    ''' </summary>
+    ''' <remarks></remarks>
+    Partial Public MustInherit Class ormDataObject
+        ''' <summary>
+        ''' Returns a Query Enumeration
+        ''' </summary>
+        ''' <param name="name"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function GetQuery(name As String) As iormQueriedEnumeration Implements iormQueriable.GetQuery
+            Return Me.ObjectDefinition.GetQuery(name:=name)
+        End Function
+
+        ''' <summary>
+        ''' Static Function ALL returns a Collection of all objects
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Shared Function AllDataObject(Of T As {iormInfusable, iormPersistable, New})(Optional ID As String = "All", _
+                                                                                  Optional domainID As String = "",
+                                                                                   Optional where As String = "", _
+                                                                                   Optional orderby As String = "", _
+                                                                                   Optional parameters As List(Of ormSqlCommandParameter) = Nothing, _
+                                                                                   Optional deleted As Boolean = False) _
+                                                                               As List(Of T)
+            Dim theObjectList As New List(Of T)
+            Dim aRecordCollection As New List(Of ormRecord)
+            Dim aStore As iormDataStore
+            Dim anObject As New T
+
+            '** is a session running ?!
+            If Not CurrentSession.IsRunning AndAlso Not CurrentSession.IsStartingUp Then
+                Call CoreMessageHandler(message:="data object cannot be retrieved - start session to database first", _
+                                        objectname:=anObject.ObjectID, _
+                                        subname:="ormDataObject.All", messagetype:=otCoreMessageType.ApplicationError)
+                Return Nothing
+            End If
+
+            '** check on the operation right for this object for the current username (might be that during session startup otdb username is not set)
+            If Not CurrentSession.IsStartingUp AndAlso Not ot.GetBootStrapObjectClassIDs.Contains(anObject.ObjectID) _
+                AndAlso Not CurrentSession.ValidateAccessRights(accessrequest:=otAccessRight.ReadOnly, domainid:=domainID, _
+                                                                objecttransactions:={anObject.ObjectID & "." & ConstOPInject}) Then
+                '** request authorizartion
+                If Not CurrentSession.RequestUserAccess(accessRequest:=otAccessRight.ReadOnly, domainID:=domainID, _
+                                                                            username:=CurrentSession.Username, _
+                                                                            objecttransactions:={anObject.ObjectID & "." & ConstOPInject}) Then
+                    Call CoreMessageHandler(message:="data object cannot be retrieved - permission denied to user", _
+                                            objectname:=anObject.ObjectID, arg1:=ConstOPInject, username:=CurrentSession.Username, _
+                                            subname:="ormDataObject.Retrieve", messagetype:=otCoreMessageType.ApplicationError)
+                    Return Nothing
+                End If
+            End If
+
+            Try
+                aStore = anObject.PrimaryTableStore
+                If parameters Is Nothing Then
+                    parameters = New List(Of ormSqlCommandParameter)
+                End If
+                ''' build domain behavior and deleteflag
+                ''' 
+                If anObject.ObjectHasDomainBehavior Then
+                    If domainID = "" Then domainID = CurrentSession.CurrentDomainID
+                    ''' add where
+                    If Not String.IsNullOrWhiteSpace(where) Then where &= " AND "
+                    where &= String.Format(" ([{0}] = @{0} OR [{0}] = @Global{0})", ConstFNDomainID)
+                    ''' add parameters
+                    If parameters.Find(Function(x)
+                                           Return x.ID.ToUpper = "@" & ConstFNDomainID.ToUpper
+                                       End Function) Is Nothing Then
+                        parameters.Add(New ormSqlCommandParameter(id:="@" & ConstFNDomainID, columnname:=ConstFNDomainID, _
+                                                                  tablename:=anObject.primaryTableID, value:=domainID)
+                                       )
+                    End If
+                    If parameters.Find(Function(x)
+                                           Return x.ID.ToUpper = "@Global" & ConstFNDomainID.ToUpper
+                                       End Function
+                                      ) Is Nothing Then
+                        parameters.Add(New ormSqlCommandParameter(id:="@Global" & ConstFNDomainID, columnname:=ConstFNDomainID, _
+                                                                  tablename:=anObject.primaryTableID, value:=ConstGlobalDomain)
+                                       )
+                    End If
+                End If
+                ''' delete 
+                ''' 
+                If anObject.ObjectHasDeletePerFlagBehavior Then
+                    If Not String.IsNullOrWhiteSpace(where) Then where &= " AND "
+                    where &= String.Format(" [{0}] = @{0}", ConstFNIsDeleted)
+                    If parameters.Find(Function(x)
+                                           Return x.ID.ToUpper = "@" & ConstFNIsDeleted.ToUpper
+                                       End Function
+                                       ) Is Nothing Then
+
+                        parameters.Add(New ormSqlCommandParameter(id:="@" & ConstFNIsDeleted, columnname:=ConstFNIsDeleted, tablename:=anObject.primaryTableID, value:=deleted)
+                                       )
+                    End If
+                End If
+
+                ''' get the records
+                aRecordCollection = aStore.GetRecordsBySqlCommand(id:=ID, wherestr:=where, orderby:=orderby, parameters:=parameters)
+                If aRecordCollection Is Nothing Then
+                    CoreMessageHandler(message:="no records returned due to previous errors", subname:="ormDataObject.AllDataObject", arg1:=ID, _
+                                        objectname:=anObject.ObjectID, tablename:=anObject.primaryTableID, messagetype:=otCoreMessageType.InternalError)
+                    Return theObjectList
+                End If
+                Dim aDomainRecordCollection As New Dictionary(Of String, ormRecord)
+                Dim pknames = aStore.TableSchema.PrimaryKeys
+                Dim domainBehavior As Boolean = False
+
+                If anObject.ObjectHasDomainBehavior And domainID <> ConstGlobalDomain Then
+                    domainBehavior = True
+                End If
+                '*** phase I: get all records and store either the currentdomain or the globaldomain if on domain behavior
+                '***
+                For Each aRecord As ormRecord In aRecordCollection
+
+                    ''' domain behavior and not on global domain
+                    ''' 
+                    If domainBehavior Then
+                        '** build pk key
+                        Dim pk As String = ""
+                        For Each acolumnname In pknames
+                            If acolumnname <> ConstFNDomainID Then pk &= aRecord.GetValue(index:=acolumnname).ToString & ConstDelimiter
+                        Next
+                        If aDomainRecordCollection.ContainsKey(pk) Then
+                            Dim anotherRecord = aDomainRecordCollection.Item(pk)
+                            If anotherRecord.GetValue(ConstFNDomainID).ToString = ConstGlobalDomain Then
+                                aDomainRecordCollection.Remove(pk)
+                                aDomainRecordCollection.Add(key:=pk, value:=aRecord)
+                            End If
+                        Else
+                            aDomainRecordCollection.Add(key:=pk, value:=aRecord)
+                        End If
+                    Else
+                        ''' just build the list
+                        Dim atargetobject As New T
+                        If InfuseDataObject(record:=aRecord, dataobject:=atargetobject, mode:=otInfuseMode.OnInject Or otInfuseMode.OnDefault) Then
+                            theObjectList.Add(atargetobject)
+                        End If
+                    End If
+                Next
+
+                '** phase II: if on domainbehavior then get the objects out of the active domain entries
+                '**
+                If domainBehavior Then
+                    For Each aRecord In aDomainRecordCollection.Values
+                        Dim atargetobject As New T
+                        If ormDataObject.InfuseDataObject(record:=aRecord, dataobject:=TryCast(atargetobject, iormInfusable), _
+                                                          mode:=otInfuseMode.OnInject Or otInfuseMode.OnDefault) Then
+                            theObjectList.Add(DirectCast(atargetobject, iormPersistable))
+                        End If
+                    Next
+                End If
+
+                ''' return the ObjectsList
+                Return theObjectList
+
+            Catch ex As Exception
+                Call CoreMessageHandler(exception:=ex, subname:="ormDataObject.All(of T)")
+                Return theObjectList
+            End Try
+
+
+        End Function
+    End Class
     ''' <summary>
     ''' Enumerator for QueryEnumeration
     ''' </summary>
@@ -124,7 +291,7 @@ Namespace OnTrack.Database
 
             ''' Check Tablenames
             If tablenames IsNot Nothing AndAlso CheckTablenames(tablenames) Then
-                Throw New ORMException("instance creation error for " & _objecttype.Name & " for tables " & tablenames.ToArray.ToString)
+                Throw New ormException("instance creation error for " & _objecttype.Name & " for tables " & tablenames.ToArray.ToString)
             End If
         End Sub
 
@@ -140,15 +307,15 @@ Namespace OnTrack.Database
             ''' set the resulted object type
             ''' 
             _isObjectEnumerated = SetObjectType(type)
-           
+
             ''' Check tablename
             ''' 
             If CheckTablenames(command.TableIDs) Then
-                Throw New ORMException("instance creation error for " & _objecttype.Name & " for tables " & command.TableIDs.ToArray.ToString)
+                Throw New ormException("instance creation error for " & _objecttype.Name & " for tables " & command.TableIDs.ToArray.ToString)
             End If
             _select = command
         End Sub
-       
+
 #Region "Properties"
         ''' <summary>
         ''' sets entry order for 
@@ -304,7 +471,7 @@ Namespace OnTrack.Database
             End Get
             Set(value As List(Of String))
                 If value IsNot Nothing AndAlso CheckTablenames(value) Then
-                    Throw New ORMException("instance creation error for " & _objecttype.Name & " for tables " & value.ToArray.ToString)
+                    Throw New ormException("instance creation error for " & _objecttype.Name & " for tables " & value.ToArray.ToString)
                 End If
                 For Each aTablename In value
                     If _select.TableIDs.Contains(aTablename.ToUpper) Then
@@ -432,7 +599,7 @@ Namespace OnTrack.Database
             If type.GetInterface(name:=GetType(iormPersistable).Name) IsNot Nothing Then
                 Dim aDescription = ot.GetObjectClassDescription(type)
                 If aDescription Is Nothing Then
-                    Throw New ORMException(message:="The supplied type '" & type.Name & "' has not been found in the Class Repository ")
+                    Throw New ormException(message:="The supplied type '" & type.Name & "' has not been found in the Class Repository ")
                 Else
                     _objectid = aDescription.ObjectAttribute.ID
                     _objecttype = type
@@ -444,7 +611,7 @@ Namespace OnTrack.Database
                     Return True
                 End If
             Else
-                Throw New ORMException(message:="The supplied type '" & type.Name & "' is not implementing " & GetType(iormPersistable).Name)
+                Throw New ormException(message:="The supplied type '" & type.Name & "' is not implementing " & GetType(iormPersistable).Name)
             End If
         End Function
         ''' <summary>
@@ -489,7 +656,7 @@ Namespace OnTrack.Database
         ''' <param name="value"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function SetValue(name As String, value As Object) As Boolean Implements iormQueriedEnumeration.setvalue
+        Public Function SetValue(name As String, value As Object) As Boolean Implements iormQueriedEnumeration.SetValue
             If _parametervalues.ContainsKey(name) Then
                 Return False
             Else
@@ -503,7 +670,7 @@ Namespace OnTrack.Database
         ''' <param name="value"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetValue(name As String, ByRef value As Object) As Boolean Implements iormQueriedEnumeration.getvalue
+        Public Function GetValue(name As String, ByRef value As Object) As Boolean Implements iormQueriedEnumeration.GetValue
             If _parametervalues.ContainsKey(name) Then
                 value = _parametervalues.Item(key:=name)
                 Return True
@@ -663,7 +830,7 @@ Namespace OnTrack.Database
                         '** build pk key
                         Dim pk As String = ""
                         For Each acolumnname In pknames
-                            If acolumnname <> Domain.ConstFNDomainID Then pk &= aRecord.GetValue(index:=acolumnname).ToString & ConstDelimiter
+                            If acolumnname <> Commons.Domain.ConstFNDomainID Then pk &= aRecord.GetValue(index:=acolumnname).ToString & ConstDelimiter
                         Next
 
                         If aDomainRecordCollection.ContainsKey(pk) Then

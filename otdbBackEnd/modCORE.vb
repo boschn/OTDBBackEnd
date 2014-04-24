@@ -28,7 +28,7 @@ Imports System.Threading
 
 ' Delegate declaration.
 '
-Public Delegate Sub onErrorRaised(sender As Object, e As otErrorEventArgs)
+Public Delegate Sub onErrorRaised(sender As Object, e As ormErrorEventArgs)
 
 Namespace OnTrack
 
@@ -1305,29 +1305,29 @@ Namespace OnTrack
         ''' <param name="datatype"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetDefaultValue(datatype As otFieldDataType) As Object
+        Public Function GetDefaultValue(datatype As otDataType) As Object
 
             Select Case datatype
-                Case otFieldDataType.Bool
+                Case otDataType.Bool
                     Return False
-                Case otFieldDataType.Date
+                Case otDataType.Date
                     Return ConstNullDate
-                Case otFieldDataType.List
+                Case otDataType.List
                     ''' To do implement inner Type
                     ''' or accept Object()
                     Dim aValue As New List(Of String)
                     Return aValue.ToArray
-                Case otFieldDataType.Long
+                Case otDataType.Long
                     Return 0
-                Case otFieldDataType.Memo
+                Case otDataType.Memo
                     Return ""
-                Case otFieldDataType.Numeric
+                Case otDataType.Numeric
                     Return 0
-                Case otFieldDataType.Text
+                Case otDataType.Text
                     Return ""
-                Case otFieldDataType.Time
+                Case otDataType.Time
                     Return ConstNullTime
-                Case otFieldDataType.Timestamp
+                Case otDataType.Timestamp
                     Return ConstNullDate
                 Case Else
                     CoreMessageHandler(message:="datatype must be implemented", messagetype:=otCoreMessageType.InternalError, subname:="DefaultValue")
@@ -1341,26 +1341,26 @@ Namespace OnTrack
         ''' <param name="datatype"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetDatatypeMappingOf(datatype As otFieldDataType) As System.Type
+        Public Function GetDatatypeMappingOf(datatype As otDataType) As System.Type
 
             Select Case datatype
-                Case otFieldDataType.Date
+                Case otDataType.Date
                     Return GetType(DateTime)
-                Case otFieldDataType.Bool
+                Case otDataType.Bool
                     Return GetType(Boolean)
-                Case otFieldDataType.List
+                Case otDataType.List
                     Return GetType(List(Of String))
-                Case otFieldDataType.Long
+                Case otDataType.Long
                     Return GetType(Long)
-                Case otFieldDataType.Memo
+                Case otDataType.Memo
                     Return GetType(String)
-                Case otFieldDataType.Text
+                Case otDataType.Text
                     Return GetType(String)
-                Case otFieldDataType.Time
+                Case otDataType.Time
                     Return GetType(DateTime)
-                Case otFieldDataType.Numeric
+                Case otDataType.Numeric
                     Return GetType(Double)
-                Case otFieldDataType.Timestamp
+                Case otDataType.Timestamp
                     Return GetType(DateTime)
                 Case Else
                     CoreMessageHandler(message:="Mapping for datatype must be implemented", arg1:=datatype, subname:="DataTypeMapping", messagetype:=otCoreMessageType.InternalError)

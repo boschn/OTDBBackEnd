@@ -20,6 +20,140 @@ Imports System.Collections.Generic
 Imports System.Reflection
 
 Namespace OnTrack.Database
+    ''' <summary>
+    ''' ObjectEntry Validation Property Class
+    ''' </summary>
+    ''' <remarks></remarks>
+    Public Class ObjectValidationProperty
+        Inherits AbstractPropertyFunction(Of otObjectValidationProperty)
+        Public Const Unique = "UNIQUE"
+        Public Const NotEmpty = "NOTEMPTY"
+        Public Const UseLookup = "USELOOKUP"
+        ''' <summary>
+        ''' constructor
+        ''' </summary>
+        ''' <param name="propertystring"></param>
+        ''' <remarks></remarks>
+        Public Sub New(propertystring As String)
+            MyBase.New(propertystring:=propertystring)
+        End Sub
+        ''' <summary>
+        ''' Apply the Property function to a value
+        ''' </summary>
+        ''' <param name="in"></param>
+        ''' <param name="out"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function Apply(ByVal [in] As String()) As Boolean
+            Dim result As Boolean = True
+            If [in] Is Nothing Then Return True
+            For i = 0 To [in].Count - 1
+                result = result And Me.Apply([in]:=[in](i))
+            Next
+            Return result
+        End Function
+        ''' <summary>
+        ''' Apply the Property function to a value
+        ''' </summary>
+        ''' <param name="in"></param>
+        ''' <param name="out"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function Apply(ByVal [in] As Object) As Boolean
+            Select Case _property
+                Case otObjectValidationProperty.Unique
+                    Return True
+                Case Else
+                    CoreMessageHandler(message:="Property function is not implemented", arg1:=_property.ToString, messagetype:=otCoreMessageType.InternalError, _
+                                       subname:="ObjectValidationProperty.Apply")
+                    Return False
+            End Select
+        End Function
+        ''' <summary>
+        ''' returns the enumeration value
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function ToEnum() As otObjectValidationProperty
+            Return AbstractPropertyFunction(Of otObjectValidationProperty).ToEnum(_property)
+        End Function
+    End Class
+    ''' <summary>
+    ''' Enumeration of the validation properties
+    ''' </summary>
+    ''' <remarks></remarks>
+    Public Enum otObjectValidationProperty
+        <Description(ObjectValidationProperty.Unique)> Unique = 1
+        <Description(ObjectValidationProperty.NotEmpty)> NotEmpty
+        <Description(ObjectValidationProperty.UseLookup)> UseLookup
+    End Enum
+
+
+    ''' <summary>
+    ''' type of validation results
+    ''' </summary>
+    ''' <remarks></remarks>
+    Public Enum otValidationResultType
+        FailedNoSave = 1
+        FailedButSave
+        Succeeded
+    End Enum
+
+    ''' <summary>
+    ''' Validation parts of the ormDataObject Class
+    ''' </summary>
+    ''' <remarks></remarks>
+
+    Partial Public MustInherit Class ormDataObject
+
+        ''' <summary>
+        ''' validates the Business Object as total
+        ''' </summary>
+        ''' <remarks></remarks>
+        ''' <returns>True if validated and OK</returns>
+        Public Function Validate() As otValidationResultType Implements iormValidatable.Validate
+            Return otValidationResultType.Succeeded
+        End Function
+
+        ''' <summary>
+        ''' validates a named object entry of the object
+        ''' </summary>
+        ''' <param name="enryname"></param>
+        ''' <remarks></remarks>
+        ''' <returns></returns>
+        Protected Function Validate(enryname As String, ByVal value As Object) As otValidationResultType Implements iormValidatable.Validate
+            Dim result As otValidationResultType
+
+            ''' how to validate during bootstrapping or session starting
+            If CurrentSession.IsBootstrappingInstallationRequested OrElse CurrentSession.IsStartingUp Then
+                '' while doing it different
+                result = otValidationResultType.Succeeded
+            Else
+                ''' 3 Step Validation process
+                ''' 
+                Dim aLog As New ObjectLog
+
+                ''' STEP 1 Validate the entry itself
+                ''' 
+                result = ObjectValidator.ValidateEntry(Me.ObjectDefinition.GetEntry(enryname), newvalue:=value, log:=aLog)
+                If result = otValidationResultType.FailedNoSave Then Return result
+
+                ''' STEP 2 VALIDATE the entry not-context free
+                ''' 
+                result = ObjectValidator.ValidateEntry(Me.ObjectDefinition.GetEntry(enryname), dataobject:=Me, log:=aLog)
+                If result = otValidationResultType.FailedNoSave Then Return result
+                ''' STEP 3 VALIDATE the Object with the new entry
+                ''' 
+                result = ObjectValidator.ValidateObject(Me.ObjectDefinition, dataobject:=Me, log:=aLog)
+                If result = otValidationResultType.FailedNoSave Then Return result
+
+                Return result
+            End If
+            Return result
+        End Function
+
+    End Class
+
 
     ''' <summary>
     ''' Class for Object (Entry) Validation
@@ -207,7 +341,7 @@ Namespace OnTrack.Database
                         theProperties = anObjectDefinition.GetEntry(entryname).Properties
                     End If
 
-                    
+
                 Else
                     anObjectClassDescription = ot.GetObjectClassDescriptionByID(objectid)
 

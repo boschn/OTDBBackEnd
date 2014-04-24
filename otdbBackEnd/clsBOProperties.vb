@@ -26,6 +26,7 @@ Imports OnTrack.Database
 Imports OnTrack.XChange
 Imports OnTrack.Scheduling
 Imports OnTrack.Deliverables
+Imports OnTrack.Commons
 
 Namespace OnTrack.ObjectProperties
     ''' <summary>
@@ -54,20 +55,20 @@ Namespace OnTrack.ObjectProperties
         <ormSchemaTable(version:=1, usecache:=True)> Public Const constTableID = "TBLDEFOBJPROPERTYSETS"
 
         '** primary Keys
-        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, primaryKeyOrdinal:=1, _
+        <ormObjectEntry(typeid:=otDataType.Text, size:=50, primaryKeyOrdinal:=1, _
             properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty},
             XID:="OPS1", title:="Set ID", description:="ID of the property set")> Public Const ConstFNSetID = "SETID"
 
         <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=2 _
          , useforeignkey:=otForeignKeyImplementation.NativeDatabase, defaultvalue:=ConstGlobalDomain)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
-        <ormObjectEntry(typeid:=otFieldDataType.Text, isnullable:=True, _
+        <ormObjectEntry(typeid:=otDataType.Text, isnullable:=True, _
           XID:="OPS3", title:="Description", description:="description of the property section")> Public Const ConstFNDescription = "DESC"
 
-        <ormObjectEntry(typeid:=otFieldDataType.List, isnullable:=True, _
+        <ormObjectEntry(typeid:=otDataType.List, isnullable:=True, _
           XID:="OPS4", title:="Properties", description:="properties of the object property section")> Public Const ConstFNProperties = "PROPERTIES"
 
-        <ormObjectEntry(typeid:=otFieldDataType.List, isnullable:=True, _
+        <ormObjectEntry(typeid:=otDataType.List, isnullable:=True, _
          XID:="OPS5", title:="Business Objects", description:="applicable business objects for this section")> Public Const ConstFNObjects = "OBJECTS"
 
         ''' <summary>
@@ -210,7 +211,7 @@ Namespace OnTrack.ObjectProperties
         <ormObjectEntry(referenceObjectEntry:=PropertySet.ConstObjectID & "." & PropertySet.ConstFNSetID, primarykeyordinal:=1 _
          , defaultvalue:=ConstGlobalDomain)> Public Const ConstFNSetID = PropertySet.ConstFNSetID
 
-        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, primaryKeyOrdinal:=2, _
+        <ormObjectEntry(typeid:=otDataType.Text, size:=50, primaryKeyOrdinal:=2, _
             properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty},
             XID:="OPR2", title:="Name", description:="ID of the property")> Public Const ConstFNPropertyID = "PROPERTYID"
 
@@ -225,7 +226,7 @@ Namespace OnTrack.ObjectProperties
         ''' other fields
         ''' </summary>
         ''' <remarks></remarks>
-        <ormObjectEntry(typeid:=otFieldDataType.List, isnullable:=True, _
+        <ormObjectEntry(typeid:=otDataType.List, isnullable:=True, _
           XID:="OPR4", title:="Extended Properties", description:="internal properties of the object property")> Public Shadows Const ConstFNExtProperties = "EXTPROPERTIES"
 
         ''' <summary>
@@ -405,16 +406,16 @@ Namespace OnTrack.ObjectProperties
             properties:={ObjectEntryProperty.Keyword}, _
             validationPropertyStrings:={ObjectValidationProperty.NotEmpty, ObjectValidationProperty.UseLookup}, _
             LookupPropertyStrings:={LookupProperty.UseAttributeValues}, _
-            values:={Deliverable.ConstObjectID, Parts.Part.ConstObjectID, Configurables.ConfigCondition.ConstObjectID}, _
+            values:={Deliverable.ConstObjectID, Parts.Part.ConstObjectID, Configurables.ConfigItemSelector.ConstObjectID}, _
             dbdefaultvalue:=Deliverable.ConstObjectID, defaultvalue:=Deliverable.ConstObjectID, _
             XID:="OPL1", title:="From Object", description:="from object id of the business object")> _
         Public Const ConstFNFromObjectID = "FROMOBJECTID"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Long, primarykeyordinal:=2, dbdefaultvalue:="0", lowerrange:=0, _
+        <ormObjectEntry(typeid:=otDataType.Long, primarykeyordinal:=2, dbdefaultvalue:="0", lowerrange:=0, _
             XID:="OPL2", title:="Linked from UID", description:="from uid of the business object")> _
         Public Const ConstFNFromUid = "FROMUID"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Long, primarykeyordinal:=3, dbdefaultvalue:="0", lowerrange:=0, _
+        <ormObjectEntry(typeid:=otDataType.Long, primarykeyordinal:=3, dbdefaultvalue:="0", lowerrange:=0, _
             XID:="OPL3", title:="Linked from UPDC", description:="from uid of the business object")> _
         Public Const ConstFNFromUpdc = "FROMUPDC"
 
@@ -434,17 +435,17 @@ Namespace OnTrack.ObjectProperties
             XID:="OPL4", title:="Linked to Object", description:="object link to the config object")> _
         Public Const ConstFNToObjectID = "TOOBJECTID"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Long, dbdefaultvalue:="0", lowerrange:=0, _
+        <ormObjectEntry(typeid:=otDataType.Long, dbdefaultvalue:="0", lowerrange:=0, _
             XID:="OPL5", title:="Linked to UID", description:="uid link to the config object")> _
         Public Const ConstFNToUid = "TOUID"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Long, isnullable:=True, lowerrange:=0, _
+        <ormObjectEntry(typeid:=otDataType.Long, isnullable:=True, lowerrange:=0, _
             XID:="OPL6", title:="Linked to UPDC", description:="uid link to the config object")> _
         Public Const ConstFNToUpdc = "TOUPDC"
 
 
         '** fields
-        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, _
+        <ormObjectEntry(typeid:=otDataType.Text, size:=50, _
             XID:="OPL10", title:="Linke Type", description:="object link type")> Public Const ConstFNTypeID = "typeid"
 
         '** Mapping
@@ -646,10 +647,10 @@ Namespace OnTrack.ObjectProperties
         ''' primary keys
         ''' </summary>
         ''' <remarks></remarks>
-        <ormObjectEntry(typeid:=otFieldDataType.Long, primaryKeyOrdinal:=1, dbdefaultvalue:="0", _
+        <ormObjectEntry(typeid:=otDataType.Long, primaryKeyOrdinal:=1, dbdefaultvalue:="0", _
               XID:="PLOT1", title:="Lot UID", description:="UID of the property value lot")> Public Const constFNUID = "PUID"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Long, dbdefaultvalue:="0", primaryKeyordinal:=2, _
+        <ormObjectEntry(typeid:=otDataType.Long, dbdefaultvalue:="0", primaryKeyordinal:=2, _
             title:="update count", Description:="Update count of the property value lot", XID:="PLOT2")> Public Const ConstFNUpdc = "UPDC"
 
         ''' <summary>
@@ -659,17 +660,17 @@ Namespace OnTrack.ObjectProperties
         <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, defaultvalue:=ConstGlobalDomain, _
           useforeignkey:=otForeignKeyImplementation.None, dbdefaultvalue:=ConstGlobalDomain)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
-        <ormObjectEntry(typeid:=otFieldDataType.Text, isnullable:=True, _
+        <ormObjectEntry(typeid:=otDataType.Text, isnullable:=True, _
           XID:="PLOT3", title:="Description", description:="description of the property value lot")> Public Const ConstFNDescription = "DESC"
 
-        <ormObjectEntry(typeid:=otFieldDataType.List, _
+        <ormObjectEntry(typeid:=otDataType.List, _
          lookupPropertyStrings:={LookupProperty.UseObject & "(" & PropertySet.ConstObjectID & ")"}, validationPropertyStrings:={ObjectValidationProperty.UseLookup}, _
          XID:="PLOT4", title:="Property Sets", description:="applicable property sets for this lot")> Public Const ConstFNSets = "SETS"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Date, isnullable:=True, _
+        <ormObjectEntry(typeid:=otDataType.Date, isnullable:=True, _
         XID:="PLOT11", title:="valid from", description:="property set is valid from ")> Public Const ConstFNValidFrom = "validfrom"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Date, isnullable:=True, _
+        <ormObjectEntry(typeid:=otDataType.Date, isnullable:=True, _
        XID:="PLOT12", title:="valid until", description:="property set is valid until ")> Public Const ConstFNValiduntil = "validuntil"
 
 
@@ -888,7 +889,7 @@ Namespace OnTrack.ObjectProperties
         '''  Fields
         ''' </summary>
         ''' <remarks></remarks>
-        <ormObjectEntry(typeid:=otFieldDataType.Text, isnullable:=True, _
+        <ormObjectEntry(typeid:=otDataType.Text, isnullable:=True, _
           XID:="PV10", title:="Value", description:="Value in string representation")> Public Const ConstFNValue = "VALUE"
 
         <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, _

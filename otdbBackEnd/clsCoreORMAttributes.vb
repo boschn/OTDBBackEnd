@@ -1123,8 +1123,8 @@ Namespace OnTrack.Database
         Protected _ID As String = Nothing
 
         Protected _TableID As String = Nothing
-        Protected _Typeid As Nullable(Of otFieldDataType)
-        Protected _InnerTypeID As Nullable(Of otFieldDataType)
+        Protected _Typeid As Nullable(Of otDataType)
+        Protected _InnerTypeID As Nullable(Of otDataType)
         Protected _size As Nullable(Of Long)
         Protected _Parameter As String = Nothing
         Protected _primaryKeyOrdinal As Nullable(Of Short)
@@ -1302,11 +1302,11 @@ Namespace OnTrack.Database
         ''' Gets or sets the typeid.
         ''' </summary>
         ''' <value>The typeid.</value>
-        Public Property Typeid() As otFieldDataType
+        Public Property Typeid() As otDataType
             Get
                 Return Me._Typeid
             End Get
-            Set(value As otFieldDataType)
+            Set(value As otDataType)
                 Me._Typeid = value
             End Set
         End Property
@@ -1319,11 +1319,11 @@ Namespace OnTrack.Database
         ''' Gets or sets the inner typeid of list.
         ''' </summary>
         ''' <value>The typeid.</value>
-        Public Property InnerTypeid() As otFieldDataType
+        Public Property InnerTypeid() As otDataType
             Get
                 Return Me._InnerTypeID
             End Get
-            Set(value As otFieldDataType)
+            Set(value As otDataType)
                 Me._InnerTypeID = value
             End Set
         End Property
@@ -2726,10 +2726,10 @@ Namespace OnTrack.Database
     ''' <remarks></remarks>
 
     <AttributeUsage(AttributeTargets.Class Or AttributeTargets.Field, AllowMultiple:=False, Inherited:=True)> _
-    Public Class ormObjectOperationAttribute
+    Public Class ormObjectTransaction
         Inherits Attribute
         Private _ID As String = Nothing
-        Private _OperationName As String = Nothing
+        Private _TransactionName As String = Nothing
         Private _enabled As Boolean = True
         Private _Title As String = Nothing
         Private _Description As String = Nothing
@@ -2745,26 +2745,26 @@ Namespace OnTrack.Database
             Get
                 Return Me._enabled
             End Get
-            Set
+            Set(value As Boolean)
                 Me._enabled = Value
             End Set
         End Property
 
         ''' <summary>
-        ''' Gets or sets the description.
+        ''' Gets or sets the name of the transaction.
         ''' </summary>
         ''' <value>The description.</value>
-        Public Property OperationName As String
+        Public Property TransactionName As String
             Get
-                Return Me._OperationName
+                Return Me._TransactionName
             End Get
             Set(value As String)
-                Me._OperationName = value
+                Me._TransactionName = value
             End Set
         End Property
-        Public ReadOnly Property HasValueOperationName As Boolean
+        Public ReadOnly Property HasValueTransactionName As Boolean
             Get
-                Return _OperationName IsNot Nothing
+                Return _TransactionName IsNot Nothing AndAlso _TransactionName <> ""
             End Get
         End Property
         ''' <summary>

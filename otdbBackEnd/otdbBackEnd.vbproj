@@ -99,17 +99,22 @@
     <Compile Include="clsADONET.vb" />
     <Compile Include="clsADOOLEDB.vb" />
     <Compile Include="clsBOProperties.vb" />
+    <Compile Include="clsCoreORMDataObjectEvents.vb" />
+    <Compile Include="clsCoreORMDataObjectProperties.vb" />
+    <Compile Include="clsCoreORMDataStructures.vb" />
+    <Compile Include="clsCoreORMException.vb" />
+    <Compile Include="clsCoreORMRelations.vb" />
     <Compile Include="clsLEGACYBOM.vb" />
     <Compile Include="clsBOCalender.vb" />
     <Compile Include="clsBOConfigurable.vb" />
     <Compile Include="clsCore.vb" />
-    <Compile Include="clsCoreDef.vb" />
+    <Compile Include="clsCoreDeclaration.vb" />
     <Compile Include="clsCoreHelper.vb" />
     <Compile Include="clsCoreORMQuery.vb" />
     <Compile Include="clsCoreORMRepository.vb" />
     <Compile Include="clsCoreORM.vb" />
     <Compile Include="clsCoreORMAttributes.vb" />
-    <Compile Include="clsCoreClassRepository.vb" />
+    <Compile Include="clsCoreORMClasses.vb" />
     <Compile Include="clsCoreORMCache.vb" />
     <Compile Include="clsCoreORMDataObject.vb" />
     <Compile Include="clsCoreORMValidator.vb" />
@@ -129,6 +134,7 @@
     <Compile Include="clsLEGACYStatistics.vb" />
     <Compile Include="clsHELPERTimeInterval.vb" />
     <Compile Include="clsBOTracking.vb" />
+    <Compile Include="clsXChangeMgr.vb" />
     <Compile Include="UIWinFormLogin.Designer.vb">
       <DependentUpon>UIWinFormLogin.vb</DependentUpon>
     </Compile>

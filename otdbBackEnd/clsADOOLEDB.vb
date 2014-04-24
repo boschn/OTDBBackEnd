@@ -268,29 +268,29 @@ Namespace OnTrack.Database
         ''' <param name="type"></param>
         ''' <remarks></remarks>
         ''' <returns></returns>
-        Public Overrides Function GetTargetTypeFor(type As otFieldDataType) As Long Implements iormDatabaseDriver.GetTargetTypeFor
+        Public Overrides Function GetTargetTypeFor(type As otDataType) As Long Implements iormDatabaseDriver.GetTargetTypeFor
 
             Try
                 Select Case type
-                    Case otFieldDataType.Binary
+                    Case otDataType.Binary
                         Return OleDbType.Binary
-                    Case otFieldDataType.Bool
+                    Case otDataType.Bool
                         Return OleDbType.Boolean
-                    Case otFieldDataType.[Date]
+                    Case otDataType.[Date]
                         Return OleDbType.Date
-                    Case otFieldDataType.Time
+                    Case otDataType.Time
                         Return OleDbType.DBTime
-                    Case otFieldDataType.List
+                    Case otDataType.List
                         Return OleDbType.WChar
-                    Case otFieldDataType.[Long]
+                    Case otDataType.[Long]
                         Return OleDbType.Integer
-                    Case otFieldDataType.Memo
+                    Case otDataType.Memo
                         Return OleDbType.WChar
-                    Case otFieldDataType.Numeric
+                    Case otDataType.Numeric
                         Return OleDbType.Double
-                    Case otFieldDataType.Timestamp
+                    Case otDataType.Timestamp
                         Return OleDbType.Date
-                    Case otFieldDataType.Text
+                    Case otDataType.Text
                         Return OleDbType.WChar
                     Case Else
 
@@ -603,7 +603,7 @@ Namespace OnTrack.Database
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overrides Function AssignNativeDBParameter(parametername As String, _
-                                                          datatype As otFieldDataType, _
+                                                          datatype As otDataType, _
                                                            Optional maxsize As Long = 0, _
                                                           Optional value As Object = Nothing) As System.Data.IDbDataParameter _
                                                       Implements iormDatabaseDriver.AssignNativeDBParameter
@@ -616,25 +616,25 @@ Namespace OnTrack.Database
                 aParameter.OleDbType = GetTargetTypeFor(datatype)
                 Select Case datatype
 
-                    Case otFieldDataType.Bool
+                    Case otDataType.Bool
                         aParameter.Value = False
-                    Case otFieldDataType.[Date]
+                    Case otDataType.[Date]
                         aParameter.Value = ConstNullDate
-                    Case otFieldDataType.Time
+                    Case otDataType.Time
                         aParameter.Value = ot.ConstNullTime
-                    Case otFieldDataType.List
+                    Case otDataType.List
                         If maxsize = 0 Then aParameter.Size = ConstDBDriverMaxTextSize
                         aParameter.Value = ""
-                    Case otFieldDataType.[Long]
+                    Case otDataType.[Long]
                         aParameter.Value = 0
-                    Case otFieldDataType.Memo
+                    Case otDataType.Memo
                         If maxsize = 0 Then aParameter.Size = constDBDriverMaxMemoSize
                         aParameter.Value = ""
-                    Case otFieldDataType.Numeric
+                    Case otDataType.Numeric
                         aParameter.Value = 0
-                    Case otFieldDataType.Timestamp
+                    Case otDataType.Timestamp
                         aParameter.Value = ConstNullDate
-                    Case otFieldDataType.Text
+                    Case otDataType.Text
                         If maxsize = 0 Then aParameter.Size = ConstDBDriverMaxTextSize
                         aParameter.Value = ""
 
@@ -957,30 +957,30 @@ Namespace OnTrack.Database
                     If indexnotchanged Then
                         Return columnsIndexList
                     End If
-                    End If
+                End If
 
 
-                    '** drop existing
+                '** drop existing
 
-                    If (isprimaryKey Or indexdefinition.IsPrimary) And existingprimaryName <> "" Then
-                        aStatement = " ALTER TABLE " & atableid & " DROP CONSTRAINT [" & existingprimaryName & "]"
-                        Me.RunSqlStatement(aStatement)
-                    ElseIf existingIndex Then
-                        aStatement = " DROP INDEX " & existingIndex
-                        Me.RunSqlStatement(aStatement)
-                    End If
+                If (isprimaryKey Or indexdefinition.IsPrimary) And existingprimaryName <> "" Then
+                    aStatement = " ALTER TABLE " & atableid & " DROP CONSTRAINT [" & existingprimaryName & "]"
+                    Me.RunSqlStatement(aStatement)
+                ElseIf existingIndex Then
+                    aStatement = " DROP INDEX " & existingIndex
+                    Me.RunSqlStatement(aStatement)
+                End If
 
-                    '*** build new
-                    If indexdefinition.IsPrimary Then
-                        aStatement = " ALTER TABLE [" & atableid & "] ADD CONSTRAINT [" & atableid & "_" & indexdefinition.Name & "] PRIMARY KEY ("
-                        Dim comma As Boolean = False
-                        For Each name As String In indexdefinition.Columnnames
-                            If comma Then aStatement &= ","
-                            aStatement &= "[" & name & "]"
-                            comma = True
-                        Next
-                        aStatement &= ")"
-                        Me.RunSqlStatement(aStatement)
+                '*** build new
+                If indexdefinition.IsPrimary Then
+                    aStatement = " ALTER TABLE [" & atableid & "] ADD CONSTRAINT [" & atableid & "_" & indexdefinition.Name & "] PRIMARY KEY ("
+                    Dim comma As Boolean = False
+                    For Each name As String In indexdefinition.Columnnames
+                        If comma Then aStatement &= ","
+                        aStatement &= "[" & name & "]"
+                        comma = True
+                    Next
+                    aStatement &= ")"
+                    Me.RunSqlStatement(aStatement)
                 Else
                     Dim UniqueStr As String = ""
                     If indexdefinition.IsUnique Then UniqueStr = "UNIQUE"
@@ -993,28 +993,28 @@ Namespace OnTrack.Database
                     Next
                     aStatement &= ")"
                     Me.RunSqlStatement(aStatement)
-                    End If
+                End If
 
-                    '** read indixes
+                '** read indixes
 
-                    anIndexTable = DirectCast(myconnection.NativeInternalConnection, System.Data.OleDb.OleDbConnection).GetSchema("INDEXES", restrictionsIndex)
+                anIndexTable = DirectCast(myconnection.NativeInternalConnection, System.Data.OleDb.OleDbConnection).GetSchema("INDEXES", restrictionsIndex)
 
-                    Dim columnsResultIndexList = From indexRow In anIndexTable.AsEnumerable Select TableName = indexRow.Field(Of String)("TABLE_NAME"), _
-                                                 theIndexName = indexRow.Field(Of String)("INDEX_NAME"), _
-                                                 Columnordinal = indexRow.Field(Of Int64)("ORDINAL_POSITION"), _
-                                                 ColumnName = indexRow.Field(Of String)("COLUMN_NAME"), _
-                                                IndexisPrimaryKey = indexRow.Field(Of Boolean)("PRIMARY_KEY") _
-                                                Where [ColumnName] <> "" And TableName <> "" And Columnordinal > 0 And (theIndexName = newindexname Or theIndexName = atableid & "_" & newindexname) _
-                                                Order By TableName, newindexname, Columnordinal, ColumnName
+                Dim columnsResultIndexList = From indexRow In anIndexTable.AsEnumerable Select TableName = indexRow.Field(Of String)("TABLE_NAME"), _
+                                             theIndexName = indexRow.Field(Of String)("INDEX_NAME"), _
+                                             Columnordinal = indexRow.Field(Of Int64)("ORDINAL_POSITION"), _
+                                             ColumnName = indexRow.Field(Of String)("COLUMN_NAME"), _
+                                            IndexisPrimaryKey = indexRow.Field(Of Boolean)("PRIMARY_KEY") _
+                                            Where [ColumnName] <> "" And TableName <> "" And Columnordinal > 0 And (theIndexName = newindexname Or theIndexName = atableid & "_" & newindexname) _
+                                            Order By TableName, newindexname, Columnordinal, ColumnName
 
-                    If columnsResultIndexList.Count > 0 Then
-                        Return columnsResultIndexList
-                    Else
-                        Call CoreMessageHandler(message:="creation of index failed", arg1:=indexdefinition.Name, _
-                                                     subname:="oleDBDriver.getIndex", tablename:=atableid, _
-                                                     messagetype:=otCoreMessageType.InternalError)
-                        Return Nothing
-                    End If
+                If columnsResultIndexList.Count > 0 Then
+                    Return columnsResultIndexList
+                Else
+                    Call CoreMessageHandler(message:="creation of index failed", arg1:=indexdefinition.Name, _
+                                                 subname:="oleDBDriver.getIndex", tablename:=atableid, _
+                                                 messagetype:=otCoreMessageType.InternalError)
+                    Return Nothing
+                End If
 
             Catch ex As OleDb.OleDbException
                 Call CoreMessageHandler(showmsgbox:=True, subname:="oleDBDriver.GetIndex", arg1:=aStatement, tablename:=atableid, _
@@ -1029,7 +1029,7 @@ Namespace OnTrack.Database
                 Return Nothing
             End Try
         End Function
-       
+
         ''' <summary>
         ''' returns True if the table id has the Column
         ''' </summary>
@@ -1356,28 +1356,28 @@ Namespace OnTrack.Database
                     aStatement &= "[" & columndefinition.Name & "] "
 
                     Select Case columndefinition.Datatype
-                        Case otFieldDataType.Bool
+                        Case otDataType.Bool
                             aStatement &= " BIT "
-                        Case otFieldDataType.Binary
+                        Case otDataType.Binary
                             aStatement &= " BINARY VARYING"
-                        Case otFieldDataType.Date
+                        Case otDataType.Date
                             aStatement &= " DATE "
-                        Case otFieldDataType.Long
+                        Case otDataType.Long
                             If Me.DatabaseType = otDBServerType.Access Then
                                 aStatement &= " INTEGER "
                             Else
                                 aStatement &= " BIG INT "
                             End If
 
-                        Case otFieldDataType.Memo
+                        Case otDataType.Memo
                             If Me.DatabaseType = otDBServerType.Access Then
                                 aStatement &= " MEMO "
                             Else
                                 aStatement &= " NVARCHAR(" & constDBDriverMaxMemoSize.ToString & ")"
                             End If
-                        Case otFieldDataType.Numeric
+                        Case otDataType.Numeric
                             aStatement &= " FLOAT "
-                        Case otFieldDataType.Text, otFieldDataType.List
+                        Case otDataType.Text, otDataType.List
                             aStatement &= " NVARCHAR("
                             If Not columndefinition.Size.HasValue Then
                                 aStatement &= ConstDBDriverMaxTextSize.ToString
@@ -1389,9 +1389,9 @@ Namespace OnTrack.Database
                                 aStatement &= " MEMO "
                             End If
 
-                        Case otFieldDataType.Timestamp
+                        Case otDataType.Timestamp
                             aStatement &= " TIMESTAMP "
-                        Case otFieldDataType.Time
+                        Case otDataType.Time
                             aStatement &= " TIME "
                         Case Else
                             Call CoreMessageHandler(message:="Datatype is not implemented", tablename:=atableid, entryname:=columndefinition.Name, _

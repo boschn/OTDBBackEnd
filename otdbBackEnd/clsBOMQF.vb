@@ -55,7 +55,7 @@ Namespace OnTrack.Xchange
         Private s_cmt As String
         Private s_timestamp As Date
         Private s_procbyUser As String
-        Private s_xChangeConfig As New clsOTDBXChangeConfig
+        Private s_xChangeConfig As New XChangeConfiguration
         Private s_msglogtag As String
         '** for ERROR MSG
         Private s_ContextIdentifier As String
@@ -274,11 +274,11 @@ Namespace OnTrack.Xchange
                 End If
             End Set
         End Property
-        Public Property XChangeConfig() As clsOTDBXChangeConfig
+        Public Property XChangeConfig() As XChangeConfiguration
             Get
                 XchangeConfig = s_xChangeConfig
             End Get
-            Set(value As clsOTDBXChangeConfig)
+            Set(value As XChangeConfiguration)
                 If LCase(s_xChangeConfig.Configname) <> LCase(value.Configname) Then
                     s_xChangeConfig = value
                     s_xChangeConfigName = value.Configname
@@ -1417,8 +1417,8 @@ Namespace OnTrack.Xchange
         Public Function FillMapping(ByRef mapping As Dictionary(Of Object, Object)) As Boolean
             Dim aMapping As New Dictionary(Of Object, Object)
             Dim aMember As clsOTDBMessageQueueMember
-            Dim aConfig As clsOTDBXChangeConfig
-            Dim aConfigmember As clsOTDBXChangeMember
+            Dim aConfig As XChangeConfiguration
+            Dim aConfigmember As IXChangeConfigEntry
             Dim aValue As Object
 
 
@@ -1461,15 +1461,15 @@ Namespace OnTrack.Xchange
             Next aMember
 
             ' add the workspaceID to the MAPPING
-            aValue = aConfig.GetMemberValue(ID:="WS", mapping:=aMapping)
+            ' rework : aValue = aConfig.GetMemberValue(ID:="WS", mapping:=aMapping)
             If IsNull(aValue) Then
-                Call aConfig.AddAttributeByID(id:="WS", xcmd:=otXChangeCommandType.Read, isXChanged:=False)
+                Call aConfig.AddEntryByXID(Xid:="WS", xcmd:=otXChangeCommandType.Read, isXChanged:=False)
                 aValue = Me._queue.WorkspaceID
                 If aValue = "" Then
                     aValue = CurrentSession.CurrentWorkspaceID
                 End If
                 ' add the change Member
-                aConfigmember = aConfig.AttributeByID("WS")
+                aConfigmember = aConfig.GetEntryByXID("WS")
                 If aMapping.ContainsKey(key:=aConfigmember.ordinal.Value) Then
                     Call aMapping.Remove(key:=aConfigmember.ordinal.Value)
                 End If
@@ -1491,8 +1491,8 @@ Namespace OnTrack.Xchange
                                    Optional ByRef MSGLOG As ObjectLog = Nothing, _
                                    Optional ByRef MAPPING As Dictionary(Of Object, Object) = Nothing) As Boolean
             Dim aMapping As New Dictionary(Of Object, Object)
-            Dim aConfig As clsOTDBXChangeConfig
-            Dim aConfigmember As clsOTDBXChangeMember
+            Dim aConfig As XChangeConfiguration
+            Dim aConfigmember As IXChangeConfigEntry
 
 
             If Not me.isloaded And Not Me.IsCreated Then
@@ -1554,7 +1554,7 @@ Namespace OnTrack.Xchange
             Next aConfigmember
 
             ' call the precheck function
-            runXChange = aConfig.RunXPreCheck(aMapping, MSGLOG)
+            'runXChange = aConfig.RunXPreCheck(aMapping, MSGLOG)
 
             '** exit here just on Precheck
             If justprecheck Then
@@ -1562,7 +1562,7 @@ Namespace OnTrack.Xchange
             End If
 
             '** check on the status -> possible to continue ?
-            runXChange = aConfig.RunXChange(aMapping, MSGLOG)
+            'runXChange = aConfig.RunXChange(aMapping, MSGLOG)
 
             MAPPING = aMapping
 
@@ -1647,7 +1647,7 @@ Namespace OnTrack.Xchange
         Private s_objectname As String = ""
         Private s_fieldname As String = ""
         Private s_data As Object
-        Private s_datatype As otFieldDataType
+        Private s_datatype As otDataType
         Private s_msglogtag As String = ""
         Private s_status As String = ""
         Private s_timestamp As Date = ConstNullDate
@@ -1770,11 +1770,11 @@ Namespace OnTrack.Xchange
             End Set
         End Property
 
-        Public Property Datatype() As otFieldDataType
+        Public Property Datatype() As otDataType
             Get
                 DATATYPE = s_datatype
             End Get
-            Set(value As otFieldDataType)
+            Set(value As otDataType)
                 If s_datatype <> value Then
                     s_datatype = value
                     Me.IsChanged = True

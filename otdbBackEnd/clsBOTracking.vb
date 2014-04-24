@@ -22,6 +22,7 @@ Imports System.Diagnostics.Debug
 
 Imports OnTrack.Database
 Imports OnTrack
+Imports OnTrack.Commons
 
 Namespace OnTrack.Deliverables
 
@@ -48,29 +49,29 @@ Namespace OnTrack.Deliverables
         '** Primary Keys
         <ormObjectEntry(XID:="TI1", title:="List ID", description:="name of the tracking item list", _
             properties:={ObjectEntryProperty.Keyword}, validationPropertystrings:={ObjectValidationProperty.NotEmpty}, _
-            typeid:=otFieldDataType.Text, size:=50, primaryKeyordinal:=1)> Public Const constFNID = "listid"
+            typeid:=otDataType.Text, size:=50, primaryKeyordinal:=1)> Public Const constFNID = "listid"
 
         <ormObjectEntry(XID:="TI2", title:="List Pos", description:="entry number in the tracking item list", _
             lowerrange:=0, _
-            typeid:=otFieldDataType.Long, primaryKeyordinal:=2)> Public Const constFNPos = "posno"
+            typeid:=otDataType.Long, primaryKeyordinal:=2)> Public Const constFNPos = "posno"
 
         '*** fields
         <ormObjectEntry(referenceObjectentry:=Parts.Part.ConstObjectID & "." & Parts.Part.ConstFNPartID, _
             XID:="TI3", description:="part id of the item to be tracked", isnullable:=True, _
            isnullable:=True, useforeignkey:=otForeignKeyImplementation.ORM)> Public Const constFNPartid = Parts.Part.ConstFNPartID
 
-        <ormObjectEntry(XID:="TI4", title:="order", description:="ordinal in the list to be sorted", _
-           typeid:=otFieldDataType.Long)> Public Const constFNOrdinal = "order"
+        <ormObjectEntry(XID:="TI4", title:="order", defaultvalue:=0, dbdefaultvalue:="0", description:="ordinal in the list to be sorted", _
+           typeid:=otDataType.Long)> Public Const constFNOrdinal = "order"
 
         <ormObjectEntry(XID:="TI5", title:="matchcode", description:="matchcode for items", isnullable:=True, _
-           typeid:=otFieldDataType.Text, size:=100)> Public Const constFNMatchCode = "MATCHCODE"
+           typeid:=otDataType.Text, size:=100)> Public Const constFNMatchCode = "MATCHCODE"
 
         <ormObjectEntry(referenceObjectentry:=Deliverables.Deliverable.ConstObjectID & "." & Deliverables.Deliverable.constFNUid, _
                 XID:="TI7", description:="UID of the deliverable to be tracked", isnullable:=True, _
           isnullable:=True, useforeignkey:=otForeignKeyImplementation.ORM)> Public Const constFNDLVUID = Deliverables.Deliverable.constFNUid
 
         <ormObjectEntry(XID:="TI6", title:="Comments", description:="comment for the item", isnullable:=True, _
-         typeid:=otFieldDataType.Memo)> Public Const constFNComment = "cmt"
+         typeid:=otDataType.Memo)> Public Const constFNComment = "cmt"
 
         ' deactivate ForeignKEy we do not have this object in domains
         <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, _

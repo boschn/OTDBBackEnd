@@ -29,7 +29,7 @@ Imports System.Text.RegularExpressions
 Imports OnTrack.UI
 Imports System.Reflection
 
-Namespace OnTrack
+Namespace OnTrack.Database
 
 
     ''' <summary>
@@ -510,7 +510,7 @@ Namespace OnTrack
         Public Function ToEnum() As otForeignKeyAction
             Return AbstractPropertyFunction(Of otForeignKeyAction).ToEnum(_property)
         End Function
-       
+
     End Class
     ''' <summary>
     ''' Enumeration for Access Rights to the database
@@ -518,10 +518,10 @@ Namespace OnTrack
     ''' <remarks></remarks>
     Public Enum otForeignKeyAction
         <Description(ForeignKeyActionProperty.Cascade)> Cascade = 0
-        <Description(ForeignKeyActionProperty.Noop)> Noop
+        <Description(ForeignKeyActionProperty.NOOP)> Noop
         <Description(ForeignKeyActionProperty.Restrict)> Restrict
-        <Description(ForeignKeyActionProperty.setNull)> SetNull
-        <Description(ForeignKeyActionProperty.setDefault)> SetDefault
+        <Description(ForeignKeyActionProperty.SetNull)> SetNull
+        <Description(ForeignKeyActionProperty.SetDefault)> SetDefault
     End Enum
 
 
@@ -618,73 +618,6 @@ Namespace OnTrack
         <Description(ObjectEntryProperty.Encrypted)> Encrypted
     End Enum
 
-    ''' <summary>
-    ''' ObjectEntry Validation Property Class
-    ''' </summary>
-    ''' <remarks></remarks>
-    Public Class ObjectValidationProperty
-        Inherits AbstractPropertyFunction(Of otObjectValidationProperty)
-        Public Const Unique = "UNIQUE"
-        Public Const NotEmpty = "NOTEMPTY"
-        Public Const UseLookup = "USELOOKUP"
-        ''' <summary>
-        ''' constructor
-        ''' </summary>
-        ''' <param name="propertystring"></param>
-        ''' <remarks></remarks>
-        Public Sub New(propertystring As String)
-            MyBase.New(propertystring:=propertystring)
-        End Sub
-        ''' <summary>
-        ''' Apply the Property function to a value
-        ''' </summary>
-        ''' <param name="in"></param>
-        ''' <param name="out"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Function Apply(ByVal [in] As String()) As Boolean
-            Dim result As Boolean = True
-            If [in] Is Nothing Then Return True
-            For i = 0 To [in].Count - 1
-                result = result And Me.Apply([in]:=[in](i))
-            Next
-            Return result
-        End Function
-        ''' <summary>
-        ''' Apply the Property function to a value
-        ''' </summary>
-        ''' <param name="in"></param>
-        ''' <param name="out"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Function Apply(ByVal [in] As Object) As Boolean
-            Select Case _property
-                Case otObjectValidationProperty.Unique
-                    Return True
-                Case Else
-                    CoreMessageHandler(message:="Property function is not implemented", arg1:=_property.ToString, messagetype:=otCoreMessageType.InternalError, _
-                                       subname:="ObjectValidationProperty.Apply")
-                    Return False
-            End Select
-        End Function
-        ''' <summary>
-        ''' returns the enumeration value
-        ''' </summary>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Function ToEnum() As otObjectValidationProperty
-            Return AbstractPropertyFunction(Of otObjectValidationProperty).ToEnum(_property)
-        End Function
-    End Class
-    ''' <summary>
-    ''' Enumeration of the validation properties
-    ''' </summary>
-    ''' <remarks></remarks>
-    Public Enum otObjectValidationProperty
-        <Description(ObjectValidationProperty.Unique)> Unique = 1
-        <Description(ObjectValidationProperty.NotEmpty)> NotEmpty
-        <Description(ObjectValidationProperty.UseLookup)> UseLookup
-    End Enum
 
     ''' <summary>
     ''' ObjectEntry Validation Property Class
@@ -704,14 +637,14 @@ Namespace OnTrack
         Public Sub New(propertystring As String)
             MyBase.New(propertystring:=propertystring)
         End Sub
-       
+
         ''' <summary>
         ''' returns the enumeration value
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function ToEnum() As otObjectValidationProperty
-            Return AbstractPropertyFunction(Of otObjectValidationProperty).ToEnum(_property)
+        Public Function ToEnum() As otLookupProperty
+            Return AbstractPropertyFunction(Of otLookupProperty).ToEnum(_property)
         End Function
     End Class
     ''' <summary>
@@ -743,7 +676,7 @@ Namespace OnTrack
         Public Sub New(propertystring As String)
             MyBase.New(propertystring:=propertystring)
         End Sub
-        
+
         ''' <summary>
         ''' returns the enumeration value
         ''' </summary>

@@ -23,6 +23,7 @@ Imports OTDB
 Imports System.Text.RegularExpressions
 Imports OnTrack
 Imports OnTrack.UI
+Imports OnTrack.Commons
 
 Namespace OnTrack.Database
 
@@ -219,7 +220,7 @@ Namespace OnTrack.Database
 
             '** check each column
             For Each aColumn In tableattribute.ColumnAttributes
-                result = result and  Me.VerifyColumnSchema(aColumn) 
+                result = result And Me.VerifyColumnSchema(aColumn)
             Next
             If Not result Then
                 CoreMessageHandler(message:="table schema in database differs from table attributes", tablename:=tableattribute.TableName, _
@@ -336,7 +337,7 @@ Namespace OnTrack.Database
         ''' <param name="type"></param>
         ''' <remarks></remarks>
         ''' <returns></returns>
-        Public Overrides Function GetTargetTypeFor(type As otFieldDataType) As Long Implements iormDatabaseDriver.GetTargetTypeFor
+        Public Overrides Function GetTargetTypeFor(type As otDataType) As Long Implements iormDatabaseDriver.GetTargetTypeFor
             ' TODO: Implement this method
             Throw New NotImplementedException()
         End Function
@@ -1038,7 +1039,7 @@ Namespace OnTrack.Database
                     If aRecord.LoadFrom(aDataReader) Then
                         theResults.Add(aRecord)
                     End If
-                   
+
                 End While
 
                 aDataReader.Close()
@@ -1082,7 +1083,7 @@ Namespace OnTrack.Database
             Dim atableid As String = ""
 
             Try
-               
+
 
                 '**** NORMAL PROCEDURE RUNS AGAINST DATABASE
                 '****
@@ -1199,7 +1200,7 @@ Namespace OnTrack.Database
 
 
         End Function
-       
+
         ''' <summary>
         ''' runs a Sql Select Command and returns a List of Records
         ''' </summary>
@@ -1424,7 +1425,7 @@ Namespace OnTrack.Database
                                             Case SessionLogMessage.ConstFNIsDeleted
                                                 .value = False
                                             Case SessionLogMessage.ConstFNDeletedOn
-                                                .value = ConstNullDate
+                                                .value = constNullDate
                                             Case SessionLogMessage.ConstFNUsername
                                                 .value = anError.Username
                                             Case SessionLogMessage.ConstFNObjectname
@@ -1674,7 +1675,7 @@ Namespace OnTrack.Database
                             Return Nothing
                         End If
                         ' connect 
-                        _nativeinternalConnection = createNewNativeConnection()
+                        _nativeinternalConnection = CreateNewNativeConnection()
                         _nativeinternalConnection.ConnectionString = Me.Connectionstring
                         _nativeinternalConnection.Open()
                         ' check if state is open
@@ -2093,8 +2094,8 @@ Namespace OnTrack.Database
             Public IndexName As String
             Public CommandType As CommandType
             Public Sub New(name As String, type As CommandType)
-                IndexName = Name
-                CommandType = Type
+                IndexName = name
+                CommandType = type
             End Sub
         End Structure
 
@@ -2129,7 +2130,7 @@ Namespace OnTrack.Database
         ''' </summary>
         ''' <remarks></remarks>
         Protected Overrides Sub reset()
-            Call MyBase.reset()
+            Call MyBase.Reset()
             _CommandStore.Clear()
             _ColumnsTable.Clear()
             _IsInitialized = False
@@ -2221,8 +2222,8 @@ Namespace OnTrack.Database
         ''' <returns>ColumnDescription</returns>
         ''' <remarks>Returns Nothing on range bound exception</remarks>
         Public Function GetColumnDescription(index As UShort) As adoNetColumnDescription
-            If Index > 0 And Index <= _Columns.Length Then
-                Return _Columns(Index - 1)
+            If index > 0 And index <= _Columns.Length Then
+                Return _Columns(index - 1)
             Else
                 Return Nothing
             End If
@@ -2299,7 +2300,7 @@ Namespace OnTrack.Database
                     Return Nothing
                 End If
 
-                Dim aCommand As IDbCommand = createNativeDBCommand()
+                Dim aCommand As IDbCommand = CreateNativeDBCommand()
 
                 If nativeconnection Is Nothing And _Connection.NativeConnection IsNot Nothing Then
                     nativeconnection = DirectCast(Me._Connection.NativeConnection, IDbConnection)
@@ -2336,9 +2337,9 @@ Namespace OnTrack.Database
                             theIndexColumns = aColumnCollection.ToArray
                         End If
                         commandstr = "SELECT "
-                        For i = 0 To _fieldnames.GetUpperBound(0)
+                        For i = 0 To _Fieldnames.GetUpperBound(0)
                             commandstr &= String.Format("{0}.[{1}]", _TableID, _Fieldnames(i))
-                            If i <> _fieldnames.GetUpperBound(0) Then
+                            If i <> _Fieldnames.GetUpperBound(0) Then
                                 commandstr &= " , "
                             Else
                                 commandstr &= " "
@@ -3212,7 +3213,7 @@ Namespace OnTrack.Database
                 Catch ex As Exception
                     Call CoreMessageHandler(showmsgbox:=silent, subname:="adonetTableStore.getRecordsByIndex", _
                                           tablename:=Me.TableID, arg1:=keyArray, exception:=ex)
-                    If adatareader IsNot Nothing Then aDataReader.Close()
+                    If aDataReader IsNot Nothing Then aDataReader.Close()
 
                     Return New List(Of ormRecord)
                 End Try
@@ -3478,7 +3479,7 @@ Namespace OnTrack.Database
                         '** replace the values
                         If aCommand.Parameters IsNot Nothing Then
                             For Each aParameter In aCommand.Parameters
-                                If aParameter.Datatype <> otFieldDataType.Memo And aParameter.Datatype <> otFieldDataType.Text And aParameter.Datatype <> otFieldDataType.List Then
+                                If aParameter.Datatype <> otDataType.Memo And aParameter.Datatype <> otDataType.Text And aParameter.Datatype <> otDataType.List Then
                                     wherestatement = wherestatement.Replace(aParameter.ID, aParameter.Value)
                                 Else
                                     wherestatement = wherestatement.Replace(aParameter.ID, "'" & aParameter.Value & "'")
@@ -3666,7 +3667,7 @@ Namespace OnTrack.Database
         ''' <returns>true if successfull and written, false if error or no changes</returns>
         ''' <remarks></remarks>
         Public Function PersistCache(ByRef record As ormRecord, _
-                                     Optional ByVal timestamp As Date = ot.ConstNullDate, _
+                                     Optional ByVal timestamp As Date = ot.constNullDate, _
                                      Optional ByVal silent As Boolean = False) As Boolean
 
             Dim fieldname As String
@@ -3678,7 +3679,7 @@ Namespace OnTrack.Database
             Dim dataRows() As DataRow
 
             ' timestamp
-            If timestamp = ConstNullDate Then
+            If timestamp = constNullDate Then
                 timestamp = Date.Now
             End If
 
@@ -3887,7 +3888,7 @@ Namespace OnTrack.Database
         ''' <returns>true if successfull and written, false if error or no changes</returns>
         ''' <remarks></remarks>
         Public Overrides Function PersistRecord(ByRef record As ormRecord, _
-                                                Optional timestamp As Date = ot.ConstNullDate, _
+                                                Optional timestamp As Date = ot.constNullDate, _
                                                 Optional ByVal silent As Boolean = False) As Boolean _
         Implements iormDataStore.PersistRecord
 
@@ -3915,7 +3916,7 @@ Namespace OnTrack.Database
         ''' <returns>true if successfull and written, false if error or no changes</returns>
         ''' <remarks></remarks>
         Public Function PersistDirect(ByRef record As ormRecord, _
-                                      Optional ByVal timestamp As Date = ot.ConstNullDate, _
+                                      Optional ByVal timestamp As Date = ot.constNullDate, _
                                       Optional ByVal silent As Boolean = False) As Boolean
 
 
@@ -3927,7 +3928,7 @@ Namespace OnTrack.Database
             Dim persistCommand As IDbCommand
 
             ' timestamp
-            If timestamp = ConstNullDate Then
+            If timestamp = constNullDate Then
                 timestamp = Date.Now
             End If
 
@@ -4066,10 +4067,10 @@ Namespace OnTrack.Database
                             persistCommand.Parameters.Item("@" & ConstFNCreatedOn).Value = timestamp
                         ElseIf Me.TableSchema.GetFieldordinal(ConstFNCreatedOn) > 0 And Not record.IsCreated Then
                             If Not DBNull.Value.Equals(record.GetValue(ConstFNCreatedOn)) AndAlso Not record.GetValue(ConstFNCreatedOn) Is Nothing _
-                                AndAlso record.GetValue(ConstFNCreatedOn) <> ConstNullDate Then
+                                AndAlso record.GetValue(ConstFNCreatedOn) <> constNullDate Then
                                 persistCommand.Parameters.Item("@" & ConstFNCreatedOn).Value = record.GetValue(ConstFNCreatedOn)    'keep the value
                             ElseIf Me.TableSchema.GetFieldordinal(ConstFNUpdatedOn) > 0 AndAlso Not DBNull.Value.Equals(record.GetValue(ConstFNUpdatedOn)) _
-                                AndAlso Not record.GetValue(ConstFNUpdatedOn) Is Nothing AndAlso record.GetValue(ConstFNUpdatedOn) <> ConstNullDate Then
+                                AndAlso Not record.GetValue(ConstFNUpdatedOn) Is Nothing AndAlso record.GetValue(ConstFNUpdatedOn) <> constNullDate Then
                                 persistCommand.Parameters.Item("@" & ConstFNCreatedOn).Value = record.GetValue(ConstFNUpdatedOn)    'keep the value
                             Else
                                 persistCommand.Parameters.Item("@" & ConstFNCreatedOn).Value = timestamp

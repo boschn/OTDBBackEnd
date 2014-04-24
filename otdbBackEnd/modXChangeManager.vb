@@ -20,6 +20,8 @@ Imports System.Collections.Generic
 Imports System.Diagnostics.Debug
 
 Imports OnTrack
+Imports OnTrack.Database
+
 Namespace Ontrack
 
     Namespace XChange
@@ -40,94 +42,103 @@ Namespace Ontrack
             '********** createXChangeConfigs
             '**********
             Public Sub createXChangeConfigs()
-                Dim aConfig As clsOTDBXChangeConfig
+                Dim aConfig As XChangeConfiguration
 
                 '**** XSTATUS -> Config to eXchange the Status
                 '****
-                aConfig = CreateXChangeConfigFromTable(configname:="xstatus", _
+                aConfig = CreateXChangeConfigFromObjectDefinition(configname:="xstatus", _
                                                            objectname:="tblDefStatusItems", xcmd:=otXChangeCommandType.Read)
                 If aConfig Is Nothing Then
                 End If
 
             End Sub
 
-            '********** createXChangeConfigFromTable
-            '**********
-            Public Function CreateXChangeConfigFromTable(ByVal configname As String, _
+            ''' <summary>
+            ''' routine creates a xchange config from the object definition and adds all 
+            ''' </summary>
+            ''' <param name="configname"></param>
+            ''' <param name="objectname"></param>
+            ''' <param name="xcmd"></param>
+            ''' <returns></returns>
+            ''' <remarks></remarks>
+            Public Function CreateXChangeConfigFromObjectDefinition(ByVal configname As String, _
                                                          ByVal objectname As String, _
-                                                         ByVal xcmd As otXChangeCommandType) As clsOTDBXChangeConfig
+                                                         ByVal xcmd As otXChangeCommandType) As XChangeConfiguration
                 Dim anObjectName As String
-                Dim aNewConfig As New clsOTDBXChangeConfig
-                Dim anObjectDefinition As ObjectDefinition = OnTrack.ObjectDefinition.Retrieve(objectname:=objectname)
+                Dim aNewConfig As XChangeConfiguration = XChangeConfiguration.Create(configname:=configname)
+                If aNewConfig Is Nothing Then aNewConfig = XChangeConfiguration.Retrieve(configname:=configname)
+                If aNewConfig Is Nothing Then
+                    ot.CoreMessageHandler(message:="xchange configuration couldnot be created nor retrieved", arg1:=configname, subname:="XChangeManager.CreateXChangeConfigFromIDs")
+                    Return Nothing
+                End If
+                Dim anObjectDefinition As ObjectDefinition = CurrentSession.Objects.GetObject(objectid:=objectname)
                 Dim i As Long
 
                 '*** load the table definition
                 If anObjectDefinition Is Nothing Then
                     Call ot.CoreMessageHandler(arg1:=objectname, tablename:=objectname, message:=" Could not load ObjectDEFINITION")
-                    CreateXChangeConfigFromTable = Nothing
+                    CreateXChangeConfigFromObjectDefinition = Nothing
                     Exit Function
                 End If
 
                 '****
                 '****
                 anObjectName = objectname
-                If aNewConfig.Inject(configname) Then
+                If aNewConfig IsNot Nothing Then
                     aNewConfig.Delete()
                 End If
 
                 ' create config
-                aNewConfig.Create(configname)
+                aNewConfig = XChangeConfiguration.Create(configname)
                 aNewConfig.AddObjectByName(anObjectName)
                 i = 1
                 '
                 For Each aFieldDef As AbstractEntryDefinition In anObjectDefinition.GetEntries
                     If aFieldDef.XID <> "" Then
-                        Call aNewConfig.AddAttributeByField(objectentry:=aFieldDef, ordinal:=New Ordinal(i), xcmd:=xcmd)
+                        Call aNewConfig.AddEntryByObjectEntry(objectentry:=aFieldDef, ordinal:=New OnTrack.Database.Ordinal(i), xcmd:=xcmd)
                         i = i + 1
                     End If
                 Next
 
-                CreateXChangeConfigFromTable = aNewConfig
+                CreateXChangeConfigFromObjectDefinition = aNewConfig
             End Function
 
-            '********** createXChangeConfigFromIDs: creates a config from an array with IDs, ordinal will be the columns
-            '**********
-            Public Function createXChangeConfigFromIDs(ByVal CONFIGNAME As String, _
-                                                       ByVal IDs As Object, _
-                                                       ByVal XCMD As otXChangeCommandType, _
-                                                       Optional ByRef OBJECTNAMES As Object = Nothing) As clsOTDBXChangeConfig
-                Dim aNewConfig As New clsOTDBXChangeConfig
+           
+            ''' <summary>
+            ''' creates a xchange configuration from a array of strings
+            ''' </summary>
+            ''' <param name="CONFIGNAME"></param>
+            ''' <param name="IDs"></param>
+            ''' <param name="XCMD"></param>
+            ''' <param name="OBJECTNAMES"></param>
+            ''' <returns></returns>
+            ''' <remarks></remarks>
+            Public Function CreateXChangeConfigFromIDs(ByVal configname As String, _
+                                                       ByVal xids As String(), _
+                                                       ByVal xcmd As otXChangeCommandType, _
+                                                       Optional ByRef objectids As String() = Nothing) As XChangeConfiguration
 
-                Dim i As Long
-
-                '*** load the table definition
-                'If Not aSchemaDefTable.Inject(Tablename) Then
-                '    Call OTDBErrorHandler(arg1:=Tablename, Tablename:=Tablename, message:=" Could not load SchemaTableDefinition")
-                '    Set createXChangeConfigFromIDs = Nothing
-                '    Exit Function
-                'End If
-                'anObjectName = Tablename
-                'If aNewConfig.Inject(ConfigName) Then
-                '    aNewConfig.delete
-                'End If
-
-                ' create config
-                aNewConfig.Create(CONFIGNAME)
-                i = 0
-
-                ' add Objectnames
-                If IsArrayInitialized(OBJECTNAMES) Then
-                    For i = LBound(OBJECTNAMES) To UBound(OBJECTNAMES)
-                        Call aNewConfig.AddObjectByName(Name:=CStr(OBJECTNAMES(i)), orderno:=i, XCMD:=XCMD)
-                    Next i
-                ElseIf Not IsEmpty(OBJECTNAMES) Then
-                    Call aNewConfig.AddObjectByName(Name:=CStr(OBJECTNAMES), orderno:=1, XCMD:=XCMD)
+                Dim aNewConfig As XChangeConfiguration = XChangeConfiguration.Create(configname:=configname)
+                If aNewConfig Is Nothing Then aNewConfig = XChangeConfiguration.Retrieve(configname:=configname)
+                If aNewConfig Is Nothing Then
+                    ot.CoreMessageHandler(message:="xchange configuration couldnot be created nor retrieved", arg1:=configname, subname:="XChangeManager.CreateXChangeConfigFromIDs")
+                    Return Nothing
                 End If
 
-                For i = LBound(IDs) To UBound(IDs)
+                Dim i As Long = 0
+
+                ' add Objectnames
+                If objectids IsNot Nothing Then
+                    For i = LBound(objectids) To UBound(objectids)
+                        Call aNewConfig.AddObjectByName(name:=CStr(objectids(i)), orderno:=i, xcmd:=xcmd)
+                    Next i
+                End If
+
+
+                For i = LBound(xids) To UBound(xids)
                     ' load ID
-                    If Not IsEmpty(IDs(i)) Then
-                        Call aNewConfig.AddAttributeByID(id:=IDs(i), ordinal:=i, isXChanged:=True, xcmd:=XCMD)
+                    If Not IsEmpty(xids(i)) Then
+                        Call aNewConfig.AddEntryByXID(Xid:=xids(i), ordinal:=i, isXChanged:=True, xcmd:=xcmd)
                         'Set aColl = aFieldDef.allByID(IDs(i))
                         'For Each m In aColl
                         '    Set aFieldDef = m
@@ -137,79 +148,12 @@ Namespace Ontrack
                     End If
                 Next i
 
-                createXChangeConfigFromIDs = aNewConfig
-            End Function
-
-            '******* XChangeWith2DArray : eXchanges Data according the Config with an 2dimensional array
-            '*******
-            Public Function XChangeWith2DArray(ByRef CONFIG As clsOTDBXChangeConfig, _
-                                               ByRef ARRAYDATA As Object) As Boolean
-                Dim i As Long
-                Dim rowno As Long
-
-                Dim aMapping As New Dictionary(Of Object, Object)
-                Dim listofAttributes As New Collection
-                Dim Value As Object
-                Dim CONFIGmember As New clsOTDBXChangeMember
-
-                listofAttributes = CONFIG.Attributes
-                If listofAttributes.Count = 0 Then
-                    XChangeWith2DArray = False
-                    Exit Function
-                End If
-
-
-                ' is Array initialized ?!
-                'If Not ArrayIsInitializedV(ArrayData) Then
-                '    redim Array
-                'End If
-
-                ' go through all rows of the Data
-                i = 0
-                For rowno = LBound(ARRAYDATA, 1) To UBound(ARRAYDATA, 1)
-                    ' fetch the row
-                    aMapping = New Dictionary(Of Object, Object)
-                    For Each CONFIGmember In listofAttributes
-                        If CONFIGmember.ISXCHANGED Then
-                            If IsNumeric(CONFIGmember.ordinal) Then
-                                i = CLng(CONFIGmember.ordinal.Value)
-                            Else
-                                i = i + 1
-                            End If
-                            If Not aMapping.ContainsKey(key:=i) Then
-                                Call aMapping.Add(key:=i, value:=Trim(ARRAYDATA(rowno, i)))
-                            End If
-                        End If
-                    Next CONFIGmember
-
-                    'If Not PROGRESSBAR Is Nothing Then Call PROGRESSBAR.progress(1, Statustext:="updating row no" & rowno)
-                    ' run the XChange with OTDB
-                    Call CONFIG.RunXChange(aMapping:=aMapping)
-
-                    ' save the row
-                    i = 0
-                    For Each CONFIGmember In listofAttributes
-                        If CONFIGmember.ISXCHANGED Then
-                            If IsNumeric(CONFIGmember.ordinal.Value) Then
-                                i = CLng(CONFIGmember.ordinal.Value)
-                            Else
-                                i = i + 1
-                            End If
-                            If aMapping.ContainsKey(key:=i) Then
-                                Value = aMapping.Item(key:=i)
-                                ARRAYDATA(rowno, i) = Value
-                            End If
-                        End If
-                    Next CONFIGmember
-
-                Next rowno
-
-
+                CreateXChangeConfigFromIDs = aNewConfig
             End Function
 
             '******* XChangeWithArray : eXchanges Data according the Config with an 2dimensional array
             '*******
-            Public Function XChangeWithArray(ByRef aConfig As clsOTDBXChangeConfig, _
+            Public Function XChangeWithArray(ByRef aConfig As XChangeConfiguration, _
                                              ByRef ARRAYDATA() As Object) As Boolean
                 Dim i As Long
                 Dim rowno As Long
@@ -217,9 +161,9 @@ Namespace Ontrack
                 Dim aMapping As New Dictionary(Of Object, Object)
                 Dim listofAttributes As New Collection
                 Dim Value As Object
-                Dim aConfigmember As New clsOTDBXChangeMember
+                Dim aConfigmember As New XChangeObjectEntry
 
-                listofAttributes = aConfig.Attributes
+                listofAttributes = aConfig.GetObjectEntries
 
                 If listofAttributes.Count = 0 Then
                     XChangeWithArray = False
@@ -236,9 +180,9 @@ Namespace Ontrack
                 i = 0
                 For Each aConfigmember In listofAttributes
 
-                    If aConfigmember.ISXCHANGED Then
-                        If IsNumeric(aConfigmember.ordinal.Value) Then
-                            i = CLng(aConfigmember.ordinal.Value)
+                    If aConfigmember.IsXChanged Then
+                        If IsNumeric(aConfigmember.Ordinal.Value) Then
+                            i = CLng(aConfigmember.Ordinal.Value)
                         Else
                             i = i + 1
                         End If
@@ -250,14 +194,14 @@ Namespace Ontrack
 
                 ' run the XChange with OTDB
                 On Error Resume Next
-                Call aConfig.RunXChange(aMapping:=aMapping)
+                'Call aConfig.RunXChange(aMapping:=aMapping)
 
                 ' save the row
                 i = 0
                 For Each aConfigmember In listofAttributes
                     If aConfigmember.IsXChanged Then
-                        If IsNumeric(aConfigmember.ordinal.Value) Then
-                            i = CLng(aConfigmember.ordinal.Value)
+                        If IsNumeric(aConfigmember.Ordinal.Value) Then
+                            i = CLng(aConfigmember.Ordinal.Value)
                         Else
                             i = i + 1
                         End If

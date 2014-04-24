@@ -564,31 +564,31 @@ Namespace OnTrack.Database
         ''' <param name="type"></param>
         ''' <remarks></remarks>
         ''' <returns></returns>
-        Public Overrides Function GetTargetTypeFor(type As otFieldDataType) As Long Implements iormDatabaseDriver.GetTargetTypeFor
+        Public Overrides Function GetTargetTypeFor(type As otDataType) As Long Implements iormDatabaseDriver.GetTargetTypeFor
 
             Try
                 '** returns SQLDataType which is SMO DataType and not SQLDbtype for ADONET !
 
                 Select Case type
-                    Case otFieldDataType.Binary
+                    Case otDataType.Binary
                         Return SqlDataType.Binary
-                    Case otFieldDataType.Bool
+                    Case otDataType.Bool
                         Return SqlDataType.Bit
-                    Case otFieldDataType.[Date]
+                    Case otDataType.[Date]
                         Return SqlDataType.Date
-                    Case otFieldDataType.[Time]
+                    Case otDataType.[Time]
                         Return SqlDataType.Time
-                    Case otFieldDataType.List
+                    Case otDataType.List
                         Return SqlDataType.NVarChar
-                    Case otFieldDataType.[Long]
+                    Case otDataType.[Long]
                         Return SqlDataType.BigInt
-                    Case otFieldDataType.Memo
+                    Case otDataType.Memo
                         Return SqlDataType.NVarChar
-                    Case otFieldDataType.Numeric
+                    Case otDataType.Numeric
                         Return SqlDataType.Decimal
-                    Case otFieldDataType.Timestamp
+                    Case otDataType.Timestamp
                         Return SqlDataType.DateTime
-                    Case otFieldDataType.Text
+                    Case otDataType.Text
                         Return SqlDataType.NVarChar
                     Case Else
 
@@ -611,7 +611,7 @@ Namespace OnTrack.Database
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overrides Function AssignNativeDBParameter(parametername As String, _
-                                                          datatype As otFieldDataType, _
+                                                          datatype As otDataType, _
                                                            Optional maxsize As Long = 0, _
                                                           Optional value As Object = Nothing) As System.Data.IDbDataParameter _
                                                       Implements iormDatabaseDriver.AssignNativeDBParameter
@@ -623,25 +623,25 @@ Namespace OnTrack.Database
                 aParameter.ParameterName = parametername
 
                 Select Case datatype
-                    Case otFieldDataType.Binary
+                    Case otDataType.Binary
                         aParameter.SqlDbType = SqlDbType.Binary
-                    Case otFieldDataType.Bool
+                    Case otDataType.Bool
                         aParameter.SqlDbType = SqlDbType.Bit
-                    Case otFieldDataType.[Date]
+                    Case otDataType.[Date]
                         aParameter.SqlDbType = SqlDbType.Date
-                    Case otFieldDataType.[Time]
+                    Case otDataType.[Time]
                         aParameter.SqlDbType = SqlDbType.Time
-                    Case otFieldDataType.List
+                    Case otDataType.List
                         aParameter.SqlDbType = SqlDbType.NVarChar
-                    Case otFieldDataType.[Long]
+                    Case otDataType.[Long]
                         aParameter.SqlDbType = SqlDbType.BigInt
-                    Case otFieldDataType.Memo
+                    Case otDataType.Memo
                         aParameter.SqlDbType = SqlDbType.NVarChar
-                    Case otFieldDataType.Numeric
+                    Case otDataType.Numeric
                         aParameter.SqlDbType = SqlDbType.Decimal
-                    Case otFieldDataType.Timestamp
+                    Case otDataType.Timestamp
                         aParameter.SqlDbType = SqlDbType.DateTime
-                    Case otFieldDataType.Text
+                    Case otDataType.Text
                         aParameter.SqlDbType = SqlDbType.NVarChar
                     Case Else
 
@@ -650,26 +650,26 @@ Namespace OnTrack.Database
                 End Select
 
                 Select Case datatype
-                    Case otFieldDataType.Bool
+                    Case otDataType.Bool
                         aParameter.SqlValue = False
-                    Case otFieldDataType.[Date]
+                    Case otDataType.[Date]
                         aParameter.SqlValue = ConstNullDate
-                    Case otFieldDataType.[Time]
+                    Case otDataType.[Time]
                         If maxsize = 0 Then aParameter.Size = 7
                         aParameter.SqlValue = ot.ConstNullTime
-                    Case otFieldDataType.List
+                    Case otDataType.List
                         If maxsize = 0 Then aParameter.Size = ConstDBDriverMaxTextSize
                         aParameter.SqlValue = ""
-                    Case otFieldDataType.[Long]
+                    Case otDataType.[Long]
                         aParameter.SqlValue = 0
-                    Case otFieldDataType.Memo
+                    Case otDataType.Memo
                         If maxsize = 0 Then aParameter.Size = constDBDriverMaxMemoSize
                         aParameter.SqlValue = ""
-                    Case otFieldDataType.Numeric
+                    Case otDataType.Numeric
                         aParameter.SqlValue = 0
-                    Case otFieldDataType.Timestamp
+                    Case otDataType.Timestamp
                         aParameter.SqlValue = ConstNullDate
-                    Case otFieldDataType.Text
+                    Case otDataType.Text
                         If maxsize = 0 Then aParameter.Size = ConstDBDriverMaxTextSize
                         aParameter.SqlValue = ""
 
@@ -1373,20 +1373,20 @@ Namespace OnTrack.Database
                         Dim column = aTable.Columns(columnname)
                         '** set standard sizes or other specials
                         Select Case columndefinition.Datatype
-                            Case otFieldDataType.[Long]
+                            Case otDataType.[Long]
                                 If column.DataType.SqlDataType <> SqlDataType.BigInt Then
                                     If Not silent Then CoreMessageHandler(message:="verifying table column: column data type differs - should be Long", arg1:=columndefinition.Datatype, _
                                                    tablename:=tableid, columnname:=columnname, subname:="mssqldbdriver.verifyColumnSchema", messagetype:=otCoreMessageType.InternalError)
                                     Return False
                                 End If
 
-                            Case otFieldDataType.Numeric
+                            Case otDataType.Numeric
                                 If column.DataType.SqlDataType <> SqlDataType.Real Then
                                     If Not silent Then CoreMessageHandler(message:="verifying table column: column data type differs - should be REAL", arg1:=columndefinition.Datatype, _
                                                  tablename:=tableid, columnname:=columnname, subname:="mssqldbdriver.verifyColumnSchema", messagetype:=otCoreMessageType.InternalError)
                                     Return False
                                 End If
-                            Case otFieldDataType.List, otFieldDataType.Text
+                            Case otDataType.List, otDataType.Text
                                 If column.DataType.SqlDataType <> SqlDataType.NVarChar Then
                                     If Not silent Then CoreMessageHandler(message:="verifying table column: column data type differs - should be NVARCHAR", arg1:=columndefinition.Datatype, _
                                                 tablename:=tableid, columnname:=columnname, subname:="mssqldbdriver.verifyColumnSchema", messagetype:=otCoreMessageType.InternalError)
@@ -1400,37 +1400,37 @@ Namespace OnTrack.Database
                                         Return False
                                     End If
                                 End If
-                            Case otFieldDataType.Memo
+                            Case otDataType.Memo
                                 If column.DataType.SqlDataType <> SqlDataType.NVarCharMax Then
                                     If Not silent Then CoreMessageHandler(message:="verifying table column: column data type differs - should be NVARCHARMAX", arg1:=columndefinition.Datatype, _
                                               tablename:=tableid, columnname:=columnname, subname:="mssqldbdriver.verifyColumnSchema", messagetype:=otCoreMessageType.InternalError)
                                     Return False
                                 End If
-                            Case otFieldDataType.Binary
+                            Case otDataType.Binary
                                 If column.DataType.SqlDataType <> SqlDataType.VarBinaryMax Then
                                     If Not silent Then CoreMessageHandler(message:="verifying table column: column data type differs - should be VARBINARYMAX", arg1:=columndefinition.Datatype, _
                                              tablename:=tableid, columnname:=columnname, subname:="mssqldbdriver.verifyColumnSchema", messagetype:=otCoreMessageType.InternalError)
                                     Return False
                                 End If
-                            Case otFieldDataType.[Date]
+                            Case otDataType.[Date]
                                 If column.DataType.SqlDataType <> SqlDataType.Date Then
                                     If Not silent Then CoreMessageHandler(message:="verifying table column: column data type differs - should be DATE", arg1:=columndefinition.Datatype, _
                                             tablename:=tableid, columnname:=columnname, subname:="mssqldbdriver.verifyColumnSchema", messagetype:=otCoreMessageType.InternalError)
                                     Return False
                                 End If
-                            Case otFieldDataType.Time
+                            Case otDataType.Time
                                 If column.DataType.SqlDataType <> SqlDataType.Time Then
                                     If Not silent Then CoreMessageHandler(message:="verifying table column: column data type differs - should be TIME", arg1:=columndefinition.Datatype, _
                                             tablename:=tableid, columnname:=columnname, subname:="mssqldbdriver.verifyColumnSchema", messagetype:=otCoreMessageType.InternalError)
                                     Return False
                                 End If
-                            Case otFieldDataType.Timestamp
+                            Case otDataType.Timestamp
                                 If column.DataType.SqlDataType <> SqlDataType.DateTime Then
                                     If Not silent Then CoreMessageHandler(message:="verifying table column: column data type differs - should be DATETIME", arg1:=columndefinition.Datatype, _
                                             tablename:=tableid, columnname:=columnname, subname:="mssqldbdriver.verifyColumnSchema", messagetype:=otCoreMessageType.InternalError)
                                     Return False
                                 End If
-                            Case otFieldDataType.Bool
+                            Case otDataType.Bool
                                 If column.DataType.SqlDataType <> SqlDataType.Bit Then
                                     If Not silent Then CoreMessageHandler(message:="verifying table column: column data type differs - should be BIT", arg1:=columndefinition.Datatype, _
                                             tablename:=tableid, columnname:=columnname, subname:="mssqldbdriver.verifyColumnSchema", messagetype:=otCoreMessageType.InternalError)
@@ -1554,20 +1554,20 @@ Namespace OnTrack.Database
                         If columnattribute.HasValueTypeID Then
                             '** set standard sizes or other specials
                             Select Case columnattribute.Typeid
-                                Case otFieldDataType.[Long]
+                                Case otDataType.[Long]
                                     If column.DataType.SqlDataType <> SqlDataType.BigInt Then
                                         If Not silent Then CoreMessageHandler(message:="verifying table column: column data type differs - should be Long", arg1:=columnattribute.Typeid, _
                                                        tablename:=tableid, columnname:=columnname, subname:="mssqldbdriver.verifyColumnSchema", messagetype:=otCoreMessageType.InternalError)
                                         Return False
                                     End If
 
-                                Case otFieldDataType.Numeric
+                                Case otDataType.Numeric
                                     If column.DataType.SqlDataType <> SqlDataType.Real Then
                                         If Not silent Then CoreMessageHandler(message:="verifying table column: column data type differs - should be REAL", arg1:=columnattribute.Typeid, _
                                                      tablename:=tableid, columnname:=columnname, subname:="mssqldbdriver.verifyColumnSchema", messagetype:=otCoreMessageType.InternalError)
                                         Return False
                                     End If
-                                Case otFieldDataType.List, otFieldDataType.Text
+                                Case otDataType.List, otDataType.Text
                                     If column.DataType.SqlDataType <> SqlDataType.NVarChar Then
                                         If Not silent Then CoreMessageHandler(message:="verifying table column: column data type differs - should be NVARCHAR", arg1:=columnattribute.Typeid, _
                                                     tablename:=tableid, columnname:=columnname, subname:="mssqldbdriver.verifyColumnSchema", messagetype:=otCoreMessageType.InternalError)
@@ -1581,44 +1581,44 @@ Namespace OnTrack.Database
                                             Return False
                                         End If
                                     End If
-                                Case otFieldDataType.Memo
+                                Case otDataType.Memo
                                     If column.DataType.SqlDataType <> SqlDataType.NVarCharMax Then
                                         If Not silent Then CoreMessageHandler(message:="verifying table column: column data type differs - should be NVARCHARMAX", arg1:=columnattribute.Typeid, _
                                                   tablename:=tableid, columnname:=columnname, subname:="mssqldbdriver.verifyColumnSchema", messagetype:=otCoreMessageType.InternalError)
                                         Return False
                                     End If
-                                Case otFieldDataType.Binary
+                                Case otDataType.Binary
                                     If column.DataType.SqlDataType <> SqlDataType.VarBinaryMax Then
                                         If Not silent Then CoreMessageHandler(message:="verifying table column: column data type differs - should be VARBINARYMAX", arg1:=columnattribute.Typeid, _
                                                  tablename:=tableid, columnname:=columnname, subname:="mssqldbdriver.verifyColumnSchema", messagetype:=otCoreMessageType.InternalError)
                                         Return False
                                     End If
-                                Case otFieldDataType.[Date]
+                                Case otDataType.[Date]
                                     If column.DataType.SqlDataType <> SqlDataType.Date Then
                                         If Not silent Then CoreMessageHandler(message:="verifying table column: column data type differs - should be DATE", arg1:=columnattribute.Typeid, _
                                                 tablename:=tableid, columnname:=columnname, subname:="mssqldbdriver.verifyColumnSchema", messagetype:=otCoreMessageType.InternalError)
                                         Return False
                                     End If
-                                Case otFieldDataType.Time
+                                Case otDataType.Time
                                     If column.DataType.SqlDataType <> SqlDataType.Time Then
                                         If Not silent Then CoreMessageHandler(message:="verifying table column: column data type differs - should be TIME", arg1:=columnattribute.Typeid, _
                                                 tablename:=tableid, columnname:=columnname, subname:="mssqldbdriver.verifyColumnSchema", messagetype:=otCoreMessageType.InternalError)
                                         Return False
                                     End If
-                                Case otFieldDataType.Timestamp
+                                Case otDataType.Timestamp
                                     If column.DataType.SqlDataType <> SqlDataType.DateTime Then
                                         If Not silent Then CoreMessageHandler(message:="verifying table column: column data type differs - should be DATETIME", arg1:=columnattribute.Typeid, _
                                                 tablename:=tableid, columnname:=columnname, subname:="mssqldbdriver.verifyColumnSchema", messagetype:=otCoreMessageType.InternalError)
                                         Return False
                                     End If
-                                Case otFieldDataType.Bool
+                                Case otDataType.Bool
                                     If column.DataType.SqlDataType <> SqlDataType.Bit Then
                                         If Not silent Then CoreMessageHandler(message:="verifying table column: column data type differs - should be BIT", arg1:=columnattribute.Typeid, _
                                                 tablename:=tableid, columnname:=columnname, subname:="mssqldbdriver.verifyColumnSchema", messagetype:=otCoreMessageType.InternalError)
                                         Return False
                                     End If
-                                Case otFieldDataType.Runtime
-                                Case otFieldDataType.Formula
+                                Case otDataType.Runtime
+                                Case otDataType.Formula
                                     If Not silent Then Call CoreMessageHandler(subname:="mssqlDBDriver.verifyColumnSchema", tablename:=aTable.Name, arg1:=columnattribute.ColumnName, _
                                                            message:="runtime, formular not supported as fieldtypes", messagetype:=otCoreMessageType.InternalError)
 
@@ -1753,33 +1753,33 @@ Namespace OnTrack.Database
 
                         '** set standard sizes or other specials
                         Select Case columndefinition.Datatype
-                            Case otFieldDataType.[Long]
+                            Case otDataType.[Long]
                                 aDatatype.SqlDataType = SqlDataType.BigInt
-                            Case otFieldDataType.Numeric
+                            Case otDataType.Numeric
                                 aDatatype.SqlDataType = SqlDataType.Real
 
-                            Case otFieldDataType.List, otFieldDataType.Text
+                            Case otDataType.List, otDataType.Text
                                 aDatatype.SqlDataType = SqlDataType.NVarChar
                                 If columndefinition.Size.HasValue Then
                                     aDatatype.MaximumLength = columndefinition.Size
                                 Else
                                     aDatatype.MaximumLength = ConstDBDriverMaxTextSize
                                 End If
-                            Case otFieldDataType.Memo
+                            Case otDataType.Memo
                                 aDatatype.SqlDataType = SqlDataType.NVarCharMax
-                            Case otFieldDataType.Binary
+                            Case otDataType.Binary
                                 aDatatype.SqlDataType = SqlDataType.VarBinaryMax
-                            Case otFieldDataType.[Date]
+                            Case otDataType.[Date]
                                 aDatatype.SqlDataType = SqlDataType.Date
-                            Case otFieldDataType.Time
+                            Case otDataType.Time
                                 aDatatype.SqlDataType = SqlDataType.Time
-                                aDatatype.MaximumLength = 7
-                            Case otFieldDataType.Timestamp
+                                'aDatatype.MaximumLength = 7
+                            Case otDataType.Timestamp
                                 aDatatype.SqlDataType = SqlDataType.DateTime
-                            Case otFieldDataType.Bool
+                            Case otDataType.Bool
                                 aDatatype.SqlDataType = SqlDataType.Bit
-                            Case otFieldDataType.Runtime
-                            Case otFieldDataType.Formula
+                            Case otDataType.Runtime
+                            Case otDataType.Formula
                                 Call CoreMessageHandler(subname:="mssqlDBDriver.getColumn", tablename:=aTable.Name, arg1:=columndefinition.Name, _
                                                        message:="runtime, formular not supported as fieldtypes", messagetype:=otCoreMessageType.InternalError)
                             Case Else
@@ -1791,24 +1791,24 @@ Namespace OnTrack.Database
                         If columndefinition.DefaultValue IsNot Nothing Then
                             If newColumn.DefaultConstraint IsNot Nothing Then newColumn.DefaultConstraint.Drop()
 
-                            If columndefinition.Datatype = otFieldDataType.Time Then
+                            If columndefinition.Datatype = otDataType.Time Then
                                 newColumn.AddDefaultConstraint("DEFAULT_" & nativeTable.name & "_" & columndefinition.Name).Text = _
                                     "'" & CDate(columndefinition.DefaultValue).ToString("HH:mm:ss") & "'"
-                            ElseIf columndefinition.Datatype = otFieldDataType.Date Then
+                            ElseIf columndefinition.Datatype = otDataType.Date Then
                                 newColumn.AddDefaultConstraint("DEFAULT_" & nativeTable.name & "_" & columndefinition.Name).Text = _
                                 "'" & CDate(columndefinition.DefaultValue).ToString("yyyy-MM-dd") & "T00:00:00Z'"
-                            ElseIf columndefinition.Datatype = otFieldDataType.Timestamp Then
+                            ElseIf columndefinition.Datatype = otDataType.Timestamp Then
                                 newColumn.AddDefaultConstraint("DEFAULT_" & nativeTable.name & "_" & columndefinition.Name).Text = _
                                     "'" & (Convert.ToDateTime(columndefinition.DefaultValue).ToString("yyyy-MM-ddTHH:mm:ssZ")) & "'"
-                            ElseIf columndefinition.Datatype = otFieldDataType.Bool Then
+                            ElseIf columndefinition.Datatype = otDataType.Bool Then
                                 If columndefinition.DefaultValue Then
                                     newColumn.AddDefaultConstraint("DEFAULT_" & nativeTable.name & "_" & columndefinition.Name).Text = "1"
                                 Else
                                     newColumn.AddDefaultConstraint("DEFAULT_" & nativeTable.name & "_" & columndefinition.Name).Text = "0"
                                 End If
-                            ElseIf columndefinition.Datatype = otFieldDataType.Text OrElse columndefinition.Datatype = otFieldDataType.List Then
+                            ElseIf columndefinition.Datatype = otDataType.Text OrElse columndefinition.Datatype = otDataType.List Then
                                 newColumn.AddDefaultConstraint("DEFAULT_" & nativeTable.name & "_" & columndefinition.Name).Text = "'" & columndefinition.DefaultValueString & "'"
-                            ElseIf columndefinition.Datatype = otFieldDataType.Long OrElse columndefinition.Datatype = otFieldDataType.Numeric Then
+                            ElseIf columndefinition.Datatype = otDataType.Long OrElse columndefinition.Datatype = otDataType.Numeric Then
                                 newColumn.AddDefaultConstraint("DEFAULT_" & nativeTable.name & "_" & columndefinition.Name).Text = columndefinition.DefaultValue.ToString
                             ElseIf columndefinition.DefaultValueString <> "" Then
                                 newColumn.AddDefaultConstraint("DEFAULT_" & nativeTable.name & "_" & columndefinition.Name).Text = columndefinition.DefaultValueString
@@ -2167,7 +2167,7 @@ Namespace OnTrack.Database
                 End If
 
                 Call CoreMessageHandler(message:=sb.ToString, exception:=ex, arg1:=foreignkeydefinition.Id, tablename:=foreignkeydefinition.Tablename, _
-                                      subname:="mssqlDBDriver.GetColumn", messagetype:=otCoreMessageType.InternalError)
+                                      subname:="mssqlDBDriver.Getforeignkeys", messagetype:=otCoreMessageType.InternalError)
                 Return Nothing
 
             Catch ex As Exception

@@ -48,40 +48,27 @@ Namespace OnTrack
 End Namespace
 
 Namespace OnTrack.Database
-    '*************************************************************************************
-    '* Declare the config
-
+   
+    ''' <summary>
+    ''' type of database server (OLEDB might be access or sql server)
+    ''' </summary>
+    ''' <remarks></remarks>
     Public Enum otDBServerType
         Access = 1
         SQLServer = 2
     End Enum
 
-    '*************************************************************************************
-    '**** ENUM OTDBDatabaseEnvirormentType -> type of enviorments for database
-
+  
+    ''' <summary>
+    ''' type of Database Driver
+    ''' </summary>
+    ''' <remarks></remarks>
     Public Enum otDbDriverType
         ADOClassic
         ADONETSQL
         ADONETOLEDB
     End Enum
 
-    ''' <summary>
-    ''' Enumeration of the validation properties
-    ''' </summary>
-    ''' <remarks></remarks>
-    Public Enum otValidationProperties
-        <Description("ALPHANUM")> Alphanum
-
-    End Enum
-    ''' <summary>
-    ''' type of validation results
-    ''' </summary>
-    ''' <remarks></remarks>
-    Public Enum otValidationResultType
-        FailedNoSave = 1
-        FailedButSave
-        Succeeded
-    End Enum
     ''' <summary>
     ''' Point of Lifecycle to infuse a relation
     ''' </summary>
@@ -110,7 +97,7 @@ Namespace OnTrack.Database
     ''' </summary>
     ''' <remarks></remarks>
 
-    <TypeConverter(GetType(Long))> Public Enum otFieldDataType
+    <TypeConverter(GetType(Long))> Public Enum otDataType
         Numeric = 1
         List = 2
         Text = 3
@@ -126,10 +113,6 @@ Namespace OnTrack.Database
     End Enum
 
 
-    '************************************************************************************
-    '**** INTERFACE iOTDBDatabaseEnvirorment defines a Wrapper fora Database with the
-    '****           ORM functions for a DataObject
-    '****
     ''' <summary>
     ''' interface defines a wraper database definition class for ORM functions
     ''' </summary>
@@ -435,7 +418,7 @@ Namespace OnTrack.Database
         ''' <param name="value"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Function AssignNativeDBParameter(parametername As String, datatype As otFieldDataType, Optional maxsize As Long = 0, Optional value As Object = Nothing) As System.Data.IDbDataParameter
+        Function AssignNativeDBParameter(parametername As String, datatype As otDataType, Optional maxsize As Long = 0, Optional value As Object = Nothing) As System.Data.IDbDataParameter
 
         ''' <summary>
         ''' returns the target type for a OTDB FieldType - MAPPING
@@ -443,7 +426,7 @@ Namespace OnTrack.Database
         ''' <param name="type"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Function GetTargetTypeFor(type As otFieldDataType) As Long
+        Function GetTargetTypeFor(type As otDataType) As Long
 
         ''' <summary>
         ''' convert a value to column data type
@@ -1167,6 +1150,8 @@ Namespace OnTrack.Database
 
         ReadOnly Property TableIDs As String()
 
+        ReadOnly Property ObjectDefinition As ObjectDefinition
+
 
 
         Function GetValue(entryname As String, Optional ByRef fieldmembername As String = "") As Object
@@ -1322,7 +1307,7 @@ Namespace OnTrack.Database
         ''' <param name="dataobject"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Function GetVersion(dataobject As iormPersistable, Optional name As String = "") As Long
+        Function GetObjectClassVersion(dataobject As iormPersistable, Optional name As String = "") As Long
 
     End Interface
 
@@ -1418,7 +1403,7 @@ Namespace OnTrack.Database
     End Interface
 End Namespace
 
-Namespace OnTrack
+Namespace OnTrack.Database
 
     ''' <summary>
     ''' Interface for Object Entries
@@ -1534,7 +1519,7 @@ Namespace OnTrack
         '''' <value></value>
         '''' <returns></returns>
         '''' <remarks></remarks>
-        Property Datatype() As otFieldDataType
+        Property Datatype() As otDataType
         ''' <summary>
         ''' returns version
         ''' </summary>
@@ -1629,7 +1614,7 @@ Namespace OnTrack
 
         Property PrimaryKeyOrdinal As UShort
 
-        Property InnerDatatype As otFieldDataType?
+        Property InnerDatatype As otDataType?
 
         Property Ordinal As UShort
 
@@ -1687,32 +1672,6 @@ Namespace OnTrack
     End Interface
 End Namespace
 
-Namespace OnTrack.XChange
-
-    '************************************************************************************
-    '***** Interface iOTDBXChange
-    '*****
-
-    Public Interface iotXChangeable
-        ''' <summary>
-        ''' runs the XChange 
-        ''' </summary>
-        ''' <param name="envelope"></param>
-        ''' <returns>True if successful</returns>
-        ''' <remarks></remarks>
-        Function RunXChange(ByRef envelope As XEnvelope) As Boolean
-
-        ''' <summary>
-        ''' runs the Precheck
-        ''' </summary>
-        ''' <param name="envelope"></param>
-        ''' <returns>True if successful</returns>
-        ''' <remarks></remarks>
-        Function RunXPreCheck(ByRef envelope As XEnvelope) As Boolean
-
-    End Interface
-End Namespace
-
 Namespace OnTrack
 
     ''' <summary>
@@ -1730,24 +1689,10 @@ Namespace OnTrack
         ApplicationException = 8
     End Enum
     ' Enum of CalenderEntryTypes
-
-    Public Enum otCalendarEntryType
-        DayEntry = 1
-        MonthEntry = 2
-        YearEntry = 3
-        WeekEntry = 4
-        AbsentEntry = 5
-        EventEntry = 6
-        MilestoneEntry = 7
-
-    End Enum
+   
     ' Enum of MilestoneTypes
 
-    Public Enum otMilestoneType
-        [Date] = 1
-        Status = 2
-
-    End Enum
+    
     ' Enum of MilestoneTypes
 
     Public Enum otObjectEntryDefinitiontype
@@ -1776,13 +1721,6 @@ Namespace OnTrack
     End Enum
     'Xchg_cmd
 
-    Public Enum otXChangeCommandType
-        Update = 1
-        Delete = 2
-        UpdateCreate = 3
-        Duplicate = 4
-        Read = 5
-    End Enum
 
 
 End Namespace

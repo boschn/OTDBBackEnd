@@ -781,7 +781,7 @@ Namespace OnTrack
         Private _ObjectAttribute As ormObjectAttribute
         Private _TableAttributes As New Dictionary(Of String, ormSchemaTableAttribute) 'name of table to Attribute
         Private _ObjectEntryAttributes As New Dictionary(Of String, ormObjectEntryAttribute) 'name of object entry to Attribute
-        Private _ObjectOperationAttributes As New Dictionary(Of String, ormObjectOperationAttribute) 'name of object entry to Attribute
+        Private _ObjectOperationAttributes As New Dictionary(Of String, ormObjectTransaction) 'name of object entry to Attribute
         Private _ObjectEntriesPerTable As New Dictionary(Of String, Dictionary(Of String, ormObjectEntryAttribute)) ' dictionary of tables to dictionary of columns
        
         Private _TableColumnsMappings As New Dictionary(Of String, Dictionary(Of String, List(Of FieldInfo))) ' dictionary of tables to dictionary of fieldmappings
@@ -983,7 +983,7 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public ReadOnly Property OperationAttributes As List(Of ormObjectOperationAttribute)
+        Public ReadOnly Property OperationAttributes As List(Of ormObjectTransaction)
             Get
                 Return _ObjectOperationAttributes.Values.Where(Function(x) x.Enabled = True).ToList ' only the enabled
             End Get
@@ -1122,7 +1122,7 @@ Namespace OnTrack
         ''' <param name="tablename"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetObjectOperationAttribute(name As String, Optional onlyEnabled As Boolean = True) As ormObjectOperationAttribute
+        Public Function GetObjectOperationAttribute(name As String, Optional onlyEnabled As Boolean = True) As ormObjectTransaction
             Dim anEntryname As String = ""
             Dim anObjectname As String = ""
             Dim names() As String = name.ToUpper.Split({CChar(ConstDelimiter), "."c})
@@ -1142,7 +1142,7 @@ Namespace OnTrack
             '** return
 
             If _ObjectOperationAttributes.ContainsKey(key:=anEntryname) Then
-                Dim anAttribute As ormObjectOperationAttribute = _ObjectOperationAttributes.Item(key:=anEntryname)
+                Dim anAttribute As ormObjectTransaction = _ObjectOperationAttributes.Item(key:=anEntryname)
                 If OnlyEnabled Then
                     If anAttribute.Enabled Then
                         Return anAttribute
@@ -2031,29 +2031,37 @@ Namespace OnTrack
                 If Not aRelationAttribute.HasValueLinkedObject Then
                     CoreMessageHandler(message:="Relation Attribute has not defined a linked object type", objectname:=_Type.Name, _
                                        arg1:=name, messagetype:=otCoreMessageType.InternalError, subname:="ObjectClassDescription.initializeRelationAttribute")
-                End If
-                If Not aRelationAttribute.HasValueLinkJOin AndAlso _
-                Not (aRelationAttribute.HasValueFromEntries OrElse aRelationAttribute.HasValueToEntries) AndAlso _
-                Not aRelationAttribute.HasValueToPrimarykeys Then
-                    CoreMessageHandler(message:="Relation Attribute has not defined a link join or a matching entries or a target primary keys  - how to link ?", _
-                                       objectname:=_Type.Name, _
+                Else
+                    Dim atype As System.Type = aRelationAttribute.LinkObject
+                    If atype.IsAbstract Then
+                        CoreMessageHandler(message:="Relation Attribute with a linked object type which is abstract (mustinherit) is not supported", objectname:=_Type.Name, _
                                        arg1:=name, messagetype:=otCoreMessageType.InternalError, subname:="ObjectClassDescription.initializeRelationAttribute")
-                End If
-                If aRelationAttribute.HasValueFromEntries AndAlso aRelationAttribute.HasValueToEntries Then
-                    If aRelationAttribute.ToEntries.Count > aRelationAttribute.FromEntries.Count Then
-                        CoreMessageHandler(message:="relation attribute has nor mot ToEntries than FromEntries set", _
-                                           arg1:=name, objectname:=_Type.Name, _
-                                           subname:="ObjectClassDescription.initializeRelationAttribute", messagetype:=otCoreMessageType.InternalError)
                     End If
+
                 End If
 
-                '** defaults
-                If Not aRelationAttribute.HasValueCascadeOnCreate Then aRelationAttribute.CascadeOnCreate = False
-                If Not aRelationAttribute.HasValueCascadeOnDelete Then aRelationAttribute.CascadeOnDelete = False
-                If Not aRelationAttribute.HasValueCascadeOnUpdate Then aRelationAttribute.CascadeOnUpdate = False
+                    If Not aRelationAttribute.HasValueLinkJOin AndAlso _
+                    Not (aRelationAttribute.HasValueFromEntries OrElse aRelationAttribute.HasValueToEntries) AndAlso _
+                    Not aRelationAttribute.HasValueToPrimarykeys Then
+                        CoreMessageHandler(message:="Relation Attribute has not defined a link join or a matching entries or a target primary keys  - how to link ?", _
+                                           objectname:=_Type.Name, _
+                                           arg1:=name, messagetype:=otCoreMessageType.InternalError, subname:="ObjectClassDescription.initializeRelationAttribute")
+                    End If
+                    If aRelationAttribute.HasValueFromEntries AndAlso aRelationAttribute.HasValueToEntries Then
+                        If aRelationAttribute.ToEntries.Count > aRelationAttribute.FromEntries.Count Then
+                            CoreMessageHandler(message:="relation attribute has nor mot ToEntries than FromEntries set", _
+                                               arg1:=name, objectname:=_Type.Name, _
+                                               subname:="ObjectClassDescription.initializeRelationAttribute", messagetype:=otCoreMessageType.InternalError)
+                        End If
+                    End If
+
+                    '** defaults
+                    If Not aRelationAttribute.HasValueCascadeOnCreate Then aRelationAttribute.CascadeOnCreate = False
+                    If Not aRelationAttribute.HasValueCascadeOnDelete Then aRelationAttribute.CascadeOnDelete = False
+                    If Not aRelationAttribute.HasValueCascadeOnUpdate Then aRelationAttribute.CascadeOnUpdate = False
 
 
-                Return True
+                    Return True
 
             Catch ex As Exception
                 CoreMessageHandler(exception:=ex, subname:="ObjectClassDescription.InitializeRelationAttribute")
@@ -2276,7 +2284,7 @@ Namespace OnTrack
             Try
 
                 '* set the  name
-                Dim aOperationAttribute As ormObjectOperationAttribute = DirectCast(attribute, ormObjectOperationAttribute)
+                Dim aOperationAttribute As ormObjectTransaction = DirectCast(attribute, ormObjectTransaction)
                 If name = "" Then
                     name = value
                 End If
@@ -2286,7 +2294,7 @@ Namespace OnTrack
                 ' reset the attributes 
                 name = name.ToUpper
                 '** default
-                aOperationAttribute.OperationName = name
+                aOperationAttribute.Transactionname = name
                 If Not aOperationAttribute.HasValueDefaultAllowPermission Then aOperationAttribute.DefaultAllowPermission = True
                 If Not aOperationAttribute.HasValueID Then aOperationAttribute.ID = name
                 If Not aOperationAttribute.HasValueVersion Then aOperationAttribute.Version = 1
@@ -2678,7 +2686,7 @@ Namespace OnTrack
                                     InitializeRelationAttribute(attribute:=anAttribute, name:=aName, tablename:=aTablename, value:=aValue, overridesExisting:=overridesFlag)
 
                                     '** Operation
-                                ElseIf aFieldInfo.IsStatic AndAlso anAttribute.GetType().Equals(GetType(ormObjectOperationAttribute)) Then
+                                ElseIf aFieldInfo.IsStatic AndAlso anAttribute.GetType().Equals(GetType(ormObjectTransaction)) Then
                                     InitializeOperationAttribute(attribute:=anAttribute, objectname:=aTablename, name:=aName, value:=aValue, overridesExisting:=overridesFlag)
 
 

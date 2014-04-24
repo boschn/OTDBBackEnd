@@ -29,643 +29,9 @@ Imports System.Threading
 Imports OnTrack
 Imports OnTrack.Database
 Imports System.Reflection
+Imports OnTrack.Commons
 
 Namespace OnTrack
-
-    ''' <summary>
-    ''' Enumerator for QueryEnumeration
-    ''' </summary>
-    ''' <remarks></remarks>
-    Public Class ormRelationCollectionEnumerator(Of T As {New, iormInfusable, iormPersistable})
-        Implements IEnumerator
-
-        Private _collection As ormRelationCollection(Of T)
-        Private _counter As Integer = 0
-        Private _keys As IList
-        Public Sub New(collection As ormRelationCollection(Of T))
-            _collection = collection
-            _keys = _collection.Keys
-        End Sub
-        Public ReadOnly Property Current As Object Implements IEnumerator.Current
-            Get
-                If _counter >= 0 And _counter < _keys.Count Then Return _collection.Item(_keys.Item(_counter))
-                ' throw else
-                Throw New InvalidOperationException()
-            End Get
-        End Property
-
-        Public Function MoveNext() As Boolean Implements IEnumerator.MoveNext
-            _counter += 1
-            Return (_counter < _keys.Count)
-            ' throw else
-            Throw New InvalidOperationException()
-        End Function
-
-        Public Sub Reset() Implements IEnumerator.Reset
-            _counter = 0
-        End Sub
-    End Class
-
-    ''' <summary>
-    '''  Interface
-    ''' </summary>
-    ''' <typeparam name="T"></typeparam>
-    ''' <remarks></remarks>
-    Public Interface iormRelationalCollection(Of T)
-        Inherits ICollection(Of T)
-
-        Property item(keys As Object) As T
-        Property item(keys As Object()) As T
-
-        Function containsKey(keys As Object()) As Boolean
-        Function containsKey(keys As Object) As Boolean
-
-
-        Function getKeyvalues(item As T) As Object()
-
-        Function GetKeyNames() As String()
-    End Interface
-
-    ''' <summary>
-    ''' Implementation of an Relational Collection
-    ''' </summary>
-    ''' <typeparam name="T"></typeparam>
-    ''' <remarks></remarks>
-    
-    Public Class ormRelationCollection(Of T As {New, iormInfusable, iormPersistable})
-        Implements iormRelationalCollection(Of T)
-
-        Public Class EventArgs
-            Inherits CancelEventArgs
-
-            Private _dataobject As T
-
-            Public Sub New(ByRef dataobject As T)
-                _dataobject = dataobject
-            End Sub
-
-
-            ''' <summary>
-            ''' Gets or sets the dataobject.
-            ''' </summary>
-            ''' <value>The dataobject.</value>
-            Public Property Dataobject() As T
-                Get
-                    Return Me._dataobject
-                End Get
-                Set(value As T)
-                    Me._dataobject = value
-                End Set
-            End Property
-
-        End Class
-
-        Private _dictionary As New SortedDictionary(Of Object, iormPersistable)
-        Private _container As iormPersistable
-        Private _keyentries As String()
-
-        Public Event OnNew(sender As Object, e As ormRelationCollection(Of T).EventArgs)
-
-        Public Event OnAdding(sender As Object, e As ormRelationCollection(Of T).EventArgs)
-        Public Event OnAdded(sender As Object, e As ormRelationCollection(Of T).EventArgs)
-
-        Public Event OnDeleting(sender As Object, e As ormRelationCollection(Of T).EventArgs)
-        Public Event OnDeleted(sender As Object, e As ormRelationCollection(Of T).EventArgs)
-
-        ''' <summary>
-        ''' constructor with the container object (of iormpersistable) 
-        ''' and keyentrynames of T
-        ''' </summary>
-        ''' <param name="containerobject"></param>
-        ''' <param name="keynames"></param>
-        ''' <remarks></remarks>
-        Public Sub New(container As iormPersistable, keyentrynames As String())
-            _container = container
-            _keyentries = keyentrynames
-        End Sub
-
-        ''' <summary>
-        ''' gets the list of keys in the collection
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public ReadOnly Property Keys As IList
-            Get
-                Return _dictionary.Keys.ToList
-            End Get
-
-        End Property
-        ''' <summary>
-        ''' returns the entry names for the keys in the collection
-        ''' </summary>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Function GetKeyNames() As String() Implements iormRelationalCollection(Of T).GetKeyNames
-            Return _keyentries
-        End Function
-
-        ''' <summary>
-        ''' extract the key values of the item (keyentries)
-        ''' </summary>
-        ''' <param name="item"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Function GetKeyValues(item As T) As Object() Implements iormRelationalCollection(Of T).getKeyvalues
-            Dim keys As Object()
-            ReDim keys(_keyentries.Count - 1)
-            For i = 0 To _keyentries.Count - 1
-                keys(i) = item.GetValue(_keyentries(i))
-            Next i
-            Return keys
-        End Function
-
-        ''' <summary>
-        ''' create a new item already stored in this collection
-        ''' </summary>
-        ''' <param name="keys"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Function AddNew(keys As Object()) As T
-            Dim anItem As T = Activator.CreateInstance(Of T)()
-
-            ' set the values in the object
-            For i = 0 To _keyentries.Count - 1
-                keys(i) = anItem.SetValue(_keyentries(i), keys(i))
-            Next i
-
-            Dim args = New ormRelationCollection(Of T).EventArgs(anItem)
-            RaiseEvent OnNew(Me, args)
-            If args.Cancel Then Return Nothing
-
-            Dim arecord As New ormRecord
-            If args.Dataobject.Feed(arecord) Then
-                anItem = ormDataObject.CreateDataObject(Of T)(arecord)
-                If anItem IsNot Nothing Then
-                    Me.Add(anItem)
-                    Return anItem
-                End If
-            End If
-            Return Nothing
-        End Function
-
-        ''' <summary>
-        ''' add an item to the collection - notifies container
-        ''' </summary>
-        ''' <param name="item"></param>
-        ''' <remarks></remarks>
-        Public Sub Add(item As T) Implements ICollection(Of T).Add
-            Dim args = New ormRelationCollection(Of T).EventArgs(item)
-            RaiseEvent OnAdding(Me, args)
-            If args.Cancel Then Return
-
-            ''' get the keys
-            Dim keys = GetKeyValues(item)
-
-            '' no error if we are already in this collection
-            If Not Me.ContainsKey(keys) Then
-                ''' add the handler for the delete event
-                AddHandler item.OnDeleting, AddressOf iormPersistable_OnDelete
-                ''' add to the dictionary
-                _dictionary.Add(key:=keys, value:=item)
-                ''' raise the event
-                RaiseEvent OnAdded(Me, args)
-            End If
-
-        End Sub
-
-        ''' <summary>
-        ''' handler for the OnDeleting Event
-        ''' </summary>
-        ''' <param name="sender"></param>
-        ''' <param name="e"></param>
-        ''' <remarks></remarks>
-        Private Sub IormPersistable_OnDelete(sender As Object, e As ormDataObjectEventArgs)
-            Dim anItem As iormPersistable = e.DataObject
-            Me.Remove(anItem)
-        End Sub
-        ''' <summary>
-        ''' clear the Collection - is not a remove with handler
-        ''' </summary>
-        ''' <remarks></remarks>
-        Public Sub Clear() Implements ICollection(Of T).Clear
-            _dictionary.Clear()
-        End Sub
-        ''' <summary>
-        ''' returns true if the key is in the collection
-        ''' </summary>
-        ''' <param name="keys"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Function ContainsKey(keys As Object()) As Boolean Implements iormRelationalCollection(Of T).containsKey
-            Return _dictionary.ContainsKey(key:=keys)
-        End Function
-
-        ''' <summary>
-        ''' returns true if the key is in the collection
-        ''' </summary>
-        ''' <param name="keys"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Function ContainsKey(keys As Object) As Boolean Implements iormRelationalCollection(Of T).containsKey
-            Return _dictionary.ContainsKey(key:={keys})
-        End Function
-        ''' <summary>
-        ''' returns true if the item is in the collection. based on same keys
-        ''' </summary>
-        ''' <param name="item"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Function Contains(item As T) As Boolean Implements ICollection(Of T).Contains
-            Dim keys = GetKeyValues(item)
-            Return ContainsKey(keys)
-        End Function
-        ''' <summary>
-        ''' copy out to an array
-        ''' </summary>
-        ''' <param name="array"></param>
-        ''' <param name="arrayIndex"></param>
-        ''' <remarks></remarks>
-        Public Sub CopyTo(array() As T, arrayIndex As Integer) Implements ICollection(Of T).CopyTo
-            array = _dictionary.Values.ToArray
-        End Sub
-        ''' <summary>
-        ''' count the number of items in the collection
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public ReadOnly Property Count As Integer Implements ICollection(Of T).Count
-            Get
-                Return _dictionary.Count
-            End Get
-        End Property
-        ''' <summary>
-        ''' return true if readonly
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public ReadOnly Property IsReadOnly As Boolean Implements ICollection(Of T).IsReadOnly
-            Get
-                Return False
-            End Get
-        End Property
-        ''' <summary>
-        ''' remove an item from the collection - the delete handler of the container will be called 
-        ''' which might lead to an delete of the item itself
-        ''' </summary>
-        ''' <param name="item"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Function Remove(item As T) As Boolean Implements ICollection(Of T).Remove
-            Dim args = New ormRelationCollection(Of T).EventArgs(item)
-            RaiseEvent OnDeleting(Me, args)
-
-            Dim keys = GetKeyValues(item)
-            Dim result = _dictionary.Remove(key:=keys)
-
-            RaiseEvent OnDeleted(Me, args)
-            Return result
-        End Function
-        ''' <summary>
-        ''' gets an item by keys
-        ''' </summary>
-        ''' <param name="keys"></param>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Property Item(keys As Object()) As T Implements iormRelationalCollection(Of T).item
-            Get
-                If ContainsKey(keys) Then Return _dictionary.Item(key:=keys)
-            End Get
-            Set(value As T)
-                If Not ContainsKey(keys) Then _dictionary.Add(key:=keys, value:=value)
-            End Set
-        End Property
-        ''' <summary>
-        ''' gets an item by keys
-        ''' </summary>
-        ''' <param name="keys"></param>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Property Item(keys As Object) As T Implements iormRelationalCollection(Of T).item
-            Get
-                If ContainsKey({keys}) Then Return _dictionary.Item(key:={keys})
-            End Get
-            Set(value As T)
-                If Not ContainsKey({keys}) Then _dictionary.Add(key:={keys}, value:=value)
-            End Set
-        End Property
-        ''' <summary>
-        ''' returns an enumerator
-        ''' </summary>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Function GetEnumerator() As IEnumerator(Of T) Implements IEnumerable(Of T).GetEnumerator
-            Return New ormRelationCollectionEnumerator(Of T)(Me)
-        End Function
-
-        Public Function GetEnumerator1() As IEnumerator Implements IEnumerable.GetEnumerator
-            Return _dictionary.GetEnumerator
-        End Function
-    End Class
-   
-
-    ''' <summary>
-    ''' class for a Property Store with weighted properties for multiple property sets
-    ''' </summary>
-    ''' <remarks></remarks>
-    Public Class ComplexPropertyStore
-
-
-        ''' <summary>
-        ''' Event Arguments
-        ''' </summary>
-        ''' <remarks></remarks>
-        Public Class EventArgs
-            Inherits System.EventArgs
-
-            Private _propertyname As String
-            Private _setname As String
-            Private _weight As Nullable(Of UShort)
-            Private _value As Object
-
-            Sub New(Optional propertyname As String = Nothing, Optional setname As String = Nothing, Optional weight As Nullable(Of UShort) = Nothing, Optional value As Object = Nothing)
-                If propertyname IsNot Nothing Then _propertyname = propertyname
-                If setname IsNot Nothing Then _setname = setname
-                If weight.HasValue Then _weight = weight
-                If value IsNot Nothing Then value = _value
-            End Sub
-
-
-            ''' <summary>
-            ''' Gets the value.
-            ''' </summary>
-            ''' <value>The value.</value>
-            Public ReadOnly Property Value() As Object
-                Get
-                    Return Me._value
-                End Get
-            End Property
-
-            ''' <summary>
-            ''' Gets the weight.
-            ''' </summary>
-            ''' <value>The weight.</value>
-            Public ReadOnly Property Weight() As UShort?
-                Get
-                    Return Me._weight
-                End Get
-            End Property
-
-            ''' <summary>
-            ''' Gets the setname.
-            ''' </summary>
-            ''' <value>The setname.</value>
-            Public ReadOnly Property Setname() As String
-                Get
-                    Return Me._setname
-                End Get
-            End Property
-
-            ''' <summary>
-            ''' Gets the propertyname.
-            ''' </summary>
-            ''' <value>The propertyname.</value>
-            Public ReadOnly Property Propertyname() As String
-                Get
-                    Return Me._propertyname
-                End Get
-            End Property
-
-        End Class
-
-        ''' <summary>
-        '''  Sequenze of sets
-        ''' </summary>
-        ''' <remarks></remarks>
-        Public Enum Sequence
-            Primary = 0
-            Secondary = 1
-        End Enum
-
-        ''' <summary>
-        ''' main data structure a set by name consists of different properties with weights for the values
-        ''' </summary>
-        ''' <remarks></remarks>
-        Private _sets As New Dictionary(Of String, Dictionary(Of String, SortedList(Of UShort, Object)))
-
-        Private _currentset As String
-        Private _defaultset As String = ""
-
-        ''' <summary>
-        ''' constructor
-        ''' </summary>
-        ''' <param name="defaultsetname"></param>
-        ''' <remarks></remarks>
-        Sub New(defaultsetname As String)
-            _defaultset = defaultsetname
-        End Sub
-        ''' <summary>
-        ''' Gets or sets the currentset.
-        ''' </summary>
-        ''' <value>The currentset.</value>
-        Public Property CurrentSet() As String
-            Get
-                Return Me._currentset
-            End Get
-            Set(value As String)
-                If Me.HasSet(value) Then
-                    Me._currentset = value
-                    RaiseEvent OnCurrentSetChanged(Me, New ComplexPropertyStore.EventArgs(setname:=value))
-                Else
-                    Throw New IndexOutOfRangeException(message:="set name '" & value & "' does not exist in the store")
-                End If
-
-            End Set
-        End Property
-        ''' <summary>
-        ''' Event OnPropertyChange
-        ''' </summary>
-        ''' <param name="sender"></param>
-        ''' <param name="e"></param>
-        ''' <remarks></remarks>
-        Public Event OnPropertyChanged(sender As Object, e As ComplexPropertyStore.EventArgs)
-        Public Event OnCurrentSetChanged(sender As Object, e As ComplexPropertyStore.EventArgs)
-        ''' <summary>
-        ''' returns the config set for a setname with a driversequence
-        ''' </summary>
-        ''' <param name="setname"></param>
-        ''' <param name="driverseq"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Function GetSet(setname As String, Optional sequence As Sequence = Sequence.Primary) As Dictionary(Of String, SortedList(Of UShort, Object))
-            If HasConfigSetName(setname, sequence) Then
-                Return _sets.Item(key:=setname & ":" & sequence)
-            End If
-        End Function
-        ''' <summary>
-        ''' returns the config set for a setname with a driversequence
-        ''' </summary>
-        ''' <param name="setname"></param>
-        ''' <param name="driverseq"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Function HasProperty(name As String, Optional setname As String = Nothing, Optional sequence As Sequence = Sequence.Primary) As Boolean
-            If setname Is Nothing Then
-                setname = _currentset
-            End If
-            If setname Is Nothing Then
-                setname = _defaultset
-            End If
-            If HasSet(setname, sequence) Then
-                Dim aset = GetSet(setname:=setname, sequence:=sequence)
-                Return aset.ContainsKey(key:=name)
-            End If
-            Return False
-        End Function
-
-        ''' <summary>
-        ''' sets a Property to the TableStore
-        ''' </summary>
-        ''' <param name="Name">Name of the Property</param>
-        ''' <param name="Object">ObjectValue</param>
-        ''' <returns>returns True if succesfull</returns>
-        ''' <remarks></remarks>
-        Public Function SetProperty(ByVal name As String, ByVal value As Object, _
-                                    Optional ByVal weight As UShort = 0,
-                                    Optional setname As String = "", _
-                                    Optional sequence As Sequence = Sequence.Primary) As Boolean
-
-            Dim aWeightedList As SortedList(Of UShort, Object)
-            Dim aSet As Dictionary(Of String, SortedList(Of UShort, Object))
-            If setname = "" Then
-                setname = _defaultset
-            End If
-
-            If HasConfigSetName(setname, sequence) Then
-                aSet = GetSet(setname, sequence:=sequence)
-            Else
-                aSet = New Dictionary(Of String, SortedList(Of UShort, Object))
-                _sets.Add(key:=setname & ":" & sequence, value:=aSet)
-            End If
-
-            If aSet.ContainsKey(name) Then
-                aWeightedList = aSet.Item(name)
-                ' weight missing
-                If weight = 0 Then
-                    weight = aWeightedList.Keys.Max + 1
-                End If
-                ' retrieve
-                If aWeightedList.ContainsKey(weight) Then
-                    aWeightedList.Remove(weight)
-
-                End If
-                aWeightedList.Add(weight, value)
-            Else
-                aWeightedList = New SortedList(Of UShort, Object)
-                '* get weight
-                If weight = 0 Then
-                    weight = 1
-                End If
-                aWeightedList.Add(weight, value)
-                aSet.Add(name, aWeightedList)
-            End If
-
-            RaiseEvent OnPropertyChanged(Me, New ComplexPropertyStore.EventArgs(propertyname:=name, setname:=setname, weight:=weight, value:=value))
-            Return True
-        End Function
-        ''' <summary>
-        ''' Gets the Property of a config set. if setname is ommitted then check currentconfigset and the global one
-        ''' </summary>
-        ''' <param name="name">name of property</param>
-        ''' <returns>object of the property</returns>
-        ''' <remarks></remarks>
-        Public Function GetProperty(ByVal name As String, Optional weight As UShort = 0, _
-        Optional setname As String = "", _
-        Optional sequence As Sequence = Sequence.Primary) As Object
-
-            Dim aConfigSet As Dictionary(Of String, SortedList(Of UShort, Object))
-            If setname = "" Then
-                setname = _currentset
-            End If
-            '* test
-            If setname <> "" AndAlso HasProperty(name, setname:=setname, sequence:=sequence) Then
-                aConfigSet = GetSet(setname, sequence)
-            ElseIf setname <> "" AndAlso HasProperty(name, setname:=setname) Then
-                aConfigSet = GetSet(setname)
-            ElseIf setname = "" AndAlso _currentset IsNot Nothing AndAlso HasProperty(name, setname:=_currentset, sequence:=sequence) Then
-                setname = _currentset
-                aConfigSet = GetSet(setname, sequence)
-            ElseIf setname = "" AndAlso _defaultset IsNot Nothing AndAlso HasProperty(name, setname:=_defaultset) Then
-                setname = _defaultset
-                aConfigSet = GetSet(setname)
-            Else
-                Return Nothing
-            End If
-            ' retrieve
-            Dim aWeightedList As SortedList(Of UShort, Object)
-            If aConfigSet.ContainsKey(name) Then
-                aWeightedList = aConfigSet.Item(name)
-                If aWeightedList.ContainsKey(weight) Then
-                    Return aWeightedList.Item(weight)
-                ElseIf weight = 0 Then
-                    Return aWeightedList.Last.Value
-                Else
-                    Return Nothing
-                End If
-            Else
-                Return Nothing
-            End If
-        End Function
-        ''' <summary>
-        ''' returns a list of selectable config set names without global
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public ReadOnly Property ConfigSetNamesToSelect As List(Of String)
-            Get
-                Return ot.ConfigSetNames.FindAll(Function(x) x <> ConstGlobalConfigSetName)
-            End Get
-        End Property
-        ''' <summary>
-        ''' returns a list of ConfigSetnames
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public ReadOnly Property SetNames As List(Of String)
-            Get
-                Dim aList As New List(Of String)
-
-                For Each name In _sets.Keys
-                    If name.Contains(":") Then
-                        name = name.Substring(0, name.IndexOf(":"))
-                    End If
-                    If Not aList.Contains(name) Then aList.Add(name)
-                Next
-                Return aList
-            End Get
-        End Property
-
-        ''' <summary>
-        ''' returns true if the config-set name exists 
-        ''' </summary>
-        ''' <param name="name"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Function HasSet(ByVal setname As String, Optional sequence As Sequence = Sequence.Primary) As Boolean
-            If _sets.ContainsKey(setname & ":" & sequence) Then
-                Return True
-            Else
-                Return False
-            End If
-        End Function
-
-    End Class
 
     ''' <summary>
     ''' Session Class holds all the Session based Data for On Track Database
@@ -684,7 +50,7 @@ Namespace OnTrack
         Private _DefaultDeliverableTypeID As String = ""
 
         '*** SESSION
-        Private _OTDBUser As User
+        Private _OTDBUser As Commons.User
         Private _Username As String = ""
         Private _errorLog As MessageLog
         Private _logagent As SessionAgent
@@ -721,7 +87,7 @@ Namespace OnTrack
         Public Event OnStarted As EventHandler(Of SessionEventArgs)
         Public Event OnEnding As EventHandler(Of SessionEventArgs)
         Public Event OnConfigSetChange As EventHandler(Of SessionEventArgs)
-        Public Event ObjectDefinitionChanged As EventHandler(Of ObjectDefintionEventArgs)
+        Public Event ObjectDefinitionChanged As EventHandler(Of ObjectDefinition.EventArgs)
         Public Event StartOfBootStrapInstallation As EventHandler(Of SessionEventArgs)
         Public Event EndOfBootStrapInstallation As EventHandler(Of SessionEventArgs)
 
@@ -1393,7 +759,7 @@ Namespace OnTrack
         ''' <param name="sender"></param>
         ''' <param name="e"></param>
         ''' <remarks></remarks>
-        Public Sub RaiseObjectChangedDefinitionEvent(sender As Object, e As ObjectDefintionEventArgs)
+        Public Sub RaiseObjectChangedDefinitionEvent(sender As Object, e As ObjectDefinition.EventArgs)
             If _DomainObjectsDir.ContainsKey(key:=_CurrentDomainID) Then
                 _DomainObjectsDir.Item(key:=_CurrentDomainID).OnObjectDefinitionChanged(sender, e)
             End If
@@ -1444,7 +810,7 @@ Namespace OnTrack
 
         Public Function ValidateAccessRights(accessrequest As otAccessRight, _
                                                 Optional domainid As String = "", _
-                                                Optional ByRef objectoperations As String() = Nothing) As Boolean
+                                                Optional ByRef objecttransactions As String() = Nothing) As Boolean
             Dim result As Boolean = False
 
             '** during startup we might not have a otdbuser
@@ -1461,21 +827,21 @@ Namespace OnTrack
             If Not result Then Return result
 
             'exit 
-            If objectoperations Is Nothing OrElse objectoperations.Count = 0 OrElse Me.IsBootstrappingInstallationRequested Then Return result
+            If objecttransactions Is Nothing OrElse objecttransactions.Count = 0 OrElse Me.IsBootstrappingInstallationRequested Then Return result
 
-            '** check all objectoperations if level iss sufficent
-            For Each opname In objectoperations
+            '** check all objecttransactions if level iss sufficent
+            For Each opname In objecttransactions
                 '** check cache
                 If _ObjectPermissionCache.ContainsKey(opname.ToUpper) Then
                     result = result And True
                 Else
                     Dim anObjectname As String
-                    Dim anOperationname As String
-                    Converter.SplitFullName(opname, anObjectname, anOperationname)
+                    Dim anTransactionname As String
+                    Converter.SplitFullName(opname, anObjectname, anTransactionname)
                     If anObjectname = "" Then
                         CoreMessageHandler(message:="ObjectID is missing in operation name", arg1:=opname, subname:="Session.validateOTDBAccessLevel", messagetype:=otCoreMessageType.InternalError)
                         result = result And False
-                    ElseIf anOperationname = "" Then
+                    ElseIf anTransactionname = "" Then
                         CoreMessageHandler(message:="Operation Name is missing in operation name", arg1:=opname, subname:="Session.validateOTDBAccessLevel", messagetype:=otCoreMessageType.InternalError)
                         result = result And False
                     Else
@@ -1485,7 +851,7 @@ Namespace OnTrack
                             result = result And False
                         Else
                             '** get the ObjectDefinition's effective permissions
-                            result = result And aObjectDefinition.GetEffectivePermission(user:=_OTDBUser, domainid:=domainid, operationname:=anOperationname)
+                            result = result And aObjectDefinition.GetEffectivePermission(user:=_OTDBUser, domainid:=domainid, transactionname:=anTransactionname)
                             '** put it in cache
                             If _ObjectPermissionCache.ContainsKey(opname.ToUpper) Then
                                 _ObjectPermissionCache.Remove(opname.ToUpper)
@@ -1517,7 +883,7 @@ Namespace OnTrack
                                             Optional ByRef username As String = "", _
                                             Optional ByRef password As String = "", _
                                             Optional ByRef domainID As String = "", _
-                                            Optional ByRef [objectoperations] As String() = Nothing, _
+                                            Optional ByRef [objecttransactions] As String() = Nothing, _
                                             Optional loginOnDisConnected As Boolean = False, _
                                             Optional loginOnFailed As Boolean = False, _
                                             Optional messagetext As String = "") As Boolean
@@ -1628,7 +994,7 @@ Namespace OnTrack
 
                 '** validate the current user with the request if it is failing then
                 '** do check again
-                If Me.ValidateAccessRights(accessrequest:=accessRequest, domainid:=domainID, objectoperations:=[objectoperations]) Then
+                If Me.ValidateAccessRights(accessrequest:=accessRequest, domainid:=domainID, objecttransactions:=[objecttransactions]) Then
                     Return True
                     '* change the current user if anonymous
                     '*
@@ -1977,7 +1343,7 @@ Namespace OnTrack
 
             Catch ex As ormNoConnectionException
                 Return False
-            Catch ex As ORMException
+            Catch ex As ormException
                 CoreMessageHandler(exception:=ex, subname:="Session.Startup")
                 Return False
             Catch ex As Exception
@@ -2314,34 +1680,7 @@ Namespace OnTrack
 
 
     End Class
-    ''' <summary>
-    ''' Object Defintion Event Arguments
-    ''' </summary>
-    ''' <remarks></remarks>
 
-    Public Class ObjectDefintionEventArgs
-        Inherits EventArgs
-
-        Private _objectname As String
-
-        Public Sub New(objectname As String)
-            _objectname = objectname
-        End Sub
-        ''' <summary>
-        ''' Gets the error.
-        ''' </summary>
-        ''' <value>The error.</value>
-        Public ReadOnly Property Objectname() As String
-            Get
-                Return _objectname
-            End Get
-        End Property
-
-    End Class
-
-
-    '**************
-    '************** SessionEventArgs for the SessionEvents
     ''' <summary>
     ''' Session Event Arguments
     ''' </summary>
@@ -2530,46 +1869,46 @@ Namespace OnTrack
         <ormSchemaTableAttribute(Version:=5)> Public Const ConstTableID = "tblSessionLogMessages"
 
         '*** Schema Field Definitions
-        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, _
+        <ormObjectEntry(typeid:=otDataType.Text, size:=100, _
                          title:="Session", Description:="sessiontag", primaryKeyordinal:=1)> Public Const ConstFNTag As String = "tag"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Long, _
+        <ormObjectEntry(typeid:=otDataType.Long, _
                          title:="no", Description:="number of entry", primaryKeyordinal:=2)> Public Const ConstFNno As String = "no"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, isnullable:=True, _
+        <ormObjectEntry(typeid:=otDataType.Text, size:=100, isnullable:=True, _
                          title:="Message ID", Description:="id of the message")> Public Const ConstFNID As String = "id"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Memo, isnullable:=True, _
+        <ormObjectEntry(typeid:=otDataType.Memo, isnullable:=True, _
                          title:="Message", Description:="message text")> Public Const ConstFNmessage As String = "message"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, isnullable:=True, _
+        <ormObjectEntry(typeid:=otDataType.Text, size:=100, isnullable:=True, _
                          title:="Routine", Description:="routine name")> Public Const ConstFNsubname As String = "subname"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Timestamp, isnullable:=True, _
+        <ormObjectEntry(typeid:=otDataType.Timestamp, isnullable:=True, _
                          title:="Timestamp", Description:="timestamp of entry")> Public Const ConstFNtimestamp As String = "timestamp"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, isnullable:=True, _
+        <ormObjectEntry(typeid:=otDataType.Text, size:=100, isnullable:=True, _
                          title:="Object", Description:="object name")> Public Const ConstFNObjectname As String = "object"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, isnullable:=True, _
+        <ormObjectEntry(typeid:=otDataType.Text, size:=100, isnullable:=True, _
                          title:="ObjectEntry", Description:="object entry")> Public Const ConstFNObjectentry As String = "objectentry"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, isnullable:=True, _
+        <ormObjectEntry(typeid:=otDataType.Text, size:=100, isnullable:=True, _
                          title:="Table", Description:="tablename")> Public Const ConstFNtablename As String = "table"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, isnullable:=True, _
+        <ormObjectEntry(typeid:=otDataType.Text, size:=100, isnullable:=True, _
                          title:="Column", Description:="columnname in the table")> Public Const ConstFNColumn As String = "column"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=255, isnullable:=True, _
+        <ormObjectEntry(typeid:=otDataType.Text, size:=255, isnullable:=True, _
                          title:="Argument", Description:="argument of the message")> Public Const ConstFNarg As String = "arg"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Long, isnullable:=True, _
+        <ormObjectEntry(typeid:=otDataType.Long, isnullable:=True, _
                          title:="message type id", Description:="id of the message type")> Public Const ConstFNtype As String = "typeid"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, isnullable:=True, title:="Username of the session", Description:="name of the user for this session")> _
+        <ormObjectEntry(typeid:=otDataType.Text, size:=50, isnullable:=True, title:="Username of the session", Description:="name of the user for this session")> _
         Public Const ConstFNUsername As String = "username"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Memo, isnullable:=True, title:="stack trace", Description:="caller stack trace")> _
+        <ormObjectEntry(typeid:=otDataType.Memo, isnullable:=True, title:="stack trace", Description:="caller stack trace")> _
         Public Const ConstFNStack As String = "stack"
 
         <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, _
@@ -2581,7 +1920,7 @@ Namespace OnTrack
         <ormEntryMapping(EntryName:=ConstFNno)> Private _entryno As Long = 0
         <ormEntryMapping(EntryName:=ConstFNmessage)> Private _Message As String = ""
         <ormEntryMapping(EntryName:=ConstFNsubname)> Private _Subname As String = ""
-        <ormEntryMapping(EntryName:=ConstFNtimestamp)> Private _Timestamp As Date = ConstNullDate
+        <ormEntryMapping(EntryName:=ConstFNtimestamp)> Private _Timestamp As Date = constNullDate
         <ormEntryMapping(EntryName:=ConstFNObjectname)> Private _Objectname As String = ""
         <ormEntryMapping(EntryName:=ConstFNObjectentry)> Private _Entryname As String = ""
         <ormEntryMapping(EntryName:=ConstFNtablename)> Private _Tablename As String = ""
@@ -2923,100 +2262,7 @@ Namespace OnTrack
         End Property
     End Class
 
-    ''' <summary>
-    ''' No Connection Excpetion
-    ''' </summary>
-    ''' <remarks></remarks>
-    Public Class ormNoConnectionException
-        Inherits ORMException
-        Public Sub New(Optional message As String = Nothing, Optional exception As Exception = Nothing, Optional subname As String = "", Optional path As String = "")
-            MyBase.New(message:=message, exception:=exception, subname:=subname, path:=path)
-        End Sub
 
-    End Class
-    ''' <summary>
-    ''' ORMException is an Exception for the ORM LAyer
-    ''' </summary>
-    ''' <remarks></remarks>
-    Public Class ORMException
-        Inherits Exception
-
-        Protected _InnerException As Exception
-        Protected _message As String
-        Protected _subname As String
-        Protected _path As String ' Database path
-        Public Sub New(Optional message As String = Nothing, Optional exception As Exception = Nothing, Optional subname As String = "", Optional path As String = "")
-            If message IsNot Nothing Then _message = message
-            If subname IsNot Nothing Then _subname = subname
-            If exception IsNot Nothing Then _InnerException = exception
-            If path IsNot Nothing Then _path = path
-        End Sub
-
-        ''' <summary>
-        ''' Gets the path.
-        ''' </summary>
-        ''' <value>The path.</value>
-        Public ReadOnly Property Path() As String
-            Get
-                Return Me._path
-            End Get
-        End Property
-
-        ''' <summary>
-        ''' Gets the subname.
-        ''' </summary>
-        ''' <value>The subname.</value>
-        Public ReadOnly Property Subname() As String
-            Get
-                Return Me._subname
-            End Get
-        End Property
-
-        ''' <summary>
-        ''' Gets the message.
-        ''' </summary>
-        ''' <value>The message.</value>
-        Public ReadOnly Property Message() As String
-            Get
-                Return Me._message
-            End Get
-        End Property
-
-        ''' <summary>
-        ''' Gets the inner exception.
-        ''' </summary>
-        ''' <value>The inner exception.</value>
-        Public ReadOnly Property InnerException() As Exception
-            Get
-                Return Me._InnerException
-            End Get
-        End Property
-
-    End Class
-    ''' <summary>
-    ''' Event arguments for Ontrack error Events
-    ''' </summary>
-    ''' <remarks></remarks>
-
-    Public Class OTErrorEventArgs
-        Inherits EventArgs
-
-        Private _error As SessionLogMessage
-
-        Public Sub New(newError As SessionLogMessage)
-            _error = newError
-        End Sub
-        ''' <summary>
-        ''' Gets the error.
-        ''' </summary>
-        ''' <value>The error.</value>
-        Public ReadOnly Property [Error]() As SessionLogMessage
-            Get
-                Return Me._error
-            End Get
-        End Property
-
-    End Class
 
     ''' <summary>
     ''' Describes an not persistable Log of Messages. Can be persisted by SessionLogMessages
@@ -3027,8 +2273,8 @@ Namespace OnTrack
         Implements IEnumerable
         Implements ICloneable
 
-        Public Event onErrorRaised As EventHandler(Of OTErrorEventArgs)
-        Public Event onLogClear As EventHandler(Of OTErrorEventArgs)
+        Public Event onErrorRaised As EventHandler(Of ormErrorEventArgs)
+        Public Event onLogClear As EventHandler(Of ormErrorEventArgs)
         '*** log
         Private _log As New SortedList(Of Long, SessionLogMessage)
         Private _queue As New ConcurrentQueue(Of SessionLogMessage)
@@ -3078,7 +2324,7 @@ Namespace OnTrack
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function Clear()
-            RaiseEvent onLogClear(Me, New OTErrorEventArgs(Nothing))
+            RaiseEvent onLogClear(Me, New ormErrorEventArgs(Nothing))
             _log.Clear()
             '_queue = Nothing leave it for flush
             Return True
@@ -3089,7 +2335,7 @@ Namespace OnTrack
         ''' <param name="timestamp"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function Persist(Optional timestamp As Date = ot.ConstNullDate) As Boolean
+        Public Function Persist(Optional timestamp As Date = ot.constNullDate) As Boolean
             '** we have a session
             If CurrentSession.IsRunning Then
                 '*** only if the table is there
@@ -3138,7 +2384,7 @@ Namespace OnTrack
 
             End SyncLock
 
-            RaiseEvent onErrorRaised(Me, New OTErrorEventArgs(aClone))
+            RaiseEvent onErrorRaised(Me, New ormErrorEventArgs(aClone))
         End Sub
         ''' <summary>
         ''' returns the size of the log
@@ -3198,294 +2444,7 @@ Namespace OnTrack
 
     End Class
 
-    ''' <summary>
-    ''' OrdinalType identifies the data type of the ordinal
-    ''' </summary>
-    ''' <remarks></remarks>
 
-    Public Enum OrdinalType
-        longType
-        stringType
-
-    End Enum
-
-    ''' <summary>
-    ''' ordinal class describes values as ordinal values (ordering)
-    ''' </summary>
-    ''' <remarks></remarks>
-
-    Public Class Ordinal
-        Implements IEqualityComparer(Of Ordinal)
-        Implements IConvertible
-        Implements IComparable(Of Ordinal)
-        Implements IComparer(Of Ordinal)
-
-        Private _ordinalvalue As Object
-        Private _ordinalType As OrdinalType
-
-        Public Sub New(ByVal value As Object)
-            ' return depending on the type
-
-            If TypeOf value Is Long Or TypeOf value Is Integer Or TypeOf value Is UShort _
-            Or TypeOf value Is Short Or TypeOf value Is UInteger Or TypeOf value Is ULong Then
-                _ordinalType = OrdinalType.longType
-                _ordinalvalue = CLng(value)
-            ElseIf IsNumeric(value) Then
-                _ordinalType = OrdinalType.longType
-                _ordinalvalue = CLng(value)
-            ElseIf TypeOf value Is Ordinal Then
-                _ordinalType = CType(value, Ordinal).Type
-                _ordinalvalue = CType(value, Ordinal).Value
-
-            ElseIf value.ToString Then
-                _ordinalType = OrdinalType.stringType
-                _ordinalvalue = String.Copy(value.ToString)
-            Else
-                Throw New Exception("value is not casteable to a XMAPordinalType")
-
-            End If
-
-        End Sub
-        Public Sub New(ByVal value As Object, ByVal type As OrdinalType)
-            _ordinalType = type
-            Me.Value = value
-        End Sub
-        Public Sub New(ByVal type As OrdinalType)
-            _ordinalType = type
-            _ordinalvalue = Nothing
-        End Sub
-
-        Public Function ToString() As String
-            Return _ordinalvalue.ToString
-        End Function
-        ''' <summary>
-        ''' Equalses the specified x.
-        ''' </summary>
-        ''' <param name="x">The x.</param>
-        ''' <param name="y">The y.</param>
-        ''' <returns></returns>
-        Public Function [Equals](x As Ordinal, y As Ordinal) As Boolean Implements IEqualityComparer(Of Ordinal).[Equals]
-            Select Case x._ordinalType
-                Case OrdinalType.longType
-                    Return x.Value.Equals(y.Value)
-                Case OrdinalType.stringType
-                    If String.Compare(x.Value, y.Value, False) = 0 Then
-                        Return True
-                    Else
-                        Return False
-                    End If
-            End Select
-
-            Return x.Value = y.Value
-        End Function
-        ''' <summary>
-        ''' Compares two objects and returns a value indicating whether one is less
-        ''' than, equal to, or greater than the other.
-        ''' </summary>
-        ''' <param name="x">The first object to compare.</param>
-        ''' <param name="y">The second object to compare.</param>
-        ''' <exception cref="T:System.ArgumentException">Neither <paramref name="x" /> nor
-        ''' <paramref name="y" /> implements the <see cref="T:System.IComparable" /> interface.-or-
-        ''' <paramref name="x" /> and <paramref name="y" /> are of different types and neither
-        ''' one can handle comparisons with the other. </exception>
-        ''' <returns>
-        ''' A signed integer that indicates the relative values of <paramref name="x" />
-        ''' and <paramref name="y" />, as shown in the following table.Value Meaning Less
-        ''' than zero <paramref name="x" /> is less than <paramref name="y" />. Zero <paramref name="x" />
-        ''' equals <paramref name="y" />. Greater than zero <paramref name="x" /> is greater
-        ''' than <paramref name="y" />.
-        ''' </returns>
-        Public Function [Compare](x As Ordinal, y As Ordinal) As Integer Implements IComparer(Of Ordinal).[Compare]
-
-            '** depend on the type
-            Select Case x.Type
-                Case OrdinalType.longType
-                    ' try to compare numeric
-                    If IsNumeric(y.Value) Then
-                        If Me.Value > CLng(y.Value) Then
-                            Return 1
-                        ElseIf Me.Value < CLng(y.Value) Then
-                            Return -1
-                        Else
-                            Return 0
-
-                        End If
-                    Else
-                        Return -1
-                    End If
-                Case OrdinalType.stringType
-                    Return String.Compare(y.Value, y.Value.ToString)
-
-            End Select
-        End Function
-        ''' <summary>
-        ''' Compares to.
-        ''' </summary>
-        ''' <param name="other">The other.</param>
-        ''' <returns></returns>
-        Public Function CompareTo(other As Ordinal) As Integer Implements IComparable(Of Ordinal).CompareTo
-            Return Compare(Me, other)
-
-        End Function
-
-        ''' <summary>
-        ''' Gets the hash code.
-        ''' </summary>
-        ''' <param name="obj">The obj.</param>
-        ''' <returns></returns>
-        Public Function GetHashCode(obj As Ordinal) As Integer Implements IEqualityComparer(Of Ordinal).GetHashCode
-            Return _ordinalvalue.GetHashCode
-        End Function
-        ''' <summary>
-        ''' Value of the ordinal
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Property Value As Object
-            Get
-                Select Case Me.Type
-                    Case OrdinalType.longType
-                        Return CLng(_ordinalvalue)
-                    Case OrdinalType.stringType
-                        Return CStr(_ordinalvalue)
-                End Select
-                Return Nothing
-            End Get
-            Set(value As Object)
-                Select Case Me.Type
-                    Case OrdinalType.longType
-                        _ordinalvalue = CLng(value)
-                    Case OrdinalType.stringType
-                        _ordinalvalue = CStr(value)
-                End Select
-
-                _ordinalvalue = value
-            End Set
-
-        End Property
-        ''' <summary>
-        ''' Datatype of the ordinal
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        ReadOnly Property Type As OrdinalType
-            Get
-                Return _ordinalType
-            End Get
-        End Property
-        ''' <summary>
-        ''' gets the Typecode of the ordinal
-        ''' </summary>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Function GetTypeCode() As TypeCode Implements IConvertible.GetTypeCode
-            If _ordinalType = OrdinalType.longType Then
-                Return TypeCode.UInt64
-            ElseIf _ordinalType = OrdinalType.stringType Then
-                Return TypeCode.String
-            Else
-                Return TypeCode.Object
-            End If
-
-        End Function
-
-        Public Function ToBoolean(provider As IFormatProvider) As Boolean Implements IConvertible.ToBoolean
-            Return _ordinalvalue <> Nothing
-        End Function
-
-        Public Function ToByte(provider As IFormatProvider) As Byte Implements IConvertible.ToByte
-            Return Convert.ToByte(_ordinalvalue)
-        End Function
-
-        Public Function ToChar(provider As IFormatProvider) As Char Implements IConvertible.ToChar
-            Return Convert.ToChar(_ordinalvalue)
-        End Function
-
-        Public Function ToDateTime(provider As IFormatProvider) As Date Implements IConvertible.ToDateTime
-
-        End Function
-
-        Public Function ToDecimal(provider As IFormatProvider) As Decimal Implements IConvertible.ToDecimal
-            Return Convert.ToDecimal(_ordinalvalue)
-        End Function
-
-        Public Function ToDouble(provider As IFormatProvider) As Double Implements IConvertible.ToDouble
-            Return Convert.ToDouble(_ordinalvalue)
-        End Function
-
-        Public Function ToInt16(provider As IFormatProvider) As Short Implements IConvertible.ToInt16
-            Return Convert.ToInt16(_ordinalvalue)
-        End Function
-
-        Public Function ToInt32(provider As IFormatProvider) As Integer Implements IConvertible.ToInt32
-            Return Convert.ToInt32(_ordinalvalue)
-        End Function
-
-        Public Function ToInt64(provider As IFormatProvider) As Long Implements IConvertible.ToInt64
-            Return Convert.ToInt64(_ordinalvalue)
-        End Function
-
-        Public Function ToSByte(provider As IFormatProvider) As SByte Implements IConvertible.ToSByte
-            Return Convert.ToSByte(_ordinalvalue)
-        End Function
-
-        Public Function ToSingle(provider As IFormatProvider) As Single Implements IConvertible.ToSingle
-            Return Convert.ToSingle(_ordinalvalue)
-        End Function
-
-        Public Function ToString(provider As IFormatProvider) As String Implements IConvertible.ToString
-            Return Convert.ToString(_ordinalvalue)
-        End Function
-
-        Public Function ToType(conversionType As Type, provider As IFormatProvider) As Object Implements IConvertible.ToType
-            ' DirectCast(_ordinalvalue, conversionType)
-        End Function
-
-        Public Function ToUInt16(provider As IFormatProvider) As UShort Implements IConvertible.ToUInt16
-            Return Convert.ToUInt16(_ordinalvalue)
-        End Function
-
-        Public Function ToUInt32(provider As IFormatProvider) As UInteger Implements IConvertible.ToUInt32
-            Return Convert.ToUInt32(_ordinalvalue)
-        End Function
-
-        Public Function ToUInt64(provider As IFormatProvider) As ULong Implements IConvertible.ToUInt64
-            Return Convert.ToUInt64(_ordinalvalue)
-        End Function
-
-        Public Shared Operator =(x As Ordinal, y As Ordinal) As Boolean
-            Return x.Value = y.Value
-        End Operator
-        Public Shared Operator <(x As Ordinal, y As Ordinal) As Boolean
-            Return x.Value < y.Value
-        End Operator
-        Public Shared Operator >(x As Ordinal, y As Ordinal) As Boolean
-            Return x.Value > y.Value
-        End Operator
-        Public Shared Operator <>(x As Ordinal, y As Ordinal) As Boolean
-            Return x.Value <> y.Value
-        End Operator
-        Public Shared Operator +(x As Ordinal, y As Ordinal) As Boolean
-            Return x.Value + y.Value
-        End Operator
-
-        Function ToUInt64() As Integer
-            If IsNumeric(_ordinalvalue) Then Return CLng(_ordinalvalue)
-            Throw New NotImplementedException
-        End Function
-        ''' <summary>
-        ''' compares this to an ordinal
-        ''' </summary>
-        ''' <param name="value"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Function Equals(value As Ordinal) As Boolean
-            Return Me.Compare(Me, value) = 0
-        End Function
-
-    End Class
 
     ''' <summary>
     ''' ObjectLog for Messages for Business Objects 
@@ -4184,21 +3143,21 @@ errorhandle:
         <ormSchemaTable(version:=1, addsparefields:=True)> Public Const ConstTableID As String = "tblObjectMessages"
 
         '* primary keys
-        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, PosOrdinal:=1, PrimarykeyOrdinal:=1, _
+        <ormObjectEntry(typeid:=otDataType.Text, size:=100, PosOrdinal:=1, PrimarykeyOrdinal:=1, _
                          ID:="olog1", title:="Tag", description:="tag to the object message log")> Public Shadows Const ConstFNTag = "msglogtag"
-        <ormObjectEntry(typeid:=otFieldDataType.Long, PrimarykeyOrdinal:=2, _
+        <ormObjectEntry(typeid:=otDataType.Long, PrimarykeyOrdinal:=2, _
                          ID:="olog2", title:="Number", description:="number of the object message")> Public Const ConstFNNo = "idno"
         '* fields
         <ormObjectEntry(referenceObjectEntry:=ObjectLogMessageDef.ConstObjectID & "." & ObjectLogMessageDef.ConstFNMessageID, _
                          ID:="olog3")> Public Const ConstFNMessageID = ObjectLogMessageDef.ConstFNMessageID
 
-        <ormObjectEntry(typeid:=otFieldDataType.Memo, _
+        <ormObjectEntry(typeid:=otDataType.Memo, _
                          ID:="olog4", title:="Message", description:="the object message")> Public Const ConstFNMessage = "msgtxt"
-        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, _
+        <ormObjectEntry(typeid:=otDataType.Text, size:=100, _
                          ID:="olog5", title:="ContextID", description:="context of the object message")> Public Const ConstFNContextID = "contextid"
-        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, _
+        <ormObjectEntry(typeid:=otDataType.Text, size:=100, _
                          ID:="olog6", title:="TupleID", description:="tuple of the object message")> Public Const ConstFNTupleID = "tupleid"
-        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, _
+        <ormObjectEntry(typeid:=otDataType.Text, size:=100, _
                          ID:="olog7", title:="EntityID", description:="entity of the object message")> Public Const ConstFNEntityID = "entityid"
 
         '* mapping
@@ -4213,7 +3172,7 @@ errorhandle:
 
         '* dynamic
         Private s_msgdef As New ObjectLogMessageDef
-        Public Event ObjectDefinitionChanged As EventHandler(Of ObjectDefintionEventArgs)
+        Public Event ObjectDefinitionChanged As EventHandler(Of ObjectDefinition.EventArgs)
 
         '** runtime
         Private _runtimeOnly As Boolean

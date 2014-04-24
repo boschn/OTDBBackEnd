@@ -21,9 +21,17 @@ Imports OnTrack.Database
 Imports OnTrack.Deliverables
 Imports OnTrack.XChange
 Imports OnTrack.Calendar
+Imports OnTrack.Commons
 
 Namespace OnTrack.Scheduling
-
+    ''' <summary>
+    ''' enumeration of milestone types
+    ''' </summary>
+    ''' <remarks></remarks>
+    Public Enum otMilestoneType
+        [Date] = 1
+        Status = 2
+    End Enum
     ''' <summary>
     ''' Enumeration and other definitions
     ''' </summary>
@@ -40,7 +48,7 @@ Namespace OnTrack.Scheduling
         Description:="definition of milestones for all schedule types", useCache:=True, addDomainBehavior:=True, adddeletefieldbehavior:=True)> _
     Public Class MileStoneDefinition
         Inherits ormDataObject
-       
+
 
         Public Const ConstObjectID = "MilestoneDefinition"
 
@@ -54,7 +62,7 @@ Namespace OnTrack.Scheduling
         ''' primary keys
         ''' </summary>
         ''' <remarks></remarks>
-        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=20, defaultValue:="", primarykeyordinal:=1, _
+        <ormObjectEntry(typeid:=otDataType.Text, size:=20, defaultValue:="", primarykeyordinal:=1, _
             properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty}, _
             XID:="bpd1", title:="ID", description:="id of the milestone")> Public Const ConstFNID = "id"
 
@@ -66,19 +74,19 @@ Namespace OnTrack.Scheduling
         ''' fields
         ''' </summary>
         ''' <remarks></remarks>
-        <ormObjectEntry(typeid:=otFieldDataType.Text, isnullable:=True, _
+        <ormObjectEntry(typeid:=otDataType.Text, isnullable:=True, _
            XID:="bpd2", title:="Description", description:="description of the milestone")> Public Const ConstFNDescription = "desc"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Text, defaultvalue:=otMilestoneType.Date, _
+        <ormObjectEntry(typeid:=otDataType.Text, defaultvalue:=otMilestoneType.Date, _
            XID:="bpd3", title:="Type", description:="type of the milestone")> Public Const ConstFNType = "typeid"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Text, defaultvalue:=otFieldDataType.Text, _
+        <ormObjectEntry(typeid:=otDataType.Text, defaultvalue:=otDataType.Text, _
            XID:="bpd4", title:="Datatype", description:="datatype of the milestone")> Public Const ConstFNDatatype = "datatype"
 
         <ormObjectEntry(referenceobjectentry:=StatusItem.ConstObjectID & "." & StatusItem.constFNType, _
           XID:="bpd5", title:="Status Item Type", description:="status item type of the milestone")> Public Const ConstFNStatusType = "status"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Bool, defaultvalue:=False, _
+        <ormObjectEntry(typeid:=otDataType.Bool, defaultvalue:=False, _
          XID:="bpd6", title:="Forecast", description:="set if milestone is a forecast")> Public Const ConstFNIsForecast = "isforecast"
 
         <ormObjectEntry(referenceobjectentry:=ConstObjectID & "." & ConstFNID, isnullable:=True, _
@@ -90,7 +98,7 @@ Namespace OnTrack.Scheduling
         <ormEntryMapping(EntryName:=ConstFNID)> Private _id As String = ""  ' id
         <ormEntryMapping(EntryName:=ConstFNDescription)> Private _description As String = ""
         <ormEntryMapping(EntryName:=ConstFNType)> Private _typeid As otMilestoneType
-        <ormEntryMapping(EntryName:=ConstFNDatatype)> Private _datatype As otFieldDataType
+        <ormEntryMapping(EntryName:=ConstFNDatatype)> Private _datatype As otDataType
         <ormEntryMapping(EntryName:=ConstFNRefID)> Private _refid As String = ""
         <ormEntryMapping(EntryName:=ConstFNIsForecast)> Private _isForecast As Boolean
         <ormEntryMapping(EntryName:=ConstFNStatusType)> Private _statustypeid As String = ""
@@ -113,11 +121,11 @@ Namespace OnTrack.Scheduling
 
         End Property
 
-        Public Property Datatype() As otFieldDataType
+        Public Property Datatype() As otDataType
             Get
                 Datatype = _datatype
             End Get
-            Set(value As otFieldDataType)
+            Set(value As otDataType)
                 SetValue(ConstFNDatatype, value)
             End Set
         End Property
@@ -330,35 +338,35 @@ Namespace OnTrack.Scheduling
         ''' fields
         ''' </summary>
         ''' <remarks></remarks>
-        <ormObjectEntry(XID:="BSD1", typeid:=otFieldDataType.Text, isnullable:=True, _
+        <ormObjectEntry(XID:="BSD1", typeid:=otDataType.Text, isnullable:=True, _
             title:="description", description:="description of milestone in schedule")> Public Const ConstFNDesc = "desc"
 
-        <ormObjectEntry(XID:="BSD2", typeid:=otFieldDataType.Long, defaultvalue:=1, dbdefaultvalue:="1", _
+        <ormObjectEntry(XID:="BSD2", typeid:=otDataType.Long, defaultvalue:=1, dbdefaultvalue:="1", _
             title:="ordinal", description:="ordinal of milestone in schedule")> Public Const ConstFNOrdinal = "ordinal"
 
         <ormObjectEntry(XID:="BSD3", isnullable:=True, _
             referenceobjectentry:=MileStoneDefinition.ConstObjectID & "." & MileStoneDefinition.ConstFNID, _
             title:="actual of fc milestone id", description:=" actual id of this milestone in schedule")> Public Const ConstFNActualID = "actualid"
 
-        <ormObjectEntry(XID:="BSD4", typeid:=otFieldDataType.Bool, _
+        <ormObjectEntry(XID:="BSD4", typeid:=otDataType.Bool, _
             title:="is forecast", description:=" milestone is forecast in schedule")> Public Const ConstFNIsFC = "isfc"
 
-        <ormObjectEntry(XID:="BSD5", typeid:=otFieldDataType.Bool, dbdefaultvalue:="0", defaultvalue:=False, _
+        <ormObjectEntry(XID:="BSD5", typeid:=otDataType.Bool, dbdefaultvalue:="0", defaultvalue:=False, _
             title:="is facilitative", description:=" milestone is facilitative in schedule")> Public Const ConstFNIsFacultative = "isfacultative"
 
-        <ormObjectEntry(XID:="BSD6", typeid:=otFieldDataType.Bool, dbdefaultvalue:="0", defaultvalue:=False, _
+        <ormObjectEntry(XID:="BSD6", typeid:=otDataType.Bool, dbdefaultvalue:="0", defaultvalue:=False, _
             title:="is prohibited", description:=" milestone is prohibited in schedule")> Public Const ConstFNIsProhibited = "isprohibited"
 
-        <ormObjectEntry(XID:="BSD7", typeid:=otFieldDataType.Bool, dbdefaultvalue:="0", defaultvalue:=False, _
+        <ormObjectEntry(XID:="BSD7", typeid:=otDataType.Bool, dbdefaultvalue:="0", defaultvalue:=False, _
             title:="is mandatory", description:=" milestone is mandatory in schedule")> Public Const ConstFNIsMandatory = "ismandatory"
 
-        <ormObjectEntry(XID:="BSD8", typeid:=otFieldDataType.Bool, dbdefaultvalue:="0", defaultvalue:=False, _
+        <ormObjectEntry(XID:="BSD8", typeid:=otDataType.Bool, dbdefaultvalue:="0", defaultvalue:=False, _
             title:="is input", description:=" milestone is input deliverable in schedule")> Public Const ConstFNIsINPUT = "isinput"
 
-        <ormObjectEntry(XID:="BSD9", typeid:=otFieldDataType.Bool, dbdefaultvalue:="0", defaultvalue:=False, _
+        <ormObjectEntry(XID:="BSD9", typeid:=otDataType.Bool, dbdefaultvalue:="0", defaultvalue:=False, _
             title:="is output", description:=" milestone is output deliverable in schedule")> Public Const ConstFNIsOutPut = "isoutput"
 
-        <ormObjectEntry(XID:="BSD10", typeid:=otFieldDataType.Bool, dbdefaultvalue:="0", defaultvalue:=False, _
+        <ormObjectEntry(XID:="BSD10", typeid:=otDataType.Bool, dbdefaultvalue:="0", defaultvalue:=False, _
             title:="is finish", description:=" milestone is end of schedule")> Public Const ConstFNIsFinish = "isfinish"
 
         ''' <summary>
@@ -609,14 +617,14 @@ Namespace OnTrack.Scheduling
             Return MileStoneDefinition.Retrieve(id:=Me.ID)
         End Function
 
-        
+
         ''' <summary>
         ''' Persist the Object
         ''' </summary>
         ''' <param name="TIMESTAMP"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function Persist(Optional timestamp As Date = ot.ConstNullDate) As Boolean
+        Public Function Persist(Optional timestamp As Date = ot.constNullDate) As Boolean
             Dim aDefMS As MileStoneDefinition
             Dim aCompDesc As New ormCompoundDesc
             Dim aSchemaDefTable As ObjectDefinition = CurrentSession.Objects.GetObject(objectid:=Schedule.ConstTableID)
@@ -751,7 +759,7 @@ Namespace OnTrack.Scheduling
     <ormObject(id:=ScheduleDefinition.ConstObjectID, modulename:=ConstModuleScheduling, Version:=1, _
         description:="definition of schedules (types)", useCache:=True, adddeletefieldbehavior:=True, addDomainBehavior:=True)> Public Class ScheduleDefinition
         Inherits ormDataObject
-       
+
 
         Public Const ConstObjectID = "ScheduleDefinition"
 
@@ -765,7 +773,7 @@ Namespace OnTrack.Scheduling
         ''' keys
         ''' </summary>
         ''' <remarks></remarks>
-        <ormObjectEntry(typeid:=otFieldDataType.Text, title:="ID", size:=50, _
+        <ormObjectEntry(typeid:=otDataType.Text, title:="ID", size:=50, _
             properties:={ObjectEntryProperty.Keyword}, validationPropertystrings:={ObjectValidationProperty.NotEmpty}, _
             Description:="Unique ID of the schedule type definition", _
             primaryKeyordinal:=1, xid:="SCT1", aliases:={"bs4"})> Public Const ConstFNType = "scheduletype"
@@ -777,7 +785,7 @@ Namespace OnTrack.Scheduling
         ''' fields
         ''' </summary>
         ''' <remarks></remarks>
-        <ormObjectEntry(typeid:=otFieldDataType.Text, isnullable:=True, _
+        <ormObjectEntry(typeid:=otDataType.Text, isnullable:=True, _
             title:="description", Description:="description of the schedule definition", _
             xid:="SCT2")> Public Const ConstFNDescription = "desc"
 
@@ -809,9 +817,9 @@ Namespace OnTrack.Scheduling
         ''' <returns></returns>
         ''' <remarks></remarks>
 
-        ReadOnly Property ScheduleType as string
+        ReadOnly Property ScheduleType As String
             Get
-                return _scheduletype
+                Return _scheduletype
             End Get
         End Property
         ''' <summary>
@@ -822,10 +830,10 @@ Namespace OnTrack.Scheduling
         ''' <remarks></remarks>
         Public Property Description As String
             Get
-                return _description
+                Return _description
             End Get
             Set(value As String)
-               setvalue(constfndescription, value)
+                SetValue(ConstFNDescription, value)
             End Set
         End Property
         ''' <summary>
@@ -973,10 +981,10 @@ Namespace OnTrack.Scheduling
         ''' Keys
         ''' </summary>
         ''' <remarks></remarks>
-        <ormObjectEntry(typeid:=otFieldDataType.Long, title:="unique ID", Description:="Unique ID of the schedule", _
+        <ormObjectEntry(typeid:=otDataType.Long, title:="unique ID", Description:="Unique ID of the schedule", _
             lowerrange:=0, _
             primaryKeyordinal:=1, XID:="SC2", aliases:={"SUID"})> Public Const ConstFNUid = "uid"
-        <ormObjectEntry(typeid:=otFieldDataType.Long, title:="update count", Description:="Update count of the schedule", _
+        <ormObjectEntry(typeid:=otDataType.Long, title:="update count", Description:="Update count of the schedule", _
             lowerrange:=0, _
            primaryKeyordinal:=2, XID:="SC3", aliases:={"BS3"})> Public Const ConstFNUpdc = "updc"
 
@@ -985,7 +993,7 @@ Namespace OnTrack.Scheduling
         ''' fields
         ''' </summary>
         ''' <remarks></remarks>
-        <ormObjectEntry(typeid:=otFieldDataType.Long, _
+        <ormObjectEntry(typeid:=otDataType.Long, _
             title:="forecast count", Description:="number of forecast udates of this schedule" _
           )> Public Const ConstFNfcupdc = "fcupdc"
 
@@ -998,35 +1006,35 @@ Namespace OnTrack.Scheduling
         <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, _
             useforeignkey:=otForeignKeyImplementation.None)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
-        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, isnullable:=True, _
+        <ormObjectEntry(typeid:=otDataType.Text, size:=50, isnullable:=True, _
             title:="revision", Description:="revision of the schedule", _
             XID:="SC5", aliases:={"BS2"})> Public Const ConstFNPlanRev = "plrev"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Bool, defaultvalue:=False, dbdefaultvalue:="0", _
+        <ormObjectEntry(typeid:=otDataType.Bool, defaultvalue:=False, dbdefaultvalue:="0", _
             title:="is frozen", Description:="schedule is frozen flag", _
             XID:="SC6")> Public Const ConstFNisfrozen = "isfrozen"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, isnullable:=True, _
+        <ormObjectEntry(typeid:=otDataType.Text, size:=50, isnullable:=True, _
             title:="lifecycle status", Description:="lifecycle status of the schedule", _
             XID:="SC7", aliases:={"BS1"})> Public Const ConstFNlcstatus = "lcstatus"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, isnullable:=True, _
+        <ormObjectEntry(typeid:=otDataType.Text, size:=50, isnullable:=True, _
             title:="process status", Description:="process status of the schedule", _
             XID:="SC8", aliases:={"S1"})> Public Const ConstFNpstatus = "pstatus"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Timestamp, isnullable:=True, _
+        <ormObjectEntry(typeid:=otDataType.Timestamp, isnullable:=True, _
             title:="check timestamp", Description:="timestamp of check status of the schedule", _
             XID:="SC9")> Public Const ConstFNCheckedOn = "checkedon"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=100, isnullable:=True, _
+        <ormObjectEntry(typeid:=otDataType.Text, size:=100, isnullable:=True, _
             title:="planner", Description:="responsible planner of the schedule", _
             XID:="SC10")> Public Const ConstFNPlanner = "resp"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Memo, isnullable:=True, _
+        <ormObjectEntry(typeid:=otDataType.Memo, isnullable:=True, _
             title:="comment", Description:="comment of the schedule", _
             XID:="SC12", aliases:={}, Defaultvalue:="", parameter:="")> Public Const ConstFNComment = "cmt"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Timestamp, isnullable:=True, _
+        <ormObjectEntry(typeid:=otDataType.Timestamp, isnullable:=True, _
             title:="last fc update", Description:="last forecast change of the schedule", _
             XID:="SC13")> Public Const ConstFNFCupdatedOn = "fcupdon"
 
@@ -1034,27 +1042,27 @@ Namespace OnTrack.Scheduling
             title:="type", Description:="type of the schedule", _
             XID:="SC14", aliases:={"BS4"}, isnullable:=True)> Public Const ConstFNTypeid = "typeid"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Bool, defaultvalue:=False, dbdefaultvalue:="0", _
+        <ormObjectEntry(typeid:=otDataType.Bool, defaultvalue:=False, dbdefaultvalue:="0", _
             title:="baseline flag", Description:="flag if the schedule is a baseline", _
             XID:="SC15")> Public Const ConstFNIsBaseline = "isbaseline"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Date, isnullable:=True, _
+        <ormObjectEntry(typeid:=otDataType.Date, isnullable:=True, _
             title:="baseline date", Description:="date of the baseline creation", _
             XID:="SC16", aliases:={})> Public Const ConstFNBlDate = "bldate"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Long, isnullable:=True, _
+        <ormObjectEntry(typeid:=otDataType.Long, isnullable:=True, _
             title:="baseline updc", Description:="updc of the last baseline of this schedule", _
             XID:="SC17")> Public Const ConstFNBlUpdc = "blupdc"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Numeric, isnullable:=True, _
+        <ormObjectEntry(typeid:=otDataType.Numeric, isnullable:=True, _
             title:="required capacity", Description:="required capacity of this schedule", _
             XID:="SC20", aliases:={"WBS2"})> Public Const ConstFNRequCap = "requ"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Numeric, isnullable:=True, _
+        <ormObjectEntry(typeid:=otDataType.Numeric, isnullable:=True, _
             title:="used capacity", Description:="used capacity of this schedule", _
             XID:="SC21", aliases:={"WBS3"}, Defaultvalue:="0")> Public Const ConstFNUsedCap = "used"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Date, isnullable:=True, _
+        <ormObjectEntry(typeid:=otDataType.Date, isnullable:=True, _
             title:="used capacity reference date", Description:="used capacity reference date of this schedule", _
             XID:="SC22", aliases:={"WBS4"})> Public Const ConstFNUsedCapRef = "ufdt"
 
@@ -1075,17 +1083,17 @@ Namespace OnTrack.Scheduling
         <ormEntryMapping(EntryName:=ConstFNisfrozen)> Private _isFrozen As Boolean
         <ormEntryMapping(EntryName:=ConstFNpstatus)> Private _pstatus As String = ""
         <ormEntryMapping(EntryName:=ConstFNlcstatus)> Private _lfcstatus As String = ""
-        <ormEntryMapping(EntryName:=ConstFNCheckedOn)> Private _checkedOn As Date = ConstNullDate
-        <ormEntryMapping(EntryName:=ConstFNFCupdatedOn)> Private _fcUpdatedOn As Date = ConstNullDate
+        <ormEntryMapping(EntryName:=ConstFNCheckedOn)> Private _checkedOn As Date = constNullDate
+        <ormEntryMapping(EntryName:=ConstFNFCupdatedOn)> Private _fcUpdatedOn As Date = constNullDate
         <ormEntryMapping(EntryName:=ConstFNIsBaseline)> Private _isBaseline As Boolean = False
-        <ormEntryMapping(EntryName:=ConstFNBlDate)> Private _baselineDate As Date = ConstNullDate
+        <ormEntryMapping(EntryName:=ConstFNBlDate)> Private _baselineDate As Date = constNullDate
         <ormEntryMapping(EntryName:=ConstFNBlUpdc)> Private _baselineUPDC As Long = 0
 
         <ormEntryMapping(EntryName:=ConstFNWorkspaceID)> Private _workspace As String = ""
         <ormEntryMapping(EntryName:=ConstFNTypeid)> Private _typeid As String = ""
         <ormEntryMapping(EntryName:=ConstFNRequCap)> Private _requ As Double = 0
         <ormEntryMapping(EntryName:=ConstFNUsedCap)> Private _used As Double = 0
-        <ormEntryMapping(EntryName:=ConstFNUsedCapRef)> Private _ufdt As Date = ConstNullDate
+        <ormEntryMapping(EntryName:=ConstFNUsedCapRef)> Private _ufdt As Date = constNullDate
         <ormEntryMapping(EntryName:=ConstFNComment)> Private _comment As String = ""
         <ormEntryMapping(EntryName:=ConstFNmsglogtag)> Private _msglogtag As String = ""
 
@@ -1158,8 +1166,8 @@ Namespace OnTrack.Scheduling
             Set(value As String)
                 SetValue(ConstFNWorkspaceID, value)
                 ''' change the workspace also for all milestones !
-                For Each aMilestone In _MilestoneCollection
-                    aMilestone.workspaceID = value
+                For Each aMilestone In _milestoneCollection
+                    aMilestone.WorkspaceID = value
                 Next
             End Set
         End Property
@@ -1171,7 +1179,7 @@ Namespace OnTrack.Scheduling
         ''' <remarks></remarks>
         ReadOnly Property NoMilestones() As Long
             Get
-                Return _MilestoneCollection.Count
+                Return _milestoneCollection.Count
             End Get
         End Property
         ''' <summary>
@@ -1453,7 +1461,7 @@ Namespace OnTrack.Scheduling
                 Msglogtag = _msglogtag
             End Get
         End Property
-       
+
         ''' <summary>
         ''' true if a milestone was changed after last load / persist / publish
         ''' </summary>
@@ -1473,7 +1481,7 @@ Namespace OnTrack.Scheduling
         ''' <remarks></remarks>
         ReadOnly Property Milestones As iormRelationalCollection(Of ScheduleMilestone)
             Get
-                Return _MilestoneCollection
+                Return _milestoneCollection
             End Get
         End Property
 #End Region
@@ -1581,8 +1589,8 @@ Namespace OnTrack.Scheduling
             '
 
             ' return not original
-            If _MilestoneCollection.ContainsKey({aRealID}) Then
-                aMember = _MilestoneCollection.Item({aRealID})
+            If _milestoneCollection.ContainsKey({aRealID}) Then
+                aMember = _milestoneCollection.Item({aRealID})
                 If Not ORIGINAL Then
                     Return aMember.Value
                 Else
@@ -1669,7 +1677,7 @@ Namespace OnTrack.Scheduling
 
             aRealID = aDefSchedule.GetMilestoneIDByAlias(AliasID:=ID)
             If aRealID = "" Then aRealID = ID
-            
+
 
             If _milestoneCollection.ContainsKey({aRealID}) Then
                 aMember = _milestoneCollection.Item({aRealID})
@@ -1690,15 +1698,15 @@ Namespace OnTrack.Scheduling
             End If
 
             ' convert it
-            If (aMember.Datatype = otFieldDataType.[Date] Or aMember.Datatype = otFieldDataType.Timestamp) Then
+            If (aMember.Datatype = otDataType.[Date] Or aMember.Datatype = otDataType.Timestamp) Then
                 If IsDate(Value) And Not setNull Then
                     If aMember.Value <> CDate(Value) Then
                         aMember.Value = CDate(Value)
                         isMemberchanged = True
                     End If
                 ElseIf setNull Then
-                    If aMember.Value <> ConstNullDate Then
-                        aMember.Value = ConstNullDate
+                    If aMember.Value <> constNullDate Then
+                        aMember.Value = constNullDate
                         isMemberchanged = True
                     End If
                 Else
@@ -1707,7 +1715,7 @@ Namespace OnTrack.Scheduling
                     Return False
                 End If
 
-            ElseIf aMember.Datatype = otFieldDataType.Numeric Then
+            ElseIf aMember.Datatype = otDataType.Numeric Then
                 If IsNumeric(Value) And Not setNull Then
                     If aMember.Value <> CDbl(Value) Then
                         aMember.Value = CDbl(Value)
@@ -1724,7 +1732,7 @@ Namespace OnTrack.Scheduling
                     Return False
                 End If
 
-            ElseIf aMember.Datatype = otFieldDataType.[Long] Then
+            ElseIf aMember.Datatype = otDataType.[Long] Then
                 If IsNumeric(Value) And Not setNull Then
                     If aMember.Value <> CLng(Value) Then
                         aMember.Value = CLng(Value)
@@ -1741,7 +1749,7 @@ Namespace OnTrack.Scheduling
                     Return False
                 End If
 
-            ElseIf aMember.Datatype = otFieldDataType.Bool Then
+            ElseIf aMember.Datatype = otDataType.Bool Then
                 If Not setNull Then
                     If aMember.Value <> CBool(Value) Then
                         aMember.Value = CBool(Value)
@@ -1852,10 +1860,10 @@ Namespace OnTrack.Scheduling
             'actual found -> checkit
             actDate = Me.GetMilestoneValue(aScheduleMSDef.ID)
             aDate = Me.GetMilestoneValue(aScheduleMSDef.ActualOfFC)
-            If aDate <> ConstNullDate And IsDate(aDate) And actDate = ConstNullDate And IsDate(actDate) And aScheduleMSDef.ActualOfFC <> "" And aScheduleMSDef.ID <> "" Then
+            If aDate <> constNullDate And IsDate(aDate) And actDate = constNullDate And IsDate(actDate) And aScheduleMSDef.ActualOfFC <> "" And aScheduleMSDef.ID <> "" Then
                 ' only if there is this milestone
                 aCE.Timestamp = aDate
-                aDate = aCE.addDay(noDays, considerAvailibilty:=considerWorkingDays, calendarname:=CurrentSession.DefaultCalendarName)
+                aDate = aCE.AddDay(noDays, considerAvailibilty:=considerWorkingDays, calendarname:=CurrentSession.DefaultCalendarName)
                 Call Me.SetMilestone(aScheduleMSDef.ActualOfFC, aDate)
                 '*******
                 '******* we need to check ascending condition !!
@@ -1915,11 +1923,11 @@ Namespace OnTrack.Scheduling
                     ' no actual found -> calculate on the fc
                     actDate = Me.GetMilestoneValue(aScheduleMSDef.ID)
                     aDate = Me.GetMilestoneValue(aScheduleMSDef.ActualOfFC)
-                    If aDate <> ConstNullDate And IsDate(aDate) And _
-                    actDate = ConstNullDate And IsDate(actDate) And aScheduleMSDef.ActualOfFC <> "" And aScheduleMSDef.ID <> "" Then
+                    If aDate <> constNullDate And IsDate(aDate) And _
+                    actDate = constNullDate And IsDate(actDate) And aScheduleMSDef.ActualOfFC <> "" And aScheduleMSDef.ID <> "" Then
                         ' only if there is this milestone
                         aCE.Timestamp = aDate
-                        aDate = aCE.addDay(noDays, considerAvailibilty:=considerWorkingDays, calendarname:=CurrentSession.DefaultCalendarName)
+                        aDate = aCE.AddDay(noDays, considerAvailibilty:=considerWorkingDays, calendarname:=CurrentSession.DefaultCalendarName)
                         Call Me.SetMilestone(aScheduleMSDef.ActualOfFC, aDate)
                     End If
                 End If
@@ -2070,10 +2078,10 @@ Namespace OnTrack.Scheduling
                 ''' disable the milestones which are not set int his schedule
                 For Each aMilestone In meme.Milestones
 
-                    If Not aCollection.containsKey({aMilestone.ID}) Then
+                    If Not aCollection.ContainsKey({aMilestone.ID}) Then
                         aMilestone.IsEnabled = False
                     Else
-                        Dim aScheduleMSDef As ScheduleMilestoneDefinition = aCollection.item({aMilestone.ID})
+                        Dim aScheduleMSDef As ScheduleMilestoneDefinition = aCollection.Item({aMilestone.ID})
                         Dim aMSDef As MileStoneDefinition = MileStoneDefinition.Retrieve(aScheduleMSDef.ID)
 
                         If Not aScheduleMSDef.IsProhibited AndAlso aMSDef IsNot Nothing Then
@@ -2142,7 +2150,7 @@ Namespace OnTrack.Scheduling
         ''' <param name="sender"></param>
         ''' <param name="e"></param>
         ''' <remarks></remarks>
-        Public Sub Schedule_OnAdded(sender As Object, e As ormRelationCollection(Of ScheduleMilestone).EventArgs) Handles _MilestoneCollection.OnAdded
+        Public Sub Schedule_OnAdded(sender As Object, e As ormRelationCollection(Of ScheduleMilestone).EventArgs) Handles _milestoneCollection.OnAdded
             If Not IsAlive(subname:="Schedule_ONAdded") Then
                 e.Cancel = True
                 Exit Sub
@@ -2195,7 +2203,7 @@ Namespace OnTrack.Scheduling
             ''' switch off all not used in the schedule
             ''' 
             For Each aMilestone In Me.Milestones
-                If Not aCollection.containsKey(aMilestone.ID) Then
+                If Not aCollection.ContainsKey(aMilestone.ID) Then
                     aMilestone.IsEnabled = False
                 End If
             Next
@@ -2405,7 +2413,7 @@ Namespace OnTrack.Scheduling
                     ' check date
                     Case otMilestoneType.[Date]
                         If IsDate(aVAlue) Then
-                            If hasData And aVAlue <> ConstNullDate Then
+                            If hasData And aVAlue <> constNullDate Then
                                 HasMilestone = True
                             ElseIf Not hasData Then
                                 HasMilestone = True
@@ -2478,7 +2486,7 @@ Namespace OnTrack.Scheduling
                 ''' TO DO HACK !!
                 If _milestoneCollection.ContainsKey({"BP10"}) Then
                     aVAlue = Me.GetMilestoneValue("bp10")
-                    If IsDate(aVAlue) And aVAlue <> ConstNullDate Then
+                    If IsDate(aVAlue) And aVAlue <> constNullDate Then
                         IsFinished = True
                         Exit Function
                     Else
@@ -2555,10 +2563,10 @@ Namespace OnTrack.Scheduling
                     End If
                     ' set the end
                     aVAlue = Me.GetMilestoneValue(aTimeInterval.endcmt)
-                    If IsDate(aVAlue) And aVAlue <> ConstNullDate Then
+                    If IsDate(aVAlue) And aVAlue <> constNullDate Then
                         aTimeInterval.enddate = CDate(aVAlue)
                     Else
-                        aTimeInterval.enddate = ConstNullDate
+                        aTimeInterval.enddate = constNullDate
                     End If
 
                     ' determine the start
@@ -2598,7 +2606,7 @@ Namespace OnTrack.Scheduling
 
 
                     aVAlue = Me.GetMilestoneValue(aTimeInterval.startcmt)
-                    If IsDate(aVAlue) And aVAlue <> ConstNullDate Then
+                    If IsDate(aVAlue) And aVAlue <> constNullDate Then
                         aTimeInterval.startdate = CDate(aVAlue)
                     Else
                         ' error no  valid date in schedule
@@ -2801,7 +2809,7 @@ Namespace OnTrack.Scheduling
         ''' <remarks></remarks>
         Public Function Publish(Optional ByRef workspaceid As String = "", _
                                 Optional ByRef msglog As ObjectLog = Nothing, _
-                                Optional ByVal timestamp As Date = ot.ConstNullDate, _
+                                Optional ByVal timestamp As Date = ot.constNullDate, _
                                 Optional ByVal forceSerializeToOTDB As Boolean = False) As Boolean
             Dim aNewUPDC As Long = 0
             Dim isProcessable As Boolean = True
@@ -3240,7 +3248,7 @@ Namespace OnTrack.Scheduling
         ''' <param name="envelope"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function RunXPrecheck(ByRef envelope As XEnvelope) As Boolean Implements iotXChangeable.RunXPreCheck
+        Public Function RunXPrecheck(ByRef envelope As XEnvelope, Optional ByRef msglog As ObjectLog = Nothing) As Boolean Implements iotXChangeable.RunXPreCheck
 
         End Function
         ''' <summary>
@@ -3249,17 +3257,17 @@ Namespace OnTrack.Scheduling
         ''' <param name="envelope"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function RunXChange(ByRef envelope As XEnvelope) As Boolean Implements iotXChangeable.RunXChange
+        Public Function RunXChange(ByRef envelope As XEnvelope, Optional ByRef msglog As ObjectLog = Nothing) As Boolean Implements iotXChangeable.RunXChange
 
-            Dim aXCmd As otXChangeCommandType = envelope.GetObjectXCmd(objectname:=Me.ConstTableID)
+            Dim aXCmd As otXChangeCommandType = envelope.GetObjectXCmd(objectname:=Me.ObjectID)
             Dim aValue, anOldValue As Object
 
             '* load the schedule from the envelope
             If Not Me.Inject(envelope:=envelope) Then
                 ' could not load the envelope -> Add ?!
-                Dim anUID As Object = envelope.GetSlotValueByFieldname(fieldname:=ConstFNUid, tablename:=ConstTableID)
-                Dim aTypeid As String = envelope.GetSlotValueByFieldname(fieldname:=ScheduleDefinition.ConstFNType, tablename:=ScheduleDefinition.ConstTableID)
-                Dim anWSId As String = envelope.GetSlotValueByID(id:="WS")
+                Dim anUID As Object = envelope.GetSlotValueByObjectEntryName(entryname:=Me.ConstFNUpdc, objectname:=Me.ObjectID)
+                Dim aTypeid As String = envelope.GetSlotValueByObjectEntryName(entryname:=ScheduleDefinition.ConstFNType, objectname:=ScheduleDefinition.ConstObjectID)
+                Dim anWSId As String = envelope.GetSlotValueByXID(xid:="WS")
                 If aXCmd = otXChangeCommandType.UpdateCreate Then
                     If anUID Is Nothing Then
                         CoreMessageHandler(message:="could not load or create new schedule from envelope - uid is missing", subname:="Schedule.RunXChange", messagetype:=otCoreMessageType.ApplicationError)
@@ -3295,9 +3303,9 @@ Namespace OnTrack.Scheduling
 
                             '** publish only on milestones which are compounds
                             If aSlot.XAttribute.IsCompound Then
-                                If Me.HasMilestone(ID:=aSlot.XAttribute.ID) Then
+                                If Me.HasMilestone(ID:=aSlot.XAttribute.XID) Then
                                     If Not aSlot.IsEmpty Then
-                                        If Not Me.SetMilestone(ID:=aSlot.XAttribute.ID, Value:=aSlot.DBValue, setNull:=aSlot.IsNull) Then
+                                        If Not Me.SetMilestone(ID:=aSlot.XAttribute.XID, Value:=aSlot.DBValue, setNull:=aSlot.IsNull) Then
                                             '*** error
                                         End If
                                     End If
@@ -3306,7 +3314,7 @@ Namespace OnTrack.Scheduling
                                 End If
                             Else
                                 '* change the underlying record
-                                Me.Record.SetValue(index:=aSlot.XAttribute.Entryname, value:=aSlot.DBValue)
+                                Me.Record.SetValue(index:=aSlot.XAttribute.ObjectEntryname, value:=aSlot.DBValue)
                             End If
                         End If
 
@@ -3315,7 +3323,7 @@ Namespace OnTrack.Scheduling
                     '** if we have a change
                     If Me.IsChanged Or Me.haveMileStonesChanged Or Me.Record.IsChanged Then
                         If Me.Publish() Then
-                            envelope.AddSlotByFieldname(fieldname:=ConstFNUpdc, tablename:=ConstTableID, value:=Me.Updc, _
+                            envelope.AddSlotByObjectEntryName(entryname:=ConstFNUpdc, objectname:=Me.ObjectID, value:=Me.Updc, _
                                                         isHostValue:=False, extendXConfig:=True, xcmd:=otXChangeCommandType.Read, isReadonly:=True)
                         Else
                             '*** error !
@@ -3329,326 +3337,8 @@ Namespace OnTrack.Scheduling
                     Throw New NotImplementedException
                     Return False
                 Case otXChangeCommandType.Read
-                    Return envelope.RunDefaultXchange(Me)
+                    Return envelope.RunXChangeCommand(Me, Me.GetType, msglog:=msglog)
             End Select
-
-        End Function
-        ''' <summary>
-        ''' run XChange on a Schedule Object
-        ''' </summary>
-        ''' <param name="MAPPING"></param>
-        ''' <param name="CHANGECONFIG"></param>
-        ''' <param name="MSGLOG"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Function runXChangeOLD(ByRef MAPPING As Dictionary(Of Object, Object), _
-        ByRef CHANGECONFIG As clsOTDBXChangeConfig, _
-        Optional ByRef MSGLOG As ObjectLog = Nothing) As Boolean
-
-            Dim aCMuid As clsOTDBXChangeMember
-            Dim aCMupdc As clsOTDBXChangeMember
-            Dim aCMWspace As clsOTDBXChangeMember
-            Dim aChangeMember As New clsOTDBXChangeMember
-
-            Dim anUID As Long
-            Dim anUPDC As Long
-            Dim aNewUPDC As Long
-            Dim aCollection As New Collection
-            Dim newSchedule As Boolean
-
-            Dim aSchedule As New Schedule
-            Dim aCurrSCHEDULE As New CurrentSchedule
-            Dim aDeliverable As New Deliverable
-            Dim aTrack As New Track
-            Dim anObjectDef As New clsOTDBXChangeMember
-            Dim anAttribute As New clsOTDBXChangeMember
-            Dim aNewSchedule As New Schedule
-            Dim aWorkspace As String
-            Dim setCurrSchedule As Boolean
-            Dim aVAlue As Object
-
-            Dim aTimestamp As Date
-
-            If CHANGECONFIG.ProcessedDate <> ConstNullDate Then
-                aTimestamp = CHANGECONFIG.ProcessedDate
-            Else
-                aTimestamp = Now
-            End If
-
-            '*** ObjectDefinition
-            anObjectDef = CHANGECONFIG.ObjectByName(ConstTableID)
-
-            ' set msglog
-            If MSGLOG Is Nothing Then
-                If _msglog Is Nothing Then
-                    _msglog = New ObjectLog
-                End If
-                MSGLOG = _msglog
-                MSGLOG.Create(Me.Msglogtag)
-            End If
-
-            '*** set the workspaceID
-            aVAlue = CHANGECONFIG.GetMemberValue(ID:="WS", mapping:=MAPPING)
-            If IsNull(aVAlue) Then
-                aWorkspace = CurrentSession.CurrentWorkspaceID
-            Else
-                aWorkspace = CStr(aVAlue)
-            End If
-
-            '** check on the min. required primary key uid
-            aVAlue = CHANGECONFIG.GetMemberValue(ID:="SC2", mapping:=MAPPING)
-            If IsNull(aVAlue) Then
-                ' error condition
-                aCMuid = CHANGECONFIG.AttributeByID("SC2")
-                If aCMuid Is Nothing Then
-                    Call MSGLOG.AddMsg("200", Nothing, Nothing, "SC2", "SC2", ConstTableID, CHANGECONFIG.Configname)
-                    runXChangeOLD = False
-                    Exit Function
-                Else
-                    Call MSGLOG.AddMsg("201", Nothing, Nothing, "SC2", "SC2", ConstTableID, CHANGECONFIG.Configname)
-                    runXChangeOLD = False
-                    Exit Function
-                End If
-                '**
-            ElseIf Not IsNumeric(aVAlue) Then
-                Call MSGLOG.AddMsg("202", Nothing, Nothing, "SC2", "SC2", ConstTableID, CHANGECONFIG.Configname, aVAlue, "numeric")
-                runXChangeOLD = False
-                Exit Function
-            Else
-                anUID = CLng(aVAlue)
-            End If
-
-
-            ' optional key updc
-            aVAlue = CHANGECONFIG.GetMemberValue(ID:="SC3", mapping:=MAPPING)
-            If IsNull(aVAlue) Then
-                'Call msglog.addMsg("201", Nothing, Nothing, "SC3", "SC3", ourTableName, ChangeConfig.ConfigName)
-                anUPDC = -1
-            ElseIf Not IsNumeric(aVAlue) Then
-                anUPDC = -1
-            Else
-                anUPDC = CLng(aVAlue)
-                setCurrSchedule = False
-            End If
-
-
-            '*** try to load the current Schedule
-            If anUPDC = -1 Then
-                '*** indeed we have something to update
-                setCurrSchedule = True
-                ' get the updc
-                aCurrSCHEDULE = CurrentSchedule.Retrieve(UID:=anUID, workspaceID:=aWorkspace)
-                If aCurrSCHEDULE IsNot Nothing Then
-                    anUPDC = aCurrSCHEDULE.UPDC
-
-                    'System.Diagnostics.Debug.WriteLine(anUID, anUPDC)
-                    'aCurrSchedule.initialize
-                Else
-                    'create necessary ?!
-                    If anObjectDef.XChangeCmd <> otXChangeCommandType.UpdateCreate Then
-                        Call MSGLOG.AddMsg("203", CHANGECONFIG.Configname, Nothing, Nothing, _
-                                           CHANGECONFIG.Configname, anUID & ", <none>")
-                        runXChangeOLD = False
-                        Exit Function
-                    End If
-                    ' create an new UPDC
-                    anUPDC = 1
-                End If
-
-            End If
-
-            '** load the Schedule
-            aSchedule = Schedule.Retrieve(UID:=anUID, updc:=anUPDC)
-            If aSchedule Is Nothing Then
-                If anObjectDef.XChangeCmd <> otXChangeCommandType.UpdateCreate Then
-                    Call MSGLOG.AddMsg("203", Nothing, Nothing, "SC3", CHANGECONFIG.Configname, anUID & "," & anUPDC)
-                    runXChangeOLD = False
-                    Exit Function
-                Else
-                    ' create with the given UPDC !
-                    Call aSchedule.Create(uid:=anUID, updc:=anUPDC)
-                    newSchedule = True
-                    aVAlue = CHANGECONFIG.GetMemberValue(ID:="SC14", mapping:=MAPPING)
-                    If IsNull(aVAlue) Then
-                        Call MSGLOG.AddMsg("204", Nothing, Nothing, "SC14", CHANGECONFIG.Configname, anUID & "," & anUPDC)
-                        runXChangeOLD = False
-                        Exit Function
-                    Else
-                        ' missing is the type !!
-                        ' must be looked up -> member fill !
-                        aSchedule.workspaceID = aWorkspace    ' in this order because we need the workspaceID before type
-                        aSchedule.Typeid = CStr(aVAlue)
-
-                    End If
-
-
-
-                End If
-            Else
-                newSchedule = False
-                ' change the workspaceID ?!
-                If aSchedule.workspaceID <> aWorkspace Then
-                    Debug.Assert(False)
-                    Debug.Print("workspaceID changed in Schedule")
-                    aSchedule.workspaceID = aWorkspace
-                End If
-            End If
-
-            ' add the UPDC to the MAPPING
-            aVAlue = CHANGECONFIG.GetMemberValue(ID:="SC3", _
-                                                 objectname:=ConstTableID, mapping:=MAPPING)
-            If IsNull(aVAlue) Then
-                Call CHANGECONFIG.AddAttributeByID(id:="SC3", objectname:=ConstTableID, _
-                                                   xcmd:=otXChangeCommandType.Read, isXChanged:=False)
-            End If
-            aChangeMember = CHANGECONFIG.AttributeByID("SC3")
-            If MAPPING.ContainsKey(key:=aChangeMember.ordinal.Value) And Not aChangeMember.IsReadOnly Then
-                Call MAPPING.Remove(key:=aChangeMember.ordinal.Value)
-            End If
-            If Not aChangeMember.IsReadOnly Then Call MAPPING.Add(key:=aChangeMember.ordinal.Value, value:=anUPDC)
-
-            '********* check on the action xchange command
-            '*********
-
-            If anObjectDef.XChangeCmd = otXChangeCommandType.Read Then
-                '* otRead with Compounds can be handled by the standard
-                '*
-                runXChangeOLD = CHANGECONFIG.runDefaultXChange4Object(anObjectDef, MAPPING, MSGLOG)
-                Exit Function
-
-            ElseIf anObjectDef.XChangeCmd = otXChangeCommandType.Update _
-            Or anObjectDef.XChangeCmd = otXChangeCommandType.UpdateCreate _
-            Or anObjectDef.XChangeCmd = otXChangeCommandType.Duplicate Then
-
-                '**** update, updatecreate and duplicate are handled by the schedule publish function on
-                '**** its own
-                '***
-
-                '*** set the Attributes if these are milestone=compounds
-                '***
-
-                For Each anAttribute In CHANGECONFIG.AttributesByObjectName(objectname:=ConstTableID)
-                    If anAttribute.IsCompound And _
-                    (anAttribute.XChangeCmd = otXChangeCommandType.Update Or anAttribute.XChangeCmd = otXChangeCommandType.UpdateCreate Or anAttribute.XChangeCmd = otXChangeCommandType.Duplicate) Then
-                        ' read compound
-                        'If aSchedule.existsMilestone(ID:=anAttribute.ID) Then
-                        '    Call MAPPING.Remove(Key:=anAttribute.ordinal)
-                        '    Call MAPPING.add(Key:=anAttribute.ordinal, ITEM:=aSchedule.getMilestone(ID:=anAttribute.ID, ORIGINAL:=True))
-                        'End If
-                        ' get out of the Mapping the Value
-                        aVAlue = CHANGECONFIG.GetMemberValue(changemember:=anAttribute, _
-                                                             objectname:=ConstTableID, mapping:=MAPPING)
-                        If Not IsNull(aVAlue) Then
-                            If Not aVAlue = Nothing Then
-                                If aSchedule.HasMilestone(ID:=anAttribute.ID) Then
-                                    ' convert to DB
-                                    Call anAttribute.convertValue2DB(aVAlue, aVAlue, existingValue:=False)
-                                    ' save
-                                    If aSchedule.SetMilestone(ID:=anAttribute.ID, Value:=aVAlue) Then
-                                        If aSchedule.GetMilestoneValue(ID:=anAttribute.ID, ORIGINAL:=True) <> aSchedule.GetMilestoneValue(ID:=anAttribute.ID) Then
-                                            System.Diagnostics.Debug.WriteLine(anAttribute.ID, aSchedule.GetMilestoneValue(ID:=anAttribute.ID, ORIGINAL:=True), aVAlue)
-                                        End If
-                                    Else
-                                        System.Diagnostics.Debug.Assert(False)
-                                    End If
-                                Else
-                                    ' setting something which doesnot exist ?!
-                                End If
-                            End If
-                        End If
-                    End If    ' compound
-                Next anAttribute
-
-                ' publish -> persisted -> set new updc in MAPPING
-                If aSchedule.Publish(msglog:=MSGLOG) Then
-                    If IsNull(CHANGECONFIG.GetMemberValue(ID:="SC3", _
-                                                          objectname:=ConstTableID, mapping:=MAPPING)) Then
-                        Call CHANGECONFIG.AddAttributeByID(id:="SC3", isXChanged:=False, objectname:=ConstTableID, _
-                                                           xcmd:=otXChangeCommandType.Read)
-                        aChangeMember = CHANGECONFIG.AttributeByID("SC3")
-                    Else
-                        Call MAPPING.Remove(key:=aChangeMember.ordinal.Value)
-                    End If
-                    Call MAPPING.Add(key:=aChangeMember.ordinal.Value, value:=aSchedule.Updc)
-                End If
-
-                '** rest is up to standard (other fields)
-                '**
-                runXChangeOLD = CHANGECONFIG.runDefaultXChange4Object(XCHANGEOBJECT:=anObjectDef, _
-                                                                   MAPPING:=MAPPING, MSGLOG:=MSGLOG, NoCompounds:=True)
-                ' delete
-            ElseIf anObjectDef.XChangeCmd = otXChangeCommandType.Delete Then
-                '*** handle new entries on other objects such as Track ?!
-                '    Debug.Assert False
-            End If
-
-
-            runXChangeOLD = True
-        End Function
-        ''' <summary>
-        ''' run Xchange Precheck
-        ''' </summary>
-        ''' <param name="MAPPING"></param>
-        ''' <param name="CHANGECONFIG"></param>
-        ''' <param name="MSGLOG"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Function runXPreCheckOLD(ByRef MAPPING As Dictionary(Of Object, Object), _
-        ByRef CHANGECONFIG As clsOTDBXChangeConfig, _
-        Optional ByRef MSGLOG As ObjectLog = Nothing) As Boolean
-            Dim aCMuid As clsOTDBXChangeMember
-            Dim aCMupdc As clsOTDBXChangeMember
-            Dim anObject As New clsOTDBXChangeMember
-            Dim aVAlue As Object
-            Dim anUPDC As Long
-            Dim anUID As Long
-
-            ' set msglog
-            If MSGLOG Is Nothing Then
-                MSGLOG = _msglog
-                MSGLOG.Create(_msglogtag)
-            End If
-            '** check on the min. required primary key uid
-            aVAlue = CHANGECONFIG.GetMemberValue(ID:="SC2", mapping:=MAPPING)
-            If IsNull(aVAlue) Then
-                ' error condition
-                aCMuid = CHANGECONFIG.AttributeByID("SC2")
-                If aCMuid Is Nothing Then
-                    Call MSGLOG.AddMsg("200", Nothing, Nothing, "SC2", "SC2", ConstTableID, CHANGECONFIG.Configname)
-                    runXPreCheckOLD = False
-                    Exit Function
-                Else
-                    Call MSGLOG.AddMsg("201", Nothing, Nothing, "SC2", "SC2", ConstTableID, CHANGECONFIG.Configname)
-                    runXPreCheckOLD = False
-                    Exit Function
-                End If
-                '**
-            ElseIf Not IsNumeric(aVAlue) Then
-                Call MSGLOG.AddMsg("202", Nothing, Nothing, "SC2", "SC2", ConstTableID, CHANGECONFIG.Configname, aVAlue, "numeric")
-                runXPreCheckOLD = False
-                Exit Function
-            Else
-                anUID = CLng(aVAlue)
-            End If
-
-
-            ' optional key updc
-            aVAlue = CHANGECONFIG.GetMemberValue(ID:="SC3", mapping:=MAPPING)
-            If IsNull(aVAlue) Then
-                'Call msglog.addMsg("201", Nothing, Nothing, "SC3", "SC3", ourTableName, ChangeConfig.ConfigName)
-                anUPDC = -1
-            ElseIf Not IsNumeric(aVAlue) Then
-                anUPDC = -1
-            Else
-                anUPDC = CLng(aVAlue)
-
-            End If
-
-            ' generell tests
-            anObject = CHANGECONFIG.ObjectByName(Me.PrimaryTableID)
-            runXPreCheckOLD = CHANGECONFIG.runDefaultXPreCheck(anObject:=anObject, _
-                                                            aMapping:=MAPPING, MSGLOG:=MSGLOG)
-
 
         End Function
 
@@ -3668,15 +3358,15 @@ Namespace OnTrack.Scheduling
             '*** Determine the Primary key of a Schedule
             If Not Me.IsLoaded And Not Me.IsCreated Then
                 '** UID
-                If envelope.HasSlotByFieldname(fieldname:=Me.ConstFNUid, tablename:=Me.ConstTableID) Then
-                    aValue = envelope.GetSlotValueByFieldname(fieldname:=Me.ConstFNUid, tablename:=Me.ConstTableID, asHostValue:=False)
+                If envelope.HasSlotByObjectEntryName(entryname:=Me.ConstFNUid, objectname:=Me.ObjectID) Then
+                    aValue = envelope.GetSlotValueByObjectEntryName(entryname:=Me.ConstFNUid, objectname:=Me.ObjectID, asHostValue:=False)
                 Else
                     aValue = Nothing
                 End If
                 If aValue Is Nothing OrElse Not IsNumeric(aValue) Then
                     CoreMessageHandler(message:="Envelope has no id 'uid'", messagetype:=otCoreMessageType.ApplicationError, _
                                        subname:="Schedule.Inject(Envelope)")
-                    If envelope.Xchangeconfig.AttributeByFieldName(fieldname:=Me.ConstFNUid, tablename:=Me.ConstTableID) Is Nothing Then
+                    If envelope.Xchangeconfig.GetEntryByObjectEntryName(entryname:=Me.ConstFNUid, objectname:=Me.ObjectID) Is Nothing Then
                         Call envelope.MsgLog.AddMsg("200", Nothing, Nothing, "SC2", "SC2", ConstTableID, envelope.Xchangeconfig.Configname)
                     Else
                         Call envelope.MsgLog.AddMsg("201", Nothing, Nothing, "SC2", "SC2", ConstTableID, envelope.Xchangeconfig.Configname)
@@ -3687,17 +3377,17 @@ Namespace OnTrack.Scheduling
                     uid = CLng(aValue)
                 End If
                 '** WS
-                If envelope.HasSlotByID(id:="WS") Then
-                    aValue = envelope.GetSlotValueByID(id:="WS", asHostValue:=False)
+                If envelope.HasSlotByXID(xid:="WS") Then
+                    aValue = envelope.GetSlotValueByXID(xid:="WS", asHostValue:=False)
                     wsID = CStr(aValue)
                 Else
                     wsID = CurrentSession.CurrentWorkspaceID
-                    envelope.AddSlotByID(id:="WS", value:=wsID, isHostValue:=False, extendXConfig:=True, replaceSlotIfExists:=True)
+                    envelope.AddSlotByXID(xid:="WS", value:=wsID, isHostValue:=False, extendXConfig:=True, replaceSlotIfExists:=True)
                 End If
 
                 '** updc
-                If envelope.HasSlotByFieldname(fieldname:=Me.ConstFNUpdc, tablename:=Me.ConstTableID) Then
-                    aValue = envelope.GetSlotValueByFieldname(fieldname:=Me.ConstFNUpdc, tablename:=Me.ConstTableID, asHostValue:=False)
+                If envelope.HasSlotByObjectEntryName(entryname:=Me.ConstFNUpdc, objectname:=Me.ObjectID) Then
+                    aValue = envelope.GetSlotValueByObjectEntryName(entryname:=Me.ConstFNUpdc, objectname:=Me.ObjectID, asHostValue:=False)
                 Else
                     aValue = Nothing
                 End If
@@ -3705,7 +3395,7 @@ Namespace OnTrack.Scheduling
                     Dim aCurrSchedule As CurrentSchedule = CurrentSchedule.Retrieve(UID:=uid, workspaceID:=wsID)
                     If aCurrSchedule IsNot Nothing Then
                         updc = aCurrSchedule.UPDC
-                        envelope.AddSlotByID(id:="SC3", value:=updc, isHostValue:=False, extendXConfig:=True)
+                        envelope.AddSlotByXID(xid:="SC3", value:=updc, isHostValue:=False, extendXConfig:=True)
                     Else
                         'CoreMessageHandler(message:="Envelope has no determinable id 'SC3'", messagetype:=otCoreMessageType.ApplicationError, _
                         '                   subname:="Schedule.Inject(Envelope)")
@@ -3723,9 +3413,9 @@ Namespace OnTrack.Scheduling
             Else
                 '** exists
                 uid = Me.Uid
-                envelope.AddSlotByID(id:="SC2", value:=uid, isHostValue:=False, extendXConfig:=True)
+                envelope.AddSlotByXID(xid:="SC2", value:=uid, isHostValue:=False, extendXConfig:=True)
                 updc = Me.Updc
-                envelope.AddSlotByID(id:="SC3", value:=updc, isHostValue:=False, extendXConfig:=True)
+                envelope.AddSlotByXID(xid:="SC3", value:=updc, isHostValue:=False, extendXConfig:=True)
             End If
 
             Return True
@@ -3746,14 +3436,14 @@ Namespace OnTrack.Scheduling
             '***
             '*** Add all compounds to the envelope
             Dim anObjectDef As ObjectDefinition = CurrentSession.Objects.GetObject(objectid:=Me.ObjectID)
-            For Each anEntry In anObjectDef.GetEntries
-                Dim anAttribute As XChange.XConfigAttributeEntry = envelope.Xchangeconfig.AttributeByID(ID:=anEntry.XID, objectname:=Me.ConstTableID)
-                If anAttribute IsNot Nothing AndAlso anAttribute.IsCompound Then
+            For Each anObjectEntry In anObjectDef.GetEntries
+                Dim anXEntry As XChange.XChangeObjectEntry = envelope.Xchangeconfig.GetEntryByXID(XID:=anObjectEntry.XID, objectname:=Me.ObjectID)
+                If anXEntry IsNot Nothing AndAlso anXEntry.IsCompound Then
                     '** COMPOUNDS ARE ALWAYS MILESTONES FOR SCHEDULES
                     '**
-                    avalue = Me.GetMilestoneValue(ID:=anAttribute.ID)
+                    avalue = Me.GetMilestoneValue(ID:=anXEntry.XID)
                     If avalue IsNot Nothing Then
-                        envelope.AddSlotByID(id:=anAttribute.ID, tablename:=Me.ConstTableID, value:=avalue, isHostValue:=False)
+                        envelope.AddSlotByXID(xid:=anXEntry.XID, objectname:=Me.ObjectID, value:=avalue, isHostValue:=False)
                     Else
                         ' if its nothing could also mean that we have the mile stone but no value
                     End If
@@ -3803,7 +3493,7 @@ Namespace OnTrack.Scheduling
         <ormSchemaForeignKey(entrynames:={ConstFNUid, ConstFNUpdc}, foreignkeyreferences:={Schedule.ConstObjectID & "." & Schedule.ConstFNUid, _
                 Schedule.ConstObjectID & "." & Schedule.ConstFNUpdc}, useforeignkey:=otForeignKeyImplementation.NativeDatabase)> Public Const constFKSchedule = "fkschedules"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, defaultvalue:="", _
+        <ormObjectEntry(typeid:=otDataType.Text, size:=50, defaultvalue:="", _
             title:="milestone id", Description:="id of the milestone", _
           primaryKeyordinal:=3, XID:="MST3")> Public Const ConstFNID = "id"
 
@@ -3811,31 +3501,31 @@ Namespace OnTrack.Scheduling
         ''' Fields
         ''' </summary>
         ''' <remarks></remarks>
-        <ormObjectEntry(typeid:=otFieldDataType.Text, defaultvalue:="", isnullable:=True, _
+        <ormObjectEntry(typeid:=otDataType.Text, defaultvalue:="", isnullable:=True, _
            title:="value", Description:="text presentation of the milestone value", XID:="MST4")> Public Const ConstFNvalue = "value"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Date, isnullable:=True, _
+        <ormObjectEntry(typeid:=otDataType.Date, isnullable:=True, _
           title:="value", Description:="date presentation of the milestone value", XID:="MST5")> Public Const ConstFNvaluedate = "valuedate"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Numeric, isnullable:=True, _
+        <ormObjectEntry(typeid:=otDataType.Numeric, isnullable:=True, _
                  title:="value", Description:="numeric presentation of the milestone value", XID:="MST6")> Public Const ConstFNvaluenumeric = "valuenumeric"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Bool, isnullable:=True, _
+        <ormObjectEntry(typeid:=otDataType.Bool, isnullable:=True, _
         title:="value", Description:="bool presentation of the milestone value", XID:="MST7")> Public Const ConstFNvaluebool = "valuebool"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Long, isnullable:=True, _
+        <ormObjectEntry(typeid:=otDataType.Long, isnullable:=True, _
         title:="value", Description:="long presentation of the milestone value", XID:="MST8")> Public Const ConstFNvaluelong = "valuelong"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Long, defaultvalue:=otFieldDataType.Date, dbdefaultvalue:="6", _
+        <ormObjectEntry(typeid:=otDataType.Long, defaultvalue:=otDataType.Date, dbdefaultvalue:="6", _
         title:="datatype", Description:="datatype of the milestone value", XID:="MST10")> Public Const ConstFNDatatype = "datatype"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Bool, defaultvalue:=False, dbdefaultvalue:="0", _
+        <ormObjectEntry(typeid:=otDataType.Bool, defaultvalue:=False, dbdefaultvalue:="0", _
         title:="is a forecast", Description:="true if the milestone is a forecast", XID:="MST11")> Public Const ConstFNIsForecast = "isforecast"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Bool, defaultvalue:=False, dbdefaultvalue:="0", _
+        <ormObjectEntry(typeid:=otDataType.Bool, defaultvalue:=False, dbdefaultvalue:="0", _
         title:="is a status", Description:="true if the milestone is a status", XID:="MST12")> Public Const ConstFNIsStatus = "isstatus"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Bool, defaultvalue:=True, dbdefaultvalue:="1", _
+        <ormObjectEntry(typeid:=otDataType.Bool, defaultvalue:=True, dbdefaultvalue:="1", _
         title:="is enabled", Description:="true if the milestone is enabled", XID:="MST13")> Public Const ConstFNIsEnabled = "isenabled"
 
         <ormObjectEntry(referenceObjectEntry:=ObjectLogMessage.ConstObjectID & "." & ObjectLogMessage.ConstFNTag)> _
@@ -3848,7 +3538,7 @@ Namespace OnTrack.Scheduling
         <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, _
             useforeignkey:=otForeignKeyImplementation.None)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
-        <ormObjectEntry(typeid:=otFieldDataType.Text, isnullable:=True, _
+        <ormObjectEntry(typeid:=otDataType.Text, isnullable:=True, _
                      title:="comment", Description:="comment", XID:="MST14")> Public Const ConstFNcmt = "cmt"
 
 
@@ -3861,7 +3551,7 @@ Namespace OnTrack.Scheduling
         '<ormEntryMapping(EntryName:=ConstFNUid)> -> special infuse
         Private _value As Object
 
-        <ormEntryMapping(EntryName:=ConstFNDatatype)> Private _datatype As otFieldDataType
+        <ormEntryMapping(EntryName:=ConstFNDatatype)> Private _datatype As otDataType
         <ormEntryMapping(EntryName:=ConstFNcmt)> Private _cmt As String = ""
         <ormEntryMapping(EntryName:=ConstFNWorkspace)> Private _workspaceID As String = ""
         <ormEntryMapping(EntryName:=ConstFNIsStatus)> Private _isStatus As Boolean
@@ -3984,11 +3674,11 @@ Namespace OnTrack.Scheduling
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property Datatype() As otFieldDataType
+        Public Property Datatype() As otDataType
             Get
                 Return _datatype
             End Get
-            Set(value As otFieldDataType)
+            Set(value As otDataType)
                 SetValue(ConstFNDatatype, value)
             End Set
         End Property
@@ -4098,17 +3788,17 @@ Namespace OnTrack.Scheduling
                 ' select on Datatype
                 Select Case _datatype
 
-                    Case otFieldDataType.Numeric
+                    Case otDataType.Numeric
                         aVAlue = Record.GetValue(ConstFNvaluenumeric)
                         _value = CDbl(aVAlue)
-                    Case otFieldDataType.Text
+                    Case otDataType.Text
 
                         _value = CStr(aVAlue)
-                    Case otFieldDataType.Runtime, otFieldDataType.Formula, otFieldDataType.Binary
+                    Case otDataType.Runtime, otDataType.Formula, otDataType.Binary
                         _value = ""
                         Call CoreMessageHandler(subname:="ScheduleMilestone.infuse", messagetype:=otCoreMessageType.ApplicationError, _
                                               message:="runtime, formular, binary can't infuse", msglog:=_msglog, arg1:=aVAlue)
-                    Case otFieldDataType.[Date], otFieldDataType.Timestamp
+                    Case otDataType.[Date], otDataType.Timestamp
                         aVAlue = Record.GetValue(ConstFNvaluedate)
                         If IsDate(aVAlue) Then
                             _value = CDate(aVAlue)
@@ -4120,13 +3810,13 @@ Namespace OnTrack.Scheduling
 
                         End If
 
-                    Case otFieldDataType.[Long]
+                    Case otDataType.[Long]
                         aVAlue = Record.GetValue(ConstFNvaluelong)
                         _value = CLng(aVAlue)
-                    Case otFieldDataType.Bool
+                    Case otDataType.Bool
                         aVAlue = Record.GetValue(ConstFNvaluebool)
                         _value = CBool(aVAlue)
-                    Case otFieldDataType.Memo
+                    Case otDataType.Memo
                         _value = CStr(aVAlue)
                     Case Else
                         Call CoreMessageHandler(subname:="ScheduleMilestone.infuse", _
@@ -4174,32 +3864,32 @@ Namespace OnTrack.Scheduling
 
                 Select Case DirectCast(e.DataObject, ScheduleMilestone).Datatype
 
-                    Case otFieldDataType.Numeric
+                    Case otDataType.Numeric
                         If IsNumeric(avalue) Then Call Me.Record.SetValue(ConstFNvaluenumeric, CDbl(avalue))
                         Call Me.Record.SetValue(ConstFNvalue, CStr(avalue))
-                    Case otFieldDataType.Text, otFieldDataType.Memo
+                    Case otDataType.Text, otDataType.Memo
                         Call Me.Record.SetValue(ConstFNvalue, CStr(avalue))
-                    Case otFieldDataType.Runtime, otFieldDataType.Formula, otFieldDataType.Binary
+                    Case otDataType.Runtime, otDataType.Formula, otDataType.Binary
                         Call CoreMessageHandler(subname:="ScheduleMilestone.persist", _
                                               message:="datatype (runtime, formular, binary) not specified how to be persisted", msglog:=_msglog, arg1:=_datatype)
-                    Case otFieldDataType.[Date]
+                    Case otDataType.[Date]
                         If IsDate(avalue) Then
                             Call Me.Record.SetValue(ConstFNvaluedate, CDate(avalue))
                             Call Me.Record.SetValue(ConstFNvalue, Format(avalue, "dd.mm.yyyy"))
                         Else
                             Call Me.Record.SetValue(ConstFNvalue, CStr(avalue))
                         End If
-                    Case otFieldDataType.[Long]
+                    Case otDataType.[Long]
                         If IsNumeric(avalue) Then Call Me.Record.SetValue(ConstFNvaluelong, CLng(avalue))
                         Call Me.Record.SetValue(ConstFNvalue, CStr(avalue))
-                    Case otFieldDataType.Timestamp
+                    Case otDataType.Timestamp
                         If IsDate(avalue) Then
                             Call Me.Record.SetValue(ConstFNvaluedate, CDate(avalue))
                             Call Me.Record.SetValue(ConstFNvalue, Format(avalue, "dd.mm.yyyy hh:mm:ss"))
                         Else
                             Call Me.Record.SetValue(ConstFNvalue, CStr(avalue))
                         End If
-                    Case otFieldDataType.Bool
+                    Case otDataType.Bool
                         If avalue = "" Or IsEmpty(avalue) Or IsNull(avalue) Or avalue Is Nothing Then
                             Call Me.Record.SetValue(ConstFNvaluebool, False)
                         ElseIf avalue = True Or avalue = False Then
@@ -4348,7 +4038,7 @@ Namespace OnTrack.Scheduling
             XID:="SL1", title:="Linked From Object", description:="object link from the scheduled object")> _
         Public Const ConstFNFromObject = "FROMOBJECTID"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Long, primarykeyordinal:=2, dbdefaultvalue:="0", lowerrange:=0, _
+        <ormObjectEntry(typeid:=otDataType.Long, primarykeyordinal:=2, dbdefaultvalue:="0", lowerrange:=0, _
             XID:="SL2", title:="Linked from UID", description:="uid link from the scheduled object")> _
         Public Const ConstFNFromUID = "FROMUID"
 
@@ -4371,7 +4061,7 @@ Namespace OnTrack.Scheduling
             XID:="SL4", title:="Linked to Object", description:="object link to the scheduled object")> _
         Public Const ConstFNToObject = "ToObjectID"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Long, primarykeyordinal:=5, dbdefaultvalue:="0", lowerrange:=0, _
+        <ormObjectEntry(typeid:=otDataType.Long, primarykeyordinal:=5, dbdefaultvalue:="0", lowerrange:=0, _
             XID:="SL5", title:="Linked to UID", description:="uid link to the scheduled object")> _
         Public Const ConstFNToUID = "TOUID"
 
@@ -4386,7 +4076,7 @@ Namespace OnTrack.Scheduling
         <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, _
             useforeignkey:=otForeignKeyImplementation.None)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
-        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, _
+        <ormObjectEntry(typeid:=otDataType.Text, size:=50, _
             XID:="SL7", title:="Linke Type", description:="object link type")> Public Const ConstFNTypeID = "typeid"
 
         '** Mapping
@@ -4498,7 +4188,7 @@ Namespace OnTrack.Scheduling
                 Return _ToMilestone
             End Get
             Set(value As String)
-               SetValue(CONSTFNTOMS , value)
+                SetValue(CONSTFNTOMS, value)
             End Set
         End Property
 #End Region
@@ -4590,10 +4280,10 @@ Namespace OnTrack.Scheduling
             )> Public Const ConstFNUPDC = Schedule.ConstFNUpdc
 
 
-        <ormObjectEntry(typeid:=otFieldDataType.Bool, XID:="CS5", title:="Is Active", description:="set if active")> _
+        <ormObjectEntry(typeid:=otDataType.Bool, XID:="CS5", title:="Is Active", description:="set if active")> _
         Public Const ConstFNIsActive = "isactive"
 
-    
+
 
         ' change FK Action since we have the workspace as FK (leads also to domians)
         <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, _
@@ -4735,7 +4425,7 @@ error_handler:
                 ' check if in workspaceID any data -> fall back to default (should be base)
                 Dim primarykey As Object() = {aWorkspaceID, UID}
                 Dim aCurrSchedule As CurrentSchedule = ormDataObject.Retrieve(Of CurrentSchedule)(pkArray:=primarykey)
-                If aCurrSchedule IsNot Nothing AndAlso aCurrSchedule.isActive Then
+                If aCurrSchedule IsNot Nothing AndAlso aCurrSchedule.IsActive Then
                     Return aCurrSchedule
                 End If
             Next
@@ -4743,7 +4433,7 @@ error_handler:
             Return Nothing
         End Function
 
-        
+
         '' <summary>
         ''' load the object by the PrimaryKeys unique and do not overload from other workspaces
         ''' </summary>

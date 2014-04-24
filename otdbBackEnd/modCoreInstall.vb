@@ -13,6 +13,7 @@ Imports OnTrack.Parts
 Imports OnTrack.Configurables
 Imports OnTrack.XChange
 Imports OnTrack.Calendar
+Imports OnTrack.Commons
 
 Namespace OnTrack.Database
 
@@ -50,7 +51,7 @@ Namespace OnTrack.Database
             '                                 messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aSchedule.primaryTableID)
 
             'End If
-           
+
             'If Not CurrentTarget.CreateSchema() Then
             '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="createDatabase", message:="currTarget couldn't be created")
             'Else
@@ -873,7 +874,7 @@ Namespace OnTrack.Database
             Else
 
                 Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_Schedule", message:="Dependency Check Object is up-to-date", _
-                                             messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aDependCheck.primaryTableID)
+                                             messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aDependCheck.PrimaryTableID)
 
             End If
 
@@ -881,7 +882,7 @@ Namespace OnTrack.Database
                 Call ot.CoreMessageHandler(showmsgbox:=False, subname:="createDatabase", message:="dependency object couldn't be created")
             Else
                 Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_Schedule", message:="dependency object is up-to-date", _
-                                             messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aDepend.primaryTableID)
+                                             messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aDepend.PrimaryTableID)
 
             End If
 
@@ -890,7 +891,7 @@ Namespace OnTrack.Database
                 Call ot.CoreMessageHandler(showmsgbox:=False, subname:="createDatabase", message:="cluster couldn't be created")
             Else
                 Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_Schedule", message:="dependency cluster is up-to-date", _
-                                             messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aCluster.primaryTableID)
+                                             messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aCluster.PrimaryTableID)
 
             End If
 
@@ -1130,7 +1131,7 @@ Namespace OnTrack.Database
 
             '*** create all foreign keys
             '***
-           
+
             For Each aTable In CurrentSession.Objects.TableDefinitions
                 If aTable.AlterSchemaForeignRelations() Then
                     Call ot.CoreMessageHandler(subname:="modCreateDB.createDatabase_RUN", _
@@ -1219,7 +1220,7 @@ Namespace OnTrack.Database
                     .Datevalue = CDate("29.03.2013")
                     .Type = otCalendarEntryType.DayEntry
                     .IsNotAvailable = True
-                    .description = "Karfreitag (Eastern)"
+                    .Description = "Karfreitag (Eastern)"
                     .Persist()
                 End With
             End If
@@ -1230,7 +1231,7 @@ Namespace OnTrack.Database
                     .Datevalue = CDate("01.04.2013")
                     .Type = otCalendarEntryType.DayEntry
                     .IsNotAvailable = True
-                    .description = "EasterMonday (Eastern)"
+                    .Description = "EasterMonday (Eastern)"
                     .Persist()
                 End With
             End If
@@ -1240,7 +1241,7 @@ Namespace OnTrack.Database
                     .Datevalue = CDate("09.05.2013")
                     .Type = otCalendarEntryType.DayEntry
                     .IsNotAvailable = True
-                    .description = "Christi Himmelfahrt"
+                    .Description = "Christi Himmelfahrt"
                     .Persist()
                 End With
             End If
@@ -1251,7 +1252,7 @@ Namespace OnTrack.Database
                     .Datevalue = CDate("10.05.2013")
                     .Type = otCalendarEntryType.DayEntry
                     .IsNotAvailable = True
-                    .description = "Christi Himmelfahrt Brückentag"
+                    .Description = "Christi Himmelfahrt Brückentag"
                     .Persist()
                 End With
             End If
@@ -1261,7 +1262,7 @@ Namespace OnTrack.Database
                     .Datevalue = CDate("20.05.2013")
                     .Type = otCalendarEntryType.DayEntry
                     .IsNotAvailable = True
-                    .description = "Pfingsten"
+                    .Description = "Pfingsten"
                     .Persist()
                 End With
             End If
@@ -1271,8 +1272,8 @@ Namespace OnTrack.Database
                     .Datevalue = CDate("31.10.2013")
                     .Type = otCalendarEntryType.DayEntry
                     .IsNotAvailable = True
-                    .description = "Reformationstag (Sachsen)"
-                  End With
+                    .Description = "Reformationstag (Sachsen)"
+                End With
             End If
             acalentry = CalendarEntry.Create()
             If acalentry IsNot Nothing Then
@@ -1280,7 +1281,7 @@ Namespace OnTrack.Database
                     .Datevalue = CDate("20.11.2013")
                     .Type = otCalendarEntryType.DayEntry
                     .IsNotAvailable = True
-                    .description = "Buß- und Bettag (Sachsen)"
+                    .Description = "Buß- und Bettag (Sachsen)"
                     .Persist()
                 End With
             End If
@@ -1290,7 +1291,7 @@ Namespace OnTrack.Database
                     .Datevalue = CDate("18.04.2014")
                     .Type = otCalendarEntryType.DayEntry
                     .IsNotAvailable = True
-                    .description = "Karfreitag (Eastern)"
+                    .Description = "Karfreitag (Eastern)"
                     .Persist()
                 End With
             End If
@@ -1300,7 +1301,7 @@ Namespace OnTrack.Database
                     .Datevalue = CDate("01.04.2014")
                     .Type = otCalendarEntryType.DayEntry
                     .IsNotAvailable = True
-                    .description = "EasterMonday (Eastern)"
+                    .Description = "EasterMonday (Eastern)"
                     .Persist()
                 End With
             End If
@@ -1310,7 +1311,7 @@ Namespace OnTrack.Database
                     .Datevalue = CDate("29.05.2013")
                     .Type = otCalendarEntryType.DayEntry
                     .IsNotAvailable = True
-                    .description = "Christi Himmelfahrt"
+                    .Description = "Christi Himmelfahrt"
                     .Persist()
                 End With
             End If
@@ -1320,7 +1321,7 @@ Namespace OnTrack.Database
                     .Datevalue = CDate("20.05.2014")
                     .Type = otCalendarEntryType.DayEntry
                     .IsNotAvailable = True
-                    .description = "Pfingsten"
+                    .Description = "Pfingsten"
                     .Persist()
                 End With
             End If
@@ -1330,16 +1331,16 @@ Namespace OnTrack.Database
                     .Datevalue = CDate("31.10.2014")
                     .Type = otCalendarEntryType.DayEntry
                     .IsNotAvailable = True
-                    .description = "Reformationstag (Sachsen)"
+                    .Description = "Reformationstag (Sachsen)"
                     .Persist()
-               End With
+                End With
             End If
             If acalentry IsNot Nothing Then
                 With acalentry
                     .Datevalue = CDate("19.11.2014")
                     .Type = otCalendarEntryType.DayEntry
                     .IsNotAvailable = True
-                    .description = "Buß- und Bettag (Sachsen)"
+                    .Description = "Buß- und Bettag (Sachsen)"
                     .Persist()
                 End With
             End If
@@ -1349,7 +1350,7 @@ Namespace OnTrack.Database
                     .Datevalue = CDate("03.04.2015")
                     .Type = otCalendarEntryType.DayEntry
                     .IsNotAvailable = True
-                    .description = "Karfreitag (Eastern)"
+                    .Description = "Karfreitag (Eastern)"
                     .Persist()
                 End With
             End If
@@ -1359,7 +1360,7 @@ Namespace OnTrack.Database
                     .Datevalue = CDate("06.04.2015")
                     .Type = otCalendarEntryType.DayEntry
                     .IsNotAvailable = True
-                    .description = "EasterMonday (Eastern)"
+                    .Description = "EasterMonday (Eastern)"
                     .Persist()
                 End With
             End If
@@ -1369,7 +1370,7 @@ Namespace OnTrack.Database
                     .Datevalue = CDate("14.05.2015")
                     .Type = otCalendarEntryType.DayEntry
                     .IsNotAvailable = True
-                    .description = "Christi Himmelfahrt"
+                    .Description = "Christi Himmelfahrt"
                     .Persist()
                 End With
             End If
@@ -1379,7 +1380,7 @@ Namespace OnTrack.Database
                     .Datevalue = CDate("25.05.2015")
                     .Type = otCalendarEntryType.DayEntry
                     .IsNotAvailable = True
-                    .description = "Pfingsten"
+                    .Description = "Pfingsten"
                     .Persist()
                 End With
             End If
@@ -1389,7 +1390,7 @@ Namespace OnTrack.Database
                     .Datevalue = CDate("31.10.2015")
                     .Type = otCalendarEntryType.DayEntry
                     .IsNotAvailable = True
-                    .description = "Reformationstag (Sachsen)"
+                    .Description = "Reformationstag (Sachsen)"
                     .Persist()
                 End With
             End If
@@ -1399,13 +1400,13 @@ Namespace OnTrack.Database
                     .Datevalue = CDate("18.11.2015")
                     .Type = otCalendarEntryType.DayEntry
                     .IsNotAvailable = True
-                    .description = "Buß- und Bettag (Sachsen)"
+                    .Description = "Buß- und Bettag (Sachsen)"
                     .Persist()
 
                 End With
             End If
 
-            Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", tablename:=acalentry.primaryTableID, _
+            Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", tablename:=acalentry.PrimaryTableID, _
                                          message:="Calendar until 31.12.2016 created", messagetype:=otCoreMessageType.ApplicationInfo)
 
             Return True
@@ -1421,12 +1422,12 @@ Namespace OnTrack.Database
             If aDomain IsNot Nothing Then
                 '*** read the Domain Settings
                 '***
-                aDomain.SetSetting(id:=Session.ConstCPDependencySynchroMinOverlap, datatype:=otFieldDataType.Long, value:=7)
-                aDomain.SetSetting(id:=Session.ConstCPDefaultWorkspace, datatype:=otFieldDataType.Text, value:="@")
-                aDomain.SetSetting(id:=Session.ConstCPDefaultCalendarName, datatype:=otFieldDataType.Text, value:="default")
-                aDomain.SetSetting(id:=Session.ConstCPDefaultTodayLatency, datatype:=otFieldDataType.Long, value:=-14)
-                aDomain.SetSetting(id:=Session.ConstCDefaultScheduleTypeID, datatype:=otFieldDataType.Text, value:="none")
-                aDomain.SetSetting(id:=Session.ConstCDefaultDeliverableTypeID, datatype:=otFieldDataType.Text, value:="")
+                aDomain.SetSetting(id:=Session.ConstCPDependencySynchroMinOverlap, datatype:=otDataType.Long, value:=7)
+                aDomain.SetSetting(id:=Session.ConstCPDefaultWorkspace, datatype:=otDataType.Text, value:="@")
+                aDomain.SetSetting(id:=Session.ConstCPDefaultCalendarName, datatype:=otDataType.Text, value:="default")
+                aDomain.SetSetting(id:=Session.ConstCPDefaultTodayLatency, datatype:=otDataType.Long, value:=-14)
+                aDomain.SetSetting(id:=Session.ConstCDefaultScheduleTypeID, datatype:=otDataType.Text, value:="none")
+                aDomain.SetSetting(id:=Session.ConstCDefaultDeliverableTypeID, datatype:=otDataType.Text, value:="")
                 aDomain.Persist()
             End If
 
@@ -1446,7 +1447,7 @@ Namespace OnTrack.Database
                 aWorkspace.Persist()
 
                 Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.InitialCoreData", _
-                                             message:="base workspaceID @ created", messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aWorkspace.primaryTableID)
+                                             message:="base workspaceID @ created", messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aWorkspace.PrimaryTableID)
             End If
             '*** workspaceID
             'aWorkspace = Workspace.Create("PSIM01")
@@ -1511,7 +1512,7 @@ Namespace OnTrack.Database
                 anUser.HasUpdateRights = True
                 anUser.IsAnonymous = False
                 anUser.Persist()
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", tablename:=anUser.primaryTableID, _
+                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", tablename:=anUser.PrimaryTableID, _
                                              message:="User Admin created", messagetype:=otCoreMessageType.ApplicationInfo)
             End If
             anUser = User.Create(username:="boschnei")
@@ -1543,7 +1544,7 @@ Namespace OnTrack.Database
                 anUser.IsAnonymous = True
                 anUser.PersonName = ""
                 anUser.Persist()
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", tablename:=anUser.primaryTableID, _
+                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", tablename:=anUser.PrimaryTableID, _
                                              message:="User anonymous for read created", messagetype:=otCoreMessageType.ApplicationInfo)
             End If
 

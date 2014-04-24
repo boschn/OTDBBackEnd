@@ -18,7 +18,7 @@ Imports System.Diagnostics.Debug
 
 Imports OnTrack.Database
 
-Namespace OnTrack.database
+Namespace OnTrack.Database
 
     ''' <summary>
     ''' Interface for Cache Manager
@@ -118,7 +118,7 @@ Namespace OnTrack.database
         ''' <param name="sender"></param>
         ''' <param name="e"></param>
         ''' <remarks></remarks>
-        Sub OnRetrievedDataObject(sender As Object, e As OnTrack.database.ormDataObjectEventArgs)
+        Sub OnRetrievedDataObject(sender As Object, e As OnTrack.Database.ormDataObjectEventArgs)
 
         ''' <summary>
         ''' OnDeleted Event Handler for the ORM Data Object
@@ -152,220 +152,6 @@ Namespace OnTrack.database
             Deleted = 8
             Created = 16
         End Enum
-        ''' <summary>
-        ''' Registery with some meta information
-        ''' </summary>
-        ''' <remarks></remarks>
-        Public Class RegisteryEntry(Of T)
-            Private _objecttype As System.Type
-            Private _objecttypename As String = ""
-            Private _noKeys As UShort = 0
-
-            Private _lockobject As New Object
-
-            ''' <summary>
-            ''' constructor with an ormDataObject Class Type
-            ''' </summary>
-            ''' <param name="type"></param>
-            ''' <remarks></remarks>
-            Public Sub New([type] As System.Type)
-                If [type].GetInterfaces.Contains(GetType(T)) OrElse [type].IsAssignableFrom(GetType(T)) Then
-                    Dim aDescriptor = ot.GetObjectClassDescription([type])
-                    If aDescriptor IsNot Nothing Then
-                        _noKeys = aDescriptor.PrimaryKeyEntryNames.Count
-                    Else
-                        Throw New Exception("registerentry: descriptor not found")
-                    End If
-                Else
-                    Throw New Exception("registeryEntry: " & [type].Name & " has no interface or base class for " & GetType(T).Name)
-                End If
-            End Sub
-            ''' <summary>
-            ''' Gets the objecttype.
-            ''' </summary>
-            ''' <value>The objecttype.</value>
-            Public ReadOnly Property Objecttype() As Type
-                Get
-                    Return Me._objecttype
-                End Get
-            End Property
-
-            ''' <summary>
-            ''' Gets the objecttypename.
-            ''' </summary>
-            ''' <value>The objecttypename.</value>
-            Public ReadOnly Property Objecttypename() As String
-                Get
-                    If _objecttype IsNot Nothing Then Return Me._objecttype.Name
-                    Return ""
-                End Get
-            End Property
-
-            ''' <summary>
-            ''' Gets the no keys.
-            ''' </summary>
-            ''' <value>The no keys.</value>
-            Public ReadOnly Property NoKeys() As UShort
-                Get
-                    Return Me._noKeys
-                End Get
-            End Property
-
-        End Class
-
-        ''' <summary>
-        ''' the generic object unique key class
-        ''' </summary>
-        ''' <remarks></remarks>
-        Public Class ObjectKeys(Of T)
-            Implements IHashCodeProvider
-            Implements IQueryable
-
-
-            '** Keys is an array of objects
-            Private _keys() As Object
-            Private _registery As RegisteryEntry(Of T)
-
-            Private _lockobject As New Object
-
-            ''' <summary>
-            ''' constructor of an keyentry
-            ''' </summary>
-            ''' <param name="registeryentry"></param>
-            ''' <remarks></remarks>
-            Public Sub New(registeryentry As RegisteryEntry(Of T))
-                _registery = registeryentry
-                ReDim _keys(_registery.NoKeys)
-            End Sub
-            Public Sub New(nokeys As UShort)
-                ReDim _keys(nokeys)
-            End Sub
-            Public Sub New(keys() As Object)
-                _keys = keys
-            End Sub
-            ''' <summary>
-            ''' Gets or sets the keys.
-            ''' </summary>
-            ''' <value>The keys.</value>
-            Public Property Keys() As Object()
-                Get
-                    Return Me._keys
-                End Get
-                Set(value As Object())
-                    If value.GetUpperBound(0) <> _registery.NoKeys - 1 Then Throw New Exception("keys of this type have different bound")
-                    Me._keys = value
-                End Set
-            End Property
-
-            ''' <summary>
-            ''' returns a hash value for the keys
-            ''' </summary>
-            ''' <param name="obj"></param>
-            ''' <returns></returns>
-            ''' <remarks></remarks>
-            Public Overloads Function GetHashCode(o As Object) As Integer Implements IHashCodeProvider.GetHashCode
-                Dim aKey As ObjectKeys(Of T) = TryCast(o, ObjectKeys(Of T))
-                If aKey Is Nothing Then Return o.GetHashCode
-                If aKey.Keys Is Nothing Then Return 0
-
-                Dim hashvalue As Integer = 0
-                For i = 0 To aKey.Keys.Count - 1
-                    If aKey.Keys(i) Is Nothing Then
-                        hashvalue = hashvalue Xor 0
-                    Else
-                        hashvalue = hashvalue Xor aKey.Keys(i).GetHashCode()
-                    End If
-                Next
-                Return hashvalue
-            End Function
-            ''' <summary>
-            ''' Equal routine of 2 keys
-            ''' </summary>
-            ''' <param name="obj"></param>
-            ''' <returns></returns>
-            ''' <remarks></remarks>
-            Public Overrides Function Equals(obj As Object) As Boolean
-                Try
-                    Dim aKey As ObjectKeys(Of T) = TryCast(obj, ObjectKeys(Of T))
-                    If aKey Is Nothing Then
-                        Return False
-                    Else
-                        If (aKey.Keys Is Nothing AndAlso _keys IsNot Nothing) OrElse _
-                            (aKey.Keys IsNot Nothing AndAlso _keys Is Nothing) Then
-                            Return False
-                        End If
-                        If (aKey.Keys Is Nothing AndAlso _keys Is Nothing) Then
-                            Return True
-                        End If
-
-                        If aKey.Keys.Count <> _keys.Count Then Return False
-                        For i = 0 To aKey.Keys.Count - 1
-                            If Not aKey.Keys(i).Equals(Me.Keys(i)) Then Return False
-                        Next
-                        Return True
-                    End If
-
-                Catch ex As Exception
-                    CoreMessageHandler(exception:=ex, subname:="ObjectKeys(ormObjectCacheManager).Equals")
-                    Return False
-                End Try
-            End Function
-            ''' <summary>
-            ''' returns a hash value for the keys
-            ''' </summary>
-            ''' <param name="obj"></param>
-            ''' <returns></returns>
-            ''' <remarks></remarks>
-            Public Overrides Function GetHashCode() As Integer
-                Return Me.GetHashCode(Me)
-            End Function
-
-            ''' <summary>
-            ''' get an enumerator
-            ''' </summary>
-            ''' <returns></returns>
-            ''' <remarks></remarks>
-            Public Function GetEnumerator() As IEnumerator Implements IEnumerable.GetEnumerator
-                Return _keys.ToList
-            End Function
-
-            Public ReadOnly Property ElementType As Type Implements IQueryable.ElementType
-                Get
-
-                End Get
-            End Property
-
-            Public ReadOnly Property Expression As Expressions.Expression Implements IQueryable.Expression
-                Get
-
-                End Get
-            End Property
-
-            Public ReadOnly Property Provider As IQueryProvider Implements IQueryable.Provider
-                Get
-
-                End Get
-            End Property
-
-            ''' <summary>
-            ''' toString
-            ''' </summary>
-            ''' <returns></returns>
-            ''' <remarks></remarks>
-            Public Overrides Function ToString() As String
-                If _keys IsNot Nothing Then
-                    Dim s As String = "["
-                    For i = 0 To _keys.Count - 1
-                        If s <> "[" Then s &= ","
-                        s &= _keys(i).ToString
-                    Next
-                    Return s & "]"
-                Else
-                    Return "[]"
-                End If
-
-            End Function
-        End Class
 
         ''' <summary>
         ''' generic cached object instance (tuppel with some additional data)
@@ -565,13 +351,13 @@ Namespace OnTrack.database
         ''' registered object classes
         ''' </summary>
         ''' <remarks></remarks>
-        Private _registeredObjects As New Dictionary(Of String, RegisteryEntry(Of iormPersistable))
+        Private _registeredObjects As New Dictionary(Of String, ormDataTupleMetaClass(Of iormPersistable))
 
         ''' <summary>
         ''' the Object Cache
         ''' </summary>
         ''' <remarks></remarks>
-        Private _cachedObjects As New SortedList(Of String, Concurrent.ConcurrentDictionary(Of ObjectKeys(Of iormPersistable), CachedObject(Of iormPersistable)))
+        Private _cachedObjects As New SortedList(Of String, Concurrent.ConcurrentDictionary(Of ormPrimaryKey(Of iormPersistable), CachedObject(Of iormPersistable)))
 
         ''' <summary>
         ''' dynamic
@@ -710,13 +496,13 @@ Namespace OnTrack.database
             '*** if cache is used
             '*** register the object class type
             '***
-            Dim anEntry As RegisteryEntry(Of iormPersistable)
+            Dim anEntry As ormDataTupleMetaClass(Of iormPersistable)
             Try
 
                 If Not _registeredObjects.ContainsKey(key:=typename) Then
                     Dim aType = System.Type.GetType(typeName:=typename, throwOnError:=False, ignoreCase:=True)
                     If aType IsNot Nothing And aType.GetInterface(GetType(iormPersistable).Name, ignoreCase:=True) IsNot Nothing Then
-                        anEntry = New RegisteryEntry(Of iormPersistable)(aType)
+                        anEntry = New ormDataTupleMetaClass(Of iormPersistable)(aType)
                         _registeredObjects.Add(key:=typename, value:=anEntry)
                         '** WORKAROUND with ORM DataObjectisHooked :-(
                         If Not _ormDataObjectIsHooked Then Me.RegisterEvents(aType)
@@ -885,7 +671,7 @@ Namespace OnTrack.database
             '*** register the object class type
             '***
             Me.Initialize()
-            Dim anEntry As RegisteryEntry(Of iormPersistable)
+            Dim anEntry As ormDataTupleMetaClass(Of iormPersistable)
             If e.Objectdefinition.UseCache Then
                 Me.RegisterObjectClass(typename:=e.Objectdefinition.Classname)
             Else
@@ -921,14 +707,14 @@ Namespace OnTrack.database
             If _isStarted AndAlso e.UseCache Then
                 If e.DataObject Is Nothing OrElse e.Pkarray Is Nothing OrElse e.Pkarray.Count = 0 Then Exit Sub
                 '** get the data
-                Dim theobjects As Concurrent.ConcurrentDictionary(Of ObjectKeys(Of iormPersistable), CachedObject(Of iormPersistable))
+                Dim theobjects As Concurrent.ConcurrentDictionary(Of ormPrimaryKey(Of iormPersistable), CachedObject(Of iormPersistable))
                 SyncLock _lockObject
                     If _cachedObjects.ContainsKey(e.DataObject.GetType.Name) Then
                         theobjects = _cachedObjects.Item(e.DataObject.GetType.Name)
                     End If
                 End SyncLock
                 If theobjects IsNot Nothing Then
-                    Dim searchkeys = New ObjectKeys(Of iormPersistable)(e.Pkarray)
+                    Dim searchkeys = New ormPrimaryKey(Of iormPersistable)(e.Pkarray)
                     If theobjects.ContainsKey(key:=searchkeys) Then
                         Dim aBucket = theobjects.Item(key:=searchkeys)
                         e.DataObject = TryCast(aBucket.Object, ormDataObject)
@@ -960,19 +746,19 @@ Namespace OnTrack.database
         ''' <remarks></remarks>
         Public Sub OnCreatedDataObject(sender As Object, e As ormDataObjectEventArgs) Implements iormObjectCacheManager.OnCreatedDataObject
             If _isStarted AndAlso e.UseCache Then
-                Dim theobjects As Concurrent.ConcurrentDictionary(Of ObjectKeys(Of iormPersistable), CachedObject(Of iormPersistable))
+                Dim theobjects As Concurrent.ConcurrentDictionary(Of ormPrimaryKey(Of iormPersistable), CachedObject(Of iormPersistable))
                 If e.DataObject Is Nothing OrElse e.Pkarray Is Nothing OrElse e.Pkarray.Count = 0 Then Exit Sub
                 '** get the data
                 SyncLock _lockObject
                     If _cachedObjects.ContainsKey(e.DataObject.GetType.Name) Then
                         theobjects = _cachedObjects.Item(e.DataObject.GetType.Name)
                     Else
-                        theobjects = New Concurrent.ConcurrentDictionary(Of ObjectKeys(Of iormPersistable), CachedObject(Of iormPersistable))()
+                        theobjects = New Concurrent.ConcurrentDictionary(Of ormPrimaryKey(Of iormPersistable), CachedObject(Of iormPersistable))()
                         _cachedObjects.Add(key:=e.DataObject.GetType.Name, value:=theobjects)
                     End If
                 End SyncLock
 
-                Dim searchkeys = New ObjectKeys(Of iormPersistable)(e.Pkarray)
+                Dim searchkeys = New ormPrimaryKey(Of iormPersistable)(e.Pkarray)
                 If Not theobjects.ContainsKey(key:=searchkeys) Then
                     Dim aBucket = New CachedObject(Of iormPersistable)(e.DataObject)
                     aBucket.IsCreated = True
@@ -1016,7 +802,7 @@ Namespace OnTrack.database
         Public Sub OnCloningDataObject(sender As Object, e As ormDataObjectEventArgs) Implements iormObjectCacheManager.OnCloningDataObject
             If _isStarted AndAlso e.UseCache Then
                 '** get the data
-                Dim theobjects As Concurrent.ConcurrentDictionary(Of ObjectKeys(Of iormPersistable), CachedObject(Of iormPersistable))
+                Dim theobjects As Concurrent.ConcurrentDictionary(Of ormPrimaryKey(Of iormPersistable), CachedObject(Of iormPersistable))
                 If e.DataObject Is Nothing OrElse e.Pkarray Is Nothing OrElse e.Pkarray.Count = 0 Then Exit Sub
                 SyncLock _lockObject
                     If _cachedObjects.ContainsKey(e.DataObject.GetType.Name) Then
@@ -1024,7 +810,7 @@ Namespace OnTrack.database
                     End If
                 End SyncLock
                 If theobjects IsNot Nothing Then
-                    Dim searchkeys = New ObjectKeys(Of iormPersistable)(e.Pkarray)
+                    Dim searchkeys = New ormPrimaryKey(Of iormPersistable)(e.Pkarray)
                     If theobjects.ContainsKey(key:=searchkeys) Then
                         Dim aBucket = theobjects.Item(key:=searchkeys)
                         e.DataObject = TryCast(aBucket.Object, ormDataObject)
@@ -1056,19 +842,19 @@ Namespace OnTrack.database
         ''' <remarks></remarks>
         Public Sub OnClonedDataObject(sender As Object, e As ormDataObjectEventArgs) Implements iormObjectCacheManager.OnClonedDataObject
             If _isStarted AndAlso e.UseCache Then
-                Dim theobjects As Concurrent.ConcurrentDictionary(Of ObjectKeys(Of iormPersistable), CachedObject(Of iormPersistable))
+                Dim theobjects As Concurrent.ConcurrentDictionary(Of ormPrimaryKey(Of iormPersistable), CachedObject(Of iormPersistable))
                 If e.DataObject Is Nothing OrElse e.Pkarray Is Nothing OrElse e.Pkarray.Count = 0 Then Exit Sub
                 '** get the data
                 SyncLock _lockObject
                     If _cachedObjects.ContainsKey(e.DataObject.GetType.Name) Then
                         theobjects = _cachedObjects.Item(e.DataObject.GetType.Name)
                     Else
-                        theobjects = New Concurrent.ConcurrentDictionary(Of ObjectKeys(Of iormPersistable), CachedObject(Of iormPersistable))()
+                        theobjects = New Concurrent.ConcurrentDictionary(Of ormPrimaryKey(Of iormPersistable), CachedObject(Of iormPersistable))()
                         _cachedObjects.Add(key:=e.DataObject.GetType.Name, value:=theobjects)
                     End If
                 End SyncLock
 
-                Dim searchkeys = New ObjectKeys(Of iormPersistable)(e.Pkarray)
+                Dim searchkeys = New ormPrimaryKey(Of iormPersistable)(e.Pkarray)
                 If Not theobjects.ContainsKey(key:=searchkeys) Then
                     Dim aBucket = New CachedObject(Of iormPersistable)(e.DataObject)
                     aBucket.CreationDate = DateTime.Now
@@ -1098,7 +884,7 @@ Namespace OnTrack.database
         ''' <remarks></remarks>
         Public Sub OnDeletedDataObject(sender As Object, e As ormDataObjectEventArgs) Implements iormObjectCacheManager.OnDeletedDataObject
             If _isStarted AndAlso e.UseCache Then
-                Dim theobjects As Concurrent.ConcurrentDictionary(Of ObjectKeys(Of iormPersistable), CachedObject(Of iormPersistable))
+                Dim theobjects As Concurrent.ConcurrentDictionary(Of ormPrimaryKey(Of iormPersistable), CachedObject(Of iormPersistable))
                 If e.DataObject Is Nothing OrElse e.Pkarray Is Nothing OrElse e.Pkarray.Count = 0 Then Exit Sub
 
                 '** get the data
@@ -1106,12 +892,12 @@ Namespace OnTrack.database
                     If _cachedObjects.ContainsKey(e.DataObject.GetType.Name) Then
                         theobjects = _cachedObjects.Item(e.DataObject.GetType.Name)
                     Else
-                        theobjects = New Concurrent.ConcurrentDictionary(Of ObjectKeys(Of iormPersistable), CachedObject(Of iormPersistable))()
+                        theobjects = New Concurrent.ConcurrentDictionary(Of ormPrimaryKey(Of iormPersistable), CachedObject(Of iormPersistable))()
                         _cachedObjects.Add(key:=e.DataObject.GetType.Name, value:=theobjects)
                     End If
                 End SyncLock
 
-                Dim searchkeys = New ObjectKeys(Of iormPersistable)(e.Pkarray)
+                Dim searchkeys = New ormPrimaryKey(Of iormPersistable)(e.Pkarray)
                 Dim aBucket As CachedObject(Of iormPersistable)
                 If Not theobjects.ContainsKey(key:=searchkeys) Then
                     aBucket = New CachedObject(Of iormPersistable)(e.DataObject)
@@ -1138,7 +924,7 @@ Namespace OnTrack.database
         ''' <remarks></remarks>
         Public Sub OnUnDeletedDataObject(sender As Object, e As ormDataObjectEventArgs) Implements iormObjectCacheManager.OnUnDeletedDataObject
             If _isStarted AndAlso e.UseCache Then
-                Dim theobjects As Concurrent.ConcurrentDictionary(Of ObjectKeys(Of iormPersistable), CachedObject(Of iormPersistable))
+                Dim theobjects As Concurrent.ConcurrentDictionary(Of ormPrimaryKey(Of iormPersistable), CachedObject(Of iormPersistable))
                 If e.DataObject Is Nothing OrElse e.Pkarray Is Nothing OrElse e.Pkarray.Count = 0 Then Exit Sub
 
                 '** get the data
@@ -1146,12 +932,12 @@ Namespace OnTrack.database
                     If _cachedObjects.ContainsKey(e.DataObject.GetType.Name) Then
                         theobjects = _cachedObjects.Item(e.DataObject.GetType.Name)
                     Else
-                        theobjects = New Concurrent.ConcurrentDictionary(Of ObjectKeys(Of iormPersistable), CachedObject(Of iormPersistable))()
+                        theobjects = New Concurrent.ConcurrentDictionary(Of ormPrimaryKey(Of iormPersistable), CachedObject(Of iormPersistable))()
                         _cachedObjects.Add(key:=e.DataObject.GetType.Name, value:=theobjects)
                     End If
                 End SyncLock
 
-                Dim searchkeys = New ObjectKeys(Of iormPersistable)(e.Pkarray)
+                Dim searchkeys = New ormPrimaryKey(Of iormPersistable)(e.Pkarray)
                 Dim aBucket As CachedObject(Of iormPersistable)
                 If Not theobjects.ContainsKey(key:=searchkeys) Then
                     aBucket = New CachedObject(Of iormPersistable)(e.DataObject)
@@ -1178,7 +964,7 @@ Namespace OnTrack.database
         ''' <remarks></remarks>
         Public Sub OnPersistedDataObject(sender As Object, e As ormDataObjectEventArgs) Implements iormObjectCacheManager.OnPersistedDataObject
             If _isStarted AndAlso e.UseCache Then
-                Dim theobjects As Concurrent.ConcurrentDictionary(Of ObjectKeys(Of iormPersistable), CachedObject(Of iormPersistable))
+                Dim theobjects As Concurrent.ConcurrentDictionary(Of ormPrimaryKey(Of iormPersistable), CachedObject(Of iormPersistable))
                 If e.DataObject Is Nothing OrElse e.Pkarray Is Nothing OrElse e.Pkarray.Count = 0 Then Exit Sub
 
                 '** get the data
@@ -1186,12 +972,12 @@ Namespace OnTrack.database
                     If _cachedObjects.ContainsKey(e.DataObject.GetType.Name) Then
                         theobjects = _cachedObjects.Item(e.DataObject.GetType.Name)
                     Else
-                        theobjects = New Concurrent.ConcurrentDictionary(Of ObjectKeys(Of iormPersistable), CachedObject(Of iormPersistable))()
+                        theobjects = New Concurrent.ConcurrentDictionary(Of ormPrimaryKey(Of iormPersistable), CachedObject(Of iormPersistable))()
                         _cachedObjects.Add(key:=e.DataObject.GetType.Name, value:=theobjects)
                     End If
                 End SyncLock
 
-                Dim searchkeys = New ObjectKeys(Of iormPersistable)(e.Pkarray)
+                Dim searchkeys = New ormPrimaryKey(Of iormPersistable)(e.Pkarray)
                 Dim aBucket As CachedObject(Of iormPersistable)
                 If Not theobjects.ContainsKey(key:=searchkeys) Then
                     aBucket = New CachedObject(Of iormPersistable)(e.DataObject)
@@ -1221,14 +1007,14 @@ Namespace OnTrack.database
                 If e.DataObject Is Nothing OrElse e.Pkarray Is Nothing OrElse e.Pkarray.Count = 0 Then Exit Sub
 
                 '** get the data
-                Dim theobjects As Concurrent.ConcurrentDictionary(Of ObjectKeys(Of iormPersistable), CachedObject(Of iormPersistable))
+                Dim theobjects As Concurrent.ConcurrentDictionary(Of ormPrimaryKey(Of iormPersistable), CachedObject(Of iormPersistable))
                 SyncLock _lockObject
                     If _cachedObjects.ContainsKey(e.DataObject.GetType.Name) Then
                         theobjects = _cachedObjects.Item(e.DataObject.GetType.Name)
                     End If
                 End SyncLock
                 If theobjects IsNot Nothing Then
-                    Dim searchkeys = New ObjectKeys(Of iormPersistable)(e.Pkarray)
+                    Dim searchkeys = New ormPrimaryKey(Of iormPersistable)(e.Pkarray)
                     If theobjects.ContainsKey(key:=searchkeys) Then
                         Dim aBucket = theobjects.Item(key:=searchkeys)
                         e.DataObject = TryCast(aBucket.Object, ormDataObject)
@@ -1258,7 +1044,7 @@ Namespace OnTrack.database
         ''' <remarks></remarks>
         Public Sub OnRetrievedDataObject(sender As Object, e As ormDataObjectEventArgs) Implements iormObjectCacheManager.OnRetrievedDataObject
             If _isStarted AndAlso e.UseCache Then
-                Dim theobjects As Concurrent.ConcurrentDictionary(Of ObjectKeys(Of iormPersistable), CachedObject(Of iormPersistable))
+                Dim theobjects As Concurrent.ConcurrentDictionary(Of ormPrimaryKey(Of iormPersistable), CachedObject(Of iormPersistable))
                 If e.DataObject Is Nothing OrElse e.Pkarray Is Nothing OrElse e.Pkarray.Count = 0 Then Exit Sub
 
 
@@ -1267,12 +1053,12 @@ Namespace OnTrack.database
                     If _cachedObjects.ContainsKey(e.DataObject.GetType.Name) Then
                         theobjects = _cachedObjects.Item(e.DataObject.GetType.Name)
                     Else
-                        theobjects = New Concurrent.ConcurrentDictionary(Of ObjectKeys(Of iormPersistable), CachedObject(Of iormPersistable))()
+                        theobjects = New Concurrent.ConcurrentDictionary(Of ormPrimaryKey(Of iormPersistable), CachedObject(Of iormPersistable))()
                         _cachedObjects.Add(key:=e.DataObject.GetType.Name, value:=theobjects)
                     End If
                 End SyncLock
 
-                Dim searchkeys = New ObjectKeys(Of iormPersistable)(e.Pkarray)
+                Dim searchkeys = New ormPrimaryKey(Of iormPersistable)(e.Pkarray)
                 If Not theobjects.ContainsKey(key:=searchkeys) Then
                     Dim aBucket = New CachedObject(Of iormPersistable)(e.DataObject)
                     aBucket.RetrieveData = DateTime.Now
@@ -1310,14 +1096,14 @@ Namespace OnTrack.database
             If _isStarted AndAlso e.UseCache Then
                 If e.DataObject Is Nothing OrElse e.Pkarray Is Nothing OrElse e.Pkarray.Count = 0 Then Exit Sub
                 '** get the data
-                Dim theobjects As Concurrent.ConcurrentDictionary(Of ObjectKeys(Of iormPersistable), CachedObject(Of iormPersistable))
+                Dim theobjects As Concurrent.ConcurrentDictionary(Of ormPrimaryKey(Of iormPersistable), CachedObject(Of iormPersistable))
                 SyncLock _lockObject
                     If _cachedObjects.ContainsKey(e.DataObject.GetType.Name) Then
                         theobjects = _cachedObjects.Item(e.DataObject.GetType.Name)
                     End If
                 End SyncLock
                 If theobjects IsNot Nothing Then
-                    Dim searchkeys = New ObjectKeys(Of iormPersistable)(e.Pkarray)
+                    Dim searchkeys = New ormPrimaryKey(Of iormPersistable)(e.Pkarray)
                     If theobjects.ContainsKey(key:=searchkeys) Then
                         Dim aBucket = theobjects.Item(key:=searchkeys)
                         aBucket.LastAccessStamp = DateTime.Now
@@ -1358,7 +1144,7 @@ Namespace OnTrack.database
         ''' <remarks></remarks>
         Public Sub OnInfusedDataObject(sender As Object, e As ormDataObjectEventArgs) Implements iormObjectCacheManager.OnInfusedDataObject
             If _isStarted AndAlso e.UseCache Then
-                Dim theobjects As Concurrent.ConcurrentDictionary(Of ObjectKeys(Of iormPersistable), CachedObject(Of iormPersistable))
+                Dim theobjects As Concurrent.ConcurrentDictionary(Of ormPrimaryKey(Of iormPersistable), CachedObject(Of iormPersistable))
                 If e.DataObject Is Nothing OrElse e.Pkarray Is Nothing OrElse e.Pkarray.Count = 0 Then Exit Sub
 
 
@@ -1367,12 +1153,12 @@ Namespace OnTrack.database
                     If _cachedObjects.ContainsKey(e.DataObject.GetType.Name) Then
                         theobjects = _cachedObjects.Item(e.DataObject.GetType.Name)
                     Else
-                        theobjects = New Concurrent.ConcurrentDictionary(Of ObjectKeys(Of iormPersistable), CachedObject(Of iormPersistable))()
+                        theobjects = New Concurrent.ConcurrentDictionary(Of ormPrimaryKey(Of iormPersistable), CachedObject(Of iormPersistable))()
                         _cachedObjects.Add(key:=e.DataObject.GetType.Name, value:=theobjects)
                     End If
                 End SyncLock
 
-                Dim searchkeys = New ObjectKeys(Of iormPersistable)(e.Pkarray)
+                Dim searchkeys = New ormPrimaryKey(Of iormPersistable)(e.Pkarray)
                 If Not theobjects.ContainsKey(key:=searchkeys) Then
                     Dim aBucket = New CachedObject(Of iormPersistable)(e.DataObject)
                     If e.DataObject.IsLoaded Then
@@ -1423,14 +1209,14 @@ Namespace OnTrack.database
         Public Sub OnCheckinqUniquenessDataObject(sender As Object, e As ormDataObjectEventArgs) Implements iormObjectCacheManager.OnCheckingUniquenessDataObject
             If _isStarted AndAlso e.UseCache Then
                 '** get the data
-                Dim theobjects As Concurrent.ConcurrentDictionary(Of ObjectKeys(Of iormPersistable), CachedObject(Of iormPersistable))
+                Dim theobjects As Concurrent.ConcurrentDictionary(Of ormPrimaryKey(Of iormPersistable), CachedObject(Of iormPersistable))
                 SyncLock _lockObject
                     If _cachedObjects.ContainsKey(e.DataObject.GetType.Name) Then
                         theobjects = _cachedObjects.Item(e.DataObject.GetType.Name)
                     End If
                 End SyncLock
                 If theobjects IsNot Nothing Then
-                    Dim searchkeys = New ObjectKeys(Of iormPersistable)(e.Pkarray)
+                    Dim searchkeys = New ormPrimaryKey(Of iormPersistable)(e.Pkarray)
                     If theobjects.ContainsKey(key:=searchkeys) Then
                         Dim aBucket = theobjects.Item(key:=searchkeys)
                         e.DataObject = TryCast(aBucket.Object, ormDataObject)

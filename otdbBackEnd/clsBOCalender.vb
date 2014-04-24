@@ -15,8 +15,23 @@ Option Explicit On
 Imports System.Collections.Generic
 
 Imports OnTrack.Database
+Imports OnTrack.Commons
 
 Namespace OnTrack.Calendar
+
+    ''' <summary>
+    ''' Enumeration of the Calendar Entry Types
+    ''' </summary>
+    ''' <remarks></remarks>
+    Public Enum otCalendarEntryType
+        DayEntry = 1
+        MonthEntry = 2
+        YearEntry = 3
+        WeekEntry = 4
+        AbsentEntry = 5
+        EventEntry = 6
+        MilestoneEntry = 7
+    End Enum
 
     ''' <summary>
     ''' Calendar Entry Class
@@ -38,60 +53,60 @@ Namespace OnTrack.Calendar
         <ormSchemaIndex(columnname1:=constFNName, columnname2:=constFNTimestamp, columnname3:=constFNDomainID, columnname4:=ConstFNTypeID)> Public Const constIndexDomain = "domain"
 
         '*** keys
-        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=50, primarykeyordinal:=1, _
+        <ormObjectEntry(typeid:=otDataType.Text, size:=50, primarykeyordinal:=1, _
             XID:="CAL1", title:="Name", description:="name of calendar")> Public Const constFNName = "cname"
-        <ormObjectEntry(typeid:=otFieldDataType.Long, primarykeyordinal:=2, _
+        <ormObjectEntry(typeid:=otDataType.Long, primarykeyordinal:=2, _
            XID:="CAL2", title:="EntryNo", description:="entry no in the calendar")> Public Const constFNID = "id"
         <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=3, useforeignkey:=otForeignKeyImplementation.NativeDatabase)> _
         Public Const constFNDomainID = Domain.ConstFNDomainID
 
         '** columns
-        <ormObjectEntry(typeid:=otFieldDataType.Timestamp, _
+        <ormObjectEntry(typeid:=otDataType.Timestamp, _
          XID:="CAL4", title:="Timestamp", description:="timestamp entry in the calendar")> Public Const constFNTimestamp = "timestamp"
-        <ormObjectEntry(typeid:=otFieldDataType.Long, _
+        <ormObjectEntry(typeid:=otDataType.Long, _
          XID:="CAL5", title:="Type", description:="entry type in the calendar")> Public Const ConstFNTypeID = "typeid"
-        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=255, _
+        <ormObjectEntry(typeid:=otDataType.Text, size:=255, _
         XID:="CAL6", title:="Description", description:="entry description in the calendar")> Public Const ConstFNDescription = "desc"
-        <ormObjectEntry(typeid:=otFieldDataType.Long, _
+        <ormObjectEntry(typeid:=otDataType.Long, _
           XID:="CAL8", title:="RefID", description:="entry refID in the calendar")> Public Const constFNRefID = "refid"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Bool, XID:="cal9", title:="Not Available", description:="not available")> _
+        <ormObjectEntry(typeid:=otDataType.Bool, XID:="cal9", title:="Not Available", description:="not available")> _
         Public Const constFNIsNotAvailable = "notavail"
-        <ormObjectEntry(typeid:=otFieldDataType.Bool, XID:="cal10", title:="Is Important", description:="is important entry (prioritized)")> _
+        <ormObjectEntry(typeid:=otDataType.Bool, XID:="cal10", title:="Is Important", description:="is important entry (prioritized)")> _
         Public Const constFNIsImportant = "isimp"
 
-        <ormObjectEntry(typeid:=otFieldDataType.Long, _
+        <ormObjectEntry(typeid:=otDataType.Long, _
           XID:="CAL20", title:="TimeSpan", description:="length in minutes")> Public Const constFNLength = "length"
 
 
         '** not mapped
 
-        <ormObjectEntry(typeid:=otFieldDataType.Long, _
+        <ormObjectEntry(typeid:=otDataType.Long, _
           XID:="CAL31", title:="Week", description:="week of the year")> Public Const constFNNoWeek = "noweek"
-        <ormObjectEntry(typeid:=otFieldDataType.Long, _
+        <ormObjectEntry(typeid:=otDataType.Long, _
          XID:="CAL32", title:="Day", description:="day of the year")> Public Const constFNNoDay = "noday"
-        <ormObjectEntry(typeid:=otFieldDataType.Long, _
+        <ormObjectEntry(typeid:=otDataType.Long, _
          XID:="CAL33", title:="Weekday", description:="number of day in the week")> Public Const constFNweekday = "noweekday"
-        <ormObjectEntry(typeid:=otFieldDataType.Long, _
+        <ormObjectEntry(typeid:=otDataType.Long, _
          XID:="CAL34", title:="Quarter", description:="no of quarter of the year")> Public Const constFNQuarter = "quarter"
-        <ormObjectEntry(typeid:=otFieldDataType.Long, _
+        <ormObjectEntry(typeid:=otDataType.Long, _
          XID:="CAL35", title:="Year", description:="the year")> Public Const constFNYear = "year"
-        <ormObjectEntry(typeid:=otFieldDataType.Long, _
+        <ormObjectEntry(typeid:=otDataType.Long, _
         XID:="CAL36", title:="Month", description:="the month")> Public Const constFNmonth = "month"
-        <ormObjectEntry(typeid:=otFieldDataType.Long, _
+        <ormObjectEntry(typeid:=otDataType.Long, _
         XID:="CAL37", title:="Day", description:="the day")> Public Const constFNDay = "day"
-        <ormObjectEntry(typeid:=otFieldDataType.Time, _
+        <ormObjectEntry(typeid:=otDataType.Time, _
         XID:="CAL38", title:="Time", description:="time")> Public Const constFNTime = "timevalue"
-        <ormObjectEntry(typeid:=otFieldDataType.Date, _
+        <ormObjectEntry(typeid:=otDataType.Date, _
         XID:="CAL39", title:="Date", description:="date")> Public Const constFNDate = "datevalue"
-        <ormObjectEntry(typeid:=otFieldDataType.Text, size:=10, _
+        <ormObjectEntry(typeid:=otDataType.Text, size:=10, _
         XID:="CAL40", title:="WeekYear", description:="Week and Year representation")> Public Const constFNWeekYear = "weekofyear"
 
 
         '** mappings
         <ormEntryMapping(EntryName:=constFNID)> Private _entryid As Long = 0
         <ormEntryMapping(EntryName:=constFNName)> Private _name As String = ""
-        <ormEntryMapping(EntryName:=constFNTimestamp)> Private _timestamp As Date = ConstNullDate
+        <ormEntryMapping(EntryName:=constFNTimestamp)> Private _timestamp As Date = constNullDate
         <ormEntryMapping(EntryName:=constFNRefID)> Private _refid As Long = 0
         <ormEntryMapping(EntryName:=constFNLength)> Private _length As Long = 0
         ' fields
@@ -235,7 +250,7 @@ Namespace OnTrack.Calendar
             Get
                 Dim myear As Integer
                 myear = Me.Year
-                If Me.Month = 1 And Me.week >= 52 Then
+                If Me.Month = 1 And Me.Week >= 52 Then
                     myear = myear - 1
                 End If
 
@@ -381,13 +396,13 @@ Namespace OnTrack.Calendar
 #End Region
 
         Public Function DeltaYear(newDate As Date) As Long
-            deltaYear = DateDiff("y", _timestamp, newDate)
+            DeltaYear = DateDiff("y", _timestamp, newDate)
         End Function
         Public Function DeltaMonth(newDate As Date) As Long
-            deltaMonth = DateDiff("m", _timestamp, newDate)
+            DeltaMonth = DateDiff("m", _timestamp, newDate)
         End Function
         Public Function DeltaWeek(newDate As Date) As Long
-            deltaWeek = DateDiff("ww", _timestamp, newDate)
+            DeltaWeek = DateDiff("ww", _timestamp, newDate)
         End Function
 
         Public Function DeltaDay(ByVal newDate As Date, _
@@ -399,13 +414,13 @@ Namespace OnTrack.Calendar
             Dim exitflag As Boolean
             ' delta
             delta = 0
-            deltaDay = DateDiff("d", _timestamp, newDate)
+            DeltaDay = DateDiff("d", _timestamp, newDate)
             '
             If considerAvailibilty Then
                 currDate = _timestamp
-                If deltaDay < 0 Then
+                If DeltaDay < 0 Then
                     delta = -AvailableDays(fromdate:=newDate, untildate:=_timestamp, name:=calendarname)
-                ElseIf deltaDay > 0 Then
+                ElseIf DeltaDay > 0 Then
                     delta = AvailableDays(fromdate:=_timestamp, untildate:=newDate, name:=calendarname)
                 Else : delta = 0
                 End If
@@ -417,16 +432,16 @@ Namespace OnTrack.Calendar
                 '        delta = delta - 1
                 '    End If
                 'End If
-                deltaDay = delta
+                DeltaDay = delta
                 Exit Function
             End If
 
         End Function
         Public Function DeltaHour(newDate As Date) As Long
-            deltaHour = DateDiff("h", _timestamp, newDate)
+            DeltaHour = DateDiff("h", _timestamp, newDate)
         End Function
         Public Function DeltaMinute(newDate As Date) As Long
-            deltaMinute = DateDiff("m", _timestamp, newDate)
+            DeltaMinute = DateDiff("m", _timestamp, newDate)
         End Function
 
         Public Function AddYear(aVAlue As Integer) As Date
@@ -457,35 +472,35 @@ Namespace OnTrack.Calendar
 
         End Function
         Public Function AddHour(aVAlue As Integer) As Date
-            addHour = DateAdd("h", aVAlue, _timestamp)
+            AddHour = DateAdd("h", aVAlue, _timestamp)
         End Function
         Public Function AddMinute(aVAlue As Integer) As Date
-            addMinute = DateAdd("m", aVAlue, _timestamp)
+            AddMinute = DateAdd("m", aVAlue, _timestamp)
         End Function
 
         Public Function IncYear(aVAlue As Integer) As Date
             Me.Timestamp = Me.AddYear(aVAlue)
-            incYear = Me.Timestamp
+            IncYear = Me.Timestamp
         End Function
         Public Function IncMonth(aVAlue As Integer) As Date
             Me.Timestamp = Me.AddMonth(aVAlue)
-            incMonth = Me.Timestamp
+            IncMonth = Me.Timestamp
         End Function
         Public Function IncDay(aVAlue As Integer) As Date
             Me.Timestamp = Me.AddDay(aVAlue)
-            incDay = Me.Timestamp
+            IncDay = Me.Timestamp
         End Function
         Public Function IncWeek(aVAlue As Integer) As Date
             Me.Timestamp = Me.AddWeek(aVAlue)
-            incWeek = Me.Timestamp
+            IncWeek = Me.Timestamp
         End Function
         Public Function IncHour(aVAlue As Integer) As Date
             Me.Timestamp = Me.AddHour(aVAlue)
-            incHour = Me.Timestamp
+            IncHour = Me.Timestamp
         End Function
         Public Function IncMinute(aVAlue As Integer) As Date
             Me.Timestamp = Me.AddMinute(aVAlue)
-            incMinute = Me.Timestamp
+            IncMinute = Me.Timestamp
         End Function
 
         ''' <summary>
@@ -496,16 +511,16 @@ Namespace OnTrack.Calendar
         ''' <remarks></remarks>
         Public Sub OnRecordFed(sender As Object, e As ormDataObjectEventArgs) Handles MyBase.ClassOnFed
             Try
-                If e.Record.HasIndex(constFNYear) Then e.Record.SetValue(constFNYear, Me.year)
-                If e.Record.HasIndex(constFNmonth) Then e.Record.SetValue(constFNmonth, Me.month)
-                If e.Record.HasIndex(constFNDay) Then e.Record.SetValue(constFNDay, Me.dayofmonth)
-                If e.Record.HasIndex(constFNNoWeek) Then e.Record.SetValue(constFNNoWeek, Me.week)
-                If e.Record.HasIndex(constFNNoDay) Then Call e.Record.SetValue(constFNNoDay, Me.dayofyear)
-                If e.Record.HasIndex(constFNQuarter) Then Call e.Record.SetValue(constFNQuarter, Me.quarter)
+                If e.Record.HasIndex(constFNYear) Then e.Record.SetValue(constFNYear, Me.Year)
+                If e.Record.HasIndex(constFNmonth) Then e.Record.SetValue(constFNmonth, Me.Month)
+                If e.Record.HasIndex(constFNDay) Then e.Record.SetValue(constFNDay, Me.DayOfMonth)
+                If e.Record.HasIndex(constFNNoWeek) Then e.Record.SetValue(constFNNoWeek, Me.Week)
+                If e.Record.HasIndex(constFNNoDay) Then Call e.Record.SetValue(constFNNoDay, Me.DayofYear)
+                If e.Record.HasIndex(constFNQuarter) Then Call e.Record.SetValue(constFNQuarter, Me.Quarter)
                 If e.Record.HasIndex(constFNDate) Then Call e.Record.SetValue(constFNDate, Me.Datevalue)
                 If e.Record.HasIndex(constFNTime) Then Call e.Record.SetValue(constFNTime, Me.Timevalue)
-                If e.Record.HasIndex(constFNweekday) Then Call e.Record.SetValue(constFNweekday, Me.weekday)
-                If e.Record.HasIndex(constFNWeekYear) Then Call e.Record.SetValue(constFNWeekYear, Me.weekofyear)
+                If e.Record.HasIndex(constFNweekday) Then Call e.Record.SetValue(constFNweekday, Me.WeekDay)
+                If e.Record.HasIndex(constFNWeekYear) Then Call e.Record.SetValue(constFNWeekYear, Me.Weekofyear)
             Catch ex As Exception
                 CoreMessageHandler(exception:=ex, subname:="CalendarEntry.OnRecordFed")
             End Try
@@ -562,11 +577,11 @@ Namespace OnTrack.Calendar
                     aCommand.Where = String.Format("[{0}}=@cname and [{1}] > @date1 and [{1}] <@date2 and [{2}] <> @avail and [{3}]=@typeID and ([{5}]=@domainid )", _
                     {constFNName, constFNTimestamp, constFNIsNotAvailable, constFNDomainID})
                     aCommand.AddParameter(New ormSqlCommandParameter(ID:="@cname", columnname:="cname", tablename:=ConstTableid))
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@date1", datatype:=otFieldDataType.Date, notColumn:=True))
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@date2", datatype:=otFieldDataType.Date, notColumn:=True))
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@avail", datatype:=otFieldDataType.Bool, notColumn:=True))
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@typeid", datatype:=otFieldDataType.[Long], notColumn:=True))
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@domainid", datatype:=otFieldDataType.Text, notColumn:=True))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@date1", datatype:=otDataType.Date, notColumn:=True))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@date2", datatype:=otDataType.Date, notColumn:=True))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@avail", datatype:=otDataType.Bool, notColumn:=True))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@typeid", datatype:=otDataType.[Long], notColumn:=True))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@domainid", datatype:=otDataType.Text, notColumn:=True))
                     'aCommand.AddParameter(New ormSqlCommandParameter(ID:="@globalDomain", datatype:=otFieldDataType.Text, notColumn:=True))
 
                     aCommand.Prepare()
@@ -631,10 +646,10 @@ Namespace OnTrack.Calendar
 
                         aCommand.OrderBy = "[" & constFNTimestamp & "] desc"
                         aCommand.AddParameter(New ormSqlCommandParameter(ID:="@cname", columnname:="cname", tablename:=ConstTableid))
-                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@date1", datatype:=otFieldDataType.Date, notColumn:=True))
-                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@avail", datatype:=otFieldDataType.Bool, notColumn:=True))
-                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@typeid", datatype:=otFieldDataType.[Long], notColumn:=True))
-                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@domainid", datatype:=otFieldDataType.Text, notColumn:=True))
+                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@date1", datatype:=otDataType.Date, notColumn:=True))
+                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@avail", datatype:=otDataType.Bool, notColumn:=True))
+                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@typeid", datatype:=otDataType.[Long], notColumn:=True))
+                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@domainid", datatype:=otDataType.Text, notColumn:=True))
 
                         aCommand.Prepare()
                     End If
@@ -650,10 +665,10 @@ Namespace OnTrack.Calendar
                         aCommand.OrderBy = "[" & constFNTimestamp & "] asc"
 
                         aCommand.AddParameter(New ormSqlCommandParameter(ID:="@cname", columnname:="cname", tablename:=ConstTableid))
-                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@date1", datatype:=otFieldDataType.Date, notColumn:=True))
-                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@avail", datatype:=otFieldDataType.Bool, notColumn:=True))
-                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@typeid", datatype:=otFieldDataType.[Long], notColumn:=True))
-                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@domainid", datatype:=otFieldDataType.Text, notColumn:=True))
+                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@date1", datatype:=otDataType.Date, notColumn:=True))
+                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@avail", datatype:=otDataType.Bool, notColumn:=True))
+                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@typeid", datatype:=otDataType.[Long], notColumn:=True))
+                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@domainid", datatype:=otDataType.Text, notColumn:=True))
 
                         aCommand.Prepare()
 
@@ -681,7 +696,7 @@ Namespace OnTrack.Calendar
 
             Catch ex As Exception
                 Call CoreMessageHandler(exception:=ex, subname:="CalendarEntry.nextAvailableDate")
-                Return ConstNullDate
+                Return constNullDate
             End Try
 
 
@@ -753,24 +768,24 @@ Namespace OnTrack.Calendar
                     If aCommand.DatabaseDriver.DatabaseType = otDBServerType.SQLServer And cached Is Nothing Then
                         aCommand.Where = String.Format(" [{0}] = @cname and CONVERT(nvarchar, [{1}], 104) = @datestr and [{2}] = @domainID", _
                                                        {constFNName, constFNTimestamp, constFNDomainID})
-                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@cname", datatype:=otFieldDataType.Text, columnname:=constFNName))
-                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@datestr", datatype:=otFieldDataType.Text, notColumn:=True))
-                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@domainID", datatype:=otFieldDataType.Text, notColumn:=True))
+                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@cname", datatype:=otDataType.Text, columnname:=constFNName))
+                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@datestr", datatype:=otDataType.Text, notColumn:=True))
+                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@domainID", datatype:=otDataType.Text, notColumn:=True))
 
                     ElseIf aCommand.DatabaseDriver.DatabaseType = otDBServerType.Access And cached Is Nothing Then
                         aCommand.Where = String.Format(" [{0}] = @cname and [{1}] = @date and [{2}]=@domainID", _
                         {constFNName, constFNTimestamp, constFNDomainID})
-                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@cname", datatype:=otFieldDataType.Text, columnname:=constFNName))
-                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@date", datatype:=otFieldDataType.Date, notColumn:=True))
-                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@domainID", datatype:=otFieldDataType.Text, notColumn:=True))
+                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@cname", datatype:=otDataType.Text, columnname:=constFNName))
+                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@date", datatype:=otDataType.Date, notColumn:=True))
+                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@domainID", datatype:=otDataType.Text, notColumn:=True))
 
                         ''' just cached against DataTable
                     ElseIf cached IsNot Nothing Then
                         aCommand.Where = String.Format(" [{0}] = @cname and [{1}] = @date and [{2}]=@domainID", _
                        {constFNName, constFNTimestamp, constFNDomainID})
-                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@cname", datatype:=otFieldDataType.Text, columnname:=constFNName))
-                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@date", datatype:=otFieldDataType.Date, notColumn:=True))
-                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@domainID", datatype:=otFieldDataType.Text, notColumn:=True))
+                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@cname", datatype:=otDataType.Text, columnname:=constFNName))
+                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@date", datatype:=otDataType.Date, notColumn:=True))
+                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@domainID", datatype:=otDataType.Text, notColumn:=True))
                     Else
 
                         CoreMessageHandler(message:="DatabaseType not recognized for SQL Statement", messagetype:=otCoreMessageType.InternalError, _
@@ -840,31 +855,31 @@ Namespace OnTrack.Calendar
                         With anEntry
                             .Datevalue = currDate
                             .IsNotAvailable = False
-                            .description = "working day"
+                            .Description = "working day"
                             ' weekend
-                            If .weekday = vbSaturday Or .weekday = vbSunday Then
+                            If .WeekDay = vbSaturday Or .WeekDay = vbSunday Then
                                 .IsNotAvailable = True
-                                .description = "weekend"
+                                .Description = "weekend"
                             Else
                                 .IsNotAvailable = False
                             End If
                             ' new year
-                            If .month = 1 And (.dayofmonth = 1) Then
+                            If .Month = 1 And (.DayOfMonth = 1) Then
                                 .IsNotAvailable = True
-                                .description = "new year"
-                            ElseIf .month = 10 And .dayofmonth = 3 Then
+                                .Description = "new year"
+                            ElseIf .Month = 10 And .DayOfMonth = 3 Then
                                 .IsNotAvailable = True
-                                .description = "reunifcation day in germany"
-                            ElseIf .month = 5 And .dayofmonth = 1 Then
+                                .Description = "reunifcation day in germany"
+                            ElseIf .Month = 5 And .DayOfMonth = 1 Then
                                 .IsNotAvailable = True
-                                .description = "labor day in germany"
-                            ElseIf .month = 11 And .dayofmonth = 1 Then
+                                .Description = "labor day in germany"
+                            ElseIf .Month = 11 And .DayOfMonth = 1 Then
                                 .IsNotAvailable = True
-                                .description = "allerseelen in germany"
+                                .Description = "allerseelen in germany"
                                 ' christmas
-                            ElseIf .month = 12 And (.dayofmonth = 24 Or .dayofmonth = 26 Or .dayofmonth = 25) Then
+                            ElseIf .Month = 12 And (.DayOfMonth = 24 Or .DayOfMonth = 26 Or .DayOfMonth = 25) Then
                                 .IsNotAvailable = True
-                                .description = "christmas"
+                                .Description = "christmas"
                             End If
                             .Type = otCalendarEntryType.DayEntry
                             .Persist()

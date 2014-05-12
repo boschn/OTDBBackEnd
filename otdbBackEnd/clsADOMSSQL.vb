@@ -975,7 +975,7 @@ Namespace OnTrack.Database
 
             '*** check on rights
             If createOrAlter And Not CurrentSession.IsBootstrappingInstallationRequested Then
-                If Not connection.VerifyUserAccess(otAccessRight.AlterSchema) Then
+                If Not myconnection.VerifyUserAccess(otAccessRight.AlterSchema) Then
                     Call CoreMessageHandler(showmsgbox:=True, subname:="mssqlDBDriver.getIndex", arg1:=indexdefinition.Name, tablename:=aTable.Name, _
                                           message:="No right to alter schema of database", messagetype:=otCoreMessageType.ApplicationError)
                     Return Nothing
@@ -1020,7 +1020,10 @@ Namespace OnTrack.Database
                             i = 0
                             For Each columnName As String In indexdefinition.Columnnames
                                 ' check
-                                If Not IsNothing(columnName) Then
+                                If anIndex.IndexedColumns.Count - 1 < i Then
+                                    indexnotchanged = True
+                                    Exit For
+                                ElseIf columnName IsNot Nothing AndAlso columnName <> "" Then
 
                                     ' not equal
                                     aIndexColumn = anIndex.IndexedColumns(i)
@@ -2389,7 +2392,7 @@ Namespace OnTrack.Database
                         ' not found
                         If dataRows.GetLength(0) = 0 Then
                             If silent Then
-                                Return ""
+                                Return Nothing
                             ElseIf Not silent Then
                                 Call CoreMessageHandler(showmsgbox:=True, _
                                                       message:="The Parameter '" & parametername & "' was not found in the OTDB Table " & ConstParameterTableName, subname:="mssqlDBDriver.setdbparameter", messagetype:=otCoreMessageType.ApplicationError)
@@ -2493,7 +2496,21 @@ Namespace OnTrack.Database
                 Return Me._Database
             End Get
         End Property
-
+        ''' <summary>
+        ''' Returns True if we have sqlserver permission to receive notificcations
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function CanRequestNotifications() As Boolean
+            Try
+                Dim perm As SqlClientPermission = New SqlClientPermission(Security.Permissions.PermissionState.Unrestricted)
+                perm.Demand()
+                Return True
+            Catch ex As Exception
+                Return False
+            End Try
+           
+        End Function
         ''' <summary>
         ''' create a smo server connection and returns it. Sets also the scripting optimization and the default fields to load
         ''' </summary>
@@ -2947,6 +2964,8 @@ Namespace OnTrack.Database
         Inherits adonetTableStore
         Implements iormDataStore
 
+        Dim WithEvents _dependency As SqlDependency ''' dependency object for the associated table
+
         'Protected Friend Shadows _cacheAdapter As sqlDataAdapter
 
         '** initialize
@@ -3069,6 +3088,18 @@ Namespace OnTrack.Database
         End Function
 
         ''' <summary>
+        ''' handle the changes on the underlaying database model
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Public Sub mssqlTableStore_OnChangeNotification(sender As Object, e As SqlNotificationEventArgs)
+            ''' not implemented
+            ''' 
+            Debug.WriteLine("uuuh")
+        End Sub
+
+        ''' <summary>
         ''' Initialize Cache 
         ''' </summary>
         ''' <returns>true if successfull </returns>
@@ -3112,6 +3143,17 @@ Namespace OnTrack.Database
                             _cacheAdapter.FillSchema(aDataSet, SchemaType.Source)
                             DirectCast(_cacheAdapter, SqlDataAdapter).Fill(aDataSet, Me.TableID)
                         End SyncLock
+
+                        '''
+                        ''' register the callback event handlers for getting changes from the database
+                        ''' 
+                        If DirectCast(Me.Connection, mssqlConnection).CanRequestNotifications Then
+                            Dim aDepCommand As SqlCommand = TryCast(_cacheAdapter.SelectCommand, SqlCommand)
+                            aDepCommand.Notification = Nothing
+                            _dependency = New SqlDependency(aDepCommand)
+
+                            AddHandler _dependency.OnChange, AddressOf mssqlTableStore_OnChangeNotification
+                        End If
 
                         ' set the Table
                         _cacheTable = aDataSet.Tables(Me.TableID)

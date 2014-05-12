@@ -1106,7 +1106,7 @@ Namespace OnTrack.Database
                         '' RunSqlCommandCached(sqlcommand:=sqlcommand, parametervalues:=parametervalues, nativeConnection:=nativeConnection)
                         ' DATATABLE Doesnot accept general SQL Statements
                         ' this means that we have to recache at the end
-
+                        'Debug.WriteLine("recache it")
                     End If
                 End If
 
@@ -1348,7 +1348,7 @@ Namespace OnTrack.Database
         ''' <param name="TableID"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Protected Friend Overrides Function PersistLog(ByRef log As MessageLog) As Boolean Implements iormDatabaseDriver.PersistLog
+        Protected Friend Overrides Function PersistLog(ByRef log As SessionMessageLog) As Boolean Implements iormDatabaseDriver.PersistLog
 
 
             '** we need a valid connection also nativeInternal could work also
@@ -1364,7 +1364,7 @@ Namespace OnTrack.Database
                 '** build the command
                 If _ErrorLogPersistCommand Is Nothing Then
                     '* get the schema
-                    _ErrorLogPersistTableschema = Me.GetTableSchema(SessionLogMessage.ConstTableID)
+                    _ErrorLogPersistTableschema = Me.GetTableSchema(SessionMessage.ConstTableID)
                     If _ErrorLogPersistTableschema Is Nothing OrElse Not _ErrorLogPersistTableschema.IsInitialized Then
                         Return False
                     End If
@@ -1383,7 +1383,7 @@ Namespace OnTrack.Database
 
                 If _ErrorLogPersistCommand.Connection.State = ConnectionState.Open Then
                     PersistLog = False
-                    Dim anError As SessionLogMessage
+                    Dim anError As SessionMessage
                     Do
                         anError = log.Retain
                         If anError IsNot Nothing AndAlso Not anError.Processed Then
@@ -1394,43 +1394,43 @@ Namespace OnTrack.Database
                                     With _ErrorLogPersistCommand.Parameters.Item("@" & fieldname)
                                         '** set the value of parameter
                                         Select Case fieldname
-                                            Case SessionLogMessage.ConstFNTag
+                                            Case SessionMessage.ConstFNTag
                                                 If anError.Tag = "" Then
                                                     .value = CurrentSession.Errorlog.Tag
                                                 Else
                                                     .Value = anError.Tag
                                                 End If
-                                            Case SessionLogMessage.ConstFNno
+                                            Case SessionMessage.ConstFNno
                                                 .value = anError.Entryno
-                                            Case SessionLogMessage.ConstFNmessage
+                                            Case SessionMessage.ConstFNmessage
                                                 .value = anError.Message
-                                            Case SessionLogMessage.ConstFNtimestamp
+                                            Case SessionMessage.ConstFNtimestamp
                                                 .value = anError.Timestamp
-                                            Case SessionLogMessage.ConstFNID
+                                            Case SessionMessage.ConstFNID
                                                 .value = ""
-                                            Case SessionLogMessage.ConstFNsubname
+                                            Case SessionMessage.ConstFNsubname
                                                 .value = anError.Subname
-                                            Case SessionLogMessage.ConstFNtype
+                                            Case SessionMessage.ConstFNtype
                                                 .value = anError.messagetype
-                                            Case SessionLogMessage.ConstFNtablename
+                                            Case SessionMessage.ConstFNtablename
                                                 .value = anError.Tablename
-                                            Case SessionLogMessage.ConstFNStack
+                                            Case SessionMessage.ConstFNStack
                                                 .value = anError.StackTrace
-                                            Case SessionLogMessage.ConstFNColumn
+                                            Case SessionMessage.ConstFNColumn
                                                 .value = anError.Columnname
-                                            Case SessionLogMessage.ConstFNarg
+                                            Case SessionMessage.ConstFNarg
                                                 .value = anError.Arguments
-                                            Case SessionLogMessage.ConstFNUpdatedOn, SessionLogMessage.ConstFNCreatedOn
+                                            Case SessionMessage.ConstFNUpdatedOn, SessionMessage.ConstFNCreatedOn
                                                 .value = Date.Now
-                                            Case SessionLogMessage.ConstFNIsDeleted
+                                            Case SessionMessage.ConstFNIsDeleted
                                                 .value = False
-                                            Case SessionLogMessage.ConstFNDeletedOn
+                                            Case SessionMessage.ConstFNDeletedOn
                                                 .value = constNullDate
-                                            Case SessionLogMessage.ConstFNUsername
+                                            Case SessionMessage.ConstFNUsername
                                                 .value = anError.Username
-                                            Case SessionLogMessage.ConstFNObjectname
+                                            Case SessionMessage.ConstFNObjectname
                                                 .value = anError.Objectname
-                                            Case SessionLogMessage.ConstFNObjectentry
+                                            Case SessionMessage.ConstFNObjectentry
                                                 .value = anError.ObjectEntry
                                             Case Else
                                                 .value = DBNull.Value
@@ -1525,7 +1525,7 @@ Namespace OnTrack.Database
         'Private _ADOError As ADODB.Error
         Protected Friend Shadows _useseek As Boolean = False 'use seek instead of SQL
 
-        Protected Friend Shadows WithEvents _ErrorLog As New MessageLog(My.Computer.Name & "-" & My.User.Name & "-" & Date.Now.ToUniversalTime)
+        Protected Friend Shadows WithEvents _ErrorLog As New SessionMessageLog(My.Computer.Name & "-" & My.User.Name & "-" & Date.Now.ToUniversalTime)
 
         Public Shadows Event OnConnection As EventHandler(Of ormConnectionEventArgs) Implements iormConnection.OnConnection
         Public Shadows Event OnDisconnection As EventHandler(Of ormConnectionEventArgs) Implements iormConnection.OnDisconnection
@@ -3110,31 +3110,35 @@ Namespace OnTrack.Database
 
                     For j = 0 To (anIndexColumnList.Count - 1)
 
-                        ' value of key
-                        aValue = keyArray(j)
-                        fieldname = anIndexColumnList.Item(j)
-                        If j <> 0 Then
-                            wherestr &= String.Format(" AND [{0}]", fieldname)
-                        Else
-                            wherestr &= "[" & fieldname & "]"
-                        End If
-                        If fieldname <> "" Then
-                            If Me.Convert2ColumnData(fieldname, invalue:=aValue, outvalue:=aCvtValue, abostrophNecessary:=abostrophNecessary) Then
-                                ' set parameter
-                                aSqlSelectCommand.Parameters(j).Value = aCvtValue
-                                ' and build wherestring for cache
-                                If abostrophNecessary Then
-                                    wherestr &= " = '" & aCvtValue.ToString & "'"
-                                Else
-                                    wherestr &= " = " & aCvtValue.ToString
-                                End If
+                        ' reflect part keys
+                        If j <= keyArray.GetUpperBound(0) Then
+
+                            ''' build the statement out of it
+                            aValue = keyArray(j)
+                            fieldname = anIndexColumnList.Item(j)
+                            If j <> 0 Then
+                                wherestr &= String.Format(" AND [{0}]", fieldname)
                             Else
-                                Call CoreMessageHandler(subname:="adonetTableStore.getRecordsByIndex", message:="Value for primary key couldnot be converted to ColumnData", _
-                                                      arg1:=aValue, messagetype:=otCoreMessageType.InternalError, entryname:=fieldname, tablename:=Me.TableID)
-                                Return Nothing
+                                wherestr &= "[" & fieldname & "]"
+                            End If
+                            If fieldname <> "" Then
+                                If Me.Convert2ColumnData(fieldname, invalue:=aValue, outvalue:=aCvtValue, abostrophNecessary:=abostrophNecessary) Then
+                                    ' set parameter
+                                    aSqlSelectCommand.Parameters(j).Value = aCvtValue
+                                    ' and build wherestring for cache
+                                    If abostrophNecessary Then
+                                        wherestr &= " = '" & aCvtValue.ToString & "'"
+                                    Else
+                                        wherestr &= " = " & aCvtValue.ToString
+                                    End If
+                                Else
+                                    Call CoreMessageHandler(subname:="adonetTableStore.getRecordsByIndex", message:="Value for primary key couldnot be converted to ColumnData", _
+                                                          arg1:=aValue, messagetype:=otCoreMessageType.InternalError, entryname:=fieldname, tablename:=Me.TableID)
+                                    Return Nothing
+
+                                End If
 
                             End If
-
                         End If
 
                     Next j
@@ -3154,7 +3158,7 @@ Namespace OnTrack.Database
                         If _cacheViews.ContainsKey(key:=indexname) Then
                             Dim aDataView = _cacheViews.Item(key:=indexname)
 
-                            dataRows = aDataView.Table.Select()
+                            dataRows = aDataView.Table.Select(wherestr)
                         Else
                             dataRows = _cacheTable.Select(wherestr)
                         End If
@@ -3172,12 +3176,6 @@ Namespace OnTrack.Database
                                                          arg1:=aNewRecord, tablename:=Me.TableID, break:=False)
                                 End If
 
-                                'If InfuseRecord(aNewRecord, row, CreateNewrecord:=True) Then
-                                '    aCollection.Add(item:=aNewRecord)
-                                'Else
-                                '    Call CoreMessageHandler(subname:="adonetTableStore.getRecordsBySQL", message:="couldnot infuse a record", _
-                                '                          arg1:=aNewRecord, tablename:=Me.TableID, break:=False)
-                                'End If
                             Next
                         End If
                     Else
@@ -3205,8 +3203,10 @@ Namespace OnTrack.Database
                         Loop
 
                         aDataReader.Close()
-                        Return aCollection
+
                     End If
+
+                    Return aCollection
                     '*****
                     '***** Error Handling
                     '*****

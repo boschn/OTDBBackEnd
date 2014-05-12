@@ -97,8 +97,8 @@ Namespace OnTrack.Parts
         <ormObjectEntry(typeid:=otDataType.Text, size:=50, isnullable:=True, _
              XID:="pt12", Title:="Function", description:="function of the deliverable")> Public Const constFNFunction = "function"
 
-        <ormObjectEntry(referenceObjectEntry:=ObjectLogMessage.ConstObjectID & "." & ObjectLogMessage.ConstFNTag, isnullable:=True)> _
-        Public Const ConstFNmsglogtag = ObjectLogMessage.ConstFNTag
+        <ormObjectEntry(referenceObjectEntry:=ObjectMessage.ConstObjectID & "." & ObjectMessage.ConstFNTag, isnullable:=True)> _
+        Public Const ConstFNmsglogtag = ObjectMessage.ConstFNTag
 
 
         ' change FK Action since we have the workspace as FK (leads also to domians)

@@ -192,6 +192,7 @@ Namespace OnTrack.Database
     ''' <remarks></remarks>
     Public Class ormQueryEnumerator
         Implements IEnumerator
+        Implements IDisposable
 
         Private _queriedEnumeration As iormQueriedEnumeration
         Private _counter As Long = -1
@@ -218,6 +219,39 @@ Namespace OnTrack.Database
             _queriedEnumeration.Reset()
             _counter = -1
         End Sub
+
+
+#Region "IDisposable Support"
+        Private disposedValue As Boolean ' To detect redundant calls
+
+        ' IDisposable
+        Protected Overridable Sub Dispose(disposing As Boolean)
+            If Not Me.disposedValue Then
+                If disposing Then
+                    ' TODO: dispose managed state (managed objects).
+                End If
+
+                ' TODO: free unmanaged resources (unmanaged objects) and override Finalize() below.
+                ' TODO: set large fields to null.
+            End If
+            Me.disposedValue = True
+        End Sub
+
+        ' TODO: override Finalize() only if Dispose(ByVal disposing As Boolean) above has code to free unmanaged resources.
+        'Protected Overrides Sub Finalize()
+        '    ' Do not change this code.  Put cleanup code in Dispose(ByVal disposing As Boolean) above.
+        '    Dispose(False)
+        '    MyBase.Finalize()
+        'End Sub
+
+        ' This code added by Visual Basic to correctly implement the disposable pattern.
+        Public Sub Dispose() Implements IDisposable.Dispose
+            ' Do not change this code.  Put cleanup code in Dispose(disposing As Boolean) above.
+            Dispose(True)
+            GC.SuppressFinalize(Me)
+        End Sub
+#End Region
+
     End Class
     ''' <summary>
     ''' a queried enumeration object runs a query and build a enumeration of iormpersistable objects
@@ -709,7 +743,7 @@ Namespace OnTrack.Database
             End If
             If _run Then
                 If no < _records.Count Then
-                    Dim newObject As iormPersistable = Activator.CreateInstance(_objecttype)
+                    Dim newObject As iormPersistable = ot.CreateDataObjectInstance(_objecttype)
                     If ormDataObject.InfuseDataObject(_records.ElementAt(no), dataobject:=newObject, mode:=otInfuseMode.OnInject) Then
                         Return newObject
                     End If
@@ -750,7 +784,7 @@ Namespace OnTrack.Database
                 End If
             End If
             If _run Then
-                Dim newObject As iormPersistable = Activator.CreateInstance(_objecttype)
+                Dim newObject As iormPersistable = ot.CreateDataObjectInstance(_objecttype)
                 ''' this will get the object from the cache
                 If ormDataObject.InfuseDataObject(_records.ElementAt(no), dataobject:=newObject, mode:=otInfuseMode.OnInject) Then
                     Return newObject.Delete

@@ -3030,12 +3030,12 @@ errorhandle:
         Private Function runIFC1(DEPENDMEMBER As clsOTDBDependMember, _
                              DELIVERABLE As Deliverable, _
                              PART As Part, _
-                             SCHEDULE As Schedule, _
+                             SCHEDULE As ScheduleEdition, _
                              Optional workspaceID As String = "") As Boolean
             Dim aDependPart As New Part
             Dim aDependDeliv As New Deliverable
             Dim aDependDelivColl As New List(Of Deliverable)
-            Dim aDependSchedule As New Schedule
+            Dim aDependSchedule As New ScheduleEdition
             Dim UID As Long
             Dim anInterface As New clsOTDBInterface
 
@@ -3137,7 +3137,7 @@ errorhandle:
                 '**
                 For Each aDependDeliv In aDependDelivColl
                     ' get
-                    aDependSchedule = aDependDeliv.GetSchedule(workspaceID)
+                    aDependSchedule = aDependDeliv.GetWorkScheduleEdition(workspaceID)
                     If Not aDependSchedule Is Nothing And aDependSchedule.IsLoaded Then
                         ' store the Dependant UID in Parameter #3
                         Me.DepScheduleUID = aDependSchedule.Uid
@@ -3250,7 +3250,7 @@ errorhandle:
             Dim aDelivColl As New List(Of Deliverable)
             Dim aPart As New Part
             Dim aDeliverable As New Deliverable
-            Dim aSchedule As New Schedule
+            Dim aSchedule As New ScheduleEdition
 
             If Not DEPENDMEMBER.IsCreated And Not DEPENDMEMBER.IsLoaded Then
                 run = False
@@ -3280,7 +3280,7 @@ errorhandle:
                 ' go through each delivarble
                 For Each aDeliverable In aDelivColl
                     ' get
-                    aSchedule = aDeliverable.GetSchedule(workspaceID)
+                    aSchedule = aDeliverable.GetWorkScheduleEdition(workspaceID)
                     If Not aSchedule Is Nothing And aSchedule.IsLoaded Then
                         ' set it all -> create through the backdoor
                         ' we donot want to save if we are in a host enviorement

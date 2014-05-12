@@ -43,42 +43,53 @@ Namespace OnTrack.Database
                     CoreMessageHandler(message:="table definition could not be retrieved", subname:="Shuffle.SubstituteDomainIDinPKArray", _
                                     arg1:=domainid, tablename:=tablename, columnname:=DomainSetting.ConstFNDomainID, messagetype:=otCoreMessageType.InternalError)
                     Return False
-                ElseIf Not aTabledefinition.ObjectHasDomainBehavior Then
-                    CoreMessageHandler(message:="table definition shows no domainhebahvior -> check it", subname:="Shuffle.SubstituteDomainIDinPKArray", _
-                                    arg1:=domainid, tablename:=tablename, columnname:=DomainSetting.ConstFNDomainID, messagetype:=otCoreMessageType.InternalError)
+                ElseIf Not aTabledefinition.DomainBehavior Then
+                    ' this might also be called if we donot have domain behavior 
+                    'CoreMessageHandler(message:="table definition shows no domainhebahvior -> check it", subname:="Shuffle.SubstituteDomainIDinPKArray", _
+                    '                arg1:=domainid, tablename:=tablename, columnname:=DomainSetting.ConstFNDomainID, messagetype:=otCoreMessageType.InternalError)
                     Return True
                 End If
+                ''' get schema
                 Dim aSchema = ot.CurrentDBDriver.GetTableSchema(tableID:=tablename)
+
                 ''' check if the domain id is part of the primary key
                 ''' 
                 domindex = aSchema.GetDomainIDPKOrdinal
                 If domindex > 0 Then
                     If domainid = "" Then domainid = CurrentSession.CurrentDomainID
+                    ''' check if the count of the arrays match
                     If pkarray.Count = aSchema.NoPrimaryKeyFields Then
-                        pkarray(domindex - 1) = UCase(domainid)
+                        ' set only if nothing is set
+                        If pkarray(domindex - 1) Is Nothing OrElse pkarray(domindex - 1) = "" Then
+                            pkarray(domindex - 1) = UCase(domainid) ' set the domainid
+                        End If
                     Else
-                        ReDim Preserve pkarray(aSchema.NoPrimaryKeyFields)
-                        pkarray(domindex - 1) = UCase(domainid)
+                        ''' extend the primary key
+                        ReDim Preserve pkarray(aSchema.NoPrimaryKeyFields - 1)
+                        pkarray(domindex - 1) = UCase(domainid) ' set domainid
                     End If
-                ElseIf aTabledefinition.ObjectHasDomainBehavior Then
+                ElseIf aTabledefinition.DomainBehavior Then
                     CoreMessageHandler(message:="domainID is not in primary key although domain behavior is set", subname:="Shuffle.SubstituteDomainIDinPKArray", _
                                        arg1:=domainid, tablename:=tablename, columnname:=Domain.ConstFNDomainID, messagetype:=otCoreMessageType.InternalError)
                 End If
 
-                ''' check and convert datatype if necessary
+                ''' check if nothing is in key
                 ''' 
                 For i = 0 To pkarray.GetUpperBound(0)
-                    If pkarray(i) IsNot Nothing Then
-
-                    Else
+                    If pkarray(i) Is Nothing Then
                         Dim acolumnname As String = aTabledefinition.GetPrimaryKeyColumnNames.ElementAt(i)
                         CoreMessageHandler(message:="part of primary key is nothing", subname:="Shuffle.SubstituteDomainIDinPKArray", _
                              arg1:=i, tablename:=tablename, columnname:=acolumnname, messagetype:=otCoreMessageType.InternalWarning)
 
                     End If
                 Next
+
+                ''' return successful
+                ''' 
                 Return True
             Else
+                ''' do the same but use the attributes since we are bootstrapping or starting up
+                ''' 
                 Dim anTableAttribute As ormSchemaTableAttribute = ot.GetTableAttribute(tablename)
                 If anTableAttribute Is Nothing Then
                     CoreMessageHandler(message:="table attribute could not be retrieved", subname:="Shuffle.SubstituteDomainIDinPKArray", _
@@ -89,8 +100,12 @@ Namespace OnTrack.Database
                     domindex = Array.FindIndex(keynames, Function(s) s.ToLower = Domain.ConstFNDomainID.ToLower)
                     If domindex >= 0 Then
                         If domainid = "" Then domainid = CurrentSession.CurrentDomainID
+
                         If pkarray.Count = keynames.Count Then
-                            pkarray(domindex) = UCase(domainid)
+                            ' set only if nothing is set
+                            If pkarray(domindex) Is Nothing OrElse pkarray(domindex) = "" Then
+                                pkarray(domindex) = UCase(domainid)
+                            End If
                         Else
                             ReDim Preserve pkarray(keynames.Count)
                             pkarray(domindex) = UCase(domainid)
@@ -133,7 +148,14 @@ Namespace OnTrack.Database
 
                 If aMappingList IsNot Nothing Then
                     For Each aMapping In aMappingList
-                        If Not pkarray(i).GetType.Equals(aMapping.FieldType) Then
+                        If pkarray(i) Is Nothing Then
+                            'do nothing since the event handler to generate a key might be called
+                            '
+                            'CoreMessageHandler(message:="part of primary key must not be nothing", arg1:=pkarray(i), _
+                            '                   objectname:=aDescription.Name, messagetype:=otCoreMessageType.InternalError, _
+                            '                   subname:="Shuffle.SubstituteDomainIDInPrimaryKey")
+                            'Return False
+                        ElseIf Not pkarray(i).GetType.Equals(aMapping.FieldType) Then
                             Dim avalue = pkarray(i)
                             Try
                                 pkarray(i) = CTypeDynamic(avalue, aMapping.FieldType)
@@ -539,7 +561,7 @@ Namespace OnTrack.Database
         ''' <param name="classdescriptor"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Shared Function GetValues(dataobject As iormPersistable, Optional entrynames As String() = Nothing) As List(Of Object)
+        Public Shared Function GetColumnEntryValues(dataobject As iormPersistable, Optional entrynames As String() = Nothing) As List(Of Object)
             Dim aDescriptor As ObjectClassDescription = ot.GetObjectClassDescription(dataobject.GetType)
             Dim aList As New List(Of Object)
             If aDescriptor Is Nothing Then
@@ -670,7 +692,10 @@ Namespace OnTrack.Database
                         anArray = OnTrack.Database.Converter.String2Array(value)
                         If anArray.Count = 0 Then
                             aList = New List(Of String) 'HACK ! this should be of generic type of the field
+                        Else
+                            aList = anArray.ToList
                         End If
+
                     Else
                         CoreMessageHandler(message:="Type is not convertable to ILIST", subname:="Reflector.SetFieldValue", messagetype:=otCoreMessageType.InternalError, _
                                            entryname:=field.Name, tablename:=dataobject.primaryTableID, _

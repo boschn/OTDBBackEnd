@@ -116,15 +116,6 @@ Namespace OnTrack.Calendar
         <ormEntryMapping(EntryName:=ConstFNDescription)> Private s_description As String = ""
 
 
-
-        ''' <summary>
-        ''' constructor
-        ''' </summary>
-        ''' <remarks></remarks>
-        Public Sub New()
-            Call MyBase.New(ConstTableid)
-        End Sub
-
 #Region "Properties"
         ''' <summary>
         ''' gets the name of the calendar of the entry

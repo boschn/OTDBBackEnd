@@ -33,7 +33,7 @@ Namespace OnTrack.Database
     ''' </summary>
     ''' <remarks></remarks>
 
-    <AttributeUsage(AttributeTargets.Field, AllowMultiple:=False, Inherited:=True)> _
+    <AttributeUsage(AttributeTargets.Field, AllowMultiple:=True, Inherited:=True)> _
     Public Class ormEntryMapping
         Inherits Attribute
 
@@ -54,7 +54,7 @@ Namespace OnTrack.Database
             Get
                 Return Me._enabled
             End Get
-            Set
+            Set(value As Boolean)
                 Me._enabled = Value
             End Set
         End Property
@@ -67,7 +67,7 @@ Namespace OnTrack.Database
             Get
                 Return Me._InfuseMode
             End Get
-            Set
+            Set(value As otInfuseMode)
                 Me._InfuseMode = Value
             End Set
         End Property
@@ -664,7 +664,7 @@ Namespace OnTrack.Database
     ''' </summary>
     ''' <remarks></remarks>
     <AttributeUsage(AttributeTargets.Field, AllowMultiple:=False, Inherited:=True)> _
-    Public Class ormSchemaRelationAttribute
+    Public Class ormRelationAttribute
         Inherits Attribute
         Private _Name As String
         Private _Version As Nullable(Of UShort)
@@ -675,6 +675,10 @@ Namespace OnTrack.Database
         Private _FromEntries As String()
         Private _ToEntries As String()
         Private _ToPrimaryKeys As String()
+        Private _RetrieveOperationID As String
+        Private _CreateOperationID As String
+        Private _DeleteOperationID As String
+        Private _CreateObjectIfNotRetrieved As Boolean? = False
 
         Private _CascadeOnCreate As Nullable(Of Boolean)
         Private _CascadeOnDelete As Nullable(Of Boolean)
@@ -684,6 +688,24 @@ Namespace OnTrack.Database
         End Sub
 
         ''' <summary>
+        ''' Gets or sets the create object if not retrieved flag - which means that the relation manager
+        ''' tries to create automaticaly objects we they cannot be retrieved (not existing).
+        ''' </summary>
+        ''' <value>The create object if not retrieved.</value>
+        Public Property CreateObjectIfNotRetrieved() As Boolean
+            Get
+                Return Me._CreateObjectIfNotRetrieved
+            End Get
+            Set(value As Boolean)
+                Me._CreateObjectIfNotRetrieved = Value
+            End Set
+        End Property
+        Public ReadOnly Property HasValueCreateObjectIfNotRetrieved As Boolean
+            Get
+                Return _CreateObjectIfNotRetrieved.HasValue
+            End Get
+        End Property
+        ''' <summary>
         ''' Gets or sets the enabled.
         ''' </summary>
         ''' <value>The enabled.</value>
@@ -691,7 +713,7 @@ Namespace OnTrack.Database
             Get
                 Return Me._enabled
             End Get
-            Set
+            Set(value As Boolean)
                 Me._enabled = Value
             End Set
         End Property
@@ -705,7 +727,7 @@ Namespace OnTrack.Database
                 Return Me._CascadeOnUpdate
             End Get
             Set(value As Boolean)
-                Me._CascadeOnUpdate = Value
+                Me._CascadeOnUpdate = value
             End Set
         End Property
         Public ReadOnly Property HasValueCascadeOnUpdate As Boolean
@@ -722,7 +744,7 @@ Namespace OnTrack.Database
                 Return Me._CascadeOnDelete
             End Get
             Set(value As Boolean)
-                Me._CascadeOnDelete = Value
+                Me._CascadeOnDelete = value
             End Set
         End Property
         Public ReadOnly Property HasValueCascadeOnDelete As Boolean
@@ -739,7 +761,7 @@ Namespace OnTrack.Database
                 Return Me._CascadeOnCreate
             End Get
             Set(value As Boolean)
-                Me._CascadeOnCreate = Value
+                Me._CascadeOnCreate = value
             End Set
         End Property
         Public ReadOnly Property HasValueCascadeOnCreate As Boolean
@@ -756,7 +778,7 @@ Namespace OnTrack.Database
                 Return Me._ToPrimaryKeys
             End Get
             Set(value As String())
-                Me._ToPrimaryKeys = Value
+                Me._ToPrimaryKeys = value
             End Set
         End Property
         Public ReadOnly Property HasValueToPrimarykeys As Boolean
@@ -773,7 +795,7 @@ Namespace OnTrack.Database
                 Return Me._ToEntries
             End Get
             Set(value As String())
-                Me._ToEntries = Value
+                Me._ToEntries = value
             End Set
         End Property
         Public ReadOnly Property HasValueToEntries As Boolean
@@ -790,7 +812,7 @@ Namespace OnTrack.Database
                 Return Me._FromEntries
             End Get
             Set(value As String())
-                Me._FromEntries = Value
+                Me._FromEntries = value
             End Set
         End Property
         Public ReadOnly Property HasValueFromEntries As Boolean
@@ -832,7 +854,41 @@ Namespace OnTrack.Database
                 Return _LinkJoin IsNot Nothing AndAlso _LinkJoin <> ""
             End Get
         End Property
-       
+        ''' <summary>
+        ''' Gets or sets the operation ID to call instead of select.
+        ''' </summary>
+        ''' <value>The link join.</value>
+        Public Property RetrieveOperation() As String
+            Get
+                Return Me._RetrieveOperationID
+            End Get
+            Set(value As String)
+                Me._RetrieveOperationID = value
+            End Set
+        End Property
+        Public ReadOnly Property HasValueRetrieveOperationID As Boolean
+            Get
+                Return _RetrieveOperationID IsNot Nothing AndAlso _RetrieveOperationID <> ""
+            End Get
+        End Property
+        
+        ''' <summary>
+        ''' Gets or sets the operation ID to call instead to create an relation object if needed.
+        ''' </summary>
+        ''' <value>The link join.</value>
+        Public Property CreateOperation() As String
+            Get
+                Return Me._CreateOperationID
+            End Get
+            Set(value As String)
+                Me._CreateOperationID = value
+            End Set
+        End Property
+        Public ReadOnly Property HasValueCreateOperationID As Boolean
+            Get
+                Return _CreateOperationID IsNot Nothing AndAlso _CreateOperationID <> ""
+            End Get
+        End Property
         ''' <summary>
         ''' Gets the name.
         ''' </summary>
@@ -1772,7 +1828,7 @@ Namespace OnTrack.Database
 
 
         Private _Title As String = Nothing
-        Private _EntryType As Nullable(Of otObjectEntryDefinitiontype) = otObjectEntryDefinitiontype.Column
+        Private _EntryType As Nullable(Of otObjectEntryType) = otObjectEntryType.Column
 
         Private _isReadonly As Nullable(Of Boolean)
         Private _isActive As Nullable(Of Boolean)
@@ -1793,7 +1849,7 @@ Namespace OnTrack.Database
         Private _validate As Nullable(Of Boolean)
         Private _LowerRange As Nullable(Of Long) = Nothing
         Private _upperRange As Nullable(Of Long) = Nothing
-        Private _Values As Object()
+        Private _Values As String()
         Private _lookupCondition As String = Nothing
         Private _LookupProperties As LookupProperty()
         Private _ValidationProperties As ObjectValidationProperty()
@@ -1809,7 +1865,7 @@ Namespace OnTrack.Database
         ''' Gets or sets the type of the entry.
         ''' </summary>
         ''' <value>The type of the entry.</value>
-        Public Property EntryType() As otObjectEntryDefinitiontype
+        Public Property EntryType() As otObjectEntryType
             Get
                 Return Me._EntryType
             End Get
@@ -2099,11 +2155,11 @@ Namespace OnTrack.Database
         ''' Gets or sets the values.
         ''' </summary>
         ''' <value>The values.</value>
-        Public Property Values() As Object()
+        Public Property Values() As String()
             Get
                 Return Me._Values
             End Get
-            Set(value As Object())
+            Set(value As String())
                 Me._Values = value
             End Set
         End Property
@@ -2726,7 +2782,7 @@ Namespace OnTrack.Database
     ''' <remarks></remarks>
 
     <AttributeUsage(AttributeTargets.Class Or AttributeTargets.Field, AllowMultiple:=False, Inherited:=True)> _
-    Public Class ormObjectTransaction
+    Public Class ormObjectTransactionAttribute
         Inherits Attribute
         Private _ID As String = Nothing
         Private _TransactionName As String = Nothing
@@ -2746,7 +2802,7 @@ Namespace OnTrack.Database
                 Return Me._enabled
             End Get
             Set(value As Boolean)
-                Me._enabled = Value
+                Me._enabled = value
             End Set
         End Property
 
@@ -2802,7 +2858,7 @@ Namespace OnTrack.Database
                 Return _PermissionRules IsNot Nothing AndAlso _PermissionRules.Count > 0
             End Get
         End Property
-        
+
         ''' <summary>
         ''' Gets or sets the version.
         ''' </summary>
@@ -2887,6 +2943,80 @@ Namespace OnTrack.Database
         Private _Version As Nullable(Of ULong)
         Private _Description As String = Nothing
         Private _Title As String = Nothing
+        Private _ParameterEntries As String()
+        Private _MethodInfo As MethodInfo
+        Private _Tag As String
+        Private _TransactionID As String
+        Private _Properties As String()
+
+        ''' <summary>
+        ''' Gets or sets the Properties
+        ''' </summary>
+        ''' <value>The tag.</value>
+        Public Property Properties() As String()
+            Get
+                Return Me._Properties
+            End Get
+            Set(value As String())
+                Me._Properties = value
+            End Set
+        End Property
+        Public ReadOnly Property HasValueProperties As Boolean
+            Get
+                Return _Properties IsNot Nothing AndAlso _Properties.Count <> 0
+            End Get
+        End Property
+        ''' <summary>
+        ''' Gets or sets the tag ( free search tag ).
+        ''' </summary>
+        ''' <value>The tag.</value>
+        Public Property Tag() As String
+            Get
+                Return Me._Tag
+            End Get
+            Set
+                Me._Tag = Value
+            End Set
+        End Property
+        Public ReadOnly Property HasValueTag As Boolean
+            Get
+                Return _Tag IsNot Nothing AndAlso _Tag <> ""
+            End Get
+        End Property
+        ''' <summary>
+        ''' Gets or sets the transaction ID
+        ''' </summary>
+        ''' <value>The tag.</value>
+        Public Property TransactionID() As String
+            Get
+                Return Me._TransactionID
+            End Get
+            Set(value As String)
+                Me._TransactionID = value
+            End Set
+        End Property
+        Public ReadOnly Property HasValueTransactionID As Boolean
+            Get
+                Return _TransactionID IsNot Nothing AndAlso _TransactionID <> ""
+            End Get
+        End Property
+        ''' <summary>
+        ''' Gets or sets the method info.
+        ''' </summary>
+        ''' <value>The method info.</value>
+        Public Property MethodInfo() As MethodInfo
+            Get
+                Return Me._MethodInfo
+            End Get
+            Set
+                Me._MethodInfo = Value
+            End Set
+        End Property
+        Public ReadOnly Property HasValueMethodInfo As Boolean
+            Get
+                Return _MethodInfo IsNot Nothing
+            End Get
+        End Property
         ''' <summary>
         ''' Gets or sets the version.
         ''' </summary>
@@ -2919,6 +3049,23 @@ Namespace OnTrack.Database
         Public ReadOnly Property HasValueOperationName As Boolean
             Get
                 Return _OperationName IsNot Nothing
+            End Get
+        End Property
+        ''' <summary>
+        ''' Gets or sets to entries definition of the methods parameters - must match.
+        ''' </summary>
+        ''' <value>To entries.</value>
+        Public Property ParameterEntries() As String()
+            Get
+                Return Me._ParameterEntries
+            End Get
+            Set(value As String())
+                Me._ParameterEntries = value
+            End Set
+        End Property
+        Public ReadOnly Property HasValueParameterEntries As Boolean
+            Get
+                Return _ParameterEntries IsNot Nothing AndAlso _ParameterEntries.Count > 0
             End Get
         End Property
         ''' <summary>

@@ -104,7 +104,7 @@ Namespace OnTrack.Configurables
         ''' Relations
         ''' </summary>
         ''' <remarks></remarks>
-        <ormSchemaRelation(linkobject:=GetType(ConfigItemSelector), cascadeOnDelete:=True, cascadeOnUpdate:=True, _
+        <ormRelation(linkobject:=GetType(ConfigItemSelector), cascadeOnDelete:=True, cascadeOnUpdate:=True, _
             fromEntries:={constFNConfigID}, toEntries:={ConfigItemSelector.ConstFNConfiguID})> Public Const ConstREntities = "CONFIGCONDITION"
 
         <ormEntryMapping(RelationName:=ConstREntities, infuseMode:=otInfuseMode.OnInject Or otInfuseMode.OnDemand, _

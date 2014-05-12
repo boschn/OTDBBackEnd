@@ -1,5 +1,4 @@
-﻿
-REM ***********************************************************************************************************************************************''' <summary>
+﻿REM ***********************************************************************************************************************************************''' <summary>
 REM *********** ON TRACK DATABASE BACKEND LIBRARY
 REM ***********
 REM *********** ORM DATA STRUCTURE CLASSES
@@ -12,13 +11,11 @@ REM *********** Change Log:
 REM ***********
 REM *********** (C) by Boris Schneider 2013
 REM ***********************************************************************************************************************************************''' <summary>
-
 Imports System.Collections
 Imports System.ComponentModel
 Imports System.Collections.Generic
 
 Imports System.Reflection
-
 
 Namespace OnTrack.Database
 
@@ -313,8 +310,9 @@ Namespace OnTrack.Database
     ''' Enumerator for QueryEnumeration
     ''' </summary>
     ''' <remarks></remarks>
+    
     Public Class ormRelationCollectionEnumerator(Of T As {iormInfusable, iormPersistable})
-        Implements IEnumerator
+        Implements IEnumerator(Of T)
 
         Private _collection As ormRelationCollection(Of T)
         Private _counter As Integer
@@ -324,7 +322,7 @@ Namespace OnTrack.Database
             _keyvalues = _collection.Keys
             _counter = -1
         End Sub
-        Public ReadOnly Property Current As Object Implements IEnumerator.Current
+        Public ReadOnly Property Current As T Implements IEnumerator(Of T).Current
             Get
                 If _counter >= 0 And _counter < _keyvalues.Count Then Return _collection.Item(key:=_keyvalues.Item(_counter))
                 ' throw else
@@ -332,16 +330,39 @@ Namespace OnTrack.Database
             End Get
         End Property
 
-        Public Function MoveNext() As Boolean Implements IEnumerator.MoveNext
+        Public Function MoveNext() As Boolean Implements IEnumerator(Of T).MoveNext
             _counter += 1
             Return (_counter < _keyvalues.Count)
             ' throw else
             Throw New InvalidOperationException()
         End Function
 
-        Public Sub Reset() Implements IEnumerator.Reset
+        Public Sub Reset() Implements IEnumerator(Of T).Reset
             _counter = 0
         End Sub
+
+        ''' <summary>
+        ''' Gets the current element in the collection.
+        ''' </summary>
+        ''' <returns>The current element in the collection.</returns>
+        ''' <value></value>
+        Public ReadOnly Property CurrentE() As Object Implements IEnumerator.Current
+            Get
+                If _counter >= 0 And _counter < _keyvalues.Count Then Return _collection.Item(key:=_keyvalues.Item(_counter))
+                ' throw else
+                Throw New InvalidOperationException()
+            End Get
+        End Property
+        ''' <summary>
+        ''' Performs application-defined tasks associated with freeing, releasing,
+        ''' or resetting unmanaged resources.
+        ''' </summary>
+        Public Sub Dispose() Implements IDisposable.Dispose
+            _collection = Nothing
+            _keyvalues = Nothing
+        End Sub
+
+
     End Class
 
     ''' <summary>
@@ -378,8 +399,30 @@ Namespace OnTrack.Database
     Public Class ormRelationNewableCollection(Of T As {New, iormInfusable, iormPersistable})
         Inherits ormRelationCollection(Of T)
 
+        Public Event RequestKeys(sender As Object, e As ormRelationCollection(Of T).EventArgs)
         Public Event OnNew(sender As Object, e As ormRelationCollection(Of T).EventArgs)
 
+        Public Class EventArgs
+            Inherits ormRelationCollection(Of T).EventArgs
+
+            Dim _keys As Object()
+            Public Sub New(ByRef dataobject As T)
+                MyBase.New(dataobject)
+            End Sub
+            ''' <summary>
+            ''' Gets or sets the keys.
+            ''' </summary>
+            ''' <value>The keys.</value>
+            Public Property Keys() As Object()
+                Get
+                    Return Me._keys
+                End Get
+                Set
+                    Me._keys = Value
+                End Set
+            End Property
+
+        End Class
         ''' <summary>
         ''' constructor with the container object (of iormpersistable) 
         ''' and keyentrynames of T
@@ -397,9 +440,21 @@ Namespace OnTrack.Database
         ''' <param name="keys"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function AddNew(keys As Object()) As T
-            Dim anItem As T = Activator.CreateInstance(Of T)()
+        Public Function AddCreate(Optional keys As Object() = Nothing) As T
+            Dim anItem As T = ot.CreateDataObjectInstance(GetType(T))
 
+            '''
+            ''' raise event if no keys supplied
+            If keys Is Nothing Then
+                Dim e As EventArgs = New EventArgs(_container)
+                RaiseEvent RequestKeys(Me, e)
+                keys = e.Keys
+
+                If keys Is Nothing Then
+                    CoreMessageHandler(message:="no keys retrieved by event RequestKey", subname:="ormRelationNewableCollection.AddCreate", messagetype:=otCoreMessageType.InternalError)
+                    Return Nothing
+                End If
+            End If
 
             ' set the values in the object
             For i = 0 To _keyentries.Count - 1
@@ -431,6 +486,10 @@ Namespace OnTrack.Database
     Public Class ormRelationCollection(Of T As {iormInfusable, iormPersistable})
         Implements iormRelationalCollection(Of T)
 
+        ''' <summary>
+        ''' Event Arguments
+        ''' </summary>
+        ''' <remarks></remarks>
         Public Class EventArgs
             Inherits CancelEventArgs
 
@@ -457,7 +516,7 @@ Namespace OnTrack.Database
         End Class
 
         Private _dictionary As New SortedDictionary(Of DataKeyTuple, iormPersistable)
-        Private _container As iormPersistable
+        Protected WithEvents _container As iormPersistable
 
         Protected _keyentries As String()
 
@@ -1194,17 +1253,14 @@ Namespace OnTrack.Database
                     If aKey.Values.Count <> _Values.Count Then Return False
                     For i = 0 To aKey.Values.Count - 1
                         If aKey(i).GetType.Equals(Me(i).GetType) Then
-                            If aKey(i).Equals(Me(i)) Then Return True
-                            Return False
+                            If Not aKey(i).Equals(Me(i)) Then Return False
                         Else
                             Try
                                 Dim avalue = CTypeDynamic(aKey(i), Me(i).GetType)
-                                If Me(i).Equals(avalue) Then Return True
-
+                                If Not Me(i).Equals(avalue) Then Return False
                             Catch ex As Exception
                                 Return False
                             End Try
-
                         End If
 
                     Next
@@ -2480,4 +2536,4 @@ Namespace OnTrack.Database
     End Class
 
 
-End Namespace
+End Namespace  

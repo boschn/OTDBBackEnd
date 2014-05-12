@@ -97,6 +97,9 @@ Namespace OnTrack.Database
         '** reference to all the aliases
         Private _aliasDirectory As New Dictionary(Of String, List(Of iormObjectEntry))
 
+        Private _xidShortReference As Dictionary(Of String, List(Of String)) ' dictionary for cross referenceing
+        Private _aliasShortReference As Dictionary(Of String, List(Of String)) ' dictionary for cross referencing
+
         '** reference to the session 
         Private _DomainID As String = ""
         Private WithEvents _Domain As Domain
@@ -258,12 +261,12 @@ Namespace OnTrack.Database
         End Sub
 
         ''' <summary>
-        ''' Add an Entry by ID
+        ''' Add an Entry by XID
         ''' </summary>
         ''' <param name="entry"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Private Function AddID(ByRef entry As iormObjectEntry) As Boolean
+        Private Function AddXID(ByRef entry As iormObjectEntry) As Boolean
             Dim entries As List(Of iormObjectEntry)
 
             If _XIDDirectory.ContainsKey(key:=UCase(entry.XID)) Then
@@ -434,6 +437,11 @@ Namespace OnTrack.Database
                 End SyncLock
             End If
 
+            ''' load the cross references
+            ''' 
+            _xidShortReference = AbstractEntryDefinition.GetXIDReference(domainid:=_DomainID)
+            _aliasShortReference = AbstractEntryDefinition.GetAliasReference(domainid:=_DomainID)
+
             SyncLock _lock
                 Me.IsInitialized = True
             End SyncLock
@@ -501,7 +509,7 @@ Namespace OnTrack.Database
                 End SyncLock
 
                 '** cross references
-                Me.AddID(entry:=anEntry)
+                Me.AddXID(entry:=anEntry)
                 Me.AddAlias(entry:=anEntry)
 
             Next
@@ -783,6 +791,35 @@ Namespace OnTrack.Database
                     Next
                     Return aList
                 End If
+            ElseIf _xidShortReference.ContainsKey(xid) Then
+                Dim aList As List(Of String) = _xidShortReference.Item(xid)
+                For Each anEntryname In aList
+                    Dim names As String() = anEntryname.Split("."c)
+                    If objectname <> "" AndAlso names(0) = objectname Then
+                        Me.GetObject(names(0)) ' load the object full
+                        If _XIDDirectory.ContainsKey(xid) Then
+                            Return GetEntryByXID(xid)
+                        Else
+                            CoreMessageHandler(message:="xid could not be found in XIDDirectory although reference object was loaded", _
+                                               arg1:=xid, objectname:=objectname, _
+                                               subname:="ObjectRepository.GetEntryByXID", _
+                                               messagetype:=otCoreMessageType.InternalError)
+                            Return New List(Of iormObjectEntry)
+                        End If
+                    Else
+                        Me.GetObject(names(0)) ' load the object full
+                    End If
+                    ' return
+                    If _XIDDirectory.ContainsKey(xid) Then
+                        Return GetEntryByXID(xid)
+                    Else
+                        CoreMessageHandler(message:="xid could not be found in XIDDirectory although reference object was loaded", _
+                                               arg1:=xid, _
+                                               subname:="ObjectRepository.GetEntryByXID", _
+                                               messagetype:=otCoreMessageType.InternalError)
+                        Return New List(Of iormObjectEntry)
+                    End If
+                Next
             Else
                 Return GetEntryByAlias(alias:=[xid], objectname:=objectname)
             End If
@@ -795,19 +832,48 @@ Namespace OnTrack.Database
         ''' <returns>an Entry object or nothing </returns>
         ''' <remarks></remarks>
         Public Function GetEntryByAlias([alias] As String, Optional objectname As String = "") As List(Of iormObjectEntry)
-            If _aliasDirectory.ContainsKey(UCase([alias])) Then
+            [alias] = [alias].ToUpper
+            If _aliasDirectory.ContainsKey([alias]) Then
                 If objectname = "" Then
-                    Return _aliasDirectory.Item(key:=UCase([alias]))
+                    Return _aliasDirectory.Item(key:=[alias])
                 Else
                     Dim aList As New List(Of iormObjectEntry)
-                    For Each objectdef In _aliasDirectory.Item(key:=UCase([alias]))
-                        If objectname.ToUpper = objectdef.Objectname.ToUpper Then
-                            aList.Add(objectdef)
+                    For Each anEntry In _aliasDirectory.Item(key:=[alias])
+                        If objectname.ToUpper = anEntry.Objectname.ToUpper Then
+                            aList.Add(anEntry)
                         End If
                     Next
                     Return aList
                 End If
-
+            ElseIf _aliasShortReference.ContainsKey([alias]) Then
+                Dim aList As List(Of String) = _aliasShortReference.Item([alias])
+                For Each anEntryname In aList
+                    Dim names As String() = anEntryname.Split("."c)
+                    If objectname <> "" AndAlso names(0) = objectname Then
+                        Me.GetObject(names(0)) ' load the object full
+                        If _aliasDirectory.ContainsKey([alias]) Then
+                            Return GetEntryByAlias([alias])
+                        Else
+                            CoreMessageHandler(message:="alias could not be found in Alias Directory although reference object was loaded", _
+                                               arg1:=[alias], objectname:=objectname, _
+                                               subname:="ObjectRepository.GetEntryByAlias", _
+                                               messagetype:=otCoreMessageType.InternalError)
+                            Return New List(Of iormObjectEntry)
+                        End If
+                    Else
+                        Me.GetObject(names(0)) ' load the object full
+                    End If
+                Next
+                ' return
+                If _aliasDirectory.ContainsKey([alias]) Then
+                    Return GetEntryByAlias([alias])
+                Else
+                    CoreMessageHandler(message:="alias could not be found in alias directory although reference object was loaded", _
+                                           arg1:=[alias], _
+                                           subname:="ObjectRepository.GetEntryByalias", _
+                                           messagetype:=otCoreMessageType.InternalError)
+                    Return New List(Of iormObjectEntry)
+                End If
             Else
                 Return New List(Of iormObjectEntry)
             End If
@@ -834,7 +900,7 @@ Namespace OnTrack.Database
     ''' class for Column Definition of a table
     ''' </summary>
     ''' <remarks></remarks>
-    <ormObject(id:=ColumnDefinition.ConstObjectID, modulename:=ConstModuleMeta, description:="Column Definition of a Table Definition", _
+    <ormObject(id:=ColumnDefinition.ConstObjectID, modulename:=ConstModuleRepository, description:="Column Definition of a Table Definition", _
         Version:=2, usecache:=True, isbootstrap:=True)> _
     Public Class ColumnDefinition
         Inherits ormDataObject
@@ -860,7 +926,7 @@ Namespace OnTrack.Database
 
         '** Column Specific
 
-        <ormObjectEntry(defaultvalue:=0, typeid:=otDataType.[Long], title:="Pos", Description:="position number in record")> _
+        <ormObjectEntry(defaultvalue:=0, typeid:=otDataType.[Long], isnullable:=True, title:="Pos", Description:="position number in record")> _
         Public Const ConstFNPosition As String = "pos"
 
         <ormObjectEntry(typeid:=otDataType.Memo, isnullable:=True, properties:={ObjectEntryProperty.Trim}, _
@@ -881,7 +947,7 @@ Namespace OnTrack.Database
         <ormObjectEntry(typeid:=otDataType.[Long], isnullable:=True, lowerRange:=0, _
                         title:="Size", Description:="max Length of the Column")> Public Const ConstFNSize As String = "size"
 
-        <ormObjectEntry(defaultvalue:="PRIMARYKEY", typeid:=otDataType.Text, isnullable:=True, properties:={ObjectEntryProperty.Keyword}, _
+        <ormObjectEntry(typeid:=otDataType.Text, isnullable:=True, properties:={ObjectEntryProperty.Keyword}, _
                        title:="Primary Key name", Description:="name of the primary key index")> Public Const ConstFNindexname As String = "indexname"
 
         <ormObjectEntry(defaultvalue:=False, typeid:=otDataType.Bool, _
@@ -912,13 +978,13 @@ Namespace OnTrack.Database
         <ormEntryMapping(EntryName:=ConstFNIsUnique)> Private _isUnique As Boolean = False
         <ormEntryMapping(EntryName:=ConstFNDefaultValue)> Private _DefaultValue As String = Nothing ' that is ok since default might be missing for strings
         <ormEntryMapping(EntryName:=ConstFNDescription)> Private _Description As String = ""
-        <ormEntryMapping(EntryName:=ConstFNPosition)> Private _Position As Long = 0
+        <ormEntryMapping(EntryName:=ConstFNPosition)> Private _Position As Long?
         <ormEntryMapping(EntryName:=ConstFNindexname)> Private _indexname As String = ""
         <ormEntryMapping(EntryName:=ConstFNPrimaryKey)> Private _isPrimaryKey As Boolean = False
         <ormEntryMapping(EntryName:=ConstFNPrimaryKeyOrdinal)> Private _PrimaryKeyOrdinal As Long = 0
 
         '* relation to the Tabledefinition - no cascadeOnUpdate to prevent recursion loops
-        <ormSchemaRelation(linkobject:=GetType(TableDefinition), toPrimarykeys:={ConstFNTableName}, _
+        <ormRelationAttribute(linkobject:=GetType(TableDefinition), toPrimarykeys:={ConstFNTableName}, createObjectIfNotRetrieved:=True, _
             cascadeonCreate:=True, cascadeOnUpdate:=False)> Public Const constRTableDefinition = "table"
         '** the real thing
         <ormEntryMapping(relationName:=constRTableDefinition, InfuseMode:=otInfuseMode.OnCreate Or otInfuseMode.OnDemand)> _
@@ -961,11 +1027,12 @@ Namespace OnTrack.Database
                 Return Me._PrimaryKeyOrdinal
             End Get
             Set(value As Long)
-                SetValue(entryname:=ConstFNPrimaryKeyOrdinal, value:=value)
-                '* set also the primarykey flag which triggers of the primary key build
-                '* of the table
-                If value <> 0 And Not Me.IsPrimaryKey Then Me.IsPrimaryKey = True
-                If value = 0 And Me.IsPrimaryKey Then Me.IsPrimaryKey = False
+                If SetValue(entryname:=ConstFNPrimaryKeyOrdinal, value:=value) Then
+                    '* set also the primarykey flag which triggers of the primary key build
+                    '* of the table
+                    If value > 0 Then Me.IsPrimaryKey = True
+                    If value <= 0 Then Me.IsPrimaryKey = False
+                End If
             End Set
         End Property
 
@@ -973,11 +1040,11 @@ Namespace OnTrack.Database
         ''' Gets or sets the position.
         ''' </summary>
         ''' <value>The position.</value>
-        Public Property Position() As Long
+        Public Property Position() As Long?
             Get
                 Return Me._Position
             End Get
-            Set(value As Long)
+            Set(value As Long?)
                 SetValue(entryname:=ConstFNPosition, value:=value)
             End Set
         End Property
@@ -1221,6 +1288,7 @@ Namespace OnTrack.Database
                 If .HasValueSize Then Me.Size = .Size
                 If .HasValueParameter Then Me.Properties = Converter.String2Array(.Parameter)
                 If .hasValuePosOrdinal Then Me.Position = .Posordinal
+
                 If .HasValuePrimaryKeyOrdinal Then
                     Me.IsPrimaryKey = True
                 End If
@@ -1231,60 +1299,7 @@ Namespace OnTrack.Database
                 End If
             End With
         End Function
-        ''' <summary>
-        ''' sets the values of this schemadefTableEntry by a FieldDescription
-        ''' </summary>
-        ''' <param name="FIELDDESC"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Function SetByFieldDesc(ByRef fielddesc As ormFieldDescription) As Boolean
-            If Not Me.IsAlive(subname:="ObjectTableColumn.SetByFieldDesc") Then
-                Return False
-            End If
-
-            'Me.Columnname = UCase(fielddesc.ID)
-            Me.Properties = Converter.String2Array(fielddesc.Parameter)
-            Me.Datatype = fielddesc.Datatype
-            'Me.Tablename = fielddesc.Tablename.toupper
-            Me.Size = fielddesc.Size
-
-            Me.IsNullable = fielddesc.IsNullable
-            Me.DefaultValue = fielddesc.DefaultValue
-            Me.Description = fielddesc.Description
-            Me.Version = fielddesc.Version
-            Me.Position = fielddesc.ordinalPosition
-            SetByFieldDesc = Me.IsChanged
-        End Function
-
-        '**** get the values by FieldDesc
-        '****
-        ''' <summary>
-        ''' fills a field description out of this SchemaDefTableEntry
-        ''' </summary>
-        ''' <param name="fielddesc"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Function GetByFieldDesc(ByRef fielddesc As ormFieldDescription) As Boolean
-            If Not Me.IsAlive(subname:="ObjectTableColumn.GetByFielddesc") Then
-                Return False
-            End If
-
-            fielddesc.ID = UCase(Me.Name)
-            fielddesc.Parameter = Converter.Enumerable2String(Me.Properties)
-            fielddesc.Datatype = Me.Datatype
-            fielddesc.Tablename = Me.Tablename
-            fielddesc.Version = Me.Version
-
-            fielddesc.Size = Me.Size
-            fielddesc.IsNullable = Me.IsNullable
-
-            fielddesc.Description = Me.Description
-            fielddesc.DefaultValue = Me.DefaultValueString
-            'FIELDDESC.Name = Me.Name
-
-            GetByFieldDesc = True
-        End Function
-
+        
         ''' <summary>
         ''' Event Handler for defaultValues
         ''' </summary>
@@ -1425,7 +1440,7 @@ Namespace OnTrack.Database
     ''' class for foreign key definition of multiple table columns
     ''' </summary>
     ''' <remarks></remarks>
-    <ormObject(id:=ForeignKeyDefinition.ConstObjectID, modulename:=ConstModuleMeta, description:="Foreign Key Definition of a Table", _
+    <ormObject(id:=ForeignKeyDefinition.ConstObjectID, modulename:=ConstModuleRepository, description:="Foreign Key Definition of a Table", _
         Version:=1, usecache:=True, isbootstrap:=True)> _
     Public Class ForeignKeyDefinition
         Inherits ormDataObject
@@ -1488,7 +1503,7 @@ Namespace OnTrack.Database
         <ormEntryMapping(EntryName:=ConstFNForeignKeyProperties)> Private _foreignkeyPropStrings As String() = {}
 
         '* relation to the Tabledefinition - no cascadeOnUpdate to prevent recursion loops
-        <ormSchemaRelation(linkobject:=GetType(TableDefinition), toPrimarykeys:={ConstFNTableName}, _
+        <ormRelationAttribute(linkobject:=GetType(TableDefinition), toPrimarykeys:={ConstFNTableName}, createObjectIfnotRetrieved:=True, _
             cascadeonCreate:=True, cascadeOnUpdate:=False)> Public Const constRTableDefinition = "table"
         '** the real thing
         <ormEntryMapping(relationName:=constRTableDefinition, InfuseMode:=otInfuseMode.OnCreate Or otInfuseMode.OnDemand)> _
@@ -1889,7 +1904,7 @@ Namespace OnTrack.Database
     ''' </summary>
     ''' <remarks></remarks>
 
-    <ormObject(id:=IndexDefinition.ConstObjectID, modulename:=ConstModuleMeta, description:="index definition for table definitions", _
+    <ormObject(id:=IndexDefinition.ConstObjectID, modulename:=ConstModuleRepository, description:="index definition for table definitions", _
         isbootstrap:=True, usecache:=True, Version:=1)> _
     Public Class IndexDefinition
         Inherits ormDataObject
@@ -2134,7 +2149,7 @@ Namespace OnTrack.Database
     ''' </summary>
     ''' <remarks></remarks>
 
-    <ormObject(id:=TableDefinition.ConstObjectID, modulename:=ConstModuleMeta, description:="Relational table definition of a database table", _
+    <ormObject(id:=TableDefinition.ConstObjectID, modulename:=ConstModuleRepository, description:="Relational table definition of a database table", _
         usecache:=True, isbootstrap:=True, Version:=1)> _
     Public Class TableDefinition
         Inherits ormDataObject
@@ -2184,11 +2199,11 @@ Namespace OnTrack.Database
         Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
         '*** relations
-        <ormSchemaRelation(linkobject:=GetType(ColumnDefinition), cascadeondelete:=True, cascadeonupdate:=True, _
+        <ormRelationAttribute(linkobject:=GetType(ColumnDefinition), cascadeondelete:=True, cascadeonupdate:=True, _
            fromEntries:={ConstFNTablename}, toEntries:={ColumnDefinition.ConstFNTableName})> Public Const ConstRColumns = "columns"
-        <ormSchemaRelation(linkobject:=GetType(IndexDefinition), cascadeondelete:=True, cascadeonupdate:=True, _
+        <ormRelationAttribute(linkobject:=GetType(IndexDefinition), cascadeondelete:=True, cascadeonupdate:=True, _
            fromEntries:={ConstFNTablename}, toEntries:={ColumnDefinition.ConstFNTableName})> Public Const ConstRIndices = "indices"
-        <ormSchemaRelation(linkobject:=GetType(ForeignKeyDefinition), cascadeondelete:=True, cascadeonupdate:=True, _
+        <ormRelationAttribute(linkobject:=GetType(ForeignKeyDefinition), cascadeondelete:=True, cascadeonupdate:=True, _
            fromEntries:={ConstFNTablename}, toEntries:={ForeignKeyDefinition.ConstFNTableName})> Public Const ConstRForeignKeys = "foreignkeys"
 
         '*** Mapping
@@ -2207,9 +2222,6 @@ Namespace OnTrack.Database
         '* relation mappings
         <ormEntryMapping(RelationName:=ConstRColumns, infusemode:=otInfuseMode.OnDemand Or otInfuseMode.OnInject, _
          keyentries:={ColumnDefinition.ConstFNColumnname})> Private _columns As New Dictionary(Of String, ColumnDefinition)
-
-        <ormEntryMapping(RelationName:=ConstRColumns, infusemode:=otInfuseMode.OnDemand Or otInfuseMode.OnInject, _
-        keyentries:={ColumnDefinition.ConstFNPosition})> Private _entriesordinalPos As New SortedDictionary(Of Long, ColumnDefinition) ' sorted to ordinal position in the record
 
         <ormEntryMapping(RelationName:=ConstRIndices, infusemode:=otInfuseMode.OnDemand Or otInfuseMode.OnInject, _
          keyentries:={IndexDefinition.ConstFNIndexName})> Private _indices As New Dictionary(Of String, IndexDefinition)
@@ -2487,23 +2499,7 @@ Namespace OnTrack.Database
             ' add entry
             _columns.Add(key:=entry.Name.ToUpper, value:=entry)
 
-            Dim max As ULong = 1
-            If _entriesordinalPos.Count > 0 Then max = _entriesordinalPos.Keys.Max + 1
 
-            '** get Ordinal position
-            If entry.Position <= 0 Then
-                entry.Position = max
-            End If
-
-            '** what if existing
-            If _entriesordinalPos.ContainsKey(entry.Position) Then
-                CoreMessageHandler(message:="Ordinal already in entries - column appended to the end", columnname:=entry.Name, tablename:=Me._tablename, _
-                                   objectname:=Me.ObjectID, subname:="TableDefinition.AddColumn", messagetype:=otCoreMessageType.InternalWarning)
-                entry.Position = max
-            End If
-
-            '** add
-            _entriesordinalPos.Add(key:=entry.Position, value:=entry)
             '** add Handler
             AddHandler entry.PropertyChanged, AddressOf Me.OnEntryChanged
             AddHandler MyBase.OnSwitchRuntimeOff, AddressOf entry.OnSwitchRuntimeOff
@@ -2618,14 +2614,11 @@ Namespace OnTrack.Database
 
                 '** check which entries to use
                 For Each anEntry In _columns.Values
-                    If entrycoll.ContainsKey(anEntry.Position) Then
-                        '** append
+                    If Not anEntry.Position.HasValue OrElse anEntry.Position <= 0 OrElse entrycoll.ContainsKey(anEntry.Position) Then
                         anEntry.Position = entrycoll.Keys.Max + 1
-                        entrycoll.Add(key:=anEntry.Position, value:=anEntry)
-                    Else
-                        entrycoll.Add(key:=anEntry.Position, value:=anEntry)
                     End If
 
+                    entrycoll.Add(key:=anEntry.Position, value:=anEntry)
                 Next
 
 
@@ -2892,7 +2885,6 @@ Namespace OnTrack.Database
         Public Sub OnDeleted(sender As Object, e As ormDataObjectEventArgs) Handles MyBase.OnDeleted
             ' reset it
             _columns.Clear()
-            _entriesordinalPos.Clear()
             _foreignkeys.Clear()
             _indices.Clear()
         End Sub
@@ -2956,15 +2948,7 @@ Namespace OnTrack.Database
             If pkList.Count > 0 Then Me.AddIndex(indexname:=Me.PrimaryKey, columnnames:=pkList.Values.ToList, isprimarykey:=True, replace:=True)
         End Sub
 
-        ''' <summary>
-        ''' Handler for the Persisted Version
-        ''' </summary>
-        ''' <param name="sender"></param>
-        ''' <param name="e"></param>
-        ''' <remarks></remarks>
-        Private Sub TableDefinition_OnPersisted(sender As Object, e As ormDataObjectEventArgs) Handles Me.OnPersisted
 
-        End Sub
 
         ''' <summary>
         ''' Event handler for relations loaded
@@ -3022,19 +3006,6 @@ Namespace OnTrack.Database
         End Function
 
 
-        ''' <summary>
-        ''' retrieves the max posno / entry index
-        ''' </summary>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Function GetMaxPosNo() As UShort
-            If _entriesordinalPos.Count = 0 Then
-                Return 0
-            Else
-                Return _entriesordinalPos.Keys.Max
-            End If
-
-        End Function
 
     End Class
 
@@ -3044,7 +3015,7 @@ Namespace OnTrack.Database
     ''' </summary>
     ''' <remarks></remarks>
 
-    <ormObject(id:=ObjectPermission.ConstObjectID, modulename:=ConstModuleMeta, description:="permission rules for object access", _
+    <ormObject(id:=ObjectPermission.ConstObjectID, modulename:=ConstModuleRepository, description:="permission rules for object access", _
         version:=1, isbootstrap:=True, usecache:=True)> _
     Public Class ObjectPermission
         Inherits ormDataObject
@@ -3535,7 +3506,7 @@ Namespace OnTrack.Database
     ''' </summary>
     ''' <remarks></remarks>
 
-    <ormObject(id:=ObjectDefinition.ConstObjectID, modulename:=ConstModuleMeta, description:="persistable Business Object definition", _
+    <ormObject(id:=ObjectDefinition.ConstObjectID, modulename:=ConstModuleRepository, description:="persistable Business Object definition", _
         Version:=1, isbootstrap:=True, usecache:=True)> _
     Public Class ObjectDefinition
         Inherits ormDataObject
@@ -3569,16 +3540,28 @@ Namespace OnTrack.Database
 
         End Class
 
-
+        ''' <summary>
+        ''' Table Definition
+        ''' </summary>
+        ''' <remarks></remarks>
         <ormSchemaTable(version:=1, usecache:=True)> Public Const ConstTableID = "tblObjectDefinitions"
-        '** Indices
+        ''' <summary>
+        ''' Index Definition
+        ''' </summary>
+        ''' <remarks></remarks>
         <ormSchemaIndex(columnname1:=ConstFNClass)> Public Const ConstIndexName = "name"
 
-        '** Primary key
+        ''' <summary>
+        ''' Primary key Column
+        ''' </summary>
+        ''' <remarks></remarks>
         <ormObjectEntry(typeid:=otDataType.Text, size:=50, primarykeyordinal:=1, properties:={ObjectEntryProperty.Keyword}, _
                          XID:="OBJID", title:="Object ID", description:="unique name of the Object")> Public Const ConstFNID = "id"
 
-        '** Fields
+        ''' <summary>
+        ''' Column Definition
+        ''' </summary>
+        ''' <remarks></remarks>
         <ormObjectEntry(typeid:=otDataType.Text, size:=150, properties:={ObjectEntryProperty.Trim}, _
                         title:="Object Class Name", description:="class name of the Object")> Public Const ConstFNClass = "class"
         <ormObjectEntry(typeid:=otDataType.Memo, _
@@ -3614,13 +3597,23 @@ Namespace OnTrack.Database
         '** do not loop in foreign keys
         <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, _
                       useforeignkey:=otForeignKeyImplementation.None, defaultvalue:=ConstGlobalDomain)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
-        '*** relation
-        <ormSchemaRelation(linkobject:=GetType(ObjectColumnEntry), cascadeOnDelete:=True, cascadeOnUpdate:=True, _
-            fromEntries:={ConstFNID}, toEntries:={ObjectColumnEntry.ConstFNObjectName}, linkjoin:="AND [" & ObjectColumnEntry.ConstFNType & "] = 'COLUMN'")> _
-        Public Const ConstRObjectEntries = "entries"
 
-        <ormEntryMapping(RelationName:=ConstRObjectEntries, infuseMode:=otInfuseMode.OnInject Or otInfuseMode.OnDemand, _
-            keyentries:={ObjectColumnEntry.ConstFNEntryName})> Private _objectentries As New Dictionary(Of String, iormObjectEntry) ' by id
+        ''' RELATIONS for Entries - Capitalize is correct Column instead COLUMN
+        '''
+
+        <ormRelationAttribute(linkobject:=GetType(ObjectColumnEntry), cascadeOnDelete:=True, cascadeOnUpdate:=True, _
+            fromEntries:={ConstFNID}, toEntries:={ObjectColumnEntry.ConstFNObjectName}, linkjoin:="AND [" & ObjectColumnEntry.ConstFNType & "] = '" & "Column" & "'")> _
+        Public Const ConstRColumnEntries = "ColumnEntries"
+
+        <ormRelationAttribute(linkobject:=GetType(ObjectCompoundEntry), cascadeOnDelete:=True, cascadeOnUpdate:=True, _
+            fromEntries:={ConstFNID}, toEntries:={ObjectCompoundEntry.ConstFNObjectName}, linkjoin:="AND [" & ObjectCompoundEntry.ConstFNType & "] = 'Compound'")> _
+        Public Const ConstRCompoundEntries = "CompoundEntries"
+
+        <ormEntryMapping(RelationName:=ConstRColumnEntries, infuseMode:=otInfuseMode.OnInject Or otInfuseMode.OnDemand, _
+            keyentries:={ObjectColumnEntry.ConstFNEntryName})> _
+        <ormEntryMapping(RelationName:=ConstRCompoundEntries, infuseMode:=otInfuseMode.OnInject Or otInfuseMode.OnDemand, _
+            keyentries:={ObjectCompoundEntry.ConstFNEntryName})> Private _objectentries As New Dictionary(Of String, iormObjectEntry) ' by id
+
 
         '*** Mapping
         <ormEntryMapping(EntryName:=ConstFNID)> Private _id As String = ""
@@ -4030,7 +4023,7 @@ Namespace OnTrack.Database
         ''' <param name="attribute"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function AddPermissionRule(attribute As ormObjectTransaction, Optional runtimeOnly As Boolean = False, Optional domainID As String = "") As Boolean
+        Public Function AddPermissionRule(attribute As ormObjectTransactionAttribute, Optional runtimeOnly As Boolean = False, Optional domainID As String = "") As Boolean
             If Not IsAlive(subname:="AddPermissionRule") Then Return False
 
             '** bootstrap
@@ -4173,18 +4166,19 @@ Namespace OnTrack.Database
                 '**
                 anEntry = _objectentries.Item(key:=attribute.EntryName)
             Else
-
-                If attribute.EntryType = otObjectEntryDefinitiontype.Column Then
+                '''
+                ''' the entries are added by event handler of the abstract entry
+                If attribute.EntryType = otObjectEntryType.Column Then
                     anEntry = ObjectColumnEntry.Retrieve(objectname:=Me.ID, entryname:=attribute.EntryName, runtimeOnly:=bootstrap)
                     If anEntry Is Nothing Then
-                        anEntry = ObjectColumnEntry.Create(objectname:=Me.ID, entryname:=attribute.EntryName, _
-                                                                      tablename:=attribute.Tablename, columnname:=attribute.ColumnName, _
-                                                                      checkunique:=True, domainID:=domainid, runtimeOnly:=bootstrap)
+                        anEntry = ObjectColumnEntry.Create(objectname:=Me.ID.Clone, entryname:=attribute.EntryName.Clone, _
+                                                           tablename:=attribute.Tablename.Clone, columnname:=attribute.ColumnName.Clone, _
+                                                           checkunique:=True, domainID:=domainid, runtimeOnly:=bootstrap)
                     End If
                     '*** add the switchoff handler
                     AddHandler MyBase.OnSwitchRuntimeOff, AddressOf anEntry.OnswitchRuntimeOff
 
-                ElseIf attribute.EntryType = otObjectEntryDefinitiontype.Compound Then
+                ElseIf attribute.EntryType = otObjectEntryType.Compound Then
                     anEntry = ObjectCompoundEntry.Retrieve(objectname:=Me.ID, entryname:=attribute.EntryName, runtimeOnly:=bootstrap)
                     If anEntry Is Nothing Then
                         anEntry = ObjectCompoundEntry.Create(objectname:=Me.ID, entryname:=attribute.EntryName, checkunique:=True, runtimeOnly:=bootstrap)
@@ -4198,10 +4192,8 @@ Namespace OnTrack.Database
             End If
 
             '** set the entry according to the Attribute
-            anEntry.SetByAttribute(attribute)
+            Return anEntry.SetByAttribute(attribute)
 
-            '** add it
-            Return Me.AddEntry(anEntry)
         End Function
 
 
@@ -4385,7 +4377,7 @@ Namespace OnTrack.Database
             Next
 
             '* set the permission rules
-            For Each anAttribute In anObjectDescription.OperationAttributes
+            For Each anAttribute In anObjectDescription.TransactionAttributes
                 Me.AddPermissionRule(attribute:=anAttribute, runtimeOnly:=runtimeOnly)
             Next
 
@@ -4435,6 +4427,27 @@ Namespace OnTrack.Database
         End Function
 
         ''' <summary>
+        ''' event handler for the PropertyChanged Event of an Entry
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Public Sub ObjectDefinition_OnEntryChanged(sender As Object, e As System.ComponentModel.PropertyChangedEventArgs)
+            If sender.GetType.Equals(GetType(ObjectColumnEntry)) Then
+                Dim anEntry As ObjectColumnEntry = TryCast(sender, ObjectColumnEntry)
+                If anEntry IsNot Nothing AndAlso e.PropertyName = ColumnDefinition.ConstFNPrimaryKey Then
+                    ''' HACK ! just add up the primary keys - neglect if deleted or primarykey ordinal in table 
+                    ''' 
+                    If anEntry.IsPrimaryKey Then
+                        If Not _pknames.Contains(anEntry.Entryname) Then
+                            ReDim Preserve _pknames(_pknames.GetUpperBound(0) + 1)
+                            _pknames(_pknames.GetUpperBound(0)) = anEntry.Entryname
+                        End If
+                    End If
+                End If
+            End If
+        End Sub
+        ''' <summary>
         ''' Add an Entry by Object Entry Definition
         ''' </summary>
         ''' <param name="entry"></param>
@@ -4444,17 +4457,21 @@ Namespace OnTrack.Database
             If Not IsAlive(subname:="AddEntry") Then Return False
             ' remove and overwrite
             If _objectentries.ContainsKey(key:=entry.Entryname.ToUpper) Then
-                CoreMessageHandler(message:="Warning ! - to be added entry already exists in Object Definition", objectname:=Me.ID, entryname:=entry.Entryname, _
+                CoreMessageHandler(message:="Warning ! entry already exists in Object Definition - will be replaced", objectname:=Me.ID, entryname:=entry.Entryname, _
                                     subname:="ObjectDefinition.AddEntry", messagetype:=otCoreMessageType.InternalWarning)
                 Call _objectentries.Remove(key:=entry.Entryname.ToUpper)
             End If
             '** check if Entry is primary and also a key of this object
-            If entry.IsColumn AndAlso DirectCast(entry, ObjectColumnEntry).IsPrimaryKey Then
-                If Not _pknames.Contains(entry.Entryname) Then
-                    ReDim Preserve _pknames(_pknames.GetUpperBound(0) + 1)
-                    _pknames(_pknames.GetUpperBound(0)) = entry.Entryname
-                End If
-            End If
+            '** ---> CODE MOVED TO EVENT ONPROPERTYCHANGED
+            'If entry.IsColumn AndAlso DirectCast(entry, ObjectColumnEntry).IsPrimaryKey Then
+            '    If Not _pknames.Contains(entry.Entryname) Then
+            '        ReDim Preserve _pknames(_pknames.GetUpperBound(0) + 1)
+            '        _pknames(_pknames.GetUpperBound(0)) = entry.Entryname
+            '    End If
+            'End If
+            ' register handler
+            AddHandler entry.PropertyChanged, AddressOf ObjectDefinition_OnEntryChanged
+
             ' add entry
             _objectentries.Add(key:=entry.Entryname.ToUpper, value:=entry)
             '** synchronize the table names after object entry is added
@@ -4525,9 +4542,9 @@ Namespace OnTrack.Database
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetRelationAttributes() As List(Of ormSchemaRelationAttribute)
+        Public Function GetRelationAttributes() As List(Of ormRelationAttribute)
             Dim aDescription As ObjectClassDescription = Me.GetClassDescription
-            If aDescription Is Nothing Then Return New List(Of ormSchemaRelationAttribute)
+            If aDescription Is Nothing Then Return New List(Of ormRelationAttribute)
             Return aDescription.RelationAttributes
 
         End Function
@@ -4536,7 +4553,7 @@ Namespace OnTrack.Database
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetRelationAttribute(name As String) As ormSchemaRelationAttribute
+        Public Function GetRelationAttribute(name As String) As ormRelationAttribute
             Dim aDescription As ObjectClassDescription = Me.GetClassDescription
             If aDescription Is Nothing Then Return Nothing
 
@@ -4559,7 +4576,7 @@ Namespace OnTrack.Database
         ''' <param name="entryname">name of the entry</param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetEntry(entryname As String) As AbstractEntryDefinition
+        Public Function GetEntry(entryname As String) As iormObjectEntry
 
             If Not Me.IsCreated And Not Me.IsLoaded Then
                 Return Nothing
@@ -4997,151 +5014,171 @@ Namespace OnTrack.Database
     ''' </summary>
     ''' <remarks></remarks>
 
-    <ormObject(id:=AbstractEntryDefinition.ConstObjectID, modulename:=ConstModuleMeta, description:="Abstract ObjectEntry definition", _
+    <ormObject(id:=AbstractEntryDefinition.ConstObjectID, modulename:=ConstModuleRepository, description:="Abstract ObjectEntry definition", _
         useCache:=True, AddDeletefieldBehavior:=True, AddDomainBehavior:=True, isbootstrap:=True, Version:=1)> _
     Public MustInherit Class AbstractEntryDefinition
         Inherits ormDataObject
         Implements iormPersistable, iormInfusable, iormObjectEntry
 
-
-        '*** CONST Schema
+        ''' <summary>
+        ''' Object ID
+        ''' </summary>
+        ''' <remarks></remarks>
         Public Const ConstObjectID = "ObjectEntry"
-        '** Table
+
+        ''' <summary>
+        ''' Table Definition
+        ''' </summary>
+        ''' <remarks></remarks>
         <ormSchemaTableAttribute(Version:=5, usecache:=True, adddeletefieldbehavior:=True, addDomainBehavior:=True)> Public Const ConstTableID = "tblObjectEntries"
 
-        '** Index
+        ''' <summary>
+        ''' Table Index Definitions
+        ''' </summary>
+        ''' <remarks></remarks>
         <ormSchemaIndexAttribute(ColumnName1:=ConstFNxid)> Public Const ConstIndexXID = "XID" ' not unqiue
         <ormSchemaIndexAttribute(columnName1:=ConstFNDomainID, ColumnName2:=ConstFNxid)> Public Const ConstIndDomain = "Domain"
+        <ormSchemaIndex(columnname1:=ConstFNObjectName, columnname2:=ConstFNType, columnname3:=ConstFNIsDeleted, columnname4:=ConstFNEntryName)> Public Const constINDtypes = "indexTypes"
 
-        '*** KEYS
+        ''' <summary>
+        ''' Primary Key Columns
+        ''' </summary>
+        ''' <remarks></remarks>
         <ormObjectEntry(referenceobjectentry:=ObjectDefinition.ConstObjectID & "." & ObjectDefinition.ConstFNID, primaryKeyordinal:=1, _
             useforeignkey:=otForeignKeyImplementation.NativeDatabase)> _
         Public Const ConstFNObjectName As String = ObjectDefinition.ConstFNID
 
         <ormObjectEntry(dbdefaultvalue:="", typeid:=otDataType.Text, size:=100, _
                         properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty}, _
-                        title:="Object Entry Name", Description:="entry (data slot) name of an Ontrack Object", primaryKeyordinal:=2)> _
+                        xid:="OED1", title:="Object Entry Name", Description:="entry (data slot) name of an Ontrack Object", primaryKeyordinal:=2)> _
         Public Const ConstFNEntryName As String = "entry"
 
         <ormObjectEntry(referenceobjectentry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=3)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
-        '*** Columns
-        <ormObjectEntry(defaultvalue:=otDataType.Text, typeid:=otDataType.Long, _
-                                 title:="Datatype", Description:="OTDB field data type")> Public Const ConstFNDatatype As String = "datatype"
+        ''' <summary>
+        ''' Column Definitions
+        ''' </summary>
+        ''' <remarks></remarks>
+        <ormObjectEntry(defaultvalue:=otDataType.Text, dbdefaultvalue:="3", typeid:=otDataType.Long, _
+                        xid:="OED11", title:="Datatype", Description:="OTDB field data type")> Public Const ConstFNDatatype As String = "datatype"
 
         <ormObjectEntry(typeid:=otDataType.Text, isnullable:=True, _
                         title:="Inner Datatype", Description:="OTDB inner list data type")> Public Const ConstFNInnerDatatype As String = "innertype"
 
         <ormObjectEntry(referenceObjectentry:=ColumnDefinition.ConstObjectID & "." & ColumnDefinition.ConstFNSize, _
-                        Description:="max Length of the entry")> Public Const ConstFNSize As String = "size"
+                        xid:="OED13", Description:="max Length of the entry")> Public Const ConstFNSize As String = "size"
 
         <ormObjectEntry(typeid:=otDataType.Long, defaultvalue:=1, dbdefaultvalue:="1", _
-                                  title:="Ordinal", Description:="ordinal of the object entry")> Public Const ConstFNordinal As String = "ordinal"
+                         xid:="OED14", title:="Ordinal", Description:="ordinal of the object entry")> Public Const ConstFNordinal As String = "ordinal"
 
         <ormObjectEntry(referenceObjectentry:=ColumnDefinition.ConstObjectID & "." & ColumnDefinition.ConstFNIsNullable, _
-                                  Description:="is nullable on the object entry level")> Public Const ConstFNIsNullable As String = "isnullable"
+                           xid:="OED15", Description:="is nullable on the object entry level")> Public Const ConstFNIsNullable As String = "isnullable"
 
         <ormObjectEntry(typeid:=otDataType.Text, size:=255, isnullable:=True, _
-                        title:="default value", description:="default value of the object entry on the object level")> _
+                        xid:="OED16", title:="default value", description:="default value of the object entry on the object level")> _
         Public Const ConstFNDefaultValue As Object = "defaultvalue"
 
         <ormObjectEntry(typeid:=otDataType.Text, size:=50, isnullable:=True, properties:={ObjectEntryProperty.Keyword}, _
-                        title:="XChangeID", Description:="ID for XChange manager")> Public Const ConstFNxid As String = "XID"
+                        xid:="OED21", title:="XChangeID", Description:="ID for XChange manager")> Public Const ConstFNxid As String = "XID"
 
         <ormObjectEntry(typeid:=otDataType.Text, size:=50, defaultvalue:="", properties:={ObjectEntryProperty.Capitalize, ObjectEntryProperty.Trim}, _
-                        title:="Title", Description:="title for column headers of the field")> Public Const ConstFNTitle As String = "title"
+                        xid:="OED22", title:="Title", Description:="title for column headers of the field")> Public Const ConstFNTitle As String = "title"
 
         <ormObjectEntry(typeid:=otDataType.Memo, properties:={ObjectEntryProperty.Trim}, isnullable:=True, _
-                        title:="Description", Description:="Description of the field")> Public Const ConstFNDescription As String = "desc"
+                        xid:="OED23", title:="Description", Description:="Description of the field")> Public Const ConstFNDescription As String = "desc"
 
         <ormObjectEntry(typeid:=otDataType.List, isnullable:=True, innertypeid:=otDataType.Text, _
                         properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty}, _
-                        title:="XChange alias ID", Description:="aliases ID for XChange manager")> Public Const ConstFNalias As String = "alias"
+                        xid:="OED24", title:="XChange alias ID", Description:="aliases ID for XChange manager")> Public Const ConstFNalias As String = "alias"
 
-        <ormObjectEntry(typeid:=otDataType.Text, defaultvalue:=otObjectEntryDefinitiontype.Column, size:=50, _
+        <ormObjectEntry(typeid:=otDataType.Text, defaultvalue:=otObjectEntryType.Column, size:=50, _
                         properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty}, _
                         title:="Entry Type", Description:="OTDB schema entry type")> Public Const ConstFNType As String = "typeid"
 
         <ormObjectEntry(typeid:=otDataType.List, innertypeid:=otDataType.Text, isnullable:=True, _
-                        title:="Properties", Description:="properties and property functions for the entry")> _
+                        xid:="OED17", title:="Properties", Description:="properties and property functions for the entry")> _
         Public Const ConstFNProperties As String = "properties"
 
         <ormObjectEntry(defaultvalue:=1, typeid:=otDataType.[Long], lowerrange:=0, _
                         title:="UpdateCount", Description:="version counter of updating")> Public Const ConstFNUPDC As String = "updc"
 
         <ormObjectEntry(typeid:=otDataType.Bool, defaultvalue:=False, _
-           title:="Read Only", Description:="set if the object entry is created internally and can not be changed")> _
+           xid:="OED18", title:="Read Only", Description:="set if the object entry is created internally and can not be changed")> _
         Public Const ConstFNReadonly As String = "readonly"
 
         <ormObjectEntry(typeid:=otDataType.Bool, defaultvalue:=True, _
-           title:="Is Active", Description:="set if the object entry is activated")> _
+           xid:="OED19", title:="Is Active", Description:="set if the object entry is activated")> _
         Public Const ConstFNActive As String = "active"
 
         <ormObjectEntry(typeid:=otDataType.List, innertypeid:=otDataType.Text, title:="Relation", Description:="relation information")> _
         Public Const ConstFNRelation As String = "relation"
 
-
-
         <ormObjectEntry(typeid:=otDataType.Bool, defaultvalue:=True, dbdefaultvalue:="0", _
-            title:="Validate Entry", Description:="set if the object entry will be validated")> _
+            xid:="OED31", title:="Validate Entry", Description:="set if the object entry will be validated")> _
         Public Const ConstFNValidate As String = "validate"
 
-        <ormObjectEntry(typeid:=otDataType.Bool, defaultvalue:=False, _
-            title:="Render Entry", Description:="set if the object entry will be rendered to a string presentation")> _
-        Public Const ConstFNRender As String = "render"
+      
 
         <ormObjectEntry(typeid:=otDataType.List, innertypeid:=otDataType.Text, isnullable:=True, _
-            title:="List of Values", Description:="list of possible values")> Public Const ConstFNValues As String = "values"
+            xid:="OED32", title:="List of Values", Description:="list of possible values")> Public Const ConstFNValues As String = "values"
 
         <ormObjectEntry(typeid:=otDataType.List, isnullable:=True, _
-          title:="Lookup Properties", Description:="list of lookup properties")> Public Const ConstFNLookupProperties As String = "lproperties"
+          xid:="OED33", title:="Lookup Properties", Description:="list of lookup properties")> Public Const ConstFNLookupProperties As String = "lproperties"
 
         <ormObjectEntry(typeid:=otDataType.List, isnullable:=True, _
-           title:="Dynamic Lookup Condition", Description:="lookup condition of possible values")> Public Const ConstFNLookup As String = "lookup"
+           xid:="OED34", title:="Dynamic Lookup Condition", Description:="lookup condition of possible values")> Public Const ConstFNLookup As String = "lookup"
 
         <ormObjectEntry(typeid:=otDataType.Long, isnullable:=True, _
-            title:="Lower Range", Description:="lower range value")> Public Const ConstFNLowerRange As String = "lower"
+            xid:="OED35", title:="Lower Range", Description:="lower range value")> Public Const ConstFNLowerRange As String = "lower"
 
         <ormObjectEntry(typeid:=otDataType.Long, isnullable:=True, _
-           title:="Upper Range", Description:="upper range value")> Public Const ConstFNUpperRange As String = "upper"
+           xid:="OED36", title:="Upper Range", Description:="upper range value")> Public Const ConstFNUpperRange As String = "upper"
 
         <ormObjectEntry(typeid:=otDataType.List, isnullable:=True, _
-            title:="Validation Properties", Description:="list of validation properties")> Public Const ConstFNValidationProperties As String = "vproperties"
+            xid:="OED37", title:="Validation Properties", Description:="list of validation properties")> Public Const ConstFNValidationProperties As String = "vproperties"
 
         <ormObjectEntry(typeid:=otDataType.Text, size:=255, isnullable:=True, _
-           title:="Validation Regex Condition", Description:="regex match for validation to be true")> Public Const ConstFNValidationRegex As String = "validregex"
+           xid:="OED38", title:="Validation Regex Condition", Description:="regex match for validation to be true")> Public Const ConstFNValidationRegex As String = "validregex"
+
+
+        <ormObjectEntry(typeid:=otDataType.Bool, defaultvalue:=False, _
+          xid:="OED41", title:="Render Entry", Description:="set if the object entry will be rendered to a string presentation")> _
+        Public Const ConstFNRender As String = "render"
 
         <ormObjectEntry(typeid:=otDataType.List, isnullable:=True, _
-           title:="Render Properties", Description:="list of render properties")> Public Const ConstFNRenderProperties As String = "rproperties"
+           xid:="OED42", title:="Render Properties", Description:="list of render properties")> Public Const ConstFNRenderProperties As String = "rproperties"
 
         <ormObjectEntry(typeid:=otDataType.Text, size:=255, isnullable:=True, _
-           title:="Render Regex Condition", Description:="regex match for render to be true")> Public Const ConstFNRenderRegexMatch As String = "renderregexmatch"
+            xid:="OED43", title:="Render Regex Condition", Description:="regex match for render to be true")> Public Const ConstFNRenderRegexMatch As String = "renderregexmatch"
 
         <ormObjectEntry(typeid:=otDataType.Text, size:=255, isnullable:=True, _
-          title:="Render Regex Replace", Description:="regex replace pattern for rendering")> Public Const ConstFNRenderRegexPattern As String = "renderregexreplace"
+           xid:="OED44", title:="Render Regex Replace", Description:="regex replace pattern for rendering")> Public Const ConstFNRenderRegexPattern As String = "renderregexreplace"
 
-        ' field mapping
+        ''' <summary>
+        ''' Member Mapping of persistable Columns
+        ''' </summary>
+        ''' <remarks></remarks>
         <ormEntryMapping(EntryName:=ConstFNxid)> Protected _xid As String 'nullable
         <ormEntryMapping(EntryName:=ConstFNObjectName)> Protected _objectname As String = ""
         <ormEntryMapping(EntryName:=ConstFNDatatype)> Protected _datatype As otDataType = 0
         <ormEntryMapping(EntryName:=ConstFNInnerDatatype)> Protected _innerdatatype As otDataType = 0
         <ormEntryMapping(EntryName:=ConstFNSize)> Protected _size As Long?
-        <ormEntryMapping(EntryName:=ConstFNordinal)> Protected _ordinal As UShort = 0
+        <ormEntryMapping(EntryName:=ConstFNordinal)> Protected _ordinal As Long = 0
         <ormEntryMapping(EntryName:=ConstFNReadonly)> Protected _readonly As Boolean
         <ormEntryMapping(EntryName:=ConstFNActive)> Protected _active As Boolean
         <ormEntryMapping(EntryName:=ConstFNIsNullable)> Protected _isnullable As Boolean
         <ormEntryMapping(EntryName:=ConstFNDefaultValue)> Protected _defaultvalue As Object
         <ormEntryMapping(EntryName:=ConstFNEntryName)> Protected _entryname As String = ""
-        <ormEntryMapping(EntryName:=ConstFNRelation)> Protected _relation As String() = {}
+        <ormEntryMapping(EntryName:=ConstFNRelation)> Protected _Relation As String() = {}
         <ormEntryMapping(EntryName:=ConstFNProperties)> Protected _propertystrings() As String = {}
         <ormEntryMapping(EntryName:=ConstFNalias)> Protected _aliases As String() = {}
         <ormEntryMapping(EntryName:=ConstFNTitle)> Protected _title As String = ""
         <ormEntryMapping(EntryName:=ConstFNUPDC)> Protected _version As Long = 0
         <ormEntryMapping(EntryName:=ConstFNDescription)> Protected _Description As String = ""
-        <ormEntryMapping(Entryname:=ConstFNType)> Protected _typeid As otObjectEntryDefinitiontype
+        <ormEntryMapping(Entryname:=ConstFNType)> Protected _typeid As otObjectEntryType
         <ormEntryMapping(entryname:=ConstFNValidate)> Protected _validate As Boolean = False
         <ormEntryMapping(entryname:=ConstFNRender)> Protected _render As Boolean = False
-        <ormEntryMapping(entryname:=ConstFNValues)> Protected _listOfValues As List(Of Object) = New List(Of Object)
+        <ormEntryMapping(entryname:=ConstFNValues)> Protected _listOfValues As List(Of String) = New List(Of String)
         <ormEntryMapping(entryname:=ConstFNLookupProperties)> Protected _LookupPropertyStrings As String() = {}
         <ormEntryMapping(entryname:=ConstFNLookup)> Protected _lookupcondition As String = ""
         <ormEntryMapping(entryname:=ConstFNLowerRange)> Protected _lowerRangeValue As Long?
@@ -5154,20 +5191,33 @@ Namespace OnTrack.Database
 
         '** events
         'Public Shadows Event OnSwitchRuntimeOff(sender As Object, e As ormDataObjectEventArgs)
-        '** dynamic
+
+        ''' <summary>
+        ''' Events
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Public Event PropertyChanged As System.ComponentModel.PropertyChangedEventHandler Implements iormObjectEntry.PropertyChanged
+
+        ''' <summary>
+        ''' dynamic members
+        ''' </summary>
+        ''' <remarks></remarks>
         Private _properties As New List(Of ObjectEntryProperty)
         Private _renderProperties As New List(Of RenderProperty)
         Private _runTimeOnly As Boolean = False 'dynmaic
         Private _validateProperties As New List(Of ObjectValidationProperty)
         Private _lookupProperties As New List(Of LookupProperty)
+        'Protected _objectDefintion As ObjectDefinition leads to loops if loaded on infused
 
         ''' <summary>
-        ''' constructor of a SchemaDefTableEntry
+        ''' constructor
         ''' </summary>
         ''' <remarks></remarks>
         Public Sub New()
-            Call MyBase.New(ConstTableID)
-
+            MyBase.New()
+            registerHandler()
         End Sub
 
 #Region "Properties"
@@ -5260,12 +5310,11 @@ Namespace OnTrack.Database
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property LowerRangeValue As Long Implements iormObjectEntry.LowerRangeValue
+        Public Property LowerRangeValue As Long? Implements iormObjectEntry.LowerRangeValue
             Get
-                If Not _lowerRangeValue.HasValue Then Return Int64.MinValue
                 Return _lowerRangeValue
             End Get
-            Set(value As Long)
+            Set(value As Long?)
                 SetValue(entryname:=ConstFNLowerRange, value:=value)
             End Set
         End Property
@@ -5277,7 +5326,6 @@ Namespace OnTrack.Database
         ''' <remarks></remarks>
         Public ReadOnly Property HasUpperRangeValue As Boolean Implements iormObjectEntry.HasUpperRangeValue
             Get
-                If Not Me.IsAlive(subname:="HasUpperRangeValue") Then Return False
                 Return _upperRangeValue.HasValue
             End Get
         End Property
@@ -5287,12 +5335,11 @@ Namespace OnTrack.Database
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property UpperRangeValue As Long Implements iormObjectEntry.UpperRangeValue
+        Public Property UpperRangeValue As Long? Implements iormObjectEntry.UpperRangeValue
             Get
-                If Not _upperRangeValue.HasValue Then Return Int64.MaxValue
                 Return _upperRangeValue
             End Get
-            Set(value As Long)
+            Set(value As Long?)
                 SetValue(entryname:=ConstFNUpperRange, value:=value)
             End Set
         End Property
@@ -5314,11 +5361,11 @@ Namespace OnTrack.Database
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property PossibleValues As List(Of Object) Implements iormObjectEntry.PossibleValues
+        Public Property PossibleValues As List(Of String) Implements iormObjectEntry.PossibleValues
             Get
                 Return _listOfValues
             End Get
-            Set(value As List(Of Object))
+            Set(value As List(Of String))
                 SetValue(entryname:=ConstFNValues, value:=value)
             End Set
         End Property
@@ -5609,7 +5656,7 @@ Namespace OnTrack.Database
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public MustOverride Property PrimaryKeyOrdinal() As UShort Implements iormObjectEntry.PrimaryKeyOrdinal
+        Public MustOverride Property PrimaryKeyOrdinal() As Long Implements iormObjectEntry.PrimaryKeyOrdinal
         ''' <summary>
         ''' gets or sets the nullable
         ''' </summary>
@@ -5622,11 +5669,11 @@ Namespace OnTrack.Database
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property Ordinal() As UShort Implements iormObjectEntry.Ordinal
+        Public Property Ordinal() As Long Implements iormObjectEntry.Ordinal
             Get
                 Return _ordinal
             End Get
-            Set(value As UShort)
+            Set(value As Long)
                 SetValue(entryname:=ConstFNordinal, value:=value)
             End Set
         End Property
@@ -5684,12 +5731,12 @@ Namespace OnTrack.Database
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property Typeid() As otObjectEntryDefinitiontype Implements iormObjectEntry.Typeid
+        Public Property Typeid() As otObjectEntryType Implements iormObjectEntry.Typeid
             Get
                 Typeid = Me._typeid
 
             End Get
-            Protected Set(value As otObjectEntryDefinitiontype)
+            Protected Set(value As otObjectEntryType)
                 SetValue(entryname:=ConstFNType, value:=value)
             End Set
         End Property
@@ -5712,7 +5759,7 @@ Namespace OnTrack.Database
         ''' <remarks></remarks>
         Property IsColumn() As Boolean Implements iormObjectEntry.IsColumn
             Get
-                If _typeid = otObjectEntryDefinitiontype.Column Then IsColumn = True
+                If _typeid = otObjectEntryType.Column Then IsColumn = True
             End Get
             Set(value As Boolean)
                 CoreMessageHandler(message:="Property IsField is not changeable", subname:="ObjectEntryDefinition.IsField", messagetype:=otCoreMessageType.InternalError, objectname:=Me.Objectname)
@@ -5726,7 +5773,7 @@ Namespace OnTrack.Database
         ''' <remarks></remarks>
         Property IsCompound() As Boolean Implements iormObjectEntry.IsCompound
             Get
-                If _typeid = otObjectEntryDefinitiontype.Compound Then IsCompound = True
+                If _typeid = otObjectEntryType.Compound Then IsCompound = True
             End Get
             Set(value As Boolean)
                 CoreMessageHandler(message:="Property isCompound is not changeable", subname:="ObjectEntryDefinition.isCompound", messagetype:=otCoreMessageType.InternalError, objectname:=Me.Objectname)
@@ -5762,16 +5809,16 @@ Namespace OnTrack.Database
             End Set
         End Property
         ''' <summary>
-        ''' returns the relation ob the entry
+        ''' returns the relation information of the entry
         ''' </summary>
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property Relation() As Object()
+        Public Property Relation() As String()
             Get
-                Return _relation
+                Return _Relation
             End Get
-            Set(value As Object())
+            Set(value As String())
                 SetValue(entryname:=ConstFNRelation, value:=value)
             End Set
         End Property
@@ -5812,6 +5859,24 @@ Namespace OnTrack.Database
 
 #End Region
 
+        ''' <summary>
+        ''' register all Event Handlers
+        ''' </summary>
+        ''' <remarks></remarks>
+        Protected Sub registerHandler()
+            AddHandler ormDataObject.OnCreated, AddressOf Me.OnCreated
+            AddHandler ormDataObject.OnCreating, AddressOf Me.OnCreating
+            AddHandler ormDataObject.OnInfused, AddressOf Me.OnInfused
+        End Sub
+        ''' <summary>
+        ''' deregister Event Handlers
+        ''' </summary>
+        ''' <remarks></remarks>
+        Protected Sub deregisterHandler()
+            RemoveHandler ormDataObject.OnCreated, AddressOf Me.OnCreated
+            RemoveHandler ormDataObject.OnCreating, AddressOf Me.OnCreating
+            RemoveHandler ormDataObject.OnInfused, AddressOf Me.OnInfused
+        End Sub
         ''' <summary>
         ''' Handler for the SwitchRuntimeOFF Event after Bootstrapping
         ''' </summary>
@@ -5882,6 +5947,46 @@ Namespace OnTrack.Database
             Return True
         End Function
 
+        ''' <summary>
+        ''' handler for OnCreated
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Public Sub OnCreated(sender As Object, e As ormDataObjectEventArgs)
+            Dim myself As AbstractEntryDefinition = TryCast(e.DataObject, AbstractEntryDefinition)
+
+            If myself IsNot Nothing Then
+                Dim anObjectDefintion = CurrentSession.Objects.GetObject(objectid:=myself.Objectname, runtimeOnly:=myself.RunTimeOnly)
+                If anObjectDefintion Is Nothing Then
+                    CoreMessageHandler(message:="Object entry must be bound to an existing object definition", arg1:=myself.Objectname, _
+                                       subname:="AbstractEntryDefinition_OnCreating", objectname:=Me.ObjectID, messagetype:=otCoreMessageType.InternalError)
+                    e.AbortOperation = True
+                Else
+                    ''' add it to the object definition
+                    anObjectDefintion.AddEntry(Me)
+                End If
+            End If
+        End Sub
+
+        ''' <summary>
+        ''' handler for onCreating 
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Public Sub OnCreating(sender As Object, e As ormDataObjectEventArgs)
+            Dim myself As AbstractEntryDefinition = TryCast(e.DataObject, AbstractEntryDefinition)
+
+            If myself IsNot Nothing Then
+                Dim anObjectDefintion = CurrentSession.Objects.GetObject(objectid:=e.Record.GetValue(ConstFNObjectName), runtimeOnly:=myself.RunTimeOnly)
+                If anObjectDefintion Is Nothing Then
+                    CoreMessageHandler(message:="Object entry must be bound to an existing object definition", arg1:=e.Record.GetValue(ConstFNObjectName), _
+                                       subname:="AbstractEntryDefinition_OnCreating", objectname:=Me.ObjectID, messagetype:=otCoreMessageType.InternalError)
+                    e.AbortOperation = True
+                End If
+            End If
+        End Sub
 
         ''' <summary>
         ''' infuses the object from a record
@@ -5889,9 +5994,20 @@ Namespace OnTrack.Database
         ''' <param name="aRecord"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Sub OnInfused(sender As Object, e As ormDataObjectEventArgs) Handles MyBase.OnInfused
+        Public Sub OnInfused(sender As Object, e As ormDataObjectEventArgs)
 
             Try
+
+                ' this is not working - it brings us in an endless loop since the objectdefinition is not in the repository nor in the cache
+                ' an while loading the relations such as EntryDefinitions we land here again
+
+                'If _objectDefintion Is Nothing OrElse _objectDefintion.ID <> _objectname Then
+                '    _objectDefintion = OnTrack.Database.ObjectDefinition.Retrieve(objectname:=_objectname, runtimeOnly:=_runTimeOnly)
+                '    If _objectDefintion Is Nothing Then
+                '        CoreMessageHandler(message:="Object entry must be bound to an existing object definition", arg1:=_objectname, _
+                '                           subname:="AbstractEntryDefinition_OnInfused", objectname:=Me.ObjectID, messagetype:=otCoreMessageType.InternalError)
+                '    End If
+                'End If
 
                 '** the property list in Object presentation
                 Dim aList As New List(Of ObjectEntryProperty)
@@ -5900,7 +6016,7 @@ Namespace OnTrack.Database
                         Dim aProperty As ObjectEntryProperty = New ObjectEntryProperty(propstring)
                         aList.Add(aProperty)
                     Catch ex As Exception
-                        Call CoreMessageHandler(subname:="ObjectEntryDefinition.OnInfused", exception:=ex)
+                        Call CoreMessageHandler(subname:="AbstractEntryDefinition_OnInfused", exception:=ex)
                     End Try
                 Next
                 _properties = aList ' assign
@@ -5911,7 +6027,7 @@ Namespace OnTrack.Database
                         Dim aProperty As ObjectValidationProperty = New ObjectValidationProperty(propstring)
                         aValidationList.Add(aProperty)
                     Catch ex As Exception
-                        Call CoreMessageHandler(subname:="ObjectEntryDefinition.OnInfused", exception:=ex)
+                        Call CoreMessageHandler(subname:="AbstractEntryDefinition_OnInfused", exception:=ex)
                     End Try
                 Next
                 _validateProperties = aValidationList ' assign
@@ -5922,161 +6038,230 @@ Namespace OnTrack.Database
                         Dim aProperty As RenderProperty = New RenderProperty(propstring)
                         aRenderList.Add(aProperty)
                     Catch ex As Exception
-                        Call CoreMessageHandler(subname:="ObjectEntryDefinition.OnInfused", exception:=ex)
+                        Call CoreMessageHandler(subname:="AbstractEntryDefinition_OnInfused", exception:=ex)
                     End Try
                 Next
                 _renderProperties = aRenderList ' assign
 
             Catch ex As Exception
-                Call CoreMessageHandler(subname:="ObjectEntryDefinition.OnInfused", exception:=ex)
+                Call CoreMessageHandler(subname:="AbstractEntryDefinition_OnInfused", exception:=ex)
             End Try
 
         End Sub
-
-        '**** allByID
-        '****
-        Public Function AllByID(ByVal ID As String, Optional ByVal tablename As String = "") As Collection
-            '            Dim aCollection As New Collection
-            '            Dim aRecordCollection As List(Of ormRecord)
-            '            Dim returnCollection As New Collection
-            '            Dim aTable As iormDataStore
-            '            Dim aRecord As ormRecord
-            '            Dim wherestr As String
-            '            Dim aNew As New ObjectEntryDefinition
-
-            '            '* lazy init
-            '            If Not IsInitialized Then
-            '                If Not Me.Initialize() Then
-            '                    AllByID = Nothing
-            '                    Exit Function
-            '                End If
-            '            End If
-
-            '            On Error GoTo error_handler
-
-            '            aTable = GetTableStore(Me.TableID)
-            '            wherestr = " ( ID = '" & UCase(ID) & "' or alias like '%" & ConstDelimiter & UCase(ID) & ConstDelimiter & "%' )"
-            '            If tablename <> "" Then
-            '                wherestr = wherestr & " and tblname = '" & tablename & "'"
-            '            End If
-            '            aRecordCollection = aTable.GetRecordsBySql(wherestr:=wherestr)
-
-            '            If aRecordCollection Is Nothing Then
-            '                me.isloaded = False
-            '                AllByID = Nothing
-            '                Exit Function
-            '            Else
-            '                For Each aRecord In aRecordCollection
-
-            '                    aNew = New ObjectEntryDefinition
-            '                    If aNew.Infuse(aRecord) Then
-            '                        aCollection.Add(Item:=aNew)
-            '                    End If
-            '                Next aRecord
-            '                AllByID = aCollection
-            '                Exit Function
-            '            End If
-
-            'error_handler:
-
-            '            AllByID = Nothing
-            '            Exit Function
-        End Function
-
-        '**** loadByID
-        '****
         ''' <summary>
-        ''' load data from datastore
+        ''' returns a Dictionary of Entryname - list of objectnames
         ''' </summary>
-        ''' <param name="ID"></param>
-        ''' <param name="objectname"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function LoadByID(ByVal ID As String, Optional ByVal objectname As String = "") As Boolean
-            '            Dim aCollection As New Collection
-            '            Dim aRecordCollection As List(Of ormRecord)
-            '            Dim aTable As iormDataStore
-            '            Dim aRecord As ormRecord
-            '            Dim wherestr As String
+        Public Shared Function GetEntryReference(Optional domainid As String = "") As Dictionary(Of String, List(Of String))
 
-            '            '* lazy init
-            '            If Not IsInitialized Then
-            '                If Not Me.Initialize() Then
-            '                    LoadByID = False
-            '                    Exit Function
-            '                End If
-            '            End If
+            Dim aStore As iormDataStore = CurrentDBDriver.GetTableStore(ConstTableID)
+            Dim aDictionary As New Dictionary(Of String, List(Of String))
+            If domainid = "" Then domainid = CurrentSession.CurrentDomainID
 
-            '            On Error GoTo error_handler
+            Try
+                Dim aCommand As ormSqlSelectCommand = aStore.CreateSqlSelectCommand(id:="GetXIDReference", addMe:=True, addAllFields:=False)
 
-            '            aTable = GetTableStore(Me.TableID)
-            '            wherestr = " ( ID = '" & UCase(ID) & "' or alias like '%" & ConstDelimiter & UCase(ID) & ConstDelimiter & "%' )"
-            '            If objectname <> "" Then
-            '                wherestr = wherestr & " and tblname = '" & objectname.toupper & "'"
-            '            End If
-            '            aRecordCollection = aTable.GetRecordsBySql(wherestr:=wherestr)
+                '** prepare the command if necessary
+                If Not aCommand.Prepared Then
+                    aCommand.select = ConstFNEntryName & "," & ConstFNObjectName & "," & ConstFNDomainID
+                    aCommand.Where = "([" & ConstFNDomainID & "] = @domain OR [" & ConstFNDomainID & "] = @globaldomain)"
+                    aCommand.AddParameter(New ormSqlCommandParameter(id:="@domain", ColumnName:=ConstFNDomainID, tablename:=ConstTableID))
+                    aCommand.AddParameter(New ormSqlCommandParameter(id:="@globaldomain", ColumnName:=ConstFNDomainID, tablename:=ConstTableID))
 
-            '            If aRecordCollection Is Nothing Then
-            '                me.isloaded = False
-            '                LoadByID = False
-            '                Exit Function
-            '            Else
-            '                For Each aRecord In aRecordCollection
-            '                    ' take the first
-            '                    If Infuse(aRecord) Then
-            '                        LoadByID = True
-            '                        Exit Function
-            '                    End If
-            '                Next aRecord
-            '                LoadByID = False
-            '                Exit Function
-            '            End If
+                    aCommand.Prepare()
+                End If
+                aCommand.SetParameterValue(ID:="@domain", value:=domainid)
+                aCommand.SetParameterValue(ID:="@globaldomain", value:=ConstGlobalDomain)
 
-            'error_handler:
+                '** run the Command
+                Dim theRecords As List(Of ormRecord) = aCommand.RunSelect
 
-            '            LoadByID = False
-            '            Exit Function
+                ''' check the domain active records
+                ''' 
+                If theRecords.Count > 0 Then
+                    Dim aDomainRecordCollection As New Dictionary(Of String, ormRecord)
+                    For Each aRecord In theRecords
+                        Dim pk As String = aRecord.GetValue(2) & ConstDelimiter & aRecord.GetValue(1) & ConstDelimiter & aRecord.GetValue(3)
+                        If aDomainRecordCollection.ContainsKey(pk) Then
+                            Dim anotherRecord = aDomainRecordCollection.Item(pk)
+                            If anotherRecord.GetValue(3).ToString = ConstGlobalDomain Then
+                                aDomainRecordCollection.Remove(pk)
+                                aDomainRecordCollection.Add(key:=pk, value:=aRecord)
+                            End If
+                        Else
+                            aDomainRecordCollection.Add(key:=pk, value:=aRecord)
+                        End If
+                    Next
+
+                    ''' build the index
+                    ''' 
+                    For Each aRecord In aDomainRecordCollection.Values
+                        Dim aList As New List(Of String)
+                        If Not aDictionary.ContainsKey(aRecord.GetValue(1)) Then
+                            aDictionary.Add(key:=aRecord.GetValue(1), value:=aList)
+                        Else
+                            aList = aDictionary.Item(key:=aRecord.GetValue(1))
+                        End If
+                        If Not aList.Contains(aRecord.GetValue(2)) Then
+                            aList.Add(aRecord.GetValue(2))
+                        End If
+                    Next
+                End If
+
+                ''' return the Records
+                Return aDictionary
+
+            Catch ex As Exception
+                Call CoreMessageHandler(exception:=ex, subname:="AbstractEntryDefinition.GetEntryReference")
+                Return aDictionary
+            End Try
+
         End Function
-
         ''' <summary>
-        ''' event Handly for Record Fed
+        ''' returns a Dictionary of Alias - list of objectentrynames
         ''' </summary>
-        ''' <param name="sender"></param>
-        ''' <param name="e"></param>
+        ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Sub OnRecordFed(sender As Object, e As ormDataObjectEventArgs) Handles Me.OnFed
+        Public Shared Function GetAliasReference(Optional domainid As String = "") As Dictionary(Of String, List(Of String))
 
-        End Sub
+            Dim aStore As iormDataStore = CurrentDBDriver.GetTableStore(ConstTableID)
+            Dim aDictionary As New Dictionary(Of String, List(Of String))
+            If domainid = "" Then domainid = CurrentSession.CurrentDomainID
 
+            Try
+                Dim aCommand As ormSqlSelectCommand = aStore.CreateSqlSelectCommand(id:="GetXIDReference", addMe:=True, addAllFields:=False)
+
+                '** prepare the command if necessary
+                If Not aCommand.Prepared Then
+                    aCommand.select = ConstFNalias & "," & ConstFNEntryName & "," & ConstFNObjectName & "," & ConstFNDomainID
+                    aCommand.Where = ConstFNalias & " <> '' AND " & ConstFNalias & " IS NOT NULL AND " & ConstFNalias & " <> '" & ConstDelimiter & ConstDelimiter & "' AND "
+                    aCommand.Where &= "([" & ConstFNDomainID & "] = @domain OR [" & ConstFNDomainID & "] = @globaldomain)"
+                    aCommand.AddParameter(New ormSqlCommandParameter(id:="@domain", ColumnName:=ConstFNDomainID, tablename:=ConstTableID))
+                    aCommand.AddParameter(New ormSqlCommandParameter(id:="@globaldomain", ColumnName:=ConstFNDomainID, tablename:=ConstTableID))
+
+                    aCommand.Prepare()
+                End If
+                aCommand.SetParameterValue(ID:="@domain", value:=domainid)
+                aCommand.SetParameterValue(ID:="@globaldomain", value:=ConstGlobalDomain)
+
+                '** run the Command
+                Dim theRecords As List(Of ormRecord) = aCommand.RunSelect
+
+                ''' check the domain active records
+                ''' 
+                If theRecords.Count > 0 Then
+                    Dim aDomainRecordCollection As New Dictionary(Of String, ormRecord)
+                    For Each aRecord In theRecords
+                        Dim pk As String = aRecord.GetValue(3) & ConstDelimiter & aRecord.GetValue(2) & ConstDelimiter & aRecord.GetValue(4)
+                        If aDomainRecordCollection.ContainsKey(pk) Then
+                            Dim anotherRecord = aDomainRecordCollection.Item(pk)
+                            If anotherRecord.GetValue(4).ToString = ConstGlobalDomain Then
+                                aDomainRecordCollection.Remove(pk)
+                                aDomainRecordCollection.Add(key:=pk, value:=aRecord)
+                            End If
+                        Else
+                            aDomainRecordCollection.Add(key:=pk, value:=aRecord)
+                        End If
+                    Next
+
+                    ''' build the index
+                    ''' 
+                    For Each aRecord In aDomainRecordCollection.Values
+                        Dim aList As New List(Of String)
+                        Dim aliases As String() = Converter.String2Array(aRecord.GetValue(1))
+                        For Each anAlias In aliases
+                            If Not aDictionary.ContainsKey(anAlias) Then
+                                aDictionary.Add(key:=anAlias, value:=aList)
+                            Else
+                                aList = aDictionary.Item(key:=anAlias)
+                            End If
+                            If Not aList.Contains(aRecord.GetValue(3) & "." & aRecord.GetValue(2)) Then
+                                aList.Add(aRecord.GetValue(3) & "." & aRecord.GetValue(2))
+                            End If
+                        Next
+
+                    Next
+                End If
+
+                ''' return the Records
+                Return aDictionary
+
+            Catch ex As Exception
+                Call CoreMessageHandler(exception:=ex, subname:="AbstractEntryDefinition.GetAliasReference")
+                Return aDictionary
+            End Try
+
+        End Function
         ''' <summary>
-        ''' create a new dataobject with primary keys
+        ''' returns a Dictionary of XID - (  ObjectEntryName in canonical form) Tuples
         ''' </summary>
-        ''' <param name="tablename"></param>
-        ''' <param name="entryname"></param>
-        ''' <param name="typeid"></param>
-        ''' <param name="runtimeOnly"></param>
-        ''' <returns>True if successfull</returns>
+        ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Function Create(ByVal objectname As String, ByVal entryname As String, _
-                                            Optional ByVal domainID As String = "", _
-                                            Optional ByVal typeid As otObjectEntryDefinitiontype = Nothing, _
-                                            Optional ByVal runtimeOnly As Boolean = False, _
-                                            Optional ByVal checkunique As Boolean = True) As Boolean
-            If domainID = "" Then domainID = CurrentSession.CurrentDomainID
-            Dim primarykey() As Object = {objectname.ToUpper, entryname.ToUpper, domainID}
+        Public Shared Function GetXIDReference(Optional domainid As String = "") As Dictionary(Of String, List(Of String))
 
-            ' create
-            If MyBase.Create(primarykey, checkUnique:=checkunique, runtimeOnly:=runtimeOnly) Then
-                ' set the primaryKey
-                _objectname = objectname.ToUpper
-                _entryname = entryname.ToUpper
-                _typeid = typeid
-                _runTimeOnly = runtimeOnly
-                _domainID = domainID
-                Return Me.IsCreated
-            Else
-                Return False
-            End If
+            Dim aStore As iormDataStore = CurrentDBDriver.GetTableStore(ConstTableID)
+            Dim aDictionary As New Dictionary(Of String, List(Of String))
+            If domainid = "" Then domainid = CurrentSession.CurrentDomainID
+
+            Try
+                Dim aCommand As ormSqlSelectCommand = aStore.CreateSqlSelectCommand(id:="GetXIDReference", addMe:=True, addAllFields:=False)
+
+                '** prepare the command if necessary
+                If Not aCommand.Prepared Then
+                    aCommand.select = ConstFNxid & "," & ConstFNObjectName & "," & ConstFNEntryName & "," & ConstFNDomainID
+                    aCommand.Where = ConstFNxid & " <> '' AND " & ConstFNxid & " IS NOT NULL AND "
+                    aCommand.Where &= "([" & ConstFNDomainID & "] = @domain OR [" & ConstFNDomainID & "] = @globaldomain)"
+                    aCommand.AddParameter(New ormSqlCommandParameter(id:="@domain", ColumnName:=ConstFNDomainID, tablename:=ConstTableID))
+                    aCommand.AddParameter(New ormSqlCommandParameter(id:="@globaldomain", ColumnName:=ConstFNDomainID, tablename:=ConstTableID))
+
+                    aCommand.Prepare()
+                End If
+                aCommand.SetParameterValue(ID:="@domain", value:=domainid)
+                aCommand.SetParameterValue(ID:="@globaldomain", value:=ConstGlobalDomain)
+
+                '** run the Command
+                Dim theRecords As List(Of ormRecord) = aCommand.RunSelect
+
+                ''' check the domain active records
+                ''' 
+                If theRecords.Count > 0 Then
+                    Dim aDomainRecordCollection As New Dictionary(Of String, ormRecord)
+                    For Each aRecord In theRecords
+                        Dim pk As String = aRecord.GetValue(2) & ConstDelimiter & aRecord.GetValue(3) & ConstDelimiter & aRecord.GetValue(4)
+                        If aDomainRecordCollection.ContainsKey(pk) Then
+                            Dim anotherRecord = aDomainRecordCollection.Item(pk)
+                            If anotherRecord.GetValue(4).ToString = ConstGlobalDomain Then
+                                aDomainRecordCollection.Remove(pk)
+                                aDomainRecordCollection.Add(key:=pk, value:=aRecord)
+                            End If
+                        Else
+                            aDomainRecordCollection.Add(key:=pk, value:=aRecord)
+                        End If
+                    Next
+
+                    ''' build the index
+                    ''' 
+                    For Each aRecord In aDomainRecordCollection.Values
+                        Dim aList As New List(Of String)
+                        If Not aDictionary.ContainsKey(aRecord.GetValue(1)) Then
+                            aDictionary.Add(key:=aRecord.GetValue(1), value:=aList)
+                        Else
+                            aList = aDictionary.Item(key:=aRecord.GetValue(1))
+                        End If
+                        If Not aList.Contains(aRecord.GetValue(2) & "." & aRecord.GetValue(3)) Then
+                            aList.Add(aRecord.GetValue(2) & "." & aRecord.GetValue(3))
+                        End If
+                    Next
+                End If
+
+                ''' return the Records
+                Return aDictionary
+
+            Catch ex As Exception
+                Call CoreMessageHandler(exception:=ex, subname:="AbstractEntryDefinition.GetXIDReference")
+                Return aDictionary
+            End Try
 
         End Function
 
@@ -6089,7 +6274,7 @@ Namespace OnTrack.Database
     ''' </summary>
     ''' <remarks></remarks>
 
-    <ormObject(ID:=ObjectCompoundEntry.ConstObjectID, modulename:=ConstModuleMeta, _
+    <ormObject(ID:=ObjectCompoundEntry.ConstObjectID, modulename:=ConstModuleRepository, _
         description:="Compound definition of an object entry definition.", _
              AddDeleteFieldBehavior:=True, AddDomainBehavior:=True, _
             usecache:=True, isbootstrap:=True, Version:=1)> _
@@ -6108,28 +6293,43 @@ Namespace OnTrack.Database
         <ormObjectEntry(typeid:=otDataType.Text, size:=50, properties:={ObjectEntryProperty.Keyword}, isnullable:=True, posordinal:=100, _
                         properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty}, _
                         title:="Compound Table", Description:="name of the compound table")> _
-        Public Const ConstFNCompoundTable As String = "ctblname"
+        Public Const ConstFNFinalObjectID As String = "ctblname"
 
         <ormObjectEntry(typeid:=otDataType.List, isnullable:=True, posordinal:=101, _
                         properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty}, _
-                        title:="Compound Relation", Description:="relation column names of the compound table")> _
+                        title:="Compound Relation", Description:="relation path to the compound object")> _
         Public Const ConstFNCompoundRelation As String = "crelation"
 
         <ormObjectEntry(typeid:=otDataType.Text, size:=50, properties:={ObjectEntryProperty.Keyword}, isnullable:=True, posordinal:=102, _
                         properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty}, _
-                        title:="compound id field", Description:="name of the compound id field")> Public Const ConstFNCompoundIDField As String = "cidfield"
+                        title:="compound id field", Description:="name of the compound id field")> Public Const ConstFNCompoundIDEntryname As String = "cidfield"
 
         <ormObjectEntry(typeid:=otDataType.Text, size:=255, properties:={ObjectEntryProperty.Keyword}, isnullable:=True, posordinal:=103, _
                         properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty}, _
-                        title:="compound value field", Description:="name of the compound value field")> Public Const ConstFNCompoundValueField As String = "cvalfield"
+                        title:="compound value field", Description:="name of the compound value field")> Public Const ConstFNCompoundValueEntryName As String = "cvalfield"
+
+
+        <ormObjectEntry(typeid:=otDataType.Text, size:=50, properties:={ObjectEntryProperty.Keyword}, isnullable:=True, posordinal:=110, _
+                        properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty}, _
+                        title:="compound setter operation", Description:="name of the compount setter method")> Public Const ConstFNCompoundSetter As String = "csetter"
+
+        <ormObjectEntry(typeid:=otDataType.Text, size:=50, properties:={ObjectEntryProperty.Keyword}, isnullable:=True, posordinal:=111, _
+                       properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty}, _
+                       title:="compound getter operation", Description:="name of the compount getter method")> Public Const ConstFNCompoundGetter As String = "cgetter"
 
 
         '** compound settings
-        <ormEntryMapping(EntryName:=ConstFNCompoundTable)> Private _cTablename As String = ""
-        <ormEntryMapping(EntryName:=ConstFNCompoundRelation)> Private _cRelation As String() = {}
-        <ormEntryMapping(EntryName:=ConstFNCompoundIDField)> Private _cIDFieldname As String = ""
-        <ormEntryMapping(EntryName:=ConstFNCompoundValueField)> Private _cValueFieldname As String = ""
+        <ormEntryMapping(EntryName:=ConstFNFinalObjectID)> Private _cFinalObjectID As String
+        <ormEntryMapping(EntryName:=ConstFNCompoundRelation)> Private _cRelation As String()
+        <ormEntryMapping(EntryName:=ConstFNCompoundIDEntryname)> Private _cIDEntryname As String
+        <ormEntryMapping(EntryName:=ConstFNCompoundValueEntryName)> Private _cValueEntryName As String
+        <ormEntryMapping(EntryName:=ConstFNCompoundGetter)> Private _CompoundGetterMethodName As String
+        <ormEntryMapping(EntryName:=ConstFNCompoundSetter)> Private _CompoundSetterMethodName As String
 
+        ''' method tags
+        ''' 
+        Public Const ConstCompoundSetter = "SETTER"
+        Public Const ConstCompoundGetter = "GETTER"
 
         ''' <summary>
         ''' constructor of a SchemaDefTableEntry
@@ -6137,10 +6337,36 @@ Namespace OnTrack.Database
         ''' <remarks></remarks>
         Public Sub New()
             Call MyBase.New()
-            MyBase.Typeid = otObjectEntryDefinitiontype.Compound
+            MyBase.Typeid = otObjectEntryType.Compound
         End Sub
 
 #Region "Properties"
+
+        ''' <summary>
+        ''' Gets or sets the name of the compound getter method.
+        ''' </summary>
+        ''' <value>The name of the compound getter method.</value>
+        Public Property CompoundGetterMethodName() As String
+            Get
+                Return Me._CompoundGetterMethodName
+            End Get
+            Set
+                Me._CompoundGetterMethodName = Value
+            End Set
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the name of the compound setter method.
+        ''' </summary>
+        ''' <value>The name of the compound setter method.</value>
+        Public Property CompoundSetterMethodName() As String
+            Get
+                Return Me._CompoundSetterMethodName
+            End Get
+            Set
+                Me._CompoundSetterMethodName = Value
+            End Set
+        End Property
 
         ''' <summary>
         ''' not applicable for Compound Entry
@@ -6148,11 +6374,11 @@ Namespace OnTrack.Database
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overrides Property PrimaryKeyOrdinal As UShort
+        Public Overrides Property PrimaryKeyOrdinal As Long
             Get
                 Return 0
             End Get
-            Set(value As UShort)
+            Set(value As Long)
                 CoreMessageHandler(message:="ObjectCompoundEntry cannot be a primary key", subname:="ObjectCompoundEntry.PrimaryKeyOrdinal", messagetype:=otCoreMessageType.InternalWarning)
 
             End Set
@@ -6234,7 +6460,7 @@ Namespace OnTrack.Database
         ''' <value>The default value.</value>
         Public Property DefaultValueString() As String
             Get
-                Return Me._defaultvalue
+                Return Me._defaultvalue.ToString
             End Get
             Set(value As String)
                 SetValue(entryname:=ConstFNDefaultValue, value:=value)
@@ -6249,62 +6475,62 @@ Namespace OnTrack.Database
         ''' <remarks></remarks>
         Public Property Version() As Long
             Get
-                Version = _version
+                Return _version
             End Get
             Set(value As Long)
                 SetValue(entryname:=ConstFNUPDC, value:=value)
             End Set
         End Property
         ''' <summary>
-        ''' returns the CompoundTablename
+        ''' returns the resulting Compound Object ID
         ''' </summary>
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property CompoundTablename() As String
+        Public Property CompoundObjectID() As String
             Get
-                Return _cTablename
+                Return _cFinalObjectID
             End Get
             Set(value As String)
-                SetValue(entryname:=ConstFNCompoundTable, value:=value)
+                SetValue(entryname:=ConstFNFinalObjectID, value:=value)
             End Set
         End Property
 
         ''' <summary>
-        ''' returns the fieldname of the compound ID
+        ''' returns the entryname of the compound ID
         ''' </summary>
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property CompoundIDFieldname() As String
+        Public Property CompoundIDEntryname() As String
             Get
-                CompoundIDFieldname = _cIDFieldname
+                Return _cIDEntryname
             End Get
             Set(value As String)
-                SetValue(entryname:=ConstFNCompoundIDField, value:=value)
+                SetValue(entryname:=ConstFNCompoundIDEntryname, value:=value)
             End Set
         End Property
         ''' <summary>
-        ''' returns the fieldname of the compounds value
+        ''' returns the entryname of the compounds value in the resulting object
         ''' </summary>
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property CompoundValueFieldname() As String
+        Public Property CompoundValueEntryName() As String
             Get
-                CompoundValueFieldname = _cValueFieldname
+                Return _cValueEntryName
             End Get
             Set(value As String)
-                SetValue(entryname:=ConstFNCompoundValueField, value:=value)
+                SetValue(entryname:=ConstFNCompoundValueEntryName, value:=value)
             End Set
         End Property
         ''' <summary>
-        ''' returns the array of relations of a compound
+        ''' returns the path of relations of a compound to the resulting object
         ''' </summary>
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property CompoundRelation() As String()
+        Public Property CompoundRelationPath() As String()
             Get
                 Return _cRelation
             End Get
@@ -6340,34 +6566,7 @@ Namespace OnTrack.Database
             e.Result = Me.SwitchRuntimeOff()
             If Not e.Result Then e.AbortOperation = True
         End Sub
-        ''' <summary>
-        ''' set the properties of a Column Entry by a ormObjectEntryAttribute
-        ''' </summary>
-        ''' <param name="attribute"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Overrides Function SetByAttribute(attribute As ormObjectEntryAttribute) As Boolean
-            If Not IsAlive(subname:="SetByAttribute") Then Return False
 
-            With attribute
-                Me.Typeid = otObjectEntryDefinitiontype.Compound
-                '** Slot Entry Properties
-                MyBase.SetByAttribute(attribute)
-
-                '* column attributes
-                If .HasValueDBDefaultValue Then Me.DefaultValueString = .DBDefaultValue
-                If .HasValueTypeID Then Me.Datatype = .Typeid
-                If .HasValueSize Then Me.Size = .Size
-
-                'Me.CompoundIDFieldname = compounddesc.compound_IDFieldname
-                'Me.CompoundTablename = compounddesc.compound_Tablename
-                'Me.CompoundValueFieldname = compounddesc.compound_ValueFieldname
-                'Me.CompoundRelation = compounddesc.compound_Relation
-
-            End With
-
-            Return True
-        End Function
         ''' <summary>
         ''' Increase the version
         ''' </summary>
@@ -6378,55 +6577,6 @@ Namespace OnTrack.Database
             IncVersion = _version
         End Function
 
-        '**** set the values by CompoundDesc
-        '****
-        ''' <summary>
-        ''' sets the values of this schemadefTableEntry by a CompoundDescription
-        ''' </summary>
-        ''' <param name="compounddesc"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Function SetByCompoundDesc(ByRef compounddesc As ormCompoundDesc) As Boolean
-            If Not IsLoaded And Not IsCreated Then
-                SetByCompoundDesc = False
-                Exit Function
-            End If
-
-            'If Me.SetByFieldDesc(compounddesc) Then
-            Me.Typeid = otObjectEntryDefinitiontype.Compound
-            Me.CompoundIDFieldname = compounddesc.compound_IDFieldname
-            Me.CompoundTablename = compounddesc.compound_Tablename
-            Me.CompoundValueFieldname = compounddesc.compound_ValueFieldname
-            Me.CompoundRelation = compounddesc.compound_Relation
-            'Me.name = COMPOUNDDESC.name
-
-            SetByCompoundDesc = Me.IsChanged
-            'End If
-        End Function
-        '**** get the values by FieldDesc
-        '****
-        ''' <summary>
-        ''' fills a compound description out of this SchemaDefTableentry
-        ''' </summary>
-        ''' <param name="compounddesc"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Function GetByCompoundDesc(ByRef compounddesc As ormCompoundDesc) As Boolean
-            If Not IsLoaded And Not IsCreated Then
-                GetByCompoundDesc = False
-                Exit Function
-            End If
-
-            'If Me.GetByFieldDesc(compounddesc) Then
-            compounddesc.compound_IDFieldname = Me.CompoundIDFieldname
-            compounddesc.compound_Relation = Me.CompoundRelation
-            compounddesc.compound_Tablename = Me.CompoundTablename
-            compounddesc.compound_ValueFieldname = Me.CompoundValueFieldname
-
-            GetByCompoundDesc = True
-            'End If
-        End Function
-
         ''' <summary>
         ''' retrieves an Object entry Definition from persistence store
         ''' </summary>
@@ -6435,37 +6585,12 @@ Namespace OnTrack.Database
         ''' <param name="domainID"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Retrieve(ByVal objectname As String, entryname As String, Optional ByVal domainID As String = "", Optional runtimeOnly As Boolean = False) As ObjectCompoundEntry
+        Public Overloads Shared Function Retrieve(ByVal objectname As String, entryname As String, _
+                                                  Optional ByVal domainID As String = "", _
+                                                  Optional runtimeOnly As Boolean = False) As ObjectCompoundEntry
             Return Retrieve(Of ObjectCompoundEntry)(pkArray:={objectname.ToUpper, entryname.ToUpper}, domainID:=domainID, runtimeOnly:=runtimeOnly)
         End Function
-        ''' <summary>
-        ''' load and infuse the object by primary key
-        ''' </summary>
-        ''' <param name="tablename"></param>
-        ''' <param name="entryname"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Overloads Function Inject(ByVal objectname As String, ByVal entryname As String, _
-                                         Optional ByVal domainID As String = "") As Boolean
-            If domainID = "" Then domainID = CurrentSession.CurrentDomainID
-            Dim primarykey() As Object = {objectname.ToUpper, entryname.ToUpper, domainID}
-            If MyBase.Inject(primarykey) Then
-                Return False
-            Else
-                Dim primarykeyGlobal() As Object = {objectname.ToUpper, entryname.ToUpper, ConstGlobalDomain}
-                Return MyBase.Inject(primarykeyGlobal)
-            End If
-        End Function
 
-        ''' <summary>
-        ''' create the schema for this object
-        ''' </summary>
-        ''' <param name="silent"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Shared Function CreateSchema(Optional silent As Boolean = True) As Boolean
-            Return ormDataObject.CreateDataObjectSchema(Of ObjectCompoundEntry)()
-        End Function
 
         ''' <summary>
         ''' create a new dataobject with primary keys
@@ -6481,10 +6606,13 @@ Namespace OnTrack.Database
                                             Optional ByVal runtimeOnly As Boolean = False, _
                                             Optional ByVal checkunique As Boolean = True) As ObjectCompoundEntry
             '** create with record to fill other values
+            If domainID = "" Then domainID = CurrentSession.CurrentDomainID
             Dim arecord As New ormRecord
             With arecord
                 .SetValue(ConstFNObjectName, objectname.ToUpper)
                 .SetValue(ConstFNEntryName, entryname.ToUpper)
+                .SetValue(ConstFNDomainID, domainID)
+                .SetValue(ConstFNType, otObjectEntryType.Compound)
             End With
 
             ' create
@@ -6496,14 +6624,13 @@ Namespace OnTrack.Database
     ''' </summary>
     ''' <remarks></remarks>
     'explicit since we are not running through inherited classes
-    <ormObject(id:=ObjectColumnEntry.ConstObjectID, modulename:=ConstModuleMeta, _
+    <ormObject(id:=ObjectColumnEntry.ConstObjectID, modulename:=ConstModuleRepository, _
                 AddDeletefieldBehavior:=True, AddDomainBehavior:=True, _
                 Description:="Object Entry Definition as Column Entry (of a Table)", _
                 usecache:=True, isbootstrap:=True, Version:=1)> _
     Public Class ObjectColumnEntry
         Inherits AbstractEntryDefinition
-        Implements iormPersistable
-        Implements iormInfusable
+        Implements iormPersistable, iormInfusable, iormObjectEntry
 
 
         '*** CONST Schema
@@ -6518,9 +6645,8 @@ Namespace OnTrack.Database
                         properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty}, _
                         Description:="corresponding column name of the object entry")> Public Const ConstFNColumnname As String = ColumnDefinition.ConstFNColumnname
 
-        <ormObjectEntry(typeid:=otDataType.Bool, defaultvalue:=False, dbdefaultvalue:="0", _
-                       title:="SpareFieldTag", Description:="set if the entry is a spare entry")> _
-        Public Const ConstFNSpareFieldTag As String = "SpareFieldTag"
+        <ormObjectEntry(typeid:=otDataType.Bool, defaultvalue:=False, dbdefaultvalue:="0", posordinal:=92, _
+                       title:="SpareFieldTag", Description:="set if the entry is a spare entry")> Public Const ConstFNSpareFieldTag As String = "SpareFieldTag"
 
         ' foreign key doesnot work for some reasons - sqlserver doesnot allow
         '
@@ -6529,13 +6655,12 @@ Namespace OnTrack.Database
         'foreignkeyreferences:={ColumnDefinition.ConstObjectID & "." & ColumnDefinition.ConstFNTableName, _
         'ColumnDefinition.ConstObjectID & "." & ColumnDefinition.ConstFNColumnname})> Public Const constFKColumns = "FKColumns"
 
-        '* relation to the ColumnDefinition
         ''' <summary>
-        ''' relation to the columndefinition
+        ''' relation to the columndefinition - will be always created on create
         ''' </summary>
         ''' <remarks></remarks>
-        <ormSchemaRelation(linkobject:=GetType(ColumnDefinition), toPrimarykeys:={ConstFNTableName, ConstFNColumnname}, _
-            cascadeonCreate:=True, cascadeOnUpdate:=False)> Public Const constRColumnDefinition = "column"
+        <ormRelationAttribute(linkobject:=GetType(ColumnDefinition), toPrimarykeys:={ConstFNTableName, ConstFNColumnname}, createObjectIfnotRetrieved:=True, _
+            cascadeonCreate:=True, cascadeOnUpdate:=False)> Public Const constRColumnDefinition = "COLUMN"
         '** the real thing
         <ormEntryMapping(relationName:=constRColumnDefinition, InfuseMode:=otInfuseMode.OnCreate Or otInfuseMode.OnInject Or otInfuseMode.OnDefault)> _
         Private _columndefinition As ColumnDefinition
@@ -6545,7 +6670,19 @@ Namespace OnTrack.Database
         <ormEntryMapping(EntryName:=ConstFNColumnname)> Private _columnname As String = ""
         <ormEntryMapping(EntryName:=ConstFNSpareFieldTag)> Private _SpareFieldTag As Boolean = False
 
+
+
         ' further internals
+
+        ''' <summary>
+        ''' Events
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        'Public Event PropertyChanged As System.ComponentModel.PropertyChangedEventHandler Implements System.ComponentModel.INotifyPropertyChanged.PropertyChanged
+        Public Event PropertyChanged As System.ComponentModel.PropertyChangedEventHandler Implements iormObjectEntry.PropertyChanged
+
 
         ''' <summary>
         ''' constructor 
@@ -6553,7 +6690,11 @@ Namespace OnTrack.Database
         ''' <remarks></remarks>
         Public Sub New()
             Call MyBase.New()
-            _typeid = otObjectEntryDefinitiontype.Column
+            _typeid = otObjectEntryType.Column
+            AddHandler ormDataObject.OnDefaultValuesNeeded, AddressOf OnDefaultValuesNeeded
+            AddHandler ormDataObject.OnFeeding, AddressOf OnFeeding
+            AddHandler ormDataObject.OnValidating, AddressOf OnValidating
+            AddHandler ormDataObject.OnInitializing, AddressOf OnInitialize
         End Sub
 
 #Region "Properties"
@@ -6569,10 +6710,7 @@ Namespace OnTrack.Database
                 Columnname = _columnname
             End Get
             Set(value As String)
-                If _columnname.ToUpper <> value.ToUpper Then
-                    _columnname = value.ToUpper
-                    IsChanged = True
-                End If
+                SetValue(ConstFNColumnname, value)
             End Set
         End Property
         ''' <summary>
@@ -6586,10 +6724,7 @@ Namespace OnTrack.Database
                 TableName = _tablename
             End Get
             Set(value As String)
-                If _tablename.ToUpper <> value.ToUpper Then
-                    _tablename = value.ToUpper
-                    IsChanged = True
-                End If
+                SetValue(ConstFNTableName, value)
             End Set
         End Property
         ''' <summary>
@@ -6679,14 +6814,14 @@ Namespace OnTrack.Database
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overrides Property PrimaryKeyOrdinal() As UShort
+        Public Overrides Property PrimaryKeyOrdinal() As Long
             Get
                 If _columndefinition IsNot Nothing AndAlso _columndefinition.IsAlive(subname:="ObjectColumnEntry.PrimaryKeyOrdinal") Then
                     Return _columndefinition.PrimaryKeyOrdinal
                 Else : Return 0
                 End If
             End Get
-            Set(avalue As UShort)
+            Set(avalue As Long)
                 If _columndefinition Is Nothing OrElse Not _columndefinition.IsAlive(subname:="ObjectColumnEntry.PrimaryKeyOrdinal") Then
                     Return
                 End If
@@ -6826,13 +6961,15 @@ Namespace OnTrack.Database
         End Property
 #End Region
 
+
+
         ''' <summary>
         ''' Event Handler for defaultValues
         ''' </summary>
         ''' <param name="sender"></param>
         ''' <param name="e"></param>
         ''' <remarks></remarks>
-        Public Sub OnDefaultValuesNeeded(sender As Object, e As ormDataObjectEventArgs) Handles MyBase.OnDefaultValuesNeeded
+        Public Sub OnDefaultValuesNeeded(sender As Object, e As ormDataObjectEventArgs)
 
             ''' check if we have a datatype text or list
             ''' then set also the size
@@ -6861,7 +6998,7 @@ Namespace OnTrack.Database
         ''' <param name="sender"></param>
         ''' <param name="e"></param>
         ''' <remarks></remarks>
-        Public Sub OnValidating(sender As Object, e As ormDataObjectEventArgs) Handles MyBase.OnValidating
+        Public Sub OnValidating(sender As Object, e As ormDataObjectEventArgs)
 
             ''' check if we have a datatype text or list
             ''' then set also the size
@@ -6884,7 +7021,7 @@ Namespace OnTrack.Database
         ''' <param name="sender"></param>
         ''' <param name="e"></param>
         ''' <remarks></remarks>
-        Public Sub OnFeeding(sender As Object, e As ormDataObjectEventArgs) Handles MyBase.OnFeeding
+        Public Sub OnFeeding(sender As Object, e As ormDataObjectEventArgs)
 
             ''' check if we have a datatype text or list
             ''' then set also the size
@@ -6918,9 +7055,11 @@ Namespace OnTrack.Database
         ''' <param name="sender"></param>
         ''' <param name="e"></param>
         ''' <remarks></remarks>
-        Public Sub OnInitialize(sender As Object, e As ormDataObjectEventArgs) Handles MyBase.OnInitializing
+        Public Sub OnInitialize(sender As Object, e As ormDataObjectEventArgs)
             If _columndefinition Is Nothing Then _columndefinition = New ColumnDefinition
         End Sub
+
+
         ''' <summary>
         ''' set the properties of a Column Entry by a ormObjectEntryAttribute
         ''' </summary>
@@ -6932,16 +7071,13 @@ Namespace OnTrack.Database
 
 
             With attribute
-                Me.Typeid = otObjectEntryDefinitiontype.Column
+                Me.Typeid = otObjectEntryType.Column
                 '** Slot Entry Properties
                 MyBase.SetByAttribute(attribute)
 
                 If .HasValueTableName Then Me.TableName = .Tablename
                 If .HasValueColumnName Then Me.Columnname = .ColumnName
 
-                If _columndefinition Is Nothing OrElse Not _columndefinition.IsAlive(throwError:=False) Then
-                    _columndefinition = ColumnDefinition.Retrieve(tablename:=.Tablename, columnname:=.ColumnName)
-                End If
                 '* column attributes
                 If .HasValueIsNullable Then Me.IsNullable = .IsNullable
                 If .hasValuePosOrdinal Then Me.ColumnOrdinal = .Posordinal ' should be the position from a table definition not an object definition
@@ -6994,6 +7130,11 @@ Namespace OnTrack.Database
 
             End If
 
+            ''' register for changed of the column definition
+            ''' 
+            If aColumnEntry IsNot Nothing AndAlso e.RelationIDs.Contains(constRColumnDefinition.ToUpper) Then
+                If _columndefinition IsNot Nothing Then AddHandler _columndefinition.PropertyChanged, AddressOf ColumnDefinition_PropertyChanged
+            End If
         End Sub
         ''' <summary>
         ''' create a new dataobject with primary keys
@@ -7004,7 +7145,11 @@ Namespace OnTrack.Database
         ''' <param name="runtimeOnly"></param>
         ''' <returns>True if successfull</returns>
         ''' <remarks></remarks>
-        Public Shared Function Create(ByVal objectname As String, ByVal entryname As String, ByVal tablename As String, ByVal columnname As String, _
+        Public Shared Function Create(ByVal objectname As String, _
+                                      ByVal entryname As String, _
+                                      ByVal tablename As String, _
+                                      ByVal columnname As String, _
+                                      Optional ByVal ordinal As Long? = Nothing, _
                                             Optional ByVal domainID As String = "", _
                                             Optional ByVal runtimeOnly As Boolean = False, _
                                             Optional ByVal checkunique As Boolean = True) As ObjectColumnEntry
@@ -7016,12 +7161,31 @@ Namespace OnTrack.Database
                 .SetValue(ConstFNTableName, tablename.ToUpper)
                 .SetValue(ConstFNColumnname, columnname.ToUpper)
                 .SetValue(ConstFNDomainID, domainID)
+                .SetValue(ConstFNType, otObjectEntryType.Column)
+                If ordinal.HasValue Then .SetValue(ConstFNordinal, ordinal)
+
             End With
 
             ' create
             Return ormDataObject.CreateDataObject(Of ObjectColumnEntry)(record:=arecord, domainID:=domainID, checkUnique:=checkunique, runtimeOnly:=runtimeOnly)
         End Function
 
+
+        ''' <summary>
+        ''' handler for columndefinition property changed event raises the iormObjectEntry event
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Private Sub ColumnDefinition_PropertyChanged(sender As Object, e As PropertyChangedEventArgs)
+            If e.PropertyName = ColumnDefinition.ConstFNPrimaryKeyOrdinal Then
+                ' cascade it
+                RaiseEvent PropertyChanged(Me, New System.ComponentModel.PropertyChangedEventArgs(e.PropertyName))
+            ElseIf e.PropertyName = ColumnDefinition.ConstFNPrimaryKey Then
+                ' cascade it
+                RaiseEvent PropertyChanged(Me, New System.ComponentModel.PropertyChangedEventArgs(e.PropertyName))
+            End If
+        End Sub
     End Class
 
 

@@ -278,6 +278,13 @@
     <Content Include="Resources\user.png" />
     <Content Include="Resources\video.png" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\FastCSV\LumenWorks.Framework.IO.csproj">
+      <Project>{e3b83d68-c90c-4874-8e5f-dec8d038bc7c}</Project>
+      <Name>LumenWorks.Framework.IO</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.VisualBasic.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

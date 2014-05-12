@@ -109,6 +109,20 @@ Namespace OnTrack.Database
 
         End Property
         ''' <summary>
+        ''' returns the object message log for this data object
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property ObjectMessageLog As ObjectMessageLog
+            Get
+                If Not Me.IsAlive(subname:="ObjectMessageLog") Then Return Nothing
+                If _messagelog Is Nothing Then InfuseRelation(ConstRMessageLog)
+                Return _messagelog
+            End Get
+
+        End Property
+        ''' <summary>
         ''' returns the tableschema associated with this data object
         ''' </summary>
         ''' <value></value>
@@ -180,6 +194,18 @@ Namespace OnTrack.Database
                                         subname:="ormDataObejct.ObjectID", messagetype:=otCoreMessageType.InternalError)
                 End If
                 Return Nothing
+            End Get
+        End Property
+        ''' <summary>
+        ''' returns the Object Tag
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property ObjectTag() As String
+            Get
+                If Not Me.IsAlive(subname:="ObjectTag") Then Return ""
+                Return ConstDelimiter & Me.ObjectID.ToUpper & Converter.Array2String(Me.PrimaryKeyValues)
             End Get
         End Property
         ''' <summary>
@@ -427,17 +453,17 @@ Namespace OnTrack.Database
         ''' <remarks></remarks>
         Public Property SerializeWithHostApplication() As Boolean
             Get
-                SerializeWithHostApplication = _serializeWithHostApplication
+                SerializeWithHostApplication = _persistInHostApplication
             End Get
             Protected Friend Set(value As Boolean)
                 If value Then
                     If isRegisteredAtHostApplication(Me.PrimaryTableID) Then
-                        _serializeWithHostApplication = True
+                        _persistInHostApplication = True
                     Else
-                        _serializeWithHostApplication = registerHostApplicationFor(Me.PrimaryTableID, AllObjectSerialize:=False)
+                        _persistInHostApplication = registerHostApplicationFor(Me.PrimaryTableID, AllObjectSerialize:=False)
                     End If
                 Else
-                    _serializeWithHostApplication = False
+                    _persistInHostApplication = False
                 End If
             End Set
         End Property

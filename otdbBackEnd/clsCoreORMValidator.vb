@@ -131,7 +131,7 @@ Namespace OnTrack.Database
             Else
                 ''' 3 Step Validation process
                 ''' 
-                Dim aLog As New ObjectLog
+                Dim aLog As New ObjectMessageLog
 
                 ''' STEP 1 Validate the entry itself
                 ''' 
@@ -160,6 +160,25 @@ Namespace OnTrack.Database
     ''' </summary>
     ''' <remarks></remarks>
     Public Class ObjectValidator
+
+        ''' <summary>
+        ''' Event Argument Class
+        ''' </summary>
+        ''' <remarks></remarks>
+        Public Class EventArgs
+            Inherits System.EventArgs
+
+        End Class
+
+
+        ''' <summary>
+        ''' Events
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Public Event OnValidationEntyFailed(sender As Object, e As ObjectValidator.EventArgs)
+
         ''' <summary>
         ''' validate an individual entry (contextfree)
         ''' </summary>
@@ -169,10 +188,16 @@ Namespace OnTrack.Database
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function ValidateEntry(objectentrydefinition As iormObjectEntry, ByVal newvalue As Object, _
-                                             Optional ByRef log As ObjectLog = Nothing) As otValidationResultType
+                                             Optional ByRef log As ObjectMessageLog = Nothing) As otValidationResultType
+
+            If objectentrydefinition Is Nothing Then
+                CoreMessageHandler(message:="object entry definition is nothing - validate aborted", messagetype:=otCoreMessageType.InternalError, _
+                                   subname:="ObjectValidator.ValidateEntry")
+                Return otValidationResultType.FailedNoSave
+            End If
             Try
                 ''' default values
-                If log Is Nothing Then log = New ObjectLog()
+                If log Is Nothing Then log = New ObjectMessageLog()
 
                 ''' properties
                 Dim theProperties As IList(Of ObjectValidationProperty) = objectentrydefinition.ValidationProperties
@@ -197,10 +222,16 @@ Namespace OnTrack.Database
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function ValidateEntry(objectentrydefinition As iormObjectEntry, dataobject As iormPersistable, _
-                                             Optional ByRef log As ObjectLog = Nothing) As otValidationResultType
+                                             Optional ByRef log As ObjectMessageLog = Nothing) As otValidationResultType
             Try
+                If objectentrydefinition Is Nothing Then
+                    CoreMessageHandler(message:="object entry definition is nothing - validate aborted", messagetype:=otCoreMessageType.InternalError, _
+                                       subname:="ObjectValidator.ValidateEntry")
+                    Return otValidationResultType.FailedNoSave
+                End If
+
                 ''' default values
-                If log Is Nothing Then log = New ObjectLog()
+                If log Is Nothing Then log = New ObjectMessageLog()
 
 
                 Return otValidationResultType.Succeeded
@@ -219,10 +250,10 @@ Namespace OnTrack.Database
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function ValidateObject(objectdefinition As ObjectDefinition, dataobject As iormPersistable, _
-                                             Optional ByRef log As ObjectLog = Nothing) As otValidationResultType
+                                             Optional ByRef log As ObjectMessageLog = Nothing) As otValidationResultType
             Try
                 ''' default values
-                If log Is Nothing Then log = New ObjectLog()
+                If log Is Nothing Then log = New ObjectMessageLog()
 
                 Return otValidationResultType.Succeeded
             Catch ex As Exception
@@ -247,6 +278,13 @@ Namespace OnTrack.Database
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function Apply(objectentrydefinition As iormObjectEntry, ByVal [in] As Object, ByRef out As Object) As Boolean
+
+            If objectentrydefinition Is Nothing Then
+                CoreMessageHandler(message:="entry of object definition is nothing", _
+                                    subname:="EntryProperties.Apply", messagetype:=otCoreMessageType.InternalError)
+                Return False
+            End If
+
             Try
                 Dim theProperties As IEnumerable(Of ObjectEntryProperty) = objectentrydefinition.Properties
                 If theProperties Is Nothing OrElse theProperties.Count = 0 Then
@@ -280,11 +318,17 @@ Namespace OnTrack.Database
 
                 ''' retrieve the properties
                 ''' 
-                If Not CurrentSession.IsBootstrappingInstallationRequested AndAlso _
-                    Not CurrentSession.IsStartingUp AndAlso objectDefinition.IsBootStrappingObject _
-                    AndAlso objectDefinition.HasEntry(entryname:=entryname) Then
+                If Not CurrentSession.IsBootstrappingInstallationRequested AndAlso Not CurrentSession.IsStartingUp AndAlso _
+                    Not objectDefinition.IsBootStrappingObject AndAlso objectDefinition.HasEntry(entryname:=entryname) Then
 
-                    theProperties = objectDefinition.GetEntry(entryname).Properties
+                    If Not objectDefinition.HasEntry(entryname) Then
+                        CoreMessageHandler(message:="entry of object definition could not be found", objectname:=objectid, entryname:=entryname, _
+                                            subname:="EntryProperties.Apply", messagetype:=otCoreMessageType.InternalError)
+                        Return False
+                    Else
+                        theProperties = objectDefinition.GetEntry(entryname).Properties
+                    End If
+
                 Else
                     Dim anObjectClassDescription As ObjectClassDescription = ot.GetObjectClassDescriptionByID(objectid)
 
@@ -303,16 +347,16 @@ Namespace OnTrack.Database
                         End If
 
                     Else
-                        CoreMessageHandler(message:="entry of object definition could not be found", objectname:=objectid, entryname:=entryname, _
+                        CoreMessageHandler(message:="entry of object class description could not be found", objectname:=objectid, entryname:=entryname, _
                                             subname:="EntryProperties.Apply", messagetype:=otCoreMessageType.InternalError)
                         Return False
                     End If
                 End If
 
-                ''' apply
-                ''' 
-                '*** return result
-                Return EntryProperties.Apply(properties:=theProperties, [in]:=[in], out:=out)
+                    ''' apply
+                    ''' 
+                    '*** return result
+                    Return EntryProperties.Apply(properties:=theProperties, [in]:=[in], out:=out)
 
             Catch ex As Exception
                 CoreMessageHandler(exception:=ex, subname:="EntryProperties.Apply")

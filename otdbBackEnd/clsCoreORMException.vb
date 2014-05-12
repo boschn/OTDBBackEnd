@@ -96,16 +96,16 @@ Namespace OnTrack.Database
     Public Class ormErrorEventArgs
         Inherits EventArgs
 
-        Private _error As SessionLogMessage
+        Private _error As SessionMessage
 
-        Public Sub New(newError As SessionLogMessage)
+        Public Sub New(newError As SessionMessage)
             _error = newError
         End Sub
         ''' <summary>
         ''' Gets the error.
         ''' </summary>
         ''' <value>The error.</value>
-        Public ReadOnly Property [Error]() As SessionLogMessage
+        Public ReadOnly Property [Error]() As SessionMessage
             Get
                 Return Me._error
             End Get

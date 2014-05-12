@@ -93,6 +93,8 @@ Namespace OnTrack
         Public Const ConstPNBootStrapSchemaChecksum = "bootstrapschemaversion"
         Public Const ConstPNBSchemaVersion_TableHeader = "schemaversion_"
         Public Const ConstPNBSchemaVersion = "dbschemaversion"
+        Public Const ConstPNCalendarInitializedFrom = "calendarinitializedfrom"
+        Public Const ConstPNCalendarInitializedto = "calendarinitializedto"
         ''' <summary>
         ''' The Schema Version - increase here to trigger recreation of the database schema
         ''' </summary>
@@ -119,6 +121,7 @@ Namespace OnTrack
         Public Const ConstCPNDBName = "parameter_otdb_dbname"
         Public Const ConstCPNDBUser = "parameter_otdb_dbuser"
         Public Const ConstCPNDBPassword = "parameter_otdb_dbpassword"
+        Public Const ConstCPNDBSQLServerUseMars = "parameter_otdb_sqlserverusemars"
         Public Const ConstCPNDBConnection = "parameter_otdb_connection"
         Public Const ConstCPNDBUseseek = "parameter_otdb_driver_useseek"
         Public Const ConstCPNDescription = "parameter_otdb_configset_description"
@@ -155,8 +158,8 @@ Namespace OnTrack
         ''' Name of the different OnTrack Modules
         ''' </summary>
         ''' <remarks></remarks>
-        Public Const ConstModuleCore = "Core"
-        Public Const ConstModuleMeta = "Repository"
+        Public Const ConstModuleCommons = "Commons"
+        Public Const ConstModuleRepository = "Repository"
         Public Const ConstModuleCalendar = "Calendar"
         Public Const ConstModuleConfiguration = "Configuration"
         Public Const ConstModuleProperties = "Properties"
@@ -297,7 +300,7 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        ReadOnly Property Errorlog As MessageLog
+        ReadOnly Property Errorlog As SessionMessageLog
             Get
 
                 If IsInitialized OrElse Initialize() Then
@@ -611,6 +614,16 @@ Namespace OnTrack
                             Case "logagent", constCPNUseLogAgent
                                 parameterName = constCPNUseLogAgent
                                 Select Case valueString.tolower
+                                    Case "true", "1"
+                                        valueObject = True
+                                    Case "false", "0"
+                                        valueObject = False
+                                    Case Else
+                                        valueObject = 0
+                                End Select
+                            Case "usemars", ConstCPNDBSQLServerUseMars
+                                parameterName = ConstCPNDBSQLServerUseMars
+                                Select Case valueString.ToLower
                                     Case "true", "1"
                                         valueObject = True
                                     Case "false", "0"
@@ -1002,6 +1015,15 @@ Namespace OnTrack
             End If
         End Function
         ''' <summary>
+        ''' Creates an instance of an data object by type
+        ''' </summary>
+        ''' <param name="objectname"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function CreateDataObjectInstance(type As Type) As iormPersistable
+            Return _ObjectClassStore.CreateInstance(type:=type)
+        End Function
+        ''' <summary>
         ''' returns the type of the business object class if any
         ''' </summary>
         ''' <param name="objectname"></param>
@@ -1273,7 +1295,7 @@ Namespace OnTrack
         ''' <param name="otdberror">clsOTDBError object</param>
         ''' <returns>true if successful</returns>
         ''' <remarks></remarks>
-        Function AddErrorToLog(ByRef otdberror As SessionLogMessage) As Boolean
+        Function AddErrorToLog(ByRef otdberror As SessionMessage) As Boolean
 
             '** use _currentsession -> do not initialize log should be always there
             If Not _CurrentSession Is Nothing Then
@@ -1290,7 +1312,7 @@ Namespace OnTrack
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Function GetLastError() As SessionLogMessage
+        Function GetLastError() As SessionMessage
 
             If Not _CurrentSession Is Nothing Then
                 Return _CurrentSession.Errorlog.PeekLast
@@ -1394,14 +1416,14 @@ Namespace OnTrack
         Optional ByVal break As Boolean = False, _
         Optional ByVal noOtdbAvailable As Boolean = False, _
         Optional ByVal messagetype As otCoreMessageType = otCoreMessageType.ApplicationError, _
-        Optional ByRef msglog As ObjectLog = Nothing, _
+        Optional ByRef msglog As ObjectMessageLog = Nothing, _
         Optional ByVal username As String = "")
             '<CallerMemberName> Optional memberName As String = Nothing, _
             '   <CallerFilePath> Optional sourcefilePath As String = Nothing, _
             '  <CallerLineNumber()> Optional sourceLineNumber As Integer = 0)
             Dim exmessagetext As String = ""
             Dim routinestack As String = ""
-            Dim aNewError As New SessionLogMessage
+            Dim aNewError As New SessionMessage
 
             ''' EXCEPTION HANDLING
             ''' 

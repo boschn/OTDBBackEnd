@@ -31,8 +31,8 @@ Namespace OnTrack.Database
             End If
 
 
-            Dim aCurrSCHEDULE As New CurrentSchedule
-            Dim aCurrTarget As New CurrentTarget
+            Dim aCurrSCHEDULE As New WorkspaceSchedule
+            Dim aCurrTarget As New WorkspaceTarget
 
             'Dim aMSPivot As New clsOTDBMilestonePivot
             'Dim aPivotMSP As New clsOTDBPivotMSPSchedule
@@ -1050,7 +1050,7 @@ Namespace OnTrack.Database
 
             '*** set objects to load
             Call CurrentDBDriver.SetDBParameter(ConstPNObjectsLoad, _
-                                                         Schedule.ConstObjectID & ", " & _
+                                                         ScheduleEdition.ConstObjectID & ", " & _
                                                          ScheduleMilestone.ConstObjectID & ", " & _
                                                          Deliverable.ConstObjectID, silent:=True)
             '*** bootstrap checksum
@@ -1058,8 +1058,8 @@ Namespace OnTrack.Database
 
             '**** Create the core objects first
             '****
-            If modules.Contains(ConstModuleCore.ToUpper) Then
-                descriptions = ot.GetObjectClassDescriptionsForModule(ConstModuleCore)
+            If modules.Contains(ConstModuleCommons.ToUpper) Then
+                descriptions = ot.GetObjectClassDescriptionsForModule(ConstModuleCommons)
                 objectids = New List(Of String)
 
                 For Each description In descriptions
@@ -1094,7 +1094,7 @@ Namespace OnTrack.Database
             '**** Create the other modules
             '****
             For Each modulename In modules
-                If modulename <> ConstModuleCore Then
+                If modulename <> ConstModuleCommons Then
                     descriptions = ot.GetObjectClassDescriptionsForModule(modulename)
                     objectids = New List(Of String)
 
@@ -1174,23 +1174,67 @@ Namespace OnTrack.Database
                     Call ot.CoreMessageHandler(showmsgbox:=True, subname:="modCreateDB.createDatabase_RUN", _
                                                           message:="failed to write initial core data - core might not be working correctly", _
                                                           messagetype:=otCoreMessageType.InternalError)
+                    Return
                 Else
                     ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_RUN", _
                                                           message:="core objects with data instanced and persisted", _
                                                           messagetype:=otCoreMessageType.InternalInfo)
                 End If
 
-                If Not InitializeCalendar() Then
-                    Call ot.CoreMessageHandler(showmsgbox:=True, subname:="modCreateDB.createDatabase_RUN", _
-                                                              message:="failed to write initial calendar data - calendar might not be working correctly", _
-                                                              messagetype:=otCoreMessageType.InternalError)
-                Else
-                    ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_RUN", _
-                                                         message:="calendar instanced and persisted", _
-                                                         messagetype:=otCoreMessageType.InternalInfo)
+                ''' Initialize calendar
+                ''' 
+                Dim fromDate As Date = CDate(My.MySettings.Default.InitializeCalendarFrom)
+                Dim ToDate As Date = CDate(My.MySettings.Default.InitializeCalendarTo)
+                Dim valueFrom As Object = CurrentDBDriver.GetDBParameter(ConstPNCalendarInitializedFrom, silent:=True)
+                Dim valueTo As Object = CurrentDBDriver.GetDBParameter(ConstPNCalendarInitializedto, silent:=True)
+
+                ''' check if already initialized
+                ''' 
+                If valueFrom Is Nothing OrElse valueTo Is Nothing _
+                    OrElse (IsDate(valueFrom) AndAlso CDate(valueFrom) <> fromDate) OrElse (IsDate(valueTo) AndAlso CDate(valueTo) <> ToDate) Then
+                    ''' initialize if date is not there
+                    If Not InitializeCalendar(fromDate:=fromDate, toDate:=ToDate) Then
+                        Call ot.CoreMessageHandler(showmsgbox:=True, subname:="modCreateDB.createDatabase_RUN", _
+                                                                  message:="failed to write initial calendar data - calendar might not be working correctly", _
+                                                                  messagetype:=otCoreMessageType.InternalError)
+                    Else
+                        ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_RUN", _
+                                                             message:="calendar from " & fromDate & " until " & ToDate & " instanced and persisted", _
+                                                             messagetype:=otCoreMessageType.InternalInfo)
+                        CurrentDBDriver.SetDBParameter(ConstPNCalendarInitializedFrom, Format(fromDate, "yyyy-mm-dd"))
+                        CurrentDBDriver.SetDBParameter(ConstPNCalendarInitializedto, Format(ToDate, "yyyy-mm-dd"))
+                    End If
                 End If
+
+
+                ''' import the initial data
+                ''' 
+                Dim valueInitialPath As String = My.MySettings.Default.InitialCoreDirectory
+                Dim searchpath As String = ""
+                If valueInitialPath <> "" AndAlso Not IO.Directory.Exists(valueInitialPath) Then
+                    searchpath = My.Application.Info.DirectoryPath & "\Resources\" & valueInitialPath
+                ElseIf valueInitialPath = "" Then
+                    searchpath = My.Application.Info.DirectoryPath & "\Resources"
+                End If
+
+                If IO.Directory.Exists(searchpath) Then
+                    ot.CoreMessageHandler(message:="importing initial data ...", arg1:=searchpath, subname:="createDatabase.Run", messagetype:=otCoreMessageType.InternalInfo)
+                    FeedInInitialData(searchpath)
+                Else
+                    Dim uri As System.Uri
+                    uri = New System.Uri(System.Reflection.Assembly.GetExecutingAssembly().CodeBase)
+                    searchpath = System.IO.Path.GetDirectoryName(uri.LocalPath) & "\Resources\" & valueInitialPath
+                    If IO.Directory.Exists(searchpath) Then
+                        ot.CoreMessageHandler(message:="importing initial data ...", arg1:=searchpath, subname:="createDatabase.Run", messagetype:=otCoreMessageType.InternalInfo)
+                        FeedInInitialData(searchpath)
+                    End If
+
+                End If
+
             End If
-            '*** shutdown a session
+
+            ''' 
+            '''shutdown a session
             If CurrentSession.IsRunning AndAlso sessionstarted Then
                 CurrentSession.ShutDown(force:=True)
             End If
@@ -1200,17 +1244,107 @@ Namespace OnTrack.Database
                                                              messagetype:=otCoreMessageType.InternalInfo)
             End If
         End Sub
+
+        Public Function InitializeTestData() As Boolean
+
+            If Not ot.CurrentSession.RequireAccessRight(otAccessRight.AlterSchema) Then
+                Call ot.CoreMessageHandler(message:="Access right could not be set to AlterSchema", subname:="modCreateDB.InitializeTestData", _
+                                             messagetype:=otCoreMessageType.ApplicationInfo, break:=False)
+                Return False
+            End If
+
+            Dim aSet As ObjectProperties.ObjectPropertySet = ObjectProperties.ObjectPropertySet.Create(id:="FBL_SBB")
+            If aSet IsNot Nothing Then
+                aSet.Description = "test"
+                aSet.Ordinal = 1
+                aSet.AttachedObjectIDs = {Deliverables.Deliverable.ConstObjectID}.ToList
+                aSet.Persist()
+            End If
+
+
+            Dim aproperty As ObjectProperties.ObjectProperty = ObjectProperties.ObjectProperty.Create(setid:="FBL_SBB", ID:="BLTEST")
+            If aproperty IsNot Nothing Then
+                aproperty.Datatype = otDataType.Text
+                aproperty.Title = "BaseLine Test"
+                aproperty.Ordinal = 1
+                aproperty.Persist()
+            End If
+
+           
+           
+
+            Dim aMilestoneDef As MileStoneDefinition = MileStoneDefinition.Create(ID:="BP9")
+            If aMilestoneDef Is Nothing Then aMilestoneDef = MileStoneDefinition.Retrieve(id:="Bp9")
+
+            If aMilestoneDef IsNot Nothing Then
+                aMilestoneDef.AttachedObjectids = {Deliverable.ConstObjectID}.ToList
+                aMilestoneDef.Description = "fc finish"
+                aMilestoneDef.IsForecast = True
+                aMilestoneDef.Persist()
+            End If
+
+            aMilestoneDef = MileStoneDefinition.Create(ID:="BP10")
+            If aMilestoneDef Is Nothing Then aMilestoneDef = MileStoneDefinition.Retrieve(id:="BP10")
+            If aMilestoneDef IsNot Nothing Then
+                aMilestoneDef.AttachedObjectids = {Deliverable.ConstObjectID}.ToList
+                aMilestoneDef.Description = "actual finish"
+                aMilestoneDef.IsForecast = False
+                aMilestoneDef.Persist()
+            End If
+
+            Dim aScheduleDefinition As ScheduleDefinition = ScheduleDefinition.Create(id:="PDM")
+            If aScheduleDefinition Is Nothing Then aScheduleDefinition = ScheduleDefinition.Retrieve("PDM")
+            If aScheduleDefinition IsNot Nothing Then
+                aScheduleDefinition.Description = "simple pdm entry schedule"
+                aScheduleDefinition.Autopublish = True
+
+                Dim aScheduleMilestone As ScheduleMilestoneDefinition = ScheduleMilestoneDefinition.Create(scheduletype:="PDM", ID:="BP9")
+                If aScheduleMilestone Is Nothing Then aScheduleMilestone = ScheduleMilestoneDefinition.Retrieve(scheduletype:="PDM", ID:="Bp9")
+                If aScheduleMilestone IsNot Nothing Then
+                    aScheduleMilestone.IsMandatory = True
+                    aScheduleMilestone.IsOutputDeliverable = True
+                    aScheduleMilestone.IsForecast = True
+                    aScheduleMilestone.IsFinish = True
+                End If
+
+                aScheduleMilestone = ScheduleMilestoneDefinition.Create(scheduletype:="PDM", ID:="BP10")
+                If aScheduleMilestone Is Nothing Then aScheduleMilestone = ScheduleMilestoneDefinition.Retrieve(scheduletype:="PDM", ID:="Bp10")
+                If aScheduleMilestone IsNot Nothing Then
+                    aScheduleMilestone.IsMandatory = True
+                    aScheduleMilestone.IsOutputDeliverable = True
+                    aScheduleMilestone.IsForecast = False
+                    aScheduleMilestone.ActualOfFC = "BP9"
+                End If
+
+                aScheduleDefinition.Persist()
+            End If
+
+            Dim aDeliverable As Deliverable ' = Deliverable.Create(typeid:="FVDS")
+            If aDeliverable Is Nothing Then aDeliverable = Deliverable.Retrieve(uid:=295)
+
+            aDeliverable.Description = "TEST"
+            Debug.WriteLine(aDeliverable.GetValue("BLTEST"))
+            aDeliverable.SetValue("BLTEST", "test8")
+            Debug.WriteLine(aDeliverable.GetValue("BP9"))
+            aDeliverable.SetValue("BP9", #10/2/2014#)
+            aDeliverable.Persist()
+
+
+            Dim aSchedule As WorkspaceSchedule = WorkspaceSchedule.Create()
+
+            Return True
+        End Function
         ''' <summary>
         ''' Initialize the Calendar
         ''' </summary>
         ''' <remarks></remarks>
-        Public Function InitializeCalendar() As Boolean
+        Public Function InitializeCalendar(fromDate As Date, toDate As Date) As Boolean
 
             ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_RUN", _
-                                                     message:="creating calendar - please stand by ...", _
+                                                     message:="creating calendar from " & fromDate & " until " & toDate & " - please stand by ...", _
                                                      messagetype:=otCoreMessageType.ApplicationInfo)
             ''' generate the days
-            CalendarEntry.GenerateDays(fromdate:=CDate("01.01.2013"), untildate:=CDate("01.01.2016"), name:=ot.CurrentSession.DefaultCalendarName)
+            CalendarEntry.GenerateDays(fromdate:=fromdate, untildate:=toDate, name:=ot.CurrentSession.DefaultCalendarName)
 
             Dim acalentry As CalendarEntry
             acalentry = CalendarEntry.Create()
@@ -1412,6 +1546,42 @@ Namespace OnTrack.Database
             Return True
         End Function
         ''' <summary>
+        ''' feeds the initial data from a path
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function FeedInInitialData(path As String) As Boolean
+
+            If Not IO.Directory.Exists(path) Then
+                CoreMessageHandler(message:="path does not exist in filesystem", arg1:=path, subname:="createDatabase.FeedInitialData")
+            Else
+
+                CoreMessageHandler(message:="checking directory '" & path & "'", _
+                                                  arg1:=path, username:=CurrentSession.Username, _
+                                                  subname:="CreateDatabase.FeedInitialData", messagetype:=otCoreMessageType.InternalInfo)
+            End If
+
+            ''' try to feed in each File in the filepath
+            For Each anEntry In IO.Directory.EnumerateFileSystemEntries(path)
+                If IO.Directory.Exists(anEntry) Then
+                    FeedInInitialData(anEntry)
+                Else
+                    ''' feed in the csv file if it is one
+                    ''' 
+                    If IO.Path.GetExtension(anEntry).ToUpper = ".CSV" Then
+                        If CSVXChangeManager.FeedInCSV(anEntry) Then
+                            CoreMessageHandler(message:="csv file '" & IO.Path.GetFileName(anEntry) & "' imported", _
+                                               arg1:=path, username:=CurrentSession.Username, _
+                                               subname:="CreateDatabase.FeedInitialData", messagetype:=otCoreMessageType.InternalInfo)
+                        End If
+                    End If
+                End If
+
+            Next
+
+            Return True
+        End Function
+        ''' <summary>
         '''  Initial Core Data
         ''' </summary>
         ''' <remarks></remarks>
@@ -1438,7 +1608,7 @@ Namespace OnTrack.Database
                 aWorkspace.IsBasespace = True
                 aWorkspace.FCRelyingOn = New String() {"@"}
                 aWorkspace.ACTRelyingOn = New String() {"@"}
-                aWorkspace.AccesslistIDs = New String() {"PrjPlanner"}
+                aWorkspace.AccesslistIDs = New String() {}
                 aWorkspace.HasActuals = True
                 aWorkspace.MinScheduleUPDC = 1
                 aWorkspace.MaxScheduleUPDC = 999
@@ -1548,18 +1718,6 @@ Namespace OnTrack.Database
                                              message:="User anonymous for read created", messagetype:=otCoreMessageType.ApplicationInfo)
             End If
 
-            '*** different Sites
-            Dim aSite As Site
-            aSite = Site.Create("GO")
-            If aSite IsNot Nothing Then
-                aSite.Description = "Görlitz"
-                aSite.Persist()
-            End If
-            aSite = Site.Create("HE")
-            If aSite IsNot Nothing Then
-                aSite.Description = "Hennigsdorf"
-                aSite.Persist()
-            End If
 
             Return True
         End Function

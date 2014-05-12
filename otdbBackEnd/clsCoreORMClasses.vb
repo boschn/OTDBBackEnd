@@ -30,6 +30,7 @@ Imports OnTrack
 Imports OnTrack.Database
 Imports System.Reflection
 Imports System.Reflection.Emit
+Imports System.Linq.Expressions
 
 Namespace OnTrack
 
@@ -80,6 +81,7 @@ Namespace OnTrack
         Private _BootStrapSchemaCheckSum As ULong
 
         '** stores
+        Private _CreateInstanceDelegateStore As New Dictionary(Of String, ObjectClassDescription.CreateInstanceDelegate) ' Class Name and Delegate for Instance Creator
         Private _DescriptionsByClassTypeDescriptionStore As New Dictionary(Of String, ObjectClassDescription) 'name of classes with id
         Private _DescriptionsByIDDescriptionStore As New Dictionary(Of String, ObjectClassDescription) 'name of classes with id
         Private _Table2ObjectClassStore As New Dictionary(Of String, List(Of Type)) 'name of tables to types
@@ -203,7 +205,7 @@ Namespace OnTrack
                         .UseCache = tableattribute.UseCache
                     End If
                     '** other
-                     If Not .HasValueDescription AndAlso tableattribute.HasValueDescription Then
+                    If Not .HasValueDescription AndAlso tableattribute.HasValueDescription Then
                         .Description = tableattribute.Description
                     End If
                     If Not .HasValuePrimaryKey AndAlso tableattribute.HasValuePrimaryKey Then
@@ -212,7 +214,7 @@ Namespace OnTrack
                     If Not .HasValueID AndAlso tableattribute.HasValueID Then
                         .ID = tableattribute.ID
                     End If
-                   
+
                     '** import foreign keys
                     For Each afk In tableattribute.ForeignKeyAttributes
                         If Not .HasForeignkey(afk.ID) Then
@@ -280,6 +282,28 @@ Namespace OnTrack
                 End If
             Next
             Return aList
+        End Function
+        ''' <summary>
+        ''' returns the ObjectClass Type for an object class name
+        ''' </summary>
+        ''' <param name="type"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function CreateInstance(type As System.Type) As iormPersistable
+            Try
+                If Not _CreateInstanceDelegateStore.ContainsKey(key:=Type.FullName.ToUpper) Then
+                    CoreMessageHandler(message:="type is not found in the instance creator store of class descriptions", _
+                                       arg1:=Type.FullName, subname:="ObjectClassRepository.CreateInstance", messagetype:=otCoreMessageType.InternalError)
+                    Return Nothing
+                End If
+
+                Dim aDelegate As ObjectClassDescription.CreateInstanceDelegate = _CreateInstanceDelegateStore.Item(key:=type.FullName.ToUpper)
+                Dim anObject As iormPersistable = aDelegate()
+                Return anObject
+            Catch ex As Exception
+                CoreMessageHandler(exception:=ex, subname:="ObjectClassRepository.CreateInstance", arg1:=Type.FullName)
+                Return Nothing
+            End Try
         End Function
         ''' <summary>
         ''' returns the ObjectClass Type for an object class name
@@ -366,7 +390,7 @@ Namespace OnTrack
             End If
 
         End Function
-       
+
         ''' <summary>
         ''' substitute referenced properties in the reference
         ''' </summary>
@@ -452,6 +476,7 @@ Namespace OnTrack
                         If SubstituteReferencedTableColumn(attribute:=attribute) Then
                             If .HasValueEntryType And Not attribute.HasValueEntryType Then attribute.EntryType = .EntryType
                             If .HasValueTitle And Not attribute.HasValueTitle Then attribute.Title = .Title
+                            If .HasValueDescription And Not attribute.HasValueDescription Then attribute.Description = .Description
 
                             If .HasValueXID And Not attribute.HasValueXID Then attribute.XID = .XID
                             If .HasValueAliases And Not attribute.HasValueAliases Then attribute.Aliases = .Aliases
@@ -467,7 +492,7 @@ Namespace OnTrack
                             If .HasValueValidate And Not attribute.HasValueValidate Then attribute.Validate = .Validate
                             If .HasValueLowerRange And Not attribute.HasValueLowerRange Then attribute.LowerRange = .LowerRange
                             If .HasValueUpperRange And Not attribute.HasValueUpperRange Then attribute.UpperRange = .UpperRange
-                            If .HasValueValidationproperties And Not attribute.HasValueValidationproperties Then attribute.ValidationProperties = .ValidationProperties
+                            If .HasValueValidationProperties And Not attribute.HasValueValidationProperties Then attribute.ValidationProperties = .ValidationProperties
                             If .HasValueLookupCondition And Not attribute.HasValueLookupCondition Then attribute.LookupCondition = .LookupCondition
                             If .HasValueValues And Not attribute.HasValueValues Then attribute.Values = .Values
                         End If
@@ -498,7 +523,7 @@ Namespace OnTrack
             Dim names() As String = columnname.ToUpper.Split({CChar(ConstDelimiter), "."c})
             Dim anAttribute As ormSchemaTableColumnAttribute
 
-          
+
 
             '** split the names
             If tablename <> "" And names.Count = 1 Then
@@ -518,14 +543,14 @@ Namespace OnTrack
             If _TableAttributesStore.ContainsKey(key:=tablename.ToUpper) Then
                 anAttribute = _TableAttributesStore.Item(key:=aTablename).GetColumn(aFieldname)
                 '*** substitute references
-                 SubstituteReferencedTableColumn(attribute:=anAttribute) 
+                SubstituteReferencedTableColumn(attribute:=anAttribute)
                 '** return
                 Return anAttribute
 
             Else
                 Return Nothing
             End If
-            
+
         End Function
         ''' <summary>
         ''' gets a list of ObjectClassDescriptions per tablename or empty if none
@@ -652,9 +677,20 @@ Namespace OnTrack
                     End If
                 Next
 
+                ''' create the InstanceCreator
+                ''' 
+                'Dim func As Type = GetType(Func(Of ))
+                'Dim delegatetype As Type = func.MakeGenericType()
+                Dim aCreator As ObjectClassDescription.CreateInstanceDelegate = _
+                    ObjectClassDescription.CreateILGCreateInstanceDelegate(aClass.GetConstructor(Type.EmptyTypes), GetType(ObjectClassDescription.CreateInstanceDelegate))
+                If _CreateInstanceDelegateStore.ContainsKey(key:=aClass.FullName.ToUpper) Then
+                    _CreateInstanceDelegateStore.Remove(key:=aClass.FullName.ToUpper)
+                End If
+                _CreateInstanceDelegateStore.Add(key:=aClass.FullName.ToUpper, value:=aCreator)
+
                 ''' get the Fieldlist especially collect the constants
                 ''' 
-               
+
                 aFieldList = aClass.GetFields(Reflection.BindingFlags.NonPublic Or Reflection.BindingFlags.Public Or _
                                               Reflection.BindingFlags.Static Or BindingFlags.FlattenHierarchy)
 
@@ -774,27 +810,43 @@ Namespace OnTrack
         Public Const ConstMTRetrieve = "RETRIEVE"
         Public Const ConstMTCreateDataObject = "CREATEDATAOBJECT"
 
+        ''' <summary>
+        ''' Delegates
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Delegate Function CreateInstanceDelegate() As iormPersistable
+        Public Delegate Function OperationCallerDelegate(dataobject As Object, parameters As Object()) As Object
+        Public Delegate Function MappingGetterDelegate(dataobject As Object) As Object
 
-        Public Delegate Function MappingGetter(dataobject As Object) As Object
-
+        ''' <summary>
+        ''' internal Store
+        ''' </summary>
+        ''' <remarks></remarks>
         Private _Type As Type
         Private _ObjectAttribute As ormObjectAttribute
         Private _TableAttributes As New Dictionary(Of String, ormSchemaTableAttribute) 'name of table to Attribute
         Private _ObjectEntryAttributes As New Dictionary(Of String, ormObjectEntryAttribute) 'name of object entry to Attribute
-        Private _ObjectOperationAttributes As New Dictionary(Of String, ormObjectTransaction) 'name of object entry to Attribute
+        Private _ObjectTransactionAttributes As New Dictionary(Of String, ormObjectTransactionAttribute) 'name of object entry to Attribute
+        Private _ObjectOperationAttributes As New Dictionary(Of String, ormObjectOperationMethodAttribute) 'name of object entry to Attribute
+        Private _ObjectOperationAttributesByTag As New Dictionary(Of String, ormObjectOperationMethodAttribute) 'name of object entry to Attribute
+
+        Private _OperationCallerDelegates As New Dictionary(Of String, OperationCallerDelegate) ' dictionary of columns to mappings field to getter delegates
         Private _ObjectEntriesPerTable As New Dictionary(Of String, Dictionary(Of String, ormObjectEntryAttribute)) ' dictionary of tables to dictionary of columns
-       
+
         Private _TableColumnsMappings As New Dictionary(Of String, Dictionary(Of String, List(Of FieldInfo))) ' dictionary of tables to dictionary of fieldmappings
         Private _ColumnEntryMapping As New Dictionary(Of String, List(Of FieldInfo)) ' dictionary of columns to mappings
         Private _MappingSetterDelegates As New Dictionary(Of String, Action(Of ormDataObject, Object)) ' dictionary of field to setter delegates
-        Private _MappingGetterDelegates As New Dictionary(Of String, MappingGetter) ' dictionary of columns to mappings field to getter delegates
+        Private _MappingGetterDelegates As New Dictionary(Of String, MappingGetterDelegate) ' dictionary of columns to mappings field to getter delegates
 
         Private _TableIndices As New Dictionary(Of String, Dictionary(Of String, ormSchemaIndexAttribute)) ' dictionary of tables to dictionary of indices
         Private _Indices As New Dictionary(Of String, ormSchemaIndexAttribute) ' dictionary of columns to mappings
+
         Private _TableRelationMappings As New Dictionary(Of String, Dictionary(Of String, List(Of FieldInfo))) ' dictionary of tables to dictionary of relation mappings
         Private _RelationEntryMapping As New Dictionary(Of String, List(Of FieldInfo)) ' dictionary of relations to mappings
-        Private _TableRelations As New Dictionary(Of String, Dictionary(Of String, ormSchemaRelationAttribute)) ' dictionary of tables to dictionary of relation
-        Private _Relations As New Dictionary(Of String, ormSchemaRelationAttribute) ' dictionary of relations to mappings
+        Private _TableRelations As New Dictionary(Of String, Dictionary(Of String, ormRelationAttribute)) ' dictionary of tables to dictionary of relation
+        Private _Relations As New Dictionary(Of String, ormRelationAttribute) ' dictionary of relations 
+
         Private _DataOperationHooks As New Dictionary(Of String, RuntimeMethodHandle)
         Private _EntryMappings As New Dictionary(Of String, ormEntryMapping)
 
@@ -810,6 +862,7 @@ Namespace OnTrack
         Private _cachedEntrynames As List(Of String) = Nothing
         Private _cachedQuerynames As List(Of String) = Nothing
         Private _cachedTablenames As List(Of String) = Nothing
+        Private _cachedRelationNames As List(Of String) = Nothing
 
         '** backreference
         Private _repository As ObjectClassRepository
@@ -961,7 +1014,7 @@ Namespace OnTrack
         ''' <remarks></remarks>
         Public ReadOnly Property ColumnNames As List(Of String)
             Get
-                If _CachedColumnnames Is Nothing Then
+                If _cachedColumnnames Is Nothing Then
                     Dim aList As New List(Of String)
                     For Each perTable In _ObjectEntriesPerTable
                         If _TableAttributes.Item(perTable.Key).Enabled Then
@@ -971,21 +1024,32 @@ Namespace OnTrack
                             Next
                         End If
                     Next
-                    _CachedColumnnames = aList
+                    _cachedColumnnames = aList
                 End If
 
-                Return _CachedColumnnames
+                Return _cachedColumnnames
             End Get
         End Property
         ''' <summary>
-        ''' gets a List of all column attributes
+        ''' gets a List of all active object transactions
         ''' </summary>
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public ReadOnly Property OperationAttributes As List(Of ormObjectTransaction)
+        Public ReadOnly Property TransactionAttributes As List(Of ormObjectTransactionAttribute)
             Get
-                Return _ObjectOperationAttributes.Values.Where(Function(x) x.Enabled = True).ToList ' only the enabled
+                Return _ObjectTransactionAttributes.Values.Where(Function(x) x.Enabled = True).ToList ' only the enabled
+            End Get
+        End Property
+        ''' <summary>
+        ''' gets a List of all object operations
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property OperationAttributes As List(Of ormObjectOperationMethodAttribute)
+            Get
+                Return _ObjectOperationAttributes.Values.ToList
             End Get
         End Property
         ''' <summary>
@@ -1013,7 +1077,7 @@ Namespace OnTrack
         ''' <remarks></remarks>
         Public ReadOnly Property MappedColumnNames As List(Of String)
             Get
-                If _cachedMappedcolumnnames Is Nothing Then
+                If _cachedMappedColumnnames Is Nothing Then
                     Dim aList As New List(Of String)
                     For Each aTableAttribute In _TableAttributes.Values.Where(Function(x) x.Enabled = True)
                         Dim theColumns = _TableAttributes.Item(key:=aTableAttribute.TableName).ColumnAttributes.Where(Function(x) x.Enabled = True).Select(Function(x) x.ColumnName)
@@ -1022,13 +1086,39 @@ Namespace OnTrack
                             If theColumns.Contains(aColumnName) Then aList.Add(item:=aTableAttribute.TableName & "." & aColumnName)
                         Next
                     Next
-                    _cachedMappedcolumnnames = aList
+                    _cachedMappedColumnnames = aList
                 End If
 
-                Return _cachedMappedcolumnnames
+                Return _cachedMappedColumnnames
             End Get
         End Property
+        ''' <summary>
+        ''' gets a List of all active relation names
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property RelationNames As List(Of String)
+            Get
+                If _cachedRelationNames Is Nothing Then
+                    Dim aList As New List(Of String)
+                    For Each aRelation In _Relations.Values.Where(Function(x) x.Enabled = True)
+                        Dim names As String() = aRelation.Name.Split({CChar(ConstDelimiter), "."c})
+                        Dim aName As String
+                        If names.Count > 1 Then
+                            aName = names(1)
+                        Else
+                            aName = names(0)
+                        End If
 
+                        If Not aList.Contains(aName) Then aList.Add(aName)
+                    Next
+                    _cachedRelationNames = aList
+                End If
+
+                Return _cachedRelationNames
+            End Get
+        End Property
         ''' <summary>
         ''' gets a List of all index attributes
         ''' </summary>
@@ -1053,7 +1143,7 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public ReadOnly Property RelationAttributes As List(Of ormSchemaRelationAttribute)
+        Public ReadOnly Property RelationAttributes As List(Of ormRelationAttribute)
             Get
                 Return _Relations.Values.Where(Function(x) x.Enabled = True).ToList
             End Get
@@ -1116,13 +1206,13 @@ Namespace OnTrack
         End Function
 
         ''' <summary>
-        ''' returns the schemaColumnAttribute for a given columnname and tablename
+        ''' returns the object transaction attribute 
         ''' </summary>
         ''' <param name="columnname"></param>
         ''' <param name="tablename"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetObjectOperationAttribute(name As String, Optional onlyEnabled As Boolean = True) As ormObjectTransaction
+        Public Function GetObjectTransactionAttribute(name As String, Optional onlyEnabled As Boolean = True) As ormObjectTransactionAttribute
             Dim anEntryname As String = ""
             Dim anObjectname As String = ""
             Dim names() As String = name.ToUpper.Split({CChar(ConstDelimiter), "."c})
@@ -1132,7 +1222,7 @@ Namespace OnTrack
                 anObjectname = names(0)
                 If anObjectname <> _ObjectAttribute.ID Then
                     CoreMessageHandler(message:="object name of Object is not equal with entry name", arg1:=anObjectname, entryname:=name, _
-                                       subname:="ObjectClassDescription.GetObjectOperationAttribute", messagetype:=otCoreMessageType.InternalWarning)
+                                       subname:="ObjectClassDescription.GetObjecTransactionAttribute", messagetype:=otCoreMessageType.InternalWarning)
                 End If
                 anEntryname = names(1)
             Else
@@ -1141,9 +1231,9 @@ Namespace OnTrack
 
             '** return
 
-            If _ObjectOperationAttributes.ContainsKey(key:=anEntryname) Then
-                Dim anAttribute As ormObjectTransaction = _ObjectOperationAttributes.Item(key:=anEntryname)
-                If OnlyEnabled Then
+            If _ObjectTransactionAttributes.ContainsKey(key:=anEntryname) Then
+                Dim anAttribute As ormObjectTransactionAttribute = _ObjectTransactionAttributes.Item(key:=anEntryname)
+                If onlyEnabled Then
                     If anAttribute.Enabled Then
                         Return anAttribute
                     Else
@@ -1153,6 +1243,57 @@ Namespace OnTrack
                     Return anAttribute
                 End If
 
+            Else
+                Return Nothing
+            End If
+        End Function
+
+        ''' <summary>
+        ''' returns the object operation attribute 
+        ''' </summary>
+        ''' <param name="columnname"></param>
+        ''' <param name="tablename"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function GetObjectOperationAttributeByTag(tag As String) As ormObjectOperationMethodAttribute
+            '** return
+            If _ObjectOperationAttributesByTag.ContainsKey(key:=tag) Then
+                Dim anAttribute As ormObjectOperationMethodAttribute = _ObjectOperationAttributesByTag.Item(key:=tag)
+                Return anAttribute
+            Else
+                Return Nothing
+            End If
+        End Function
+
+        ''' <summary>
+        ''' returns the object operation attribute 
+        ''' </summary>
+        ''' <param name="columnname"></param>
+        ''' <param name="tablename"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function GetObjectOperationAttribute(name As String) As ormObjectOperationMethodAttribute
+            Dim anEntryname As String = ""
+            Dim anObjectname As String = ""
+            Dim names() As String = name.ToUpper.Split({CChar(ConstDelimiter), "."c})
+
+            '** split the names
+            If names.Count > 1 Then
+                anObjectname = names(0)
+                If anObjectname <> _ObjectAttribute.ID Then
+                    CoreMessageHandler(message:="object name of Object is not equal with entry name", arg1:=anObjectname, entryname:=name, _
+                                       subname:="ObjectClassDescription.GetObjecTransactionAttribute", messagetype:=otCoreMessageType.InternalWarning)
+                End If
+                anEntryname = names(1)
+            Else
+                anEntryname = name.ToUpper
+            End If
+
+            '** return
+
+            If _ObjectOperationAttributes.ContainsKey(key:=anEntryname) Then
+                Dim anAttribute As ormObjectOperationMethodAttribute = _ObjectOperationAttributes.Item(key:=anEntryname)
+                Return anAttribute
             Else
                 Return Nothing
             End If
@@ -1173,6 +1314,34 @@ Namespace OnTrack
             If Not attribute.HasValueIsActive Then attribute.IsActive = True
 
             Return True
+        End Function
+        ''' <summary>
+        ''' returns True if the ObjectEntry exists
+        ''' </summary>
+        ''' <param name="columnname"></param>
+        ''' <param name="tablename"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function HasObjectEntryAttribute(entryname As String, Optional onlyenabled As Boolean = True) As Boolean
+            Dim anEntryname As String = ""
+            Dim anObjectname As String = ""
+            Dim names() As String = entryname.ToUpper.Split({CChar(ConstDelimiter), "."c})
+
+            '** split the names
+            If names.Count > 1 Then
+                anObjectname = names(0)
+                If anObjectname <> _ObjectAttribute.ID Then
+                    CoreMessageHandler(message:="object name of Object is not equal with entry name", arg1:=anObjectname, entryname:=entryname, _
+                                       subname:="ObjectClassDescription.HasObjectEntryAttribute", messagetype:=otCoreMessageType.InternalWarning)
+                End If
+                anEntryname = names(1)
+            Else
+                anEntryname = entryname.ToUpper
+            End If
+
+            '** return
+
+            Return _ObjectEntryAttributes.ContainsKey(key:=anEntryname)
         End Function
         ''' <summary>
         ''' returns the schemaColumnAttribute for a given columnname and tablename
@@ -1222,7 +1391,7 @@ Namespace OnTrack
         ''' <param name="tablename"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetRelationAttribute(relationname As String, Optional onlyenabled As Boolean = False) As ormSchemaRelationAttribute
+        Public Function GetRelationAttribute(relationname As String, Optional onlyenabled As Boolean = False) As ormRelationAttribute
             Dim aRelationName As String = ""
             Dim names() As String = relationname.ToUpper.Split({CChar(ConstDelimiter), "."c})
 
@@ -1240,8 +1409,8 @@ Namespace OnTrack
 
             '** return
             If _Relations.ContainsKey(key:=aRelationName) Then
-                Dim anattribute As ormSchemaRelationAttribute = _Relations.Item(key:=relationname)
-                If onlyenabled AndAlso Not anAttribute.Enabled Then Return Nothing
+                Dim anattribute As ormRelationAttribute = _Relations.Item(key:=aRelationName)
+                If onlyenabled AndAlso Not anattribute.Enabled Then Return Nothing
                 Return anattribute
             Else
                 Return Nothing
@@ -1317,9 +1486,23 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetFieldMemberGetterDelegate(membername As String) As MappingGetter
+        Public Function GetFieldMemberGetterDelegate(membername As String) As MappingGetterDelegate
             If _MappingGetterDelegates.ContainsKey(membername) Then
                 Return _MappingGetterDelegates.Item(key:=membername)
+            Else
+                Return Nothing
+            End If
+        End Function
+
+        ''' <summary>
+        ''' retrieves the Operation Caller Delegate for an operation
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function GetOperartionCallerDelegate(operationname As String) As OperationCallerDelegate
+            If _OperationCallerDelegates.ContainsKey(operationname) Then
+                Return _OperationCallerDelegates.Item(key:=operationname)
             Else
                 Return Nothing
             End If
@@ -1336,6 +1519,11 @@ Namespace OnTrack
                                                   Optional onlyenabled As Boolean = True) As List(Of FieldInfo)
             Dim aFieldname As String = ""
             Dim aTablename As String = ""
+            If columnname Is Nothing Then
+                CoreMessageHandler(message:="function called with nothing as columnname", subname:="ObjectClassDescription.GetMappedColumnFieldInfos", arg1:=Me.ObjectAttribute.ID, _
+                                   messagetype:=otCoreMessageType.InternalError)
+                Return New List(Of FieldInfo)
+            End If
             Dim names() As String = columnname.ToUpper.Split({CChar(ConstDelimiter), "."c})
 
             '** split the names
@@ -1363,7 +1551,7 @@ Namespace OnTrack
                     If Not _TableAttributes.ContainsKey(aTablename) OrElse Not _TableAttributes.Item(key:=aTablename).Enabled Then
                         Return New List(Of FieldInfo)
                     End If
-                    
+
                 End If
                 If _TableColumnsMappings.Item(key:=aTablename).ContainsKey(key:=aFieldname) Then
                     Return _TableColumnsMappings.Item(key:=aTablename).Item(key:=aFieldname)
@@ -1533,7 +1721,7 @@ Namespace OnTrack
                 _TableRelationMappings.Add(key:=aTableAttribute.TableName, value:=New Dictionary(Of String, List(Of FieldInfo)))
                 '** Relations per Table
                 If _TableRelations.ContainsKey(key:=aTableAttribute.TableName) Then _TableRelations.Remove(key:=aTableAttribute.TableName)
-                _TableRelations.Add(key:=aTableAttribute.TableName, value:=New Dictionary(Of String, ormSchemaRelationAttribute))
+                _TableRelations.Add(key:=aTableAttribute.TableName, value:=New Dictionary(Of String, ormRelationAttribute))
 
                 Return True
             Catch ex As Exception
@@ -1562,7 +1750,7 @@ Namespace OnTrack
                 ElseIf _QueryAttributes.ContainsKey(key:=queryname) And Not overridesExisting Then
                     Return True '* do nothing since we have a ClassOverrides attribute
                 End If
-              
+
 
                 '** default values
                 With aQueryAttribute
@@ -1628,7 +1816,7 @@ Namespace OnTrack
                 If Not anObjectEntryAttribute.HasValueObjectName Then anObjectEntryAttribute.ObjectName = _ObjectAttribute.ID.ToUpper
                 If Not anObjectEntryAttribute.HasValueEntryName Then anObjectEntryAttribute.EntryName = name.ToUpper
                 If Not anObjectEntryAttribute.HasValueVersion Then anObjectEntryAttribute.Version = 1
-               
+
                 ' if we set an default value here - we cannot reference anymore :-(
                 ' only possible for values which cannot be referenced !!
                 ' put it in substitutedefaultvalues routine
@@ -1644,7 +1832,7 @@ Namespace OnTrack
                     anObjectEntryName = _ObjectAttribute.ID.ToUpper & "." & name.ToUpper
                 End If
 
-                
+
 
                 '* save to global
                 If Not _ObjectEntryAttributes.ContainsKey(key:=name) Then
@@ -1655,7 +1843,7 @@ Namespace OnTrack
                     _ObjectEntryAttributes.Add(key:=name, value:=anObjectEntryAttribute)
                 End If
 
-              
+
                 '** save in object description per Table as well as in global TableAttributes Store
                 '** of the repository
                 Dim aDictionary = _ObjectEntriesPerTable.Item(key:=tablename)
@@ -1872,7 +2060,7 @@ Namespace OnTrack
                                           messagetype:=otCoreMessageType.InternalError, _
                                           subname:="ObjectClassDescription.InitializeEntryMapping", objectname:=_Type.Name)
                     Else
-                        aMappingAttribute.enabled = _ObjectEntryAttributes.Item(key:=anID).Enabled
+                        aMappingAttribute.Enabled = _ObjectEntryAttributes.Item(key:=anID).Enabled
                     End If
                     '***
                     '*** RELATION SETTING
@@ -1984,7 +2172,7 @@ Namespace OnTrack
             Try
 
                 '* set the cloumn name
-                Dim aRelationAttribute As ormSchemaRelationAttribute = DirectCast(attribute, ormSchemaRelationAttribute)
+                Dim aRelationAttribute As ormRelationAttribute = DirectCast(attribute, ormRelationAttribute)
                 If name = "" Then
                     name = value
                     '** default
@@ -2040,28 +2228,29 @@ Namespace OnTrack
 
                 End If
 
-                    If Not aRelationAttribute.HasValueLinkJOin AndAlso _
-                    Not (aRelationAttribute.HasValueFromEntries OrElse aRelationAttribute.HasValueToEntries) AndAlso _
-                    Not aRelationAttribute.HasValueToPrimarykeys Then
-                        CoreMessageHandler(message:="Relation Attribute has not defined a link join or a matching entries or a target primary keys  - how to link ?", _
-                                           objectname:=_Type.Name, _
-                                           arg1:=name, messagetype:=otCoreMessageType.InternalError, subname:="ObjectClassDescription.initializeRelationAttribute")
+                If Not aRelationAttribute.HasValueLinkJOin AndAlso _
+                Not (aRelationAttribute.HasValueFromEntries OrElse aRelationAttribute.HasValueToEntries) AndAlso _
+                Not aRelationAttribute.HasValueToPrimarykeys Then
+                    ' more possibilitues now e.g events or operation
+                    'CoreMessageHandler(message:="Relation Attribute has not defined a link join or a matching entries or a target primary keys  - how to link ?", _
+                    '                   objectname:=_Type.Name, _
+                    '                   arg1:=name, messagetype:=otCoreMessageType.InternalError, subname:="ObjectClassDescription.initializeRelationAttribute")
+                End If
+                If aRelationAttribute.HasValueFromEntries AndAlso aRelationAttribute.HasValueToEntries Then
+                    If aRelationAttribute.ToEntries.Count > aRelationAttribute.FromEntries.Count Then
+                        CoreMessageHandler(message:="relation attribute has nor mot ToEntries than FromEntries set", _
+                                           arg1:=name, objectname:=_Type.Name, _
+                                           subname:="ObjectClassDescription.initializeRelationAttribute", messagetype:=otCoreMessageType.InternalError)
                     End If
-                    If aRelationAttribute.HasValueFromEntries AndAlso aRelationAttribute.HasValueToEntries Then
-                        If aRelationAttribute.ToEntries.Count > aRelationAttribute.FromEntries.Count Then
-                            CoreMessageHandler(message:="relation attribute has nor mot ToEntries than FromEntries set", _
-                                               arg1:=name, objectname:=_Type.Name, _
-                                               subname:="ObjectClassDescription.initializeRelationAttribute", messagetype:=otCoreMessageType.InternalError)
-                        End If
-                    End If
+                End If
 
-                    '** defaults
-                    If Not aRelationAttribute.HasValueCascadeOnCreate Then aRelationAttribute.CascadeOnCreate = False
-                    If Not aRelationAttribute.HasValueCascadeOnDelete Then aRelationAttribute.CascadeOnDelete = False
-                    If Not aRelationAttribute.HasValueCascadeOnUpdate Then aRelationAttribute.CascadeOnUpdate = False
+                '** defaults
+                If Not aRelationAttribute.HasValueCascadeOnCreate Then aRelationAttribute.CascadeOnCreate = False
+                If Not aRelationAttribute.HasValueCascadeOnDelete Then aRelationAttribute.CascadeOnDelete = False
+                If Not aRelationAttribute.HasValueCascadeOnUpdate Then aRelationAttribute.CascadeOnUpdate = False
 
 
-                    Return True
+                Return True
 
             Catch ex As Exception
                 CoreMessageHandler(exception:=ex, subname:="ObjectClassDescription.InitializeRelationAttribute")
@@ -2146,7 +2335,7 @@ Namespace OnTrack
 
                 End If
 
-                
+
                 '*** check the entrynames references
                 '***
                 If Not aForeignKeyAttribute.HasValueEntrynames Then
@@ -2206,28 +2395,28 @@ Namespace OnTrack
                             '    CoreMessageHandler(message:="foreign key reference object entry is not found the repository: '" & areference & "'", objectname:=_Type.Name, _
                             '             arg1:=name, messagetype:=otCoreMessageType.InternalError, subname:="ObjectClassDescription.InitializeForeignKeyAttribute")
                             'Else
-                                'If Not anentry.HasValueTableName Then
-                                '    CoreMessageHandler(message:="foreign key reference object entry has no tablename defined : '" & areference & "'", objectname:=_Type.Name, _
-                                '         arg1:=name, messagetype:=otCoreMessageType.InternalError, subname:="ObjectClassDescription.InitializeForeignKeyAttribute")
-                                'Else
-                                '    globaleTableAttributes = _repository.GetTableAttribute(anentry.Tablename)
-                                '    If globaleTableAttributes IsNot Nothing Then
-                                '        If Not globaleTableAttributes.HasColumn(anentry.ColumnName) Then
-                                '            CoreMessageHandler(message:="In foreign key attribute the foreign key reference column was not defined in table", arg1:=name, _
-                                '                               tablename:=anentry.Tablename, columnname:=anentry.ColumnName, _
-                                '                               objectname:=objectname, entryname:=entryname, _
-                                '                                messagetype:=otCoreMessageType.InternalError, _
-                                '                                subname:="ObjectClassDescription.InitializeForeignKeyAttribute")
-                                '        End If
-                                '    Else
-                                '        CoreMessageHandler(message:="In foreign key attribute the table was not defined in global table attribute store", arg1:=name, _
-                                '                           messagetype:=otCoreMessageType.InternalError, _
-                                '                             tablename:=anentry.Tablename, columnname:=anentry.ColumnName, _
-                                '                              objectname:=objectname, entryname:=entryname, _
-                                '                           subname:="ObjectClassDescription.InitializeForeignKeyAttribute")
+                            'If Not anentry.HasValueTableName Then
+                            '    CoreMessageHandler(message:="foreign key reference object entry has no tablename defined : '" & areference & "'", objectname:=_Type.Name, _
+                            '         arg1:=name, messagetype:=otCoreMessageType.InternalError, subname:="ObjectClassDescription.InitializeForeignKeyAttribute")
+                            'Else
+                            '    globaleTableAttributes = _repository.GetTableAttribute(anentry.Tablename)
+                            '    If globaleTableAttributes IsNot Nothing Then
+                            '        If Not globaleTableAttributes.HasColumn(anentry.ColumnName) Then
+                            '            CoreMessageHandler(message:="In foreign key attribute the foreign key reference column was not defined in table", arg1:=name, _
+                            '                               tablename:=anentry.Tablename, columnname:=anentry.ColumnName, _
+                            '                               objectname:=objectname, entryname:=entryname, _
+                            '                                messagetype:=otCoreMessageType.InternalError, _
+                            '                                subname:="ObjectClassDescription.InitializeForeignKeyAttribute")
+                            '        End If
+                            '    Else
+                            '        CoreMessageHandler(message:="In foreign key attribute the table was not defined in global table attribute store", arg1:=name, _
+                            '                           messagetype:=otCoreMessageType.InternalError, _
+                            '                             tablename:=anentry.Tablename, columnname:=anentry.ColumnName, _
+                            '                              objectname:=objectname, entryname:=entryname, _
+                            '                           subname:="ObjectClassDescription.InitializeForeignKeyAttribute")
 
-                                '    End If
-                                'End If
+                            '    End If
+                            'End If
                             'End If
                         End If
 
@@ -2271,7 +2460,7 @@ Namespace OnTrack
             End Try
         End Function
         ''' <summary>
-        ''' Initialize a Operation Attribute to the Description
+        ''' Initialize a Transaction Attribute to the Description
         ''' </summary>
         ''' <param name="attribute"></param>
         ''' <param name="name"></param>
@@ -2279,12 +2468,12 @@ Namespace OnTrack
         ''' <param name="value"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Private Function InitializeOperationAttribute(attribute As Attribute, objectname As String, name As String, value As String, _
+        Private Function InitializeTransactionAttribute(attribute As Attribute, objectname As String, name As String, value As String, _
                                                       overridesExisting As Boolean) As Boolean
             Try
 
                 '* set the  name
-                Dim aOperationAttribute As ormObjectTransaction = DirectCast(attribute, ormObjectTransaction)
+                Dim aTransactionAttribute As ormObjectTransactionAttribute = DirectCast(attribute, ormObjectTransactionAttribute)
                 If name = "" Then
                     name = value
                 End If
@@ -2294,33 +2483,33 @@ Namespace OnTrack
                 ' reset the attributes 
                 name = name.ToUpper
                 '** default
-                aOperationAttribute.Transactionname = name
-                If Not aOperationAttribute.HasValueDefaultAllowPermission Then aOperationAttribute.DefaultAllowPermission = True
-                If Not aOperationAttribute.HasValueID Then aOperationAttribute.ID = name
-                If Not aOperationAttribute.HasValueVersion Then aOperationAttribute.Version = 1
+                aTransactionAttribute.TransactionName = name
+                If Not aTransactionAttribute.HasValueDefaultAllowPermission Then aTransactionAttribute.DefaultAllowPermission = True
+                If Not aTransactionAttribute.HasValueID Then aTransactionAttribute.ID = name
+                If Not aTransactionAttribute.HasValueVersion Then aTransactionAttribute.Version = 1
                 '* save to global
-                If Not _ObjectOperationAttributes.ContainsKey(key:=name) Then
-                    _ObjectOperationAttributes.Add(key:=name, value:=aOperationAttribute)
+                If Not _ObjectTransactionAttributes.ContainsKey(key:=name) Then
+                    _ObjectTransactionAttributes.Add(key:=name, value:=aTransactionAttribute)
                 ElseIf Not overridesExisting Then
                 ElseIf overridesExisting Then
-                    _ObjectOperationAttributes.Remove(key:=name)
-                    _ObjectOperationAttributes.Add(key:=name, value:=aOperationAttribute)
+                    _ObjectTransactionAttributes.Remove(key:=name)
+                    _ObjectTransactionAttributes.Add(key:=name, value:=aTransactionAttribute)
                 End If
-               
+
                 '** validate rules
-                If aOperationAttribute.HasValuePermissionRules Then
-                    For Each Rule In aOperationAttribute.PermissionRules
+                If aTransactionAttribute.HasValuePermissionRules Then
+                    For Each Rule In aTransactionAttribute.PermissionRules
                         Dim aProp As ObjectPermissionRuleProperty = New ObjectPermissionRuleProperty(Rule)
                         If Not aProp.Validate Then
                             CoreMessageHandler(message:="property rule did not validate", arg1:=name & "[" & Rule & "]", objectname:=_ObjectAttribute.ID, _
-                                               subname:="ObjectClassDescription.InitializeOperationAttribute", messagetype:=otCoreMessageType.InternalError)
+                                               subname:="ObjectClassDescription.InitializeTransactionAttribute", messagetype:=otCoreMessageType.InternalError)
                         End If
                     Next
                 End If
                 Return True
 
             Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="ObjectClassDescription.InitializeOperationAttribute")
+                CoreMessageHandler(exception:=ex, subname:="ObjectClassDescription.InitializeTransactionAttribute")
                 Return False
             End Try
         End Function
@@ -2436,6 +2625,100 @@ Namespace OnTrack
         End Function
 
         ''' <summary>
+        ''' Initialize a Transaction Attribute to the Description
+        ''' </summary>
+        ''' <param name="attribute"></param>
+        ''' <param name="name"></param>
+        ''' <param name="tablename"></param>
+        ''' <param name="value"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Private Function InitializeOperationAttribute(attribute As Attribute, methodinfo As MethodInfo, _
+                                                      overridesExisting As Boolean) As Boolean
+            Try
+
+                '* set the  name
+                Dim anOperationAttribute As ormObjectOperationMethodAttribute = DirectCast(attribute, ormObjectOperationMethodAttribute)
+
+                '** default
+                anOperationAttribute.ID = methodinfo.Name.ToUpper
+
+                If Not anOperationAttribute.HasValueOperationName Then anOperationAttribute.OperationName = methodinfo.Name.ToUpper
+                If Not anOperationAttribute.HasValueVersion Then anOperationAttribute.Version = 1
+                anOperationAttribute.MethodInfo = methodinfo
+
+                ''' check parameters
+                If anOperationAttribute.HasValueParameterEntries Then
+                    If anOperationAttribute.ParameterEntries.Count <> methodinfo.GetParameters.Count Then
+                        CoreMessageHandler(message:="operation parameter count differs from method's parameter count", subname:="ObjectClassDescription.InitializeOperationAttribute", _
+                                     messagetype:=otCoreMessageType.InternalWarning, arg1:=methodinfo.Name)
+                    End If
+                End If
+
+                ''' check return parameters only if used in relation !
+                ''' 
+                If Me._Relations.Where(Function(x) (x.Value.HasValueCreateOperationID AndAlso x.Value.CreateOperation.ToUpper = Me.Name.ToUpper) OrElse (x.Value.HasValueRetrieveOperationID AndAlso x.Value.RetrieveOperation.ToUpper = Me.Name.ToUpper)).Count > 0 Then
+
+                    Dim result As Boolean = False
+                    Dim rtype As System.Type = methodinfo.ReturnType
+
+                    If rtype.Equals(GetType(iormPersistable)) OrElse rtype.GetInterfaces.Contains(GetType(iormPersistable)) Then
+                        result = True
+                    ElseIf rtype.IsInterface AndAlso rtype.IsGenericType AndAlso _
+                        (rtype.GetGenericTypeDefinition.Equals(GetType(IList(Of ))) OrElse rtype.GetGenericTypeDefinition.Equals(GetType(IEnumerable(Of ))) _
+                         OrElse rtype.GetGenericTypeDefinition.Equals(GetType(iormRelationalCollection(Of )))
+                            ) Then
+                        result = True
+                    ElseIf rtype.GetInterfaces.Contains(GetType(IList(Of ))) OrElse rtype.GetInterfaces.Contains(GetType(IEnumerable(Of ))) _
+                        OrElse rtype.GetInterfaces.Contains(GetType(iormRelationalCollection(Of ))) Then
+                        If rtype.GetGenericArguments(1).GetInterfaces.Equals(GetType(iormPersistable)) Then
+                            result = True
+                        Else
+                            CoreMessageHandler(message:="generic return type is not of iormpersistable", subname:="ObjectClassDescription.InitializeOperationAttribute", _
+                                          messagetype:=otCoreMessageType.InternalError, arg1:=methodinfo.Name)
+                        End If
+                    Else
+                        CoreMessageHandler(message:="return type is not of iormpersistable or array, list, iormrelationalcollection nor dictionary", subname:="ObjectClassDescription.InitializeOperationAttribute", _
+                                                     messagetype:=otCoreMessageType.InternalError, arg1:=methodinfo.Name)
+                    End If
+                End If
+
+                '* generate the caller and save it
+                Dim OperationDelegate = CreateILGMethodInvoker(methodinfo)
+
+                If _OperationCallerDelegates.ContainsKey(anOperationAttribute.OperationName) Then
+                    _OperationCallerDelegates.Remove(anOperationAttribute.OperationName)
+                End If
+                _OperationCallerDelegates.Add(key:=anOperationAttribute.OperationName, value:=OperationDelegate)
+
+                '** save to description
+                If Not _ObjectOperationAttributes.ContainsKey(key:=anOperationAttribute.OperationName) Then
+                    _ObjectOperationAttributes.Add(key:=anOperationAttribute.OperationName, value:=anOperationAttribute)
+                ElseIf Not overridesExisting Then
+                ElseIf overridesExisting Then
+                    _ObjectOperationAttributes.Remove(key:=anOperationAttribute.OperationName)
+                    _ObjectOperationAttributes.Add(key:=anOperationAttribute.OperationName, value:=anOperationAttribute)
+                End If
+
+                '** store under Tag
+                If anOperationAttribute.HasValueTag Then
+                    If Not _ObjectOperationAttributesByTag.ContainsKey(key:=anOperationAttribute.Tag) Then
+                        _ObjectOperationAttributesByTag.Add(key:=anOperationAttribute.Tag, value:=anOperationAttribute)
+                    ElseIf Not overridesExisting Then
+                    ElseIf overridesExisting Then
+                        _ObjectOperationAttributesByTag.Remove(key:=anOperationAttribute.Tag)
+                        _ObjectOperationAttributesByTag.Add(key:=anOperationAttribute.Tag, value:=anOperationAttribute)
+                    End If
+                End If
+
+                Return True
+
+            Catch ex As Exception
+                CoreMessageHandler(exception:=ex, subname:="ObjectClassDescription.InitializeOperationAttribute")
+                Return False
+            End Try
+        End Function
+        ''' <summary>
         ''' set the hook for the generic Retrieve
         ''' </summary>
         ''' <param name="methodinfo"></param>
@@ -2542,9 +2825,11 @@ Namespace OnTrack
             _ObjectAttribute = Nothing
             _DataOperationHooks.Clear()
             _EntryMappings.Clear()
-            _ObjectOperationAttributes.Clear()
+            _ObjectTransactionAttributes.Clear()
             _ForeignKeys.Clear()
             _QueryAttributes.Clear()
+            _ObjectOperationAttributes.Clear()
+            _ObjectOperationAttributesByTag.Clear()
             '***
             '*** collect all the attributes first
             '***
@@ -2587,7 +2872,7 @@ Namespace OnTrack
 
                     '** look into each Const Type (Fields) to check for tablenames first !
                     '**
-                  
+
 
                     Dim overridesFlag As Boolean = False
                     For Each aFieldInfo As System.Reflection.FieldInfo In aFieldList
@@ -2682,12 +2967,12 @@ Namespace OnTrack
                                     InitializeIndexAttribute(attribute:=anAttribute, name:=aName, tablename:=aTablename, value:=aValue, overridesExisting:=overridesFlag)
 
                                     '** Relation
-                                ElseIf aFieldInfo.IsStatic AndAlso anAttribute.GetType().Equals(GetType(ormSchemaRelationAttribute)) Then
+                                ElseIf aFieldInfo.IsStatic AndAlso anAttribute.GetType().Equals(GetType(ormRelationAttribute)) Then
                                     InitializeRelationAttribute(attribute:=anAttribute, name:=aName, tablename:=aTablename, value:=aValue, overridesExisting:=overridesFlag)
 
-                                    '** Operation
-                                ElseIf aFieldInfo.IsStatic AndAlso anAttribute.GetType().Equals(GetType(ormObjectTransaction)) Then
-                                    InitializeOperationAttribute(attribute:=anAttribute, objectname:=aTablename, name:=aName, value:=aValue, overridesExisting:=overridesFlag)
+                                    '** Transaction
+                                ElseIf aFieldInfo.IsStatic AndAlso anAttribute.GetType().Equals(GetType(ormObjectTransactionAttribute)) Then
+                                    InitializeTransactionAttribute(attribute:=anAttribute, objectname:=aTablename, name:=aName, value:=aValue, overridesExisting:=overridesFlag)
 
 
                                     '** Queries
@@ -2755,18 +3040,35 @@ Namespace OnTrack
                     '** get some of the methods hooks
                     Dim theMethods = _Type.GetMethods(bindingAttr:=BindingFlags.FlattenHierarchy Or BindingFlags.Public Or BindingFlags.NonPublic Or _
                     BindingFlags.Static Or BindingFlags.Instance)
-                    For Each aMethod In theMethods
-                        '*** RETRIEVE
-                        If aMethod.Name.ToUpper = ConstMTRetrieve AndAlso aMethod.IsGenericMethodDefinition Then
-                            InitializeMethodRetrieveHook(methodinfo:=aMethod)
-                        ElseIf aMethod.Name.ToUpper = ConstMTCreateDataObject AndAlso aMethod.IsGenericMethodDefinition Then
-                            InitializeMethodCreateHook(methodinfo:=aMethod)
+                    For Each aMethodInfo In theMethods
+
+                        '* see if this class is the declaring one
+                        If aMethodInfo.DeclaringType = _Type Then
+                            overridesFlag = True
+                            '*** if this class is a derived one - override an existing one
+                        Else
+                            overridesFlag = False
                         End If
+
+
+                        ''' LEGACY SPECIAL HOOKS TO RETRIEVE / CREATEDATAOBJECT 
+                        If aMethodInfo.Name.ToUpper = ConstMTRetrieve AndAlso aMethodInfo.IsGenericMethodDefinition Then
+                            InitializeMethodRetrieveHook(methodinfo:=aMethodInfo)
+                        ElseIf aMethodInfo.Name.ToUpper = ConstMTCreateDataObject AndAlso aMethodInfo.IsGenericMethodDefinition Then
+                            InitializeMethodCreateHook(methodinfo:=aMethodInfo)
+                        End If
+
+                        '** Attributes
+                        For Each anAttribute As System.Attribute In Attribute.GetCustomAttributes(aMethodInfo)
+                            If anAttribute.GetType().Equals(GetType(ormObjectOperationMethodAttribute)) Then
+                                InitializeOperationAttribute(attribute:=anAttribute, methodinfo:=aMethodInfo, overridesExisting:=overridesFlag)
+                            End If
+                        Next
                     Next
 
                 End SyncLock
 
-               
+
                 _isInitalized = True
                 Return True
             Catch ex As Exception
@@ -2776,6 +3078,238 @@ Namespace OnTrack
             End Try
 
         End Function
+
+        ''' <summary>
+        ''' generates an ILG Method Invoker from a method info
+        ''' </summary>
+        ''' <param name="methodInfo"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Private Shared Function CreateILGMethodInvoker(methodInfo As MethodInfo) As OperationCallerDelegate
+            Dim dynamicMethod As New DynamicMethod(String.Empty, GetType(Object), New Type() {GetType(Object), GetType(Object())}, methodInfo.DeclaringType.[Module])
+            Dim il As ILGenerator = dynamicMethod.GetILGenerator()
+            Dim ps As ParameterInfo() = methodInfo.GetParameters()
+            Dim paramTypes As Type() = New Type(ps.Length - 1) {}
+
+            For i As Integer = 0 To paramTypes.Length - 1
+                If ps(i).ParameterType.IsByRef Then
+                    paramTypes(i) = ps(i).ParameterType.GetElementType()
+                Else
+                    paramTypes(i) = ps(i).ParameterType
+                End If
+            Next
+
+            Dim locals As LocalBuilder() = New LocalBuilder(paramTypes.Length - 1) {}
+
+            For i As Integer = 0 To paramTypes.Length - 1
+                locals(i) = il.DeclareLocal(paramTypes(i), True)
+            Next
+            For i As Integer = 0 To paramTypes.Length - 1
+                il.Emit(OpCodes.Ldarg_1)
+                EmitFastInt(il, i)
+                il.Emit(OpCodes.Ldelem_Ref)
+                EmitCastToReference(il, paramTypes(i))
+                il.Emit(OpCodes.Stloc, locals(i))
+            Next
+            If Not methodInfo.IsStatic Then
+                il.Emit(OpCodes.Ldarg_0)
+            End If
+            For i As Integer = 0 To paramTypes.Length - 1
+                If ps(i).ParameterType.IsByRef Then
+                    il.Emit(OpCodes.Ldloca_S, locals(i))
+                Else
+                    il.Emit(OpCodes.Ldloc, locals(i))
+                End If
+            Next
+            If methodInfo.IsStatic Then
+                il.EmitCall(OpCodes.[Call], methodInfo, Nothing)
+            Else
+                il.EmitCall(OpCodes.Callvirt, methodInfo, Nothing)
+            End If
+            If methodInfo.ReturnType = GetType(System.Void) Then
+                il.Emit(OpCodes.Ldnull)
+            Else
+                EmitBoxIfNeeded(il, methodInfo.ReturnType)
+            End If
+
+            For i As Integer = 0 To paramTypes.Length - 1
+                If ps(i).ParameterType.IsByRef Then
+                    il.Emit(OpCodes.Ldarg_1)
+                    EmitFastInt(il, i)
+                    il.Emit(OpCodes.Ldloc, locals(i))
+                    If locals(i).LocalType.IsValueType Then
+                        il.Emit(OpCodes.Box, locals(i).LocalType)
+                    End If
+                    il.Emit(OpCodes.Stelem_Ref)
+                End If
+            Next
+
+            il.Emit(OpCodes.Ret)
+            Dim invoder As OperationCallerDelegate = DirectCast(dynamicMethod.CreateDelegate(GetType(OperationCallerDelegate)), OperationCallerDelegate)
+            Return invoder
+        End Function
+
+
+        Private Shared Sub EmitCastToReference(il As ILGenerator, type As System.Type)
+            If type.IsValueType Then
+                il.Emit(OpCodes.Unbox_Any, type)
+            Else
+                il.Emit(OpCodes.Castclass, type)
+            End If
+        End Sub
+        Private Shared Sub EmitBoxIfNeeded(il As ILGenerator, type As System.Type)
+            If type.IsValueType Then
+                il.Emit(OpCodes.Box, type)
+            End If
+        End Sub
+
+        Private Shared Sub EmitFastInt(il As ILGenerator, value As Integer)
+            Select Case value
+                Case -1
+                    il.Emit(OpCodes.Ldc_I4_M1)
+                    Return
+                Case 0
+                    il.Emit(OpCodes.Ldc_I4_0)
+                    Return
+                Case 1
+                    il.Emit(OpCodes.Ldc_I4_1)
+                    Return
+                Case 2
+                    il.Emit(OpCodes.Ldc_I4_2)
+                    Return
+                Case 3
+                    il.Emit(OpCodes.Ldc_I4_3)
+                    Return
+                Case 4
+                    il.Emit(OpCodes.Ldc_I4_4)
+                    Return
+                Case 5
+                    il.Emit(OpCodes.Ldc_I4_5)
+                    Return
+                Case 6
+                    il.Emit(OpCodes.Ldc_I4_6)
+                    Return
+                Case 7
+                    il.Emit(OpCodes.Ldc_I4_7)
+                    Return
+                Case 8
+                    il.Emit(OpCodes.Ldc_I4_8)
+                    Return
+            End Select
+
+            If value > -129 AndAlso value < 128 Then
+                il.Emit(OpCodes.Ldc_I4_S, Convert.ToSByte(value))
+            Else
+                il.Emit(OpCodes.Ldc_I4, value)
+            End If
+        End Sub
+
+
+        Public Shared Function CreateILGCreateInstanceDelegate(constructor As ConstructorInfo, delegateType As Type) As CreateInstanceDelegate
+            If constructor Is Nothing Then
+                Throw New ArgumentNullException("constructor")
+            End If
+            If delegateType Is Nothing Then
+                Throw New ArgumentNullException("delegateType")
+            End If
+
+            ' Validate the delegate return type
+            Dim delMethod As MethodInfo = delegateType.GetMethod("Invoke")
+            'If delMethod.ReturnType <> constructor.DeclaringType Then
+            '       Throw New InvalidOperationException("The return type of the delegate must match the constructors declaring type")
+            'End If
+
+            ' Validate the signatures
+            Dim delParams As ParameterInfo() = delMethod.GetParameters()
+            Dim constructorParam As ParameterInfo() = constructor.GetParameters()
+            If delParams.Length <> constructorParam.Length Then
+                Throw New InvalidOperationException("The delegate signature does not match that of the constructor")
+            End If
+            For i As Integer = 0 To delParams.Length - 1
+                ' Probably other things we should check ??
+                If delParams(i).ParameterType <> constructorParam(i).ParameterType OrElse delParams(i).IsOut Then
+                    Throw New InvalidOperationException("The delegate signature does not match that of the constructor")
+                End If
+            Next
+            ' Create the dynamic method
+            Dim method As New DynamicMethod(String.Format("{0}__{1}", constructor.DeclaringType.Name, Guid.NewGuid().ToString().Replace("-", "")), constructor.DeclaringType, Array.ConvertAll(Of ParameterInfo, Type)(constructorParam, Function(p) p.ParameterType), True)
+
+            ' Create the il
+            Dim gen As ILGenerator = method.GetILGenerator()
+            For i As Integer = 0 To constructorParam.Length - 1
+                If i < 4 Then
+                    Select Case i
+                        Case 0
+                            gen.Emit(OpCodes.Ldarg_0)
+                            Exit Select
+                        Case 1
+                            gen.Emit(OpCodes.Ldarg_1)
+                            Exit Select
+                        Case 2
+                            gen.Emit(OpCodes.Ldarg_2)
+                            Exit Select
+                        Case 3
+                            gen.Emit(OpCodes.Ldarg_3)
+                            Exit Select
+                    End Select
+                Else
+                    gen.Emit(OpCodes.Ldarg_S, i)
+                End If
+            Next
+            gen.Emit(OpCodes.Newobj, constructor)
+            gen.Emit(OpCodes.Ret)
+
+            ' Return the delegate :)
+            Return DirectCast(method.CreateDelegate(delegateType), CreateInstanceDelegate)
+
+        End Function
+      
+        
+        ''' <summary>
+        ''' Searches an instanceType constructor with delegateType-matching signature and constructs delegate of delegateType creating new instance of instanceType.
+        ''' Instance is casted to delegateTypes's return type. 
+        ''' Delegate's return type must be assignable from instanceType.
+        ''' </summary>
+        ''' <param name="delegateType">Type of delegate, with constructor-corresponding signature to be constructed.</param>
+        ''' <param name="instanceType">Type of instance to be constructed.</param>
+        ''' <returns>Delegate of delegateType wich constructs instance of instanceType by calling corresponding instanceType constructor.</returns>
+        Public Shared Function CreateLambdaInstance(delegateType As Type, instanceType As Type) As [Delegate]
+
+            If Not GetType([Delegate]).IsAssignableFrom(delegateType) Then
+                Throw New ArgumentException([String].Format("{0} is not a Delegate type.", delegateType.FullName), "delegateType")
+            End If
+
+            Dim invoke = delegateType.GetMethod("Invoke")
+            Dim parameterTypes = invoke.GetParameters().[Select](Function(pi) pi.ParameterType).ToArray()
+            Dim resultType = invoke.ReturnType
+            If Not resultType.IsAssignableFrom(instanceType) Then
+                Throw New ArgumentException([String].Format("Delegate's return type ({0}) is not assignable from {1}.", resultType.FullName, instanceType.FullName))
+            End If
+
+            Dim ctor = instanceType.GetConstructor(BindingFlags.Instance Or BindingFlags.[Public] Or BindingFlags.NonPublic, Nothing, parameterTypes, Nothing)
+            If ctor Is Nothing Then
+                Throw New ArgumentException("Can't find constructor with delegate's signature", "instanceType")
+            End If
+
+            Dim parapeters = parameterTypes.[Select](Function(x) Expression.Parameter(x)).ToArray()
+
+            Dim newExpression = Expression.Lambda(delegateType, Expression.Convert(Expression.[New](ctor, parapeters), resultType), parapeters)
+            Dim [delegate] = newExpression.Compile()
+            Return [delegate]
+        End Function
+        ''' <summary>
+        ''' create Instance
+        ''' </summary>
+        ''' <typeparam name="TDelegate"></typeparam>
+        ''' <param name="instanceType"></param>
+        ''' <returns></returns>
+        ''' <remarks>
+        ''' Dim newList = Constructor.Compile(Of Func(Of Integer, IList(Of [String])))(GetType(List(Of [String])))
+        ''' Dim list = newList(100)
+        ''' </remarks>
+        Public Shared Function CreateLambdaInstance(Of TDelegate)(instanceType As Type) As TDelegate
+            Return DirectCast(DirectCast(CreateLambdaInstance(GetType(TDelegate), instanceType), Object), TDelegate)
+        End Function
         ''' <summary>
         ''' Creates a IL GET VALUE
         ''' </summary>
@@ -2784,7 +3318,7 @@ Namespace OnTrack
         ''' <param name="field">fieldinfo </param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Private Shared Function CreateILGGetterDelegate(Of T, TValue)(tclass As Type, field As FieldInfo) As MappingGetter
+        Private Shared Function CreateILGGetterDelegate(Of T, TValue)(tclass As Type, field As FieldInfo) As MappingGetterDelegate
             Try
                 Dim m As New DynamicMethod("getter", GetType(TValue), New Type() {GetType(T)}, tclass)
                 Dim cg As ILGenerator = m.GetILGenerator()
@@ -2799,12 +3333,12 @@ Namespace OnTrack
                 If field.FieldType.IsValueType Then
                     cg.Emit(OpCodes.Box, field.FieldType) 'box the value type, so you will have an object on the stack
                 End If
-      
+
                 ' return
                 cg.Emit(OpCodes.Ret)
 
 
-                Return DirectCast(m.CreateDelegate(GetType(MappingGetter)), MappingGetter)
+                Return DirectCast(m.CreateDelegate(GetType(MappingGetterDelegate)), MappingGetterDelegate)
             Catch ex As Exception
                 CoreMessageHandler(exception:=ex, subname:="ObjectClassDescription.CreateILGetterDelegate")
                 Return Nothing
@@ -2864,7 +3398,7 @@ Namespace OnTrack
         '    setter(subject, "new value")
         'End Function
 
-       
+
         'Private Shared Sub Main()
         '    Dim f As FieldInfo = GetType(MyObject).GetField("MyField")
 

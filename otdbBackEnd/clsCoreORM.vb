@@ -83,11 +83,23 @@ Namespace OnTrack
                     Me._databaseDriver = value
                 End Set
             End Property
+            ''' <summary>
+            ''' returns the build version
+            ''' </summary>
+            ''' <value></value>
+            ''' <returns></returns>
+            ''' <remarks></remarks>
             Public ReadOnly Property BuildVersion As UShort Implements iormSqlCommand.BuildVersion
                 Get
                     Return _buildVersion
                 End Get
             End Property
+            ''' <summary>
+            ''' returns a copy of the parameters list
+            ''' </summary>
+            ''' <value></value>
+            ''' <returns></returns>
+            ''' <remarks></remarks>
 
             Public ReadOnly Property Parameters As List(Of ormSqlCommandParameter) Implements iormSqlCommand.Parameters
                 Get
@@ -139,6 +151,12 @@ Namespace OnTrack
                 End Set
             End Property
 
+            ''' <summary>
+            ''' returns a copy of the table list
+            ''' </summary>
+            ''' <value></value>
+            ''' <returns></returns>
+            ''' <remarks></remarks>
             Public ReadOnly Property TableIDs As List(Of String) Implements iormSqlCommand.TableIDs
                 Get
                     Return _tablestores.Keys.ToList()
@@ -294,6 +312,42 @@ Namespace OnTrack
                     _parameters.Remove(key:=parameter.ID)
                 End If
                 _parameters.Add(key:=parameter.ID, value:=parameter)
+                Return True
+            End Function
+
+            ''' <summary>
+            ''' Add Table 
+            ''' </summary>
+            ''' <param name="tableid"></param>
+            ''' <returns></returns>
+            ''' <remarks></remarks>
+            Public Overridable Function AddTable(tableid As String) As Boolean
+                Dim aTablestore As iormDataStore
+                tableid = tableid.ToUpper
+                If Me._databaseDriver Is Nothing Then
+                    aTablestore = GetTableStore(tableid:=tableid)
+                    If aTablestore Is Nothing Then
+                        Call CoreMessageHandler(message:="Tablestore couldnot be retrieved", tablename:=tableid, subname:="clsOTDBSelectCommand.ADDTable", _
+                                              messagetype:=otCoreMessageType.InternalError)
+                        Return False
+                    Else
+                        Me.DatabaseDriver = aTablestore.Connection.DatabaseDriver
+                    End If
+                Else
+                    aTablestore = _databaseDriver.GetTableStore(tableID:=tableid)
+                End If
+
+
+                If aTablestore Is Nothing Then
+                    Call CoreMessageHandler(message:="Tablestore couldnot be retrieved", tablename:=tableid, subname:="clsOTDBSelectCommand.ADDTable", _
+                                          messagetype:=otCoreMessageType.InternalError)
+                    Return False
+                End If
+
+                If Not _tablestores.ContainsKey(key:=tableid) Then
+                    _tablestores.Add(key:=tableid, value:=aTablestore)
+                End If
+
                 Return True
             End Function
             ''' Sets the parameter value.
@@ -889,7 +943,7 @@ Namespace OnTrack
             ''' <param name="tableid"></param>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public Function AddTable(tableid As String, Optional addAllFields As Boolean = True, Optional addFieldnames As List(Of String) = Nothing) As Boolean
+            Public Function AddTable(tableid As String, addAllFields As Boolean, Optional addFieldnames As List(Of String) = Nothing) As Boolean
                 Dim aTablestore As iormDataStore
                 tableid = tableid.ToUpper
                 If Me._databaseDriver Is Nothing Then
@@ -1577,7 +1631,7 @@ Namespace OnTrack
             ''' <param name="TableID"></param>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Protected Friend MustOverride Function PersistLog(ByRef log As MessageLog) As Boolean Implements iormDatabaseDriver.PersistLog
+            Protected Friend MustOverride Function PersistLog(ByRef log As SessionMessageLog) As Boolean Implements iormDatabaseDriver.PersistLog
             ''' <summary>
             ''' Gets the table store.
             ''' </summary>
@@ -1724,7 +1778,7 @@ Namespace OnTrack
             Protected _useseek As Boolean 'use seek instead of SQL
             Protected _lockObject As New Object ' use lock object for sync locking
 
-            Protected WithEvents _ErrorLog As MessageLog
+            Protected WithEvents _ErrorLog As SessionMessageLog
             Protected WithEvents _configurations As ComplexPropertyStore
 
             Public Event OnConnection As EventHandler(Of ormConnectionEventArgs) Implements iormConnection.OnConnection
@@ -1807,10 +1861,10 @@ Namespace OnTrack
             ''' Gets the error log.
             ''' </summary>
             ''' <value>The error log.</value>
-            Public ReadOnly Property ErrorLog() As MessageLog Implements iormConnection.ErrorLog
+            Public ReadOnly Property ErrorLog() As SessionMessageLog Implements iormConnection.ErrorLog
                 Get
                     If _ErrorLog Is Nothing Then
-                        _ErrorLog = New MessageLog(My.Computer.Name & "-" & My.User.Name & "-" & Date.Now.ToUniversalTime)
+                        _ErrorLog = New SessionMessageLog(My.Computer.Name & "-" & My.User.Name & "-" & Date.Now.ToUniversalTime)
                     End If
                     Return _ErrorLog
                 End Get
@@ -2024,6 +2078,8 @@ Namespace OnTrack
                 ' get the Database password if we have it
                 Me.Dbpassword = _configurations.GetProperty(name:=ConstCPNDBPassword, setname:=_Session.ConfigSetname, sequence:=_Sequence)
 
+                ' get the Database password if we have it
+                Dim UseMars As String = _configurations.GetProperty(name:=ConstCPNDBSQLServerUseMars, setname:=_Session.ConfigSetname, sequence:=_Sequence)
 
                 ' get the connection string
                 connectionstring = _configurations.GetProperty(name:=ConstCPNDBConnection, setname:=_Session.ConfigSetname, sequence:=_Sequence)
@@ -2064,6 +2120,9 @@ Namespace OnTrack
                         ' set the seek
                         _useseek = False
                         Me.Connectionstring = "Data Source=" & _Path & "; Database=" & _Name & ";User Id=" & _Dbuser & ";Password=" & _Dbpassword & ";"
+                        If UseMars IsNot Nothing AndAlso CBool(UseMars) Then
+                            Me.Connectionstring &= "MultipleActiveResultSets=True;"
+                        End If
                         Call CoreMessageHandler(message:="Config connection parameters :" & Me.ID & vbLf & _
                                           " created connectionsstring :" & Me.Connectionstring, _
                                           messagetype:=otCoreMessageType.InternalInfo, subname:="ormConnection.SetconnectionConfigParameters")
@@ -2635,7 +2694,7 @@ Namespace OnTrack
             ''' <param name="pkArray"></param>
             ''' <remarks></remarks>
             ''' <returns>True if successfull new value</returns>
-            Public Overridable Function CreateUniquePkValue(ByRef pkArray() As Object) As Boolean Implements iormDataStore.CreateUniquePkValue
+            Public Overridable Function CreateUniquePkValue(ByRef pkArray() As Object, Optional tag As String = "") As Boolean Implements iormDataStore.CreateUniquePkValue
 
                 '**
                 If Not Me.TableSchema.IsInitialized Then
@@ -2650,7 +2709,7 @@ Namespace OnTrack
                 Try
                     ' get
                     Dim aStore As iormDataStore = GetTableStore(_TableID)
-                    Dim aCommand As ormSqlSelectCommand = aStore.CreateSqlSelectCommand(id:="CreateUniquePkValue", addMe:=True, addAllFields:=False)
+                    Dim aCommand As ormSqlSelectCommand = aStore.CreateSqlSelectCommand(id:="CreateUniquePkValue" & tag, addMe:=True, addAllFields:=False)
 
                     '** prepare the command if necessary
 
@@ -2697,12 +2756,12 @@ Namespace OnTrack
                             pkArray(anIndex) = CLng(theRecords.Item(0).GetValue(1)) + 1
                             Return True
                         Else
-                            pkArray(anIndex) = 1
+                            pkArray(anIndex) = CLng(1)
                             Return True
                         End If
 
                     Else
-                        pkArray(anIndex) = 1
+                        pkArray(anIndex) = CLng(1)
                         Return True
                     End If
 

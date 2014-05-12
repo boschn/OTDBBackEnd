@@ -1,0 +1,4 @@
+[submodule "FastCSV"]
+	path = FastCSV
+	url = C:/vol/projekte/GIT/FastCSV/LumenWorks.Framework.IO
+	branch = master

@@ -34,7 +34,7 @@ Public Module modHostData
     '************* registerDefaultObjects registers all Default Objects to be in runtime
     '*************
     Public Function registerDefaultObjects() As Boolean
-        Dim aSchedule As New Schedule
+        Dim aSchedule As New ScheduleEdition
         Dim aDependCheck As New clsOTDBDependCheck
 
         Call registerHostApplicationFor(aSchedule.primaryTableID, True)
@@ -46,7 +46,7 @@ Public Module modHostData
     '************* unregisterDefaultObjects unregisters all Default Objects to be in runtime
     '*************
     Public Function unregisterDefaultObjects() As Boolean
-        Dim aSchedule As New Schedule
+        Dim aSchedule As New ScheduleEdition
         Dim aDependCheck As New clsOTDBDependCheck
 
         Call unregisterHostApplicationFor(aSchedule.primaryTableID)
@@ -109,7 +109,7 @@ Public Module modHostData
     '*************
 
     Public Function overloadFromHostApplication(ByRef aRecord As ormRecord) As Boolean
-        Dim aSchedule As New Schedule
+        Dim aSchedule As New ScheduleEdition
         Dim aDependCheck As New clsOTDBDependCheck
 
         ' if not registered
@@ -145,7 +145,7 @@ Public Module modHostData
     '*************
 
     Public Function overwriteToHostApplication(ByRef aRecord As ormRecord) As Boolean
-        Dim aSchedule As New Schedule
+        Dim aSchedule As New ScheduleEdition
         Dim aDependCheck As New clsOTDBDependCheck
 
         ' if not registered

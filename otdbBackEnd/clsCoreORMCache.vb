@@ -713,7 +713,9 @@ Namespace OnTrack.Database
                         theobjects = _cachedObjects.Item(e.DataObject.GetType.Name)
                     End If
                 End SyncLock
-                If theobjects IsNot Nothing Then
+                ''' do not check if the primary key contains nothing (in cases in which keys will be generated
+                ''' 
+                If theobjects IsNot Nothing AndAlso Not e.Pkarray.Contains(Nothing) Then
                     Dim searchkeys = New ormPrimaryKey(Of iormPersistable)(e.Pkarray)
                     If theobjects.ContainsKey(key:=searchkeys) Then
                         Dim aBucket = theobjects.Item(key:=searchkeys)
@@ -857,20 +859,34 @@ Namespace OnTrack.Database
                 Dim searchkeys = New ormPrimaryKey(Of iormPersistable)(e.Pkarray)
                 If Not theobjects.ContainsKey(key:=searchkeys) Then
                     Dim aBucket = New CachedObject(Of iormPersistable)(e.DataObject)
-                    aBucket.CreationDate = DateTime.Now
                     aBucket.IsCreated = True
+                    aBucket.CreationDate = DateTime.Now
                     theobjects.TryAdd(key:=searchkeys, value:=aBucket)
+
+                    e.AbortOperation = False
                     e.Result = True 'success
                     Exit Sub
                 Else
-                    CoreMessageHandler("Warning ! cloned Object already in cache", subname:="ormObjectCacheManager.OnRetrievedDataObject", messagetype:=otCoreMessageType.InternalWarning, _
+                    Dim aBucket = theobjects.Item(key:=searchkeys)
+                    Dim aDataObject = TryCast(aBucket.Object, ormDataObject)
+                    If aDataObject.Guid <> e.DataObject.Guid Then
+                        CoreMessageHandler("Warning ! objects of same type and keys already in cache", subname:="ormObjectCacheManager.OnClonedDataObject", messagetype:=otCoreMessageType.InternalWarning, _
                                         objectname:=e.DataObject.GetType.Name, arg1:=e.Pkarray)
-                    e.DataObject = Nothing
-                    e.Result = False
-                    Exit Sub
+                        e.DataObject = Nothing
+                        e.Result = False
+                        e.AbortOperation = True
+                        Exit Sub
+                    Else
+                        e.Result = True
+                        e.AbortOperation = False
+                        Exit Sub
+                    End If
+
                 End If
 
+
             End If
+               
 
             e.Result = False
             Exit Sub
@@ -1020,7 +1036,7 @@ Namespace OnTrack.Database
                         e.DataObject = TryCast(aBucket.Object, ormDataObject)
                         aBucket.LastAccessStamp = DateTime.Now
                         e.Result = True 'success
-                        e.AbortOperation = False
+                        e.AbortOperation = True
                         Exit Sub
                     Else
                         e.DataObject = Nothing

@@ -48,10 +48,10 @@ Namespace OnTrack.XChange
 
         ' result
         Private _convertSucceeded As Boolean = False
-        Private _msglog As ObjectLog
+        Private _msglog As ObjectMessageLog
 
         Public Sub New(datatype As otDataType, valuetype As convertValueType, value As Object,
-                       Optional isnull As Boolean = False, Optional isempty As Boolean = False, Optional msglog As ObjectLog = Nothing)
+                       Optional isnull As Boolean = False, Optional isempty As Boolean = False, Optional msglog As ObjectMessageLog = Nothing)
             _datatype = datatype
             _valuetype = valuetype
             Me.Value = value
@@ -124,11 +124,11 @@ Namespace OnTrack.XChange
         ''' Gets or sets the msglog.
         ''' </summary>
         ''' <value>The msglog.</value>
-        Public Property Msglog() As ObjectLog
+        Public Property Msglog() As ObjectMessageLog
             Get
                 Return Me._msglog
             End Get
-            Set(value As ObjectLog)
+            Set(value As ObjectMessageLog)
                 Me._msglog = value
             End Set
         End Property
@@ -282,7 +282,7 @@ Namespace OnTrack.XChange
     ''' </summary>
     ''' <remarks></remarks>
     Public Class XBag
-        Implements IEnumerable(Of XBag)
+        Implements IEnumerable(Of XEnvelope)
 
         '* default Config we are looking over
         Private _XChangeDefaultConfig As XChangeConfiguration
@@ -438,7 +438,7 @@ Namespace OnTrack.XChange
 
 #Region "Administration functions"
 
-        Public Function ordinals() As System.Collections.Generic.SortedDictionary(Of Ordinal, XEnvelope).KeyCollection
+        Public Function Ordinals() As System.Collections.Generic.SortedDictionary(Of Ordinal, XEnvelope).KeyCollection
             Return _envelopes.Keys
         End Function
         '**** check functions if exists
@@ -623,12 +623,12 @@ Namespace OnTrack.XChange
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetEnumerator() As IEnumerator(Of XBag) Implements IEnumerable(Of XBag).GetEnumerator
-            _envelopes.GetEnumerator()
+        Public Function GetEnumerator() As IEnumerator(Of XEnvelope) Implements IEnumerable(Of XEnvelope).GetEnumerator
+            _envelopes.ToList.GetEnumerator()
         End Function
 
         Public Function GetEnumerator1() As IEnumerator Implements IEnumerable.GetEnumerator
-            _envelopes.GetEnumerator()
+            _envelopes.ToList.GetEnumerator()
         End Function
 #End Region
 
@@ -720,7 +720,7 @@ Namespace OnTrack.XChange
     Public Class XSlot
 
         Private _envelope As XEnvelope
-        Private _xattribute As XChangeObjectEntry
+        Private _xentry As XChangeObjectEntry
         Private _explicitDatatype As otDataType
 
         Private _ordinal As Ordinal
@@ -732,7 +732,7 @@ Namespace OnTrack.XChange
         Private _isPrecheckedOk As Boolean = False
 
 
-        Private _msglog As New ObjectLog
+        Private _msglog As New ObjectMessageLog
 
         '** events for convert values
         Public Event ConvertRequest2HostValue As EventHandler(Of ConvertRequestEventArgs)
@@ -744,10 +744,10 @@ Namespace OnTrack.XChange
         ''' <param name="xenvelope"></param>
         ''' <param name="attribute"></param>
         ''' <remarks></remarks>
-        Public Sub New(xenvelope As XEnvelope, attribute As XChangeObjectEntry)
+        Public Sub New(xenvelope As XEnvelope, entry As XChangeObjectEntry)
             _envelope = xenvelope
-            _xattribute = attribute
-            _ordinal = attribute.Ordinal
+            _xentry = entry
+            _ordinal = entry.Ordinal
             _hostvalue = Nothing
             _isEmpty = True
             _isNull = True
@@ -761,10 +761,10 @@ Namespace OnTrack.XChange
         ''' <param name="xenvelope"></param>
         ''' <param name="attribute"></param>
         ''' <remarks></remarks>
-        Public Sub New(xenvelope As XEnvelope, attribute As XChangeObjectEntry, hostvalue As Object, Optional isEmpty As Boolean = False, Optional isNull As Boolean = False)
+        Public Sub New(xenvelope As XEnvelope, entry As XChangeObjectEntry, hostvalue As Object, Optional isEmpty As Boolean = False, Optional isNull As Boolean = False)
             _envelope = xenvelope
-            _xattribute = attribute
-            _ordinal = attribute.Ordinal
+            _xentry = entry
+            _ordinal = entry.Ordinal
             _hostvalue = hostvalue
             _isEmpty = isEmpty
             _isNull = isNull
@@ -795,8 +795,8 @@ Namespace OnTrack.XChange
         ''' <remarks></remarks>
         Public ReadOnly Property IsXChanged As Boolean
             Get
-                If _xattribute IsNot Nothing Then
-                    Return Not Me.IsEmpty And Me.XAttribute.IsXChanged And Not Me.XAttribute.IsReadOnly
+                If _xentry IsNot Nothing Then
+                    Return Not Me.IsEmpty And Me.XChangeEntry.IsXChanged And Not Me.XChangeEntry.IsReadOnly
                 Else
                     Return Not Me.IsEmpty
                 End If
@@ -820,7 +820,7 @@ Namespace OnTrack.XChange
         ''' Gets or sets the ordinal.
         ''' </summary>
         ''' <value>The ordinal.</value>
-        Public Property ordinal() As Ordinal
+        Public Property Ordinal() As Ordinal
             Get
                 Return Me._ordinal
             End Get
@@ -868,11 +868,16 @@ Namespace OnTrack.XChange
                 Me.IsNull = False
             End Set
         End Property
-
+        ''' <summary>
+        ''' gets or sets the datatype of the slot -cannot be set if this is bound to a column entry
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
         Public Property Datatype As otDataType
             Get
-                If _xattribute IsNot Nothing And _explicitDatatype = 0 Then
-                    Return _xattribute.[ObjectEntryDefinition].Datatype
+                If _xentry IsNot Nothing And _explicitDatatype = 0 Then
+                    Return _xentry.[ObjectEntryDefinition].Datatype
                 ElseIf _explicitDatatype <> 0 Then
                     Return _explicitDatatype
                 Else
@@ -881,10 +886,10 @@ Namespace OnTrack.XChange
                 End If
             End Get
             Set(value As otDataType)
-                If _xattribute Is Nothing Then
+                If _xentry Is Nothing Then
                     _explicitDatatype = value
                 Else
-                    CoreMessageHandler(message:="explicit datatype cannot be set if attribute was specified", messagetype:=otCoreMessageType.InternalWarning, subname:="XSlot.Datatype")
+                    'CoreMessageHandler(message:="explicit datatype cannot be set if attribute was specified", messagetype:=otCoreMessageType.InternalWarning, subname:="XSlot.Datatype")
                     _explicitDatatype = value
                 End If
             End Set
@@ -942,15 +947,15 @@ Namespace OnTrack.XChange
             End Set
         End Property
         ''' <summary>
-        ''' Gets or sets the xattribute.
+        ''' Gets or sets the XChange Entry.
         ''' </summary>
-        ''' <value>The xattribute.</value>
-        Public Property XAttribute() As XChangeObjectEntry
+        ''' <value>The XchangeObjectEntry.</value>
+        Public Property XChangeEntry() As XChangeObjectEntry
             Get
-                Return Me._xattribute
+                Return Me._xentry
             End Get
             Set(value As XChangeObjectEntry)
-                Me._xattribute = value
+                Me._xentry = value
             End Set
         End Property
 #End Region
@@ -965,16 +970,16 @@ Namespace OnTrack.XChange
         ''' <returns></returns>
         ''' <remarks></remarks>
 
-        Public Shared Function DefaultConvert2HostValue(ByRef datatype As otDataType,
+        Public Shared Function DefaultConvert2HostValue(ByVal datatype As otDataType,
                                                  ByRef hostvalue As Object, ByVal dbvalue As Object,
                                                 Optional ByRef hostValueIsNull As Boolean = False, Optional ByRef hostValueIsEmpty As Boolean = False,
-                                                Optional dbValueIsNull As Boolean = False, Optional dbValueIsEmpty As Boolean = False,
-                                                Optional ByRef msglog As ObjectLog = Nothing) As Boolean
+                                                Optional ByVal dbValueIsNull As Boolean = False, Optional ByVal dbValueIsEmpty As Boolean = False,
+                                                Optional ByRef msglog As ObjectMessageLog = Nothing) As Boolean
 
             ' set msglog
             If msglog Is Nothing Then
                 If msglog Is Nothing Then
-                    msglog = New ObjectLog
+                    msglog = New ObjectMessageLog
                 End If
                 'MSGLOG.Create(Me.Msglogtag)
             End If
@@ -1101,14 +1106,14 @@ Namespace OnTrack.XChange
         ''' <param name="msglog"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Shared Function DefaultConvert2DBValue(ByRef datatype As otDataType,
+        Public Shared Function DefaultConvert2DBValue(ByVal datatype As otDataType,
                                                 ByVal hostvalue As Object, ByRef dbvalue As Object,
                                                 Optional hostValueIsNull As Boolean = False, Optional hostValueIsEmpty As Boolean = False,
                                                 Optional ByRef dbValueIsNull As Boolean = False, Optional ByRef dbValueIsEmpty As Boolean = False,
-                                                Optional ByRef msglog As ObjectLog = Nothing) As Boolean
+                                                Optional ByRef msglog As ObjectMessageLog = Nothing) As Boolean
             ' set msglog
             If msglog Is Nothing Then
-                msglog = New ObjectLog
+                msglog = New ObjectMessageLog
             End If
 
             '*** transfer
@@ -1260,7 +1265,7 @@ Namespace OnTrack.XChange
         Private _XChangedTimestamp As Date = constNullDate
 
         Private _slots As New SortedDictionary(Of Ordinal, XSlot) 'the map
-        Private _msglog As New ObjectLog
+        Private _msglog As New ObjectMessageLog
 
         '** events for convert values
         Public Event ConvertRequest2HostValue As EventHandler(Of ConvertRequestEventArgs)
@@ -1361,7 +1366,7 @@ Namespace OnTrack.XChange
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public ReadOnly Property MsgLog() As ObjectLog
+        Public ReadOnly Property MsgLog() As ObjectMessageLog
             Get
                 Return _msglog
             End Get
@@ -1536,17 +1541,17 @@ Namespace OnTrack.XChange
             ' take the first Attribute which has the ordinal
             If Not Me.ContainsOrdinal(ordinal) Then
                 Dim theEntryList = Me.Xchangeconfig.GetEntriesByMappingOrdinal(ordinal:=ordinal)
-                Dim anAttribute As XChangeObjectEntry = Nothing
+                Dim anXEntry As XChangeObjectEntry = Nothing
                 For Each anEntry In theEntryList
                     If anEntry.IsObjectEntry Then
-                        anAttribute = TryCast(anEntry, XChangeObjectEntry)
-                        If anAttribute IsNot Nothing Then
+                        anXEntry = TryCast(anEntry, XChangeObjectEntry)
+                        If anXEntry IsNot Nothing Then
                             Exit For
                         End If
                     End If
                 Next
-                If anAttribute IsNot Nothing Then
-                    Me.AddSlot(slot:=New XSlot(xenvelope:=Me, attribute:=anAttribute, hostvalue:=Nothing, isEmpty:=True))
+                If anXEntry IsNot Nothing Then
+                    Me.AddSlot(slot:=New XSlot(xenvelope:=Me, entry:=anXEntry, hostvalue:=Nothing, isEmpty:=True))
                     overwrite = True
                 End If
             End If
@@ -1753,7 +1758,7 @@ Namespace OnTrack.XChange
                     End If
                     Return False
                 Else
-                    Dim aNewSlot As XSlot = New XSlot(Me, attribute:=entry)
+                    Dim aNewSlot As XSlot = New XSlot(Me, entry:=entry)
                     If isHostValue Then
                         aNewSlot.HostValue = value
                     Else
@@ -2025,14 +2030,14 @@ Namespace OnTrack.XChange
         ''' <param name="SUSPENDOVERLOAD"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function RunXPreCheck(Optional ByRef msglog As ObjectLog = Nothing,
+        Public Function RunXPreCheck(Optional ByRef msglog As ObjectMessageLog = Nothing,
                                      Optional ByVal suspendoverload As Boolean = True) As Boolean
             Dim flag As Boolean
 
             ' set msglog
             If msglog Is Nothing Then
                 If _msglog Is Nothing Then
-                    _msglog = New ObjectLog
+                    _msglog = New ObjectMessageLog
                 End If
                 msglog = _msglog
                 'msglog.Create()
@@ -2049,23 +2054,25 @@ Namespace OnTrack.XChange
                 Select Case anObject.Objectname.ToUpper
 
                     ' currtargets
-                    Case Deliverables.CurrentTarget.ConstObjectID.ToUpper
+                    Case Deliverables.WorkspaceTarget.ConstObjectID.ToUpper
                         flag = True
 
                         ' currschedules
-                    Case Scheduling.CurrentSchedule.ConstObjectID.ToUpper
+                    Case Scheduling.WorkspaceSchedule.ConstObjectID.ToUpper
                         flag = True
 
                         ' schedules
-                    Case Scheduling.Schedule.ConstObjectID.ToUpper
+                    Case Scheduling.ScheduleEdition.ConstObjectID.ToUpper
                         flag = True
 
                         ' Targets
                     Case Deliverables.Target.ConstObjectID.ToUpper
+                        flag = True
                         'flag = clsOTDBDeliverableTarget.runXPreCheck(Me, msglog)
                         '
                     Case Else
                         ' default
+                        flag = True
                         'flag = Me.runDefaultXPreCheck(Me, msglog)
                 End Select
             Next
@@ -2086,17 +2093,17 @@ Namespace OnTrack.XChange
         ''' <param name="suspendoverload"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function RunXChange(Optional ByRef msglog As ObjectLog = Nothing,
+        Public Function RunXChange(Optional ByRef msglog As ObjectMessageLog = Nothing,
                                    Optional ByVal suspendoverload As Boolean = True) As Boolean
             Dim flag As Boolean
             Dim aTarget As New Target
-            Dim aSchedule As New Schedule
+            Dim aSchedule As New ScheduleEdition
             Dim aDeliverable As New Deliverable
 
             ' set msglog
             If msglog Is Nothing Then
                 If _msglog Is Nothing Then
-                    _msglog = New ObjectLog
+                    _msglog = New ObjectMessageLog
                 End If
                 msglog = _msglog
                 'msglog.Create(Me.msglogtag)
@@ -2116,7 +2123,7 @@ Namespace OnTrack.XChange
                 Select Case anConfigObject.Objectname.ToLower
 
                     ' currschedules
-                    Case CurrentSchedule.ConstObjectID.ToLower
+                    Case WorkspaceSchedule.ConstObjectID.ToLower
                         flag = True
 
                     Case XOutline.constobjectid.ToLower
@@ -2145,7 +2152,7 @@ Namespace OnTrack.XChange
                     If anObjectType IsNot Nothing AndAlso _
                         anObjectType.GetInterface(GetType(iotXChangeable).FullName) IsNot Nothing Then
 
-                        Dim aXChangeable As iotXChangeable = Activator.CreateInstance(anObjectType)
+                        Dim aXChangeable As iotXChangeable = ot.CreateDataObjectInstance(anObjectType)
                         'flag = flag And aXChangeable.RunXChange(Me)
                     Else
                         ' default
@@ -2403,7 +2410,7 @@ Namespace OnTrack.XChange
         ''' <remarks></remarks>
         Public Function RunXChangeCommand(ByRef dataobject As iormPersistable, type As System.Type, _
                                           Optional xobject As XChangeObject = Nothing, _
-                                          Optional ByRef msglog As ObjectLog = Nothing) As Boolean
+                                          Optional ByRef msglog As ObjectMessageLog = Nothing) As Boolean
             Dim aValue As Object
 
             '* get the config
@@ -2414,7 +2421,7 @@ Namespace OnTrack.XChange
             ' set msglog
             If msglog Is Nothing Then
                 If _msglog Is Nothing Then
-                    _msglog = New ObjectLog
+                    _msglog = New ObjectMessageLog
                 End If
                 msglog = _msglog
                 'msglog.Create(Me.msglogtag)
@@ -2517,14 +2524,14 @@ Namespace OnTrack.XChange
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function RunDefaultXChange(ByRef xobject As XChangeObject,
-                                          Optional ByRef msglog As ObjectLog = Nothing) As Boolean
+                                          Optional ByRef msglog As ObjectMessageLog = Nothing) As Boolean
             Dim pkarry() As Object
             Dim aValue As Object
 
             ' set msglog
             If msglog Is Nothing Then
                 If _msglog Is Nothing Then
-                    _msglog = New ObjectLog
+                    _msglog = New ObjectMessageLog
                 End If
                 msglog = _msglog
                 'msglog.Create(Me.msglogtag)
@@ -2589,7 +2596,7 @@ Namespace OnTrack.XChange
         Private Function fillMappingWithCompounds(ByRef RECORD As ormRecord, ByRef MAPPING As Dictionary(Of Object, Object),
                                                   ByRef ORIGMAPPING As Dictionary(Of Object, Object),
         ByRef TABLE As ObjectDefinition,
-        Optional ByRef MSGLOG As ObjectLog = Nothing) As Boolean
+        Optional ByRef MSGLOG As ObjectMessageLog = Nothing) As Boolean
             Dim aConfigmember As IXChangeConfigEntry
             Dim aTable As iormDataStore
             Dim aRecord As ormRecord
@@ -2610,7 +2617,7 @@ Namespace OnTrack.XChange
             Dim compIDFieldname As String
             Dim aVAlue As Object
 
-            Dim aSchedule As New Schedule
+            Dim aSchedule As New ScheduleEdition
             Dim aScheduleMilestone As New ScheduleMilestone
             Dim specialHandling As Boolean
 
@@ -2618,11 +2625,11 @@ Namespace OnTrack.XChange
             For Each m In TABLE.GetEntries
                 anObjectEntry = m
                 If anObjectEntry.XID <> "" And anObjectEntry.IsCompound Then
-                    If aCompTableDir.ContainsKey(key:=DirectCast(anObjectEntry, ObjectCompoundEntry).CompoundTablename) Then
-                        anEntryDir = aCompTableDir.Item(key:=DirectCast(anObjectEntry, ObjectCompoundEntry).CompoundTablename)
+                    If aCompTableDir.ContainsKey(key:=DirectCast(anObjectEntry, ObjectCompoundEntry).CompoundObjectID) Then
+                        anEntryDir = aCompTableDir.Item(key:=DirectCast(anObjectEntry, ObjectCompoundEntry).CompoundObjectID)
                     Else
                         anEntryDir = New Dictionary(Of String, iormObjectEntry)
-                        Call aCompTableDir.Add(key:=DirectCast(anObjectEntry, ObjectCompoundEntry).CompoundTablename, value:=anEntryDir)
+                        Call aCompTableDir.Add(key:=DirectCast(anObjectEntry, ObjectCompoundEntry).CompoundObjectID, value:=anEntryDir)
                     End If
                     ' add the Entry
                     If Not anEntryDir.ContainsKey(key:=anObjectEntry.XID) Then
@@ -2653,7 +2660,7 @@ Namespace OnTrack.XChange
                 End If
                 ' found
                 If anUPDC <> 0 And anUID <> 0 Then
-                    aSchedule = Schedule.Retrieve(UID:=anUID, updc:=anUPDC)
+                    aSchedule = ScheduleEdition.Retrieve(UID:=anUID, updc:=anUPDC)
                     If aSchedule IsNot Nothing Then
                         specialHandling = True
                     Else
@@ -2675,11 +2682,11 @@ Namespace OnTrack.XChange
                 aTableName = CStr(objectname)
                 anEntryDir = aCompTableDir.Item(key:=aTableName)
                 anObjectEntry = anEntryDir.First.Value      'first item
-                compIDFieldname = DirectCast(anObjectEntry, ObjectCompoundEntry).CompoundIDFieldname
-                compValueFieldName = DirectCast(anObjectEntry, ObjectCompoundEntry).CompoundValueFieldname
+                compIDFieldname = DirectCast(anObjectEntry, ObjectCompoundEntry).CompoundIDEntryname
+                compValueFieldName = DirectCast(anObjectEntry, ObjectCompoundEntry).CompoundValueEntryName
 
                 ' look up the keys
-                compoundKeys = DirectCast(anObjectEntry, ObjectCompoundEntry).CompoundRelation
+                compoundKeys = DirectCast(anObjectEntry, ObjectCompoundEntry).CompoundRelationPath
                 If Not IsArrayInitialized(compoundKeys) Then
                     Call CoreMessageHandler(arg1:=anObjectEntry.Entryname, message:="no compound relation found for entryname", subname:="XChangeConfiguration.fillMappingWithCompounds")
                     fillMappingWithCompounds = False

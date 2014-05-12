@@ -192,7 +192,7 @@ Namespace OnTrack.Database
         ''' <param name="log"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Function PersistLog(ByRef log As OnTrack.MessageLog) As Boolean
+        Function PersistLog(ByRef log As OnTrack.SessionMessageLog) As Boolean
 
         ''' <summary>
         ''' verify OnTrack if Data Objects are there and up to date
@@ -498,7 +498,7 @@ Namespace OnTrack.Database
         ''' <param name="pkArray">sets or fills this array</param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Function CreateUniquePkValue(ByRef pkArray() As Object) As Boolean
+        Function CreateUniquePkValue(ByRef pkArray() As Object, Optional tag As String = "") As Boolean
         ''' <summary>
         ''' Refresh the data of the tablestore
         ''' </summary>
@@ -938,7 +938,7 @@ Namespace OnTrack.Database
         ReadOnly Property Useseek As Boolean
 
         '*** ErrorLog
-        ReadOnly Property [ErrorLog] As MessageLog
+        ReadOnly Property [ErrorLog] As SessionMessageLog
 
         ''' <summary>
         ''' returns true if connected
@@ -1140,6 +1140,8 @@ Namespace OnTrack.Database
     ''' <remarks></remarks>
     Public Interface iormPersistable
 
+        Function EqualsValue(entryname As String, value As Object) As Boolean
+
         ReadOnly Property IsInfused As Boolean
 
         ReadOnly Property ObjectClassDescription As OnTrack.ObjectClassDescription
@@ -1198,7 +1200,7 @@ Namespace OnTrack.Database
 
         Function Feed(Optional record As ormRecord = Nothing) As Boolean
 
-        Function isAlive(Optional throwError As Boolean = True, Optional subname As String = "") As Boolean
+        Function isAlive(Optional subname As String = "", Optional throwError As Boolean = True) As Boolean
 
 
 
@@ -1319,6 +1321,15 @@ Namespace OnTrack.Database
     Public Interface iormInfusable
 
         ''' <summary>
+        ''' requests a relation by id to be infused, force if it was loaded and infused before
+        ''' </summary>
+        ''' <param name="id"></param>
+        ''' <param name="force"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Function InfuseRelation(id As String, Optional force As Boolean = False) As Boolean
+
+        ''' <summary>
         ''' OnInfusing event triggers before infusing a data object
         ''' </summary>
         ''' <param name="sender"></param>
@@ -1351,14 +1362,14 @@ Namespace OnTrack.Database
     ''' <typeparam name="T"></typeparam>
     ''' <remarks></remarks>
 
-    Public Interface iotCloneable(Of T As {iormPersistable, iormInfusable, New})
+    Public Interface iormCloneable(Of T As {iormPersistable, iormInfusable, New})
         ''' <summary>
         ''' clone the object with the new primary key
         ''' </summary>
         ''' <param name="pkarray">primary key array</param>
         ''' <returns>the new cloned object or nothing</returns>
         ''' <remarks></remarks>
-        Function Clone(pkarray() As Object) As T
+        Function Clone(pkarray() As Object, Optional runtimeOnly As Boolean? = Nothing) As T
     End Interface
     ''' <summary>
     ''' interface cloneable if an object can be cloned
@@ -1367,6 +1378,8 @@ Namespace OnTrack.Database
     ''' <remarks></remarks>
 
     Public Interface iormCloneable
+
+        Function Clone(newpkarray As Object(), Optional runtimeOnly As Boolean? = Nothing) As Object
 
         ''' <summary>
         ''' OnCloning Event
@@ -1377,13 +1390,6 @@ Namespace OnTrack.Database
         Event OnCloning(sender As Object, e As ormDataObjectEventArgs)
         Event OnCloned(sender As Object, e As ormDataObjectEventArgs)
 
-        ''' <summary>
-        ''' clone the object with the new primary key
-        ''' </summary>
-        ''' <param name="pkarray">primary key array</param>
-        ''' <returns>the new cloned object or nothing</returns>
-        ''' <remarks></remarks>
-        Function Clone(Of T As {iormPersistable, iormInfusable, Class, New})(newpkarray() As Object) As T
     End Interface
 
 
@@ -1411,6 +1417,7 @@ Namespace OnTrack.Database
     ''' <remarks></remarks>
     Public Interface iormObjectEntry
         Inherits iormPersistable
+        Inherits System.ComponentModel.INotifyPropertyChanged
         ''' <summary>
         ''' returns true if the Entry is mapped to a class member field
         ''' </summary>
@@ -1433,7 +1440,7 @@ Namespace OnTrack.Database
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Property LowerRangeValue() As Long
+        Property LowerRangeValue() As Long?
 
         ''' <summary>
         ''' True if ObjectEntry has a defined upper value
@@ -1449,7 +1456,7 @@ Namespace OnTrack.Database
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Property UpperRangeValue() As Long
+        Property UpperRangeValue() As Long?
 
         ''' <summary>
         ''' gets the list of possible values
@@ -1465,7 +1472,7 @@ Namespace OnTrack.Database
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Property PossibleValues() As List(Of Object)
+        Property PossibleValues() As List(Of String)
 
         ''' <summary>
         ''' Gets or sets the description.
@@ -1503,7 +1510,7 @@ Namespace OnTrack.Database
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Property Typeid() As otObjectEntryDefinitiontype
+        Property Typeid() As otObjectEntryType
 
         ''' <summary>
         ''' sets or gets true if this field is a spare field
@@ -1612,11 +1619,11 @@ Namespace OnTrack.Database
 
         Property IsNullable As Boolean
 
-        Property PrimaryKeyOrdinal As UShort
+        Property PrimaryKeyOrdinal As Long
 
         Property InnerDatatype As otDataType?
 
-        Property Ordinal As UShort
+        Property Ordinal As Long
 
         Property IsReadonly As Boolean
 
@@ -1661,13 +1668,7 @@ Namespace OnTrack
         '*****
         Property EntitityIdentifier As String
 
-        '***** raiseMessage informs the Receiver about the Message-Event
-        '*****
-        Function raiseMessage(ByVal index As Long, ByRef MSGLOG As ObjectLog) As Boolean
-
-        '***** hands over the msglog object to the receiver
-        '*****
-        Function attachMessageLog(ByRef MSGLOG As ObjectLog) As Boolean
+      
 
     End Interface
 End Namespace
@@ -1695,10 +1696,9 @@ Namespace OnTrack
     
     ' Enum of MilestoneTypes
 
-    Public Enum otObjectEntryDefinitiontype
+    Public Enum otObjectEntryType
         Column = 1
         Compound = 2
-        Table = 3
     End Enum
 
     ' Enum ofRelativeToInterval
@@ -1713,7 +1713,7 @@ Namespace OnTrack
    
     'LogMessageTypes
 
-    Public Enum otAppLogMessageType
+    Public Enum otObjectMessageType
         [Error] = 1
         Info = 3
         Attention = 2

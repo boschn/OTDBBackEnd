@@ -32,7 +32,7 @@ Namespace OnTrack.XChange
         ''' <param name="envelope"></param>
         ''' <returns>True if successful</returns>
         ''' <remarks></remarks>
-        Function RunXChange(ByRef envelope As XEnvelope, Optional ByRef msglog As ObjectLog = Nothing) As Boolean
+        Function RunXChange(ByRef envelope As XEnvelope, Optional ByRef msglog As ObjectMessageLog = Nothing) As Boolean
 
         ''' <summary>
         ''' runs the Precheck
@@ -40,7 +40,7 @@ Namespace OnTrack.XChange
         ''' <param name="envelope"></param>
         ''' <returns>True if successful</returns>
         ''' <remarks></remarks>
-        Function RunXPreCheck(ByRef envelope As XEnvelope, Optional ByRef msglog As ObjectLog = Nothing) As Boolean
+        Function RunXPreCheck(ByRef envelope As XEnvelope, Optional ByRef msglog As ObjectMessageLog = Nothing) As Boolean
 
     End Interface
     ''' <summary>
@@ -126,14 +126,7 @@ Namespace OnTrack.XChange
         '''' <value>The S is compund entry.</value>
         'ReadOnly Property IsCompundEntry As Boolean
 
-        ''' <summary>
-        ''' gets the MSGLog Tag
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        ReadOnly Property Msglogtag() As String
-
+        
         ''' <summary>
         ''' gets or sets the Xchange Command
         ''' </summary>
@@ -150,7 +143,7 @@ Namespace OnTrack.XChange
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Property Indexno() As Long
+        Property IDNO() As Long
 
         ''' <summary>
         ''' gets or sets the Xhanged Flag - value is not xchangend to and from Host Application
@@ -443,7 +436,7 @@ Namespace OnTrack.XChange
                         title:="XChangeConfigID", description:="name of the eXchange Configuration")> Public Const ConstFNXConfigID = XChangeConfiguration.constFNID
 
         <ormObjectEntry(typeid:=otDataType.Long, primaryKeyordinal:=2,
-                        title:="IndexNo", description:="unique id in the the eXchange Configuration")> Public Const constFNIDNo = "IDNO"
+                        title:="Identity Number", description:="unique id in the the eXchange Configuration")> Public Const constFNIDNo = "IDNO"
 
         <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=3, _
            useforeignkey:=otForeignKeyImplementation.None)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
@@ -539,8 +532,6 @@ Namespace OnTrack.XChange
         Protected _EntryDefinition As iormObjectEntry
         Protected _ObjectDefinition As ObjectDefinition
         ' Protected _aliases As String()    ' not saved !
-        Protected _msglog As New ObjectLog
-        Protected _msglogtag As String
 
         '** initialize
         Public Sub New()
@@ -597,25 +588,7 @@ Namespace OnTrack.XChange
             End Set
         End Property
 
-        '****** getUniqueTag
-        Public Function GetUniqueTag()
-            GetUniqueTag = ConstDelimiter & ConstTableID & ConstDelimiter & _configname & ConstDelimiter & _xid & ConstDelimiter & _objectname & ConstDelimiter & _entryname & ConstDelimiter
-        End Function
-        ''' <summary>
-        ''' gets the MSGLog Tag
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public ReadOnly Property Msglogtag() As String Implements IXChangeConfigEntry.Msglogtag
-            Get
-                If _msglogtag = "" Then
-                    _msglogtag = GetUniqueTag()
-                End If
-                Msglogtag = _msglogtag
-            End Get
-
-        End Property
+       
 
         ''' <summary>
         ''' gets or sets the objectname to which the entry belongs
@@ -754,11 +727,10 @@ Namespace OnTrack.XChange
         ''' <remarks></remarks>
         Public Property Ordinal() As Ordinal Implements IXChangeConfigEntry.Ordinal
             Get
-                Ordinal = _ordinal
+                Return _ordinal
             End Get
             Set(value As Ordinal)
-                _ordinal = value
-                Me.IsChanged = True
+                SetValue(constFNordinal, value)
             End Set
         End Property
 
@@ -769,15 +741,12 @@ Namespace OnTrack.XChange
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property Indexno() As Long Implements IXChangeConfigEntry.Indexno
+        Public Property IDNO() As Long Implements IXChangeConfigEntry.IDNO
             Get
-                Indexno = _idno
+                Return _idno
             End Get
             Set(value As Long)
-                If _idno <> value Then
-                    _idno = value
-                    Me.IsChanged = True
-                End If
+                Throw New InvalidOperationException("IDNO must not be set by property since it is a primary key")
             End Set
         End Property
 
@@ -1054,7 +1023,7 @@ Namespace OnTrack.XChange
         ''' 
         '''
         '*** relation to xconfig object entries
-        <ormSchemaRelation(linkobject:=GetType(XChangeObjectEntry), cascadeOnDelete:=True, cascadeOnUpdate:=True, _
+        <ormRelation(linkobject:=GetType(XChangeObjectEntry), cascadeOnDelete:=True, cascadeOnUpdate:=True, _
             fromEntries:={constFNID}, toEntries:={XChangeObjectEntry.ConstFNXConfigID}, _
             linkjoin:=" AND [" & XChangeObjectEntry.ConstFNTypeid & "] ='ObjectEntry'")> _
         Public Const ConstRObjectEntries = "XCHANGEENTRIES"
@@ -1063,7 +1032,7 @@ Namespace OnTrack.XChange
             keyentries:={XChangeObjectEntry.constFNIDNo})> Private WithEvents _ObjectEntryCollection As New ormRelationCollection(Of XChangeObjectEntry)(Me, {XChangeConfigAbstractEntry.constFNIDNo})
 
         '*** relation xconfig objects
-        <ormSchemaRelation(linkobject:=GetType(XChangeObject), cascadeOnDelete:=True, cascadeOnUpdate:=True, _
+        <ormRelation(linkobject:=GetType(XChangeObject), cascadeOnDelete:=True, cascadeOnUpdate:=True, _
            fromEntries:={constFNID}, toEntries:={XChangeObject.ConstFNXConfigID}, _
            linkjoin:=" AND [" & XChangeObject.ConstFNTypeid & "] ='Object'")> Public Const ConstRObjects = "XCHANGEOBJECTS"
 
@@ -1076,7 +1045,7 @@ Namespace OnTrack.XChange
         '''  dynamic entries
         ''' </summary>
         ''' <remarks></remarks>
-        Private _msglog As New ObjectLog
+        Private _msglog As New ObjectMessageLog
         Private _processedDate As Date = constNullDate
 
         ' members itself per key:=indexnumber, item:=IXChangeConfigEntry
@@ -2013,6 +1982,16 @@ Namespace OnTrack.XChange
         End Function
 
         ''' <summary>
+        ''' gets an list of ordered (by ordinal) XChange ObjectEntries
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property OrderedXChangeObjectEntries() As IList(Of XChangeObjectEntry)
+            Get
+                Return _entriesByordinal.ToList
+            End Get
+        End Property
+        ''' <summary>
         ''' gets an relational collection of xchange obejct entries
         ''' </summary>
         ''' <returns></returns>
@@ -2090,6 +2069,21 @@ Namespace OnTrack.XChange
 
 
             Return Nothing
+        End Function
+
+        ''' <summary>
+        ''' returns an XChange ConfigEnry by idno or nothing if not exists
+        ''' </summary>
+        ''' <param name="idno"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function GetEntry(ByVal idno As Long) As IXChangeConfigEntry
+            If Not Me.IsAlive("GetEntry") Then Return Nothing
+            If _ObjectEntryCollection.ContainsKey(key:={idno}) Then
+                Return _ObjectEntryCollection.Item(key:={idno})
+            Else
+                Return Nothing
+            End If
         End Function
         ''' <summary>
         ''' returns an Attribute in the XChange Config by its XChange ID or Alias
@@ -2425,12 +2419,9 @@ Namespace OnTrack.XChange
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Function Initialize() As Boolean
-            _IsInitialized = MyBase.Initialize
+        Public Sub XoutLine_OnInitialize() Handles Me.OnInitialized
             s_cmids = New OrderedDictionary()
-
-            Return _IsInitialized
-        End Function
+        End Sub
 
         ''' <summary>
         ''' ordinals of the components
@@ -2603,8 +2594,8 @@ Namespace OnTrack.XChange
                 '** look for Deliverable UID
                 For Each key In keys
                     If key.ID.ToLower = "uid" Or key.ID.ToLower = "sc2" Then
-                        aFirstRevision = New Deliverable
-                        If aFirstRevision.Inject(uid:=CLng(key.Value)) Then
+                        aFirstRevision = Deliverable.Retrieve(uid:=CLng(key.Value))
+                        If aFirstRevision IsNot Nothing Then
                             If Not aFirstRevision.IsFirstRevision Or aFirstRevision.IsDeleted Then
                                 deletedColl.Add(Item:=item)
                                 Call item.Delete()
@@ -2653,8 +2644,8 @@ Namespace OnTrack.XChange
                 Else
                     For Each key In keys
                         If key.ID.ToLower = "uid" Or key.ID.ToLower = "sc2" Then
-                            aFirstRevision = New Deliverable
-                            If Me.DynamicAddRevisions AndAlso aFirstRevision.Inject(uid:=CLng(key.Value)) Then
+                            aFirstRevision = Deliverable.Retrieve(uid:=CLng(key.Value))
+                            If Me.DynamicAddRevisions AndAlso aFirstRevision IsNot Nothing Then
                                 If aFirstRevision.IsFirstRevision And Not aFirstRevision.IsDeleted Then
                                     ' add all revisions inclusive the follow ups
                                     For Each uid As Long In Deliverable.AllRevisionUIDsBy(aFirstRevision.Uid)

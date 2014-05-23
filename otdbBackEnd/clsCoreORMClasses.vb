@@ -402,7 +402,7 @@ Namespace OnTrack
             If attribute.HasValueReferenceObjectEntry Then
                 Dim refObjectName As String = ""
                 Dim refObjectEntry As String = ""
-                Dim names = attribute.ReferenceObjectEntry.ToUpper.Split({CChar(ConstDelimiter), "."c})
+                Dim names = Shuffle.NameSplitter(attribute.ReferenceObjectEntry)
                 If names.Count > 1 Then
                     refObjectName = names(0)
                     refObjectEntry = names(1)
@@ -457,7 +457,7 @@ Namespace OnTrack
             If attribute.HasValueReferenceObjectEntry Then
                 Dim refObjectName As String = ""
                 Dim refObjectEntry As String = ""
-                Dim names = attribute.ReferenceObjectEntry.ToUpper.Split({CChar(ConstDelimiter), "."c})
+                Dim names = Shuffle.NameSplitter(attribute.ReferenceObjectEntry)
                 If names.Count > 1 Then
                     refObjectName = names(0)
                     refObjectEntry = names(1)
@@ -520,7 +520,7 @@ Namespace OnTrack
             Me.Initialize()
             Dim aFieldname As String = ""
             Dim aTablename As String = ""
-            Dim names() As String = columnname.ToUpper.Split({CChar(ConstDelimiter), "."c})
+            Dim names() As String = Shuffle.NameSplitter(columnname)
             Dim anAttribute As ormSchemaTableColumnAttribute
 
 
@@ -1103,7 +1103,7 @@ Namespace OnTrack
                 If _cachedRelationNames Is Nothing Then
                     Dim aList As New List(Of String)
                     For Each aRelation In _Relations.Values.Where(Function(x) x.Enabled = True)
-                        Dim names As String() = aRelation.Name.Split({CChar(ConstDelimiter), "."c})
+                        Dim names As String() = Shuffle.NameSplitter(aRelation.Name)
                         Dim aName As String
                         If names.Count > 1 Then
                             aName = names(1)
@@ -1215,16 +1215,20 @@ Namespace OnTrack
         Public Function GetObjectTransactionAttribute(name As String, Optional onlyEnabled As Boolean = True) As ormObjectTransactionAttribute
             Dim anEntryname As String = ""
             Dim anObjectname As String = ""
-            Dim names() As String = name.ToUpper.Split({CChar(ConstDelimiter), "."c})
+            Dim names() As String = Shuffle.NameSplitter(name)
 
             '** split the names
             If names.Count > 1 Then
                 anObjectname = names(0)
                 If anObjectname <> _ObjectAttribute.ID Then
-                    CoreMessageHandler(message:="object name of Object is not equal with entry name", arg1:=anObjectname, entryname:=name, _
-                                       subname:="ObjectClassDescription.GetObjecTransactionAttribute", messagetype:=otCoreMessageType.InternalWarning)
+                    'CoreMessageHandler(message:="object name of Object is not equal with entry name", arg1:=anObjectname, entryname:=name, _
+                    '                   subname:="ObjectClassDescription.GetObjecTransactionAttribute", messagetype:=otCoreMessageType.InternalWarning)
+                    anEntryname = name.ToUpper
+                    anObjectname = _ObjectAttribute.ID
+                Else
+                    anEntryname = names(1)
                 End If
-                anEntryname = names(1)
+
             Else
                 anEntryname = name.ToUpper
             End If
@@ -1275,16 +1279,20 @@ Namespace OnTrack
         Public Function GetObjectOperationAttribute(name As String) As ormObjectOperationMethodAttribute
             Dim anEntryname As String = ""
             Dim anObjectname As String = ""
-            Dim names() As String = name.ToUpper.Split({CChar(ConstDelimiter), "."c})
+            Dim names() As String = Shuffle.NameSplitter(name)
 
             '** split the names
             If names.Count > 1 Then
                 anObjectname = names(0)
                 If anObjectname <> _ObjectAttribute.ID Then
-                    CoreMessageHandler(message:="object name of Object is not equal with entry name", arg1:=anObjectname, entryname:=name, _
-                                       subname:="ObjectClassDescription.GetObjecTransactionAttribute", messagetype:=otCoreMessageType.InternalWarning)
+                    'CoreMessageHandler(message:="object name of Object is not equal with entry name", arg1:=anObjectname, entryname:=name, _
+                    '                   subname:="ObjectClassDescription.GetObjecTransactionAttribute", messagetype:=otCoreMessageType.InternalWarning)
+                    anEntryname = name.ToUpper
+                    anObjectname = _ObjectAttribute.ID
+                Else
+                    anEntryname = names(1)
+
                 End If
-                anEntryname = names(1)
             Else
                 anEntryname = name.ToUpper
             End If
@@ -1325,16 +1333,20 @@ Namespace OnTrack
         Public Function HasObjectEntryAttribute(entryname As String, Optional onlyenabled As Boolean = True) As Boolean
             Dim anEntryname As String = ""
             Dim anObjectname As String = ""
-            Dim names() As String = entryname.ToUpper.Split({CChar(ConstDelimiter), "."c})
+            Dim names() As String = Shuffle.NameSplitter(entryname)
 
             '** split the names
             If names.Count > 1 Then
                 anObjectname = names(0)
                 If anObjectname <> _ObjectAttribute.ID Then
-                    CoreMessageHandler(message:="object name of Object is not equal with entry name", arg1:=anObjectname, entryname:=entryname, _
-                                       subname:="ObjectClassDescription.HasObjectEntryAttribute", messagetype:=otCoreMessageType.InternalWarning)
+                    'CoreMessageHandler(message:="object name of Object is not equal with entry name", arg1:=anObjectname, entryname:=entryname, _
+                    '                   subname:="ObjectClassDescription.HasObjectEntryAttribute", messagetype:=otCoreMessageType.InternalWarning)
+                    anEntryname = entryname.ToUpper
+                    anObjectname = _ObjectAttribute.ID
+                Else
+                    anEntryname = names(1)
                 End If
-                anEntryname = names(1)
+
             Else
                 anEntryname = entryname.ToUpper
             End If
@@ -1353,7 +1365,7 @@ Namespace OnTrack
         Public Function GetObjectEntryAttribute(entryname As String, Optional onlyenabled As Boolean = True) As ormObjectEntryAttribute
             Dim anEntryname As String = ""
             Dim anObjectname As String = ""
-            Dim names() As String = entryname.ToUpper.Split({CChar(ConstDelimiter), "."c})
+            Dim names() As String = Shuffle.NameSplitter(entryname)
 
             '** split the names
             If names.Count > 1 Then
@@ -1361,27 +1373,31 @@ Namespace OnTrack
                 If anObjectname <> _ObjectAttribute.ID Then
                     CoreMessageHandler(message:="object name of Object is not equal with entry name", arg1:=anObjectname, entryname:=entryname, _
                                        subname:="ObjectClassDescription.GetObjectEntryAttribute", messagetype:=otCoreMessageType.InternalWarning)
+                    anEntryname = entryname.ToUpper
+                    anObjectname = _ObjectAttribute.ID
+                Else
+                    anEntryname = names(1)
                 End If
-                anEntryname = names(1)
+
             Else
                 anEntryname = entryname.ToUpper
             End If
 
-            '** return
+                '** return
 
-            If _ObjectEntryAttributes.ContainsKey(key:=anEntryname) Then
-                Dim anAttribute As ormObjectEntryAttribute = _ObjectEntryAttributes.Item(key:=anEntryname)
-                If onlyenabled AndAlso Not anAttribute.Enabled Then Return Nothing
+                If _ObjectEntryAttributes.ContainsKey(key:=anEntryname) Then
+                    Dim anAttribute As ormObjectEntryAttribute = _ObjectEntryAttributes.Item(key:=anEntryname)
+                    If onlyenabled AndAlso Not anAttribute.Enabled Then Return Nothing
 
-                '' substitute entries
-                _repository.SubstituteReferencedObjectEntry(attribute:=anAttribute)
-                '' set default values on non-set 
-                Me.SubstituteDefaultValues(attribute:=anAttribute)
-                ''return final
-                Return anAttribute
-            Else
-                Return Nothing
-            End If
+                    '' substitute entries
+                    _repository.SubstituteReferencedObjectEntry(attribute:=anAttribute)
+                    '' set default values on non-set 
+                    Me.SubstituteDefaultValues(attribute:=anAttribute)
+                    ''return final
+                    Return anAttribute
+                Else
+                    Return Nothing
+                End If
 
         End Function
         ''' <summary>
@@ -1393,7 +1409,7 @@ Namespace OnTrack
         ''' <remarks></remarks>
         Public Function GetRelationAttribute(relationname As String, Optional onlyenabled As Boolean = False) As ormRelationAttribute
             Dim aRelationName As String = ""
-            Dim names() As String = relationname.ToUpper.Split({CChar(ConstDelimiter), "."c})
+            Dim names() As String = Shuffle.NameSplitter(relationname)
 
             '** split the names
             If names.Count > 1 Then
@@ -1424,7 +1440,7 @@ Namespace OnTrack
         ''' <remarks></remarks>
         Public Function GetQueryAttribute(name As String, Optional onlyenabled As Boolean = True) As ormObjectQueryAttribute
             Dim aQueryname As String = ""
-            Dim names() As String = name.ToUpper.Split({CChar(ConstDelimiter), "."c})
+            Dim names() As String = Shuffle.NameSplitter(name)
 
             '** split the names
             If names.Count > 1 Then
@@ -1501,8 +1517,8 @@ Namespace OnTrack
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function GetOperartionCallerDelegate(operationname As String) As OperationCallerDelegate
-            If _OperationCallerDelegates.ContainsKey(operationname) Then
-                Return _OperationCallerDelegates.Item(key:=operationname)
+            If _OperationCallerDelegates.ContainsKey(operationname.ToUpper) Then
+                Return _OperationCallerDelegates.Item(key:=operationname.ToUpper)
             Else
                 Return Nothing
             End If
@@ -1524,7 +1540,7 @@ Namespace OnTrack
                                    messagetype:=otCoreMessageType.InternalError)
                 Return New List(Of FieldInfo)
             End If
-            Dim names() As String = columnname.ToUpper.Split({CChar(ConstDelimiter), "."c})
+            Dim names() As String = Shuffle.NameSplitter(columnname)
 
             '** split the names
             If names.Count > 1 Then
@@ -1604,7 +1620,7 @@ Namespace OnTrack
                                                     Optional onlyenabled As Boolean = True) As List(Of FieldInfo)
             Dim aRelationName As String = ""
             Dim aTablename As String = ""
-            Dim names() As String = relationName.ToUpper.Split({CChar(ConstDelimiter), "."c})
+            Dim names() As String = Shuffle.NameSplitter(relationName)
 
             '** split the names
             If names.Count > 1 Then
@@ -2348,7 +2364,7 @@ Namespace OnTrack
                         Dim entryname As String
 
                         If areference.Contains("."c) OrElse areference.Contains(ConstDelimiter) Then
-                            Dim names = areference.ToUpper.Split("."c, ConstDelimiter)
+                            Dim names = Shuffle.NameSplitter(areference)
                             objectname = names(0)
                             entryname = names(1)
                             If objectname.ToUpper <> aForeignKeyAttribute.ObjectID Then
@@ -2385,7 +2401,7 @@ Namespace OnTrack
                             CoreMessageHandler(message:="foreign key references must be [objectname].[entryname] in the foreign key attribute and not: '" & areference & "'", objectname:=_Type.Name, _
                                       arg1:=name, messagetype:=otCoreMessageType.InternalError, subname:="ObjectClassDescription.InitializeForeignKeyAttribute")
                         Else
-                            Dim names = areference.ToUpper.Split("."c, ConstDelimiter)
+                            Dim names = Shuffle.NameSplitter(areference)
                             Dim objectname = names(0)
                             Dim entryname = names(1)
                             '** reference cannot be checked this time
@@ -2644,6 +2660,7 @@ Namespace OnTrack
                 anOperationAttribute.ID = methodinfo.Name.ToUpper
 
                 If Not anOperationAttribute.HasValueOperationName Then anOperationAttribute.OperationName = methodinfo.Name.ToUpper
+                anOperationAttribute.OperationName = anOperationAttribute.OperationName.ToUpper 'always to upper
                 If Not anOperationAttribute.HasValueVersion Then anOperationAttribute.Version = 1
                 anOperationAttribute.MethodInfo = methodinfo
 
@@ -2940,7 +2957,7 @@ Namespace OnTrack
 
                                     '* split
                                     '* beware a tableattribute would be lost
-                                    Dim names As String() = aValue.Split({CChar(ConstDelimiter), "."c})
+                                    Dim names As String() = Shuffle.NameSplitter(aValue)
                                     If names.Count > 1 Then
                                         aTablename = names(0)
                                         aName = names(1)
@@ -3014,7 +3031,7 @@ Namespace OnTrack
 
                                     '* split
                                     '* beware a tableattribute would be lost
-                                    Dim names As String() = aValue.Split({CChar(ConstDelimiter), "."c})
+                                    Dim names As String() = Shuffle.NameSplitter(aValue)
                                     If names.Count > 1 Then
                                         aTablename = names(0)
                                         aName = names(1)

@@ -81,10 +81,30 @@ Namespace OnTrack
         Public Const OTDBConst_MessageTypeid_info = "INFO"
         Public Const OTDBConst_MessageTypeid_error = "ERROR"
 
+        ''' <summary>
+        ''' StatusTypes
+        ''' </summary>
+        ''' <remarks></remarks>
+
+        Public Const ConstStatusType_XEnvelope = "XCHANGEENVELOPE"
+        Public Const ConstStatusType_ObjectEntryValidation = "ENTRYVALIDATOR"
+        Public Const ConstStatusType_ObjectValidation = "OBJECTVALIDATOR"
+        Public Const ConstStatusType_ScheduleLifecycle = "SCHEDULINGLFCL"
+        Public Const ConstStatusType_ScheduleProcess = "SCHEDULINGPROC"
+        Public Const ConstStatusType_Tracking = "TRACKING"
+
+        ''' <summary>
+        ''' obsolete
+        ''' </summary>
+        ''' <remarks></remarks>
         Public Const OTDBConst_StatusTypeid_FCLF = "FCLF"
         Public Const OTDBConst_StatusTypeid_ScheduleProcess = "SPROC"
         Public Const OTDBConst_StatusTypeid_MQF = "MQF"
 
+        ''' <summary>
+        ''' CompoundIndex
+        ''' </summary>
+        ''' <remarks></remarks>
         Public Const ConstDefaultCompoundIndexName = "CompoundIndex"
 
         ''' parameters stored with DB Driver Parameters
@@ -177,7 +197,7 @@ Namespace OnTrack
 
         '******* Ontrack Variables
         Private _ApplicationName As String = ""
-        Private _CurrentSession As Session
+        Private WithEvents _CurrentSession As Session
         Private _configfilelocations As List(Of String) = New List(Of String)
         Private _UsedConfigFileLocation As String = ""
         ' initialized Flag
@@ -1425,6 +1445,9 @@ Namespace OnTrack
             Dim routinestack As String = ""
             Dim aNewError As New SessionMessage
 
+            Try
+
+          
             ''' EXCEPTION HANDLING
             ''' 
             If exception IsNot Nothing Then
@@ -1576,6 +1599,12 @@ Namespace OnTrack
                 Debug.Assert(Not break)
             End If
 
+            Catch ex As Exception
+                Debug.WriteLine("{0} Exception raised in CoreMessageHandler", Date.Now)
+                Debug.WriteLine("{0}", ex.Message)
+                Debug.WriteLine("{0}", ex.StackTrace)
+                Debug.Assert(False)
+            End Try
         End Sub
 
     End Module

@@ -1141,9 +1141,11 @@ Namespace OnTrack.Database
                 ''' 
                 If relationnames Is Nothing Then relationnames = _dataobject.ObjectClassDescription.RelationNames
 
+
                 For Each relationname In relationnames
                     Dim aRelationAttribute = _dataobject.ObjectClassDescription.GetRelationAttribute(relationname:=relationname)
 
+                   
                     '''
                     ''' check  if this relation needs to be cascaded
                     If aRelationAttribute IsNot Nothing AndAlso _
@@ -1292,9 +1294,10 @@ Namespace OnTrack.Database
                 If aRelationAttribute.HasValueFromEntries Then
                     fromEntries = aRelationAttribute.FromEntries
                 Else
-                    CoreMessageHandler(message:="to call an operation the relation attribute needs to define from entries to match parameter entries", arg1:=relationname, messagetype:=otCoreMessageType.InternalError, _
-                                      subname:="DataObjetRelationMGr.GetRelatedObjectsFromOperation")
-                    Return aList
+                    ' not an error might be a warning
+                    'CoreMessageHandler(message:="to call an operation the relation attribute needs to define from entries to match parameter entries", arg1:=relationname, messagetype:=otCoreMessageType.InternalError, _
+                    '                  subname:="DataObjetRelationMGr.GetRelatedObjectsFromOperation")
+                    'Return aList
                 End If
                 Dim theEntryValues As Object() = Reflector.GetColumnEntryValues(dataobject:=_dataobject, entrynames:=fromEntries).ToArray
                 Dim aMethodInfo As MethodInfo = aOperationAttribute.MethodInfo

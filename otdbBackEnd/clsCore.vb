@@ -48,6 +48,7 @@ Namespace OnTrack
         Private _TodayLatency As Integer
         Private _DefaultScheduleTypeID As String = ""
         Private _DefaultDeliverableTypeID As String = ""
+        Private _AutoPublishTarget As Boolean = False
 
         '*** SESSION
         Private _OTDBUser As Commons.User
@@ -80,6 +81,8 @@ Namespace OnTrack
 
         Private _ObjectCache As ormObjectCacheManager
 
+       
+
         'shadow Reference for Events
         ' our Events
         Public Event OnDomainChanging As EventHandler(Of SessionEventArgs)
@@ -99,7 +102,8 @@ Namespace OnTrack
         Public Const ConstCPDefaultCalendarName = "DefaultCalendarName"
         Public Const ConstCPDefaultTodayLatency = "DefaultTodayLatency"
         Public Const ConstCDefaultScheduleTypeID = "DefaultScheduleTypeID"
-        Public Const ConstCDefaultDeliverableTypeID = "DefaultDeliverableTypeID"
+        Public Const ConstCPDefaultDeliverableTypeID = "DefaultDeliverableTypeID"
+        Public Const ConstCPAutoPublishTarget = "AutoPublishTarget"
         'Public Const ConstCPDependencySynchroMinOverlap = "DependencySynchro_MinOverlap"
         'Public Const ConstCPDependencySynchroMinOverlap = "DependencySynchro_MinOverlap"
 
@@ -178,7 +182,18 @@ Namespace OnTrack
                 Me._DefaultDeliverableTypeID = value
             End Set
         End Property
-
+        ''' <summary>
+        ''' Gets or sets the auto publish target.
+        ''' </summary>
+        ''' <value>The auto publish target.</value>
+        Public Property AutoPublishTarget() As Boolean
+            Get
+                Return Me._AutoPublishTarget
+            End Get
+            Set(value As Boolean)
+                Me._AutoPublishTarget = Value
+            End Set
+        End Property
         ''' <summary>
         ''' Gets or sets the access level.
         ''' </summary>
@@ -197,7 +212,10 @@ Namespace OnTrack
         ''' <value>The Objects.</value>
         Public ReadOnly Property Objects() As ObjectRepository
             Get
-
+                If Not Me.IsRunning AndAlso Not Me.IsStartingUp AndAlso Not Me.IsInstallationRunning AndAlso Not Me.IsBootstrappingInstallationRequested Then
+                    CoreMessageHandler(message:="OnTrack Session needs to be started before accessing the Object Repository", messagetype:=otCoreMessageType.InternalError, _
+                                       subname:="Session.Objects")
+                End If
                 If _DomainObjectsDir.ContainsKey(key:=_CurrentDomainID) Then
                     Return _DomainObjectsDir.Item(key:=_CurrentDomainID)
                 Else
@@ -845,11 +863,11 @@ Namespace OnTrack
                 Else
                     Dim anObjectname As String
                     Dim anTransactionname As String
-                    Converter.SplitFullName(opname, anObjectname, anTransactionname)
-                    If anObjectname = "" Then
+                    Shuffle.NameSplitter(opname, anObjectname, anTransactionname)
+                    If anObjectname Is Nothing OrElse anObjectname = "" Then
                         CoreMessageHandler(message:="ObjectID is missing in operation name", arg1:=opname, subname:="Session.validateOTDBAccessLevel", messagetype:=otCoreMessageType.InternalError)
                         result = result And False
-                    ElseIf anTransactionname = "" Then
+                    ElseIf anTransactionname Is Nothing OrElse anTransactionname = "" Then
                         CoreMessageHandler(message:="Operation Name is missing in operation name", arg1:=opname, subname:="Session.validateOTDBAccessLevel", messagetype:=otCoreMessageType.InternalError)
                         result = result And False
                     Else
@@ -1459,43 +1477,48 @@ Namespace OnTrack
                 '***
 
                 If newDomain.HasSetting(id:=ConstCPDependencySynchroMinOverlap) Then
-                    _DependencySynchroMinOverlap = newDomain.GetSetting(id:=ConstCPDependencySynchroMinOverlap).value
+                    Me.DependencySynchroMinOverlap = newDomain.GetSetting(id:=ConstCPDependencySynchroMinOverlap).value
                 Else
-                    _DependencySynchroMinOverlap = 7
+                    Me.DependencySynchroMinOverlap = 7
                 End If
 
                 If newDomain.HasSetting(id:=ConstCPDefaultWorkspace) Then
-                    _DefaultWorkspace = newDomain.GetSetting(id:=ConstCPDefaultWorkspace).value
+                    Me.DefaultWorkspaceID = newDomain.GetSetting(id:=ConstCPDefaultWorkspace).value
                     _CurrentWorkspaceID = _DefaultWorkspace
                 Else
-                    _DefaultWorkspace = ""
+                    Me.DefaultWorkspaceID = ""
                 End If
 
                 If newDomain.HasSetting(id:=ConstCPDefaultCalendarName) Then
-                    _DefaultCalendarName = newDomain.GetSetting(id:=ConstCPDefaultCalendarName).value
+                    Me.DefaultCalendarName = newDomain.GetSetting(id:=ConstCPDefaultCalendarName).value
                 Else
-                    _DefaultCalendarName = "default"
+                    Me.DefaultCalendarName = "default"
                 End If
 
                 If newDomain.HasSetting(id:=ConstCPDefaultTodayLatency) Then
-                    _TodayLatency = newDomain.GetSetting(id:=ConstCPDefaultTodayLatency).value
+                    Me.TodayLatency = newDomain.GetSetting(id:=ConstCPDefaultTodayLatency).value
                 Else
-                    _TodayLatency = -14
+                    Me.TodayLatency = -14
                 End If
 
                 If newDomain.HasSetting(id:=ConstCDefaultScheduleTypeID) Then
-                    _DefaultScheduleTypeID = newDomain.GetSetting(id:=ConstCDefaultScheduleTypeID).value
+                    Me.DefaultScheduleTypeID = newDomain.GetSetting(id:=ConstCDefaultScheduleTypeID).value
                 Else
-                    _DefaultScheduleTypeID = "none"
+                    Me.DefaultScheduleTypeID = "none"
 
                 End If
 
-                If newDomain.HasSetting(id:=ConstCDefaultDeliverableTypeID) Then
-                    _DefaultDeliverableTypeID = newDomain.GetSetting(id:=ConstCDefaultDeliverableTypeID).value
+                If newDomain.HasSetting(id:=ConstCPDefaultDeliverableTypeID) Then
+                    Me.DefaultDeliverableTypeID = newDomain.GetSetting(id:=ConstCPDefaultDeliverableTypeID).value
                 Else
-                    _DefaultDeliverableTypeID = ""
+                    Me.DefaultDeliverableTypeID = ""
                 End If
 
+                If newDomain.HasSetting(id:=ConstCPAutoPublishTarget) Then
+                    Me.AutoPublishTarget = newDomain.GetSetting(id:=ConstCPAutoPublishTarget).value
+                Else
+                    Me.AutoPublishTarget = False
+                End If
             End If
 
 
@@ -2381,28 +2404,35 @@ Namespace OnTrack
         ''' <remarks></remarks>
         Public Sub Enqueue(otdberror As SessionMessage)
             Dim aClone As SessionMessage = otdberror.Clone
+            Try
+                ' add
+                SyncLock _lockObject
 
-            ' add
-            SyncLock _lockObject
+                    If aClone.Timestamp = Nothing Then
+                        aClone.Timestamp = DateTime.Now()
+                    End If
 
-                If aClone.Timestamp = Nothing Then
-                    aClone.Timestamp = DateTime.Now()
-                End If
+                    aClone.Tag = Me.Tag
+                    aClone.Entryno = _maxEntry + 1
 
-                aClone.Tag = Me.Tag
-                aClone.Entryno = _maxEntry + 1
+                    If Not aClone.Exception Is Nothing And aClone.Message = "" Then
+                        aClone.Message = aClone.Exception.Message
+                    End If
 
-                If Not aClone.Exception Is Nothing And aClone.Message = "" Then
-                    aClone.Message = aClone.Exception.Message
-                End If
+                    _queue.Enqueue(aClone)
+                    _log.Add(key:=aClone.Entryno, value:=aClone)
+                    _maxEntry += 1
 
-                _queue.Enqueue(aClone)
-                _log.Add(key:=aClone.Entryno, value:=aClone)
-                _maxEntry += 1
+                End SyncLock
 
-            End SyncLock
+                RaiseEvent onErrorRaised(Me, New ormErrorEventArgs(aClone))
 
-            RaiseEvent onErrorRaised(Me, New ormErrorEventArgs(aClone))
+            Catch ex As Exception
+                Debug.WriteLine("{0} Exception raised in SessionMessageLog.Enqueue", Date.Now)
+                Debug.WriteLine("{0}", ex.Message)
+                Debug.WriteLine("{0}", ex.StackTrace)
+            End Try
+         
         End Sub
         ''' <summary>
         ''' returns the size of the log
@@ -2472,7 +2502,7 @@ Namespace OnTrack
     ''' </remarks>
     Public Class ObjectMessageLog
         Inherits ormRelationCollection(Of ObjectMessage)
-        Implements otLoggable
+        Implements ormLoggable
 
         ''' <summary>
         ''' Event Args
@@ -2515,10 +2545,13 @@ Namespace OnTrack
         ''' <remarks></remarks>
         Private _tag As String = ""
 
-        'defaultvalues
         Private _ContextIdentifier As String
         Private _TupleIdentifier As String
         Private _EntitityIdentifier As String
+
+        '''
+        Private _MessagesPerStatusType As New SortedDictionary(Of String, List(Of ObjectMessage))
+
 
         ''' <summary>
         ''' Events 
@@ -2526,7 +2559,7 @@ Namespace OnTrack
         ''' <param name="sender"></param>
         ''' <param name="e"></param>
         ''' <remarks></remarks>
-        Public Event ObjectMessageAdded(sender As Object, e As ObjectMessageLog.EventArgs)
+        Public Event OnObjectMessageAdded(sender As Object, e As ObjectMessageLog.EventArgs)
 
         ''' <summary>
         ''' constructor
@@ -2569,13 +2602,14 @@ Namespace OnTrack
         ''' <remarks></remarks>
         Public ReadOnly Property MaxMessageNo()
             Get
+                If Me.Keys.Count = 0 Then Return 0
                 Return Me.Keys.Max(Function(x) x.Item(0))
             End Get
         End Property
 
         '***** ContextIdentifier (identifier) sets the context of the message receiver
         '*****
-        Public Property ContextIdentifier As String Implements otLoggable.ContextIdentifier
+        Public Property ContextIdentifier As String Implements ormLoggable.ContextIdentifier
             Get
                 ContextIdentifier = _ContextIdentifier
             End Get
@@ -2586,7 +2620,7 @@ Namespace OnTrack
 
         '***** ContextIdentifier (identifier) sets the context of the message receiver
         '*****
-        Public Property TupleIdentifier() As String Implements otLoggable.TupleIdentifier
+        Public Property TupleIdentifier() As String Implements ormLoggable.TupleIdentifier
             Get
                 TupleIdentifier = _TupleIdentifier
             End Get
@@ -2597,14 +2631,30 @@ Namespace OnTrack
 
         '***** ContextIdentifier (identifier) sets the context of the message receiver
         '*****
-        Public Property EntitityIdentifier() As String Implements otLoggable.EntitityIdentifier
+        Public Property EntityIdentifier() As String Implements ormLoggable.EntityIdentifier
             Get
-                EntitityIdentifier = _EntitityIdentifier
+                EntityIdentifier = _EntitityIdentifier
             End Get
             Set(value As String)
                 _EntitityIdentifier = value
             End Set
         End Property
+
+        ''' <summary>
+        ''' Returns myself ?!
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Property ObjectMessageLog As ObjectMessageLog Implements ormLoggable.ObjectMessageLog
+            Get
+                Return Me
+            End Get
+            Set(value As ObjectMessageLog)
+                Throw New InvalidOperationException("setting the objectmessage log on a objectmessagelog impossible")
+            End Set
+        End Property
+
 #End Region
 
         ''' <summary>
@@ -2640,7 +2690,7 @@ Namespace OnTrack
             Dim newCollection As ormRelationCollection(Of ObjectMessage) = New ormRelationCollection(Of ObjectMessage)(Nothing, keyentrynames:={ObjectMessage.ConstFNNo})
             Dim aTag = TryCast(_container, ormDataObject).ObjectTag
             Try
-                Dim aStore As iormDataStore = _container.PrimaryTableStore
+                Dim aStore As iormDataStore = ot.GetTableStore(ObjectMessage.ConstTableID) '_container.PrimaryTableStore is the class itself
                 Dim aCommand As ormSqlSelectCommand = aStore.CreateSqlSelectCommand(id:="RetrieveObjectMessages", addAllFields:=True)
                 If Not aCommand.Prepared Then
                     aCommand.Where = "[" & ObjectMessage.ConstFNTag & "] = @tag "
@@ -2672,6 +2722,17 @@ Namespace OnTrack
 
             End Try
         End Function
+        ''' <summary>
+        ''' copy an existing message to this log
+        ''' </summary>
+        ''' <param name="message"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function CopyFrom(message As ObjectMessage) As Boolean
+            Dim aNewMessage As ObjectMessage = message.CloneObject(Of ObjectMessage)({Me.Tag, Me.MaxMessageNo + 1})
+            Me.Add(aNewMessage)
+            Return True
+        End Function
         '*** addMsg adds a Message to the MessageLog with the associated
         '***
         '*** Contextordinal (can be Nothing) as MQF or other ordinal
@@ -2692,28 +2753,44 @@ Namespace OnTrack
         ''' <param name="Args"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Function Add(ByVal msguid As Long,
-                            ByVal domainid As String,
+        Public Overloads Function Add(ByVal typeuid As Long,
+                             ByVal domainid As String,
                              ByVal contextIdentifier As String, _
                              ByVal tupleIdentifier As String, _
                              ByVal entitityIdentifier As String, _
                              ParamArray args() As Object) As Boolean
 
+            Dim runtimeOnly As Boolean = False
 
             ''' default values
             If domainid Is Nothing OrElse domainid = "" Then domainid = CurrentSession.CurrentDomainID
             If contextIdentifier Is Nothing OrElse contextIdentifier = "" Then contextIdentifier = Me.ContextIdentifier
             If tupleIdentifier Is Nothing OrElse tupleIdentifier = "" Then tupleIdentifier = Me.TupleIdentifier
-            If entitityIdentifier Is Nothing OrElse entitityIdentifier = "" Then entitityIdentifier = Me.EntitityIdentifier
+            If entitityIdentifier Is Nothing OrElse entitityIdentifier = "" Then entitityIdentifier = Me.EntityIdentifier
 
             ''' 
             ''' get the Message Definition
-            Dim aMessageDefinition As ObjectMessageType = ObjectMessageType.Retrieve(uid:=msguid, domainID:=domainid)
+            Dim aMessageDefinition As ObjectMessageType = ObjectMessageType.Retrieve(uid:=typeuid, domainID:=domainid)
             If aMessageDefinition Is Nothing Then
-                CoreMessageHandler(message:="object message type of uid '" & msguid.ToString & "' could not be retrieved", subname:="ObjectMessageLog.Add", _
-                                   messagetype:=otCoreMessageType.InternalError, objectname:=_container.ObjectID, arg1:=Me.Tag)
+                Dim anObjectname As String = ""
+                If _container IsNot Nothing Then anObjectname = _container.ObjectID
+                Dim context As String
+                If contextIdentifier IsNot Nothing Then context &= contextIdentifier
+                If tupleIdentifier IsNot Nothing Then context &= tupleIdentifier & ConstDelimiter
+                If entitityIdentifier IsNot Nothing Then context &= entitityIdentifier & ConstDelimiter
+
+                CoreMessageHandler(message:="object message type of uid '" & typeuid.ToString & "' could not be retrieved with context '" & context & "'", subname:="ObjectMessageLog.Add", _
+                                   messagetype:=otCoreMessageType.InternalWarning, objectname:=anObjectname, arg1:=Me.Tag)
             End If
 
+            If _container Is Nothing Then
+                runtimeOnly = True
+            Else
+                runtimeOnly = _container.RuntimeOnly
+            End If
+
+
+            '''
             ''' create a Message
             ''' 
             Dim anIDNo As Long
@@ -2725,9 +2802,9 @@ Namespace OnTrack
 
             '''
 
-            Dim aMessage As ObjectMessage = ObjectMessage.Create(msglogtag:=Me.Tag, no:=anIDNo, messageTypeUID:=msguid, _
+            Dim aMessage As ObjectMessage = ObjectMessage.Create(msglogtag:=Me.Tag, no:=anIDNo, typeuid:=typeuid, _
                                                                  contextIdentifier:=contextIdentifier, tupleIdentifier:=tupleIdentifier, entitityIdentifier:=entitityIdentifier, _
-                                                                 parameters:=args, runtimeOnly:=aMessageDefinition.IsPersisted)
+                                                                 parameters:=args, runtimeOnly:=runtimeOnly)
 
 
             If aMessage IsNot Nothing Then
@@ -2738,12 +2815,50 @@ Namespace OnTrack
 
             Return False
         End Function
+
         ''' <summary>
-        ''' 
+        ''' Handler for the  internal OnAdded Event - raises the Object Added event of the Log
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Private Sub ObjectMessageLog_OnAdded(sender As Object, e As ormRelationCollection(Of ObjectMessage).EventArgs) Handles Me.OnAdded
+            RaiseEvent OnObjectMessageAdded(Me, New ObjectMessageLog.EventArgs(log:=Me, message:=e.Dataobject))
+
+            Dim aMessage As ObjectMessage = e.Dataobject
+            Dim aDomainID As String
+            If _container IsNot Nothing Then
+                If _container.ObjectHasDomainBehavior Then
+                    aDomainID = _container.DomainID
+                Else
+                    aDomainID = CurrentSession.CurrentDomainID
+                End If
+            Else
+                aDomainID = CurrentSession.CurrentDomainID
+            End If
+
+            Dim aMessageType As ObjectMessageType = ObjectMessageType.Retrieve(uid:=aMessage.Msgid, domainID:=aDomainID)
+            If aMessageType IsNot Nothing Then
+                ''' add the message to each status type
+                ''' 
+                For Each aStatusType As String In aMessageType.StatusTypes
+                    Dim aList As New List(Of ObjectMessage)
+                    If _MessagesPerStatusType.ContainsKey(aStatusType.ToUpper) Then
+                        aList = _MessagesPerStatusType.Item(aStatusType.ToUpper)
+                    Else
+                        _MessagesPerStatusType.Add(key:=aStatusType.ToUpper, value:=aList)
+                    End If
+                    ' add it
+                    aList.Add(aMessage)
+                Next
+            End If
+        End Sub
+        ''' <summary>
+        ''' returns a list of messagetexts
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetAllMessageTexts() As List(Of String)
+        Public Function MessageTexts() As List(Of String)
             Dim aList As New List(Of String)
 
             For Each aMessage In Me
@@ -2752,111 +2867,82 @@ Namespace OnTrack
 
             Return aList
         End Function
-       
+        ''' <summary>
+        ''' returns a one string with all messagetextes
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function MessageText() As String
+            Dim aMessageText As New Text.StringBuilder
 
-        Public Function GetStatus(Optional ByVal TYPEID As Object = Nothing, Optional ByVal i As Integer = 0) As Object
-            'Dim max As Integer
-            'Dim curweight As Single
-            'Dim aMember As ObjectMessage
-            'Dim aDefMSG As New ObjectMessageType
-            'Dim code As String
-            'Dim aStatus As New StatusItem
+            For Each aMessage As ObjectMessage In Me
+                aMessageText.AppendFormat("{0:000000}:", aMessage.Msgid)
+                aMessageText.AppendLine(aMessage.Message)
+            Next
 
-            'Dim newStatus As New StatusItem
+            Return aMessageText.ToString
+        End Function
+        ''' <summary>
+        ''' Returns the Highest StatusItem - returns nothing if the statusItem is not there
+        ''' </summary>
+        ''' <param name="statustype"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
 
-            '' specific of an entry
-            'If Not IsNothing(i) And i > 0 Then
-            '    If i <= Me.Count Then
-            '        aMember = Me.GetMember(i)
-            '        aDefMSG = aMember.MessageType
-            '        '** per TypeID
-            '        If Not IsNothing(TYPEID) Then
-            '            code = aDefMSG.StatusCodeOf(TYPEID)
-            '            If aStatus.Inject(TYPEID, code) Then
-            '                GetStatus = aStatus
-            '            Else
-            '                GetStatus = Nothing
-            '            End If
-            '        Else
-            '            Dim code1, code2, code3 As String
-            '            Dim weight1, weight2, weight3 As Integer
-            '            Dim status1 As New StatusItem
-            '            Dim status2 As New StatusItem
-            '            Dim status3 As New StatusItem
+        Public Function GetHighesStatusItem(Optional ByVal statustype As String = Nothing) As StatusItem
+            Dim aList As IList(Of ObjectMessage)
+            If statustype IsNot Nothing Then
+                If _MessagesPerStatusType.ContainsKey(statustype.ToUpper) Then
+                    aList = _MessagesPerStatusType.Item(key:=statustype.ToUpper)
+                Else
+                    aList = Me.ToList
+                End If
+                If aList.Count = 0 Then Return Nothing
+                Dim highestStatusWeight As Integer = aList.Max(Function(x)
+                                                                   Try
+                                                                       Dim s As IList(Of StatusItem) = x.HighestStatusItems
+                                                                       If s.Count > 0 Then Return s.First(Function(t) t.Weight.HasValue).Weight
+                                                                       Return -1
+                                                                   Catch ex As Exception
+                                                                       Return -1
+                                                                   End Try
+                                                               End Function)
+                If highestStatusWeight = -1 Then Return Nothing
 
-            '            'If status1.Inject(aDefMSG.Statustype1, aDefMSG.Statuscode1) Then
-            '            '    weight1 = status1.Weight
-            '            'Else
-            '            '    weight1 = 0
-            '            'End If
-            '            'If status2.Inject(aDefMSG.Statustype2, aDefMSG.Statuscode2) Then
-            '            '    weight2 = status2.Weight
-            '            'Else
-            '            '    weight2 = 0
-            '            'End If
-            '            'If status3.Inject(aDefMSG.Statustype3, aDefMSG.Statuscode3) Then
-            '            '    weight3 = status3.Weight
-            '            'Else
-            '            '    weight3 = 0
-            '            'End If
-            '            ' get maximum
-            '            If weight1 = 0 And weight2 = 0 And weight3 = 0 Then
-            '                GetStatus = Nothing
-            '            ElseIf weight1 >= weight2 And weight1 >= weight3 Then
-            '                GetStatus = status1
-            '            ElseIf weight2 >= weight1 And weight2 >= weight3 Then
-            '                GetStatus = status2
-            '            ElseIf weight3 >= weight2 And weight3 >= weight2 Then
-            '                GetStatus = status3
-            '            End If
+                For Each aMessage In aList
+                    Dim aShortList As IEnumerable(Of StatusItem) = aMessage.StatusItems(statustype:=statustype).Where(Function(x) x.Weight = highestStatusWeight).ToList
+                    If aShortList.Count > 0 Then
+                        Return aShortList.First
+                    End If
+                Next
 
-            '        End If
-            '    Else
-            '        GetStatus = Nothing
-            '    End If
-            '    Exit Function
-            'End If
+            Else
+                aList = Me.ToList
+                If aList.Count = 0 Then Return Nothing
+                Dim highestStatusWeight As Integer = aList.Max(Function(x)
+                                                                   Try
+                                                                       Dim s As IList(Of StatusItem) = x.HighestStatusItems
+                                                                       If s.Count > 0 Then Return s.First(Function(t) t.Weight.HasValue).Weight
+                                                                       Return -1
+                                                                   Catch ex As Exception
+                                                                       Return -1
+                                                                   End Try
 
-            '' else return the maximum
-            'If Me.Count = 0 And Not IsNothing(TYPEID) Then
-            '    If TYPEID = OTDBConst_StatusTypeid_ScheduleProcess Then
-            '        'GetStatus = s_DefaultProcessStatus
-            '        Exit Function
-            '    ElseIf TYPEID = OTDBConst_StatusTypeid_FCLF Then
-            '        'GetStatus = s_DefaultFCLCstatus
-            '        Exit Function
-            '    End If
-            'End If
+                                                               End Function)
+                If highestStatusWeight = -1 Then Return Nothing
+                For Each aMessage In aList
+                    Dim aShortList As IEnumerable(Of StatusItem) = aMessage.StatusItems().Where(Function(x) x.Weight = highestStatusWeight).ToList
+                    If aShortList.Count > 0 Then
+                        Return aShortList.First
+                    End If
+                Next
 
-            '' return the status assoc. with the highest weight of messages
-            'curweight = 0
-            'For i = 1 To Me.Count
-            '    If Me.GetWeight(i) > curweight Then
-            '        curweight = Me.GetWeight(i)
-            '        aMember = Me.GetMember(i)
-            '        aDefMSG = aMember.MessageType
-            '        code = aDefMSG.StatusCodeOf(TYPEID)
-            '        aStatus = New StatusItem
-            '        If aStatus.Inject(TYPEID, code) Then
-            '            GetStatus = aStatus
-            '        Else
-            '            GetStatus = Nothing
-            '        End If
-            '    End If
-            'Next i
+            End If
 
+            Return Nothing
         End Function
 
-        Public Function GetProcessStatus(Optional ByVal i As Integer = 0) As Object
 
-            GetProcessStatus = Me.GetStatus(OTDBConst_StatusTypeid_ScheduleProcess, i)
-
-
-        End Function
-        Public Function getFCLCStatus(Optional ByVal i As Integer = 0) As Object
-            getFCLCStatus = Me.GetStatus(OTDBConst_StatusTypeid_FCLF, i)
-        End Function
-       
 
 
     End Class
@@ -2886,54 +2972,54 @@ Namespace OnTrack
         ''' Primary Key Entries
         ''' </summary>
         ''' <remarks></remarks>
-        <ormObjectEntry(typeid:=otDataType.Text, PosOrdinal:=1, PrimarykeyOrdinal:=1, _
-                         ID:="olog1", title:="Tag", description:="tag to the object message log")> Public Shadows Const ConstFNTag = "msglogtag"
+        <ormObjectEntry(typeid:=otDataType.Text, size:=255, PrimarykeyOrdinal:=1, _
+                         XID:="olog1", title:="Tag", description:="tag to the object message log")> Public Shadows Const ConstFNTag = "MSGLOGTAG"
         <ormObjectEntry(typeid:=otDataType.Long, PrimarykeyOrdinal:=2, _
-                         ID:="olog2", title:="Number", description:="number of the object message")> Public Const ConstFNNo = "idno"
+                         XID:="olog2", title:="Number", description:="number of the object message")> Public Const ConstFNNo = "IDNO"
 
         ''' <summary>
         ''' ColumnEntries
         ''' </summary>
         ''' <remarks></remarks>
         <ormObjectEntry(referenceObjectEntry:=ObjectMessageType.ConstObjectID & "." & ObjectMessageType.ConstFNUID, _
-                         ID:="olog3")> Public Const ConstFNMessageTypeUID = ObjectMessageType.ConstFNUID
+                         XID:="olog3")> Public Const ConstFNMessageTypeUID = ObjectMessageType.ConstFNUID
 
         <ormObjectEntry(referenceobjectentry:=ObjectMessageType.ConstObjectID & "." & ObjectMessageType.constFNText, isnullable:=True, _
-                         ID:="olog4", title:="Message", description:="the object message")> Public Const ConstFNMessage = "MESSAGE"
+                         XID:="olog4", title:="Message", description:="the object message")> Public Const ConstFNMessage = "MESSAGE"
         <ormObjectEntry(typeid:=otDataType.Text, size:=100, isnullable:=True, _
-                         ID:="olog5", title:="ContextID", description:="context of the object message")> Public Const ConstFNContextID = "CONTEXTID"
+                         XID:="olog5", title:="ContextID", description:="context of the object message")> Public Const ConstFNContextID = "CONTEXTID"
         <ormObjectEntry(typeid:=otDataType.Text, size:=100, isnullable:=True, _
-                         ID:="olog6", title:="TupleID", description:="tuple of the object message")> Public Const ConstFNTupleID = "TUPLEID"
+                         XID:="olog6", title:="TupleID", description:="tuple of the object message")> Public Const ConstFNTupleID = "TUPLEID"
         <ormObjectEntry(typeid:=otDataType.Text, size:=100, isnullable:=True, _
-                         ID:="olog7", title:="EntityID", description:="entity of the object message")> Public Const ConstFNEntityID = "ENTITYID"
+                         XID:="olog7", title:="EntityID", description:="entity of the object message")> Public Const ConstFNEntityID = "ENTITYID"
         <ormObjectEntry(typeid:=otDataType.List, isnullable:=True, _
-                        ID:="olog8", title:="Parameters", description:="parameters for the message")> Public Const ConstFNParameters = "PARAMETERS"
+                        XID:="olog8", title:="Parameters", description:="parameters for the message")> Public Const ConstFNParameters = "PARAMETERS"
 
         <ormObjectEntry(typeid:=otDataType.Timestamp, isnullable:=True, _
-                       ID:="olog9", title:="Timestamp", description:="timestamp of the message")> Public Const ConstFNTimeStamp = "TIMESTAMP"
+                       XID:="olog9", title:="Timestamp", description:="timestamp of the message")> Public Const ConstFNTimeStamp = "TIMESTAMP"
 
         <ormObjectEntry(referenceObjectEntry:=ObjectMessageType.ConstObjectID & "." & ObjectMessageType.constFNArea, isnullable:=True, _
-                        ID:="olog11")> Public Const ConstFNArea = "AREA"
+                        XID:="olog11")> Public Const ConstFNArea = "AREA"
         <ormObjectEntry(referenceObjectEntry:=ObjectMessageType.ConstObjectID & "." & ObjectMessageType.constFNWeight, isnullable:=True, _
-                       ID:="olog12")> Public Const ConstFNWeight = "WEIGHT"
+                       XID:="olog12")> Public Const ConstFNWeight = "WEIGHT"
 
         <ormObjectEntry(referenceObjectEntry:=User.ConstObjectID & "." & User.ConstFNUsername, isnullable:=True, _
-                       ID:="olog13", title:="Username", description:="username of the session")> Public Const ConstFNUsername = "USER"
+                       XID:="olog13", title:="Username", description:="username of the session")> Public Const ConstFNUsername = "USER"
 
         <ormObjectEntry(typeid:=otDataType.Text, size:=100, isnullable:=True, _
-                       ID:="olog14", title:="Session", description:="session in which the error occured")> Public Const ConstFNSessionTAG = "SESSIONTAG"
+                       XID:="olog14", title:="Session", description:="session in which the error occured")> Public Const ConstFNSessionTAG = "SESSIONTAG"
 
         <ormObjectEntry(referenceObjectEntry:=SessionMessage.ConstObjectID & "." & SessionMessage.ConstFNID, isnullable:=True, _
-                      ID:="olog15", title:="Session Message No", description:="referenced session message no")> Public Const ConstFNSessionMSGNo = "SESSIONMSGNO"
+                      XID:="olog15", title:="Session Message No", description:="referenced session message no")> Public Const ConstFNSessionMSGNo = "SESSIONMSGNO"
 
         <ormObjectEntry(referenceObjectEntry:=Workspace.ConstObjectID & "." & Workspace.ConstFNID, isnullable:=True, _
-                     ID:="olog16", title:="current Workspace id", description:="current workspace id")> Public Const ConstFNWORKSPACEID = "WORKSPACEID"
+                     XID:="olog16", title:="current Workspace id", description:="current workspace id")> Public Const ConstFNWORKSPACEID = "WORKSPACEID"
         ''' <summary>
         ''' Mappings
         ''' </summary>
         ''' <remarks></remarks>
-        <ormEntryMapping(EntryName:=ConstFNTag)> Private _tag As String = ""
-        <ormEntryMapping(EntryName:=ConstFNNo)> Private _no As Long
+        <ormEntryMapping(EntryName:=ConstFNTag)> Private _tag As String
+        <ormEntryMapping(EntryName:=ConstFNNo)> Private _no As Long?
         <ormEntryMapping(EntryName:=ConstFNMessageTypeUID)> Private _typeuid As Long
         <ormEntryMapping(EntryName:=ConstFNMessage)> Private _message As String
 
@@ -2967,7 +3053,20 @@ Namespace OnTrack
 
 
 #Region "properties"
-
+        ''' <summary>
+        ''' returns true if data object has primary keys and is alive
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        ReadOnly Property IsDataObject As Boolean
+            Get
+                If _tag IsNot Nothing AndAlso _tag <> "" AndAlso _no.HasValue AndAlso _no > 0 AndAlso Me.IsAlive(throwError:=False) Then
+                    Return True
+                End If
+                Return False
+            End Get
+        End Property
         ''' <summary>
         ''' Gets or sets the workspace ID.
         ''' </summary>
@@ -3048,15 +3147,20 @@ Namespace OnTrack
         End Property
 
         ''' <summary>
-        ''' gets the tag of the log message
+        ''' gets or sets the tag of the log message
         ''' </summary>
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        ReadOnly Property Tag() As String
+        Public Property Tag() As String
             Get
                 Return _tag
             End Get
+            Set(value As String)
+                If Not Me.IsDataObject Then
+                    SetValue(ConstFNTag, value)
+                End If
+            End Set
         End Property
 
         ''' <summary>
@@ -3065,11 +3169,15 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public ReadOnly Property No() As Long
+        Public Property No() As Long
             Get
                 Return _no
             End Get
-
+            Set(value As Long)
+                If Not Me.IsDataObject Then
+                    SetValue(ConstFNNo, value)
+                End If
+            End Set
         End Property
         ''' <summary>
         ''' gets or sets the message type uid
@@ -3092,7 +3200,7 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property Message() As String
+        Public Property Message As String
             Get
                 Return _message
             End Get
@@ -3107,7 +3215,7 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public ReadOnly Property MessageType() As ObjectMessageType
+        Public ReadOnly Property MessageType As ObjectMessageType
             Get
                 If Me.GetRelationStatus(ConstRMessageType) = DataObjectRelationMgr.RelationStatus.Unloaded Then InfuseRelation(ConstRMessageType)
                 Return _messagetype
@@ -3116,12 +3224,43 @@ Namespace OnTrack
         End Property
 
         ''' <summary>
+        ''' returns the highest Status Item
+        ''' </summary>
+        ''' <param name="domainid"></param>
+        ''' <param name="statustype"></param>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property HighestStatusItems(Optional domainid As String = "", Optional statustype As String = Nothing) As IList(Of StatusItem)
+            Get
+                Dim aShortlist As IEnumerable(Of StatusItem) = Me.StatusItems(domainid:=domainid, statustype:=statustype)
+                If aShortlist Is Nothing Then Return New List(Of StatusItem)
+                Dim highest As Integer = aShortlist.Max(Function(x) x.Weight)
+                aShortlist = aShortlist.Where(Function(x) x.Weight = highest)
+                Return aShortlist.ToList
+            End Get
+        End Property
+        ''' <summary>
+        ''' returns the status items associated with this message
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property StatusItems(Optional domainid As String = "", Optional statustype As String = Nothing) As IList(Of Commons.StatusItem)
+            Get
+                If Me.MessageType IsNot Nothing Then
+                    Return Me.MessageType.StatusItems(domainid:=domainid, statustype:=statustype)
+                End If
+                Return New List(Of StatusItem)
+            End Get
+        End Property
+        ''' <summary>
         ''' gets or sets the context identifier
         ''' </summary>
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property ContextIdentifier() As Object
+        Public Property ContextIdentifier As Object
             Get
                 Return _ContextID
             End Get
@@ -3136,7 +3275,7 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property TupleIdentifier() As Object
+        Public Property TupleIdentifier As Object
             Get
                 Return _TupleID
             End Get
@@ -3151,7 +3290,7 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property EntitityIdentifier() As Object
+        Public Property EntitityIdentifier As Object
             Get
                 Return _EntitityID
             End Get
@@ -3183,12 +3322,12 @@ Namespace OnTrack
         ''' <param name="ID"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Shared Function Create(ByVal msglogtag As String, _
-                                      ByVal no As Long, _
-                                      ByVal messageTypeUID As Long, _
-                                      ByVal contextIdentifier As String, _
-                                      ByVal tupleIdentifier As String, _
-                                      ByVal entitityIdentifier As String, _
+        Public Shared Function Create(ByVal typeuid As Long, _
+                                      Optional ByVal msglogtag As String = Nothing, _
+                                      Optional ByVal no As Long? = Nothing, _
+                                      Optional ByVal contextIdentifier As String = Nothing, _
+                                      Optional ByVal tupleIdentifier As String = Nothing, _
+                                      Optional ByVal entitityIdentifier As String = Nothing, _
                                       Optional parameters As Object() = Nothing,
                                       Optional ByVal domainid As String = "", _
                                       Optional checkUnique As Boolean = False, _
@@ -3196,9 +3335,9 @@ Namespace OnTrack
             If domainid = "" Then domainid = CurrentSession.CurrentDomainID
             Dim aRecord As New ormRecord
             With aRecord
-                .SetValue(ConstFNTag, msglogtag.ToUpper)
-                .SetValue(ConstFNMessageTypeUID, messageTypeUID)
-                .SetValue(ConstFNNo, No)
+                If msglogtag IsNot Nothing Then .SetValue(ConstFNTag, msglogtag.ToUpper)
+                .SetValue(ConstFNMessageTypeUID, typeuid)
+                If no.HasValue Then .SetValue(ConstFNNo, no.Value)
                 .SetValue(ConstFNDomainID, domainid)
                 .SetValue(ConstFNContextID, contextIdentifier)
                 .SetValue(ConstFNTupleID, tupleIdentifier)
@@ -3206,7 +3345,18 @@ Namespace OnTrack
 
                 If parameters IsNot Nothing Then .SetValue(ConstFNParameters, Converter.Array2String(parameters))
             End With
-            Return ormDataObject.CreateDataObject(Of ObjectMessage)(aRecord, checkUnique:=checkUnique, runtimeOnly:=runtimeOnly)
+            '''
+            ''' create a not alive ObjectMessage
+            ''' 
+            If msglogtag Is Nothing OrElse Not no.HasValue Then
+                Dim anObjectMessage As ObjectMessage = ot.CreateDataObjectInstance(GetType(ObjectMessage))
+                anObjectMessage.Feed(aRecord)
+                Return anObjectMessage
+            Else
+                ''' create a normal ObjectMessage which is alive
+                Return ormDataObject.CreateDataObject(Of ObjectMessage)(aRecord, checkUnique:=checkUnique, runtimeOnly:=runtimeOnly)
+            End If
+
         End Function
 
         ''' <summary>
@@ -3219,9 +3369,9 @@ Namespace OnTrack
 
             ''' defaults
             If Not e.Record.HasIndex(ConstFNSessionTAG) OrElse e.Record.GetValue(ConstFNSessionTAG) Is Nothing Then e.Record.SetValue(ConstFNSessionTAG, CurrentSession.SessionID)
-            If not e.record.HasIndex(ConstFNUsername) orelse e.Record.GetValue(ConstFNUsername) Is Nothing Then e.Record.SetValue(ConstFNUsername, CurrentSession.Username)
+            If Not e.Record.HasIndex(ConstFNUsername) OrElse e.Record.GetValue(ConstFNUsername) Is Nothing Then e.Record.SetValue(ConstFNUsername, CurrentSession.Username)
             If Not e.Record.HasIndex(ConstFNDomainID) OrElse e.Record.GetValue(ConstFNDomainID) Is Nothing Then e.Record.SetValue(ConstFNDomainID, CurrentSession.CurrentDomainID)
-            If Not e.Record.HasIndex(ConstFNWorkspaceID) OrElse e.Record.GetValue(ConstFNWorkspaceID) Is Nothing Then e.Record.SetValue(ConstFNWorkspaceID, CurrentSession.CurrentWorkspaceID)
+            If Not e.Record.HasIndex(ConstFNWORKSPACEID) OrElse e.Record.GetValue(ConstFNWORKSPACEID) Is Nothing Then e.Record.SetValue(ConstFNWORKSPACEID, CurrentSession.CurrentWorkspaceID)
             If Not e.Record.HasIndex(ConstFNTimeStamp) OrElse e.Record.GetValue(ConstFNTimeStamp) Is Nothing Then e.Record.SetValue(ConstFNTimeStamp, Date.Now)
 
         End Sub
@@ -3257,12 +3407,12 @@ Namespace OnTrack
                 End If
 
                 'aMember.message = Replace(aMember.message, "%rowno%", aRowNo)
-                Me.Message = Replace(Me.Message, "%type%", aMessageDefinition.type.ToString.ToUpper)
+                Me.Message = Replace(Me.Message, "%type%", aMessageDefinition.Type.ToString.ToUpper)
                 Me.Message = Strings.Replace(Me.Message, "%errno%", Strings.Format(aMessageDefinition.ID, "00000"))
 
                 '*
                 For i = LBound(Me.Parameters) To UBound(Me.Parameters)
-                    Me.Message = Strings.Replace(Me.Message, "%" & i + 1, Me.Parameters(i))
+                    Me.Message = Strings.Replace(Me.Message, "%" & i + 1 & "%", Me.Parameters(i))
                 Next i
             End If
         End Sub

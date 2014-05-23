@@ -2991,7 +2991,7 @@ Namespace OnTrack.Database
                             '** Factory a new clsOTDBRecord
                             '**
                             Dim aNewRecord As New ormRecord(tableID:=Me.TableID, dbdriver:=Me.Connection.DatabaseDriver, runtimeOnly:=False)
-                            If aNewRecord.LoadFrom(aDataReader) Then
+                            If aNewRecord.LoadFrom(aDataReader, InSync:=True) Then
                                 aDataReader.Close()
                                 Return aNewRecord
                             Else
@@ -3185,7 +3185,7 @@ Namespace OnTrack.Database
 
                         Do While aDataReader.Read
                             aNewRecord = New ormRecord(tableID:=Me.TableID, dbdriver:=Me.Connection.DatabaseDriver, runtimeOnly:=False)
-                            If aNewRecord.LoadFrom(aDataReader) Then
+                            If aNewRecord.LoadFrom(aDataReader, InSync:=True) Then
                                 aCollection.Add(item:=aNewRecord)
                             Else
                                 Call CoreMessageHandler(subname:="adonetTableStore.getRecordsBySQL", message:="couldnot infuse a record", _

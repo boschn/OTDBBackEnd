@@ -2523,124 +2523,124 @@ Namespace OnTrack
         '*****
         '*****
 
-        Public Class ormFieldDescription
-            ''' <summary>
-            ''' Name in the table (data store)
-            ''' </summary>
-            ''' <remarks></remarks>
-            Public ColumnName As String = ""
-            ''' <summary>
-            ''' ID for XChange Manager
-            ''' </summary>
-            ''' <remarks></remarks>
-            Public ID As String = ""
-            ''' <summary>
-            ''' Default Title to be used on column heads
-            ''' </summary>
-            ''' <remarks></remarks>
-            Public Title As String = ""
-            ''' <summary>
-            ''' Description about the Field
-            ''' </summary>
-            ''' <remarks></remarks>
-            Public Description As String = ""
-            ''' <summary>
-            ''' Aliases to be used for XChange Manager (Array)
-            ''' </summary>
-            ''' <remarks></remarks>
-            Public Aliases As String() = {}
-            ''' <summary>
-            ''' OTDB Datatype of the Field
-            ''' </summary>
-            ''' <remarks></remarks>
-            Public Datatype As otDataType
-            ''' <summary>
-            ''' Parameters to be used
-            ''' </summary>
-            ''' <remarks></remarks>
-            Public Parameter As String = ""
-            ''' <summary>
-            ''' Tablename of the Datastore
-            ''' </summary>
-            ''' <remarks></remarks>
-            Public Tablename As String = ""
-            ''' <summary>
-            ''' Relation Description as String Array
-            ''' </summary>
-            ''' <remarks></remarks>
-            Public Relation As String() = {}
-            ''' <summary>
-            ''' Size
-            ''' </summary>
-            ''' <remarks></remarks>
-            Public Size As Long = 255
-            ''' <summary>
-            ''' Is Nullable
-            ''' </summary>
-            ''' <remarks></remarks>
-            Public IsNullable As Boolean = False
-            ''' <summary>
-            ''' Is Transformed to an Array
-            ''' </summary>
-            ''' <remarks></remarks>
-            Public IsArray As Boolean = False
-            ''' <summary>
-            ''' DefaultValue of the Field
-            ''' </summary>
-            ''' <remarks></remarks>
-            Public DefaultValue As Object
-            ''' <summary>
-            ''' Version count
-            ''' </summary>
-            ''' <remarks></remarks>
-            Public Version As UShort
-            ''' <summary>
-            ''' Position in the Record
-            ''' </summary>
-            ''' <remarks></remarks>
-            Public ordinalPosition As UShort
-            ''' <summary>
-            ''' if set true this Field is a spare field
-            ''' </summary>
-            ''' <remarks></remarks>
-            Public SpareFieldTag As Boolean
+        'Public Class ormFieldDescription
+        '    ''' <summary>
+        '    ''' Name in the table (data store)
+        '    ''' </summary>
+        '    ''' <remarks></remarks>
+        '    Public ColumnName As String = ""
+        '    ''' <summary>
+        '    ''' ID for XChange Manager
+        '    ''' </summary>
+        '    ''' <remarks></remarks>
+        '    Public ID As String = ""
+        '    ''' <summary>
+        '    ''' Default Title to be used on column heads
+        '    ''' </summary>
+        '    ''' <remarks></remarks>
+        '    Public Title As String = ""
+        '    ''' <summary>
+        '    ''' Description about the Field
+        '    ''' </summary>
+        '    ''' <remarks></remarks>
+        '    Public Description As String = ""
+        '    ''' <summary>
+        '    ''' Aliases to be used for XChange Manager (Array)
+        '    ''' </summary>
+        '    ''' <remarks></remarks>
+        '    Public Aliases As String() = {}
+        '    ''' <summary>
+        '    ''' OTDB Datatype of the Field
+        '    ''' </summary>
+        '    ''' <remarks></remarks>
+        '    Public Datatype As otDataType
+        '    ''' <summary>
+        '    ''' Parameters to be used
+        '    ''' </summary>
+        '    ''' <remarks></remarks>
+        '    Public Parameter As String = ""
+        '    ''' <summary>
+        '    ''' Tablename of the Datastore
+        '    ''' </summary>
+        '    ''' <remarks></remarks>
+        '    Public Tablename As String = ""
+        '    ''' <summary>
+        '    ''' Relation Description as String Array
+        '    ''' </summary>
+        '    ''' <remarks></remarks>
+        '    Public Relation As String() = {}
+        '    ''' <summary>
+        '    ''' Size
+        '    ''' </summary>
+        '    ''' <remarks></remarks>
+        '    Public Size As Long = 255
+        '    ''' <summary>
+        '    ''' Is Nullable
+        '    ''' </summary>
+        '    ''' <remarks></remarks>
+        '    Public IsNullable As Boolean = False
+        '    ''' <summary>
+        '    ''' Is Transformed to an Array
+        '    ''' </summary>
+        '    ''' <remarks></remarks>
+        '    Public IsArray As Boolean = False
+        '    ''' <summary>
+        '    ''' DefaultValue of the Field
+        '    ''' </summary>
+        '    ''' <remarks></remarks>
+        '    Public DefaultValue As Object
+        '    ''' <summary>
+        '    ''' Version count
+        '    ''' </summary>
+        '    ''' <remarks></remarks>
+        '    Public Version As UShort
+        '    ''' <summary>
+        '    ''' Position in the Record
+        '    ''' </summary>
+        '    ''' <remarks></remarks>
+        '    Public ordinalPosition As UShort
+        '    ''' <summary>
+        '    ''' if set true this Field is a spare field
+        '    ''' </summary>
+        '    ''' <remarks></remarks>
+        '    Public SpareFieldTag As Boolean
 
-        End Class
+        'End Class
 
 
-        '************************************************************************************
-        '***** CLASS clsOTDBCompoundDecs is a helper for the CompoundsDesc Attributes
-        '***** a compound are data tupples which apear to be for the XChange Manager in the 
-        '***** base class but are as relation with a parameter id in a sub class and another table
-        '***** such as milestones which are parameters from the schedule definition
-        '*****
+        ''************************************************************************************
+        ''***** CLASS clsOTDBCompoundDecs is a helper for the CompoundsDesc Attributes
+        ''***** a compound are data tupples which apear to be for the XChange Manager in the 
+        ''***** base class but are as relation with a parameter id in a sub class and another table
+        ''***** such as milestones which are parameters from the schedule definition
+        ''*****
 
-        Public Class ormCompoundDesc
-            Inherits ormFieldDescription
+        'Public Class ormCompoundDesc
+        '    Inherits ormFieldDescription
 
-            '*** Additional Compound Information
-            ''' <summary>
-            ''' the tablename in the datastore of the compound
-            ''' </summary>
-            ''' <remarks></remarks>
-            Public compound_Tablename As String
-            ''' <summary>
-            ''' relation condition fields
-            ''' </summary>
-            ''' <remarks></remarks>
-            Public compound_Relation As Object
-            ''' <summary>
-            ''' 
-            ''' </summary>
-            ''' <remarks></remarks>
-            Public compound_IDFieldname As String
-            ''' <summary>
-            ''' fieldname which has the ID of the compound field as value
-            ''' </summary>
-            ''' <remarks></remarks>
-            Public compound_ValueFieldname As String
+        '    '*** Additional Compound Information
+        '    ''' <summary>
+        '    ''' the tablename in the datastore of the compound
+        '    ''' </summary>
+        '    ''' <remarks></remarks>
+        '    Public compound_Tablename As String
+        '    ''' <summary>
+        '    ''' relation condition fields
+        '    ''' </summary>
+        '    ''' <remarks></remarks>
+        '    Public compound_Relation As Object
+        '    ''' <summary>
+        '    ''' 
+        '    ''' </summary>
+        '    ''' <remarks></remarks>
+        '    Public compound_IDFieldname As String
+        '    ''' <summary>
+        '    ''' fieldname which has the ID of the compound field as value
+        '    ''' </summary>
+        '    ''' <remarks></remarks>
+        '    Public compound_ValueFieldname As String
 
-        End Class
+        'End Class
 
 
         ''' <summary>
@@ -2681,12 +2681,9 @@ Namespace OnTrack
             ''' <remarks></remarks>
             Protected Sub New(connection As iormConnection, tableID As String, ByVal force As Boolean)
                 Call MyBase.New()
-
                 Me.Connection = connection
                 Me.TableID = tableID
-
-                Refresh(force:=True)
-
+                Me.Refresh(force:=force)
             End Sub
             ''' <summary>
             ''' creates an unique key value. provide primary key array in the form {field1, field2, nothing}. "Nothing" will be increased.

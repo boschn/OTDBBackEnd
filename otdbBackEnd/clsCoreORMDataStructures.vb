@@ -11,6 +11,10 @@ REM *********** Change Log:
 REM ***********
 REM *********** (C) by Boris Schneider 2013
 REM ***********************************************************************************************************************************************''' <summary>
+
+Option Explicit On
+
+
 Imports System.Collections
 Imports System.ComponentModel
 Imports System.Collections.Generic
@@ -399,9 +403,10 @@ Namespace OnTrack.Database
     Public Class ormRelationNewableCollection(Of T As {New, iormInfusable, iormPersistable})
         Inherits ormRelationCollection(Of T)
 
-        Public Event RequestKeys(sender As Object, e As ormRelationCollection(Of T).EventArgs)
-        Public Event OnNew(sender As Object, e As ormRelationCollection(Of T).EventArgs)
-
+        ''' <summary>
+        ''' Event Args 
+        ''' </summary>
+        ''' <remarks></remarks>
         Public Class EventArgs
             Inherits ormRelationCollection(Of T).EventArgs
 
@@ -417,12 +422,23 @@ Namespace OnTrack.Database
                 Get
                     Return Me._keys
                 End Get
-                Set
+                Set(value As Object())
                     Me._keys = Value
                 End Set
             End Property
 
         End Class
+
+        ''' <summary>
+        ''' Events
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Public Event RequestKeys(sender As Object, e As ormRelationCollection(Of T).EventArgs)
+        Public Event OnNew(sender As Object, e As ormRelationCollection(Of T).EventArgs)
+
+        
         ''' <summary>
         ''' constructor with the container object (of iormpersistable) 
         ''' and keyentrynames of T
@@ -446,7 +462,7 @@ Namespace OnTrack.Database
             '''
             ''' raise event if no keys supplied
             If keys Is Nothing Then
-                Dim e As EventArgs = New EventArgs(_container)
+                Dim e As ormRelationNewableCollection(Of T).EventArgs = New ormRelationNewableCollection(Of T).EventArgs(_container)
                 RaiseEvent RequestKeys(Me, e)
                 keys = e.Keys
 
@@ -461,7 +477,7 @@ Namespace OnTrack.Database
                 keys(i) = anItem.SetValue(_keyentries(i), keys(i))
             Next i
 
-            Dim args = New ormRelationCollection(Of T).EventArgs(anItem)
+            Dim args = New ormRelationNewableCollection(Of T).EventArgs(anItem)
             RaiseEvent OnNew(Me, args)
             If args.Cancel Then Return Nothing
 
@@ -534,18 +550,18 @@ Namespace OnTrack.Database
         ''' <param name="keynames"></param>
         ''' <remarks></remarks>
         Public Sub New(container As iormPersistable, keyentrynames As String())
-            _container = container
+            If container IsNot Nothing Then _container = container
             _keyentries = keyentrynames
         End Sub
         ''' <summary>
-        ''' get the size
+        ''' get the size of the collection
         ''' </summary>
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public ReadOnly Property Size As UShort
+        Public ReadOnly Property Size As ULong
             Get
-                Return _keyentries.GetUpperBound(0) + 1
+                Return _dictionary.LongCount
             End Get
         End Property
         ''' <summary>
@@ -575,9 +591,10 @@ Namespace OnTrack.Database
         ''' <param name="item"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetKeyValues(item As T) As DataKeyTuple Implements iormRelationalCollection(Of T).getKeyvalues
-            Dim keys As New DataKeyTuple(Me.Size)
-            For i = 0 To _keyentries.Count - 1
+        Public Function GetKeyValues(item As T) As DataKeyTuple Implements iormRelationalCollection(Of T).GetKeyValues
+            
+            Dim keys As New DataKeyTuple(_keyentries.Count)
+            For i = 0 To _keyentries.GetUpperBound(0)
                 keys.Item(i) = item.GetValue(_keyentries(i))
             Next i
             Return keys
@@ -594,7 +611,7 @@ Namespace OnTrack.Database
             If args.Cancel Then Return
 
             ''' get the keys
-            Dim keys = GetKeyValues(item)
+            Dim keys = Me.GetKeyValues(item)
 
             '' no error if we are already in this collection
             If Not Me.ContainsKey(keys) Then
@@ -653,9 +670,22 @@ Namespace OnTrack.Database
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function ContainsKey(key As Object) As Boolean Implements iormRelationalCollection(Of T).ContainsKey
-            Dim aKey As New DataKeyTuple(1)
-            aKey.Values = {key}
-            Return _dictionary.ContainsKey(key:=aKey)
+            If key.GetType.IsArray AndAlso key.GetType.GetArrayRank = 1 Then
+                Dim akey As New DataKeyTuple(UBound(key) + 1)
+                Dim i As UShort = 0
+                For Each aValue In key
+                    akey.Values(i) = aValue
+                    i += 1
+                Next
+
+                Return _dictionary.ContainsKey(key:=akey)
+            Else
+                Dim aKey As New DataKeyTuple(1)
+                aKey.Values = {key}
+                Return _dictionary.ContainsKey(key:=aKey)
+            End If
+           
+
         End Function
         ''' <summary>
         ''' returns true if the item is in the collection. based on same keys
@@ -664,7 +694,7 @@ Namespace OnTrack.Database
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function Contains(item As T) As Boolean Implements ICollection(Of T).Contains
-            Dim keys = GetKeyValues(item)
+            Dim keys = Me.GetKeyValues(item)
             Return ContainsKey(keys)
         End Function
         ''' <summary>
@@ -713,7 +743,7 @@ Namespace OnTrack.Database
             Dim args = New ormRelationCollection(Of T).EventArgs(item)
             RaiseEvent OnRemoving(Me, args)
 
-            Dim keys = GetKeyValues(item)
+            Dim keys = Me.GetKeyValues(item)
             Dim result = _dictionary.Remove(key:=keys)
 
             RaiseEvent OnRemoved(Me, args)
@@ -766,17 +796,37 @@ Namespace OnTrack.Database
                 ' strange we cannot overload
                 If key.GetType.Equals(GetType(DataKeyTuple)) Then
                     Return _dictionary.Item(key:=key)
+
+                ElseIf key.GetType.IsArray AndAlso key.GetType.GetArrayRank = 1 Then
+                    Dim akey As New DataKeyTuple(UBound(key) + 1)
+                    Dim i As UShort = 0
+                    For Each aValue In key
+                        akey.Values(i) = aValue
+                        i += 1
+                    Next
+
+                    Return CType(_dictionary.Item(key:=akey), T)
                 Else
                     Dim aKey As New DataKeyTuple(1)
                     aKey.Values = {key}
-                    Return Me.Item(aKey)
+                    Return CType(_dictionary.Item(key:=aKey), T)
                 End If
 
             End Get
             Set(value As T)
                 ' strange we cannot overload
                 If key.GetType.Equals(GetType(DataKeyTuple)) Then
-                    _dictionary.Add(key:=key, value:=value)
+                    _dictionary.Add(key:=CType(key, DataKeyTuple), value:=value)
+
+                ElseIf key.GetType.IsArray And key.GetType.GetArrayRank = 1 Then
+                    Dim akey As New DataKeyTuple(UBound(key) + 1)
+                    Dim i As UShort = 0
+                    For Each aValue In key
+                        akey.Values(i) = aValue
+                        i += 1
+                    Next
+
+                    _dictionary.Add(key:=akey, value:=value)
                 Else
                     Dim aKey As New DataKeyTuple(1)
                     aKey.Values = {key}
@@ -1251,12 +1301,12 @@ Namespace OnTrack.Database
                     End If
 
                     If aKey.Values.Count <> _Values.Count Then Return False
-                    For i = 0 To aKey.Values.Count - 1
-                        If aKey(i).GetType.Equals(Me(i).GetType) Then
-                            If Not aKey(i).Equals(Me(i)) Then Return False
+                    For i As UShort = 0 To CUShort(aKey.Values.Count - 1)
+                        If aKey(i).GetType.Equals(Me(CUShort(i)).GetType) Then
+                            If Not aKey(CUShort(i)).Equals(Me(CUShort(i))) Then Return False
                         Else
                             Try
-                                Dim avalue = CTypeDynamic(aKey(i), Me(i).GetType)
+                                Dim avalue = CTypeDynamic(aKey(i), Me(CUShort(i)).GetType)
                                 If Not Me(i).Equals(avalue) Then Return False
                             Catch ex As Exception
                                 Return False
@@ -1776,7 +1826,7 @@ Namespace OnTrack.Database
         ''' <param name="datareader"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function LoadFrom(ByRef datareader As IDataReader) As Boolean
+        Public Function LoadFrom(ByRef datareader As IDataReader, Optional InSync As Boolean = False) As Boolean
             Dim result As Boolean = True
 
             Try
@@ -1785,49 +1835,57 @@ Namespace OnTrack.Database
                 _isLoaded = True ' important
 
                 If _isBound Then
-                    ''' go through each tablestore
-                    For n = 0 To _TableStores.Length - 1
-                        For j = 1 To _TableStores(n).TableSchema.NoFields
-                            Dim found As Integer = -1
-                            Dim aColumnname As String = _TableStores(n).TableSchema.Getfieldname(j)
-                            For i = 0 To datareader.FieldCount - 1
-                                If datareader.GetName(i) = aColumnname Then
-                                    ''' uuuh slow
-                                    ''' 
-                                    found = i
-                                    Exit For
-                                End If
-                            Next
-                            If found >= 0 Then
-                                Dim aValue As Object
-                                Dim index As Integer = ZeroBasedIndexOf(_TableStores(n).TableID & "." & aColumnname) + 1
-                                If index >= 0 Then
-                                    If _TableStores(n).Convert2ObjectData(index:=j, invalue:=datareader.Item(found), outvalue:=aValue) Then
-                                        If Not SetValue(index, aValue) Then
-                                            CoreMessageHandler(message:="set value failed", arg1:=aValue, columnname:=aColumnname, tablename:=_tableids(n), subname:="ormRecord.LoadFrom")
-                                            result = False
+
+                    ''' read it at once if only one tablestore
+                    ''' 
+                    If InSync Then
+                        datareader.GetValues(_Values)
+                        result = True
+                    Else
+                        ''' go through each tablestore
+                        For n = 0 To _TableStores.Length - 1
+                            For j = 1 To _TableStores(n).TableSchema.NoFields
+                                Dim found As Integer = -1
+                                Dim aColumnname As String = _TableStores(n).TableSchema.Getfieldname(j)
+                                For i = 0 To datareader.FieldCount - 1
+                                    If datareader.GetName(i) = aColumnname Then
+                                        ''' uuuh slow
+                                        ''' 
+                                        found = i
+                                        Exit For
+                                    End If
+                                Next
+                                If found >= 0 Then
+                                    Dim aValue As Object
+                                    Dim index As Integer = ZeroBasedIndexOf(_TableStores(n).TableID & "." & aColumnname) + 1
+                                    If index >= 0 Then
+                                        If _TableStores(n).Convert2ObjectData(index:=j, invalue:=datareader.Item(found), outvalue:=aValue) Then
+                                            If Not SetValue(index, aValue) Then
+                                                CoreMessageHandler(message:="set value failed", arg1:=aValue, columnname:=aColumnname, tablename:=_tableids(n), subname:="ormRecord.LoadFrom")
+                                                result = False
+                                            Else
+                                                result = result And True
+                                            End If
                                         Else
-                                            result = result And True
+                                            CoreMessageHandler(message:="data conversion failed", arg1:=datareader.Item(aColumnname), columnname:=aColumnname, _
+                                                               tablename:=_tableids(n), subname:="ormRecord.LoadFrom")
+                                            result = False
                                         End If
                                     Else
-                                        CoreMessageHandler(message:="data conversion failed", arg1:=datareader.Item(aColumnname), columnname:=aColumnname, _
-                                                           tablename:=_tableids(n), subname:="ormRecord.LoadFrom")
+                                        CoreMessageHandler(message:="index in record failed - canonical name doesnot exist ?", _
+                                                           arg1:=datareader.Item(aColumnname), columnname:=aColumnname, tablename:=_tableids(n), subname:="ormRecord.LoadFrom")
                                         result = False
                                     End If
+
                                 Else
-                                    CoreMessageHandler(message:="index in record failed - canonical name doesnot exist ?", _
-                                                       arg1:=datareader.Item(aColumnname), columnname:=aColumnname, tablename:=_tableids(n), subname:="ormRecord.LoadFrom")
+                                    CoreMessageHandler(message:="column from table not in datareader - record uncomplete", columnname:=aColumnname, _
+                                                       tablename:=_tableids(n), subname:="ormRecord.LoadFrom(IDataReader)")
                                     result = False
                                 End If
+                            Next j
+                        Next
 
-                            Else
-                                CoreMessageHandler(message:="column from table not in datareader - record uncomplete", columnname:=aColumnname, _
-                                                   tablename:=_tableids(n), subname:="ormRecord.LoadFrom(IDataReader)")
-                                result = False
-                            End If
-                        Next j
-                    Next
-
+                    End If
 
                     Return result
                 Else
@@ -1952,7 +2010,7 @@ Namespace OnTrack.Database
             '* do not allow recursion on objectentrydefinition table itself
             '* since this is not included 
 
-            Dim names As String() = index.ToString.ToUpper.Split({CChar(ConstDelimiter), "."c})
+            Dim names As String() = Shuffle.NameSplitter(index.ToString)
             Dim n As Integer = Array.IndexOf(_tableids, names(0))
             If n >= 0 Then
                 Return _TableStores(n).TableSchema.GetDefaultValue(i)
@@ -2250,7 +2308,7 @@ Namespace OnTrack.Database
             entryname = entryname.ToUpper
             Dim i As Integer = Array.IndexOf(_entrynames, entryname.ToUpper)
             If i < 0 Then
-                Dim names As String() = entryname.ToUpper.Split({CChar(ConstDelimiter), "."c})
+                Dim names As String() = Shuffle.NameSplitter(entryname)
                 If names.Count > 1 Then
                     If _isBound Then
                         i = 0
@@ -2260,12 +2318,12 @@ Namespace OnTrack.Database
                         i += _TableStores(n).TableSchema.GetFieldordinal(names(1)) - 1
                         Return i
                     Else
-                        Dim acolumnname As String = entryname.Split({CChar(ConstDelimiter), "."c}).Last
-                        Return Array.FindIndex(_entrynames, Function(x) x IsNot Nothing AndAlso (x.ToUpper = entryname OrElse x = acolumnname OrElse entryname = x.Split({CChar(ConstDelimiter), "."c}).Last.ToUpper))
+                        Dim acolumnname As String = Shuffle.NameSplitter(entryname).Last
+                        Return Array.FindIndex(_entrynames, Function(x) x IsNot Nothing AndAlso (x.ToUpper = entryname OrElse x = acolumnname OrElse entryname = Shuffle.NameSplitter(x).Last))
                     End If
                 Else
 
-                    Return Array.FindIndex(_entrynames, Function(x) x IsNot Nothing AndAlso (x.ToUpper = entryname.ToUpper OrElse entryname.ToUpper = x.Split({CChar(ConstDelimiter), "."c}).Last.ToUpper))
+                    Return Array.FindIndex(_entrynames, Function(x) x IsNot Nothing AndAlso (x.ToUpper = entryname.ToUpper OrElse entryname.ToUpper = Shuffle.NameSplitter(x).Last))
                 End If
 
             Else

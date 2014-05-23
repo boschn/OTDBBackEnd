@@ -2036,11 +2036,11 @@ Namespace OnTrack.Database
                                                         arg1:=afkreference, subname:="mssqlDBDriver.getForeignKey", messagetype:=otCoreMessageType.InternalError)
                                     fkerror = True
                                 Else
-                                    Dim names = afkreference.ToUpper.Split("."c, ConstDelimiter)
+                                    Dim names = Shuffle.NameSplitter(afkreference)
                                     theFKTablenames(i) = names(0).Clone
                                     theFKColumnnames(i) = names(1).Clone
                                     If fkproperties Is Nothing AndAlso foreignkeydefinition.ForeignKeyProperty IsNot Nothing Then fkproperties = foreignkeydefinition.ForeignKeyProperty
-                                    names = foreignkeydefinition.ColumnNames(i).ToUpper.Split("."c, ConstDelimiter)
+                                    names = Shuffle.NameSplitter(foreignkeydefinition.ColumnNames(i))
                                     If names.Count > 0 Then
                                         theColumnnames(i) = names(1).Clone
                                     Else
@@ -2778,6 +2778,8 @@ Namespace OnTrack.Database
             '
 
             Refresh = True
+
+            Diagnostics.Debug.WriteLine("refreshing " & Me.TableID)
 
             Try
 

@@ -1050,6 +1050,13 @@ Namespace OnTrack.Database
     ''' <remarks></remarks>
     Public Interface iormValidatable
 
+        Function RaiseOnEntryValidatingEvent(entryname As String, msglog As ObjectMessageLog) As otValidationResultType
+
+        Function RaiseOnEntryValidatedEvent(entryname As String, msglog As ObjectMessageLog) As otValidationResultType
+
+        Function RaiseOnValidatedEvent(msglog As ObjectMessageLog) As otValidationResultType
+
+      
        
         ''' <summary>
         ''' Event on Object Instance Level for Validation (before Validation)
@@ -1066,12 +1073,16 @@ Namespace OnTrack.Database
         ''' <remarks></remarks>
         Event OnValidated(sender As Object, e As ormDataObjectEventArgs)
 
+        Event OnEntryValidated(sender As Object, e As ormDataObjectEntryEventArgs)
+
+        Event OnEntryValidating(sender As Object, e As ormDataObjectEntryEventArgs)
+
         ''' <summary>
         ''' validates the Business Object as total
         ''' </summary>
         ''' <returns>True if validated and OK</returns>
         ''' <remarks></remarks>
-        Function Validate() As otValidationResultType
+        Function Validate(Optional msglog As ObjectMessageLog = Nothing) As otValidationResultType
 
         ''' <summary>
         ''' validates a named object entry of the object
@@ -1079,7 +1090,15 @@ Namespace OnTrack.Database
         ''' <param name="enryname"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Function Validate(enryname As String, ByVal value As Object) As otValidationResultType
+        Function Validate(entryname As String, value As Object, Optional msglog As ObjectMessageLog = Nothing) As otValidationResultType
+
+        ''' <summary>
+        ''' raise the validating event and returns the result 
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Function RaiseOnValidatingEvent(msglog As ObjectMessageLog) As otValidationResultType
+
 
     End Interface
     ''' <summary>
@@ -1139,6 +1158,8 @@ Namespace OnTrack.Database
     ''' </summary>
     ''' <remarks></remarks>
     Public Interface iormPersistable
+
+        Property DomainID As String
 
         Function EqualsValue(entryname As String, value As Object) As Boolean
 
@@ -1649,26 +1670,43 @@ Namespace OnTrack.Database
 End Namespace
 Namespace OnTrack
 
-    '************************************************************************************
-    '***** Interface iOTDBLoggable for Object receiving Messages
-    '*****
+    ''' <summary>
+    ''' Interface for objects which are loggable - have a object message log
+    ''' </summary>
+    ''' <remarks></remarks>
 
-    Public Interface otLoggable
+    Public Interface ormLoggable
 
 
-        '***** ContextIdentifier (identifier) sets the context of the message receiver
-        '*****
+        ''' <summary>
+        ''' sets or gets the context identifier for the message in the context
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
         Property ContextIdentifier As String
-
-        '***** setTuple (identifier) sets the Tuple of the message receiver
-        '*****
+        ''' <summary>
+        ''' sets or gets the tuple identifier for the message in the context
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
         Property TupleIdentifier As String
+        ''' <summary>
+        ''' sets or gets the entity identifier for the message in the context
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Property EntityIdentifier As String
 
-        '***** setEntitity (identifier) sets the context of the message receiver
-        '*****
-        Property EntitityIdentifier As String
-
-      
+        ''' <summary>
+        ''' returns the ObjectMessageLog
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Property ObjectMessageLog As ObjectMessageLog
 
     End Interface
 End Namespace

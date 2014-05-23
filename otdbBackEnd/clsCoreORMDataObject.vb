@@ -36,6 +36,7 @@ Namespace OnTrack.Database
         Implements iormCloneable
         Implements iormValidatable
         Implements iormQueriable
+        Implements ormLoggable 
 
         ''' <summary>
         ''' important objects to drive data object behavior
@@ -95,6 +96,13 @@ Namespace OnTrack.Database
         Private _IsloadedFromHost As Boolean = False
         Private _IsSavedToHost As Boolean = False
 
+        ''' <summary>
+        ''' identifier for ormLoggable
+        ''' </summary>
+        ''' <remarks></remarks>
+        Protected _contextidentifier As String
+        Protected _tupleidentifier As String
+        Protected _entityidentifier As String
 
         ''' <summary>
         ''' Persistence Data Definition
@@ -146,6 +154,13 @@ Namespace OnTrack.Database
         title:="flag parameter 3", description:="flag parameter 3")> Public Const ConstFNParamFlag3 = "param_flag3"
 
         ''' <summary>
+        ''' MSG LOG TAG
+        ''' </summary>
+        ''' <remarks></remarks>
+        <ormObjectEntry(referenceObjectEntry:=ObjectMessage.ConstObjectID & "." & ObjectMessage.ConstFNTag, isnullable:=True)> _
+        Public Const ConstFNMSGLOGTAG = ObjectMessage.ConstFNTag
+
+        ''' <summary>
         ''' Member Entries to drive lifecycle
         ''' </summary>
         ''' <remarks></remarks>
@@ -189,7 +204,7 @@ Namespace OnTrack.Database
 
         <ormEntryMapping(EntryName:=ConstFNDomainID)> Protected _domainID As String = ConstGlobalDomain
         <ormEntryMapping(EntryName:=ConstFNIsDomainIgnored)> Protected _DomainIsIgnored As Boolean = False
-
+        <ormEntryMapping(EntryName:=ConstFNmsglogtag)> Protected _msglogtag As String
 
         '''
         ''' Transactions DEFAULTS
@@ -225,7 +240,7 @@ Namespace OnTrack.Database
                      cascadeonCreate:=False, cascadeOnDelete:=False, cascadeOnUpdate:=False)> _
         Public Const ConstRMessageLog = "RelObjectMessage"
 
-        <ormEntryMapping(relationName:=ConstRMessageLog, infusemode:=otInfuseMode.OnDemand)> Protected _messagelog As ObjectMessageLog '  MessageLog
+        <ormEntryMapping(relationName:=ConstRMessageLog, infusemode:=otInfuseMode.OnDemand)> Protected WithEvents _ObjectMessageLog As ObjectMessageLog '  MessageLog
 
         ''' <summary>
         ''' constructor for ormDataObject
@@ -238,7 +253,7 @@ Namespace OnTrack.Database
             _RunTimeOnly = runtimeonly
             _relationMgr = New DataObjectRelationMgr(Me)
         End Sub
-        
+
         Protected Sub New(tableid As String, _
                           Optional objectID As String = "", _
                           Optional dbdriver As iormDatabaseDriver = Nothing, _
@@ -264,10 +279,55 @@ Namespace OnTrack.Database
             Me.Record = Nothing
             _primaryTableID = ""
             _defaultdbdriver = Nothing
-            _messagelog = Nothing
+            _ObjectMessageLog = Nothing
             _relationMgr = Nothing
         End Sub
 
+        ' If you try to get a value of a property that is
+        ' not defined in the class, this method is called.
+        ''' <summary>
+        ''' dynamic getValue Property
+        ''' </summary>
+        ''' <param name="binder"></param>
+        ''' <param name="result"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function TryGetMember(ByVal binder As System.Dynamic.GetMemberBinder, ByRef result As Object) As Boolean
+            If Not Me.IsAlive(throwError:=False) Then Return False
+            ' Converting the property name to lowercase
+            ' so that property names become case-insensitive.
+            Dim name As String = binder.Name
+
+            ' If the property name is found in a dictionary,
+            ' set the result parameter to the property value and return true.
+            ' Otherwise, return false.
+
+            If Me.ObjectDefinition.HasEntry(name) Then
+                result = Me.GetValue(entryname:=name)
+                Return True
+            End If
+
+            Return False
+        End Function
+        ''' <summary>
+        ''' Dynamic setValue Property
+        ''' </summary>
+        ''' <param name="binder"></param>
+        ''' <param name="value"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function TrySetMember(ByVal binder As System.Dynamic.SetMemberBinder, ByVal value As Object) As Boolean
+            If Not Me.IsAlive(throwError:=False) Then Return False
+
+            If Not Me.ObjectDefinition.HasEntry(binder.Name) Then
+                Return False
+            End If
+
+            Return False
+            ' Converting the property name to lowercase
+            ' so that property names become case-insensitive.
+            Return Me.SetValue(entryname:=binder.Name, value:=value)
+        End Function
 
         ''' <summary>
         ''' operation to load the object messages into the local container
@@ -280,13 +340,13 @@ Namespace OnTrack.Database
             If Not IsAlive(subname:="LoadObjectMessages") Then Return New ormRelationCollection(Of ObjectMessage)(Nothing, keyentrynames:={ObjectMessage.ConstFNNo})
 
             ''' assign the messagelog
-            If _messagelog Is Nothing Then _messagelog = New ObjectMessageLog(Me)
+            If _ObjectMessageLog Is Nothing Then _ObjectMessageLog = New ObjectMessageLog(Me)
 
             ''' return the retrieve
-            If Not Me.RunTimeOnly Then Return _messagelog.Retrieve
+            If Not Me.RunTimeOnly Then Return _ObjectMessageLog.Retrieve
             Return New ormRelationCollection(Of ObjectMessage)(Nothing, keyentrynames:={ObjectMessage.ConstFNNo})
         End Function
-       
+
 
         ''' <summary>
         ''' returns the value of the compound entry name
@@ -554,6 +614,7 @@ Namespace OnTrack.Database
         ''' <remarks></remarks>
         Private Function SetCompoundValue(entryname As String, value As Object) As Boolean
             Try
+                Dim oldvalue As Object
                 Dim anObjectEntry = Me.ObjectDefinition.GetEntry(entryname)
                 If Not anObjectEntry.IsCompound Then
                     CoreMessageHandler(message:="Object entry is a not a compound - use SetValue", arg1:=entryname, _
@@ -608,16 +669,25 @@ Namespace OnTrack.Database
                         End If
                     Next
 
-                    ''' call the Operation
-                    ''' 
-                    Dim result As Object = aDelegate(Me, theParameters)
-                    If DirectCast(result, Boolean) = True Then
-                        Return True
-                    Else
-                        Call CoreMessageHandler(subname:="ormDataObject.SetCompoundValue", messagetype:=otCoreMessageType.InternalError, _
-                                      message:="setter operation failed", arg1:=aSetterName, objectname:=Me.ObjectID, entryname:=entryname)
+                    ''' Raise the event
+                    Dim args As ormDataObjectEntryEventArgs = New ormDataObjectEntryEventArgs(object:=Me, entryname:=entryname, value:=value)
+                    RaiseEvent OnEntryChanging(Me, e:=args)
+                    If args.Proceed Then
+                        ''' call the Operation
+                        ''' 
+                        Dim result As Object = aDelegate(Me, theParameters)
+                        If DirectCast(result, Boolean) = True Then
 
-                        Return Nothing
+                            RaiseEvent OnEntryChanged(Me, e:=args)
+                            Return args.Proceed
+                        Else
+                            Call CoreMessageHandler(subname:="ormDataObject.SetCompoundValue", messagetype:=otCoreMessageType.InternalError, _
+                                          message:="setter operation failed", arg1:=aSetterName, objectname:=Me.ObjectID, entryname:=entryname)
+
+                            Return Nothing
+                        End If
+                    Else
+                        Return False
                     End If
 
                 Else
@@ -664,9 +734,18 @@ Namespace OnTrack.Database
                     ''' 
                     If theReferenceObjects.Count > 0 Then
 
-                        ''' recursion call to the setvalue of the next object (related one) to resolve the entry
-                        ''' 
-                        Return theReferenceObjects.First.SetValue(entryname, value)
+                        Dim args As ormDataObjectEntryEventArgs = New ormDataObjectEntryEventArgs(object:=Me, entryname:=entryname, value:=value)
+                        RaiseEvent OnEntryChanging(Me, e:=args)
+                        If args.Proceed Then
+                            ''' recursion call to the setvalue of the next object (related one) to resolve the entry
+                            ''' 
+                            If theReferenceObjects.First.SetValue(entryname, value) Then
+                                RaiseEvent OnEntryChanged(Me, e:=args)
+                                Return args.Proceed
+                            End If
+                        Else
+                            Return False
+                        End If
 
                     ElseIf _relationMgr.Status(aRelationname) = DataObjectRelationMgr.RelationStatus.Loaded Then
                         '''
@@ -681,7 +760,19 @@ Namespace OnTrack.Database
 
                                 ''' recursion call to the setvalue of the next object (related one) to resolve the entry
                                 ''' 
-                                Return theReferenceObjects.First.SetValue(entryname, value)
+
+                                Dim args As ormDataObjectEntryEventArgs = New ormDataObjectEntryEventArgs(object:=Me, entryname:=entryname, value:=value)
+                                RaiseEvent OnEntryChanging(Me, e:=args)
+                                If args.Proceed Then
+                                    ''' recursion call to the setvalue of the next object (related one) to resolve the entry
+                                    ''' 
+                                    If theReferenceObjects.First.SetValue(entryname, value) Then
+                                        RaiseEvent OnEntryChanged(Me, e:=args)
+                                        Return args.Proceed
+                                    End If
+                                Else
+                                    Return False
+                                End If
                             Else
                                 Call CoreMessageHandler(subname:="ormDataObject.SetCompoundValue", messagetype:=otCoreMessageType.InternalWarning, _
                                           message:="compound could not be set - related object create succeeded but retrieve failed ", _
@@ -706,9 +797,9 @@ Namespace OnTrack.Database
                 End If
 
 
-
-
             Catch ex As Exception
+
+
                 CoreMessageHandler(exception:=ex, subname:="ormDataObject.SetCompoundValue")
                 Return Nothing
             End Try
@@ -774,16 +865,16 @@ Namespace OnTrack.Database
             Try
                 ''' get the existing value
                 Dim anExistingValue = Me.GetValue(entryname)
-                Dim aConvertedvalue = Convert.ChangeType(value, ot.GetDatatypeMappingOf(aDatatype))
 
                 ''' doe the checks
-                If anExistingValue Is Nothing AndAlso aConvertedvalue Is Nothing Then
+                If anExistingValue Is Nothing AndAlso value Is Nothing Then
                     Return True
-                ElseIf anExistingValue Is Nothing AndAlso aConvertedvalue IsNot Nothing Then
+                ElseIf anExistingValue Is Nothing AndAlso value IsNot Nothing Then
                     Return False
-                ElseIf anExistingValue IsNot Nothing AndAlso aConvertedvalue Is Nothing Then
+                ElseIf anExistingValue IsNot Nothing AndAlso value Is Nothing Then
                     Return False
-                ElseIf anExistingValue IsNot Nothing AndAlso aConvertedvalue IsNot Nothing Then
+                ElseIf anExistingValue IsNot Nothing AndAlso value IsNot Nothing Then
+                    Dim aConvertedvalue = Convert.ChangeType(value, ot.GetDatatypeMappingOf(aDatatype))
                     Return anExistingValue.Equals(aConvertedvalue)
                 End If
 
@@ -810,6 +901,7 @@ Namespace OnTrack.Database
             Dim outvalue As Object
             Dim isnullable As Boolean = False
             Dim anObjectEntry As iormObjectEntry
+            Dim oldvalue As Object
             ''' 
             ''' PHASE I : APPLY THE ENTRY PROPERTIES AND TRANSFORM THE VALUE REQUESTED
             ''' 
@@ -896,9 +988,10 @@ Namespace OnTrack.Database
                     ''' 
                     Dim afieldinfos = aClassDescription.GetEntryFieldInfos(entryname)
                     If afieldinfos.Count = 0 Then
-                        CoreMessageHandler(message:="Warning ! ObjectEntry is not mapped to a class field member or the entry name is not valid", arg1:=value, _
-                                           objectname:=Me.ObjectID, entryname:=entryname, _
-                                            messagetype:=otCoreMessageType.InternalError, subname:="ormDataObject.SetValue")
+                        ' might be by intention
+                        'CoreMessageHandler(message:="Warning ! ObjectEntry is not mapped to a class field member or the entry name is not valid", arg1:=value, _
+                        '                   objectname:=Me.ObjectID, entryname:=entryname, _
+                        '                    messagetype:=otCoreMessageType.InternalError, subname:="ormDataObject.SetValue")
                     End If
 
 
@@ -933,7 +1026,7 @@ Namespace OnTrack.Database
                     ''' and set the new values if different
                     ''' 
                     For Each field In afieldinfos
-                        Dim oldvalue As Object
+                        oldvalue = Nothing
                         If Not Reflector.GetFieldValue(field:=field, dataobject:=Me, value:=oldvalue) Then
                             CoreMessageHandler(message:="field value of data object could not be retrieved by getvalue", _
                                                 objectname:=Me.ObjectID, subname:="ormDataObject.setValue", _
@@ -945,14 +1038,21 @@ Namespace OnTrack.Database
                         If (oldvalue IsNot Nothing AndAlso value Is Nothing AndAlso isnullable) _
                             OrElse (oldvalue Is Nothing AndAlso value IsNot Nothing AndAlso isnullable) _
                             OrElse (value IsNot Nothing AndAlso Not value.Equals(oldvalue)) Then
-                            '' reflector set
-                            If Not Reflector.SetFieldValue(field:=field, dataobject:=Me, value:=value) Then
-                                CoreMessageHandler(message:="field value ob data object could not be set", _
-                                                    objectname:=Me.ObjectID, subname:="ormDataObject.setValue", _
-                                                    messagetype:=otCoreMessageType.InternalError, entryname:=entryname, tablename:=Me.PrimaryTableID)
-                                Return False
+                            '' raise event
+                            Dim args As ormDataObjectEntryEventArgs = New ormDataObjectEntryEventArgs(object:=Me, entryname:=entryname, value:=value)
+                            RaiseEvent OnEntryChanging(Me, e:=args)
+                            If args.Proceed Then
+                                'If args.Result Then value = args.Value possible but should not be done since validation 
+
+                                '' reflector set
+                                If Not Reflector.SetFieldValue(field:=field, dataobject:=Me, value:=value) Then
+                                    CoreMessageHandler(message:="field value ob data object could not be set", _
+                                                        objectname:=Me.ObjectID, subname:="ormDataObject.setValue", _
+                                                        messagetype:=otCoreMessageType.InternalError, entryname:=entryname, tablename:=Me.PrimaryTableID)
+                                    Return False
+                                End If
                             End If
-                            result = True
+                            result = args.Proceed
                         ElseIf (Not isnullable AndAlso value Is Nothing) Then
                             CoreMessageHandler(message:="field value is nothing although no nullable allowed", _
                                                     objectname:=Me.ObjectID, subname:="ormDataObject.setValue", _
@@ -968,6 +1068,8 @@ Namespace OnTrack.Database
                     ''' 
                     If result Then
                         Me.IsChanged = True
+                        Dim args As ormDataObjectEntryEventArgs = New ormDataObjectEntryEventArgs(object:=Me, entryname:=entryname, value:=value)
+                        RaiseEvent OnEntryChanged(Me, e:=args)
                         RaiseObjectEntryChanged(entryname)
                     End If
 
@@ -1299,7 +1401,7 @@ Namespace OnTrack.Database
         ''' Persist the object to the datastore
         ''' </summary>
         ''' <param name="timestamp"></param>
-        ''' <returns></returns>
+        ''' <returns>True if successfull</returns>
         ''' <remarks></remarks>
         Public Overridable Function Persist(Optional timestamp As Date = ot.constNullDate, Optional doFeedRecord As Boolean = True) As Boolean Implements iormPersistable.Persist
 
@@ -1309,10 +1411,16 @@ Namespace OnTrack.Database
             If Not IsAlive(subname:="Persist") Then
                 Return False
             End If
-            '*** runtime only object cannot be persisted
+
+            '''
+            ''' object on runtime -> no save
+            ''' 
             If Me.RunTimeOnly Then Return False
-            '** record must be alive too
-            If Not Me.Record.Alive Then
+
+            '''
+            ''' record must be alive
+            ''' 
+             If Not Me.Record.Alive Then
                 CoreMessageHandler(message:="record is not alive in data object - cannot persist", messagetype:=otCoreMessageType.InternalError, _
                                    subname:="ormDataObject.Persist", objectname:=Me.ObjectID, tablename:=Me.PrimaryTableID)
                 Return False
@@ -1358,23 +1466,48 @@ Namespace OnTrack.Database
                     _record = ourEventArgs.Record
                 End If
 
+                '''
+                ''' Validate the object 
+                ''' 
+                If Me.Validate() = otValidationResultType.FailedNoSave Then
+                    ''' Failed ?!
+                    ''' 
+                    CoreMessageHandler(message:="persist failed due to failing validation", messagetype:=otCoreMessageType.ApplicationWarning, _
+                                        subname:="ormDataObject.Persist", arg1:=Converter.Array2String(Me.PrimaryKeyValues), objectname:=Me.ObjectID)
+                    Return False
+                End If
+
+
                 '** feed record
                 If doFeedRecord Then Feed()
 
+                '''
                 ''' persist the data object through the record
                 ''' 
                 Persist = Me.Record.Persist(timestamp)
 
+                '''
                 ''' cascade the operation through the related members
                 ''' 
                 Persist = Persist And Me.CascadeRelations(cascadeUpdate:=True, timestamp:=timestamp, uniquenesswaschecked:=_UniquenessInStoreWasChecked)
 
                 ''' persist the object messages
                 ''' 
-                If _messagelog IsNot Nothing AndAlso _messagelog.Count > 0 Then
-                    For Each aMessage In _messagelog
+                If _ObjectMessageLog IsNot Nothing AndAlso _ObjectMessageLog.Count > 0 Then
+                    For Each aMessage In _ObjectMessageLog
                         If Not aMessage.RunTimeOnly Then aMessage.Persist(timestamp:=timestamp)
                     Next
+                End If
+
+                '** set flags -> we are persisted anyway even if the events might demand to abort
+                '''
+                If Persist Then
+                    _isCreated = False
+                    _IsChanged = False
+                    _isLoaded = True
+                    _IsDeleted = False
+                Else
+                    _IsDeleted = isdeleted
                 End If
 
 
@@ -1385,15 +1518,6 @@ Namespace OnTrack.Database
                 RaiseEvent ClassOnPersisted(Me, ourEventArgs)
                 Persist = ourEventArgs.Proceed And ourEventArgs.Proceed
 
-                '** reset flags
-                If Persist Then
-                    _isCreated = False
-                    _IsChanged = False
-                    _isLoaded = True
-                    _IsDeleted = False
-                Else
-                    _IsDeleted = isdeleted
-                End If
                 Return Persist
 
             Catch ex As Exception
@@ -1624,6 +1748,7 @@ Namespace OnTrack.Database
 
             If aDataObject.Create(pkArray, domainID:=domainID, runTimeonly:=runtimeOnly, checkUnique:=checkUnique) Then
                 '** fire event
+                pkArray = ExtractPrimaryKey(aDataObject.Record, aDataObject.ObjectID, runtimeOnly:=aDataObject.RuntimeOnly)
                 ourEventArgs = New ormDataObjectEventArgs([object]:=TryCast(aDataObject, ormDataObject), _
                                                                record:=aDataObject.Record, _
                                                                pkarray:=pkArray, _
@@ -2191,7 +2316,7 @@ Namespace OnTrack.Database
         ''' <param name="pkarray">primary key array</param>
         ''' <remarks></remarks>
         ''' <returns>the new cloned object or nothing</returns>
-        Protected Overloads Function CloneObject(Of T As {iormPersistable, iormInfusable, Class, New})(newpkarray As Object(), _
+        Public Overloads Function CloneObject(Of T As {iormPersistable, iormInfusable, Class, New})(newpkarray As Object(), _
                                                                                                     Optional runtimeOnly As Boolean? = Nothing) As T
             '
             '*** now we copy the object
@@ -2653,7 +2778,9 @@ Namespace OnTrack.Database
                         Dim anEntryAttribute = classdescriptor.GetObjectEntryAttribute(aMappedAttribute.EntryName)
 
                         Dim aValue As Object
-                        If record.HasIndex(aColumnName) Then
+                        ''' set the value to the record either if it is bound and the columnname is a member or if it is not bound
+                        ''' 
+                        If Not record.IsBound OrElse (record.IsBound AndAlso record.HasIndex(aColumnName)) Then
                             If aField.FieldType.IsValueType OrElse aField.FieldType.Equals(GetType(String)) OrElse aField.FieldType.Equals(GetType(Object)) OrElse _
                                 aField.FieldType.IsArray OrElse aField.FieldType.GetInterfaces.Contains(GetType(IEnumerable)) Then
                                 '** get the value by hook or slooow
@@ -2737,11 +2864,10 @@ Namespace OnTrack.Database
                 '** Fire Event
                 Dim ourEventArgs As New ormDataObjectEventArgs(Me, record:=record, pkarray:=pkArray, usecache:=Me.UseCache, infusemode:=mode, _
                                                                runtimeOnly:=Me.RunTimeOnly)
-                ourEventArgs.Result = True
-                ourEventArgs.AbortOperation = False
+               
                 RaiseEvent OnInfusing(Me, ourEventArgs)
                 If ourEventArgs.AbortOperation Then
-                    Return ourEventArgs.Result
+                    Return ourEventArgs.Proceed
                 Else
                     record = ourEventArgs.Record
                 End If
@@ -2758,6 +2884,7 @@ Namespace OnTrack.Database
                 If Not Me.IsLoaded AndAlso Not Me.IsCreated AndAlso (record.IsCreated Or record.IsLoaded) Then
                     _isCreated = record.IsCreated
                     _isLoaded = record.IsLoaded
+                    If _isLoaded Then _UniquenessInStoreWasChecked = True ' loaded is always uniqenuess checked
                 End If
                 '** default mode value
                 If Not mode.HasValue Then mode = otInfuseMode.OnDefault

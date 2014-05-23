@@ -50,7 +50,7 @@ Namespace OnTrack.XChange
                 ot.CoreMessageHandler(message:="operation aborted due to missing ReadUpdate Rights", subname:="XChangeCSV.FeedinCSV", messagetype:=otCoreMessageType.ApplicationError)
                 Return False
             End If
-
+            Dim aCSVReader As LumenWorks.Framework.IO.Csv.CsvReader
             Try
                 ''' get the path
                 ''' 
@@ -60,8 +60,7 @@ Namespace OnTrack.XChange
                 End If
                 Dim aStreamReader As System.IO.StreamReader = New StreamReader(path)
                 Dim aConfigName As String = System.IO.Path.GetFileName(path) & "-" & DateTime.Now
-                Dim aCSVReader As LumenWorks.Framework.IO.Csv.CsvReader = _
-                    New Csv.CsvReader(aStreamReader, hasHeaders:=True, _
+                aCSVReader = New Csv.CsvReader(aStreamReader, hasHeaders:=True, _
                                       delimiter:=delimiterChar, quote:=Chr(34), escape:="\"c, _
                                       comment:=commentChar, trimmingOptions:=Csv.ValueTrimmingOptions.UnquotedOnly)
                 aCSVReader.SkipEmptyLines = True
@@ -89,11 +88,31 @@ Namespace OnTrack.XChange
                 ReDim headerids(aCSVReader.FieldCount)
                 headerids = aCSVReader.GetFieldHeaders
                 Dim headerstring As String = Converter.Array2String(headerids)
+                
+
+                ''' read the object id of the first object -> must be the key
+                ''' 
+                Dim names As String() = Shuffle.NameSplitter(headerids(0))
+                Dim anObjectEntry As List(Of iormObjectEntry)
+                If names.Count > 1 Then
+                    anObjectEntry = ot.CurrentSession.Objects.GetEntryByXID(xid:=names.Last, objectname:=names.First)
+                Else
+                    anObjectEntry = ot.CurrentSession.Objects.GetEntryByXID(xid:=names.Last)
+                End If
+                If anObjectEntry Is Nothing Then
+                    ot.CoreMessageHandler(message:="object entry with xid'" & headerids(0) & "' could not be retrieved - aborted", _
+                                         arg1:=Converter.Array2String(headerids), _
+                                         subname:="XChangeCSV.FeedInCSV", messagetype:=otCoreMessageType.ApplicationError)
+                    Return False
+                End If
+
+                ''' the object definition in this csv
+                Dim anObjectDefinition As ObjectDefinition = ot.CurrentSession.Objects.GetObject(anObjectEntry.Item(0).Objectname)
+
                 ''' build a xconfiguration
                 ''' 
-                Dim aXConfig As XChangeConfiguration = XChangeManager.CreateXChangeConfigFromIDs(configname:=aConfigName, runtimeOnly:=True, _
+                Dim aXConfig As XChangeConfiguration = XChangeManager.CreateXChangeConfigFromIDs(configname:=aConfigName, objectids:={anObjectDefinition.ID}, runtimeOnly:=True, _
                                                                                                  xids:=headerids, xcmd:=otXChangeCommandType.UpdateCreate)
-
                 If aXConfig Is Nothing Then
                     Return False
                 Else
@@ -101,36 +120,32 @@ Namespace OnTrack.XChange
                                           arg1:=path, _
                                           subname:="XChangeCSV.FeedInCSV", messagetype:=otCoreMessageType.ApplicationInfo)
                 End If
-
-                ''' read the object id of the first object -> must be the key
-                ''' 
-                Dim anObjectEntry As List(Of iormObjectEntry) = ot.CurrentSession.Objects.GetEntryByXID(headerids(0))
-                If anObjectEntry Is Nothing Then
-                    ot.CoreMessageHandler(message:="object entry with xid'" & headerids(0) & "' could not be retrieved - aborted", _
-                                         arg1:=Converter.Array2String(headerids), _
-                                         subname:="XChangeCSV.FeedInCSV", messagetype:=otCoreMessageType.ApplicationError)
-                    Return False
-                End If
-                Dim anObjectDefinition As ObjectDefinition = ot.CurrentSession.Objects.GetObject(anObjectEntry.Item(0).Objectname)
                 Dim result As Boolean = True
                 Dim aXBag As New XBag(aXConfig)
-                Dim aMsgLog As New ObjectMessageLog
+                Dim aMsgLog As New ObjectMessageLog(contextidenifier:=path)
 
                 ''' read all the records in the csv file
                 ''' 
                 Dim i As Long = 1
                 While aCSVReader.ReadNextRecord
                     Dim aXEnvelope As XEnvelope = aXBag.AddEnvelope(i) ' add the envelope
+                    aXEnvelope.TupleIdentifier = aCSVReader.CurrentRecordIndex
                     For j = 0 To aCSVReader.FieldCount - 1
                         result = result And aXEnvelope.AddSlotByXID(xid:=headerids(j), isHostValue:=True, value:=aCSVReader(j))
+
+                        If result = False Then
+                            CoreMessageHandler(message:="xchange envelope could not be fully set row #" & aCSVReader.CurrentRecordIndex & " in ordinal " & j, messagetype:=otCoreMessageType.ApplicationError, _
+                                           subname:="CSVXChangeManager.FeedInCSV")
+                        End If
                     Next
                     i += 1
                 End While
 
+               
                 ''' xchange it
                 ''' 
-                If result And aXBag.RunPreXCheck() Then
-                    result = aXBag.RunXChange()
+                If aXBag.RunPreXCheck(msglog:=aMsgLog) Then
+                    result = aXBag.RunXChange(msglog:=aMsgLog)
                 Else
                     result = False
                 End If
@@ -142,6 +157,7 @@ Namespace OnTrack.XChange
 
             Catch ex As Exception
                 ot.CoreMessageHandler(exception:=ex, subname:="CSVXChangeManager.FeedInCSV", arg1:=path)
+                acsvreader.dispose()
                 Return False
             End Try
 
@@ -374,7 +390,8 @@ Namespace OnTrack.XChange
 
 
         ''' <summary>
-        ''' creates a xchange configuration from a array of strings
+        ''' creates a xchange configuration from an array of xids which might also be entry names or in the form
+        ''' [OBJECTNAME.][XID] 
         ''' </summary>
         ''' <param name="CONFIGNAME"></param>
         ''' <param name="IDs"></param>
@@ -411,14 +428,18 @@ Namespace OnTrack.XChange
             For i = LBound(xids) To UBound(xids)
                 ' load ID
                 If Not IsEmpty(xids(i)) Then
-                    If Not aNewConfig.AddEntryByXID(Xid:=xids(i), ordinal:=i, isXChanged:=True, xcmd:=xcmd) Then
+                    Dim names As String() = Shuffle.NameSplitter(xids(i).ToUpper)
+                    Dim anobjectname As String = ""
+                    Dim anxid As String = names.Last
+                    If names.Count > 1 Then anobjectname = names.First
+
+                    If Not aNewConfig.AddEntryByXID(Xid:=anxid, objectname:=anobjectname, ordinal:=i, isXChanged:=True, xcmd:=xcmd) Then
                         ''' maybe id is not an id
                         ''' 
-                        If xids(i).Contains("."c) Then
-                            Dim names As String() = xids(i).Split("."c)
-                            Dim anObjectDefinition As ObjectDefinition = CurrentSession.Objects.GetObject(objectid:=names.First)
+                        If anobjectname IsNot Nothing AndAlso anobjectname <> "" Then
+                            Dim anObjectDefinition As ObjectDefinition = CurrentSession.Objects.GetObject(objectid:=anobjectname)
                             If anObjectDefinition IsNot Nothing Then
-                                Dim anEntry As iormObjectEntry = CurrentSession.Objects.GetEntry(entryname:=names.Last, objectname:=anObjectDefinition.ID)
+                                Dim anEntry As iormObjectEntry = CurrentSession.Objects.GetEntry(entryname:=names.Last, objectname:=anobjectname)
                                 If anEntry IsNot Nothing Then
                                     If Not aNewConfig.AddEntryByObjectEntry(objectentry:=anEntry, ordinal:=i, isxchanged:=True, xcmd:=xcmd) Then
                                         ot.CoreMessageHandler(message:="entry couldnot be added to xconfiguration '" & configname & "'", _
@@ -428,9 +449,9 @@ Namespace OnTrack.XChange
                                     End If
                                 Else
                                     ot.CoreMessageHandler(message:="xchange id is not an ontrack object entry name - skipped in xchange configuration '" & configname & "'", _
-                                                              arg1:=anEntry.Objectname & "." & names.Last, _
-                                                              messagetype:=otCoreMessageType.ApplicationWarning, _
-                                                              subname:="XChangeManager.CreateXChangeConfigFromIDs")
+                                                                  arg1:=anEntry.Objectname & "." & names.Last, _
+                                                                  messagetype:=otCoreMessageType.ApplicationWarning, _
+                                                                  subname:="XChangeManager.CreateXChangeConfigFromIDs")
                                 End If
                             Else
                                 ot.CoreMessageHandler(message:="xchange id doesnot contain an ontrack object name - skipped in xchange configuration '" & configname & "'", _
@@ -440,14 +461,16 @@ Namespace OnTrack.XChange
                             End If
 
                         Else
+
                             ot.CoreMessageHandler(message:="header id is not an xchange id nor a valid objectname entry in canonical form - skipped in xchange configuration '" & configname & "'", _
                                                               arg1:=xids(i), _
                                                               messagetype:=otCoreMessageType.ApplicationWarning, _
                                                               subname:="XChangeManager.CreateXChangeConfigFromIDs")
                         End If
-                       
+
                     End If
-                    
+
+
                 End If
             Next i
 

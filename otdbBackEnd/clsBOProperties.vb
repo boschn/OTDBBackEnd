@@ -475,6 +475,7 @@ Namespace OnTrack.ObjectProperties
                 .Aliases = Me.Aliases
                 .Datatype = Me.Datatype
                 .IsNullable = Me.IsNullable
+                .DefaultValue = Nothing
                 .Size = Me.Size
                 .InnerDatatype = Me.InnerDatatype
                 .Version = Me.Version
@@ -546,7 +547,7 @@ Namespace OnTrack.ObjectProperties
                     ''' create all the relational path
                     ''' 
                     For i = apath.GetLowerBound(0) To apath.GetUpperBound(0) - 1
-                        Dim names As String() = apath(i).ToUpper.Split("."c) ' get the objectname from the canonical form
+                        Dim names As String() = Shuffle.NameSplitter(apath(i)) ' get the objectname from the canonical form
                         Dim aCompound As ObjectCompoundEntry = ObjectCompoundEntry.Create(objectname:=names(0), _
                                                                                      entryname:=Me.ID, domainID:=Me.DomainID, _
                                                                                      runtimeOnly:=Me.RunTimeOnly, checkunique:=True)
@@ -639,6 +640,25 @@ Namespace OnTrack.ObjectProperties
         End Function
     End Class
 
+'    SELECT      TBLOBJPROPERTYLINKS.FROMOBJECTID, TBLOBJPROPERTYLINKS.fromuid, tblobjpropertylinks.FROMUPDC ,
+'		    TBLOBJPROPERTYLINKS.TOUID, TBLOBJPROPERTYLINKS.toupdc, LOT.PUID, LOT.UPDC, P1.VALUE as '0.0.2.0',P2.value AS '0.0.3.0' , P3.VALUE AS '0.1.0.0', P4.VALUE AS '0.1.3.0', 
+'              P5.VALUE AS '0.1.6.0', P6.VALUE AS '0.2.0.0',  P7.VALUE AS '0.2.3.0', P8.VALUE AS '0.2.6.0', P9.VALUE AS '0.3.0.0',
+'			   P10.VALUE AS '0.4.0.0',  P11.VALUE AS '0.5.0.0',  P12.VALUE AS '0.6.0.0',  P13.VALUE AS '1.0.0.0'
+'FROM            ontrack.dbo.TBLOBJPROPERTYVALUELOTS AS LOT 
+' INNER JOIN               ontrack.dbo.TBLOBJPROPERTYVALUES AS P1 ON LOT.PUID = P1.PUID AND LOT.UPDC = P1.UPDC AND P1.PROPERTYID = '0.0.2.0'
+' INNER JOIN				ontrack.dbo.TBLOBJPROPERTYVALUES AS P2 ON LOT.PUID = P2.PUID AND LOT.UPDC = P2.UPDC AND P2.PROPERTYID = '0.0.3.0'
+' INNER JOIN				ontrack.dbo.TBLOBJPROPERTYVALUES AS P3 ON LOT.PUID = P3.PUID AND LOT.UPDC = P3.UPDC AND P3.PROPERTYID = '0.1.0.0'
+'INNER JOIN				ontrack.dbo.TBLOBJPROPERTYVALUES AS P4 ON LOT.PUID = P4.PUID AND LOT.UPDC = P4.UPDC AND P4.PROPERTYID = '0.1.3.0'
+'INNER JOIN				ontrack.dbo.TBLOBJPROPERTYVALUES AS P5 ON LOT.PUID = P5.PUID AND LOT.UPDC = P5.UPDC AND P5.PROPERTYID = '0.1.6.0'
+'INNER JOIN				ontrack.dbo.TBLOBJPROPERTYVALUES AS P6 ON LOT.PUID = P6.PUID AND LOT.UPDC = P6.UPDC AND P6.PROPERTYID = '0.2.0.0'
+'INNER JOIN				ontrack.dbo.TBLOBJPROPERTYVALUES AS P7 ON LOT.PUID = P7.PUID AND LOT.UPDC = P7.UPDC AND P7.PROPERTYID = '0.2.3.0'
+'INNER JOIN				ontrack.dbo.TBLOBJPROPERTYVALUES AS P8 ON LOT.PUID = P8.PUID AND LOT.UPDC = P8.UPDC AND P8.PROPERTYID = '0.2.6.0'
+'INNER JOIN				ontrack.dbo.TBLOBJPROPERTYVALUES AS P9 ON LOT.PUID = P9.PUID AND LOT.UPDC = P9.UPDC AND P9.PROPERTYID = '0.3.0.0'
+'INNER JOIN				ontrack.dbo.TBLOBJPROPERTYVALUES AS P10 ON LOT.PUID = P10.PUID AND LOT.UPDC = P10.UPDC AND P10.PROPERTYID = '0.4.0.0'
+'INNER JOIN				ontrack.dbo.TBLOBJPROPERTYVALUES AS P11 ON LOT.PUID = P11.PUID AND LOT.UPDC = P11.UPDC AND P11.PROPERTYID = '0.5.0.0'
+'INNER JOIN				ontrack.dbo.TBLOBJPROPERTYVALUES AS P12 ON LOT.PUID = P12.PUID AND LOT.UPDC = P12.UPDC AND P12.PROPERTYID = '0.6.0.0'
+'INNER JOIN				ontrack.dbo.TBLOBJPROPERTYVALUES AS P13 ON LOT.PUID = P13.PUID AND LOT.UPDC = P13.UPDC AND P13.PROPERTYID = '1.0.0.0'
+'inner join	ontrack.dbo.TBLOBJPROPERTYLINKS on lot.puid = TBLOBJPROPERTYLINKS.touid 
     ''' <summary>
     ''' the Property LINK class links a busines object to a value collection
     ''' </summary>
@@ -1188,16 +1208,19 @@ Namespace OnTrack.ObjectProperties
 
             ''' the id should be in a canonical form
             ''' 
-            Dim names = id.ToUpper.Split("."c)
+            Dim names = Shuffle.NameSplitter(id)
 
             ''' if we have a set then check 
             If names.Count = 1 Then
                 If _setids.Count = 0 Then
                     ''' we could look up if this is unqiue
                     ''' 
-                    CoreMessageHandler(message:="property to be added doesnot exist in this set", messagetype:=otCoreMessageType.ApplicationError, _
-                                     arg1:=id, objectname:=Me.ObjectID, subname:="ObjectPropertyValueLot.GetPropertyValue")
+
+                    CoreMessageHandler(message:="lot as no property set attached to it - value cannot be retrieved", messagetype:=otCoreMessageType.ApplicationError, _
+                                   arg1:=id, objectname:=Me.ObjectID, subname:="ObjectPropertyValueLot.GetPropertyValue")
                     Return False
+
+
                 ElseIf _setids.Count = 1 Then
                     ReDim names(1)
                     names(0) = _setids(0)
@@ -1210,15 +1233,56 @@ Namespace OnTrack.ObjectProperties
                 End If
 
                 ''' extend the properties by this set
-            ElseIf names.Count > 1 And Not _setids.Contains(names(0)) Then
-                Dim aPropertySet = ObjectPropertySet.Retrieve(id:=names(0), domainid:=DomainID)
-                If aPropertySet Is Nothing Then
-                    CoreMessageHandler(message:="property set to be added doesnot exist", messagetype:=otCoreMessageType.ApplicationError, _
-                                        arg1:=id, objectname:=Me.ObjectID, subname:="ObjectPropertyValueLot.GetPropertyValue")
-                    Return False
+            ElseIf names.Count > 1 Then
+                If _setids.Contains(names(0)) Then
+                    ' fine nothing do to
+                Else
+                    '' check if the setid exists
+                    Dim aPropertySet = ObjectPropertySet.Retrieve(id:=names(0), domainid:=DomainID)
+                    If aPropertySet Is Nothing Then
+                        '' maybe this was not part of the name ?! in another set as unique name ?
+                        If _setids.Count > 0 Then
+                            '' search it
+                            Dim found As Boolean = False
+                            For Each aSetname As String In _setids
+                                Dim aSet As ObjectPropertySet = ObjectPropertySet.Retrieve(id:=aSetname, domainid:=DomainID)
+                                If aSet IsNot Nothing Then
+                                    If aSet.PropertyIDs.Contains(id.ToUpper) Then
+                                        names(0) = aSetname.ToUpper
+                                        names(1) = id.ToUpper
+                                        found = True
+                                        Exit For
+                                    End If
+                                End If
+                            Next
+                            If Not found Then
+                                CoreMessageHandler(message:="property does not exist in any set of the lot", messagetype:=otCoreMessageType.ApplicationError, _
+                                               arg1:=id, objectname:=Me.ObjectID, subname:="ObjectPropertyValueLot.GetPropertyValue")
+                                Return False
+                            End If
+                        Else
+                            CoreMessageHandler(message:="property set '" & names(0) & "' to be added does not exist", messagetype:=otCoreMessageType.ApplicationError, _
+                                                arg1:=id, objectname:=Me.ObjectID, subname:="ObjectPropertyValueLot.GetPropertyValue")
+                            Return False
+                        End If
+                    Else
+                        If aPropertySet.PropertyIDs.Contains(names(1)) Then
+                            ''' add the set
+                            If Not Me.AddSet(names(0)) Then
+                                CoreMessageHandler(message:="property set '" & names(0) & "' could not be added to the property value lot", messagetype:=otCoreMessageType.ApplicationError, _
+                                                   arg1:=id, objectname:=Me.ObjectID, subname:="ObjectPropertyValueLot.GetPropertyValue")
+                                Return False
+                            End If
+                        Else
+                            ''' damm the property doesnot exist in this set ?!
+                            ''' 
+
+                        End If
+                    End If
+
                 End If
-                ''' add the set
-                If Not Me.AddSet(names(0)) Then Return False
+
+
             End If
 
             If Me.GetRelationStatus(ConstRValues) = DataObjectRelationMgr.RelationStatus.Unloaded Then InfuseRelation(ConstRValues)
@@ -1248,7 +1312,7 @@ Namespace OnTrack.ObjectProperties
 
             ''' the id should be in a canonical form
             ''' 
-            Dim names = id.ToUpper.Split("."c)
+            Dim names = Shuffle.NameSplitter(id)
 
             ''' if we have a set then check 
             If names.Count = 1 Then
@@ -1273,36 +1337,61 @@ Namespace OnTrack.ObjectProperties
             ElseIf names.Count > 1 And Not _setids.Contains(names(0)) Then
                 Dim aPropertySet = ObjectPropertySet.Retrieve(id:=names(0), domainid:=DomainID)
                 If aPropertySet Is Nothing Then
-                    CoreMessageHandler(message:="property set to be added doesnot exist", messagetype:=otCoreMessageType.ApplicationError, _
-                                        arg1:=id, objectname:=Me.ObjectID, subname:="ObjectPropertyValueLot.SetPropertyValue")
+                        '' maybe this was not part of the name ?! in another set as unique name ?
+                        If _setids.Count > 0 Then
+                            '' search it
+                            Dim found As Boolean = False
+                            For Each aSetname As String In _setids
+                                Dim aSet As ObjectPropertySet = ObjectPropertySet.Retrieve(id:=aSetname, domainid:=DomainID)
+                                If aSet IsNot Nothing Then
+                                    If aSet.PropertyIDs.Contains(id.ToUpper) Then
+                                        names(0) = aSetname.ToUpper
+                                        names(1) = id.ToUpper
+                                        found = True
+                                        Exit For
+                                    End If
+                                End If
+                            Next
+                            If Not found Then
+                            CoreMessageHandler(message:="property does not exist in any set of the lot", messagetype:=otCoreMessageType.ApplicationError, _
+                                           arg1:=id, objectname:=Me.ObjectID, subname:="ObjectPropertyValueLot.SetPropertyValue")
+                                Return False
+                            End If
+                        Else
+                        CoreMessageHandler(message:="property set '" & names(0) & "' to be added does not exist", messagetype:=otCoreMessageType.ApplicationError, _
+                                            arg1:=id, objectname:=Me.ObjectID, subname:="ObjectPropertyValueLot.SetPropertyValue")
+                            Return False
+                    End If
+
+                       
+                End If
+
+                    ''' add the set
+                    If Not Me.AddSet(names(0)) Then Return False
+                End If
+
+
+                If Me.GetRelationStatus(ConstRValues) = DataObjectRelationMgr.RelationStatus.Unloaded Then InfuseRelation(ConstRValues)
+
+                ''' 
+                ''' set the value
+                If names.Count > 1 AndAlso _valuesCollection.ContainsKey(key:={names(0), names(1)}) Then
+                    ''' check if something is now different
+                    ''' 
+                    Dim aPropertyvalue As ObjectPropertyValue = _valuesCollection.Item(key:={names(0), names(1)})
+
+                    ''' on success
+                    If aPropertyvalue.SetValue(ObjectPropertyValue.ConstFNValue, value) Then
+
+                    End If
+
+                    Return True
+                Else
+                    CoreMessageHandler(message:="property to be added doesnot exist in this set", messagetype:=otCoreMessageType.ApplicationError, _
+                                          arg1:=id, objectname:=Me.ObjectID, subname:="ObjectPropertyValueLot.SetPropertyValue")
+                    ''' not found not in
                     Return False
                 End If
-                ''' add the set
-                If Not Me.AddSet(names(0)) Then Return False
-            End If
-
-
-            If Me.GetRelationStatus(ConstRValues) = DataObjectRelationMgr.RelationStatus.Unloaded Then InfuseRelation(ConstRValues)
-
-            ''' 
-            ''' set the value
-            If names.Count > 1 AndAlso _valuesCollection.ContainsKey(key:={names(0), names(1)}) Then
-                ''' check if something is now different
-                ''' 
-                Dim aPropertyvalue As ObjectPropertyValue = _valuesCollection.Item(key:={names(0), names(1)})
-
-                ''' on success
-                If aPropertyvalue.SetValue(ObjectPropertyValue.ConstFNValue, value) Then
-
-                End If
-
-                Return True
-            Else
-                CoreMessageHandler(message:="property to be added doesnot exist in this set", messagetype:=otCoreMessageType.ApplicationError, _
-                                      arg1:=id, objectname:=Me.ObjectID, subname:="ObjectPropertyValueLot.SetPropertyValue")
-                ''' not found not in
-                Return False
-            End If
 
         End Function
 
@@ -1374,8 +1463,8 @@ Namespace OnTrack.ObjectProperties
                 uid = Nothing
                 updc = 1
             ElseIf Not updc.HasValue OrElse updc = 0 Then
-                updc = ConstFNUpdc
-                tag = "updc"
+                updc = Nothing
+                tag = ConstFNUpdc
             End If
             Dim primarykey As Object() = {uid, updc}
             If uid Is Nothing OrElse updc Is Nothing Then

@@ -20,8 +20,37 @@ REM ****************************************************************************
 
 Namespace OnTrack.Database
 
-
     Public Class Shuffle
+        '' <summary>
+        ''' splits a Ontrack Canonical name of the form [head] '.' | '|' [tail] in head and tail
+        ''' </summary>
+        ''' <param name="name"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Shared Function NameSplitter(name As String, Optional ByRef head As String = Nothing, Optional ByRef tail As String = Nothing) As String()
+            Dim names As String() = [name].ToUpper.Split(CChar(ConstDelimiter), "."c)
+            If names.Count = 1 Then
+                head = names(0)
+                tail = Nothing
+                Return names
+            Else
+                Dim chain(1) As String
+                chain(0) = names(0)
+                Dim i As Integer = name.IndexOf("."c)
+                Dim j As Integer = name.IndexOf(CChar(ConstDelimiter))
+                If i >= 0 AndAlso j >= 0 Then
+                    chain(1) = name.ToUpper.Substring(Math.Min(i, j) + 1)
+                ElseIf i >= 0 AndAlso j < 0 Then
+                    chain(1) = name.ToUpper.Substring(i + 1)
+                ElseIf i < 0 AndAlso j >= 0 Then
+                    chain(1) = name.ToUpper.Substring(j + 1)
+                End If
+
+                head = chain(0)
+                tail = chain(1)
+                Return chain
+            End If
+        End Function
         ''' <summary>
         ''' substitutes in a primary key array (of a table) the domainid with the current domainid
         ''' </summary>
@@ -183,17 +212,6 @@ Namespace OnTrack.Database
     ''' <remarks></remarks>
     Public Class Converter
 
-        Public Shared Function SplitFullName(name As String, Optional ByRef part1 As String = Nothing, Optional ByRef part2 As String = Nothing) As Boolean
-            Dim names As String() = name.ToUpper.Split({CChar(ConstDelimiter), "."c})
-            If names.Count > 1 Then
-                part1 = names(0)
-                part2 = names(1)
-            Else
-                part1 = ""
-                part2 = name
-            End If
-            Return True
-        End Function
 
         ''' <summary>
         ''' Converts String to Array
@@ -258,77 +276,161 @@ Namespace OnTrack.Database
             Return aStrValue
         End Function
         ''' <summary>
-        ''' converts a string representation of OnTrack DB Type to an object
+        ''' converts a object  to an object of OnTrack DB Type.
+        ''' sets the flag failed if the output is an assumption
         ''' </summary>
         ''' <param name="input"></param>
         ''' <param name="datatype"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Shared Function Object2otObject(input As Object, datatype As otDataType) As Object
-            Select Case datatype
-                Case otDataType.Bool
-                    If input Is Nothing Then
-                        Return False
-                    ElseIf IsNumeric(input) Then
-                        If CLng(input) = 0 Then
+        Public Shared Function Object2otObject(input As Object, datatype As otDataType, Optional isnullable As Boolean = False, Optional ByRef failed As Boolean = False) As Object
+
+
+            Try
+
+                ''' check if the type is of nullable
+                If input IsNot Nothing AndAlso Reflector.IsNullable(input.GetType) Then
+                    input = CTypeDynamic(input, Nullable.GetUnderlyingType(input.GetType))
+
+                End If
+
+                ''' reflect is nullable
+                If input Is Nothing AndAlso isnullable Then
+                    failed = False
+                    Return Nothing
+                End If
+
+                Select Case datatype
+                    Case otDataType.Bool
+                        If input Is Nothing AndAlso Not isnullable Then
+                            failed = True
+                            Return False
+                        ElseIf input Is Nothing AndAlso Not isnullable Then
+                            failed = False
+                            Return Nothing
+                        ElseIf input.GetType Is GetType(Boolean) Then
+                            failed = False
+                            Return input
+                        ElseIf IsNumeric(input) Then
+                            If CDbl(input) = 0 Then
+                                Return False
+                            ElseIf CDbl(input) = 1 Then
+                                failed = False
+                                Return True
+                            ElseIf CDbl(input) > 0 Then
+                                failed = True
+                                Return True
+                            Else
+                                failed = True
+                                Return False
+                            End If
+                        ElseIf String.IsNullOrWhiteSpace(input) Then
+                            failed = True
+                            Return False
+                        ElseIf input.Trim.ToUpper = "TRUE" OrElse input.Trim.ToUpper = "YES" Then
+                            failed = False
+                            Return True
+                        ElseIf input.Trim.ToUpper = "FALSE" OrElse input.Trim.ToUpper = "NO" Then
+                            failed = False
                             Return False
                         Else
-                            Return True
+                            failed = True
+                            Return CBool(input)
                         End If
-                    ElseIf String.IsNullOrWhiteSpace(input) Then
-                        Return False
-                    ElseIf input.Trim.ToUpper = "TRUE" OrElse input.Trim.ToUpper = "YES" Then
-                        Return True
-                    ElseIf input.Trim.ToUpper = "FALSE" OrElse input.Trim.ToUpper = "NO" Then
-                        Return False
-                    Else
-                        Return CBool(input)
-                    End If
 
-                Case otDataType.Long
-                    If input Is Nothing Then
-                        Return CLng(0)
-                    ElseIf IsNumeric(input) Then
-                        Return CLng(input)
-                    Else
-                        Return CLng(0)
-                    End If
+                    Case otDataType.Long
+                        If input Is Nothing Then
+                            failed = True
+                            Return CLng(0)
+                        ElseIf input.GetType Is GetType(Long) OrElse input.GetType Is GetType(ULong) OrElse input.GetType Is GetType(UShort) OrElse input.GetType Is GetType(Short) Then
+                            failed = False
+                            Return CLng(input)
+                        ElseIf IsNumeric(input) AndAlso Math.Floor(CDbl(input)) = Math.Ceiling(CDbl(input)) Then
+                            failed = False
+                            Return CLng(input)
+                        ElseIf IsNumeric(input) Then
+                            failed = True
+                            Return CLng(input)
+                        Else
+                            failed = True
+                            Return CLng(0)
+                        End If
 
-                Case otDataType.Numeric
-                    If input Is Nothing Then
-                        Return CDbl(0)
-                    ElseIf IsNumeric(input) Then
-                        Return CDbl(input)
-                    Else
-                        Return CDbl(0)
-                    End If
-                Case otDataType.List
-                    Return ConstDelimiter & ConstDelimiter
-                Case otDataType.Memo, otDataType.Text
-                    If input Is Nothing Then
-                        Return ""
-                    Else
-                        Return input
-                    End If
+                    Case otDataType.Numeric
+                        If input Is Nothing Then
+                            failed = True
+                            Return CDbl(0)
+                        ElseIf input.GetType Is GetType(Double) Then
+                            failed = False
+                            Return CDbl(input)
+                        ElseIf IsNumeric(input) Then
+                            failed = False
+                            Return CDbl(input)
+                        Else
+                            failed = True
+                            Return CDbl(0)
+                        End If
+                    Case otDataType.List
+                        If input Is Nothing Then
+                            failed = True
+                        ElseIf input.GetType.IsArray Then
+                            failed = False
+                            Return Array2String(input)
+                        ElseIf Not input.ToString.Contains(ConstDelimiter) Then
+                            failed = False
+                            Return ConstDelimiter & input.ToString & ConstDelimiter
+                        Else
+                            failed = False
+                            If input.ToString.First <> ConstDelimiter Then input = ConstDelimiter & input.ToString
+                            If input.ToString.Last <> ConstDelimiter Then input = input.ToString & ConstDelimiter
+                            Return Converter.String2Array(input)
+                        End If
 
-                Case otDataType.Date, otDataType.Timestamp
-                    If input Is Nothing OrElse Not IsDate(input) Then
-                        Return constNullDate
-                    Else
-                        Return CDate(input)
-                    End If
+                    Case otDataType.Memo, otDataType.Text
+                        If input Is Nothing Then
+                            failed = True
+                            Return ""
+                        Else
+                            failed = False
+                            Return input.ToString
+                        End If
 
-                Case otDataType.Time
-                    If input Is Nothing OrElse Not IsDate(input) Then
-                        Return ConstNullTime
-                    Else
-                        Return CDate(input)
-                    End If
+                    Case otDataType.Date, otDataType.Timestamp
+                        If input Is Nothing OrElse Not IsDate(input) Then
+                            failed = True
+                            Return constNullDate
+                        ElseIf input.GetType Is GetType(Date) OrElse input.GetType Is GetType(DateTime) Then
+                            failed = False
+                            Return CDate(input)
+                        Else
+                            failed = False
+                            Return CDate(input)
+                        End If
 
-                Case Else
-                    Return Nothing
-            End Select
+                    Case otDataType.Time
+                        If input Is Nothing OrElse Not IsDate(input) Then
+                            failed = True
+                            Return ConstNullTime
+                        ElseIf input.GetType Is GetType(Date) OrElse input.GetType Is GetType(DateTime) Then
+                            failed = False
+                            Return CDate(input)
+                        Else
+                            failed = False
+                            Return CDate(input)
+                        End If
 
+                    Case Else
+                        CoreMessageHandler(message:="Datatype is not implemented in this routine", subname:="Converter:object2otObject", arg1:=datatype, _
+                                            messagetype:=otCoreMessageType.InternalError)
+                        failed = True
+                        Return Nothing
+                End Select
+
+            Catch ex As Exception
+                CoreMessageHandler(exception:=ex, subname:="Converter.Object2OTObject")
+                failed = True
+                Return Nothing
+            End Try
         End Function
     End Class
     ''' <summary>

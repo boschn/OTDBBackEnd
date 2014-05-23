@@ -529,7 +529,7 @@ Namespace OnTrack.Database
             If runtimeOnly Is Nothing Then runtimeOnly = _Session.IsBootstrappingInstallationRequested
 
             If tablename.Contains("."c) Then
-                tablename = Split(tablename, ".").First.ToUpper
+                tablename = Shuffle.NameSplitter(tablename).First
             End If
 
             '** name is given
@@ -595,11 +595,7 @@ Namespace OnTrack.Database
             If runtimeOnly Is Nothing Then runtimeOnly = _Session.IsBootstrappingInstallationRequested
 
             If tablename = "" And columnname.Contains(".") Then
-                Dim aName As String = Split(columnname, ".").First.ToUpper
-                If Not aName Is Nothing AndAlso aName <> "" Then
-                    tablename = aName
-                    columnname = Split(columnname, ".").Last.ToUpper
-                End If
+                Shuffle.NameSplitter(columnname, tablename, columnname)
             End If
 
             '** name is given
@@ -656,7 +652,7 @@ Namespace OnTrack.Database
                 '** try to find it by entryname only
             Else
                 Dim aName As String = _entryDirectory.Keys.ToList.Find(Function(n As String)
-                                                                           Return entryname.ToUpper = Split(n, ".").Last.ToUpper
+                                                                           Return entryname.ToUpper = Shuffle.NameSplitter(n).Last
                                                                        End Function)
                 If Not aName Is Nothing AndAlso aName <> "" Then
                     Return _entryDirectory.Item(key:=aName)
@@ -776,7 +772,7 @@ Namespace OnTrack.Database
         ''' <param name="Alias"></param>
         ''' <returns>an Entry object or nothing </returns>
         ''' <remarks></remarks>
-        Public Function GetEntryByXID([xid] As String, Optional objectname As String = "") As List(Of iormObjectEntry)
+        Public Function GetEntryByXID([xid] As String, Optional objectname As String = "") As IList(Of iormObjectEntry)
             xid = xid.ToUpper
             objectname = objectname.ToUpper
             If _XIDDirectory.ContainsKey(xid) Then
@@ -794,11 +790,11 @@ Namespace OnTrack.Database
             ElseIf _xidShortReference.ContainsKey(xid) Then
                 Dim aList As List(Of String) = _xidShortReference.Item(xid)
                 For Each anEntryname In aList
-                    Dim names As String() = anEntryname.Split("."c)
+                    Dim names As String() = Shuffle.NameSplitter(anEntryname)
                     If objectname <> "" AndAlso names(0) = objectname Then
                         Me.GetObject(names(0)) ' load the object full
                         If _XIDDirectory.ContainsKey(xid) Then
-                            Return GetEntryByXID(xid)
+                            Return GetEntryByXID(xid) 'recursion by intention
                         Else
                             CoreMessageHandler(message:="xid could not be found in XIDDirectory although reference object was loaded", _
                                                arg1:=xid, objectname:=objectname, _
@@ -831,7 +827,7 @@ Namespace OnTrack.Database
         ''' <param name="Alias"></param>
         ''' <returns>an Entry object or nothing </returns>
         ''' <remarks></remarks>
-        Public Function GetEntryByAlias([alias] As String, Optional objectname As String = "") As List(Of iormObjectEntry)
+        Public Function GetEntryByAlias([alias] As String, Optional objectname As String = "") As IList(Of iormObjectEntry)
             [alias] = [alias].ToUpper
             If _aliasDirectory.ContainsKey([alias]) Then
                 If objectname = "" Then
@@ -848,11 +844,11 @@ Namespace OnTrack.Database
             ElseIf _aliasShortReference.ContainsKey([alias]) Then
                 Dim aList As List(Of String) = _aliasShortReference.Item([alias])
                 For Each anEntryname In aList
-                    Dim names As String() = anEntryname.Split("."c)
+                    Dim names As String() = Shuffle.NameSplitter(anEntryname)
                     If objectname <> "" AndAlso names(0) = objectname Then
                         Me.GetObject(names(0)) ' load the object full
                         If _aliasDirectory.ContainsKey([alias]) Then
-                            Return GetEntryByAlias([alias])
+                            Return GetEntryByAlias([alias]) 'recursion by intention
                         Else
                             CoreMessageHandler(message:="alias could not be found in Alias Directory although reference object was loaded", _
                                                arg1:=[alias], objectname:=objectname, _
@@ -1594,7 +1590,7 @@ Namespace OnTrack.Database
                 For Each reference In value
                     Dim refTableName As String = ""
                     Dim refColumnname As String = ""
-                    Dim names = reference.ToUpper.Split({CChar(ConstDelimiter), "."c})
+                    Dim names = Shuffle.NameSplitter(reference)
                     If names.Count > 1 Then
                         refTableName = names(0)
                         refColumnname = names(1)
@@ -1637,7 +1633,7 @@ Namespace OnTrack.Database
                 For Each reference In value
                     Dim refTableName As String = ""
                     Dim refColumnname As String = ""
-                    Dim names = reference.ToUpper.Split({CChar(ConstDelimiter), "."c})
+                    Dim names = Shuffle.NameSplitter(reference)
                     If names.Count > 1 Then
                         refTableName = names(0)
                         refColumnname = names(1)
@@ -1753,7 +1749,7 @@ Namespace OnTrack.Database
         ''' Increase the version
         ''' </summary>
         ''' <returns></returns>
-        ''' <remarks></remarks>
+        ''' <remarks></remarks>toupper.split
         Public Function IncVersion() As Long
             _version = _version + 1
             IncVersion = _version
@@ -1768,7 +1764,7 @@ Namespace OnTrack.Database
             For Each reference In ObjectEntrynames
                 Dim refObjectName As String = ""
                 Dim refObjectEntry As String = ""
-                Dim names = reference.ToUpper.Split({CChar(ConstDelimiter), "."c})
+                Dim names = Shuffle.NameSplitter(reference)
                 If names.Count > 1 Then
                     refObjectName = names(0)
                     refObjectEntry = names(1)
@@ -3930,9 +3926,7 @@ Namespace OnTrack.Database
         Public Function Entrynames(Optional onlyActive As Boolean = True) As IList(Of String)
             If Not Me.IsAlive(subname:="ObjectDefinition.Entrynames") Then Return New List(Of String)
             If onlyActive Then
-                Dim alist As List(Of String) = (From kvp As KeyValuePair(Of String, iormObjectEntry) In _objectentries
-                           Where kvp.Value.IsActive = True
-                           Select kvp.Key.ToList())
+                Dim alist As List(Of String) = _objectentries.Where(Function(x) x.Value.IsActive).Select(Function(x) x.Key).ToList
                 Return alist
             End If
 
@@ -4197,49 +4191,7 @@ Namespace OnTrack.Database
         End Function
 
 
-        ''' <summary>
-        ''' add a Compound description to field
-        ''' </summary>
-        ''' <param name="COMPOUNDDESC"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Function AddEntry(compounddesc As ormCompoundDesc) As Boolean
-            'Dim anEntry As New ObjectEntryDefinition
-
-
-            '' Nothing
-            'If Not me.isloaded And Not Me.IsCreated Then
-            '    AddEntry = False
-            '    Exit Function
-            'End If
-            'SyncLock _lock
-            '    ' check Members
-            '    If Me.HasEntry(compounddesc.ID.toupper) Then
-            '        Call CoreMessageHandler(message:=" compound already in object definition", subname:="ObjectDefinition.AddCompoundDesc", _
-            '                                messagetype:=otCoreMessageType.InternalError, _
-            '                                arg1:=compounddesc.ID, tablename:=ConstTableID)
-            '        Return False
-            '    End If
-
-            '    ' create new Member
-            '    anEntry = New ObjectEntryDefinition
-            '    If compounddesc.ordinalPosition = 0 Then
-            '        compounddesc.ordinalPosition = Me.GetMaxPosNo + 1
-            '    End If
-            '    If Not anEntry.Create(Me.ID, entryname:=compounddesc.ID.toupper) Then
-            '        Call anEntry.Inject(Me.ID, entryname:=compounddesc.ID.toupper)
-            '    End If
-            '    Call anEntry.SetByCompoundDesc(compounddesc)
-
-
-            '    ' add the component
-            '    AddEntry = Me.AddEntry(anEntry)
-
-            '    '* TODO: Automatically create the Index CompoundNameIndex
-            'End SyncLock
-
-
-        End Function
+      
 
         ''' <summary>
         ''' creates the persistency schema
@@ -5059,6 +5011,12 @@ Namespace OnTrack.Database
         ''' Column Definitions
         ''' </summary>
         ''' <remarks></remarks>
+        ''' 
+        <ormObjectEntry(typeid:=otDataType.Text, defaultvalue:=otObjectEntryType.Column, size:=50, _
+                       properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty}, _
+                       xid:="OED3", title:="Entry Type", Description:="OTDB schema entry type")> Public Const ConstFNType As String = "typeid"
+
+
         <ormObjectEntry(defaultvalue:=otDataType.Text, dbdefaultvalue:="3", typeid:=otDataType.Long, _
                         xid:="OED11", title:="Datatype", Description:="OTDB field data type")> Public Const ConstFNDatatype As String = "datatype"
 
@@ -5091,9 +5049,7 @@ Namespace OnTrack.Database
                         properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty}, _
                         xid:="OED24", title:="XChange alias ID", Description:="aliases ID for XChange manager")> Public Const ConstFNalias As String = "alias"
 
-        <ormObjectEntry(typeid:=otDataType.Text, defaultvalue:=otObjectEntryType.Column, size:=50, _
-                        properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty}, _
-                        title:="Entry Type", Description:="OTDB schema entry type")> Public Const ConstFNType As String = "typeid"
+       
 
         <ormObjectEntry(typeid:=otDataType.List, innertypeid:=otDataType.Text, isnullable:=True, _
                         xid:="OED17", title:="Properties", Description:="properties and property functions for the entry")> _
@@ -5103,24 +5059,24 @@ Namespace OnTrack.Database
                         title:="UpdateCount", Description:="version counter of updating")> Public Const ConstFNUPDC As String = "updc"
 
         <ormObjectEntry(typeid:=otDataType.Bool, defaultvalue:=False, _
-           xid:="OED18", title:="Read Only", Description:="set if the object entry is created internally and can not be changed")> _
+                        xid:="OED18", title:="Read Only", Description:="set if the object entry is created internally and can not be changed")> _
         Public Const ConstFNReadonly As String = "readonly"
 
         <ormObjectEntry(typeid:=otDataType.Bool, defaultvalue:=True, _
-           xid:="OED19", title:="Is Active", Description:="set if the object entry is activated")> _
+                        xid:="OED19", title:="Is Active", Description:="set if the object entry is activated")> _
         Public Const ConstFNActive As String = "active"
 
-        <ormObjectEntry(typeid:=otDataType.List, innertypeid:=otDataType.Text, title:="Relation", Description:="relation information")> _
+        <ormObjectEntry(typeid:=otDataType.List, innertypeid:=otDataType.Text, isnullable:=True, title:="Relation", Description:="relation information")> _
         Public Const ConstFNRelation As String = "relation"
 
         <ormObjectEntry(typeid:=otDataType.Bool, defaultvalue:=True, dbdefaultvalue:="0", _
-            xid:="OED31", title:="Validate Entry", Description:="set if the object entry will be validated")> _
+                        xid:="OED31", title:="Validate Entry", Description:="set if the object entry will be validated")> _
         Public Const ConstFNValidate As String = "validate"
 
       
 
         <ormObjectEntry(typeid:=otDataType.List, innertypeid:=otDataType.Text, isnullable:=True, _
-            xid:="OED32", title:="List of Values", Description:="list of possible values")> Public Const ConstFNValues As String = "values"
+                        xid:="OED32", title:="List of Values", Description:="list of possible values")> Public Const ConstFNValues As String = "values"
 
         <ormObjectEntry(typeid:=otDataType.List, isnullable:=True, _
           xid:="OED33", title:="Lookup Properties", Description:="list of lookup properties")> Public Const ConstFNLookupProperties As String = "lproperties"
@@ -5620,6 +5576,7 @@ Namespace OnTrack.Database
                     Return ot.GetDefaultValue(_datatype)
                 Else
                     If _defaultvalue IsNot Nothing Then
+                        
                         Try
 
                             ''' check on enumerations and transform to it
@@ -5628,6 +5585,10 @@ Namespace OnTrack.Database
                                 If aMapping.FieldType.IsEnum Then
                                     '* transform
                                     Dim anewValue = CTypeDynamic([Enum].Parse(aMapping.FieldType, _defaultvalue.ToString, ignoreCase:=True), aMapping.FieldType)
+                                    Return anewValue
+                                ElseIf Reflector.IsNullable(aMapping.FieldType) AndAlso Nullable.GetUnderlyingType(aMapping.FieldType).IsEnum Then
+                                    '* transform
+                                    Dim anewValue = CTypeDynamic([Enum].Parse(Nullable.GetUnderlyingType(aMapping.FieldType), _defaultvalue.ToString, ignoreCase:=True), Nullable.GetUnderlyingType(aMapping.FieldType))
                                     Return anewValue
                                 End If
                             Next
@@ -6292,30 +6253,30 @@ Namespace OnTrack.Database
         '** extend the Table with additional fields
         <ormObjectEntry(typeid:=otDataType.Text, size:=50, properties:={ObjectEntryProperty.Keyword}, isnullable:=True, posordinal:=100, _
                         properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty}, _
-                        title:="Compound Table", Description:="name of the compound table")> _
+                        XID:="OED100", title:="Compound Table", Description:="name of the compound table")> _
         Public Const ConstFNFinalObjectID As String = "ctblname"
 
         <ormObjectEntry(typeid:=otDataType.List, isnullable:=True, posordinal:=101, _
                         properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty}, _
-                        title:="Compound Relation", Description:="relation path to the compound object")> _
+                        XID:="OED101", title:="Compound Relation", Description:="relation path to the compound object")> _
         Public Const ConstFNCompoundRelation As String = "crelation"
 
         <ormObjectEntry(typeid:=otDataType.Text, size:=50, properties:={ObjectEntryProperty.Keyword}, isnullable:=True, posordinal:=102, _
                         properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty}, _
-                        title:="compound id field", Description:="name of the compound id field")> Public Const ConstFNCompoundIDEntryname As String = "cidfield"
+                        XID:="OED102", title:="compound id field", Description:="name of the compound id field")> Public Const ConstFNCompoundIDEntryname As String = "cidfield"
 
         <ormObjectEntry(typeid:=otDataType.Text, size:=255, properties:={ObjectEntryProperty.Keyword}, isnullable:=True, posordinal:=103, _
                         properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty}, _
-                        title:="compound value field", Description:="name of the compound value field")> Public Const ConstFNCompoundValueEntryName As String = "cvalfield"
+                        XID:="OED103", title:="compound value field", Description:="name of the compound value field")> Public Const ConstFNCompoundValueEntryName As String = "cvalfield"
 
 
         <ormObjectEntry(typeid:=otDataType.Text, size:=50, properties:={ObjectEntryProperty.Keyword}, isnullable:=True, posordinal:=110, _
                         properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty}, _
-                        title:="compound setter operation", Description:="name of the compount setter method")> Public Const ConstFNCompoundSetter As String = "csetter"
+                        XID:="OED104", title:="compound setter operation", Description:="name of the compound setter method")> Public Const ConstFNCompoundSetter As String = "csetter"
 
         <ormObjectEntry(typeid:=otDataType.Text, size:=50, properties:={ObjectEntryProperty.Keyword}, isnullable:=True, posordinal:=111, _
                        properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty}, _
-                       title:="compound getter operation", Description:="name of the compount getter method")> Public Const ConstFNCompoundGetter As String = "cgetter"
+                       XID:="OED105", title:="compound getter operation", Description:="name of the compound getter method")> Public Const ConstFNCompoundGetter As String = "cgetter"
 
 
         '** compound settings

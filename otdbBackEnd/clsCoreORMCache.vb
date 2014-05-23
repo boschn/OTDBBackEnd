@@ -776,7 +776,6 @@ Namespace OnTrack.Database
                     If aDataObject.Guid <> e.DataObject.Guid Then
                         CoreMessageHandler("Warning ! objects of same type and keys already in cache", subname:="ormObjectCacheManager.OnCreatedDataObject", messagetype:=otCoreMessageType.InternalWarning, _
                                         objectname:=e.DataObject.GetType.Name, arg1:=e.Pkarray)
-                        e.DataObject = Nothing
                         e.Result = False
                         e.AbortOperation = True
                         Exit Sub
@@ -1039,7 +1038,7 @@ Namespace OnTrack.Database
                         e.AbortOperation = True
                         Exit Sub
                     Else
-                        e.DataObject = Nothing
+
                         e.Result = False
                         e.AbortOperation = False
                         Exit Sub
@@ -1088,11 +1087,19 @@ Namespace OnTrack.Database
                     ''' previously under infused 
                     ''' to check on this we would need a GUID for each Bucket
                     Dim aBucket = theobjects.Item(key:=searchkeys)
-                    e.DataObject = TryCast(aBucket.Object, ormDataObject)
-                    aBucket.RetrieveData = DateTime.Now
-                    aBucket.IsRetrieved = True
-                    e.Result = True ' do nothing in the case
-                    e.AbortOperation = False
+                    Dim aDataObject As iormPersistable = TryCast(aBucket.Object, ormDataObject)
+                    If aDataObject.GUID <> e.DataObject.Guid Then
+                        CoreMessageHandler(message:="Dataobject was retrieved which was already in cache but under another guid", subname:="ormObjectCacheManager.OnRetrievedDataObject", objectname:=e.DataObject.ObjectID, _
+                                           messagetype:=otCoreMessageType.InternalWarning, arg1:=Converter.Array2String(e.DataObject.PrimaryKeyValues))
+                        e.Result = False ' do nothing in the case
+                        e.AbortOperation = False
+                    Else
+                        aBucket.RetrieveData = DateTime.Now
+                        aBucket.IsRetrieved = True
+                        e.Result = False
+                        e.AbortOperation = False
+                    End If
+
                     Exit Sub
                 End If
 
@@ -1138,12 +1145,12 @@ Namespace OnTrack.Database
 
                     Else
                         e.AbortOperation = False
-                        e.Result = True
+                        e.Result = False
                         Exit Sub
                     End If
                 Else
                     e.AbortOperation = False
-                    e.Result = True
+                    e.Result = False
                     Exit Sub
                 End If
             End If
@@ -1188,7 +1195,7 @@ Namespace OnTrack.Database
 
                     theobjects.TryAdd(key:=searchkeys, value:=aBucket)
                     e.AbortOperation = False
-                    e.Result = True 'success
+                    e.Result = False 'success
                     Exit Sub
                 Else
                     Dim aBucket = theobjects.Item(key:=searchkeys)
@@ -1198,12 +1205,11 @@ Namespace OnTrack.Database
                                            messagetype:=otCoreMessageType.InternalWarning, _
                                           objectname:=aDataObject.ObjectID, arg1:=e.Pkarray)
                         e.DataObject = aDataObject
-                        e.Result = False
+                        e.Result = True
                         e.AbortOperation = True
                         Exit Sub
                     Else
-                        e.DataObject = aDataObject
-                        e.Result = True
+                        e.Result = False
                         e.AbortOperation = False
                         Exit Sub
                     End If

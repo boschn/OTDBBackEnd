@@ -268,8 +268,8 @@ Namespace OnTrack.Commons
             referenceobjectentry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, _
             title:="domain", Description:="domain identifier", defaultvalue:=ConstGlobalDomain, _
             primaryKeyordinal:=1, _
-            useforeignkey:=otForeignKeyImplementation.ORM)> _
-        Const ConstFNDomainID As String = Domain.ConstFNDomainID
+            isactive:=True, useforeignkey:=otForeignKeyImplementation.ORM)> _
+        Const ConstFNDomainID As String = "DOMAIN"
 
         <ormObjectEntry(XID:="DMS2", _
            typeid:=otDataType.Text, size:=100, primaryKeyordinal:=2, _
@@ -2031,7 +2031,7 @@ Namespace OnTrack.Commons
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property Message() As String
+        Public Property Message As String
             Get
                 Message = _message
             End Get
@@ -2047,7 +2047,7 @@ Namespace OnTrack.Commons
         ''' <returns></returns>
         ''' <remarks></remarks>
 
-        Public Property Weight() As Double?
+        Public Property Weight As Double?
             Get
                 Return _weight
             End Get
@@ -2063,7 +2063,7 @@ Namespace OnTrack.Commons
         ''' <returns></returns>
         ''' <remarks></remarks>
 
-        Public Property [type]() As otObjectMessageType
+        Public Property [Type] As otObjectMessageType
             Get
                 Return _type
             End Get
@@ -2085,6 +2085,29 @@ Namespace OnTrack.Commons
             Set(ByVal avalue As String)
                 SetValue(constFNArea, avalue)
             End Set
+        End Property
+
+        ''' <summary>
+        ''' returns a IList of StatusItems of this MessageType
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property StatusItems(Optional domainid As String = "", Optional statustype As String = Nothing) As IList(Of StatusItem)
+            Get
+                Dim aList As New List(Of StatusItem)
+                For Each aPair In _StatusCodeDictionary
+                    Dim aCode As String = aPair.Value
+                    Dim aType As String = aPair.Key
+                    If statustype Is Nothing OrElse statustype.ToUpper = aType.ToUpper Then
+                        Dim aStatusItem As StatusItem = StatusItem.Retrieve(typeid:=aType, code:=aCode, domainID:=domainid)
+                        If aStatusItem IsNot Nothing Then
+                            aList.Add(aStatusItem)
+                        End If
+                    End If
+                Next
+                Return aList
+            End Get
         End Property
 
         ''' <summary>
@@ -2111,6 +2134,18 @@ Namespace OnTrack.Commons
                 End If
                 _StatusCodeDictionary.Add(key:=typeid.ToUpper, value:=value)
             End Set
+        End Property
+
+        ''' <summary>
+        ''' returns a List of statustypes
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property StatusTypes As IList(Of String)
+            Get
+                Return _StatusCodeDictionary.Keys.ToList
+            End Get
         End Property
 #End Region
 
@@ -2152,6 +2187,8 @@ Namespace OnTrack.Commons
             ' set the primaryKey
             Return MyBase.Create(primarykey, domainID:=domainID, checkUnique:=True)
         End Function
+
+
         ''' <summary>
         ''' handler for the record feed event
         ''' </summary>
@@ -2162,6 +2199,8 @@ Namespace OnTrack.Commons
             '''
             ''' convert the dictionary to the key-value string arrays
             ''' 
+            Dim codes As String = e.Record.GetValue(constFNSStatusCodes)
+            Dim types As String = e.Record.GetValue(constFNSStatusTypes)
             e.Record.SetValue(constFNSStatusCodes, Converter.Array2String(_StatusCodeDictionary.Values.ToArray))
             e.Record.SetValue(constFNSStatusTypes, Converter.Array2String(_StatusCodeDictionary.Keys.ToArray))
         End Sub
@@ -2176,18 +2215,46 @@ Namespace OnTrack.Commons
 
             ''' get all the status types and set the codes
             ''' 
-            If _statuscodes.Count <> _statustypes.Count Then
+            If _statuscodes IsNot Nothing AndAlso _statustypes IsNot Nothing AndAlso _statuscodes.Count <> _statustypes.Count Then
                 CoreMessageHandler(message:="statustypes and statuscodes differ in length ?!", messagetype:=otCoreMessageType.ApplicationError, _
                                    subname:="ObjectMessageType.OnInfused")
-            End If
-            For I = 0 To _statustypes.GetUpperBound(0)
-                If I < _statuscodes.GetUpperBound(0) Then
-                    If _StatusCodeDictionary.ContainsKey(_statustypes(I)) Then
-                        _StatusCodeDictionary.Remove(key:=_statustypes(I))
+            ElseIf (_statuscodes Is Nothing AndAlso _statustypes IsNot Nothing) OrElse (_statuscodes IsNot Nothing AndAlso _statustypes Is Nothing) Then
+                CoreMessageHandler(message:="statustypes and statuscodes differ in length ?!", messagetype:=otCoreMessageType.ApplicationError, _
+                                  subname:="ObjectMessageType.OnInfused")
+            ElseIf _statuscodes IsNot Nothing AndAlso _statustypes IsNot Nothing Then
+                For I = 0 To _statustypes.GetUpperBound(0)
+                    If I <= _statuscodes.GetUpperBound(0) Then
+                        If _StatusCodeDictionary.ContainsKey(_statustypes(I)) Then
+                            _StatusCodeDictionary.Remove(key:=_statustypes(I))
+                        End If
+                        _StatusCodeDictionary.Add(key:=_statustypes(I), value:=_statuscodes(I))
                     End If
-                    _StatusCodeDictionary.Add(key:=_statustypes(I), value:=_statuscodes(I))
+                Next
+            End If
+
+        End Sub
+
+        ''' <summary>
+        ''' on property change
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Private Sub ObjectMessageType_PropertyChanged(sender As Object, e As ComponentModel.PropertyChangedEventArgs) Handles Me.PropertyChanged
+            If e.PropertyName = constFNSStatusCodes OrElse e.PropertyName = constFNSStatusTypes Then
+                ''' only rebuild if possible
+                If _statuscodes IsNot Nothing AndAlso _statustypes IsNot Nothing AndAlso _statuscodes.Count = _statustypes.Count Then
+                    '* rebuild the dictionary
+                    For I = 0 To _statustypes.GetUpperBound(0)
+                        If I <= _statuscodes.GetUpperBound(0) Then
+                            If _StatusCodeDictionary.ContainsKey(_statustypes(I)) Then
+                                _StatusCodeDictionary.Remove(key:=_statustypes(I))
+                            End If
+                            _StatusCodeDictionary.Add(key:=_statustypes(I), value:=_statuscodes(I))
+                        End If
+                    Next
                 End If
-            Next
+            End If
         End Sub
     End Class
 
@@ -2236,6 +2303,9 @@ Namespace OnTrack.Commons
         <ormObjectEntry(typeid:=otDataType.Bool, _
          XID:="si13", title:="End", description:="set if the status is an end status")> Public Const constFNIsIntermediateStatus = "isimed"
 
+        <ormObjectEntry(typeid:=otDataType.Bool, _
+         XID:="si14", title:="Abort Operation", description:="set if the status will abort the ongoing-operation")> Public Const constFNAbort = "ABORT"
+
         <ormObjectEntry(typeid:=otDataType.Long, isnullable:=True, _
           XID:="si21", title:="Foreground", description:="RGB foreground color code")> Public Const ConstFNFGColor = "fgcolor"
         <ormObjectEntry(typeid:=otDataType.Long, isnullable:=True, _
@@ -2260,11 +2330,25 @@ Namespace OnTrack.Commons
         <ormEntryMapping(EntryName:=ConstFNKPIBGColor)> Private _kpibgcolor As Long?
         <ormEntryMapping(EntryName:=constFNIsEndStatus)> Private _endStatus As Boolean
         <ormEntryMapping(EntryName:=constFNIsStartStatus)> Private _startStatus As Boolean
+        <ormEntryMapping(EntryName:=constFNAbort)> Private _Aborting As Boolean
         <ormEntryMapping(EntryName:=constFNIsIntermediateStatus)> Private _intermediateStatus As Boolean
 
 
 
 #Region "Properties"
+
+        ''' <summary>
+        ''' Gets or sets the aborting.
+        ''' </summary>
+        ''' <value>The aborting.</value>
+        Public Property Aborting() As Boolean
+            Get
+                Return Me._Aborting
+            End Get
+            Set
+                Me._Aborting = Value
+            End Set
+        End Property
 
         ''' <summary>
         ''' gets the typeid of the status item
@@ -2402,7 +2486,7 @@ Namespace OnTrack.Commons
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property Formatbgcolor() As Long?
+        Public Property FormatBGColor() As Long?
             Get
                 Return _bgcolor
             End Get
@@ -2432,7 +2516,7 @@ Namespace OnTrack.Commons
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property FormatFGcolor() As Long?
+        Public Property FormatFGColor() As Long?
             Get
                 Return _fgcolor
             End Get

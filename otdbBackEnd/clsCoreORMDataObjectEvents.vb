@@ -83,11 +83,12 @@ Namespace OnTrack.Database
         Public Event OnInitializing(sender As Object, e As ormDataObjectEventArgs)
         Public Event OnInitialized(sender As Object, e As ormDataObjectEventArgs)
 
+        '* uniqueness Class Event
         Public Shared Event ClassOnCheckingUniqueness(sender As Object, e As ormDataObjectEventArgs)
 
         '* Validation Events
-        Public Shared Event ClassOnValidating(sender As Object, e As ormDataObjectEventArgs)
-        Public Shared Event ClassOnValidated(sender As Object, e As ormDataObjectEventArgs)
+        Public Event OnEntryValidating(sender As Object, e As ormDataObjectEntryEventArgs) Implements iormValidatable.OnEntryValidating
+        Public Event OnEntryValidated(sender As Object, e As ormDataObjectEntryEventArgs) Implements iormValidatable.OnEntryValidated
         Public Event OnValidating(sender As Object, e As ormDataObjectEventArgs) Implements iormValidatable.OnValidating
         Public Event OnValidated(sender As Object, e As ormDataObjectEventArgs) Implements iormValidatable.OnValidated
 
@@ -102,10 +103,26 @@ Namespace OnTrack.Database
         Protected Event OnRelationUpdateNeeded(sender As Object, e As ormDataObjectRelationEventArgs)
         Protected Event OnRelationDeleteNeeded(sender As Object, e As ormDataObjectRelationEventArgs)
 
+        '** object entry wevents
+        Public Event OnEntryChanged As EventHandler(Of ormDataObjectEntryEventArgs)
+        Public Event OnEntryChanging As EventHandler(Of ormDataObjectEntryEventArgs)
+
         '** Events for the Switch from Runtime Mode on to Off
         Public Event OnSwitchRuntimeOff(sender As Object, e As ormDataObjectEventArgs)
         Public Event OnSwitchRuntimeOn(sender As Object, e As ormDataObjectEventArgs)
 
+        '** ObjectMessage Added to Log
+        Public Event OnObjectMessageAdded(sender As Object, e As ObjectMessageLog.EventArgs)
+
+        ''' <summary>
+        ''' Handler cascaded the OnObjectMessageAdded Event
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Private Sub ormDataObject_OnObjectMessageAdded(sender As Object, e As ObjectMessageLog.EventArgs) Handles _objectmessagelog.OnObjectMessageAdded
+            RaiseEvent OnObjectMessageAdded(sender:=sender, e:=e)
+        End Sub
         ''' <summary>
         ''' cascade the OnRelationLoadNeeded from RelationManager
         ''' </summary>
@@ -247,6 +264,7 @@ Namespace OnTrack.Database
         Private _infusemode As otInfuseMode?
         Private _timestamp As DateTime? = DateTime.Now
         Private _runtimeonly As Boolean = False
+        Private _msglog As ObjectMessageLog
 
         ''' <summary>
         ''' constructor
@@ -262,6 +280,7 @@ Namespace OnTrack.Database
                         Optional pkarray As Object() = Nothing, _
                         Optional runtimeOnly As Boolean = False, _
                         Optional infuseMode As otInfuseMode? = Nothing, _
+                         Optional ByRef msglog As ObjectMessageLog = Nothing,
                         Optional timestamp? As DateTime = Nothing)
             _Object = [object]
             _Record = record
@@ -273,10 +292,21 @@ Namespace OnTrack.Database
             If infuseMode.HasValue Then _infusemode = infuseMode
             If timestamp.HasValue Then _timestamp = timestamp
             _pkarray = pkarray
-            _result = True
+            _result = False
             _runtimeonly = runtimeOnly
             _Abort = False
+            If msglog IsNot Nothing Then _msglog = msglog
         End Sub
+
+        ''' <summary>
+        ''' Gets or sets the msglog.
+        ''' </summary>
+        ''' <value>The msglog.</value>
+        Public ReadOnly Property Msglog() As ObjectMessageLog
+            Get
+                Return Me._msglog
+            End Get
+        End Property
 
         ''' <summary>
         ''' Gets the timestamp.
@@ -433,6 +463,239 @@ Namespace OnTrack.Database
 
     End Class
 
+    ''' <summary>
+    ''' Event Arguments for the Object Entry Validation Event
+    ''' </summary>
+    ''' <remarks></remarks>
+    Public Class ormDataObjectEntryValidationEventArgs
+        Inherits ormDataObjectEntryEventArgs
+
+        Private _validationResult As otValidationResultType = otValidationResultType.Succeeded
+
+        ''' <summary>
+        ''' constructor
+        ''' </summary>
+        ''' <remarks></remarks>
+        Public Sub New([object] As ormDataObject, _
+                        entryname As String,
+                        Optional value As Object = Nothing,
+                        Optional domainID As String = "",
+                        Optional ByRef msglog As ObjectMessageLog = Nothing,
+                        Optional timestamp? As DateTime = Nothing)
+            MyBase.New(object:=[object], entryname:=entryname, value:=value, domainid:=domainID, msglog:=msglog, timestamp:=timestamp)
+           
+        End Sub
+        ''' <summary>
+        ''' Gets or sets the validation result.
+        ''' </summary>
+        ''' <value>The validation result.</value>
+        Public Property ValidationResult() As otValidationResultType
+            Get
+                Return Me._validationResult
+            End Get
+            Set
+                Me._validationResult = Value
+            End Set
+        End Property
+
+    End Class
+
+    ''' <summary>
+    ''' Event Arguments for the Object Validation Event
+    ''' </summary>
+    ''' <remarks></remarks>
+    Public Class ormDataObjectValidationEventArgs
+        Inherits ormDataObjectEventArgs
+
+        Private _validationResult As otValidationResultType = otValidationResultType.Succeeded
+
+        ''' <summary>
+        ''' constructor
+        ''' </summary>
+        ''' <remarks></remarks>
+        Public Sub New([object] As ormDataObject, _
+                        Optional domainID As String = "",
+                        Optional ByRef msglog As ObjectMessageLog = Nothing,
+                        Optional timestamp? As DateTime = Nothing)
+
+            MyBase.New(object:=[object], domainid:=domainID, msglog:=msglog, timestamp:=timestamp)
+
+        End Sub
+        ''' <summary>
+        ''' Gets or sets the validation result.
+        ''' </summary>
+        ''' <value>The validation result.</value>
+        Public Property ValidationResult() As otValidationResultType
+            Get
+                Return Me._validationResult
+            End Get
+            Set(value As otValidationResultType)
+                Me._validationResult = value
+            End Set
+        End Property
+
+    End Class
+
+    ''' <summary>
+    ''' Event Args for ObjectEntry Events
+    ''' </summary>
+    ''' <remarks></remarks>
+    Public Class ormDataObjectEntryEventArgs
+        Inherits EventArgs
+
+        Private _Object As ormDataObject
+        Private _ObjectEntryName As String
+        Private _Abort As Boolean = False
+        Private _result As Boolean = True
+        Private _domainID As String = ConstGlobalDomain
+        Private _timestamp As DateTime? = DateTime.Now
+        Private _newvalue As Object
+        Private _oldvalue As Object
+        Private _msglog As ObjectMessageLog
+        ''' <summary>
+        ''' constructor
+        ''' </summary>
+        ''' <remarks></remarks>
+        Public Sub New([object] As ormDataObject, _
+                        entryname As String,
+                        Optional value As Object = Nothing,
+                        Optional domainID As String = "",
+                        Optional ByRef msglog As ObjectMessageLog = Nothing,
+                        Optional timestamp? As DateTime = Nothing)
+            _Object = [object]
+            _ObjectEntryName = entryname
+            If _domainID <> "" Then _domainID = domainID
+            'If oldvalue IsNot Nothing Then _oldvalue = oldvalue
+            If value IsNot Nothing Then _newvalue = value
+            _result = False
+            _Abort = False
+            If timestamp.HasValue Then _timestamp = timestamp
+            If msglog IsNot Nothing Then _msglog = msglog
+        End Sub
+
+        ''' <summary>
+        ''' Gets or sets the msglog.
+        ''' </summary>
+        ''' <value>The msglog.</value>
+        Public ReadOnly Property Msglog() As ObjectMessageLog
+            Get
+                Return Me._msglog
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the name of the object entry.
+        ''' </summary>
+        ''' <value>The name of the object entry.</value>
+        Public ReadOnly Property ObjectEntryName() As String
+            Get
+                Return Me._ObjectEntryName
+            End Get
+
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the oldvalue.
+        ''' </summary>
+        ''' <value>The value.</value>
+        'Public ReadOnly Property oldValue() As Object
+        '    Get
+        '        Return Me._oldvalue
+        '    End Get
+
+        'End Property
+        ''' <summary>
+        ''' Gets or sets the value.
+        ''' </summary>
+        ''' <value>The value.</value>
+        Public Property Value() As Object
+            Get
+                Return Me._newvalue
+            End Get
+            Set(value As Object)
+                Me._newvalue = value
+            End Set
+        End Property
+
+        ''' <summary>
+        ''' Gets the timestamp.
+        ''' </summary>
+        ''' <value>The timestamp.</value>
+        Public ReadOnly Property Timestamp() As DateTime?
+            Get
+                Return Me._timestamp
+            End Get
+        End Property
+
+
+        ''' <summary>
+        ''' Gets or sets the domain ID.
+        ''' </summary>
+        ''' <value>The domain ID.</value>
+        Public Property DomainID() As String
+            Get
+                Return Me._domainID
+            End Get
+            Set(value As String)
+                Me._domainID = value
+            End Set
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the result.
+        ''' </summary>
+        ''' <value>The result.</value>
+        Public Property Result() As Boolean
+            Get
+                Return Me._result
+            End Get
+            Set(value As Boolean)
+                Me._result = value
+            End Set
+        End Property
+
+
+
+        ''' <summary>
+        ''' Gets or sets the abort.
+        ''' </summary>
+        ''' <value>The abort.</value>
+        Public Property AbortOperation() As Boolean
+            Get
+                Return Me._Abort
+            End Get
+            Set(value As Boolean)
+                Me._Abort = value
+            End Set
+        End Property
+        ''' <summary>
+        ''' Gets or sets if to proceed.
+        ''' </summary>
+        ''' <value>The abort.</value>
+        Public Property Proceed() As Boolean
+            Get
+                Return Not Me._Abort
+            End Get
+            Set(value As Boolean)
+                Me._Abort = Not value
+                Me._result = value
+            End Set
+        End Property
+
+        ''' <summary>
+        ''' Gets the object.
+        ''' </summary>
+        ''' <value>The object.</value>
+        Public Property DataObject() As ormDataObject
+            Get
+                Return Me._Object
+            End Get
+            Set(value As ormDataObject)
+                _Object = value
+            End Set
+        End Property
+
+    End Class
     ''' <summary>
     ''' Event Arguments for Data Object Events
     ''' </summary>

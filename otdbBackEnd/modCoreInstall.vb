@@ -1253,84 +1253,135 @@ Namespace OnTrack.Database
                 Return False
             End If
 
-            Dim aSet As ObjectProperties.ObjectPropertySet = ObjectProperties.ObjectPropertySet.Create(id:="FBL_SBB")
-            If aSet IsNot Nothing Then
-                aSet.Description = "test"
-                aSet.Ordinal = 1
-                aSet.AttachedObjectIDs = {Deliverables.Deliverable.ConstObjectID}.ToList
-                aSet.Persist()
-            End If
+            'Dim aSet As ObjectProperties.ObjectPropertySet = ObjectProperties.ObjectPropertySet.Create(id:="FBL_SBB")
+            'If aSet IsNot Nothing Then
+            '    aSet.Description = "test"
+            '    aSet.Ordinal = 1
+            '    aSet.AttachedObjectIDs = {Deliverables.Deliverable.ConstObjectID}.ToList
+            '    aSet.Persist()
+            'End If
 
 
-            Dim aproperty As ObjectProperties.ObjectProperty = ObjectProperties.ObjectProperty.Create(setid:="FBL_SBB", ID:="BLTEST")
-            If aproperty IsNot Nothing Then
-                aproperty.Datatype = otDataType.Text
-                aproperty.Title = "BaseLine Test"
-                aproperty.Ordinal = 1
-                aproperty.Persist()
-            End If
+            'Dim aproperty As ObjectProperties.ObjectProperty = ObjectProperties.ObjectProperty.Create(setid:="FBL_SBB", ID:="BLTEST")
+            'If aproperty IsNot Nothing Then
+            '    aproperty.Datatype = otDataType.Text
+            '    aproperty.Title = "BaseLine Test"
+            '    aproperty.Ordinal = 1
+            '    aproperty.Persist()
+            'End If
 
            
            
 
-            Dim aMilestoneDef As MileStoneDefinition = MileStoneDefinition.Create(ID:="BP9")
-            If aMilestoneDef Is Nothing Then aMilestoneDef = MileStoneDefinition.Retrieve(id:="Bp9")
+            'Dim aMilestoneDef As MileStoneDefinition = MileStoneDefinition.Create(ID:="BP9")
+            'If aMilestoneDef Is Nothing Then aMilestoneDef = MileStoneDefinition.Retrieve(id:="Bp9")
 
-            If aMilestoneDef IsNot Nothing Then
-                aMilestoneDef.AttachedObjectids = {Deliverable.ConstObjectID}.ToList
-                aMilestoneDef.Description = "fc finish"
-                aMilestoneDef.IsForecast = True
-                aMilestoneDef.Persist()
-            End If
+            'If aMilestoneDef IsNot Nothing Then
+            '    aMilestoneDef.AttachedObjectids = {Deliverable.ConstObjectID}.ToList
+            '    aMilestoneDef.Description = "fc finish"
+            '    aMilestoneDef.IsForecast = True
+            '    aMilestoneDef.Persist()
+            'End If
 
-            aMilestoneDef = MileStoneDefinition.Create(ID:="BP10")
-            If aMilestoneDef Is Nothing Then aMilestoneDef = MileStoneDefinition.Retrieve(id:="BP10")
-            If aMilestoneDef IsNot Nothing Then
-                aMilestoneDef.AttachedObjectids = {Deliverable.ConstObjectID}.ToList
-                aMilestoneDef.Description = "actual finish"
-                aMilestoneDef.IsForecast = False
-                aMilestoneDef.Persist()
-            End If
+            'aMilestoneDef = MileStoneDefinition.Create(ID:="BP10")
+            'If aMilestoneDef Is Nothing Then aMilestoneDef = MileStoneDefinition.Retrieve(id:="BP10")
+            'If aMilestoneDef IsNot Nothing Then
+            '    aMilestoneDef.AttachedObjectids = {Deliverable.ConstObjectID}.ToList
+            '    aMilestoneDef.Description = "actual finish"
+            '    aMilestoneDef.IsForecast = False
+            '    aMilestoneDef.Persist()
+            'End If
 
-            Dim aScheduleDefinition As ScheduleDefinition = ScheduleDefinition.Create(id:="PDM")
-            If aScheduleDefinition Is Nothing Then aScheduleDefinition = ScheduleDefinition.Retrieve("PDM")
-            If aScheduleDefinition IsNot Nothing Then
-                aScheduleDefinition.Description = "simple pdm entry schedule"
-                aScheduleDefinition.Autopublish = True
+            'Dim aScheduleDefinition As ScheduleDefinition = ScheduleDefinition.Create(id:="PDM")
+            'If aScheduleDefinition Is Nothing Then aScheduleDefinition = ScheduleDefinition.Retrieve("PDM")
+            'If aScheduleDefinition IsNot Nothing Then
+            '    aScheduleDefinition.Description = "simple pdm entry schedule"
+            '    aScheduleDefinition.Autopublish = True
 
-                Dim aScheduleMilestone As ScheduleMilestoneDefinition = ScheduleMilestoneDefinition.Create(scheduletype:="PDM", ID:="BP9")
-                If aScheduleMilestone Is Nothing Then aScheduleMilestone = ScheduleMilestoneDefinition.Retrieve(scheduletype:="PDM", ID:="Bp9")
-                If aScheduleMilestone IsNot Nothing Then
-                    aScheduleMilestone.IsMandatory = True
-                    aScheduleMilestone.IsOutputDeliverable = True
-                    aScheduleMilestone.IsForecast = True
-                    aScheduleMilestone.IsFinish = True
-                End If
+            '    Dim aScheduleMilestone As ScheduleMilestoneDefinition = ScheduleMilestoneDefinition.Create(scheduletype:="PDM", ID:="BP9")
+            '    If aScheduleMilestone Is Nothing Then aScheduleMilestone = ScheduleMilestoneDefinition.Retrieve(scheduletype:="PDM", ID:="Bp9")
+            '    If aScheduleMilestone IsNot Nothing Then
+            '        aScheduleMilestone.IsMandatory = True
+            '        aScheduleMilestone.IsOutputDeliverable = True
+            '        aScheduleMilestone.IsForecast = True
+            '        aScheduleMilestone.IsFinish = True
+            '    End If
 
-                aScheduleMilestone = ScheduleMilestoneDefinition.Create(scheduletype:="PDM", ID:="BP10")
-                If aScheduleMilestone Is Nothing Then aScheduleMilestone = ScheduleMilestoneDefinition.Retrieve(scheduletype:="PDM", ID:="Bp10")
-                If aScheduleMilestone IsNot Nothing Then
-                    aScheduleMilestone.IsMandatory = True
-                    aScheduleMilestone.IsOutputDeliverable = True
-                    aScheduleMilestone.IsForecast = False
-                    aScheduleMilestone.ActualOfFC = "BP9"
-                End If
+            '    aScheduleMilestone = ScheduleMilestoneDefinition.Create(scheduletype:="PDM", ID:="BP10")
+            '    If aScheduleMilestone Is Nothing Then aScheduleMilestone = ScheduleMilestoneDefinition.Retrieve(scheduletype:="PDM", ID:="Bp10")
+            '    If aScheduleMilestone IsNot Nothing Then
+            '        aScheduleMilestone.IsMandatory = True
+            '        aScheduleMilestone.IsOutputDeliverable = True
+            '        aScheduleMilestone.IsForecast = False
+            '        aScheduleMilestone.ActualOfFC = "BP9"
+            '    End If
 
-                aScheduleDefinition.Persist()
-            End If
+            '    aScheduleDefinition.Persist()
+            'End If
 
-            Dim aDeliverable As Deliverable ' = Deliverable.Create(typeid:="FVDS")
-            If aDeliverable Is Nothing Then aDeliverable = Deliverable.Retrieve(uid:=295)
+            'Dim aDeliverable As Deliverable ' = Deliverable.Create(typeid:="FVDS")
+            'If aDeliverable Is Nothing Then aDeliverable = Deliverable.Retrieve(uid:=295)
 
-            aDeliverable.Description = "TEST"
-            Debug.WriteLine(aDeliverable.GetValue("BLTEST"))
-            aDeliverable.SetValue("BLTEST", "test8")
-            Debug.WriteLine(aDeliverable.GetValue("BP9"))
-            aDeliverable.SetValue("BP9", #10/2/2014#)
-            aDeliverable.Persist()
+            'aDeliverable.Description = "TEST"
+            'Debug.WriteLine(aDeliverable.GetValue("BLTEST"))
+            'aDeliverable.SetValue("BLTEST", "test8")
+            'Debug.WriteLine(aDeliverable.GetValue("BP9"))
+            'aDeliverable.SetValue("BP9", #10/2/2014#)
+            'aDeliverable.Persist()
 
+            'Dim aTargetEntry As ObjectColumnEntry = CurrentSession.Objects.GetObject(Target.ConstObjectID).GetEntry(Target.constFNTarget)
+            'If aTargetEntry IsNot Nothing Then
+            '    '''
+            '    ''' Deliverable
+            '    ''' 
+            '    Dim aCompound As ObjectCompoundEntry = ObjectCompoundEntry.Create(objectname:=Deliverable.ConstObjectID, entryname:=aTargetEntry.XID)
+            '    If aCompound Is Nothing Then aCompound = ObjectCompoundEntry.Retrieve(objectname:=Deliverable.ConstObjectID, entryname:=aTargetEntry.XID)
+            '    If aCompound IsNot Nothing Then
+            '        aCompound.CompoundRelationPath = {Deliverable.ConstObjectID & "." & Deliverable.ConstRWorkspaceTarget, _
+            '                                          WorkspaceTarget.ConstObjectID & "." & WorkspaceTarget.ConstRWorkTarget, _
+            '                                          Target.ConstObjectID}
+            '        aCompound.Datatype = aTargetEntry.Datatype
+            '        ' ordinal calculate an ordinal
+            '        aCompound.Ordinal = 200000 + aTargetEntry.Ordinal
+            '        aCompound.Title = aTargetEntry.Title
+            '        aCompound.Description = aTargetEntry.Description
+            '        aCompound.XID = aTargetEntry.XID
 
-            Dim aSchedule As WorkspaceSchedule = WorkspaceSchedule.Create()
+            '        ''' special compound settings
+            '        aCompound.CompoundObjectID = aTargetEntry.ConstObjectID
+            '        aCompound.CompoundValueEntryName = Nothing
+            '        aCompound.CompoundIDEntryname = Target.constFNTarget
+            '        aCompound.CompoundGetterMethodName = Nothing
+            '        aCompound.CompoundSetterMethodName = Nothing
+
+            '        aCompound.Persist()
+            '    End If
+
+                ''' 
+                ''' WorkspaceTarget -> done now via compoundentry.csv
+                ''' 
+                'aCompound = ObjectCompoundEntry.Create(objectname:=WorkspaceTarget.ConstObjectID, entryname:=aTargetEntry.XID)
+                'If aCompound Is Nothing Then aCompound = ObjectCompoundEntry.Retrieve(objectname:=WorkspaceTarget.ConstObjectID, entryname:=aTargetEntry.XID)
+                'If aCompound IsNot Nothing Then
+                '    aCompound.CompoundRelationPath = {WorkspaceTarget.ConstObjectID & "." & WorkspaceTarget.ConstRWorkTarget, _
+                '                                      Target.ConstObjectID}
+                '    aCompound.Datatype = aTargetEntry.Datatype
+                '    ' ordinal calculate an ordinal
+                '    aCompound.Ordinal = 200000 + aTargetEntry.Ordinal
+                '    aCompound.Title = aTargetEntry.Title
+                '    aCompound.Description = aTargetEntry.Description
+                '    aCompound.XID = aTargetEntry.XID
+
+                '    ''' special compound settings
+                '    aCompound.CompoundObjectID = aTargetEntry.ConstObjectID
+                '    aCompound.CompoundValueEntryName = Nothing
+                '    aCompound.CompoundIDEntryname = Target.constFNTarget
+                '    aCompound.CompoundGetterMethodName = WorkspaceTarget.ConstOPGetTarget
+                '    aCompound.CompoundSetterMethodName = WorkspaceTarget.ConstOPSetTarget
+
+                '    aCompound.Persist()
+                'End If
+            'End If
 
             Return True
         End Function
@@ -1597,7 +1648,7 @@ Namespace OnTrack.Database
                 aDomain.SetSetting(id:=Session.ConstCPDefaultCalendarName, datatype:=otDataType.Text, value:="default")
                 aDomain.SetSetting(id:=Session.ConstCPDefaultTodayLatency, datatype:=otDataType.Long, value:=-14)
                 aDomain.SetSetting(id:=Session.ConstCDefaultScheduleTypeID, datatype:=otDataType.Text, value:="none")
-                aDomain.SetSetting(id:=Session.ConstCDefaultDeliverableTypeID, datatype:=otDataType.Text, value:="")
+                aDomain.SetSetting(id:=Session.ConstCPDefaultDeliverableTypeID, datatype:=otDataType.Text, value:="")
                 aDomain.Persist()
             End If
 

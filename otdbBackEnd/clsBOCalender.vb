@@ -703,7 +703,7 @@ Namespace OnTrack.Calendar
         ''' <param name="Name">default calendar</param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function IsAvailableOn(ByVal refdate As Date, Optional ByVal name As String = "", Optional domainID As String = "") As Boolean
+        Public Shared Function IsAvailableOn(ByVal refdate As Date, Optional ByVal name As String = "", Optional domainID As String = "") As Boolean
             Dim aCollection As New List(Of CalendarEntry)
             Dim anEntry As New CalendarEntry
 
@@ -727,6 +727,87 @@ Namespace OnTrack.Calendar
 
             IsAvailableOn = True
         End Function
+
+        ''' <summary>
+        ''' Returns True if the Calendar has the referenced date as a valid date
+        ''' </summary>
+        ''' <param name="refDate"></param>
+        ''' <param name="name"></param>
+        ''' <param name="domainID"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Shared Function HasDate(ByVal refDate As Date, Optional ByVal name As String = "", Optional domainID As String = "") As Boolean
+            If name = "" Then
+                name = CurrentSession.DefaultCalendarName
+            End If
+            If domainID = "" Then domainID = CurrentSession.CurrentDomainID
+
+
+            Try
+                Dim aStore As iormDataStore = GetTableStore(ConstTableid)
+                Dim cached = aStore.GetProperty(ormTableStore.ConstTPNCacheProperty)
+                Dim aCommand As ormSqlSelectCommand = aStore.CreateSqlSelectCommand("AllByDate")
+
+                '** prepare the command if necessary
+                If Not aCommand.Prepared Then
+
+                    aCommand.AddTable(ConstTableid, addAllFields:=True)
+                    '** Depends on the server
+                    If aCommand.DatabaseDriver.DatabaseType = otDBServerType.SQLServer And cached Is Nothing Then
+                        aCommand.Where = String.Format(" [{0}] = @cname and CONVERT(nvarchar, [{1}], 104) = @datestr and [{2}] = @domainID", _
+                                                       {constFNName, constFNTimestamp, constFNDomainID})
+                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@cname", datatype:=otDataType.Text, columnname:=constFNName))
+                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@datestr", datatype:=otDataType.Text, notColumn:=True))
+                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@domainID", datatype:=otDataType.Text, notColumn:=True))
+
+                    ElseIf aCommand.DatabaseDriver.DatabaseType = otDBServerType.Access And cached Is Nothing Then
+                        aCommand.Where = String.Format(" [{0}] = @cname and [{1}] = @date and [{2}]=@domainID", _
+                        {constFNName, constFNTimestamp, constFNDomainID})
+                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@cname", datatype:=otDataType.Text, columnname:=constFNName))
+                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@date", datatype:=otDataType.Date, notColumn:=True))
+                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@domainID", datatype:=otDataType.Text, notColumn:=True))
+
+                        ''' just cached against DataTable
+                    ElseIf cached IsNot Nothing Then
+                        aCommand.Where = String.Format(" [{0}] = @cname and [{1}] = @date and [{2}]=@domainID", _
+                       {constFNName, constFNTimestamp, constFNDomainID})
+                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@cname", datatype:=otDataType.Text, columnname:=constFNName))
+                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@date", datatype:=otDataType.Date, notColumn:=True))
+                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@domainID", datatype:=otDataType.Text, notColumn:=True))
+                    Else
+
+                        CoreMessageHandler(message:="DatabaseType not recognized for SQL Statement", messagetype:=otCoreMessageType.InternalError, _
+                                           subname:="CalendarEntry.HasDate", tablename:=ConstTableid, arg1:=aCommand.DatabaseDriver.DatabaseType)
+                        Return False
+                    End If
+
+
+                    aCommand.Prepare()
+                End If
+
+                ' set Parameter
+                aCommand.SetParameterValue("@cname", name)
+                If aCommand.DatabaseDriver.DatabaseType = otDBServerType.SQLServer And cached Is Nothing Then
+                    aCommand.SetParameterValue("@datestr", Format("dd.MM.yyyy", refDate))
+                Else
+                    aCommand.SetParameterValue("@date", refDate)
+                End If
+                aCommand.SetParameterValue("@domainID", domainID)
+
+                '** run the Command
+                Dim theRecords As List(Of ormRecord) = aCommand.RunSelect
+
+                If theRecords.Count >= 0 Then
+                    Return True
+                End If
+                Return False
+            Catch ex As Exception
+                Call CoreMessageHandler(subname:="CalendarEntry.HasDate", exception:=ex, messagetype:=otCoreMessageType.InternalError)
+                Return False
+            End Try
+
+        End Function
+
 
         ''' <summary>
         ''' returns all calendar entries by refence date

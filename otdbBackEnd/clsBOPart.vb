@@ -97,9 +97,6 @@ Namespace OnTrack.Parts
         <ormObjectEntry(typeid:=otDataType.Text, size:=50, isnullable:=True, _
              XID:="pt12", Title:="Function", description:="function of the deliverable")> Public Const constFNFunction = "function"
 
-        <ormObjectEntry(referenceObjectEntry:=ObjectMessage.ConstObjectID & "." & ObjectMessage.ConstFNTag, isnullable:=True)> _
-        Public Const ConstFNmsglogtag = ObjectMessage.ConstFNTag
-
 
         ' change FK Action since we have the workspace as FK (leads also to domians)
         <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, _
@@ -127,7 +124,6 @@ Namespace OnTrack.Parts
         <ormEntryMapping(EntryName:=constFNResponsiblePerson)> Private _responsible As String
         <ormEntryMapping(EntryName:=constFNChangeRef)> Private _changerefID As String
         <ormEntryMapping(EntryName:=constFNComment)> Private _comment As String
-        <ormEntryMapping(EntryName:=ConstFNmsglogtag)> Private _msglogtag As String
         <ormEntryMapping(EntryName:=constFNBlockingItemReference)> Private _blockingitemID As String
         <ormEntryMapping(EntryName:=constFNCategory)> Private _categoryID As String
         <ormEntryMapping(EntryName:=constFNMatchCode)> Private _matchcode As String
@@ -353,19 +349,7 @@ Namespace OnTrack.Parts
             End Set
         End Property
 
-        '****** createTAG
-        Public Function getUniqueTag()
-            getUniqueTag = ConstDelimiter & ConstTableID & ConstDelimiter & _partID & ConstDelimiter
-        End Function
-        ReadOnly Property Msglogtag() As String
-            Get
-                If _msglogtag = "" Then
-                    _msglogtag = getUniqueTag()
-                End If
-                Msglogtag = _msglogtag
-            End Get
-
-        End Property
+       
 
 #End Region
 

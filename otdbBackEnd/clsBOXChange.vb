@@ -216,6 +216,13 @@ Namespace OnTrack.XChange
         ''' <returns></returns>
         ''' <remarks></remarks>
         Property Type As otXChangeConfigEntryType
+        ''' <summary>
+        ''' returns the object entry definition 
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        ReadOnly Property ObjectEntryDefinition As iormObjectEntry
     End Interface
 
     ''' <summary>
@@ -498,9 +505,6 @@ Namespace OnTrack.XChange
             title:="Order Number", description:="ordinal number in which entriy is processed")>
         Public Const constFNOrderNo = "orderno"
 
-        <ormObjectEntry(typeid:=otDataType.Text, size:=250, isnullable:=True, _
-            title:="MessageLogTag", description:="Message Log Tag")>
-        Public Const constFNMsgLogTag = "msglogtag"
 
         ''' <summary>
         ''' Mappings
@@ -674,7 +678,7 @@ Namespace OnTrack.XChange
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public ReadOnly Property [ObjectEntryDefinition] As iormObjectEntry
+        Public ReadOnly Property [ObjectEntryDefinition] As iormObjectEntry Implements IXChangeConfigEntry.ObjectEntryDefinition
             Get
                 If _EntryDefinition Is Nothing AndAlso IsAlive(throwError:=False) Then
 
@@ -731,6 +735,7 @@ Namespace OnTrack.XChange
             End Get
             Set(value As Ordinal)
                 SetValue(constFNordinal, value)
+                _ordinal = value 'cache
             End Set
         End Property
 
@@ -1002,17 +1007,12 @@ Namespace OnTrack.XChange
         <ormObjectEntry(referenceObjectEntry:=XOutline.constobjectid & "." & XOutline.constFNID, isnullable:=True, _
                Title:="Outline ID", Description:="ID to the associated Outline")> Public Const constFNOutline = "outline"
 
-        <ormObjectEntry(typeid:=otDataType.Text, size:=255, isnullable:=True,
-              Title:="Message Log Tag", Description:="Message Log Tag")> Public Const constFNMsgLogTag = "msglogtag"
-
-
         ''' <summary>
         ''' Mappings
         ''' </summary>
         ''' <remarks></remarks>
         <ormEntryMapping(EntryName:=constFNID)> Private _configname As String = ""
         <ormEntryMapping(EntryName:=constFNDesc)> Private _description As String
-        <ormEntryMapping(EntryName:=constFNMsgLogTag)> Private _msglogtag As String
         <ormEntryMapping(EntryName:=constFNDynamic)> Private _DynamicAttributes As Boolean
         <ormEntryMapping(EntryName:=constFNOutline)> Private _outlineid As String
 
@@ -1112,7 +1112,7 @@ Namespace OnTrack.XChange
         ''' Gets or sets the dynamic attributes.
         ''' </summary>
         ''' <value>The S dynamic attributes.</value>
-        Public Property AllowDynamicAttributes() As Boolean
+        Public Property AllowDynamicEntries() As Boolean
             Get
                 Return Me._DynamicAttributes
             End Get
@@ -1125,15 +1125,7 @@ Namespace OnTrack.XChange
         Public Function GetUniqueTag()
             GetUniqueTag = ConstDelimiter & constTableID & ConstDelimiter & _configname & ConstDelimiter & "0" & ConstDelimiter
         End Function
-        ReadOnly Property Msglogtag() As String
-            Get
-                If _msglogtag Is Nothing Then
-                    _msglogtag = GetUniqueTag()
-                End If
-                Msglogtag = _msglogtag
-            End Get
-
-        End Property
+        
         ''' <summary>
         ''' gets name of configuration
         ''' </summary>
@@ -1212,28 +1204,21 @@ Namespace OnTrack.XChange
         End Function
 
         ''' <summary>
-        ''' returns the maximal index number of a xchange object
-        ''' </summary>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Function GetMaxObjectIDNO() As Long
-
-            If NoObjects > 0 Then
-                Return Me.ObjectIDNos.Max
-            Else
-                Return 0
-            End If
-
-        End Function
-        ''' <summary>
         ''' returns the maximal index number of a xchange entry
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetMaxObjectEntryIDNO() As Long
+        Public Function GetMaxIDNO() As Long
 
-            If NoObjectEntries > 0 Then
+            If _ObjectEntryCollection.Count > 0 AndAlso _ObjectCollection.Count > 0 Then
+                Dim i As ULong = Me.ObjectEntryIDNos.Max
+                Dim j As ULong = Me.ObjectIDNos.Max
+                If i > j Then Return i
+                Return j
+            ElseIf _ObjectEntryCollection.Count > 0 AndAlso _ObjectCollection.Count = 0 Then
                 Return Me.ObjectEntryIDNos.Max
+            ElseIf _ObjectEntryCollection.Count = 0 AndAlso _ObjectCollection.Count > 0 Then
+                Return Me.ObjectIDNos.Max
             Else
                 Return 0
             End If
@@ -1345,9 +1330,11 @@ Namespace OnTrack.XChange
 
             ' get the entry
             anEntry = Me.GetEntryByXID(XID, objectname)
-            If anEntry Is Nothing Then
+            If anEntry Is Nothing And Not Me.AllowDynamicEntries Then
                 Return False
-            ElseIf Not anEntry.IsLoaded And Not anEntry.IsCreated Then
+            ElseIf anEntry Is Nothing And Me.AllowDynamicEntries Then
+                Return Me.AddEntryByXID(Xid:=XID, ordinal:=ordinal, objectname:=objectname)
+            ElseIf Not anEntry.IsAlive(throwError:=False) Then
                 Return False
             End If
 
@@ -1446,7 +1433,7 @@ Namespace OnTrack.XChange
             End If
 
             ' add 
-            aXchangeObject = XChangeObject.Create(Me.Configname, Me.GetMaxObjectIDNO + 1, objectname:=name, xcmd:=xcmd, domainid:=DomainID, runtimeonly:=Me.RunTimeOnly)
+            aXchangeObject = XChangeObject.Create(Me.Configname, Me.GetMaxIDNO + 1, objectname:=name, xcmd:=xcmd, domainid:=DomainID, runtimeonly:=Me.RunTimeOnly)
             If aXchangeObject IsNot Nothing Then
                 _ObjectCollection.Add(aXchangeObject)
                 Return True
@@ -1563,7 +1550,7 @@ Namespace OnTrack.XChange
             If xcmd = 0 Then xcmd = otXChangeCommandType.Read
 
             ' add the component
-            anEntry = XChangeObjectEntry.Create(Me.Configname, Me.GetMaxObjectEntryIDNO + 1)
+            anEntry = XChangeObjectEntry.Create(Me.Configname, Me.GetMaxIDNO + 1)
             If anEntry IsNot Nothing Then
                 anEntry.XID = objectentry.XID
                 If Not TypeOf ordinal Is OnTrack.Database.Ordinal Then
@@ -1580,6 +1567,9 @@ Namespace OnTrack.XChange
                 ' add the Object too
                 _ObjectEntryCollection.Add(anEntry)
                 Return True
+            Else
+                CoreMessageHandler(message:="Warning! Entry couldnot be created in XChangeConfiguration", subname:="XChangeConfiguration.AddEntryByObjectEntry", arg1:=Me.Configname, _
+                                   messagetype:=otCoreMessageType.ApplicationWarning)
             End If
 
             Return False
@@ -1614,29 +1604,32 @@ Namespace OnTrack.XChange
 
             '*** no objectname -> get all IDs in objects
             If objectname = "" Then
-                For Each entry In CurrentSession.Objects.GetEntryByXID(xid:=Xid)
+                Dim anEntrylist As List(Of iormObjectEntry) = CurrentSession.Objects.GetEntryByXID(xid:=Xid)
+                For Each anEntry In anEntrylist.ToArray 'make sure that the list is not changing (clone it) - maybe we are adding entries
                     '** compare to objects in order
                     If Me.NoObjects > 0 Then
-                        For Each anObjectEntry In Me.ObjectsByOrderNo
-                            If entry.Objectname = anObjectEntry.Objectname Then
-                                AddEntryByXID = AddEntryByObjectEntry(objectentry:=entry, ordinal:=ordinal,
+                        Dim aList As List(Of XChangeObject) = Me.ObjectsByOrderNo
+                        For Each anObjectEntry In aList.ToArray 'make sure that the list is not changing (clone it) - maybe we are adding entries
+                            If anEntry.Objectname = anObjectEntry.Objectname Then
+                                AddEntryByXID = AddEntryByObjectEntry(objectentry:=anEntry, ordinal:=ordinal,
                                                                   isxchanged:=isXChanged,
-                                                                  objectname:=entry.Objectname,
+                                                                  objectname:=anEntry.Objectname,
                                                                   xcmd:=xcmd, readonly:=[readonly])
                             End If
                         Next
                         ' simply add
 
                     Else
-                        AddEntryByXID = AddEntryByObjectEntry(objectentry:=entry, ordinal:=ordinal,
+                        AddEntryByXID = AddEntryByObjectEntry(objectentry:=anEntry, ordinal:=ordinal,
                                                           isxchanged:=isXChanged,
-                                                          objectname:=entry.Objectname, xcmd:=xcmd, readonly:=[readonly])
+                                                          objectname:=anEntry.Objectname, xcmd:=xcmd, readonly:=[readonly])
                     End If
 
                 Next
 
             Else
-                For Each entry In CurrentSession.Objects.GetEntryByXID(xid:=Xid)
+                Dim aList As List(Of iormObjectEntry) = CurrentSession.Objects.GetEntryByXID(xid:=Xid)
+                For Each entry In aList.ToArray 'make sure that the list is not changing (clone it) - maybe we are adding entries
                     If objectname = entry.Objectname Then
                         AddEntryByXID = AddEntryByObjectEntry(objectentry:=entry, ordinal:=ordinal,
                                                           isxchanged:=isXChanged,
@@ -1958,9 +1951,9 @@ Namespace OnTrack.XChange
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public ReadOnly Property ObjectsByOrderNo() As IEnumerable(Of XChangeObject)
+        Public ReadOnly Property ObjectsByOrderNo() As IList(Of XChangeObject)
             Get
-                Return _objectsByOrderDirectory.Values
+                Return _objectsByOrderDirectory.Values.ToList
             End Get
         End Property
 
@@ -2096,15 +2089,27 @@ Namespace OnTrack.XChange
                                         Optional ByVal objectname As String = "") As XChangeObjectEntry
 
             Dim aCollection As IEnumerable
-            XID = XID.ToUpper
-            objectname = objectname.ToUpper
+            Dim names As String() = Shuffle.NameSplitter(XID.ToUpper)
+            If names.Count = 0 OrElse objectname <> "" Then
+                XID = names.First
+                objectname = objectname.ToUpper
+            ElseIf names.Count > 1 Then
+                XID = names.Last
+                objectname = names.First
+            Else
+                ' case we have a canonical xid
+                XID = names.First
+                objectname = objectname.ToUpper
+            End If
+
 
             If Not Me.IsAlive(subname:="GetEntryByXID") Then
                 Return Nothing
             End If
 
-            If _entriesXIDList.ContainsKey(UCase(XID)) Then
-                aCollection = _entriesXIDList.Item(UCase(XID))
+
+            If _entriesXIDList.ContainsKey(XID) Then
+                aCollection = _entriesXIDList.Item(XID)
                 For Each entry As XChangeObjectEntry In aCollection
                     If objectname <> "" AndAlso entry.Objectname = objectname Then
                         Return entry

@@ -109,18 +109,62 @@ Namespace OnTrack.Database
 
         End Property
         ''' <summary>
+        ''' sets or gets the context identifier
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Overridable Property ContextIdentifier() As String Implements ormLoggable.ContextIdentifier
+            Get
+                Return _ContextIdentifier
+            End Get
+            Set(value As String)
+                _contextidentifier = value
+            End Set
+        End Property
+        ''' <summary>
+        ''' sets or gets the context identifier
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Overridable Property TupleIdentifier() As String Implements ormLoggable.TupleIdentifier
+            Get
+                Return _tupleidentifier
+            End Get
+            Set(value As String)
+                _tupleidentifier = value
+            End Set
+        End Property
+        ''' <summary>
+        ''' sets or gets the context identifier
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Overridable Property EntityIdentifier() As String Implements ormLoggable.EntityIdentifier
+            Get
+                Return _entityidentifier
+            End Get
+            Set(value As String)
+                _entityidentifier = value
+            End Set
+        End Property
+        ''' <summary>
         ''' returns the object message log for this data object
         ''' </summary>
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public ReadOnly Property ObjectMessageLog As ObjectMessageLog
+        Public Property ObjectMessageLog As ObjectMessageLog Implements ormLoggable.ObjectMessageLog
             Get
                 If Not Me.IsAlive(subname:="ObjectMessageLog") Then Return Nothing
-                If _messagelog Is Nothing Then InfuseRelation(ConstRMessageLog)
-                Return _messagelog
+                If _ObjectMessageLog Is Nothing Then InfuseRelation(ConstRMessageLog)
+                Return _ObjectMessageLog
             End Get
-
+            Set(value As ObjectMessageLog)
+                Throw New InvalidOperationException("setting the Object message log is not allowed")
+            End Set
         End Property
         ''' <summary>
         ''' returns the tableschema associated with this data object
@@ -143,7 +187,7 @@ Namespace OnTrack.Database
         ''' Gets or sets the domain ID.
         ''' </summary>
         ''' <value>The domain ID.</value>
-        Public Overridable Property DomainID() As String
+        Public Overridable Property DomainID() As String Implements iormPersistable.DomainID
             Get
                 If Me.ObjectHasDomainBehavior Then
                     Return Me._domainID
@@ -501,6 +545,20 @@ Namespace OnTrack.Database
 
                 Return _primaryTableID
             End Get
+        End Property
+        ''' <summary>
+        ''' sets or gets the messagelogtag
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Property MessageLogTag() As String
+            Get
+                Return _msglogtag
+            End Get
+            Set(value As String)
+                SetValue(ConstFNMSGLOGTAG, value)
+            End Set
         End Property
         ''' <summary>
         ''' gets the Creation date in the persistence store

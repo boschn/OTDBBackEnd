@@ -22,6 +22,7 @@ Imports System.Linq
 Imports System.Diagnostics.Debug
 
 Imports OnTrack
+Imports OnTrack.Commons
 Imports OnTrack.Database
 Imports OnTrack.Scheduling
 Imports OnTrack.Deliverables
@@ -47,7 +48,7 @@ Namespace OnTrack.Xchange
         title:="Message Queue", adddeletefieldbehavior:=True, usecache:=True)> _
     Public Class MessageQueue
         Inherits ormDataObject
-        Implements otLoggable
+        Implements ormLoggable
         Implements iormInfusable
         Implements iormPersistable
 
@@ -100,13 +101,20 @@ Namespace OnTrack.Xchange
          Title:="Request Date", description:="date on which the message queue was issued")> Public Const ConstFNReqDate = "REQDATE"
 
         <ormObjectEntry(typeid:=otDataType.Timestamp, isnullable:=True, _
-        Title:="Processed Timestamp", description:="Timestamp of last processed")> Public Const ConstFNProcStamp = "PROCSTAMP"
+            Title:="Precheck Timestamp", description:="Timestamp of last precheck")> Public Const ConstFNPreStamp = "PRESTAMP"
+
+        <ormObjectEntry(typeid:=otDataType.Timestamp, isnullable:=True, _
+                Title:="Processed Timestamp", description:="Timestamp of last processed")> Public Const ConstFNProcStamp = "PROCSTAMP"
 
         <ormObjectEntry(ReferenceObjectEntry:=Commons.StatusItem.ConstObjectID & "." & Commons.StatusItem.constFNCode, isnullable:=True, _
             Title:="Processed Status", description:="status code of the last process run")> Public Const ConstFNProcStatus = "PROCSTATUS"
 
         <ormObjectEntry(ReferenceObjectEntry:=Commons.User.ConstObjectID & "." & Commons.User.ConstFNUsername, isnullable:=True, _
            Title:="Processor", description:="username of processed message queue")> Public Const ConstFNProcUser = "PROCUSER"
+
+        <ormObjectEntry(ReferenceObjectEntry:=ObjectMessage.ConstObjectID & "." & ObjectMessage.ConstFNContextID)> Public Const ConstFNContextID = ObjectMessage.ConstFNContextID
+        <ormObjectEntry(ReferenceObjectEntry:=ObjectMessage.ConstObjectID & "." & ObjectMessage.ConstFNTupleID)> Public Const ConstFNTupleID = ObjectMessage.ConstFNTupleID
+        <ormObjectEntry(ReferenceObjectEntry:=ObjectMessage.ConstObjectID & "." & ObjectMessage.ConstFNEntityID)> Public Const ConstFNEntityID = ObjectMessage.ConstFNEntityID
 
         ''' <summary>
         ''' Member Mapping
@@ -125,11 +133,14 @@ Namespace OnTrack.Xchange
 
         <ormEntryMapping(entryname:=ConstFNTitle)> Private _title As String
         <ormEntryMapping(entryname:=ConstFNComment)> Private _cmt As String
-
-        <ormEntryMapping(entryname:=ConstFNProcStamp)> Private _procTimeStamp As DateTime
+        <ormEntryMapping(entryname:=ConstFNPreStamp)> Private _preTimeStamp As DateTime?
+        <ormEntryMapping(entryname:=ConstFNProcStamp)> Private _procTimeStamp As DateTime?
         <ormEntryMapping(entryname:=ConstFNProcStatus)> Private _procStatus As String
         <ormEntryMapping(entryname:=ConstFNProcUser)> Private _procUsername As String
 
+        <ormEntryMapping(entryname:=ConstFNContextID)> Private _ContextIdentifier As String
+        <ormEntryMapping(entryname:=ConstFNTupleID)> Private _TupleIdentifier As String
+        <ormEntryMapping(entryname:=ConstFNEntityID)> Private _EntitityIdentifier As String
         ''' <summary>
         ''' Relation to XCOnfig ID
         ''' </summary>
@@ -148,40 +159,108 @@ Namespace OnTrack.Xchange
           cascadeoncreate:=False, cascadeonDelete:=True, cascadeonUpdate:=True)> Public Const ConstRXMessages = "RELMESSAGES"
 
         <ormEntryMapping(relationname:=ConstRXMessages, infusemode:=otInfuseMode.OnInject Or otInfuseMode.OnDemand)> _
-        Private WithEvents _messages As ormRelationNewableCollection(Of MQMessage) = New ormRelationCollection(Of MQMessage)(Me, keyentrynames:={MQMessage.constFNIDNO})
+        Private WithEvents _messages As ormRelationNewableCollection(Of MQMessage) = New ormRelationNewableCollection(Of MQMessage)(Me, keyentrynames:={MQMessage.constFNIDNO})
 
-
-
-
-        '** for ERROR MSG
-        Private s_ContextIdentifier As String
-        Private s_TupleIdentifier As String
-        Private s_EntitityIdentifier As String
-
+        '''
+        ''' dynamic members
+        ''' 
 
         '** not saved -> ordinals of the special MQF Columns -> for write back and preprocess
-        Public Actionordinal As Object
-        Public ProcessStatusordinal As Object
-        Public ProcessDateordinal As Object
-        Public ProcessLogordinal As Object
-        'Private s_msglog As New ObjectMessageLog
-
-
-
-
+        Private _Actionordinal As Object
+        Private _UIDOrdinal As Object
+        Private _ProcessStatusordinal As Object
+        Private _ProcessDateordinal As Object
+        Private _ProcessLogordinal As Object
+        Private _mqfslots As New List(Of String) 'slot ids used in this message queue
+        Private _XBag As XBag
 
 #Region "Properties"
+
+        ''' <summary>
+        ''' Gets or sets the actual used slot ids.
+        ''' </summary>
+        ''' <value>The mqfslots.</value>
+        Public ReadOnly Property UsedSlotIDs() As List(Of String)
+            Get
+                Return Me._mqfslots
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the process logordinal.
+        ''' </summary>
+        ''' <value>The process logordinal.</value>
+        Public Property ProcessLogordinal() As Object
+            Get
+                Return Me._ProcessLogordinal
+            End Get
+            Set
+                Me._ProcessLogordinal = Value
+            End Set
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the process dateordinal.
+        ''' </summary>
+        ''' <value>The process dateordinal.</value>
+        Public Property ProcessDateordinal() As Object
+            Get
+                Return Me._ProcessDateordinal
+            End Get
+            Set
+                Me._ProcessDateordinal = Value
+            End Set
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the process dateordinal.
+        ''' </summary>
+        ''' <value>The process dateordinal.</value>
+        Public Property UIDOrdinal() As Object
+            Get
+                Return Me._UIDOrdinal
+            End Get
+            Set(value As Object)
+                Me._UIDOrdinal = value
+            End Set
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the process statusordinal.
+        ''' </summary>
+        ''' <value>The process statusordinal.</value>
+        Public Property ProcessStatusordinal() As Object
+            Get
+                Return Me._ProcessStatusordinal
+            End Get
+            Set
+                Me._ProcessStatusordinal = Value
+            End Set
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the  actionordinal.
+        ''' </summary>
+        ''' <value>The P actionordinal.</value>
+        Public Property ActionOrdinal() As Object
+            Get
+                Return Me._Actionordinal
+            End Get
+            Set(value As Object)
+                Me._Actionordinal = value
+            End Set
+        End Property
 
         ''' <summary>
         ''' Gets or sets the context identifier.
         ''' </summary>
         ''' <value>The context identifier.</value>
-        Public Property ContextIdentifier() As String Implements otLoggable.ContextIdentifier
+        Public Property ContextIdentifier() As String Implements ormLoggable.ContextIdentifier
             Get
-                ContextIdentifier = s_ContextIdentifier
+                Return _ContextIdentifier
             End Get
             Set(value As String)
-                s_ContextIdentifier = value
+                SetValue(ConstFNContextID, value)
             End Set
         End Property
 
@@ -189,12 +268,12 @@ Namespace OnTrack.Xchange
         ''' Gets or sets the tuple identifier.
         ''' </summary>
         ''' <value>The tuple identifier.</value>
-        Public Property TupleIdentifier() As String Implements otLoggable.TupleIdentifier
+        Public Property TupleIdentifier() As String Implements ormLoggable.TupleIdentifier
             Get
-                TupleIdentifier = s_TupleIdentifier
+                Return _TupleIdentifier
             End Get
             Set(value As String)
-                s_TupleIdentifier = value
+                SetValue(ConstFNTupleID, value)
             End Set
         End Property
 
@@ -202,12 +281,12 @@ Namespace OnTrack.Xchange
         ''' Gets or sets the entitity identifier.
         ''' </summary>
         ''' <value>The entitity identifier.</value>
-        Public Property EntitityIdentifier() As String Implements otLoggable.EntitityIdentifier
+        Public Property EntityIdentifier() As String Implements ormLoggable.EntityIdentifier
             Get
-                EntitityIdentifier = s_EntitityIdentifier
+                Return _EntitityIdentifier
             End Get
             Set(value As String)
-                s_EntitityIdentifier = value
+                SetValue(ConstFNEntityID, value)
             End Set
         End Property
 
@@ -367,6 +446,20 @@ Namespace OnTrack.Xchange
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
+        Public Property PrecheckDate() As DateTime?
+            Get
+                Return _preTimeStamp
+            End Get
+            Set(value As DateTime?)
+                SetValue(ConstFNPreStamp, value)
+            End Set
+        End Property
+        ''' <summary>
+        ''' sets or gets the Process Time stamp
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
         Public Property Processdate() As DateTime?
             Get
                 Return _procTimeStamp
@@ -409,8 +502,36 @@ Namespace OnTrack.Xchange
                 _xchangeconfig = value
             End Set
         End Property
-
-      
+        ''' <summary>
+        ''' returns true if the MessageQueue is processable - at least one message can be processed
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property Processable As Boolean
+            Get
+                Dim result As Boolean = True
+                For Each aMessage As MQMessage In Me.Messages
+                    result = aMessage.Processable Or result
+                Next
+                Return result
+            End Get
+        End Property
+        ''' <summary>
+        ''' returns true if the MessageQueue is processed - at least one message is processed with success
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property Processed As Boolean
+            Get
+                Dim result As Boolean = True
+                For Each aMessage As MQMessage In Me.Messages
+                    result = aMessage.Processed Or result
+                Next
+                Return result
+            End Get
+        End Property
 #End Region
 
        
@@ -459,8 +580,33 @@ Namespace OnTrack.Xchange
                 Return _messages.AddCreate()
             End If
         End Function
+
        
-        
+
+            ''' <summary>
+            ''' returns the highest Status Item for the Messages for this MQMessage
+            ''' </summary>
+            ''' <returns></returns>
+            ''' <remarks></remarks>
+        Public Function GetHighestStatusItem() As StatusItem
+
+            Dim highest, astatusitem As StatusItem
+            For Each aMessage In Me.Messages
+                If aMessage.ObjectMessageLog IsNot Nothing Then
+                    astatusitem = aMessage.ObjectMessageLog.GetHighesStatusItem
+                    If astatusitem IsNot Nothing Then
+                        Dim aweight As Integer = astatusitem.Weight
+                        If highest Is Nothing OrElse aweight > highest.Weight Then
+                            highest = astatusitem
+                        End If
+                    End If
+
+                End If
+            Next
+            Return highest
+
+        End Function
+
         ''' <summary>
         ''' create a persistable message queue object
         ''' </summary>
@@ -480,6 +626,21 @@ Namespace OnTrack.Xchange
             Return ormDataObject.Retrieve(Of MessageQueue)(pkArray:={id.ToUpper})
         End Function
 
+        ''' <summary>
+        ''' returns a XBAG out of this Message Queue
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function GetXBag() As XBag
+            If Not Me.IsAlive("GetXBAG") Then Return Nothing
+
+            If _XBag IsNot Nothing Then Return _XBag
+
+            ''' create a XBag
+            _XBag = New XBag(Me.XChangeConfig)
+            _XBag.ContextIdentifier = Me.ContextIdentifier
+            Return _XBag
+        End Function
         '***** 
         '*****
         ''' <summary>
@@ -487,16 +648,26 @@ Namespace OnTrack.Xchange
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function Process() As Boolean
+        Public Function Process(Optional ByRef workerthread As ComponentModel.BackgroundWorker = Nothing) As Boolean
             Process = True
-            ' step through the RowEntries
-            For Each aMQFRowEntry In Me.Messages
-                ' if processable than process
-                If aMQFRowEntry.Processable Then
-                    Process = Process And aMQFRowEntry.RunXChange()
-                End If
-            Next aMQFRowEntry
+            Dim progress As Long
+            Dim maximum As Long
+            For Each aMessage As MQMessage In Me.Messages
+                If aMessage.PrecheckedOn IsNot Nothing And aMessage.Processable Then maximum += 1
+            Next
 
+            ' step through the RowEntries
+            For Each aMessage As MQMessage In Me.Messages
+                If aMessage.PrecheckedOn IsNot Nothing And aMessage.Processable Then
+                    Process = Process And aMessage.Process(workerthread:=workerthread)
+                    If workerthread IsNot Nothing Then
+                        progress += 1
+                        workerthread.ReportProgress((progress / maximum) * 100, "processing ...")
+                    End If
+                End If
+            Next
+
+            Me.Processdate = DateTime.Now
             Return Process
         End Function
 
@@ -506,12 +677,20 @@ Namespace OnTrack.Xchange
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function Precheck() As Boolean
+        Public Function Precheck(Optional ByRef workerthread As ComponentModel.BackgroundWorker = Nothing) As Boolean
             Precheck = True
+            Dim progress As Long
+            Dim maximum As Long = Me.Messages.Count
+
             ' step through the RowEntries
-            For Each aMQFRowEntry In Me.Messages
-                Precheck = Precheck And aMQFRowEntry.RunPreCheck()
-            Next aMQFRowEntry
+            For Each aMessage As MQMessage In Me.Messages
+                Precheck = Precheck And aMessage.PreCheck(workerthread)
+                If workerthread IsNot Nothing Then
+                    progress += 1
+                    workerthread.ReportProgress((progress / maximum) * 100, "prechecking ...")
+                End If
+            Next
+            Me.precheckdate = DateTime.Now
 
             Return Precheck
         End Function
@@ -539,10 +718,48 @@ Namespace OnTrack.Xchange
        title:="Message", adddeletefieldbehavior:=True, usecache:=True)> _
     Public Class MQMessage
         Inherits ormDataObject
-        Implements otLoggable
+        Implements ormLoggable
         Implements iormInfusable
         Implements iormPersistable
 
+
+        ''' <summary>
+        ''' Class for Event Arguments
+        ''' </summary>
+        ''' <remarks></remarks>
+        Public Class EventArgs
+            Inherits System.EventArgs
+
+            Private _mqmessage As MQMessage
+            Private _processsuccess As Boolean
+
+            Public Sub New([mqmessage] As MQMessage, result As Boolean)
+                _mqmessage = mqmessage
+                _processsuccess = result
+            End Sub
+
+            ''' <summary>
+            ''' Gets the processsuccess.
+            ''' </summary>
+            ''' <value>The processsuccess.</value>
+            Public ReadOnly Property Processsuccess() As Boolean
+                Get
+                    Return Me._processsuccess
+                End Get
+            End Property
+
+            ''' <summary>
+            ''' Gets or sets the mqmessage.
+            ''' </summary>
+            ''' <value>The mqmessage.</value>
+            Public ReadOnly Property Mqmessage() As MQMessage
+                Get
+                    Return Me._mqmessage
+                End Get
+                
+            End Property
+
+        End Class
         ''' <summary>
         ''' Object ID
         ''' </summary>
@@ -575,20 +792,28 @@ Namespace OnTrack.Xchange
             title:="Action", description:="Transaction to be carried out with the slots")> Public Const ConstFNAction = "ACTION"
 
         <ormObjectEntry(typeid:=otDataType.Bool, defaultvalue:=False, dbdefaultvalue:="0", _
-                    title:="Processed", description:="is message processed")> Public Const ConstFNProcessed = "PROCESSED"
+                    title:="Processed", description:="is message processed with success")> Public Const ConstFNProcessed = "PROCESSED"
 
         <ormObjectEntry(typeid:=otDataType.Bool, isnullable:=True, _
-                     title:="Processable", description:="is message processable")> Public Const ConstFNProcessable = "PROCESSABLE"
+                     title:="Processable", description:="is message processable (success on precheck)")> Public Const ConstFNProcessable = "PROCESSABLE"
 
         <ormObjectEntry(referenceobjectentry:=MessageQueue.ConstObjectID & "." & MessageQueue.ConstFNProcStamp _
           )> Public Const ConstFNPROCSTAMP = MessageQueue.ConstFNProcStamp
 
+        <ormObjectEntry(referenceobjectentry:=MessageQueue.ConstObjectID & "." & MessageQueue.ConstFNProcStamp, _
+            title:="Prechecked", Description:="timestamp when the prechecked run was done" _
+          )> Public Const ConstFNPRESTAMP = "PRECSTAMP"
+
         <ormObjectEntry(referenceobjectentry:=MessageQueue.ConstObjectID & "." & MessageQueue.ConstFNProcStatus _
-          )> Public Const ConstFNProcStatus = MessageQueue.ConstFNProcStamp
+          )> Public Const ConstFNProcStatus = MessageQueue.ConstFNProcStatus
 
         <ormObjectEntry(ReferenceObjectEntry:=Commons.Domain.ConstObjectID & "." & Commons.Domain.ConstFNDomainID, isnullable:=True, _
            useforeignkey:=otForeignKeyImplementation.None, _
            Title:="DomainID", description:="ID of the domain for this message")> Public Const ConstFNDomainID = Commons.Domain.ConstFNDomainID
+
+        <ormObjectEntry(ReferenceObjectEntry:=ObjectMessage.ConstObjectID & "." & ObjectMessage.ConstFNContextID)> Public Const ConstFNContextID = ObjectMessage.ConstFNContextID
+        <ormObjectEntry(ReferenceObjectEntry:=ObjectMessage.ConstObjectID & "." & ObjectMessage.ConstFNTupleID)> Public Const ConstFNTupleID = ObjectMessage.ConstFNTupleID
+        <ormObjectEntry(ReferenceObjectEntry:=ObjectMessage.ConstObjectID & "." & ObjectMessage.ConstFNEntityID)> Public Const ConstFNEntityID = ObjectMessage.ConstFNEntityID
 
         ''' <summary>
         ''' Mappings
@@ -600,29 +825,93 @@ Namespace OnTrack.Xchange
         <ormEntryMapping(entryname:=ConstFNAction)> Private _action As String
 
         <ormEntryMapping(entryname:=ConstFNProcessed)> Private _processed As Boolean
-        <ormEntryMapping(entryname:=ConstFNProcessable)> Private _processable As Boolean?
+        <ormEntryMapping(entryname:=ConstFNProcessable)> Private _processable As Boolean? = True 'init value
         <ormEntryMapping(entryname:=ConstFNPROCSTAMP)> Private _processedOn As DateTime?
+        <ormEntryMapping(entryname:=ConstFNPRESTAMP)> Private _precheckedOn As DateTime?
+
         <ormEntryMapping(entryname:=ConstFNProcStatus)> Private _processstatus As String
 
+        <ormEntryMapping(entryname:=ConstFNContextID)> Private _ContextIdentifier As String
+        <ormEntryMapping(entryname:=ConstFNTupleID)> Private _TupleIdentifier As String
+        <ormEntryMapping(entryname:=ConstFNEntityID)> Private _EntitityIdentifier As String
         ''' <summary>
         ''' Relation to the Slots
         ''' </summary>
         ''' <remarks></remarks>
-        <ormRelation(linkObject:=GetType(MQXSlot), fromEntries:={ConstFNMQID, constFNIDNO}, ToEntries:={MQXSlot.ConstFNMQID, MQXSlot.ConstFNSlotNo}, _
+        <ormRelation(linkObject:=GetType(MQXSlot), fromEntries:={ConstFNMQID, constFNIDNO}, ToEntries:={MQXSlot.ConstFNMQID, MQXSlot.ConstFNSlotID}, _
             cascadeOnCreate:=False, cascadeOndelete:=True, cascadeOnUpdate:=True)> Public Const ConstRSlots = "RELSLOTS"
 
         <ormEntryMapping(relationname:=ConstRSlots)> Private WithEvents _slots As ormRelationNewableCollection(Of MQXSlot) = _
-            New ormRelationNewableCollection(Of MQXSlot)(Me, keyentrynames:={MQXSlot.ConstFNSlotNo})
+            New ormRelationNewableCollection(Of MQXSlot)(Me, keyentrynames:={MQXSlot.ConstFNSlotID})
 
-        '** for ERROR MSG
-        Private s_ContextIdentifier As Object
-        Private s_TupleIdentifier As Object
-        Private s_EntitityIdentifier As Object
+        ''' <summary>
+        ''' dynamic data
+        ''' </summary>
+        ''' <remarks></remarks>
+        Private _messagequeue As MessageQueue 'backlink
+        Private _statusitem As Commons.StatusItem
+        Private _envelope As XEnvelope
 
-        Public _queue As MessageQueue 'backlink
+
+        ''' <summary>
+        ''' Events
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Public Event OnPreChecked(sender As Object, e As MQMessage.EventArgs)
+        Public Event OnProcessed(sender As Object, e As MQMessage.EventArgs)
 
 #Region "Properties"
 
+        ''' <summary>
+        ''' returns a XEnvelope associated with this MQMessage
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property Xenvelope As XEnvelope
+            Get
+                If _envelope Is Nothing And Me.MessageQueue IsNot Nothing Then
+                    Dim aXBag = Me.MessageQueue.GetXBag
+                    If aXBag.ContainsKey(key:=Me.IDNO) Then
+                        _envelope = aXBag.Item(key:=Me.IDNO)
+                    Else
+                        _envelope = aXBag.AddEnvelope(key:=Me.IDNO)
+                    End If
+
+                    _envelope.TupleIdentifier = Me.TupleIdentifier
+                    AddHandler _envelope.MessageLog.OnObjectMessageAdded, AddressOf MQMessage_OnEnvelopeObjectMessageAdded
+                End If
+                Return _envelope
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the status item.
+        ''' </summary>
+        ''' <value>The status item.</value>
+        Public Property Statusitem() As StatusItem
+            Get
+                Return Me._statusitem
+            End Get
+            Private Set(value As StatusItem)
+                Me._statusitem = value
+                Me.Statuscode = value.Code
+            End Set
+        End Property
+        ''' <summary>
+        ''' returns the  Message Queue
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        ReadOnly Property MessageQueue As MessageQueue
+            Get
+                If _messagequeue Is Nothing Then _messagequeue = MessageQueue.Retrieve(Me.MessageQueueID)
+                Return _messagequeue
+            End Get
+        End Property
         ''' <summary>
         ''' gets the ID of the messageQueue
         ''' </summary>
@@ -718,7 +1007,20 @@ Namespace OnTrack.Xchange
                 SetValue(ConstFNPROCSTAMP, value)
             End Set
         End Property
-
+        ''' <summary>
+        ''' sets or gets the processed timestamp
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Property PrecheckedOn() As DateTime?
+            Get
+                Return _precheckedOn
+            End Get
+            Set(value As DateTime?)
+                SetValue(ConstFNPRESTAMP, value)
+            End Set
+        End Property
         ''' <summary>
         ''' returns the number of xslots
         ''' </summary>
@@ -775,6 +1077,10 @@ Namespace OnTrack.Xchange
             If e.Dataobject IsNot Nothing Then
                 e.Dataobject.SetValue(MQXSlot.ConstFNMQID, Me.MessageQueueID)
                 e.Dataobject.SetValue(MQXSlot.ConstFNIDNO, Me.IDNO)
+                Dim aSlotid As String = e.Dataobject.GetValue(MQXSlot.ConstFNSlotID)
+                If aSlotid IsNot Nothing Then
+                    If Not Me.MessageQueue.UsedSlotIDs.contains(aSlotid) Then Me.MessageQueue.usedslotids.add(aSlotid)
+                End If
             End If
         End Sub
         ''' <summary>
@@ -889,7 +1195,7 @@ Namespace OnTrack.Xchange
             End If
 
             'msglog
-            If msglog Is Nothing Then msglog = Me.ObjectMessageLog
+            'If msglog Is Nothing Then msglog = Me.ObjectMessageLog
 
             ' check on it
             Select Case LCase(Trim(actioncommand))
@@ -974,82 +1280,363 @@ Namespace OnTrack.Xchange
         ''' <param name="msglog"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function RunPreCheck(Optional ByRef msglog As ObjectMessageLog = Nothing) As Boolean
-            RunPreCheck = RunXChange(justprecheck:=True, msglog:=msglog)
+        Public Function PreCheck(Optional ByRef workerthread As ComponentModel.BackgroundWorker = Nothing) As Boolean
+            Dim result As Boolean
 
+            If Not Me.IsAlive("Precheck") Then Return False
+            Dim aconfigname As String = ""
+            If Me.MessageQueue IsNot Nothing AndAlso Me.MessageQueue.XChangeConfig IsNot Nothing Then
+                aconfigname = Me.MessageQueue.XChangeConfig.Configname
+            End If
+
+            '''
+            ''' check if action there
+            ''' 
+            If Me.Action Is Nothing Then
+                Me.ObjectMessageLog.Add(1011, Nothing, Me.ContextIdentifier, Me.TupleIdentifier, Me.EntityIdentifier, aconfigname)
+
+            Else
+
+                '''
+                ''' run the commands
+                ''' 
+
+                Select Case Me.Action.ToUpper
+
+                    Case ot.ConstMQFOpNoop
+                        '''
+                        ''' Do Nothing by intention
+                        ''' 
+                        result = True
+
+                    Case ot.ConstMQFOpChange
+                        '''
+                        ''' run the XChange through the envelope
+                        ''' 
+                        Me.Processed = Me.RunXChange(justprecheck:=True, workerthread:=workerthread)
+                        Me.Statusitem = Me.ObjectMessageLog.GetHighesStatusItem(ConstStatusType_XEnvelope)
+                        If Me.Statusitem.Code Like "R*" Then
+                            result = False
+                        Else
+                            result = True
+                        End If
+
+
+                        '****
+                        '**** ADD REVISION
+                    Case ot.ConstMQFOpAddRevision
+
+                        result = False 'not implemented
+                        '****
+                        '**** ADD-AFTER
+                        '****
+                    Case ot.ConstMQFOpAddAfter
+
+                        result = False 'not implemented
+                        '******
+                        '****** freeze
+                    Case ot.ConstMQFOpFreeze
+
+                        result = False 'not implemented
+
+                        '****
+                        '**** Delete Deliverable
+                    Case ot.ConstMQFOpDelete
+                        result = False 'not implemented
+
+                    Case ""
+                        '''
+                        ''' Operation missing
+                        ''' 
+                        result = False
+                        If Me.MessageQueue IsNot Nothing AndAlso Me.MessageQueue.XChangeConfig IsNot Nothing Then
+                            aconfigname = Me.MessageQueue.XChangeConfig.Configname
+                        End If
+                        Me.ObjectMessageLog.Add(1011, Nothing, Me.ContextIdentifier, Me.TupleIdentifier, Me.EntityIdentifier, aconfigname, _
+                                                Me.Action)
+                    Case Else
+                        '''
+                        ''' Operation not known
+                        ''' 
+                        result = False
+                        If Me.MessageQueue IsNot Nothing AndAlso Me.MessageQueue.XChangeConfig IsNot Nothing Then
+                            aconfigname = Me.MessageQueue.XChangeConfig.Configname
+                        End If
+                        Me.ObjectMessageLog.Add(1010, Nothing, Me.ContextIdentifier, Me.TupleIdentifier, Me.EntityIdentifier, aconfigname, _
+                                                Me.Action)
+
+                End Select
+            End If
+
+
+            ''' return
+            Me.PrecheckedOn = Date.Now
+            Me.Processable = result
+
+            RaiseEvent OnPreChecked(Me, New MQMessage.EventArgs(MQMessage:=Me, result:=result))
+            Return result
         End Function
+
+        
 
         ''' <summary>
-        ''' Fill Mapping from the Entry
+        ''' Process the Message
         ''' </summary>
-        ''' <param name="mapping"></param>
+        ''' <param name="workerthread"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function FillMapping(ByRef mapping As Dictionary(Of Object, Object)) As Boolean
-            Dim aMapping As New Dictionary(Of Object, Object)
-            Dim aMember As MQXSlot
-            Dim aConfig As XChangeConfiguration
-            Dim aConfigmember As IXChangeConfigEntry
-            Dim aValue As Object
+        Public Function Process(Optional ByRef workerthread As ComponentModel.BackgroundWorker = Nothing) As Boolean
+            Dim result As Boolean
 
+            If Not Me.IsAlive("Process") Then Return False
 
-            If Not Me.IsLoaded And Not Me.IsCreated Then
-                FillMapping = False
-                Exit Function
+            ''' preprocess needed first
+            If Me.PrecheckedOn Is Nothing Then
+                Me.ObjectMessageLog.Add(1291, Nothing, Me.ContextIdentifier, Me.TupleIdentifier, Me.EntityIdentifier)
+                Return False
+                ''' needs to be successfull
+            ElseIf Not Me.Processable Then
+                Me.ObjectMessageLog.Add(1292, Nothing, Me.ContextIdentifier, Me.TupleIdentifier, Me.EntityIdentifier)
+                Return False
+            ElseIf Me.Action Is Nothing Then
+                Me.ObjectMessageLog.Add(1010, Nothing, Me.ContextIdentifier, Me.TupleIdentifier, Me.EntityIdentifier)
+                Return False
             End If
+            '''
+            ''' run the commands
+            ''' 
+            Select Case Me.Action.ToUpper
 
-            '** need the quueue
-            If Me._queue Is Nothing Then
-                Call CoreMessageHandler(subname:="MessageQueueEntry.runXChange", arg1:=Me.MessageQueueID, _
-                                      message:="queue couldn't be loaded")
+                Case ot.ConstMQFOpNoop
+                    '''
+                    ''' Do Nothing by intention
+                    ''' 
+                    Me.PrecheckedOn = Date.Now
+                    Me.Processable = True
+                    Me.ObjectMessageLog.Add(1290, Nothing, Me.ContextIdentifier, Me.TupleIdentifier, Me.EntityIdentifier, Me.MessageQueue.ID, ot.ConstMQFOpNoop)
+                    RaiseEvent OnProcessed(Me, New MQMessage.EventArgs(MQMessage:=Me, result:=result))
 
-                FillMapping = False
-                Exit Function
-            Else
-                aConfig = Me._queue.XChangeConfig
-                If aConfig Is Nothing Then
-                    Call CoreMessageHandler(subname:="MessageQueueEntry.runXChange", _
-                                          arg1:=Me._queue.XChangeConfigName, _
-                                          message:="XChangeConfig couldn't be loaded")
+                Case ot.ConstMQFOpChange
+                    '''
+                    ''' run the XChange through the envelope
+                    ''' 
+                    Me.ProcessedOn = Date.Now
+                    Me.Processed = Me.RunXChange(justprecheck:=False, workerthread:=workerthread)
+                    Me.Statusitem = Me.ObjectMessageLog.GetHighesStatusItem(ConstStatusType_XEnvelope)
+                    If Me.Statusitem.Code Like "R*" Then
+                        result = False
+                    Else
+                        result = True
+                    End If
+                    Me.Processed = result
+                    RaiseEvent OnProcessed(Me, New MQMessage.EventArgs(MQMessage:=Me, result:=result))
 
-                    FillMapping = False
-                    Exit Function
-                End If
-            End If
+                    'Call updateRowXlsDoc9(INPUTMAPPING:=aMapping, INPUTXCHANGECONFIG:=MQFObject.XChangeConfig)
+                    '****
+                    '**** ADD REVISION
+                Case ot.ConstMQFOpAddRevision
+                    '' fill the Mapping
+                    'aMapping = New Dictionary(Of Object, Object)
+                    'Call aMQFRowEntry.FillMapping(aMapping)
+                    '' get UID
+                    'aConfigmember = MQFObject.XChangeConfig.GetEntryByXID(XID:="uid")
+                    'If Not aConfigmember Is Nothing Then
+                    '    If aConfigmember.IsLoaded Or aConfigmember.IsCreated Then
+                    '        If aMapping.ContainsKey(key:=aConfigmember.Ordinal.Value) Then
+                    '            anUID = aMapping.Item(key:=aConfigmember.Ordinal.Value)
+                    '            aDeliverable = Deliverables.Deliverable.Retrieve(uid:=anUID)
+                    '            If aDeliverable Is Nothing Then
+                    '                '** revision ?!
+                    '                aConfigmember = MQFObject.XChangeConfig.GetEntryByXID(XID:="c16")
+                    '                If Not aConfigmember Is Nothing Then
+                    '                    If aConfigmember.IsLoaded Or aConfigmember.IsCreated Then
+                    '                        If aMapping.ContainsKey(key:=aConfigmember.Ordinal.Value) Then
+                    '                            aRev = aMapping.Item(key:=aConfigmember.Ordinal.Value)
+                    '                        Else
+                    '                            aRev = ""
+                    '                        End If
+                    '                    Else
+                    '                        aRev = ""
+                    '                    End If
+                    '                Else
+                    '                    aRev = ""
+                    '                End If
+                    '                '**
+                    '                aNewDeliverable = aDeliverable.AddRevision(newRevision:=aRev, persist:=True)
+                    '                If Not aNewDeliverable Is Nothing Then
+                    '                    ' substitute UID
+                    '                    aConfigmember = MQFObject.XChangeConfig.GetEntryByXID(XID:="uid")
+                    '                    Call aMapping.Remove(key:=aConfigmember.Ordinal.Value)
+                    '                    Call aMapping.Add(key:=aConfigmember.Ordinal.Value, value:=aNewDeliverable.Uid)
+                    '                    ' substitute REV
+                    '                    aConfigmember = MQFObject.XChangeConfig.GetEntryByXID(XID:="c16")
+                    '                    If Not aConfigmember Is Nothing Then
+                    '                        If aConfigmember.IsLoaded Or aConfigmember.IsCreated Then
+                    '                            If aMapping.ContainsKey(key:=aConfigmember.Ordinal.Value) Then
+                    '                                Call aMapping.Remove(key:=aConfigmember.Ordinal.Value)
+                    '                            End If
+                    '                            Call aMapping.Add(key:=aConfigmember.Ordinal.Value, value:=aNewDeliverable.Revision)
+                    '                        End If
+                    '                    End If
+                    '                    ' substitute TYPEID or ADD
+                    '                    aConfigmember = MQFObject.XChangeConfig.GetEntryByXID(XID:="SC14")
+                    '                    If aConfigmember Is Nothing Then
+                    '                        If MQFObject.XChangeConfig.AddEntryByXID(Xid:="SC14") Then
+                    '                            aConfigmember = MQFObject.XChangeConfig.GetEntryByXID(XID:="SC14")
+                    '                        End If
+                    '                    End If
+                    '                    If aConfigmember.IsLoaded Or aConfigmember.IsCreated Then
+                    '                        If aMapping.ContainsKey(key:=aConfigmember.Ordinal.Value) Then
+                    '                            Call aMapping.Remove(key:=aConfigmember.Ordinal.Value)
+                    '                        End If
+                    '                        Dim aTrack As Deliverables.Track
+                    '                        aTrack = aNewDeliverable.GetTrack
+                    '                        If Not aTrack Is Nothing Then
+                    '                            Call aMapping.Add(key:=aConfigmember.Ordinal.Value, value:=aTrack.Scheduletype)
+                    '                        End If
+                    '                        'Call aMapping.Add(key:=aConfigmember.ordinal.value, c:=aNewDeliverable.getTrack.SCHEDULETYPE)
+                    '                    End If
 
-            If Not mapping Is Nothing Then
-                aMapping = mapping
-            End If
+                    '                    '*** runxchange
+                    '                    'Call aMQFRowEntry.RunXChange(MAPPING:=aMapping)
+                    '                    aMQFRowEntry.ProcessedOn = Now
+                    '                    'how to save new uid ?!
+                    '                    'Call updateRowXlsDoc9(INPUTMAPPING:=aMapping, INPUTXCHANGECONFIG:=MQFObject.XCHANGECONFIG)
+                    '                Else
+                    '                    Call CoreMessageHandler(subname:="MQF.processXLSMQF", message:="AddRevision failed", _
+                    '                                          arg1:=aDeliverable.Uid)
+                    '                End If
+                    '            Else
+                    '                Call CoreMessageHandler(subname:="MQF.processXLSMQF", message:="uid not in mapping", _
+                    '                                      arg1:=anUID)
+                    '            End If
+                    '        Else
+                    '            Call CoreMessageHandler(subname:="MQF.processXLSMQF", message:="load of Deliverable failed", _
+                    '                                  arg1:=aConfigmember.Ordinal.Value)
+                    '        End If
+                    '    Else
+                    '        Call CoreMessageHandler(subname:="MQF.processXLSMQF", message:="uid id not in configuration", _
+                    '                              arg1:="uid")
+                    '    End If
+                    'Else
+                    '    Call CoreMessageHandler(subname:="MQF.processXLSMQF", message:="uid id not in configuration", _
+                    '                          arg1:="uid")
+                    'End If
 
-            ' for each Member Check it with the XChangeConfig routines
-            For Each aMember In _slots
-                '**
-                'If aMember.ordinal = 32 Then Debug.Assert False
+                    '****
+                    '**** ADD-AFTER
+                    '****
+                Case ot.ConstMQFOpAddAfter
+                    '' fill the Mapping
+                    'aMapping = New Dictionary(Of Object, Object)
+                    'Call aMQFRowEntry.FillMapping(aMapping)
 
-                If Not aMapping.ContainsKey(key:=aMember.ordinal.Value) Then
-                    Call aMapping.Add(key:=aMember.ordinal.Value, value:=aMember.Value)
-                End If
-            Next aMember
+                    '' create -> deliverable type should be in here
+                    'aDeliverable = Deliverables.Deliverable.Create()
+                    '' aDeliverable = aDeliverable.CreateFirstRevision() not necessary anymore
+                    'If aDeliverable.IsCreated Then
+                    '    aNewUID = aDeliverable.Uid
+                    '    ' substitute UID
+                    '    aConfigmember = MQFObject.XChangeConfig.GetEntryByXID(XID:="uid")
+                    '    If Not aConfigmember Is Nothing Then
+                    '        If aConfigmember.IsLoaded Or aConfigmember.IsCreated Then
+                    '            If aMapping.ContainsKey(key:=aConfigmember.Ordinal.Value) Then
+                    '                anUID = aMapping.Item(key:=aConfigmember.Ordinal.Value)
+                    '                Call aMapping.Remove(key:=aConfigmember.Ordinal.Value)
+                    '            Else
+                    '                anUID = -1
+                    '            End If
+                    '        Else
+                    '            If MQFObject.XChangeConfig.AddEntryByXID(Xid:="uid") Then
+                    '                aConfigmember = MQFObject.XChangeConfig.GetEntryByXID(XID:="uid")
+                    '            End If
+                    '        End If
+                    '    Else
+                    '        If MQFObject.XChangeConfig.AddEntryByXID(Xid:="uid") Then
+                    '            aConfigmember = MQFObject.XChangeConfig.GetEntryByXID(XID:="uid")
+                    '        End If
+                    '    End If
 
-            ' add the workspaceID to the MAPPING
-            ' rework : aValue = aConfig.GetMemberValue(ID:="WS", mapping:=aMapping)
-            If IsNull(aValue) Then
-                Call aConfig.AddEntryByXID(Xid:="WS", xcmd:=otXChangeCommandType.Read, isXChanged:=False)
-                aValue = Me._queue.WorkspaceID
-                If aValue = "" Then
-                    aValue = CurrentSession.CurrentWorkspaceID
-                End If
-                ' add the change Member
-                aConfigmember = aConfig.GetEntryByXID("WS")
-                If aMapping.ContainsKey(key:=aConfigmember.Ordinal.Value) Then
-                    Call aMapping.Remove(key:=aConfigmember.Ordinal.Value)
-                End If
-                Call aMapping.Add(key:=aConfigmember.Ordinal.Value, value:=aValue)
-            End If
+                    '    Call aMapping.Add(key:=aConfigmember.Ordinal.Value, value:=aNewUID)
 
-            mapping = aMapping
-            FillMapping = True
+
+                    '    '*** runxchange
+                    '    'Call aMQFRowEntry.RunXChange(MAPPING:=aMapping)
+                    '    aMQFRowEntry.ProcessedOn = Now
+                    '    '*** TODO : ADD TO OUTLINE
+                    '    System.Diagnostics.Debug.Write("new deliverable added: " & aNewUID & " to be added after uid #" & anUID)
+                    'Else
+                    '    Call CoreMessageHandler(subname:="MQF.processXLSMQF", message:="new deliverable couldn't be created", _
+                    '                          arg1:=anUID, break:=False, messagetype:=otCoreMessageType.ApplicationError)
+                    'End If
+
+
+                    '******
+                    '****** freeze
+                Case ot.ConstMQFOpFreeze
+                    'aMapping = New Dictionary(Of Object, Object)
+                    'Call aMQFRowEntry.FillMapping(aMapping)
+                    '' get UID
+                    'aConfigmember = MQFObject.XChangeConfig.GetEntryByXID(XID:="uid")
+                    'If Not aConfigmember Is Nothing Then
+                    '    If aConfigmember.IsLoaded Or aConfigmember.IsCreated Then
+                    '        If aMapping.ContainsKey(key:=aConfigmember.Ordinal.Value) Then
+                    '            anUID = aMapping.Item(key:=aConfigmember.Ordinal.Value)
+                    '            aDeliverable = Deliverables.Deliverable.Retrieve(uid:=anUID)
+                    '            If aDeliverable IsNot Nothing Then
+                    '                If Not aDeliverable.IsDeleted Then
+                    '                    '*** set the workspaceID
+                    '                    ' REWORK: aValue = MQFObject.XCHANGECONFIG.GetMemberValue(ID:="WS", mapping:=aMapping)
+                    '                    If IsNull(aValue) Then
+                    '                        aWorkspace = CurrentSession.CurrentWorkspaceID
+                    '                    Else
+                    '                        aWorkspace = CStr(aValue)
+                    '                    End If
+                    '                    '***get the schedule
+                    '                    aSchedule = aDeliverable.GetWorkScheduleEdition(workspaceID:=aWorkspace)
+                    '                    If Not aSchedule Is Nothing Then
+                    '                        If aSchedule.IsLoaded Then
+                    '                            '*** reference date
+                    '                            aRefdate = MQFObject.RequestedOn
+                    '                            If aRefdate = constNullDate Then
+                    '                                aRefdate = Now
+                    '                            End If
+                    '                            '*** draw baseline
+                    '                            Call aSchedule.DrawBaseline(REFDATE:=aRefdate)
+                    '                        End If
+                    '                    End If
+                    '                End If
+
+                    '            End If
+                    '        End If
+                    '    End If
+                    'End If
+                    '****
+                    '**** Delete Deliverable
+                Case ot.ConstMQFOpDelete
+                    '' fill the Mapping
+                    'aMapping = New Dictionary(Of Object, Object)
+                    'Call aMQFRowEntry.FillMapping(aMapping)
+                    '' get UID
+                    'aConfigmember = MQFObject.XChangeConfig.GetEntryByXID(XID:="uid")
+                    'If Not aConfigmember Is Nothing Then
+                    '    If aConfigmember.IsLoaded Or aConfigmember.IsCreated Then
+                    '        If aMapping.ContainsKey(key:=aConfigmember.Ordinal.Value) Then
+                    '            anUID = aMapping.Item(key:=aConfigmember.Ordinal.Value)
+                    '            aDeliverable = Deliverables.Deliverable.Retrieve(uid:=anUID)
+                    '            If aDeliverable IsNot Nothing Then
+                    '                aDeliverable.Delete()
+
+                    '            End If
+                    '        End If
+                    '    End If
+                    'End If
+
+            End Select
+
+            Return result
         End Function
+
         ''' <summary>
         ''' Run XChange on the Enry
         ''' </summary>
@@ -1058,61 +1645,26 @@ Namespace OnTrack.Xchange
         ''' <param name="MAPPING"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function RunXChange(Optional justprecheck As Boolean = False, _
-                                   Optional ByRef msglog As ObjectMessageLog = Nothing, _
-                                   Optional ByRef MAPPING As Dictionary(Of Object, Object) = Nothing) As Boolean
-            Dim aMapping As New Dictionary(Of Object, Object)
+        Private Function RunXChange(Optional justprecheck As Boolean = False, _
+                                   Optional ByRef workerthread As ComponentModel.BackgroundWorker = Nothing) As Boolean
+
+            If Not Me.IsAlive("RunXChange") Then Return False
+
             Dim aConfig As XChangeConfiguration
             Dim aConfigmember As IXChangeConfigEntry
 
-
-            If Not Me.IsLoaded And Not Me.IsCreated Then
-                RunXChange = False
-                Exit Function
-            End If
-
-            If Not Me.IsActionProcessable Then
-                RunXChange = False
-                Exit Function
-            End If
-
-
-            If Me._queue Is Nothing Then
-                Call CoreMessageHandler(subname:="MessageQueueEntry.runXChange", arg1:=Me.MessageQueueID, _
-                                      message:="queue couldn't be loaded")
-
-                RunXChange = False
-                Exit Function
+            If Me.MessageQueue Is Nothing Then
+                Call CoreMessageHandler(subname:="MQMessage.runXChange", arg1:=Me.MessageQueueID, message:="queue couldn't be loaded", messagetype:=otCoreMessageType.ApplicationError)
+                Return False
             Else
-                aConfig = Me._queue.XChangeConfig
+                aConfig = Me.MessageQueue.XChangeConfig
                 If aConfig Is Nothing Then
-                    Call CoreMessageHandler(subname:="MessageQueueEntry.runXChange", _
-                                          arg1:=Me._queue.XChangeConfigName, _
-                                          message:="XChangeConfig couldn't be loaded")
-
-                    RunXChange = False
-                    Exit Function
+                    Call CoreMessageHandler(subname:="MQMessage.runXChange", arg1:=Me.MessageQueue.XChangeConfigName, message:="XChangeConfig couldn't be loaded", _
+                                            messagetype:=otCoreMessageType.ApplicationError)
+                    Return False
                 End If
-
             End If
 
-            '***
-            If Not MAPPING Is Nothing Then
-                aMapping = MAPPING
-            End If
-
-            If Not Me.FillMapping(aMapping) Then
-                Call CoreMessageHandler(subname:="MessageQueueEntry.runXChange", arg1:=Me.MessageQueueID, _
-                                      message:="mapping couldn't be filled")
-                RunXChange = False
-                Exit Function
-            End If
-
-            'msglog
-            If msglog Is Nothing Then msglog = Me.ObjectMessageLog
-
-
-            '
             ' check the object command
             ' set it to the highes command necessary
             For Each aConfigmember In aConfig.ObjectsByOrderNo
@@ -1121,56 +1673,87 @@ Namespace OnTrack.Xchange
                 End If
             Next aConfigmember
 
-            ' call the precheck function
-            'runXChange = aConfig.RunXPreCheck(aMapping, MSGLOG)
+            ''' fill the envelope
+            ''' 
+            For Each aSlot As Xchange.MQXSlot In Me.Slots
+                For Each aConfigEntry As IXChangeConfigEntry In aSlot.XChangeConfigEntries
+                    If Not Me.Xenvelope.AddSlotbyXEntry(entry:=aConfigEntry, _
+                                                  value:=aSlot.Value, isHostValue:=True, _
+                                                  overwriteValue:=False, replaceSlotIfexists:=False, _
+                                                  ValueIsNull:=aSlot.Value Is Nothing) Then
 
-            '** exit here just on Precheck
+                    End If
+                Next
+            Next
+
+            '''
+            ''' run
+            ''' 
+            Dim result As Boolean
             If justprecheck Then
-                Exit Function
+                result = Me.Xenvelope.RunXPreCheck(Me.ObjectMessageLog)
+            Else
+                result = Me.Xenvelope.RunXChange(Me.ObjectMessageLog)
             End If
 
-            '** check on the status -> possible to continue ?
-            'runXChange = aConfig.RunXChange(aMapping, MSGLOG)
-
-            MAPPING = aMapping
-
+            Return result
         End Function
 
 
-        '***** ContextIdentifier (identifier) sets the context of the message receiver
-        '*****
-        Public Property ContextIdentifier() As String Implements otLoggable.ContextIdentifier
+        ''' <summary>
+        ''' sets or gets the context identifier
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Property ContextIdentifier() As String Implements ormLoggable.ContextIdentifier
             Get
-                ContextIdentifier = s_ContextIdentifier
+                Return _ContextIdentifier
             End Get
             Set(value As String)
-                s_ContextIdentifier = value
+                SetValue(ConstFNContextID, value)
             End Set
         End Property
 
 
-        '***** ContextIdentifier (identifier) sets the context of the message receiver
-        '*****
-        Public Property TupleIdentifier() As String Implements otLoggable.TupleIdentifier
+        ''' <summary>
+        ''' sets or gets the tuple identifier
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Property TupleIdentifier() As String Implements ormLoggable.TupleIdentifier
             Get
-                TupleIdentifier = s_TupleIdentifier
+                Return _TupleIdentifier
             End Get
             Set(value As String)
-                s_EntitityIdentifier = value
+                SetValue(ConstFNTupleID, value)
+            End Set
+        End Property
+        ''' <summary>
+        ''' sets or gets the entitiy identifier
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Property EntityIdentifier As String Implements ormLoggable.EntityIdentifier
+            Get
+                Return _EntitityIdentifier
+            End Get
+            Set(value As String)
+                SetValue(ConstFNEntityID, value)
             End Set
         End Property
 
-
-        '***** TupleIdentifier(identifier) sets the context of the message receiver
-        '*****
-        Public Property EntitityIdentifier As String Implements otLoggable.EntitityIdentifier
-            Get
-                EntitityIdentifier = s_EntitityIdentifier
-            End Get
-            Set(value As String)
-                s_EntitityIdentifier = value
-            End Set
-        End Property
+        ''' <summary>
+        ''' Handler for the Envelope Message Added Event
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Private Sub MQMessage_OnEnvelopeObjectMessageAdded(sender As Object, e As OnTrack.ObjectMessageLog.EventArgs)
+            Me.ObjectMessageLog.CopyFrom(e.Message)
+        End Sub
 
 
     End Class
@@ -1193,7 +1776,7 @@ Namespace OnTrack.Xchange
     Public Class MQXSlot
         Inherits ormDataObject
         Implements iormPersistable
-        Implements iormInfusable
+        Implements ormLoggable
 
         Public Const ConstObjectID = "MQXSlot"
         ''' <summary>
@@ -1213,9 +1796,10 @@ Namespace OnTrack.Xchange
            foreignkeyreferences:={MQMessage.ConstObjectID & "." & MQMessage.ConstFNMQID, MQMessage.ConstObjectID & "." & MQMessage.constFNIDNO}, _
            useforeignkey:=otForeignKeyImplementation.NativeDatabase)> Public Const ConstFKMEssage = "FKMessage"
 
-        <ormObjectEntry(referenceobjectentry:=XChangeObjectEntry.ConstObjectID & "." & XChangeObjectEntry.constFNIDNo, primarykeyordinal:=3, _
-           Title:="XChangeEntry Reference", description:="reference ID of the xchange object entry of the xconfiguration")> _
-        Public Const ConstFNSlotNo = "SLOTIDNO"
+        <ormObjectEntry(referenceObjectEntry:=XChange.XChangeObjectEntry.ConstObjectID & "." & XChange.XChangeObjectEntry.constFNordinal, _
+            dbdefaultvalue:="0", defaultvalue:=0, isnullable:=False, primarykeyordinal:=3, _
+           Title:="Identity Number", description:="reference ID (Ordinal No in the XChangeConfiguration)")> _
+        Public Const ConstFNSlotID = "SLOTID"
 
         ''' <summary>
         ''' Column entry
@@ -1236,14 +1820,18 @@ Namespace OnTrack.Xchange
                      title:="Processable", description:="is message processable")> Public Const ConstFNProcessable = "PROCESSABLE"
 
         <ormObjectEntry(referenceobjectentry:=MessageQueue.ConstObjectID & "." & MessageQueue.ConstFNProcStamp _
-          )> Public Const ConstFNPROCSTAMP = MessageQueue.ConstFNProcStamp
+          )> Public Const ConstFNProcStamp = MessageQueue.ConstFNProcStamp
 
         <ormObjectEntry(referenceobjectentry:=MessageQueue.ConstObjectID & "." & MessageQueue.ConstFNProcStatus _
-          )> Public Const ConstFNProcStatus = MessageQueue.ConstFNProcStamp
+          )> Public Const ConstFNProcStatus = MessageQueue.ConstFNProcStatus
 
         <ormObjectEntry(ReferenceObjectEntry:=Commons.Domain.ConstObjectID & "." & Commons.Domain.ConstFNDomainID, isnullable:=True, _
           useforeignkey:=otForeignKeyImplementation.None, _
           Title:="DomainID", description:="ID of the domain for this slot")> Public Const ConstFNDomainID = Commons.Domain.ConstFNDomainID
+
+        <ormObjectEntry(ReferenceObjectEntry:=ObjectMessage.ConstObjectID & "." & ObjectMessage.ConstFNContextID)> Public Const ConstFNContextID = ObjectMessage.ConstFNContextID
+        <ormObjectEntry(ReferenceObjectEntry:=ObjectMessage.ConstObjectID & "." & ObjectMessage.ConstFNTupleID)> Public Const ConstFNTupleID = ObjectMessage.ConstFNTupleID
+        <ormObjectEntry(ReferenceObjectEntry:=ObjectMessage.ConstObjectID & "." & ObjectMessage.ConstFNEntityID)> Public Const ConstFNEntityID = ObjectMessage.ConstFNEntityID
 
         ''' <summary>
         ''' Mapping
@@ -1251,37 +1839,98 @@ Namespace OnTrack.Xchange
         ''' <remarks></remarks>
         <ormEntryMapping(entryname:=ConstFNMQID)> Private _mqid As String = ""
         <ormEntryMapping(entryname:=ConstFNIDNO)> Private _messageidno As Long
-        <ormEntryMapping(entryname:=ConstFNSlotNo)> Private _slotno As Long
+        <ormEntryMapping(entryname:=ConstFNSlotID)> Private _slotid As String = ""
 
         <ormEntryMapping(entryname:=ConstFNDatatype)> Private _datatype As otDataType?
         <ormEntryMapping(entryname:=ConstFNvalue)> Private _valuestring As String
 
         <ormEntryMapping(entryname:=ConstFNProcStatus)> Private _procStatus As String
-        <ormEntryMapping(entryname:=ConstFNPROCSTAMP)> Private _ProcTimestamp As Date?
+        <ormEntryMapping(entryname:=ConstFNProcStamp)> Private _ProcTimestamp As Date?
         <ormEntryMapping(entryname:=ConstFNProcessed)> Private _IsProcessed As Boolean
         <ormEntryMapping(entryname:=ConstFNProcessable)> Private _IsProcessable As Boolean
 
+        <ormEntryMapping(entryname:=ConstFNContextID)> Private _ContextIdentifier As String
+        <ormEntryMapping(entryname:=ConstFNTupleID)> Private _TupleIdentifier As String
+        <ormEntryMapping(entryname:=ConstFNEntityID)> Private _EntitityIdentifier As String
 
         '** dynmaic
         Private _message As MQMessage 'backlink
         Private _messagequeue As MessageQueue 'backlink
         Private _ordinal As Ordinal 'cache
         Private _data As Object
-        Private _xconfigentry As IXChangeConfigEntry 'cache
+        Private _xconfigentry As IList(Of IXChangeConfigEntry) 'cache
 
 #Region "Properties"
 
+
+        ''' <summary>
+        ''' sets or gets the context identifier
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Property ContextIdentifier() As String Implements ormLoggable.ContextIdentifier
+            Get
+                Return _ContextIdentifier
+            End Get
+            Set(value As String)
+                SetValue(ConstFNContextID, value)
+            End Set
+        End Property
+
+
+        ''' <summary>
+        ''' sets or gets the tuple identifier
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Property TupleIdentifier() As String Implements ormLoggable.TupleIdentifier
+            Get
+                Return _TupleIdentifier
+            End Get
+            Set(value As String)
+                SetValue(ConstFNTupleID, value)
+            End Set
+        End Property
+        ''' <summary>
+        ''' sets or gets the entitiy identifier
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Property EntityIdentifier As String Implements ormLoggable.EntityIdentifier
+            Get
+                Return _EntitityIdentifier
+            End Get
+            Set(value As String)
+                SetValue(ConstFNEntityID, value)
+            End Set
+        End Property
         ''' <summary>
         ''' returns the Message of the Message Queue
         ''' </summary>
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        ReadOnly Property XChangeConfigEntry As IXChangeConfigEntry
+        ReadOnly Property XChangeConfiguration As XChangeConfiguration
+            Get
+                If Me.MessageQueue IsNot Nothing Then
+                    Return Me.MessageQueue.XChangeConfig
+                End If
+            End Get
+        End Property
+        ''' <summary>
+        ''' returns the Message of the Message Queue
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        ReadOnly Property XChangeConfigEntries As IList(Of IXChangeConfigEntry)
             Get
                 If _xconfigentry Is Nothing Then
                     If Me.MessageQueue IsNot Nothing Then
-                        If Me.MessageQueue.XChangeConfig IsNot Nothing Then _xconfigentry = Me.MessageQueue.XChangeConfig.GetEntry(Me.ID)
+                        If Me.MessageQueue.XChangeConfig IsNot Nothing Then _xconfigentry = Me.MessageQueue.XChangeConfig.GetEntriesByMappingOrdinal(New Ordinal(Me.ID))
                     End If
                 End If
 
@@ -1342,9 +1991,9 @@ Namespace OnTrack.Xchange
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        ReadOnly Property ID() As Long
+        ReadOnly Property ID() As String
             Get
-                Return _slotno
+                Return _slotid
             End Get
 
         End Property
@@ -1387,10 +2036,10 @@ Namespace OnTrack.Xchange
         ''' <returns></returns>
         ''' <remarks></remarks>
 
-        Public ReadOnly Property [ordinal]() As Ordinal
+        Public ReadOnly Property [Ordinal] As Ordinal
             Get
                 If _ordinal Is Nothing Then
-                    If Me.XChangeConfigEntry IsNot Nothing Then _ordinal = Me.XChangeConfigEntry.Ordinal
+                    _ordinal = New Ordinal(Me.ID)
                 End If
                 Return _ordinal
             End Get
@@ -1434,7 +2083,7 @@ Namespace OnTrack.Xchange
                 Return _ProcTimestamp
             End Get
             Set(value As DateTime?)
-                SetValue(ConstFNPROCSTAMP, value)
+                SetValue(ConstFNProcStamp, value)
             End Set
         End Property
 
@@ -1475,19 +2124,25 @@ Namespace OnTrack.Xchange
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Sub MQXSlot_OnDefaultValuesNeeded(sender As Object, e As ormDataObjectEventArgs) Handles Me.OnDefaultValuesNeeded
-            ' no datatype in the xconfigentry
-            'Dim aMessagequeue = MessageQueue.Retrieve(Me.MessageQueueID)
+            Dim anMQID = e.Record.GetValue(ConstFNMQID)
+            Dim aMessagequeue = MessageQueue.Retrieve(anMQID)
+            Try
+                If aMessagequeue IsNot Nothing Then
+                    If aMessagequeue.XChangeConfig IsNot Nothing Then
+                        Dim anid As String = e.Record.GetValue(ConstFNSlotID)
+                        Dim aXConfigEntry As IXChangeConfigEntry
+                        If anid IsNot Nothing Then
+                            Dim aList = aMessagequeue.XChangeConfig.GetEntriesByMappingOrdinal(New Ordinal(anid))
+                            If aList.Count > 0 Then aXConfigEntry = aList.First
+                        End If
+                        If aXConfigEntry IsNot Nothing Then e.Record.SetValue(ConstFNDatatype, aXConfigEntry.ObjectEntryDefinition.Datatype)
 
-            'If aMessagequeue IsNot Nothing Then
-            '    If aMessagequeue.XChangeConfig IsNot Nothing Then
-            '        Dim anid As Object = e.Record.GetValue(ConstFNIDNO)
-            '        Dim aXConfigEntry As IXChangeConfigEntry
-            '        If anid IsNot Nothing AndAlso IsNumeric(anid) Then aXConfigEntry = aMessagequeue.XChangeConfig.GetEntry(anid)
-            '        If aXConfigEntry IsNot Nothing Then e.Record.SetValue(ConstFNDatatype, aXConfigEntry.)
-
-            '    End If
-
-            'End If
+                    End If
+                End If
+            Catch ex As Exception
+                CoreMessageHandler(exception:=ex, subname:="MQXSlot_OnDefaultValuesNeeded")
+            End Try
+           
         End Sub
 
         ''' <summary>
@@ -1590,8 +2245,8 @@ Namespace OnTrack.Xchange
         ''' <param name="ID"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Shared Function Create(ByVal mqid As String, ByVal messageidno As Long, ByVal slotidno As Long) As MQXSlot
-            Dim pkarry() As Object = {mqid.ToUpper, messageidno, slotidno}
+        Public Shared Function Create(ByVal mqid As String, ByVal messageidno As Long, ByVal slotid As Ordinal) As MQXSlot
+            Dim pkarry() As Object = {mqid.ToUpper, messageidno, slotid.Value.ToString}
             Return ormDataObject.CreateDataObject(Of MQXSlot)(pkArray:=pkarry, checkUnique:=True)
         End Function
         ''' <summary>
@@ -1602,8 +2257,8 @@ Namespace OnTrack.Xchange
         ''' <param name="ID"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Shared Function Retrieve(ByVal mqid As String, ByVal messageidno As Long, ByVal slotidno As Long) As MQXSlot
-            Dim pkarry() As Object = {mqid.ToUpper, messageidno, slotidno}
+        Public Shared Function Retrieve(ByVal mqid As String, ByVal messageidno As Long, ByVal slotid As Ordinal) As MQXSlot
+            Dim pkarry() As Object = {mqid.ToUpper, messageidno, slotid.Value.ToString}
 
             Return ormDataObject.Retrieve(Of MQXSlot)(pkArray:=pkarry)
         End Function

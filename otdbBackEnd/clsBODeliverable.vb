@@ -55,7 +55,9 @@ Namespace OnTrack.Deliverables
         <ormObjectEntry(typeid:=otDataType.Text, size:=100, _
            title:="Revision", description:="revision of the target", XID:="T9")> Public Const ConstFNRevision = "rev"
         <ormObjectEntry(typeid:=otDataType.Long, isnullable:=True, _
-         title:="UpdateCount", description:="update number of the target", XID:="T10")> Public Const ConstFNUpdc = "updc"
+         title:="working counter", description:="update number of the target", XID:="T10")> Public Const ConstWorkUPDC = "updc"
+        <ormObjectEntry(typeid:=otDataType.Long, isnullable:=True, _
+         title:="Alive Counter", description:="update number of the target", XID:="T11")> Public Const ConstAliveUPDC = "aliveupdc"
         <ormObjectEntry(typeid:=otDataType.Bool, defaultvalue:=True, dbdefaultvalue:="1", _
           title:="is active", description:="is the target active", XID:="DT4")> Public Const ConstFNIsActive = "isactive"
 
@@ -67,34 +69,115 @@ Namespace OnTrack.Deliverables
         <ormEntryMapping(EntryName:=ConstFNWorkspaceID)> Private _workspace As String = ""
         <ormEntryMapping(EntryName:=ConstFNUid)> Private _uid As Long
         <ormEntryMapping(EntryName:=ConstFNRevision)> Private _rev As String = ""
-        <ormEntryMapping(EntryName:=ConstFNUpdc)> Private _updc As Long?    ' UPDC of target
+        <ormEntryMapping(EntryName:=ConstWorkUPDC)> Private _workupdc As Long?    ' UPDC of target
+        <ormEntryMapping(EntryName:=ConstAliveUPDC)> Private _aliveupdc As Long?    ' UPDC of target
         <ormEntryMapping(EntryName:=ConstFNIsActive)> Private _isActive As Boolean = True 'explicitly set to be active in the beginning !
 
         ''' <summary>
         ''' Relation to alive Schedule edition - will be resolved by events
         ''' </summary>
         ''' <remarks></remarks>
-        <ormRelation(linkObject:=GetType(Target), createObjectifnotretrieved:=True, _
-                    ToPrimaryKeys:={ConstFNUid, ConstFNUpdc}, _
+        <ormRelation(linkObject:=GetType(ScheduleEdition), ToPrimaryKeys:={ConstFNUid, ConstAliveUPDC}, _
                      cascadeonCreate:=True, cascadeOnDelete:=True, cascadeOnUpdate:=True)> _
-        Public Const ConstRTarget = "REL_Target"
+        Public Const ConstRAliveTarget = "REL_ALIVETARGET"
 
-        <ormEntryMapping(relationName:=ConstRTarget, infusemode:=otInfuseMode.OnCreate Or otInfuseMode.OnDemand Or otInfuseMode.OnInject)> _
-        Private _target As Target
+        <ormEntryMapping(relationName:=ConstRAliveTarget, infusemode:=otInfuseMode.OnCreate Or otInfuseMode.OnDemand Or otInfuseMode.OnInject)> _
+        Private _alivetarget As Target
+
+        ''' <summary>
+        ''' Relation to alive Schedule edition - will be resolved by events
+        ''' </summary>
+        ''' <remarks></remarks>
+        <ormRelation(linkObject:=GetType(Target), createObjectifnotretrieved:=True, _
+                    ToPrimaryKeys:={ConstFNUid, ConstWorkUPDC}, _
+                     cascadeonCreate:=True, cascadeOnDelete:=True, cascadeOnUpdate:=True)> _
+        Public Const ConstRWorkTarget = "REL_WORKINGTARGET"
+
+        <ormEntryMapping(relationName:=ConstRWorkTarget, infusemode:=otInfuseMode.OnCreate Or otInfuseMode.OnDemand Or otInfuseMode.OnInject)> _
+        Private _workingtarget As Target
+
+        ''' <summary>
+        ''' Relation to alive Schedule edition - will be resolved by events
+        ''' </summary>
+        ''' <remarks></remarks>
+        <ormRelation(linkObject:=GetType(Deliverable), _
+                     ToPrimaryKeys:={ConstFNUid}, _
+                     cascadeonCreate:=False, cascadeOnDelete:=False, cascadeOnUpdate:=False)> _
+        Public Const ConstRDeliverable = "REL_DELIVERABLE"
+
+        <ormEntryMapping(relationName:=ConstRDeliverable, infusemode:=otInfuseMode.OnDemand)> Private _deliverable As Deliverable 'Backlink
+
+
+        ''' <summary>
+        ''' dynamic data
+        ''' </summary>
+        ''' <remarks></remarks>
+
+
+        ''' <summary>
+        ''' Define the constants for accessing the compounds
+        ''' </summary>
+        ''' <remarks></remarks>
+        Public Const ConstOPGetTarget = "GETTARGET"
+        Public Const ConstOPSetTarget = "SETTARGET"
+        ''' <summary>
+        ''' Constructor
+        ''' </summary>
+        ''' <remarks></remarks>
+        Public Sub New()
+            MyBase.New()
+            AddHandler CurrentSession.OnWorkspaceChanged, AddressOf Me.WorkspaceTarget_OnWorkspaceChanged
+        End Sub
 
 #Region "Properties"
         ''' <summary>
-        ''' Gets or sets the target object
+        ''' Gets or sets the deliverable.
+        ''' </summary>
+        ''' <value>The deliverable.</value>
+        Public ReadOnly Property Deliverable() As Deliverable
+            Get
+                If Me.GetRelationStatus(ConstRDeliverable) = DataObjectRelationMgr.RelationStatus.Unloaded Then InfuseRelation(ConstRDeliverable)
+                Return Me._deliverable
+            End Get
+          
+        End Property
+
+        ''' <summary>
+        ''' Gets the target object
         ''' </summary>
         ''' <value>The target.</value>
         Public ReadOnly Property Target() As Target
             Get
-                If GetRelationStatus(ConstRTarget) = DataObjectRelationMgr.RelationStatus.Unloaded Then InfuseRelation(ConstRTarget)
-                Return Me._target
+                If Me.WorkingTargetUPDC.HasValue Then
+                    Return Me.WorkingTarget
+                ElseIf Me.AliveTargetUPDC.HasValue Then
+                    Return Me.AliveTarget
+                End If
             End Get
-
         End Property
 
+        ''' <summary>
+        ''' Gets the working target object
+        ''' </summary>
+        ''' <value>The target.</value>
+        Public ReadOnly Property WorkingTarget() As Target
+            Get
+                If GetRelationStatus(ConstRWorkTarget) = DataObjectRelationMgr.RelationStatus.Unloaded Then InfuseRelation(ConstRWorkTarget)
+                Return Me._workingtarget
+            End Get
+        End Property
+
+
+        ''' <summary>
+        ''' Gets the alive target object
+        ''' </summary>
+        ''' <value>The target.</value>
+        Public ReadOnly Property AliveTarget() As Target
+            Get
+                If GetRelationStatus(ConstRWorkTarget) = DataObjectRelationMgr.RelationStatus.Unloaded Then InfuseRelation(ConstRAliveTarget)
+                Return Me._alivetarget
+            End Get
+        End Property
         ''' <summary>
         ''' returns the deliverable UID
         ''' </summary>
@@ -137,14 +220,43 @@ Namespace OnTrack.Deliverables
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property UPDC() As Long?
+        Public ReadOnly Property UPDC() As Long?
             Get
-                UPDC = _updc
+                If _workupdc.HasValue Then Return _workupdc
+                Return _aliveupdc
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' gets the updc of the working target version
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Property WorkingTargetUPDC() As Long?
+            Get
+                Return _workupdc
             End Get
             Set(value As Long?)
-                SetValue(ConstFNUpdc, value)
+                SetValue(ConstWorkUPDC, value)
             End Set
         End Property
+
+        ''' <summary>
+        ''' gets the updc of the working target version
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Property AliveTargetUPDC() As Long?
+            Get
+                Return _aliveupdc
+            End Get
+            Set(value As Long?)
+                SetValue(ConstAliveUPDC, value)
+            End Set
+        End Property
+
         ''' <summary>
         ''' gets or sets the active flag
         ''' </summary>
@@ -160,8 +272,164 @@ Namespace OnTrack.Deliverables
             End Set
         End Property
 
+       
 #End Region
 
+        ''' <summary>
+        ''' operation to Access the Milestone's Value
+        ''' </summary>
+        ''' <param name="id"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        <ormObjectOperationMethod(operationname:=ConstOPGetTarget, tag:=ObjectCompoundEntry.ConstCompoundGetter, _
+            parameterEntries:={ObjectCompoundEntry.ConstFNEntryName, ObjectCompoundEntry.ConstFNValues})> _
+        Public Function GetTarget(id As String, ByRef value As Object) As Boolean
+            If Not IsAlive(subname:="GetTarget") Then Return Nothing
+
+            If _workingtarget IsNot Nothing Then
+                value = _workingtarget.Target
+                Return True
+            ElseIf _alivetarget IsNot Nothing Then
+                value = _alivetarget.Target
+                Return True
+            End If
+
+            Return False
+        End Function
+
+        ''' <summary>
+        ''' operation to Access the Milestone's Value
+        ''' </summary>
+        ''' <param name="id"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        <ormObjectOperationMethod(operationname:=ConstOPSetTarget, tag:=ObjectCompoundEntry.ConstCompoundSetter, _
+            parameterEntries:={ObjectCompoundEntry.ConstFNEntryName, ObjectCompoundEntry.ConstFNValues})> _
+        Public Function SetTarget(id As String, value As Object) As Boolean
+            If Not IsAlive(subname:="SetTarget") Then Return Nothing
+
+            If _workingtarget Is Nothing Then
+
+                If _alivetarget IsNot Nothing Then
+                    _workingtarget = _alivetarget.Clone()
+
+                End If
+            ElseIf _workingtarget IsNot Nothing Then
+                Return _workingtarget.SetValue(Target.constFNTarget, value:=value)
+            End If
+
+            Return False
+        End Function
+        ''' <summary>
+        ''' publish is a persist with history and baseline integrated functions. It sets the working edition as the alive edition
+        ''' </summary>
+        ''' <param name="msglog"></param>
+        ''' <param name="timestamp"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function Publish(Optional ByRef msglog As ObjectMessageLog = Nothing, _
+                                Optional ByVal timestamp As Date? = Nothing) As Boolean
+            Dim isProcessable As Boolean = True
+
+            Dim aWorkingTarget As Target = _workingtarget
+
+            '* init
+            If Not Me.IsAlive(subname:="Publish") Then Return False
+
+
+            ' TIMESTAMP
+            If timestamp Is Nothing Then timestamp = Date.Now
+
+
+            '** if any of the milestones is changed
+            '**
+            isProcessable = True
+
+            '** condition
+            If aWorkingTarget IsNot Nothing AndAlso aWorkingTarget.IsChanged Then
+
+                If isProcessable Then
+                    Dim publishflag As Boolean = False
+                    Dim aNewDate As Date?
+                    Dim anOldDate As Date?
+                    aNewDate = aWorkingTarget.Target
+                    anOldDate = aWorkingTarget.PrevTarget
+                    If aNewDate.HasValue AndAlso anOldDate.HasValue Then
+                        If DateDiff("d", anOldDate, aNewDate) >= 0 Then
+                            '** Now we should approve ??!
+                            '** at least we increase the revision count
+                            aWorkingTarget.Revision = aWorkingTarget.IncreaseRevison(majorFlag:=False, minorFlag:=True)
+
+                            publishflag = True
+                        End If
+                    ElseIf aNewDate.HasValue Then
+                        aWorkingTarget.Revision = "V1.0"
+                        publishflag = True
+                    End If
+
+                    '** change over THE working schedule to alive scheudle
+                    '**
+                    If publishflag Then
+                        Me.AliveTargetUPDC = aWorkingTarget.UPDC
+                        _alivetarget = aWorkingTarget
+
+                        Me.WorkingTargetUPDC = Nothing
+                        '' cannot generate an new updc on a created edition (getmax will not work on unpersisted objects)
+                        If _alivetarget.IsCreated Then
+                            _workingtarget = aWorkingTarget.Clone(_alivetarget.UPDC + 1)
+                        Else
+                            _workingtarget = aWorkingTarget.Clone()
+                        End If
+
+                        Me.WorkingTargetUPDC = _workingtarget.UPDC
+                    End If
+
+                    ''' save the workspace schedule itself and the
+                    ''' related objects
+                    isProcessable = MyBase.Persist(timestamp)
+
+
+                Else
+                    isProcessable = False
+                    Debug.Assert(False)
+
+                End If
+            ElseIf Me.IsChanged Or Me.IsCreated Then
+                '**** save without Milestone checking
+                isProcessable = MyBase.Persist(timestamp:=timestamp)
+            Else
+                '** nothing changed
+                '***
+                Return False
+            End If
+
+            Return isProcessable
+        End Function
+
+
+
+        ''' <summary>
+        ''' Persist with checking on publish
+        ''' </summary>
+        ''' <param name="timestamp"></param>
+        ''' <param name="doFeedRecord"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function Persist(Optional timestamp As Date = ot.constNullDate, Optional doFeedRecord As Boolean = True) As Boolean Implements iormPersistable.Persist
+            Dim myDeliverable As Deliverable = Me.Deliverable
+            Dim autopublish As Boolean = CurrentSession.AutoPublishTarget
+            If myDeliverable IsNot Nothing Then
+                Dim adeltype As DeliverableType = myDeliverable.DeliverableType
+                If adeltype IsNot Nothing Then
+                    autopublish = adeltype.AutoPublishTarget
+                End If
+            End If
+            If autopublish Then
+                Return Publish(timestamp:=timestamp)
+            Else
+                Return MyBase.Persist(timestamp:=timestamp, doFeedRecord:=doFeedRecord)
+            End If
+        End Function
 
         ''' <summary>
         ''' clone the object with the new primary key
@@ -343,16 +611,16 @@ Namespace OnTrack.Deliverables
         Private Sub WorkspaceTarget_OnRelationCreateNeeded(sender As Object, e As ormDataObjectRelationEventArgs) Handles Me.OnRelationCreateNeeded
             If Not Me.IsAlive(subname:="WorkspaceTarget_OnRelationCreateNeeded") Then Return
 
-            If e.RelationID = ConstRTarget Then
+            If e.RelationID = ConstRWorkTarget Then
                 ''' always gives the current workspace
                 Dim aTarget As Target
-                If Me.UPDC.HasValue AndAlso Me.UPDC <> 0 Then
-                    aTarget = Deliverables.Target.Retrieve(uid:=Me.UID, updc:=Me.UPDC)
+                If Me.WorkingTargetUPDC.HasValue AndAlso Me.WorkingTargetUPDC <> 0 Then
+                    aTarget = Deliverables.Target.Retrieve(uid:=Me.UID, updc:=Me.WorkingTargetUPDC)
                 Else
                     aTarget = Deliverables.Target.Create(uid:=Me.UID, workspaceID:=Me.WorkspaceID)
                 End If
                 If aTarget IsNot Nothing Then
-                    Me.UPDC = aTarget.UPDC
+                    Me.WorkingTargetUPDC = aTarget.UPDC
                     ' we cannot reach the deliveable from here -> done in the Deliverable
                     'If Not needsTarget Then aTarget.NotargetByItention = True
                     'aTarget.ResponsibleOU = defaultTargetOUT
@@ -364,7 +632,17 @@ Namespace OnTrack.Deliverables
             End If
 
         End Sub
+        ''' <summary>
+        ''' Event Handler for Workspace Change
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Public Sub WorkspaceTarget_OnWorkspaceChanged(sender As Object, e As SessionEventArgs)
+            Throw New NotImplementedException("Workspace Target Event Reaction on OnWorkspaceChanged to be implemented")
+        End Sub
 
+       
     End Class
 
     ''' <summary>
@@ -400,10 +678,10 @@ Namespace OnTrack.Deliverables
             Description:="workspaceID ID of the schedule")> Public Const ConstFNWorkspaceID = ScheduleEdition.ConstFNWorkspaceID
 
         <ormObjectEntry(typeid:=otDataType.Date, isnullable:=True, _
-            description:="current target date", title:="target date", XID:="DT6", aliases:={"T2"})> Public Const constFNTarget = "targetdate"
+            description:="current target date", title:="target date", XID:="DT6", aliases:={"T2"})> Public Const constFNTarget = "TARGETDATE"
 
         <ormObjectEntry(typeid:=otDataType.Date, isnullable:=True, _
-            description:="previous target date", title:="previous target date", XID:="DT5", aliases:={"T1"})> Public Const constFNPrevTarget = "pvtd"
+            description:="previous target date", title:="previous target date", XID:="DT5", aliases:={"T1"})> Public Const constFNPrevTarget = "PVTD"
 
         <ormObjectEntry(typeid:=otDataType.Text, size:=50, title:="target revision", Description:="revision of the target", _
            XID:="DT4", aliases:={"t9"}, isnullable:=True)> Public Const ConstFNRevision = "rev"
@@ -426,9 +704,6 @@ Namespace OnTrack.Deliverables
         <ormObjectEntry(typeid:=otDataType.Memo, isnullable:=True, _
             title:="Comment", Description:="comment of the target", XID:="DT7", isnullable:=True)> Public Const ConstFNComment = "cmt"
 
-        <ormObjectEntry(referenceobjectentry:=ObjectMessage.ConstObjectID & "." & ObjectMessage.ConstFNTag)> _
-        Public Const ConstFNmsglogtag = ObjectMessage.ConstFNTag
-
         ' change FK Action since we have the workspace as FK (leads also to domians)
         <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, _
             useforeignkey:=otForeignKeyImplementation.None)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
@@ -443,15 +718,12 @@ Namespace OnTrack.Deliverables
         <ormEntryMapping(EntryName:=constFNPrevTarget)> Private _prevTarget As Date?
         <ormEntryMapping(EntryName:=constFNTargetChanged)> Private _TargetChangedDate As Date?
         <ormEntryMapping(EntryName:=ConstFNRevision)> Private _rev As String
-        <ormEntryMapping(EntryName:=ConstFNmsglogtag)> Private _msglogtag As String = ""
         <ormEntryMapping(EntryName:=ConstFNNoTarget)> Private _notargetByItention As Boolean
         <ormEntryMapping(EntryName:=ConstFNType)> Private _typeid As String
         <ormEntryMapping(EntryName:=constFNRespOU)> Private _respOU As String
         <ormEntryMapping(EntryName:=constFNResp)> Private _resp As String
         <ormEntryMapping(EntryName:=ConstFNComment)> Private _cmt As String
-        'dynamic
-        Private s_msglog As New ObjectMessageLog
-        
+
         ''' <summary>
         ''' Constructor
         ''' </summary>
@@ -459,8 +731,8 @@ Namespace OnTrack.Deliverables
         Public Sub New()
             Call MyBase.New()
             AddHandler Me.OnPersisted, AddressOf Track.Track_OnPersisted
-
         End Sub
+
 #Region "properties"
         ''' <summary>
         ''' Gets or sets the target changed date.
@@ -822,7 +1094,7 @@ Namespace OnTrack.Deliverables
             'If Not aCurrTarget.Inject(UID:=anUID, workspaceID:=workspaceID) Then
             '    Call aCurrTarget.create(UID:=anUID, workspaceID:=workspaceID)
             'End If
-            aCurrTarget.UPDC = anUPDC
+            'aCurrTarget.UPDC = anUPDC
             aCurrTarget.Revision = aNewTarget.Revision
             PublishNewTarget = aCurrTarget.Persist
 
@@ -940,7 +1212,8 @@ Namespace OnTrack.Deliverables
         ''' <param name="updc"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Function Clone(ByVal uid As Long, ByVal updc As Long) As Target
+        Public Overloads Function Clone(Optional ByVal uid? As Long = Nothing, Optional ByVal updc? As Long = Nothing) As Target
+            If Not uid.HasValue Then uid = Me.UID
             Dim pkarray() As Object = {uid, updc}
             Return Me.Clone(pkarray)
         End Function
@@ -957,6 +1230,19 @@ Namespace OnTrack.Deliverables
 
             If Not e.Record.HasIndex(ConstFNWorkspaceID) OrElse e.Record.GetValue(ConstFNWorkspaceID) = "" Then
                 e.Record.SetValue(ConstFNWorkspaceID, CurrentSession.CurrentWorkspaceID)
+            End If
+        End Sub
+
+        ''' <summary>
+        ''' Property change Handler -- saving the old target in the previous target
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Private Sub Target_PropertyChanging(sender As Object, e As ormDataObjectEntryEventArgs) Handles Me.OnEntryChanging
+            If e.ObjectEntryName = constFNTarget Then
+                Dim aoldDate As Date? = GetValue(constFNTarget)
+                If aoldDate.HasValue Then SetValue(constFNPrevTarget, aoldDate.Value)
             End If
         End Sub
     End Class
@@ -987,9 +1273,9 @@ Namespace OnTrack.Deliverables
             XID:="DTR2", aliases:={"UID"})> Public Const constFNDeliverableUid = Deliverable.constFNUid
 
         <ormObjectEntry(referenceobjectentry:=ScheduleEdition.ConstObjectID & "." & ScheduleEdition.ConstFNUid, primarykeyordinal:=2, _
-             XID:="DTR3", aliases:={"SC2"})> Public Const constFNScheduleUid = "suid"
+             XID:="DTR3")> Public Const constFNScheduleUid = "suid"
         <ormObjectEntry(referenceobjectentry:=ScheduleEdition.ConstObjectID & "." & ScheduleEdition.ConstFNUpdc, primarykeyordinal:=3, _
-           XID:="DTR4", aliases:={"SC2"})> Public Const constFNScheduleUpdc = "supdc"
+           XID:="DTR4")> Public Const constFNScheduleUpdc = "supdc"
         '**
         <ormSchemaForeignKey(useforeignkey:=otForeignKeyImplementation.NativeDatabase, _
             entrynames:={constFNScheduleUid, constFNScheduleUpdc}, _
@@ -1088,9 +1374,9 @@ Namespace OnTrack.Deliverables
         <ormObjectEntry(typeid:=otDataType.Date, title:="Baseline Reference Date", Description:="reference date for baseline", _
          XID:="DTR27", isnullable:=True)> Public Const ConstFNBaseLineFrom = ScheduleEdition.ConstFNBlDate
 
-
-        <ormObjectEntry(referenceobjectentry:=ObjectMessage.ConstObjectID & "." & ObjectMessage.ConstFNTag)> _
-        Public Const ConstFNmsglogtag = ObjectMessage.ConstFNTag
+        <ormObjectEntry(referenceobjectentry:=StatusItem.ConstObjectID & "." & StatusItem.constFNCode, _
+            Title:="Tracking Status", description:="status of the tracking of schedule against target", _
+           XID:="DTR30", isnullable:=True)> Public Const ConstFNStatus = "STATUS"
 
         ' change FK Action since we have the workspace as FK (leads also to domians)
         <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, _
@@ -1124,10 +1410,8 @@ Namespace OnTrack.Deliverables
         <ormEntryMapping(EntryName:=ConstFNSyncDate)> Private _syncFrom As Date?
         <ormEntryMapping(EntryName:=constFNFCGap)> Private _FCgapToTarget As Long?
         <ormEntryMapping(EntryName:=constFNBLGap)> Private _BaselineGapToTarget As Long?
-        <ormEntryMapping(EntryName:=constfnnotarget)> Private _noTargetByIntention As Boolean
-
-        <ormEntryMapping(EntryName:=ConstFNmsglogtag)> Private s_msglogtag As String
-
+        <ormEntryMapping(EntryName:=constFNNoTarget)> Private _noTargetByIntention As Boolean
+        <ormEntryMapping(EntryName:=ConstFNStatus)> Private _TStatus As String
         ''' <summary>
         ''' Relation to ScheduleDefinition
         ''' </summary>
@@ -1170,6 +1454,19 @@ Namespace OnTrack.Deliverables
 
 
 #Region "Properties"
+
+        ''' <summary>
+        ''' Gets or sets the Tracking Status
+        ''' </summary>
+        ''' <value>The T status.</value>
+        Public Property TrackingStatus() As String
+            Get
+                Return Me._TStatus
+            End Get
+            Private Set(value As String)
+                SetValue(ConstFNStatus, value)
+            End Set
+        End Property
 
         ''' <summary>
         ''' Gets or sets the no target by intention.
@@ -1217,7 +1514,7 @@ Namespace OnTrack.Deliverables
                 If Me.GetRelationStatus(ConstRTarget) = DataObjectRelationMgr.RelationStatus.Unloaded Then InfuseRelation(ConstRTarget)
                 Return Me._Target
             End Get
-            
+
         End Property
 
         ''' <summary>
@@ -1229,7 +1526,7 @@ Namespace OnTrack.Deliverables
                 If Me.GetRelationStatus(ConstRDeliverable) = DataObjectRelationMgr.RelationStatus.Unloaded Then InfuseRelation(ConstRDeliverable)
                 Return Me._deliverable
             End Get
-            
+
         End Property
 
         ''' <summary>
@@ -1398,11 +1695,11 @@ Namespace OnTrack.Deliverables
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property ForecastChangedOn() As Date
+        Public Property ForecastChangedOn() As Date?
             Get
                 Return _FClastchangeDate
             End Get
-            Set(value As Date)
+            Set(value As Date?)
                 SetValue(constFNFcChanged, value)
             End Set
         End Property
@@ -1597,14 +1894,8 @@ Namespace OnTrack.Deliverables
             getUniqueTag = ConstDelimiter & ConstTableID & ConstDelimiter & _
             _deliverableUID & ConstDelimiter
         End Function
-        ReadOnly Property msglogtag() As String
-            Get
-                If s_msglogtag = "" Then
-                    s_msglogtag = getUniqueTag()
-                End If
-                msglogtag = s_msglogtag
-            End Get
-        End Property
+
+        
 
 
 #End Region
@@ -1836,7 +2127,8 @@ Namespace OnTrack.Deliverables
                                 aTrack = Track.Create(deliverableUID:=aTarget.UID, targetUPDC:=aTarget.UPDC, scheduleUID:=aScheduleEdition.Uid, scheduleUPDC:=aScheduleEdition.Updc)
                             End If
                             If aTrack IsNot Nothing Then
-                                aTrack.UpdateTracking(persist:=True, checkGAP:=True)
+                                '** save only if the dependend objects have been saved
+                                aTrack.UpdateTracking(persist:=aTarget.IsLoaded And aScheduleEdition.IsLoaded, checkGAP:=True)
                             End If
                         Else
                             CoreMessageHandler(message:="deliverable has no working scheduling edition", arg1:=aTarget.UID, messagetype:=otCoreMessageType.InternalWarning, _
@@ -1859,7 +2151,8 @@ Namespace OnTrack.Deliverables
                                     aTrack = Track.Create(deliverableUID:=aTarget.UID, targetUPDC:=aTarget.UPDC, scheduleUID:=aScheduleEdition.Uid, scheduleUPDC:=aScheduleEdition.Updc)
                                 End If
                                 If aTrack IsNot Nothing Then
-                                    aTrack.UpdateTracking(persist:=True, checkGAP:=True)
+                                    '** save only if the depend objects have been saved !
+                                    aTrack.UpdateTracking(persist:=aTarget.IsLoaded And aScheduleEdition.IsLoaded, checkGAP:=True)
                                 End If
                             Else
                                 CoreMessageHandler(message:="deliverable has no target", arg1:=aTarget.UID, messagetype:=otCoreMessageType.InternalWarning, _
@@ -1887,70 +2180,67 @@ Namespace OnTrack.Deliverables
             ' workspaceID
             If workspaceID = "" Then workspaceID = CurrentSession.CurrentWorkspaceID
 
+            Try
+                With Me
+                    ''' target
+                    ''' 
+                    .TargetRevision = Me.Target.Revision
+                    .CurrentTargetDate = Me.Target.Target
+                    .NoTargetByIntention = Me.Target.NotargetByItention
 
-            With Me
-                ''' target
-                ''' 
-                .TargetRevision = Me.Target.Revision
-                .CurrentTargetDate = Me.Target.Target
-                .noTargetByIntention = Me.Target.NotargetByItention
-
-                ''' schedule
-                ''' 
-                .workspaceID = Me.ScheduleEdition.WorkspaceID
-                .Scheduletype = Me.ScheduleEdition.Typeid
-                .ScheduleRevision = Me.ScheduleEdition.Revision
-                .IsFrozen = Me.ScheduleEdition.IsFrozen
-                .IsFinished = Me.ScheduleEdition.IsFinished
-                .FCLCStatus = Me.ScheduleEdition.LFCStatus
-                .ProcessStatus = Me.ScheduleEdition.ProcessStatus
-                If Me.ScheduleEdition.IsFrozen Then .GoingAliveDate = Me.ScheduleEdition.CreatedOn
-                .ForecastChangedOn = Me.ScheduleEdition.LastForecastUpdate
-
-                ''' check the actual finish -> if we implement multi schedules than we should check more than that
-                ''' 
-                For Each anID In Me.Scheduledefinition.GetActualFinishID
-                    If Me.ScheduleEdition.HasMilestoneDate(anID) Then
-                        .FinishedOn = _schedule.GetMilestoneValue(anID)
-                        Exit For
+                    ''' schedule
+                    ''' 
+                    .workspaceID = Me.ScheduleEdition.WorkspaceID
+                    .Scheduletype = Me.ScheduleEdition.Typeid
+                    .ScheduleRevision = Me.ScheduleEdition.Revision
+                    .IsFrozen = Me.ScheduleEdition.IsFrozen
+                    .IsFinished = Me.ScheduleEdition.IsFinished
+                    .FCLCStatus = Me.ScheduleEdition.LifeCycleStatusCode
+                    .ProcessStatus = Me.ScheduleEdition.ProcessStatusCode
+                    If Me.ScheduleEdition.IsFrozen Then .GoingAliveDate = Me.ScheduleEdition.CreatedOn
+                    .ForecastChangedOn = Me.ScheduleEdition.LastForecastUpdate
+                    .FinishedOn = Me.ScheduleEdition.FinishedOn
+                    .IsFinished = Me.ScheduleEdition.IsFinished
+                    .CurrentForecast = Me.ScheduleEdition.FinishOn
+                    Dim FinishIDs As String() = Me.ScheduleEdition.ScheduleDefinition.GetFCFinishID
+                    If FinishIDs Is Nothing OrElse FinishIDs.Count = 0 Then
+                        CoreMessageHandler(message:="schedule definition has no finish milestones", arg1:=Me.ScheduleEdition.Typeid, subname:="Track.UpdateTracking", _
+                                            messagetype:=otCoreMessageType.ApplicationError)
+                    Else
+                        .MSIDFinish = Me.ScheduleEdition.ScheduleDefinition.GetFCFinishID.First
                     End If
-                Next
 
-                ''' check the forecast finish -> if we implement multi schedules than we should check more than that
-                ''' 
-                For Each anID In Me.Scheduledefinition.GetFCFinishID
-                    If Me.ScheduleEdition.HasMilestoneDate(anID) Then
-                        .CurrentForecast = _schedule.GetMilestoneValue(anID)
-                        .MSIDFinish = anID
-                        Exit For
+                    '''
+                    ''' calculate the gap
+                    If checkGAP Then .CheckOnGap()
+
+                    ''' baseline
+                    ''' 
+                    If Me.ScheduleEdition.IsBaseline Then
+                        .BaseLineFinishDate = Me.ScheduleEdition.GetMilestoneValue(.MSIDFinish)
+                        .BaseLineFinishDateFrom = Me.ScheduleEdition.CreatedOn
+                        .BaseLineUPDC = Me.ScheduleEdition.Updc
+                        If checkGAP Then .CheckOnBaselineGap()
                     End If
-                Next
+
+
+
+
+                End With
 
                 '''
-                ''' calculate the gap
-                If checkGAP Then .CheckOnGap()
-
-                ''' baseline
-                ''' 
-                If Me.ScheduleEdition.IsBaseline Then
-                    .BaseLineFinishDate = Me.ScheduleEdition.GetMilestoneValue(.MSIDFinish)
-                    .BaseLineFinishDateFrom = Me.ScheduleEdition.CreatedOn
-                    .BaseLineUPDC = Me.ScheduleEdition.Updc
-                    If checkGAP Then .CheckOnBaselineGap()
+                ''' persist
+                If persist And Me.IsChanged Then
+                    Return Me.Persist
+                Else
+                    Return True
                 End If
 
-
-
-
-            End With
-
-            '''
-            ''' persist
-            If persist And Me.IsChanged Then
-                Return Me.Persist
-            Else
-                Return True
-            End If
+            Catch ex As Exception
+                CoreMessageHandler(exception:=ex, subname:="Track.UpdateTracking")
+                Return False
+            End Try
+           
 
         End Function
        
@@ -2216,6 +2506,11 @@ Namespace OnTrack.Deliverables
         <ormObjectEntry(typeid:=otDataType.Bool, defaultValue:=False, _
           title:="Target Necessary", description:="has mandatory target data", XID:="DLVT25")> Public Const constFNhastarget = "hastargetdata"
 
+
+        <ormObjectEntry(typeid:=otDataType.Bool, defaultValue:=False, _
+          title:="Target Autopublish", description:="target will autopublish if changed", XID:="DLVT28")> Public Const ConstFNAutoPublish = "AUTOPUBLISH"
+
+
         <ormObjectEntry(referenceobjectentry:=ObjectPropertyValueLot.ConstObjectID & "." & ObjectPropertyValueLot.ConstFNSets, isnullable:=True, _
          title:="default property sets", description:="default property sets", XID:="DLVT26")> Public Const constFNdefSets = "defaultsetids"
 
@@ -2239,7 +2534,8 @@ Namespace OnTrack.Deliverables
         <ormEntryMapping(EntryName:=constFNDefTargetOU)> Private _defTargetOU As String
         <ormEntryMapping(EntryName:=constFNDefRevision)> Private _defRevision As String
         <ormEntryMapping(EntryName:=ConstFNScheduled)> Private _IsScheduled As Boolean = False
-        <ormEntryMapping(EntryName:=constFNhastarget)> Private _hasAlwasyTarget As Boolean = False
+        <ormEntryMapping(EntryName:=constFNhastarget)> Private _mustHaveTarget As Boolean = False
+        <ormEntryMapping(EntryName:=ConstFNAutoPublish)> Private _TargetAutoPublish As Boolean = False
         <ormEntryMapping(EntryName:=constFNdefSets)> Private _defSets As String()
 
 #Region "Properties"
@@ -2261,15 +2557,27 @@ Namespace OnTrack.Deliverables
         ''' Gets or sets the has alwasy target.
         ''' </summary>
         ''' <value>The has alwasy target.</value>
-        Public Property HasAlwasyTarget() As Boolean
+        Public Property MustHaveTarget() As Boolean
             Get
-                Return Me._hasAlwasyTarget
+                Return Me._mustHaveTarget
             End Get
             Set(value As Boolean)
                 SetValue(constFNhastarget, value)
             End Set
         End Property
 
+        ''' <summary>
+        ''' returns true if the Target is autopublished
+        ''' </summary>
+        ''' <value>The has alwasy target.</value>
+        Public Property AutoPublishTarget() As Boolean
+            Get
+                Return Me._TargetAutoPublish
+            End Get
+            Set(value As Boolean)
+                SetValue(ConstFNAutoPublish, value)
+            End Set
+        End Property
         ''' <summary>
         ''' Gets or sets the default property sets
         ''' </summary>
@@ -2561,7 +2869,7 @@ Namespace OnTrack.Deliverables
             title:="Revision", description:="revision of the deliverable", XID:="DLV6")> Public Const constFNRevision = "drev"
 
         <ormObjectEntry(referenceobjectentry:=ConstObjectID & "." & constFNUid, title:="First Revision UID", description:="unique id of the first revision deliverable", _
-            XID:="DLV7", aliases:={}, isnullable:=True)> Public Const constFNfuid = "fuid"
+            XID:="DLV7", isnullable:=True, aliases:={""})> Public Const constFNfuid = "fuid"
 
         <ormObjectEntry(typeid:=otDataType.Text, size:=100, isnullable:=True, _
             title:="Change Reference", description:="change reference of the deliverable", XID:="DLV8")> Public Const constFNChangeRef = "chref"
@@ -2592,9 +2900,6 @@ Namespace OnTrack.Deliverables
 
         <ormObjectEntry(typeid:=otDataType.Memo, isnullable:=True, _
             title:="comment", description:="comments and extended description of the deliverable", XID:="DLV18")> Public Const constFNComment = "cmt"
-
-        <ormObjectEntry(referenceobjectentry:=ObjectMessage.ConstObjectID & "." & ObjectMessage.ConstFNTag)>
-        Public Const ConstFNmsglogtag = ObjectMessage.ConstFNTag
 
         <ormObjectEntry(typeid:=otDataType.Text, size:=100, isnullable:=True, _
         title:="wbs reference", description:="work break down structure for the deliverable", XID:="DLV22")> _
@@ -2630,7 +2935,6 @@ Namespace OnTrack.Deliverables
         <ormEntryMapping(EntryName:=constFNResponsiblePerson)> Private _responsibleID As String
         <ormEntryMapping(EntryName:=constFNBlockingItemReference)> Private _blockingitemID As String
         <ormEntryMapping(EntryName:=constFNComment)> Private _comment As String
-        <ormEntryMapping(EntryName:=ConstFNmsglogtag)> Private _msglogtag As String
 
         <ormEntryMapping(EntryName:=constFNWBSID)> Private _wbsid As String
         <ormEntryMapping(EntryName:=constFNWBSCode)> Private _wbscode As String
@@ -2685,7 +2989,7 @@ Namespace OnTrack.Deliverables
         ''' <remarks></remarks>
         <ormRelation(linkObject:=GetType(Deliverables.WorkspaceTarget), createobjectifnotretrieved:=True, _
                      cascadeonCreate:=True, cascadeOnDelete:=True, cascadeOnUpdate:=True)> _
-        Public Const ConstRWorkspaceTarget = "RELWorkspaceTarget"
+        Public Const ConstRWorkspaceTarget = "RELWORKSPACETARGET"
 
         <ormEntryMapping(relationName:=ConstRWorkspaceTarget, infusemode:=otInfuseMode.OnCreate Or otInfuseMode.OnDemand)> Private _workspaceTarget As WorkspaceTarget
 
@@ -2695,20 +2999,20 @@ Namespace OnTrack.Deliverables
         ''' </summary>
         ''' <remarks></remarks>
         <ormRelation(linkObject:=GetType(ObjectPropertyLink), createobjectifnotretrieved:=True, _
-                     cascadeonCreate:=False, cascadeOnDelete:=True, cascadeOnUpdate:=True)> _
+                     cascadeonCreate:=True, cascadeOnDelete:=True, cascadeOnUpdate:=True)> _
         Public Const ConstRPropertyLink = "RELPROPERTYLINK"
 
-        <ormEntryMapping(relationName:=ConstRPropertyLink, infusemode:=otInfuseMode.OnDemand)> Private _propertyLink As ObjectPropertyLink
+        <ormEntryMapping(relationName:=ConstRPropertyLink, infusemode:=otInfuseMode.OnCreate Or otInfuseMode.OnDemand)> Private _propertyLink As ObjectPropertyLink
 
         ''' <summary>
         ''' Relation to ScheduleLink - will be resolved via event handling
         ''' </summary>
         ''' <remarks></remarks>
         <ormRelation(linkObject:=GetType(ScheduleLink), createobjectifnotretrieved:=True, _
-                            cascadeonCreate:=False, cascadeOnDelete:=False, cascadeOnUpdate:=True)> _
+                            cascadeonCreate:=True, cascadeOnDelete:=False, cascadeOnUpdate:=True)> _
         Public Const ConstRScheduleLink = "RELSCHEDULELINK"
 
-        <ormEntryMapping(relationName:=ConstRScheduleLink, infusemode:=otInfuseMode.OnDemand)> Private _scheduleLink As ScheduleLink
+        <ormEntryMapping(relationName:=ConstRScheduleLink, infusemode:=otInfuseMode.OnCreate Or otInfuseMode.OnDemand)> Private _scheduleLink As ScheduleLink
 
         ''' <summary>
         ''' Relation to Tracks - will be resolved via event handling
@@ -2778,11 +3082,12 @@ Namespace OnTrack.Deliverables
         ReadOnly Property ScheduleLink As ScheduleLink
             Get
                 If Not Me.IsAlive(subname:="ScheduleLink") Then Return Nothing
-                If Me.InfuseRelation(ConstRScheduleLink) Then
-                    Return _scheduleLink
-                Else
-                    Return Nothing
+                If _scheduleLink Is Nothing Then
+                    Me.InfuseRelation(ConstRScheduleLink)
                 End If
+
+                Return _scheduleLink
+                
             End Get
         End Property
         ''' <summary>
@@ -2794,11 +3099,9 @@ Namespace OnTrack.Deliverables
         ReadOnly Property DeliverableType As DeliverableType
             Get
                 If Not Me.IsAlive(subname:="DeliverableType") Then Return Nothing
-                If Me.InfuseRelation(ConstRDeliverableType) Then
-                    Return _deliverableType
-                Else
-                    Return Nothing
-                End If
+                Me.InfuseRelation(ConstRDeliverableType)
+                Return _deliverableType
+               
             End Get
         End Property
         ''' <summary>
@@ -3072,14 +3375,7 @@ Namespace OnTrack.Deliverables
                 SetValue(constFNFunction, value)
             End Set
         End Property
-        ReadOnly Property MsglogTag() As String
-            Get
-                If _msglogtag = "" Then
-                    _msglogtag = GetUniqueTag()
-                End If
-                Return _msglogtag
-            End Get
-        End Property
+        
         ''' <summary>
         ''' gets or sets the blocking item reference ID
         ''' </summary>
@@ -3239,7 +3535,7 @@ Namespace OnTrack.Deliverables
                     Dim aSchedule As WorkspaceSchedule = WorkspaceSchedule.Retrieve(UID:=aScheduleLink.ToUid, workspaceID:=aWorkspaceID)
                     '' create
                     If aSchedule Is Nothing Then
-                        aSchedule = WorkspaceSchedule.Create(scheduletypeid:=myself.DeliverableType.DefaultScheduleType, workspaceID:=aWorkspaceID)
+                        aSchedule = WorkspaceSchedule.Create(scheduletypeid:=aScheduletype, workspaceID:=aWorkspaceID)
                     End If
                     ''' back to the ScheduleLink
                     If aSchedule IsNot Nothing Then
@@ -3258,7 +3554,7 @@ Namespace OnTrack.Deliverables
                 Dim needsTarget As Boolean?
                 Dim defaultTargetOUT As String
                 If myself.DeliverableType IsNot Nothing Then
-                    needsTarget = myself.DeliverableType.HasAlwasyTarget
+                    needsTarget = myself.DeliverableType.MustHaveTarget
                     defaultTargetOUT = myself.DeliverableType.DefaultTargetOU
                 End If
 
@@ -3719,12 +4015,13 @@ Namespace OnTrack.Deliverables
         ''' <remarks></remarks>
         Public Function GetWorkspaceTarget(Optional ByVal workspaceID As String = Nothing) As WorkspaceTarget
             If Not IsAlive(subname:="GetCurrTarget") Then Return Nothing
-            If workspaceID IsNot Nothing Then
-                Return WorkspaceTarget.Retrieve(uid:=Me.Uid, workspaceID:=workspaceID)
+            If workspaceID IsNot Nothing Then workspaceID = CurrentSession.CurrentWorkspaceID
+            If workspaceID <> CurrentSession.CurrentWorkspaceID Then
+                _workspaceTarget = WorkspaceTarget.Retrieve(uid:=Me.Uid, workspaceID:=workspaceID)
             Else
                 InfuseRelation(ConstRWorkspaceTarget)
-                Return _workspaceTarget
             End If
+            Return _workspaceTarget
         End Function
         ''' <summary>
         ''' retrieve the current workspace schedule object
@@ -3800,7 +4097,8 @@ Namespace OnTrack.Deliverables
         Public Function GetTarget(Optional ByVal workspaceID As String = Nothing) As Target
             If Not IsAlive(subname:="GetTarget") Then Return Nothing
             Dim aWorkspaceTarget As WorkspaceTarget = Me.GetWorkspaceTarget(workspaceID:=workspaceID)
-            If aWorkspaceTarget IsNot Nothing Then Return aWorkspaceTarget.Target
+            If aWorkspaceTarget IsNot Nothing Then Return aWorkspaceTarget.WorkingTarget
+
             Return Nothing
         End Function
 
@@ -3886,7 +4184,13 @@ Namespace OnTrack.Deliverables
             aValue = e.Record.GetValue(ConstFNWorkspace)
             If aValue Is Nothing OrElse aValue = "" Then e.Record.SetValue(ConstFNWorkspace, CurrentSession.CurrentWorkspaceID)
             aValue = e.Record.GetValue(constFNDeliverableTypeID)
-            If aValue Is Nothing OrElse aValue = "" Then e.Record.SetValue(constFNDeliverableTypeID, CurrentSession.DefaultDeliverableTypeID)
+            If aValue Is Nothing OrElse aValue = "" Then
+                If CurrentSession.DefaultDeliverableTypeID IsNot Nothing AndAlso CurrentSession.DefaultDeliverableTypeID <> "" Then
+                    aValue = CurrentSession.DefaultDeliverableTypeID
+                    e.Record.SetValue(constFNDeliverableTypeID, aValue)
+                End If
+            End If
+
 
             ''' Get the Values from the Type
             ''' 
@@ -3894,9 +4198,9 @@ Namespace OnTrack.Deliverables
             If domainID Is Nothing OrElse domainID = "" Then domainID = CurrentSession.CurrentDomainID
             Dim aDeliverableType = DeliverableType.Retrieve(typeid:=aValue, domainID:=domainID)
             With aDeliverableType
-                If e.Record.GetValue(constFNFunction) IsNot Nothing Then e.Record.SetValue(constFNFunction, .DefaultFunction)
-                If e.Record.GetValue(constFNRespOU) IsNot Nothing Then e.Record.SetValue(constFNRespOU, .DefaultRespOU)
-                If e.Record.GetValue(constFNRevision) IsNot Nothing Then e.Record.SetValue(constFNRevision, .DefaultRevision)
+                If e.Record.GetValue(constFNFunction) Is Nothing Then e.Record.SetValue(constFNFunction, .DefaultFunction)
+                If e.Record.GetValue(constFNRespOU) Is Nothing Then e.Record.SetValue(constFNRespOU, .DefaultRespOU)
+                If e.Record.GetValue(constFNRevision) Is Nothing Then e.Record.SetValue(constFNRevision, .DefaultRevision)
             End With
         End Sub
         ''' <summary>

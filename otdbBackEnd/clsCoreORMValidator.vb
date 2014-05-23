@@ -107,12 +107,88 @@ Namespace OnTrack.Database
     Partial Public MustInherit Class ormDataObject
 
         ''' <summary>
+        ''' Raise the Validating Event for this object
+        ''' </summary>
+        ''' <param name="msglog"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function RaiseOnEntryValidatingEvent(entryname As String, msglog As ObjectMessageLog) As otValidationResultType Implements iormValidatable.RaiseOnEntryValidatingEvent
+            Dim args As ormDataObjectEntryValidationEventArgs = New ormDataObjectEntryValidationEventArgs(object:=Me, entryname:=entryname, msglog:=msglog, timestamp:=Date.Now)
+
+            RaiseEvent OnEntryValidating(Me, args)
+            Return args.Result
+        End Function
+
+        ''' <summary>
+        ''' Raise the Validated Event for this object
+        ''' </summary>
+        ''' <param name="msglog"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function RaiseOnEntryValidatedEvent(entryname As String, msglog As ObjectMessageLog) As otValidationResultType Implements iormValidatable.RaiseOnEntryValidatedEvent
+            Dim args As ormDataObjectEntryValidationEventArgs = New ormDataObjectEntryValidationEventArgs(object:=Me, entryname:=entryname, msglog:=msglog, timestamp:=Date.Now)
+
+            RaiseEvent OnEntryValidated(Me, args)
+            Return args.Result
+        End Function
+        ''' <summary>
+        ''' Raise the Validating Event for this object
+        ''' </summary>
+        ''' <param name="msglog"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function RaiseOnValidatingEvent(msglog As ObjectMessageLog) As otValidationResultType Implements iormValidatable.RaiseOnValidatingEvent
+            Dim args As ormDataObjectValidationEventArgs = New ormDataObjectValidationEventArgs(object:=Me, msglog:=msglog, timestamp:=Date.Now)
+
+            RaiseEvent OnValidating(Me, args)
+            Return args.Result
+        End Function
+
+        ''' <summary>
+        ''' Raise the Validated Event for this object
+        ''' </summary>
+        ''' <param name="msglog"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function RaiseOnValidatedEvent(msglog As ObjectMessageLog) As otValidationResultType Implements iormValidatable.RaiseOnValidatedEvent
+            Dim args As ormDataObjectValidationEventArgs = New ormDataObjectValidationEventArgs(object:=Me, msglog:=msglog, timestamp:=Date.Now)
+
+            RaiseEvent OnValidated(Me, args)
+            Return args.Result
+        End Function
+        ''' <summary>
         ''' validates the Business Object as total
         ''' </summary>
         ''' <remarks></remarks>
         ''' <returns>True if validated and OK</returns>
-        Public Function Validate() As otValidationResultType Implements iormValidatable.Validate
-            Return otValidationResultType.Succeeded
+        Public Function Validate(Optional msglog As ObjectMessageLog = Nothing) As otValidationResultType Implements iormValidatable.Validate
+            If msglog Is Nothing Then msglog = Me.ObjectMessageLog
+            Dim args As New ormDataObjectValidationEventArgs(object:=Me, timestamp:=Date.Now)
+            Dim result As otValidationResultType
+            '''
+            ''' STEP 1 Raise the pre event
+            ''' 
+            RaiseEvent OnValidating(Me, args)
+            If args.ValidationResult = otValidationResultType.FailedNoSave Then Return args.ValidationResult
+
+            ''' 
+            ''' Validate all the Entries against current value
+            ''' 
+            For Each anEntryname In Me.ObjectDefinition.Entrynames
+                result = Me.Validate(entryname:=anEntryname, value:=GetValue(entryname:=anEntryname), msglog:=msglog)
+                If result = otValidationResultType.FailedNoSave Then
+                    ''' what now
+                    ''' 
+                    Return result
+                End If
+            Next
+            ''' 
+            ''' STEP 3 Raise the validated Event
+            ''' 
+            RaiseEvent OnValidated(Me, args)
+            If args.ValidationResult = otValidationResultType.FailedNoSave Then Return args.ValidationResult
+
+            Return args.ValidationResult
         End Function
 
         ''' <summary>
@@ -121,7 +197,7 @@ Namespace OnTrack.Database
         ''' <param name="enryname"></param>
         ''' <remarks></remarks>
         ''' <returns></returns>
-        Protected Function Validate(enryname As String, ByVal value As Object) As otValidationResultType Implements iormValidatable.Validate
+        Public Function Validate(entryname As String, ByVal value As Object, Optional msglog As ObjectMessageLog = Nothing) As otValidationResultType Implements iormValidatable.Validate
             Dim result As otValidationResultType
 
             ''' how to validate during bootstrapping or session starting
@@ -131,21 +207,26 @@ Namespace OnTrack.Database
             Else
                 ''' 3 Step Validation process
                 ''' 
-                Dim aLog As New ObjectMessageLog
+                If msglog Is Nothing Then msglog = Me.ObjectMessageLog
+                Dim args As New ormDataObjectEntryValidationEventArgs(object:=Me, entryname:=entryname, value:=value, msglog:=msglog, timestamp:=Date.Now)
 
-                ''' STEP 1 Validate the entry itself
+                '''
+                ''' STEP 1 RAISE THE VALIDATING ENTRY EVENT BEFORE WE PROCESS
+                '''
+                RaiseEvent OnEntryValidating(Me, args)
+                If args.ValidationResult = otValidationResultType.FailedNoSave Then Return args.ValidationResult
+                If args.Result Then value = args.Value
+
+                '''
+                '''  STEP 2 Validate the entry against INTERNAL RULES
                 ''' 
-                result = ObjectValidator.ValidateEntry(Me.ObjectDefinition.GetEntry(enryname), newvalue:=value, log:=aLog)
+                result = ObjectValidator.Validate(Me.ObjectDefinition.GetEntry(entryname), newvalue:=value, msglog:=msglog)
                 If result = otValidationResultType.FailedNoSave Then Return result
 
-                ''' STEP 2 VALIDATE the entry not-context free
+                ''' STEP 3 VALIDATE VIA ENTRY VALIDATED EVENT (Post Validating)
                 ''' 
-                result = ObjectValidator.ValidateEntry(Me.ObjectDefinition.GetEntry(enryname), dataobject:=Me, log:=aLog)
-                If result = otValidationResultType.FailedNoSave Then Return result
-                ''' STEP 3 VALIDATE the Object with the new entry
-                ''' 
-                result = ObjectValidator.ValidateObject(Me.ObjectDefinition, dataobject:=Me, log:=aLog)
-                If result = otValidationResultType.FailedNoSave Then Return result
+                RaiseEvent OnEntryValidated(Me, args)
+                result = args.ValidationResult
 
                 Return result
             End If
@@ -170,6 +251,8 @@ Namespace OnTrack.Database
 
         End Class
 
+        Private Shared _validate As otValidationResultType
+
 
         ''' <summary>
         ''' Events
@@ -179,6 +262,7 @@ Namespace OnTrack.Database
         ''' <remarks></remarks>
         Public Event OnValidationEntyFailed(sender As Object, e As ObjectValidator.EventArgs)
 
+
         ''' <summary>
         ''' validate an individual entry (contextfree)
         ''' </summary>
@@ -187,8 +271,8 @@ Namespace OnTrack.Database
         ''' <param name="oldvalue"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Shared Function ValidateEntry(objectentrydefinition As iormObjectEntry, ByVal newvalue As Object, _
-                                             Optional ByRef log As ObjectMessageLog = Nothing) As otValidationResultType
+        Public Shared Function Validate(objectentrydefinition As iormObjectEntry, ByVal newvalue As Object, _
+                                             Optional ByRef msglog As ObjectMessageLog = Nothing) As otValidationResultType
 
             If objectentrydefinition Is Nothing Then
                 CoreMessageHandler(message:="object entry definition is nothing - validate aborted", messagetype:=otCoreMessageType.InternalError, _
@@ -196,16 +280,32 @@ Namespace OnTrack.Database
                 Return otValidationResultType.FailedNoSave
             End If
             Try
-                ''' default values
-                If log Is Nothing Then log = New ObjectMessageLog()
 
-                ''' properties
-                Dim theProperties As IList(Of ObjectValidationProperty) = objectentrydefinition.ValidationProperties
-                If theProperties Is Nothing OrElse theProperties.Count = 0 Then
-                    Return otValidationResultType.Succeeded
+                'If msglog Is Nothing Then msglog = New ObjectMessageLog()
+
+                ''' try to convert
+                Dim failedflag As Boolean
+                Converter.Object2otObject(newvalue, objectentrydefinition.Datatype, isnullable:=objectentrydefinition.IsNullable, failed:=failedflag)
+                If failedflag And msglog IsNot Nothing Then
+                    If newvalue IsNot Nothing Then
+                        msglog.Add(1101, Nothing, Nothing, Nothing, Nothing,
+                                   objectentrydefinition.Objectname, objectentrydefinition.Entryname, objectentrydefinition.Datatype.ToString, newvalue, objectentrydefinition.XID)
+                    ElseIf Not objectentrydefinition.IsNullable AndAlso newvalue Is Nothing Then
+                        msglog.Add(1102, Nothing, Nothing, Nothing, Nothing,
+                             objectentrydefinition.Objectname, objectentrydefinition.Entryname, objectentrydefinition.Datatype.ToString, newvalue, objectentrydefinition.XID)
+                    End If
+
+                ElseIf failedflag Then
+                    Return otValidationResultType.FailedNoSave
                 End If
 
-                Return otValidationResultType.Succeeded
+                    ''' properties
+                    Dim theProperties As IList(Of ObjectValidationProperty) = objectentrydefinition.ValidationProperties
+                    If theProperties Is Nothing OrElse theProperties.Count = 0 Then
+                        Return otValidationResultType.Succeeded
+                    End If
+
+                    Return otValidationResultType.Succeeded
 
             Catch ex As Exception
                 CoreMessageHandler(exception:=ex, subname:="ObjectValidator.ValidateEntry")
@@ -213,54 +313,7 @@ Namespace OnTrack.Database
             End Try
         End Function
 
-        ''' <summary>
-        ''' validate an individual entry (with context)
-        ''' </summary>
-        ''' <param name="objectentrydefinition"></param>
-        ''' <param name="newvalue"></param>
-        ''' <param name="oldvalue"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Shared Function ValidateEntry(objectentrydefinition As iormObjectEntry, dataobject As iormPersistable, _
-                                             Optional ByRef log As ObjectMessageLog = Nothing) As otValidationResultType
-            Try
-                If objectentrydefinition Is Nothing Then
-                    CoreMessageHandler(message:="object entry definition is nothing - validate aborted", messagetype:=otCoreMessageType.InternalError, _
-                                       subname:="ObjectValidator.ValidateEntry")
-                    Return otValidationResultType.FailedNoSave
-                End If
-
-                ''' default values
-                If log Is Nothing Then log = New ObjectMessageLog()
-
-
-                Return otValidationResultType.Succeeded
-            Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="ObjectValidator.ValidateEntry")
-                Return False
-            End Try
-        End Function
-
-        ''' <summary>
-        ''' validate an individual entry (with context)
-        ''' </summary>
-        ''' <param name="objectentrydefinition"></param>
-        ''' <param name="newvalue"></param>
-        ''' <param name="oldvalue"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Shared Function ValidateObject(objectdefinition As ObjectDefinition, dataobject As iormPersistable, _
-                                             Optional ByRef log As ObjectMessageLog = Nothing) As otValidationResultType
-            Try
-                ''' default values
-                If log Is Nothing Then log = New ObjectMessageLog()
-
-                Return otValidationResultType.Succeeded
-            Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="ObjectValidator.ValidateEntry")
-                Return False
-            End Try
-        End Function
+        
     End Class
     ''' <summary>
     ''' Class for Object Entry Properties

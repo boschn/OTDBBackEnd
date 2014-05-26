@@ -2677,18 +2677,19 @@ Namespace OnTrack
 
         End Sub
 
+
         ''' <summary>
         ''' retrieves the log and loads all messages for the container object
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function Retrieve() As iormRelationalCollection(Of ObjectMessage)
+        Public Shared Function Retrieve(msglogtag As String) As iormRelationalCollection(Of ObjectMessage)
             '''
             ''' check if the new Property value is different then old one
             ''' 
             '** build query
             Dim newCollection As ormRelationCollection(Of ObjectMessage) = New ormRelationCollection(Of ObjectMessage)(Nothing, keyentrynames:={ObjectMessage.ConstFNNo})
-            Dim aTag = TryCast(_container, ormDataObject).ObjectTag
+            'Dim aTag = TryCast(_container, ormDataObject).ObjectTag
             Try
                 Dim aStore As iormDataStore = ot.GetTableStore(ObjectMessage.ConstTableID) '_container.PrimaryTableStore is the class itself
                 Dim aCommand As ormSqlSelectCommand = aStore.CreateSqlSelectCommand(id:="RetrieveObjectMessages", addAllFields:=True)
@@ -2700,7 +2701,7 @@ Namespace OnTrack
                     aCommand.AddParameter(New ormSqlCommandParameter(ID:="@deleted", ColumnName:=ObjectMessage.ConstFNIsDeleted, tablename:=ObjectMessage.ConstTableID))
                     aCommand.Prepare()
                 End If
-                aCommand.SetParameterValue(ID:="@tag", value:=aTag)
+                aCommand.SetParameterValue(ID:="@tag", value:=msglogtag)
                 aCommand.SetParameterValue(ID:="@deleted", value:=False)
 
                 Dim aRecordCollection = aCommand.RunSelect
@@ -2837,7 +2838,7 @@ Namespace OnTrack
                 aDomainID = CurrentSession.CurrentDomainID
             End If
 
-            Dim aMessageType As ObjectMessageType = ObjectMessageType.Retrieve(uid:=aMessage.Msgid, domainID:=aDomainID)
+            Dim aMessageType As ObjectMessageType = ObjectMessageType.Retrieve(uid:=aMessage.MessageTypeID, domainID:=aDomainID)
             If aMessageType IsNot Nothing Then
                 ''' add the message to each status type
                 ''' 
@@ -2876,7 +2877,7 @@ Namespace OnTrack
             Dim aMessageText As New Text.StringBuilder
 
             For Each aMessage As ObjectMessage In Me
-                aMessageText.AppendFormat("{0:000000}:", aMessage.Msgid)
+                aMessageText.AppendFormat("{0:000000}:", aMessage.MessageTypeID)
                 aMessageText.AppendLine(aMessage.Message)
             Next
 
@@ -3185,7 +3186,7 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property Msgid() As Long
+        Public Property MessageTypeID() As Long
             Get
                 Return _typeuid
             End Get
@@ -3290,7 +3291,7 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property EntitityIdentifier As Object
+        Public Property EntityIdentifier As Object
             Get
                 Return _EntitityID
             End Get
@@ -3401,9 +3402,9 @@ Namespace OnTrack
                 If Me.ContextIdentifier IsNot Nothing Then
                     Me.Message = Strings.Replace(Me.Message, "%contextid%", ContextIdentifier)
                 End If
-                If Me.EntitityIdentifier IsNot Nothing Then
-                    Me.Message = Strings.Replace(Me.Message, "%entitiyid%", EntitityIdentifier)
-                    Me.Message = Strings.Replace(Me.Message, "%ids%", EntitityIdentifier)
+                If Me.EntityIdentifier IsNot Nothing Then
+                    Me.Message = Strings.Replace(Me.Message, "%entitiyid%", EntityIdentifier)
+                    Me.Message = Strings.Replace(Me.Message, "%ids%", EntityIdentifier)
                 End If
 
                 'aMember.message = Replace(aMember.message, "%rowno%", aRowNo)
@@ -3414,6 +3415,18 @@ Namespace OnTrack
                 For i = LBound(Me.Parameters) To UBound(Me.Parameters)
                     Me.Message = Strings.Replace(Me.Message, "%" & i + 1 & "%", Me.Parameters(i))
                 Next i
+            Else
+                Dim aBuilder As New Text.StringBuilder
+                aBuilder.AppendFormat("> Message type {0} not found.", Me.MessageTypeID)
+                aBuilder.AppendLine()
+                aBuilder.AppendFormat("> ContextIdentifier: '{1}', TupleIdentifier: '{0}', EntityIdentifier: {2}", Me.TupleIdentifier, Me.ContextIdentifier, Me.EntityIdentifier)
+                aBuilder.AppendLine()
+
+                For i = LBound(Me.Parameters) To UBound(Me.Parameters)
+                    aBuilder.AppendFormat("> Message Parameter #{0}: '{1}'", i, Me.Parameters(i))
+                    aBuilder.AppendLine()
+                Next i
+                Me.Message = aBuilder.ToString
             End If
         End Sub
     End Class

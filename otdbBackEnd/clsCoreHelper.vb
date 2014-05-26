@@ -383,7 +383,7 @@ Namespace OnTrack.Database
                             failed = False
                             If input.ToString.First <> ConstDelimiter Then input = ConstDelimiter & input.ToString
                             If input.ToString.Last <> ConstDelimiter Then input = input.ToString & ConstDelimiter
-                            Return Converter.String2Array(input)
+                            Return input.ToString
                         End If
 
                     Case otDataType.Memo, otDataType.Text
@@ -463,16 +463,7 @@ Namespace OnTrack.Database
             Return False
         End Function
 
-        ''' <summary>
-        ''' creates a generic type of oftype
-        ''' </summary>
-        ''' <param name="type"></param>
-        ''' <param name="interfacetype"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Shared Function GetsGenericInterface(ByVal [type] As Type, oftype As Type) As Type
-
-        End Function
+        
         ''' <summary>
         ''' returns true if the type is nullable or string (which is also nullable)
         ''' </summary>

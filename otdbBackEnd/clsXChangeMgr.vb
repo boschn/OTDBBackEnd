@@ -1019,6 +1019,7 @@ Namespace OnTrack.XChange
                         Return outvalue
 
                     Else
+                        ''' TODO: How to comunnicate back that value couldnot be converted ?!
                         Return DBNull.Value
                     End If
                 End If
@@ -1330,6 +1331,12 @@ Namespace OnTrack.XChange
                         Else
                             dbvalue = True
                         End If
+                        Return True
+                    ElseIf hostvalue.ToString.ToUpper = "TRUE" Then
+                        dbvalue = True
+                        Return True
+                    ElseIf hostvalue.ToString.ToUpper = "FALSE" Then
+                        dbvalue = False
                         Return True
                     ElseIf String.IsNullOrWhiteSpace(hostvalue.ToString) Then
                         dbvalue = False
@@ -2189,12 +2196,12 @@ Namespace OnTrack.XChange
         ''' <param name="SUSPENDOVERLOAD"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function RunXPreCheck(Optional ByRef msglog As ObjectMessageLog = Nothing,
+        Public Function RunXPreCheck(Optional msglog As ObjectMessageLog = Nothing,
                                      Optional ByVal suspendoverload As Boolean = True) As Boolean
             Dim result As Boolean = True
 
             ' set msglog
-            If msglog Is Nothing Then msglog = Me.messagelog
+            If msglog Is Nothing Then msglog = Me.MessageLog
 
 
             ' suspend Overloading
@@ -2214,7 +2221,7 @@ Namespace OnTrack.XChange
                 '    Dim aXChangeable As iotXChangeable = ot.CreateDataObjectInstance(anObjectType)
                 '    flag = aXChangeable.RunXPreCheck(Me, msglog)
                 'Else
-                    ' default
+                ' default
                 result = result And RunDefaultPreCheck(anConfigObject, msglog)
                 'End If
 
@@ -2236,7 +2243,7 @@ Namespace OnTrack.XChange
         ''' <param name="suspendoverload"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function RunXChange(Optional ByRef msglog As ObjectMessageLog = Nothing,
+        Public Function RunXChange(Optional msglog As ObjectMessageLog = Nothing,
                                    Optional ByVal suspendoverload As Boolean = True) As Boolean
             Dim result As Boolean = True
 
@@ -2590,7 +2597,7 @@ Namespace OnTrack.XChange
         ''' <remarks></remarks>
         Public Function RunPreCheck(ByRef dataobject As iormPersistable, type As System.Type, _
                                           Optional xobject As XChangeObject = Nothing, _
-                                          Optional ByRef msglog As ObjectMessageLog = Nothing) As Boolean
+                                          Optional msglog As ObjectMessageLog = Nothing) As Boolean
             Dim aValue As Object
 
             '** no object is given
@@ -2661,7 +2668,7 @@ Namespace OnTrack.XChange
                     For Each anXEntry In Me.Xchangeconfig.GetEntriesByObjectName(objectname:=xobject.Objectname)
                         If anXEntry.IsXChanged AndAlso Not anXEntry.IsReadOnly Then
                             If (anXEntry.XChangeCmd = otXChangeCommandType.Update Or anXEntry.XChangeCmd = otXChangeCommandType.UpdateCreate) Then
-                              
+
                                 Dim aSlot = Me.GetSlot(ordinal:=anXEntry.Ordinal)
                                 If aSlot IsNot Nothing AndAlso Not aSlot.IsEmpty Then
                                     '* get Value from Slot DBNULL ist the hack-return
@@ -2819,7 +2826,7 @@ Namespace OnTrack.XChange
                                 If aSlot IsNot Nothing AndAlso Not aSlot.IsEmpty Then
                                     '* get Value from Slot
                                     aValue = aSlot.DBValue
-                                    If dataobject.ObjectDefinition.HasEntry(anXEntry.ObjectEntryname) Then
+                                    If Not IsDBNull(aValue) AndAlso dataobject.ObjectDefinition.HasEntry(anXEntry.ObjectEntryname) Then
                                         If Not dataobject.EqualsValue(entryname:=anXEntry.ObjectEntryname, value:=aValue) Then
                                             persistflag = persistflag Or dataobject.SetValue(entryname:=anXEntry.ObjectEntryname, value:=aValue)
                                         End If

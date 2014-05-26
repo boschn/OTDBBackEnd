@@ -1292,7 +1292,40 @@ Namespace OnTrack
 
                 Return Nothing
             End Function
+            ''' <summary>
+            ''' Creates a Command and store it or gets the current Command
+            ''' </summary>
+            ''' <param name="id">id of the command</param>
+            ''' <returns>a iOTDBSqlCommand</returns>
+            ''' <remarks></remarks>
+            Public Overridable Function CreateSqlCommand(id As String) As iormSqlCommand Implements iormDatabaseDriver.CreateSqlCommand
+                '* get the ID
 
+                If Me.HasSqlCommand(id) Then
+                    Return Me.RetrieveSqlCommand(id)
+                Else
+                    Dim aSqlCommand As iormSqlCommand = New ormSqlCommand(id)
+                    Me.StoreSqlCommand(aSqlCommand)
+                    Return aSqlCommand
+                End If
+            End Function
+            ''' <summary>
+            ''' Creates a Command and store it or gets the current Command
+            ''' </summary>
+            ''' <param name="id">id of the command</param>
+            ''' <returns>a iOTDBSqlCommand</returns>
+            ''' <remarks></remarks>
+            Public Overridable Function CreateSqlSelectCommand(id As String) As iormSqlCommand Implements iormDatabaseDriver.CreateSqlSelectCommand
+                '* get the ID
+
+                If Me.HasSqlCommand(id) Then
+                    Return Me.RetrieveSqlCommand(id)
+                Else
+                    Dim aSqlCommand As iormSqlCommand = New ormSqlSelectCommand(id)
+                    Me.StoreSqlCommand(aSqlCommand)
+                    Return aSqlCommand
+                End If
+            End Function
             ''' <summary>
             ''' Register a connection at the Driver to be used
             ''' </summary>

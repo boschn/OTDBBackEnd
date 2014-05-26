@@ -16,7 +16,7 @@ REM ****************************************************************************
 Imports System.Collections
 Imports System.ComponentModel
 Imports System.Collections.Generic
-
+Imports System.Text.RegularExpressions
 Imports System.Reflection
 
 Namespace OnTrack.Database
@@ -38,17 +38,20 @@ Namespace OnTrack.Database
             MyBase.New(propertystring:=propertystring)
         End Sub
         ''' <summary>
-        ''' Apply the Property function to a value
+        ''' Apply the Property function to a list
         ''' </summary>
         ''' <param name="in"></param>
         ''' <param name="out"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function Apply(ByVal [in] As String()) As Boolean
-            Dim result As Boolean = True
+        Public Function ApplyList(ByVal [in] As Object(), objectentrydefinition As iormObjectEntry, msglog As ObjectMessageLog) As otValidationResultType
+            Dim result As otValidationResultType = otValidationResultType.Succeeded
             If [in] Is Nothing Then Return True
             For i = 0 To [in].Count - 1
-                result = result And Me.Apply([in]:=[in](i))
+                Dim r As otValidationResultType = Me.Apply([in]:=[in](i), objectentrydefinition:=objectentrydefinition, msglog:=msglog)
+                If result <= r Then
+                    result = r
+                End If
             Next
             Return result
         End Function
@@ -59,15 +62,104 @@ Namespace OnTrack.Database
         ''' <param name="out"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function Apply(ByVal [in] As Object) As Boolean
-            Select Case _property
-                Case otObjectValidationProperty.Unique
-                    Return True
-                Case Else
-                    CoreMessageHandler(message:="Property function is not implemented", arg1:=_property.ToString, messagetype:=otCoreMessageType.InternalError, _
-                                       subname:="ObjectValidationProperty.Apply")
-                    Return False
-            End Select
+        Public Function Apply(ByVal [in] As Object, objectentrydefinition As iormObjectEntry, msglog As ObjectMessageLog) As otValidationResultType
+
+            Try
+                ''' check on empty arrays or list
+                ''' 
+                If _property = otObjectValidationProperty.NotEmpty Then
+                    ''' if isNullable than Empty is not regarded on NOTHING / NULL
+                    ''' 
+                    If ([in] Is Nothing AndAlso objectentrydefinition.IsNullable) Then
+                        Return otValidationResultType.Succeeded
+                        '''
+                        ''' not allowed
+                    ElseIf ([in] Is Nothing AndAlso Not objectentrydefinition.IsNullable) Then
+                        '1102;@;VALIDATOR;object entry validation for '%1%.%2% (XID %3%) failed. Null or empty value is not allowed.;Provide a correct value;90;Error;false;|R1|R1|;|ENTRYVALIDATOR|XCHANGEENVELOPE|
+                        msglog.Add(1102, Nothing, Nothing, Nothing, Nothing, _
+                              objectentrydefinition.Objectname, objectentrydefinition.Entryname, objectentrydefinition.XID)
+                        Return otValidationResultType.FailedNoProceed
+                        ''' not allowed
+                        ''' 
+                    ElseIf String.IsNullOrEmpty([in].ToString) Then
+                        '1102;@;VALIDATOR;object entry validation for '%1%.%2% (XID %3%) failed. Null or empty value is not allowed.;Provide a correct value;90;Error;false;|R1|R1|;|ENTRYVALIDATOR|XCHANGEENVELOPE|
+                        msglog.Add(1102, Nothing, Nothing, Nothing, Nothing, _
+                              objectentrydefinition.Objectname, objectentrydefinition.Entryname, objectentrydefinition.XID)
+                        Return otValidationResultType.FailedNoProceed
+                    ElseIf [in].GetType.IsArray AndAlso [in].count = 0 Then
+                        '1102;@;VALIDATOR;object entry validation for '%1%.%2% (XID %3%) failed. Null or empty value is not allowed.;Provide a correct value;90;Error;false;|R1|R1|;|ENTRYVALIDATOR|XCHANGEENVELOPE|
+                        msglog.Add(1102, Nothing, Nothing, Nothing, Nothing, _
+                              objectentrydefinition.Objectname, objectentrydefinition.Entryname, objectentrydefinition.XID)
+                        Return otValidationResultType.FailedNoProceed
+                    ElseIf Not [in].GetType Is GetType(String) AndAlso ([in].GetType.GetInterfaces.Contains(GetType(IEnumerable)) OrElse [in].GetType.GetInterfaces.Contains(GetType(IList))) Then
+                        If [in].count = 0 Then
+                            '1102;@;VALIDATOR;object entry validation for '%1%.%2% (XID %3%) failed. Null or empty value is not allowed.;Provide a correct value;90;Error;false;|R1|R1|;|ENTRYVALIDATOR|XCHANGEENVELOPE|
+                            msglog.Add(1102, Nothing, Nothing, Nothing, Nothing, _
+                                  objectentrydefinition.Objectname, objectentrydefinition.Entryname, objectentrydefinition.XID)
+                            Return otValidationResultType.FailedNoProceed
+                        End If
+                    End If
+                End If
+
+                ''' branch out -> recusrion
+                ''' 
+                If Not [in].GetType.IsValueType AndAlso ([in].GetType.IsArray) Then
+                    Return ApplyList([in], objectentrydefinition:=objectentrydefinition, msglog:=msglog)
+                ElseIf Not [in].GetType.IsValueType AndAlso Not [in].GetType Is GetType(String) AndAlso ([in].GetType.GetInterfaces.Contains(GetType(IEnumerable)) OrElse [in].GetType.GetInterfaces.Contains(GetType(IList))) Then
+                    Return ApplyList([in].toarray, objectentrydefinition:=objectentrydefinition, msglog:=msglog)
+                End If
+
+                '''
+                ''' check the properties
+                ''' 
+                Select Case _property
+                    Case otObjectValidationProperty.Unique
+                        Return True
+                    Case otObjectValidationProperty.NotEmpty
+                        ''' should be already checked above
+                        '''
+                        If (Not objectentrydefinition.IsNullable AndAlso [in] Is Nothing) OrElse ([in] IsNot Nothing AndAlso String.IsNullOrEmpty([in].ToString)) Then
+                            '1102;@;VALIDATOR;object entry validation for '%1%.%2% (XID %3%) failed. Null or empty value is not allowed.;Provide a correct value;90;Error;false;|R1|R1|;|ENTRYVALIDATOR|XCHANGEENVELOPE|
+                            msglog.Add(1102, Nothing, Nothing, Nothing, Nothing, _
+                                  objectentrydefinition.Objectname, objectentrydefinition.Entryname, objectentrydefinition.XID)
+                            Return otValidationResultType.FailedNoProceed
+                        End If
+                    Case otObjectValidationProperty.UseLookup
+                        If objectentrydefinition.LookupProperties.Count = 0 Then
+                            Return otValidationResultType.Succeeded
+                        End If
+
+                        ''' nothing is allowed
+                        If [in] Is Nothing And objectentrydefinition.IsNullable Then
+                            Return otValidationResultType.Succeeded
+                        End If
+
+                        ''' check all lookup properties
+                        For Each aProperty In objectentrydefinition.LookupProperties
+                            Dim aList As IList(Of Object) = aProperty.GetValues(objectentrydefinition)
+                            If aList.Contains([in]) Then Return otValidationResultType.Succeeded
+                        Next
+
+                        'object entry validation for '%1%.%2% (XID %5%) failed. Value '%4%' is not found in lookup condition '%3%'
+                        msglog.Add(1105, Nothing, Nothing, Nothing, Nothing, _
+                                   objectentrydefinition.Objectname, objectentrydefinition.Entryname, Converter.Enumerable2String(objectentrydefinition.LookupProperties), _
+                                   [in].ToString, objectentrydefinition.XID)
+                        Return otValidationResultType.FailedNoProceed
+
+
+                    Case Else
+                        CoreMessageHandler(message:="Property function is not implemented", arg1:=_property.ToString, messagetype:=otCoreMessageType.InternalError, _
+                                           subname:="ObjectValidationProperty.Apply")
+                        ''' return success
+                        Return otValidationResultType.Succeeded
+                End Select
+
+                Return otValidationResultType.Succeeded
+            Catch ex As Exception
+                CoreMessageHandler(exception:=ex, subname:="ObjectValidationProperty.Apply")
+                Return otValidationResultType.Succeeded
+            End Try
+           
         End Function
         ''' <summary>
         ''' returns the enumeration value
@@ -94,9 +186,11 @@ Namespace OnTrack.Database
     ''' </summary>
     ''' <remarks></remarks>
     Public Enum otValidationResultType
-        FailedNoSave = 1
-        FailedButSave
-        Succeeded
+        Succeeded = 0
+        SuccceededButRemark = 2
+        WarningProceed = 4
+        FailedButProceed = 6
+        FailedNoProceed = 8
     End Enum
 
     ''' <summary>
@@ -166,29 +260,359 @@ Namespace OnTrack.Database
             Dim args As New ormDataObjectValidationEventArgs(object:=Me, timestamp:=Date.Now)
             Dim result As otValidationResultType
             '''
-            ''' STEP 1 Raise the pre event
+            ''' STEP 1 Raise the pre validate event
             ''' 
             RaiseEvent OnValidating(Me, args)
-            If args.ValidationResult = otValidationResultType.FailedNoSave Then Return args.ValidationResult
+            If args.ValidationResult = otValidationResultType.FailedNoProceed Then Return args.ValidationResult
+
+            ''' STEP 1a raise the event for all compound object relations if loaded
+            args.ValidationResult = Me.RaiseValidatingCompound(msglog:=msglog)
+            If args.ValidationResult = otValidationResultType.FailedNoProceed Then Return args.ValidationResult
 
             ''' 
             ''' Validate all the Entries against current value
             ''' 
             For Each anEntryname In Me.ObjectDefinition.Entrynames
                 result = Me.Validate(entryname:=anEntryname, value:=GetValue(entryname:=anEntryname), msglog:=msglog)
-                If result = otValidationResultType.FailedNoSave Then
-                    ''' what now
-                    ''' 
-                    Return result
-                End If
+                If result = otValidationResultType.FailedNoProceed Then Return result
             Next
+
             ''' 
             ''' STEP 3 Raise the validated Event
             ''' 
+
+            ''' STEP 3a raise the event for all compound object relations if loaded
+            args.ValidationResult = Me.RaiseValidatedCompound(msglog:=msglog)
+            If args.ValidationResult = otValidationResultType.FailedNoProceed Then Return args.ValidationResult
+
+            ''' raise the validated event on this object
+            ''' 
             RaiseEvent OnValidated(Me, args)
-            If args.ValidationResult = otValidationResultType.FailedNoSave Then Return args.ValidationResult
+            If args.ValidationResult = otValidationResultType.FailedNoProceed Then Return args.ValidationResult
 
             Return args.ValidationResult
+        End Function
+
+        ''' <summary>
+        ''' raises a validating event for the compound object
+        ''' </summary>
+        ''' <param name="entryname"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Private Function RaiseValidatingCompound(Optional msglog As ObjectMessageLog = Nothing) As otValidationResultType
+            Try
+                Dim aRelationlist As New List(Of String)
+                If msglog Is Nothing Then msglog = Me.ObjectMessageLog
+                '''
+                ''' Phase 1: get the loaded relations of the compound objects
+                ''' 
+                For Each anEntry As iormObjectEntry In Me.ObjectDefinition.GetCompoundEntries
+                    Dim anCompoundEntry As ObjectCompoundEntry = TryCast(anEntry, ObjectCompoundEntry)
+                    Dim aRelationPath As String() = anCompoundEntry.CompoundRelationPath
+                    Dim names = aRelationPath(0).Split("."c)
+                    Dim aRelationname As String
+
+                    If names.Count > 1 Then
+                        aRelationname = names(1)
+                    Else
+                        aRelationname = names(0)
+                    End If
+
+
+                    ''' check on loaded only
+                    ''' 
+                    If _relationMgr.Contains(aRelationname) AndAlso _relationMgr.Status(aRelationname) = DataObjectRelationMgr.RelationStatus.Loaded Then
+                        If Not aRelationlist.Contains(aRelationname) Then aRelationlist.Add(aRelationname)
+                    End If
+                Next
+
+                '''
+                ''' Phase 2: Get the Object and raise the Event and return
+                ''' 
+
+                For Each aRelationname In aRelationlist
+
+                    ''' get the entry which is holding the needed data object
+                    ''' 
+                    Dim aFieldList As List(Of FieldInfo) = Me.ObjectClassDescription.GetMappedRelationFieldInfos(relationName:=aRelationname)
+                    Dim searchvalue As Object = Nothing ' by intension (all are selected if nothing)
+
+
+                    ''' get the reference data object selected by compoundID - and also load it
+                    ''' 
+                    Dim theReferenceObjects = _relationMgr.GetObjectsFromContainer(relationname:=aRelationname, loadRelationIfNotloaded:=False)
+
+                    ''' request the value from there
+                    ''' 
+                    If theReferenceObjects.Count > 0 Then
+                        Dim aValidatable As iormValidatable = TryCast(theReferenceObjects.First, iormValidatable)
+                        If aValidatable IsNot Nothing Then
+                            Return aValidatable.RaiseOnValidatingEvent(msglog:=msglog)
+                        Else
+                            Return otValidationResultType.Succeeded
+                        End If
+                    ElseIf _relationMgr.Status(aRelationname) = DataObjectRelationMgr.RelationStatus.Loaded Then
+                        ''' if loaded and nothing ?! -> will be a new object -> succeeded we cannot validate basically 
+                        ''' 
+                        ''' relation parameter createifnotretrieved should be used in these cases
+                        ''' 
+                        CoreMessageHandler(message:="compound object relation load return nothing - object will be created ", arg1:=aRelationname, objectname:=Me.ObjectID, _
+                                           messagetype:=otCoreMessageType.ApplicationWarning, subname:="ormDataObject.RaiseValidatingCompound")
+                        Return otValidationResultType.Succeeded
+                    Else
+                        ''' not loaded - couldnot load
+                        ''' 
+                        CoreMessageHandler(message:="compound object relation could not load", arg1:=aRelationname, objectname:=Me.ObjectID, _
+                                           messagetype:=otCoreMessageType.ApplicationError, subname:="ormDataObject.RaiseValidatingCompound")
+                        Return otValidationResultType.FailedNoProceed
+                    End If
+
+
+                Next
+
+
+                Return otValidationResultType.Succeeded
+            Catch ex As Exception
+                CoreMessageHandler(exception:=ex, subname:="ormDataObject.RaiseValidatingCompound")
+                Return otValidationResultType.FailedNoProceed
+            End Try
+        End Function
+        ''' <summary>
+        ''' raises a validated event for the compound object
+        ''' </summary>
+        ''' <param name="entryname"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Private Function RaiseValidatedCompound(Optional msglog As ObjectMessageLog = Nothing) As otValidationResultType
+            Try
+                Dim aRelationlist As New List(Of String)
+
+                If msglog Is Nothing Then msglog = Me.ObjectMessageLog
+
+                '''
+                ''' Phase 1: get the loaded relations of the compound objects
+                ''' 
+                For Each anEntry As iormObjectEntry In Me.ObjectDefinition.GetCompoundEntries
+                    Dim anCompoundEntry As ObjectCompoundEntry = TryCast(anEntry, ObjectCompoundEntry)
+                    Dim aRelationPath As String() = anCompoundEntry.CompoundRelationPath
+                    Dim names = aRelationPath(0).Split("."c)
+                    Dim aRelationname As String
+
+                    If names.Count > 1 Then
+                        aRelationname = names(1)
+                    Else
+                        aRelationname = names(0)
+                    End If
+
+
+                    ''' check on loaded only
+                    ''' 
+                    If _relationMgr.Contains(aRelationname) AndAlso _relationMgr.Status(aRelationname) = DataObjectRelationMgr.RelationStatus.Loaded Then
+                        If Not aRelationlist.Contains(aRelationname) Then aRelationlist.Add(aRelationname)
+                    End If
+                Next
+
+                '''
+                ''' Phase 2: Get the Object and raise the Event and return
+                ''' 
+
+                For Each aRelationname In aRelationlist
+
+                    ''' get the entry which is holding the needed data object
+                    ''' 
+                    Dim aFieldList As List(Of FieldInfo) = Me.ObjectClassDescription.GetMappedRelationFieldInfos(relationName:=aRelationname)
+                    Dim searchvalue As Object = Nothing ' by intension (all are selected if nothing)
+
+
+                    ''' get the reference data object selected by compoundID - and also load it
+                    ''' 
+                    Dim theReferenceObjects = _relationMgr.GetObjectsFromContainer(relationname:=aRelationname, loadRelationIfNotloaded:=False)
+
+                    ''' request the value from there
+                    ''' 
+                    If theReferenceObjects.Count > 0 Then
+                        Dim aValidatable As iormValidatable = TryCast(theReferenceObjects.First, iormValidatable)
+                        If aValidatable IsNot Nothing Then
+                            Return aValidatable.RaiseOnValidatedEvent(msglog:=msglog)
+                        Else
+                            Return otValidationResultType.Succeeded
+                        End If
+                    ElseIf _relationMgr.Status(aRelationname) = DataObjectRelationMgr.RelationStatus.Loaded Then
+                        ''' if loaded and nothing ?! -> will be a new object -> succeeded we cannot validate basically 
+                        ''' 
+                        ''' relation parameter createifnotretrieved should be used in these cases
+                        ''' 
+                        CoreMessageHandler(message:="compound object relation load return nothing - object will be created ", arg1:=aRelationname, objectname:=Me.ObjectID, _
+                                           messagetype:=otCoreMessageType.ApplicationWarning, subname:="ormDataObject.RaiseValidatedCompound")
+                        Return otValidationResultType.Succeeded
+                    Else
+                        ''' not loaded - couldnot load
+                        ''' 
+                        CoreMessageHandler(message:="compound object relation could not load", arg1:=aRelationname, objectname:=Me.ObjectID, _
+                                           messagetype:=otCoreMessageType.ApplicationError, subname:="ormDataObject.RaiseValidatedCompound")
+                        Return otValidationResultType.FailedNoProceed
+                    End If
+
+
+                Next
+
+
+            Catch ex As Exception
+                CoreMessageHandler(exception:=ex, subname:="ormDataObject.RaiseValidatedCompound")
+                Return Nothing
+            End Try
+        End Function
+        ''' <summary>
+        ''' Validates a Compound
+        ''' </summary>
+        ''' <param name="entryname"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Private Function ValidateCompoundValue(entryname As String, value As Object, Optional msglog As ObjectMessageLog = Nothing) As otValidationResultType
+            Try
+                Dim anObjectEntry = Me.ObjectDefinition.GetEntry(entryname)
+                If Not anObjectEntry.IsCompound Then
+                    CoreMessageHandler(message:="Object entry is a not a compound - use Validate", arg1:=entryname, _
+                         objectname:=Me.ObjectID, entryname:=entryname, _
+                          messagetype:=otCoreMessageType.InternalError, subname:="ormDataObject.ValidateCompoundValue")
+                    Return Nothing
+                End If
+
+                '''
+                ''' 1. check if compound is connected with a getter ?!
+                ''' 
+                Dim aValidatorName As String = TryCast(anObjectEntry, ObjectCompoundEntry).CompoundValidatorMethodName
+                If aValidatorName IsNot Nothing Then
+
+                    ''' branch out to setter method
+                    ''' 
+                    Dim aOperationAttribute = Me.ObjectClassDescription.GetObjectOperationAttribute(name:=aValidatorName)
+                    If aOperationAttribute Is Nothing Then
+                        CoreMessageHandler(message:="operation id not found in the class description repository", arg1:=aValidatorName, _
+                                           messagetype:=otCoreMessageType.InternalError, objectname:=Me.ObjectID, _
+                                           subname:="DataObjetRelationMGr.ValidateCompoundValue")
+                        Return Nothing
+                    End If
+
+                    ''' check the data on the method to be called
+                    ''' 
+
+                    Dim aMethodInfo As MethodInfo = aOperationAttribute.MethodInfo
+                    Dim aReturnType As System.Type = aMethodInfo.ReturnType
+                    If Not aReturnType.Equals(GetType(otValidationResultType)) Then
+                        Call CoreMessageHandler(subname:="ormDataObject.ValidateCompoundValue", messagetype:=otCoreMessageType.InternalError, _
+                                      message:="validator operation must return a otValidationResultType value", _
+                                      arg1:=aValidatorName, objectname:=Me.ObjectID, entryname:=entryname)
+                    End If
+                    Dim aDelegate As ObjectClassDescription.OperationCallerDelegate = Me.ObjectClassDescription.GetOperartionCallerDelegate(aValidatorName)
+                    Dim theParameterEntries As String() = aOperationAttribute.ParameterEntries
+                    Dim theParameters As Object()
+                    Dim returnValueIndex As Integer
+                    Dim returnValue As Object ' dummy
+                    ReDim theParameters(aMethodInfo.GetParameters.Count - 1)
+                    ''' set the parameters for the delegate
+                    For i = 0 To theParameters.GetUpperBound(0)
+                        Dim j As Integer = aMethodInfo.GetParameters(i).Position
+                        If j >= 0 AndAlso j <= theParameters.GetUpperBound(0) Then
+                            Select Case theParameterEntries(j)
+                                Case ObjectCompoundEntry.ConstFNEntryName
+                                    theParameters(j) = entryname
+                                Case ObjectCompoundEntry.ConstFNValues
+                                    theParameters(j) = returnValue
+                                    returnValueIndex = j
+                            End Select
+
+                        End If
+                    Next
+
+                    ''' call the Operation
+                    ''' 
+                    Dim result As Object = aDelegate(Me, theParameters)
+                    If result IsNot Nothing Then
+                        Return result
+                    Else
+                        Call CoreMessageHandler(subname:="ormDataObject.ValidateCompoundValue", messagetype:=otCoreMessageType.InternalError, _
+                                      message:="getter operation failed to return a  value", _
+                                      arg1:=aValidatorName, objectname:=Me.ObjectID, entryname:=entryname)
+                        Return Nothing
+                    End If
+
+                Else
+                    '''
+                    '''2.  get the relation path and resolve to object
+                    ''' 
+                    Dim aRelationPath As String() = TryCast(anObjectEntry, ObjectCompoundEntry).CompoundRelationPath
+                    Dim names = aRelationPath(0).Split("."c)
+                    Dim aRelationname As String
+
+                    If names.Count > 1 Then
+                        aRelationname = names(1)
+                    Else
+                        aRelationname = names(0)
+                    End If
+
+
+                    ''' request a relation load
+                    ''' 
+                    If _relationMgr.Status(aRelationname) = DataObjectRelationMgr.RelationStatus.Unloaded Then
+                        Me.InfuseRelation(aRelationname)
+                    End If
+
+                    ''' get the entry which is holding the needed data object
+                    ''' 
+                    Dim aFieldList As List(Of FieldInfo) = Me.ObjectClassDescription.GetMappedRelationFieldInfos(relationName:=aRelationname)
+                    Dim searchvalue As Object = Nothing ' by intension (all are selected if nothing)
+
+                    ''' if last hop
+                    ''' 
+                    ''' have we reached the last hop ?
+                    ''' 
+                    If aRelationPath.Count = 2 Then
+                        searchvalue = entryname
+                        entryname = TryCast(anObjectEntry, ObjectCompoundEntry).CompoundIDEntryname
+                        'searchvalue = TryCast(anObjectEntry, ObjectCompoundEntry).CompoundValueEntryName
+                    End If
+
+                    ''' get the reference data object selected by compoundID - and also load it
+                    ''' 
+                    Dim theReferenceObjects = _relationMgr.GetObjectsFromContainer(relationname:=aRelationname, entryname:=entryname, value:=searchvalue, _
+                                                                                   loadRelationIfNotloaded:=True)
+
+                    ''' request the value from there
+                    ''' 
+                    If theReferenceObjects.Count > 0 Then
+                        Dim aValidatable As iormValidatable = TryCast(theReferenceObjects.First, iormValidatable)
+                        If aValidatable IsNot Nothing Then
+                            Return aValidatable.Validate(entryname:=entryname, value:=value, msglog:=msglog)
+                        Else
+                            Return otValidationResultType.Succeeded
+                        End If
+                    ElseIf _relationMgr.Status(aRelationname) = DataObjectRelationMgr.RelationStatus.Loaded Then
+                        ''' if loaded and nothing ?! -> will be a new object -> succeeded we cannot validate basically 
+                        ''' 
+                        ''' relation parameter createifnotretrieved should be used in these cases
+                        ''' 
+                        CoreMessageHandler(message:="compound object relation load return nothing - object will be created ", entryname:=entryname, arg1:=aRelationname, objectname:=Me.ObjectID, _
+                                           messagetype:=otCoreMessageType.ApplicationWarning, subname:="ormDataObject.ValidateCompoundValue")
+                        Return otValidationResultType.Succeeded
+                    Else
+                        ''' not loaded - couldnot load
+                        ''' 
+                        CoreMessageHandler(message:="compound object relation could not load", entryname:=entryname, arg1:=aRelationname, objectname:=Me.ObjectID, _
+                                           messagetype:=otCoreMessageType.ApplicationError, subname:="ormDataObject.ValidateCompoundValue")
+                        Return otValidationResultType.FailedNoProceed
+                    End If
+
+
+                End If
+
+
+
+
+            Catch ex As Exception
+                CoreMessageHandler(exception:=ex, subname:="ormDataObject.ValidateCompoundValue")
+                Return Nothing
+            End Try
         End Function
 
         ''' <summary>
@@ -205,23 +629,37 @@ Namespace OnTrack.Database
                 '' while doing it different
                 result = otValidationResultType.Succeeded
             Else
+                If msglog Is Nothing Then msglog = Me.ObjectMessageLog
+
+                ''' 
+                ''' check if we are validating a compound
+                ''' 
+                Dim anObjectEntry As iormObjectEntry = Me.ObjectDefinition.GetEntry(entryname:=entryname)
+                If anObjectEntry.IsCompound Then
+                    '''
+                    ''' branch out to validateCompoung
+                    ''' 
+                    Return Me.ValidateCompoundValue(entryname:=entryname, value:=value, msglog:=msglog)
+                End If
+
+
                 ''' 3 Step Validation process
                 ''' 
-                If msglog Is Nothing Then msglog = Me.ObjectMessageLog
+
                 Dim args As New ormDataObjectEntryValidationEventArgs(object:=Me, entryname:=entryname, value:=value, msglog:=msglog, timestamp:=Date.Now)
 
                 '''
                 ''' STEP 1 RAISE THE VALIDATING ENTRY EVENT BEFORE WE PROCESS
                 '''
                 RaiseEvent OnEntryValidating(Me, args)
-                If args.ValidationResult = otValidationResultType.FailedNoSave Then Return args.ValidationResult
+                If args.ValidationResult = otValidationResultType.FailedNoProceed Then Return args.ValidationResult
                 If args.Result Then value = args.Value
 
                 '''
                 '''  STEP 2 Validate the entry against INTERNAL RULES
                 ''' 
                 result = ObjectValidator.Validate(Me.ObjectDefinition.GetEntry(entryname), newvalue:=value, msglog:=msglog)
-                If result = otValidationResultType.FailedNoSave Then Return result
+                If result = otValidationResultType.FailedNoProceed Then Return result
 
                 ''' STEP 3 VALIDATE VIA ENTRY VALIDATED EVENT (Post Validating)
                 ''' 
@@ -274,16 +712,20 @@ Namespace OnTrack.Database
         Public Shared Function Validate(objectentrydefinition As iormObjectEntry, ByVal newvalue As Object, _
                                              Optional ByRef msglog As ObjectMessageLog = Nothing) As otValidationResultType
 
+            Dim result As otValidationResultType = otValidationResultType.Succeeded
+
             If objectentrydefinition Is Nothing Then
                 CoreMessageHandler(message:="object entry definition is nothing - validate aborted", messagetype:=otCoreMessageType.InternalError, _
                                    subname:="ObjectValidator.ValidateEntry")
-                Return otValidationResultType.FailedNoSave
+                Return otValidationResultType.FailedNoProceed
             End If
             Try
 
                 'If msglog Is Nothing Then msglog = New ObjectMessageLog()
 
-                ''' try to convert
+                '''
+                ''' 1. Datatype : try to convert
+                ''' 
                 Dim failedflag As Boolean
                 Converter.Object2otObject(newvalue, objectentrydefinition.Datatype, isnullable:=objectentrydefinition.IsNullable, failed:=failedflag)
                 If failedflag And msglog IsNot Nothing Then
@@ -296,20 +738,64 @@ Namespace OnTrack.Database
                     End If
 
                 ElseIf failedflag Then
-                    Return otValidationResultType.FailedNoSave
+                    Return otValidationResultType.FailedNoProceed
                 End If
 
-                    ''' properties
-                    Dim theProperties As IList(Of ObjectValidationProperty) = objectentrydefinition.ValidationProperties
-                    If theProperties Is Nothing OrElse theProperties.Count = 0 Then
-                        Return otValidationResultType.Succeeded
-                    End If
-
+                '''
+                ''' finish validating if not validating
+                ''' 
+                If Not objectentrydefinition.IsValidating Then
                     Return otValidationResultType.Succeeded
+                End If
+
+                '''
+                ''' 2. Check on Boundaries
+                ''' 
+                If objectentrydefinition.Datatype = otDataType.Long OrElse objectentrydefinition.Datatype = otDataType.Numeric Then
+                    If objectentrydefinition.LowerRangeValue.HasValue AndAlso objectentrydefinition.LowerRangeValue > CLng(newvalue) Then
+                        msglog.Add(1103, Nothing, Nothing, Nothing, Nothing,
+                        objectentrydefinition.Objectname, objectentrydefinition.Entryname, objectentrydefinition.LowerRangeValue, newvalue, objectentrydefinition.XID)
+                        Return otValidationResultType.FailedNoProceed
+                    End If
+                    If objectentrydefinition.UpperRangeValue.HasValue AndAlso objectentrydefinition.UpperRangeValue < CLng(newvalue) Then
+                        msglog.Add(1104, Nothing, Nothing, Nothing, Nothing,
+                        objectentrydefinition.Objectname, objectentrydefinition.Entryname, objectentrydefinition.UpperRangeValue, newvalue, objectentrydefinition.XID)
+                        Return otValidationResultType.FailedNoProceed
+                    End If
+                End If
+
+                '''
+                ''' 3. Apply the Validation Property Function on the Value
+                ''' 
+
+                For Each aProperty In objectentrydefinition.ValidationProperties
+                    Dim r As otValidationResultType = aProperty.Apply(newvalue, objectentrydefinition, msglog)
+                    If r = otValidationResultType.FailedNoProceed Then
+                        Return r
+                    ElseIf r > result Then
+                        result = r
+                    End If
+                Next
+
+                '''
+                ''' 4. Apply RegExpression Matching
+                ''' 
+                If objectentrydefinition.HasValidateRegExpression AndAlso Not String.IsNullOrWhiteSpace(objectentrydefinition.ValidateRegExpression) Then
+                    Dim aRegexObj As Regex = New Regex(objectentrydefinition.ValidateRegExpression)
+                    If Not aRegexObj.IsMatch(newvalue.ToString) Then
+                        '1106;@;VALIDATOR;object entry validation for '%1%.%2% (XID %5%) failed. Value '%4%' is not matching against regular expression '%3%'.;Provide a correct value;90;Error;false;|R1|R1|;|ENTRYVALIDATOR|XCHANGEENVELOPE|
+                        msglog.Add(1106, Nothing, Nothing, Nothing, Nothing, _
+                                   objectentrydefinition.Objectname, objectentrydefinition.Entryname, objectentrydefinition.ValidateRegExpression, newvalue, objectentrydefinition.XID)
+                        result = otValidationResultType.FailedNoProceed
+                    End If
+                End If
+
+                Return result
+
 
             Catch ex As Exception
                 CoreMessageHandler(exception:=ex, subname:="ObjectValidator.ValidateEntry")
-                Return otValidationResultType.FailedNoSave
+                Return otValidationResultType.FailedNoProceed
             End Try
         End Function
 

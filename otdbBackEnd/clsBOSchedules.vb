@@ -3209,12 +3209,12 @@ Namespace OnTrack.Scheduling
         ''' <remarks></remarks>
         Public Function CheckScheduleLifeCycle(Optional msglog As ObjectMessageLog = Nothing) As otValidationResultType
             If msglog Is Nothing Then msglog = Me.ObjectMessageLog
-            If Not Me.IsAlive("CheckScheduleLifeCycle") Then Return otValidationResultType.FailedNoSave
+            If Not Me.IsAlive("CheckScheduleLifeCycle") Then Return otValidationResultType.FailedNoProceed
 
             Dim aScheduleDefinition As ScheduleDefinition = Me.ScheduleDefinition
             If aScheduleDefinition Is Nothing Then
                 msglog.Add(2101, Nothing, Nothing, Nothing, Nothing, Me.Uid, Me.Updc)
-                Return otValidationResultType.FailedNoSave
+                Return otValidationResultType.FailedNoProceed
             End If
 
             ''' check if we have a finishing milestone
@@ -3298,9 +3298,9 @@ Namespace OnTrack.Scheduling
                 Return otValidationResultType.Succeeded
             ElseIf Not Me.LifeCycleStatus.Aborting Then
                 msglog.Add(2201, Nothing, Nothing, Nothing, Nothing, aScheduleDefinition.ID)
-                Return otValidationResultType.FailedButSave
+                Return otValidationResultType.FailedButProceed
             Else
-                Return otValidationResultType.FailedNoSave
+                Return otValidationResultType.FailedNoProceed
             End If
         End Function
 
@@ -3312,12 +3312,12 @@ Namespace OnTrack.Scheduling
         ''' <remarks></remarks>
         Public Function CheckScheduleProcessStatus(Optional msglog As ObjectMessageLog = Nothing) As otValidationResultType
             If msglog Is Nothing Then msglog = Me.ObjectMessageLog
-            If Not Me.IsAlive("CheckScheduleProcessStatus") Then Return otValidationResultType.FailedNoSave
+            If Not Me.IsAlive("CheckScheduleProcessStatus") Then Return otValidationResultType.FailedNoProceed
 
             Dim aScheduleDefinition As ScheduleDefinition = Me.ScheduleDefinition
             If aScheduleDefinition Is Nothing Then
                 msglog.Add(2101, Nothing, Nothing, Nothing, Nothing, Me.Uid, Me.Updc)
-                Return otValidationResultType.FailedNoSave
+                Return otValidationResultType.FailedNoProceed
             End If
 
             '''
@@ -3394,8 +3394,8 @@ Namespace OnTrack.Scheduling
             result = Me.CheckScheduleLifeCycle(msglog:=msglog)
             status = msglog.GetHighesStatusItem(statustype:=ConstStatusType_ScheduleLifecycle)
             Me.LifeCycleStatus = status
-            If status.Aborting OrElse result = otValidationResultType.FailedNoSave Then
-                Return otValidationResultType.FailedNoSave
+            If status.Aborting OrElse result = otValidationResultType.FailedNoProceed Then
+                Return otValidationResultType.FailedNoProceed
             End If
 
             '''
@@ -3404,8 +3404,8 @@ Namespace OnTrack.Scheduling
             result = Me.CheckScheduleProcessStatus(msglog:=msglog)
             status = msglog.GetHighesStatusItem(statustype:=ConstStatusType_ScheduleProcess)
             Me.ProcessStatus = status
-            If status.Aborting OrElse result = otValidationResultType.FailedNoSave Then
-                Return otValidationResultType.FailedNoSave
+            If status.Aborting OrElse result = otValidationResultType.FailedNoProceed Then
+                Return otValidationResultType.FailedNoProceed
             End If
 
             Return result
@@ -4240,7 +4240,7 @@ Namespace OnTrack.Scheduling
             '''
             ''' set true
             ''' 
-            If e.ValidationResult <> otValidationResultType.FailedNoSave Then
+            If e.ValidationResult <> otValidationResultType.FailedNoProceed Then
                 Me.IsValid = True
             End If
         End Sub
@@ -4264,7 +4264,7 @@ Namespace OnTrack.Scheduling
                         e.Msglog.Add(2302, Nothing, Nothing, Nothing, Nothing, Me.UID, Me.Updc, Me.ID, e.Value, aDef.ScheduleTypeID)
                         e.Value = Nothing
                         e.Result = True
-                        e.ValidationResult = otValidationResultType.FailedButSave
+                        e.ValidationResult = otValidationResultType.FailedButProceed
                         Return
                     End If
                 End If
@@ -4290,7 +4290,7 @@ Namespace OnTrack.Scheduling
 
                 If e.Value IsNot Nothing AndAlso Not Microsoft.VisualBasic.IsDate(e.Value) Then
                     e.Msglog.Add(2300, Nothing, Nothing, Nothing, Nothing, Me.UID, Me.Updc, Me.ID)
-                    e.ValidationResult = otValidationResultType.FailedNoSave
+                    e.ValidationResult = otValidationResultType.FailedNoProceed
                     Return
                 ElseIf e.Value IsNot Nothing And Microsoft.VisualBasic.IsDate(e.Value) Then
                     Dim aDef As ScheduleMilestoneDefinition = Me.ScheduleMilestoneDefinition
@@ -4298,14 +4298,14 @@ Namespace OnTrack.Scheduling
                     ''' 
                     If aDef.IsProhibited Then
                         e.Msglog.Add(2303, Nothing, Nothing, Nothing, Nothing, Me.UID, Me.Updc, Me.ID, e.Value, aDef.ScheduleTypeID)
-                        e.ValidationResult = otValidationResultType.FailedNoSave
+                        e.ValidationResult = otValidationResultType.FailedNoProceed
                         Return
                     End If
                     ''' not in calendar
                     ''' 
                     If Not CalendarEntry.HasDate(refDate:=CDate(e.Value)) Then
                         e.Msglog.Add(2301, Nothing, Nothing, Nothing, Nothing, Me.UID, Me.Updc, Me.ID, e.Value)
-                        e.ValidationResult = otValidationResultType.FailedNoSave
+                        e.ValidationResult = otValidationResultType.FailedNoProceed
                         Return
                     Else
                         If Not CalendarEntry.IsAvailableOn(refdate:=CDate(e.Value), name:=CurrentSession.DefaultCalendarName) Then
@@ -5205,7 +5205,7 @@ Namespace OnTrack.Scheduling
                 ''' 
                 If msglog Is Nothing Then msglog = aWorkingEdition.ObjectMessageLog
                 aValidationResult = aWorkingEdition.CheckScheduleStatus(msglog)
-                If aValidationResult = otValidationResultType.FailedNoSave Then
+                If aValidationResult = otValidationResultType.FailedNoProceed Then
                     IsPublishable = False
                 Else
                     IsPublishable = True

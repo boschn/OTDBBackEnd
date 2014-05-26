@@ -77,7 +77,7 @@ Namespace OnTrack.Deliverables
         ''' Relation to alive Schedule edition - will be resolved by events
         ''' </summary>
         ''' <remarks></remarks>
-        <ormRelation(linkObject:=GetType(ScheduleEdition), ToPrimaryKeys:={ConstFNUid, ConstAliveUPDC}, _
+        <ormRelation(linkObject:=GetType(Target), ToPrimaryKeys:={ConstFNUid, ConstAliveUPDC}, _
                      cascadeonCreate:=True, cascadeOnDelete:=True, cascadeOnUpdate:=True)> _
         Public Const ConstRAliveTarget = "REL_ALIVETARGET"
 
@@ -2890,7 +2890,8 @@ Namespace OnTrack.Deliverables
 
         <ormObjectEntry(referenceobjectentry:=DeliverableType.ConstObjectID & "." & DeliverableType.constFNTypeID, _
             title:="Type", description:="type of the deliverable", XID:="DLV13", _
-             useforeignkey:=otForeignKeyImplementation.ORM)> Public Const constFNDeliverableTypeID = "typeid"
+            LookupPropertyStrings:={LookupProperty.UseAttributeReference}, validationPropertyStrings:={ObjectValidationProperty.UseLookup}, _
+            useforeignkey:=otForeignKeyImplementation.ORM)> Public Const constFNDeliverableTypeID = "typeid"
 
         <ormObjectEntry(referenceobjectentry:=Person.ConstObjectID & "." & Person.constFNID, _
             title:="Responsible", description:="responsible person for the deliverable", XID:="DLV16")> Public Const constFNResponsiblePerson = "resp"

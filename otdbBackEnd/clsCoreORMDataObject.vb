@@ -342,9 +342,19 @@ Namespace OnTrack.Database
             ''' assign the messagelog
             If _ObjectMessageLog Is Nothing Then _ObjectMessageLog = New ObjectMessageLog(Me)
 
-            ''' return the retrieve
-            If Not Me.RunTimeOnly Then Return _ObjectMessageLog.Retrieve
-            Return New ormRelationCollection(Of ObjectMessage)(Nothing, keyentrynames:={ObjectMessage.ConstFNNo})
+            ''' load the existing log and merge it into the current one
+            ''' 
+            If Not Me.RunTimeOnly Then
+                Dim aRetrieveLog As ObjectMessageLog = ObjectMessageLog.Retrieve(Me.ObjectTag)
+                For Each aMessage In aRetrieveLog
+                    If _ObjectMessageLog.ContainsKey(key:=aMessage.No) Then
+                        aMessage.No = _ObjectMessageLog.Max(Function(x) x.No) + 1
+                    End If
+                    _ObjectMessageLog.Add(aMessage)
+                Next
+            End If
+
+            Return _ObjectMessageLog
         End Function
 
 
@@ -365,7 +375,7 @@ Namespace OnTrack.Database
                 End If
 
                 '''
-                ''' 1. check if compound is connected with a setter ?!
+                ''' 1. check if compound is connected with a getter ?!
                 ''' 
                 Dim aGetterName As String = TryCast(anObjectEntry, ObjectCompoundEntry).CompoundGetterMethodName
                 If aGetterName IsNot Nothing Then
@@ -454,8 +464,9 @@ Namespace OnTrack.Database
                     ''' have we reached the last hop ?
                     ''' 
                     If aRelationPath.Count = 2 Then
+                        searchvalue = entryname
                         entryname = TryCast(anObjectEntry, ObjectCompoundEntry).CompoundIDEntryname
-                        searchvalue = TryCast(anObjectEntry, ObjectCompoundEntry).CompoundValueEntryName
+                        'searchvalue = TryCast(anObjectEntry, ObjectCompoundEntry).CompoundValueEntryName
                     End If
 
                     ''' get the reference data object selected by compoundID - and also load it
@@ -594,7 +605,7 @@ Namespace OnTrack.Database
                 Next
 
                 '  the field was not found but the entry
-                CoreMessageHandler(message:="Warning ! ObjectEntry is not mapped to multiple field member - the specified fieldname was not found", arg1:=fieldmembername, _
+                CoreMessageHandler(message:="Warning ! ObjectEntry is not mapped to class member", _
                                       objectname:=Me.ObjectID, entryname:=entryname, messagetype:=otCoreMessageType.InternalError, subname:="ormDataObject.GetValue")
                 Return value
 
@@ -721,8 +732,9 @@ Namespace OnTrack.Database
                     ''' 
 
                     If aRelationPath.Count = 2 Then
+                        searchvalue = entryname
                         entryname = TryCast(anObjectEntry, ObjectCompoundEntry).CompoundIDEntryname
-                        searchvalue = TryCast(anObjectEntry, ObjectCompoundEntry).CompoundValueEntryName
+                        'searchvalue = TryCast(anObjectEntry, ObjectCompoundEntry).CompoundValueEntryName
                     End If
 
                     ''' get the reference data object selected by compoundID and load it 
@@ -864,7 +876,8 @@ Namespace OnTrack.Database
 
             Try
                 ''' get the existing value
-                Dim anExistingValue = Me.GetValue(entryname)
+                Dim anExistingValue As Object = Me.GetValue(entryname)
+                Dim aConvertedvalue As Object
 
                 ''' doe the checks
                 If anExistingValue Is Nothing AndAlso value Is Nothing Then
@@ -874,11 +887,36 @@ Namespace OnTrack.Database
                 ElseIf anExistingValue IsNot Nothing AndAlso value Is Nothing Then
                     Return False
                 ElseIf anExistingValue IsNot Nothing AndAlso value IsNot Nothing Then
-                    Dim aConvertedvalue = Convert.ChangeType(value, ot.GetDatatypeMappingOf(aDatatype))
-                    Return anExistingValue.Equals(aConvertedvalue)
+                   
+                    If anExistingValue.GetType.IsValueType AndAlso value.GetType.IsValueType Then
+                        aConvertedvalue = Convert.ChangeType(value, ot.GetDatatypeMappingOf(aDatatype))
+                        Return anExistingValue.Equals(aConvertedvalue)
+                    ElseIf anExistingValue.GetType Is value.GetType Then
+                        Return anExistingValue.Equals(value)
+                        ''' special case
+                    ElseIf value.GetType Is GetType(String) AndAlso anExistingValue.GetType.IsArray Then
+                        Return Converter.String2Array(value).SequenceEqual(anExistingValue)
+                        'Return Array.Equals(aConvertedvalue, anExistingValue)
+                    ElseIf value.GetType Is GetType(String) AndAlso anExistingValue.GetType.GetInterfaces.Contains(GetType(IList)) Then
+                        Return Converter.String2Array(value).ToList.SequenceEqual(anExistingValue)
+                        'aConvertedvalue = Converter.String2Array(value).ToList
+                        'Return anExistingValue.Equals(aConvertedvalue) ' list compare
+                    ElseIf anExistingValue.GetType.IsEnum Then
+                        If value.GetType.Equals(GetType(String)) Then
+                            '* transform
+                            aConvertedvalue = CTypeDynamic([Enum].Parse(anExistingValue.GetType, value, ignoreCase:=True), anExistingValue.GetType)
+                        Else
+                            aConvertedvalue = CTypeDynamic(value, anExistingValue.GetType)
+                        End If
+                        Return anExistingValue.Equals(aConvertedvalue)
+                    Else
+                        Throw New NotImplementedException("checking")
+                        Return False
+                    End If
+
                 End If
 
-                Return False
+                    Return False
             Catch ex As Exception
                 CoreMessageHandler(exception:=ex, subname:="ormDataObject.EqualsValue", arg1:=value, entryname:=entryname, objectname:=Me.ObjectID)
                 Return False
@@ -937,7 +975,7 @@ Namespace OnTrack.Database
                 Dim aValidateResult As otValidationResultType = Validate(entryname, value)
 
                 '** Validate against the ObjectEntry Rules
-                If aValidateResult = otValidationResultType.Succeeded Or aValidateResult = otValidationResultType.FailedButSave Then
+                If aValidateResult = otValidationResultType.Succeeded Or aValidateResult = otValidationResultType.FailedButProceed Then
 
                     ''' get the description
                     Dim aClassDescription = Me.ObjectClassDescription 'ot.GetObjectClassDescription(Me.GetType)
@@ -1132,7 +1170,9 @@ Namespace OnTrack.Database
                 '** check again
                 If Not Me.IsLoaded And Not Me.IsCreated Then
                     If throwError Then
+                        If Not subname.Contains("."c) Then subname = Me.GetType.Name & "." & subname
                         If subname = "" Then subname = "ormDataObject.checkalive"
+
                         CoreMessageHandler(message:="object is not alive but operation requested", objectname:=Me.GetType.Name, _
                                            subname:=subname, tablename:=Me.PrimaryTableID, messagetype:=otCoreMessageType.InternalError)
                     End If
@@ -1469,11 +1509,14 @@ Namespace OnTrack.Database
                 '''
                 ''' Validate the object 
                 ''' 
-                If Me.Validate() = otValidationResultType.FailedNoSave Then
+                If Me.Validate(Me.ObjectMessageLog) = otValidationResultType.FailedNoProceed Then
                     ''' Failed ?!
                     ''' 
-                    CoreMessageHandler(message:="persist failed due to failing validation", messagetype:=otCoreMessageType.ApplicationWarning, _
-                                        subname:="ormDataObject.Persist", arg1:=Converter.Array2String(Me.PrimaryKeyValues), objectname:=Me.ObjectID)
+                    CoreMessageHandler(message:="persist operation rejected due to failing validation", messagetype:=otCoreMessageType.ApplicationWarning, _
+                                        subname:="ormDataObject.Persist", arg1:=Converter.Array2String(Me.PrimaryKeyValues), objectname:=Me.ObjectID, _
+                                        msglog:=Me.ObjectMessageLog)
+
+                    ''' return
                     Return False
                 End If
 

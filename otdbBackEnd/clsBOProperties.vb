@@ -263,7 +263,7 @@ Namespace OnTrack.ObjectProperties
 
         <ormObjectEntry(referenceObjectEntry:=ObjectPropertySet.ConstObjectID & "." & ObjectPropertySet.ConstFNSetID, primarykeyordinal:=1, _
             lookupPropertyStrings:={LookupProperty.UseForeignKey & "(" & constFKSet & ")"}, _
-            validationPropertyStrings:={ObjectValidationProperty.UseLookup, ObjectValidationProperty.NotEmpty})> Public Const ConstFNSetID = ObjectPropertySet.ConstFNSetID
+            validationPropertyStrings:={ObjectValidationProperty.NotEmpty, ObjectValidationProperty.UseLookup})> Public Const ConstFNSetID = ObjectPropertySet.ConstFNSetID
 
         <ormObjectEntry(typeid:=otDataType.Text, size:=50, primaryKeyOrdinal:=2, _
             properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty},
@@ -1054,7 +1054,7 @@ Namespace OnTrack.ObjectProperties
           XID:="PLOT3", title:="Description", description:="description of the property value lot")> Public Const ConstFNDescription = "DESC"
 
         <ormObjectEntry(typeid:=otDataType.List, _
-         lookupPropertyStrings:={LookupProperty.UseObject & "(" & ObjectPropertySet.ConstObjectID & ")"}, validationPropertyStrings:={ObjectValidationProperty.UseLookup}, _
+         lookupPropertyStrings:={LookupProperty.UseObjectEntry & "(" & ObjectPropertySet.ConstObjectID & "." & ObjectPropertySet.ConstFNSetID & ")"}, validationPropertyStrings:={ObjectValidationProperty.UseLookup}, _
          XID:="PLOT4", title:="Property Sets", description:="applicable property sets for this lot")> Public Const ConstFNSets = "SETS"
 
         <ormObjectEntry(typeid:=otDataType.Date, isnullable:=True, _
@@ -1243,9 +1243,10 @@ Namespace OnTrack.ObjectProperties
                         '' maybe this was not part of the name ?! in another set as unique name ?
                         If _setids.Count > 0 Then
                             '' search it
+                            Dim aSet As ObjectPropertySet
                             Dim found As Boolean = False
                             For Each aSetname As String In _setids
-                                Dim aSet As ObjectPropertySet = ObjectPropertySet.Retrieve(id:=aSetname, domainid:=DomainID)
+                                aSet = ObjectPropertySet.Retrieve(id:=aSetname, domainid:=DomainID)
                                 If aSet IsNot Nothing Then
                                     If aSet.PropertyIDs.Contains(id.ToUpper) Then
                                         names(0) = aSetname.ToUpper
@@ -1623,11 +1624,11 @@ Namespace OnTrack.ObjectProperties
         Public Const ConstFNUpdc = ObjectPropertyValueLot.ConstFNUpdc
 
         <ormObjectEntry(ReferenceObjectEntry:=ObjectProperty.ConstObjectID & "." & ObjectProperty.ConstFNSetID, primaryKeyordinal:=3, _
-            XID:="PV3", lookupPropertyStrings:={LookupProperty.UseObject & "(" & ObjectPropertySet.ConstObjectID & ")"}, validationPropertyStrings:={ObjectValidationProperty.UseLookup})> _
+            XID:="PV3")> _
         Public Const ConstFNSetID = ObjectProperty.ConstFNSetID
 
         <ormObjectEntry(ReferenceObjectEntry:=ObjectProperty.ConstObjectID & "." & ObjectProperty.ConstFNPropertyID, primaryKeyordinal:=4, _
-            XID:="PV4", lookupPropertyStrings:={LookupProperty.UseObject & "(" & ObjectProperty.ConstObjectID & ")"}, validationPropertyStrings:={ObjectValidationProperty.UseLookup})> _
+            XID:="PV4")> _
         Public Const ConstFNPropertyID = ObjectProperty.ConstFNPropertyID
 
 
@@ -1649,7 +1650,8 @@ Namespace OnTrack.ObjectProperties
         ''' </summary>
         ''' <remarks></remarks>
         <ormSchemaForeignKey(entrynames:={constFNUID, ConstFNUpdc}, _
-           foreignkeyreferences:={ObjectPropertyValueLot.ConstObjectID & "." & ObjectPropertyValueLot.constFNUID, ObjectPropertyValueLot.ConstObjectID & "." & ObjectPropertyValueLot.ConstFNUpdc}, _
+           foreignkeyreferences:={ObjectPropertyValueLot.ConstObjectID & "." & ObjectPropertyValueLot.constFNUID, _
+                                  ObjectPropertyValueLot.ConstObjectID & "." & ObjectPropertyValueLot.ConstFNUpdc}, _
            useforeignkey:=otForeignKeyImplementation.NativeDatabase)> Public Const constFKValues = "FK_PropertyValue_Lot"
 
 

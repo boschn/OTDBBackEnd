@@ -119,6 +119,10 @@ Namespace OnTrack.Database
     ''' <remarks></remarks>
     Public Interface iormDatabaseDriver
 
+        Function CreateSqlCommand(id As String) As iormSqlCommand
+
+        Function CreateSqlSelectCommand(id As String) As iormSqlCommand
+
         Function RunSqlCommand(ByRef sqlcommand As ormSqlCommand, Optional ByRef parametervalues As Dictionary(Of String, Object) = Nothing, Optional nativeConnection As Object = Nothing) As Boolean
 
         Function Convert2ObjectData(invalue As Object, ByRef outvalue As Object, sourceType As Long, Optional isnullable As Boolean? = Nothing, Optional defaultvalue As Object = Nothing, Optional ByRef abostrophNecessary As Boolean = False) As Boolean

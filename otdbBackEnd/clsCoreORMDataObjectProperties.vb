@@ -158,12 +158,24 @@ Namespace OnTrack.Database
         ''' <remarks></remarks>
         Public Property ObjectMessageLog As ObjectMessageLog Implements ormLoggable.ObjectMessageLog
             Get
-                If Not Me.IsAlive(subname:="ObjectMessageLog") Then Return Nothing
-                If _ObjectMessageLog Is Nothing Then InfuseRelation(ConstRMessageLog)
+                ''' ObjectMessageLog wil always return something (except for errors while infuse)
+                ''' since also there might be messages before the object comes alive
+                ''' Infuse will merge the loaded into the current ones
+                ''' 
+                If _ObjectMessageLog Is Nothing Then
+                    If Not Me.RunTimeOnly Then
+                        If Me.IsAlive(throwError:=False) AndAlso GetRelationStatus(ConstRMessageLog) = DataObjectRelationMgr.RelationStatus.Unloaded Then InfuseRelation(ConstRMessageLog)
+                        If _ObjectMessageLog Is Nothing Then _ObjectMessageLog = New ObjectMessageLog(Me) ' if nothing is loaded because nothing there
+                    Else
+                        _ObjectMessageLog = New ObjectMessageLog(Me)
+                    End If
+                End If
+               
                 Return _ObjectMessageLog
+
             End Get
             Set(value As ObjectMessageLog)
-                Throw New InvalidOperationException("setting the Object message log is not allowed")
+                'Throw New InvalidOperationException("setting the Object message log is not allowed")
             End Set
         End Property
         ''' <summary>

@@ -628,7 +628,8 @@ Namespace OnTrack.Database
         Public Const UseAttributeReference = "USEREFERENCE"
         Public Const UseAttributeValues = "USEATTRIBUTEVALUES"
         Public Const UseForeignKey = "USEFOREIGNKEY"
-        Public Const UseObject = "USEOBJECT"
+        Public Const UseObjectEntry = "USEOBJECT"
+        Public Const UseVALUELIST = "USEVALUELIST"
         ''' <summary>
         ''' constructor
         ''' </summary>
@@ -636,8 +637,465 @@ Namespace OnTrack.Database
         ''' <remarks></remarks>
         Public Sub New(propertystring As String)
             MyBase.New(propertystring:=propertystring)
+            If Not Validate(Me) Then
+                CoreMessageHandler(message:="Argument value is not valid", arg1:=propertystring, subname:="LookupProperty.New", _
+                                    messagetype:=otCoreMessageType.InternalError)
+            End If
         End Sub
+        ''' <summary>
+        ''' validates the property
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Overloads Function Validate() As Boolean
+            Return Validate(Me)
+        End Function
+        ''' <summary>
+        ''' validates the property
+        ''' </summary>
+        ''' <param name="property"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Overloads Shared Function Validate([property] As LookupProperty) As Boolean
+            Try
+                Select Case [property].Enum
+                    Case otLookupProperty.UseForeignKey
+                        '''
+                        ''' optional arguemnt of foreign key
+                        ''' 
+                        If [property].Arguments.Count > 1 Then
+                            CoreMessageHandler(message:="first argument is optional foreign key name - more arguments specified as required ", arg1:=[property].ToString, _
+                                           subname:="LookupProperty.Validate", messagetype:=otCoreMessageType.InternalError)
+                        End If
+                        
+                    Case otLookupProperty.UseObjectEntry
+                        If [property].Arguments.Count = 1 Then
+                            If [property].Arguments(0) = Nothing OrElse [property].Arguments(0) = "" Then
+                                CoreMessageHandler(message:="first argument must be a object name ", arg1:=[property].ToString, _
+                                               subname:="LookupProperty.Validate", messagetype:=otCoreMessageType.InternalError)
+                                Return False
+                            End If
+                        Else
+                            CoreMessageHandler(message:="Number of arguments wrong (should be one)", arg1:=[property].ToString, _
+                                               subname:="LookupProperty.Validate", messagetype:=otCoreMessageType.InternalError)
+                            Return False
+                        End If
+                    Case otLookupProperty.UseValueList
+                        If [property].Arguments.Count = 1 Then
+                            If [property].Arguments(0) = Nothing OrElse [property].Arguments(0) = "" Then
+                                CoreMessageHandler(message:="first argument must be a value list id ", arg1:=[property].ToString, _
+                                               subname:="LookupProperty.Validate", messagetype:=otCoreMessageType.InternalError)
+                                Return False
+                            End If
+                        Else
+                            CoreMessageHandler(message:="Number of arguments wrong (should be one)", arg1:=[property].ToString, _
+                                               subname:="LookupProperty.Validate", messagetype:=otCoreMessageType.InternalError)
+                            Return False
+                        End If
+                    Case otLookupProperty.UseAttributeValues, otLookupProperty.UseAttributeReference
+                        If [property].Arguments.Count > 0 Then
+                            CoreMessageHandler(message:="Number of arguments wrong (should be none)", arg1:=[property].ToString, _
+                                               subname:="LookupProperty.Validate", messagetype:=otCoreMessageType.InternalError)
+                            Return False
+                        End If
+                    Case Else
+                        Return True
+                End Select
+            Catch ex As Exception
+                CoreMessageHandler(exception:=ex, subname:="LookupProperty.Validate")
+                Return False
+            End Try
 
+        End Function
+
+        ''' <summary>
+        ''' returns a unique list of values of a object entry
+        ''' </summary>
+        ''' <param name="objectentryattribute"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function UniqueForeignKeyValues(objectentryname As String, objectname As String, Optional foreignkeyname As String = Nothing, Optional allkeys As Boolean = False) As IList(Of Object)
+            Dim anObjectname As String = objectname
+            Dim anEntyname As String
+
+            Dim names As String() = Shuffle.NameSplitter(objectentryname.ToUpper)
+            If names.Length > 1 Then
+                anObjectname = names(0)
+                anEntyname = names(1)
+            Else
+                anEntyname = names(0)
+            End If
+            If objectname Is Nothing Then
+                CoreMessageHandler(message:="ObjectEntryname has no objectname", arg1:=objectentryname, _
+                                  subname:="LookupProperty.UniqueRowValues", messagetype:=otCoreMessageType.InternalError)
+                Return New List(Of Object)
+            End If
+            Dim aclassdescription As ObjectClassDescription = ot.GetObjectClassDescriptionByID(anObjectname)
+            If aclassdescription Is Nothing Then
+                CoreMessageHandler(message:="Objectname is not in class repository", arg1:=objectentryname, _
+                                  subname:="LookupProperty.UniqueRowValues", messagetype:=otCoreMessageType.InternalError)
+                Return New List(Of Object)
+            End If
+            Dim anObjectEntryAttribute As ormObjectEntryAttribute = aclassdescription.GetObjectEntryAttribute(entryname:=anEntyname)
+            If anObjectEntryAttribute Is Nothing Then
+                CoreMessageHandler(message:="ObjectEntry is not in class repository", arg1:=objectentryname, _
+                                 subname:="LookupProperty.UniqueRowValues", messagetype:=otCoreMessageType.InternalError)
+                Return New List(Of Object)
+            End If
+            If Not anObjectEntryAttribute.HasValueTableName Then
+                CoreMessageHandler(message:="ObjectEntryAttribute has no Tablename", arg1:=anObjectEntryAttribute.ObjectName & "." & anObjectEntryAttribute.EntryName, _
+                                   subname:="LookupProperty.UniqueRowValues", messagetype:=otCoreMessageType.InternalError)
+                Return New List(Of Object)
+            End If
+            Dim anObjectDefinition As ObjectDefinition = ot.CurrentSession.Objects.GetObject(objectid:=anObjectname)
+            If anObjectDefinition Is Nothing Then
+                CoreMessageHandler(message:="ObjectDefinition not found", arg1:=anObjectname, _
+                                   subname:="LookupProperty.UniqueRowValues", messagetype:=otCoreMessageType.InternalError)
+                Return New List(Of Object)
+            End If
+            Dim aTablename As String = anObjectEntryAttribute.Tablename
+            Dim aColumnname As String = anObjectEntryAttribute.ColumnName
+            Dim aTable As TableDefinition = anObjectDefinition.GetTable(aTablename)
+            Dim aForeignKey As ForeignKeyDefinition
+            Dim found As Boolean = False
+
+            ''' search the foreign key with the referenc column
+            ''' 
+            For Each aForeignKey In aTable.ForeignKeys
+                If aForeignKey.ColumnNames.Contains(aColumnname) OrElse (foreignkeyname IsNot Nothing AndAlso aForeignKey.Id = foreignkeyname.ToUpper) Then
+                    found = True
+                    Exit For
+                End If
+            Next
+
+            If Not found Then
+                CoreMessageHandler(message:="no foreign key definition in table '" & aTablename & "' with columnname '" & aColumnname & "' found", arg1:=anObjectname, _
+                                  subname:="LookupProperty.UniqueRowValues", messagetype:=otCoreMessageType.InternalError)
+                Return New List(Of Object)
+            End If
+
+            Dim i As Integer = 0
+            Dim indexEntry As Integer = aForeignKey.ColumnNames.ToList.IndexOf(aColumnname)
+            Dim aForeignKeyReferences As List(Of String) = aForeignKey.ForeignKeyReferences.ToList
+            Dim aDomainFieldname As String = Commons.Domain.ConstFNDomainID
+            Dim aCommand As ormSqlSelectCommand
+            Dim theForeignKeyTables As List(Of String) = aForeignKey.ForeignKeyReferenceTables
+            Dim hasDomainBehavior As Boolean = True
+
+            '''
+            ''' set the domain behavior from the referenced tables -> for mixed domain behavior this gets interesting (not implemented)
+            ''' 
+            For Each atableid In aForeignKey.TableIDs
+                hasDomainBehavior = hasDomainBehavior And CurrentSession.Objects.GetTable(atableid).DomainBehavior
+            Next
+            '''
+            '''
+            Try
+                If theForeignKeyTables.Count = 1 Then
+                    Dim aStore As iormDataStore = ot.GetTableStore(tableid:=aTablename)
+                    aCommand = aStore.CreateSqlSelectCommand(id:=aColumnname & "_FKValues_" & aForeignKey.Id, addAllFields:=False)
+                Else
+                    aCommand = ot.CurrentDBDriver.CreateSqlSelectCommand(id:=aTablename & "_" & aColumnname & "_FKValues_" & aForeignKey.Id)
+
+                End If
+
+                If Not aCommand.Prepared Then
+
+                    ''' build for multiple tables
+                    ''' 
+                    If theForeignKeyTables.Count > 1 Then
+                        For Each atableid In theForeignKeyTables
+                            aCommand.AddTable(atableid, addAllFields:=False)
+                        Next
+                    End If
+                    ''' build select
+                    aCommand.select = "UNIQUE "
+
+                    If Not allkeys Then
+                        '' take the referenceing key entry
+                        Dim colnames As String() = Shuffle.NameSplitter(aForeignKeyReferences.ElementAt(indexEntry))
+                        aCommand.select &= colnames(0) & ".[" & colnames(1) & "] "
+                    Else
+                        i = 0
+                        For Each aName In aForeignKeyReferences
+                            Dim colnames As String() = Shuffle.NameSplitter(aName)
+                            If i > 1 Then aCommand.select &= ","
+                            aCommand.select &= colnames(0) & ".[" & colnames(1) & "] "
+                            i += 1
+                        Next
+                    End If
+
+                    If hasDomainBehavior Then aCommand.select &= ", [" & aDomainFieldname & "]"
+
+                    ''' build where
+                    '''  
+                    For Each atableid In theForeignKeyTables
+                        aCommand.Where = atableid & ".[" & ConstFNIsDeleted & "] = @" & atableid & "Deleted "
+                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@" & atableid & "Deleted ", ColumnName:=ConstFNIsDeleted, tablename:=atableid))
+                        If hasDomainBehavior Then
+                            aCommand.Where &= " AND (" & atableid & ".[" & aDomainFieldname & "] = @domainID OR " & atableid & ".[" & aDomainFieldname & "] = @globalID)"
+                            aCommand.AddParameter(New ormSqlCommandParameter(ID:="@" & atableid & "domainID", ColumnName:=aDomainFieldname, tablename:=atableid))
+                        End If
+
+                    Next
+                    If hasDomainBehavior Then aCommand.AddParameter(New ormSqlCommandParameter(ID:="@globalID", ColumnName:=aDomainFieldname, tablename:=Commons.Domain.ConstTableID))
+                    aCommand.Prepare()
+                End If
+
+                For Each atableid In theForeignKeyTables
+                    aCommand.SetParameterValue(ID:="@" & atableid & "deleted", value:=False)
+                    If hasDomainBehavior Then aCommand.SetParameterValue(ID:="@" & atableid & "domainID", value:=CurrentSession.CurrentDomainID)
+                Next
+
+                If hasDomainBehavior Then aCommand.SetParameterValue(ID:="@globalID", value:=ConstGlobalDomain)
+
+                Dim aRecordCollection As List(Of ormRecord) = aCommand.RunSelect
+                Dim DomainValues As New Dictionary(Of Object, String)
+
+                For Each aRecord As ormRecord In aRecordCollection
+                    Dim aDomainValue As String
+                    If hasDomainBehavior Then
+                        aDomainValue = aRecord.GetValue(1).ToString
+                    Else
+                        aDomainValue = CurrentSession.CurrentDomainID
+                    End If
+
+                    If DomainValues.ContainsKey(aRecord.GetValue(0)) Then
+                        If DomainValues.Item(aRecord.GetValue(0)) = ConstGlobalDomain Then
+                            aDomainValue.Remove(aRecord.GetValue(0))
+                            DomainValues.Add(key:=aRecord.GetValue(0), value:=aDomainValue)
+                        End If
+                    Else
+                        DomainValues.Add(key:=aRecord.GetValue(0), value:=aDomainValue)
+                    End If
+
+                Next
+
+                Return DomainValues.Keys.ToList
+
+
+            Catch ex As Exception
+                Call CoreMessageHandler(exception:=ex, subname:="LookupProperty.UniqueRowValues")
+                Return New List(Of Object)
+
+            End Try
+
+        End Function
+
+        ''' <summary>
+        ''' returns a unique list of values of a object entry
+        ''' </summary>
+        ''' <param name="objectentryattribute"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function UniqueObjectColumnEntryValues(objectentryname As String, Optional objectname As String = Nothing) As IList(Of Object)
+            Dim anObjectname As String = objectname
+            Dim anEntyname As String
+
+            Dim names As String() = Shuffle.NameSplitter(objectentryname.ToUpper)
+            If names.Length > 1 Then
+                anObjectname = names(0)
+                anEntyname = names(1)
+            Else
+                anEntyname = names(0)
+            End If
+            If objectname Is Nothing Then
+                CoreMessageHandler(message:="ObjectEntryname has no objectname", arg1:=objectentryname, _
+                                  subname:="LookupProperty.UniqueRowValues", messagetype:=otCoreMessageType.InternalError)
+                Return New List(Of Object)
+            End If
+            Dim aclassdescription As ObjectClassDescription = ot.GetObjectClassDescriptionByID(anObjectname)
+            If aclassdescription Is Nothing Then
+                CoreMessageHandler(message:="Objectname is not in class repository", arg1:=objectentryname, _
+                                  subname:="LookupProperty.UniqueRowValues", messagetype:=otCoreMessageType.InternalError)
+                Return New List(Of Object)
+            End If
+            Dim anObjectEntryAttribute As ormObjectEntryAttribute = aclassdescription.GetObjectEntryAttribute(entryname:=anEntyname)
+            If anObjectEntryAttribute Is Nothing Then
+                CoreMessageHandler(message:="ObjectEntry is not in class repository", arg1:=objectentryname, _
+                                 subname:="LookupProperty.UniqueRowValues", messagetype:=otCoreMessageType.InternalError)
+                Return New List(Of Object)
+            End If
+            If Not anObjectentryattribute.HasValueTableName Then
+                CoreMessageHandler(message:="ObjectEntryAttribute has no Tablename", arg1:=anObjectEntryAttribute.ObjectName & "." & anObjectEntryAttribute.EntryName, _
+                                   subname:="LookupProperty.UniqueRowValues", messagetype:=otCoreMessageType.InternalError)
+                Return New List(Of Object)
+            End If
+            Dim anObjectDefinition As ObjectDefinition = ot.CurrentSession.Objects.GetObject(objectid:=anObjectname)
+            If anObjectDefinition Is Nothing Then
+                CoreMessageHandler(message:="ObjectDefinition not found", arg1:=anObjectname, _
+                                   subname:="LookupProperty.UniqueRowValues", messagetype:=otCoreMessageType.InternalError)
+                Return New List(Of Object)
+            End If
+            Dim aTablename As String = anObjectEntryAttribute.Tablename
+            Dim aColumnname As String = anObjectEntryAttribute.ColumnName
+            Dim aDomainFieldname As String = Commons.Domain.ConstFNDomainID
+
+            '''
+            '''
+            Try
+                Dim aStore As iormDataStore = ot.GetTableStore(tableid:=aTablename)
+                Dim aCommand As ormSqlSelectCommand = aStore.CreateSqlSelectCommand(id:=aColumnname & "_Values", addAllFields:=False)
+                If Not aCommand.Prepared Then
+                    aCommand.select = "UNIQUE [" & aColumnname & "]"
+                    If anObjectDefinition.HasDomainBehavior Then aCommand.select &= ", [" & aDomainFieldname & "]"
+                    aCommand.Where = ConstFNIsDeleted & " = @deleted "
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@deleted", ColumnName:=ConstFNIsDeleted, tablename:=aTablename))
+                    If anObjectDefinition.HasDomainBehavior Then
+                        aCommand.Where &= " AND ([" & aDomainFieldname & "] = @domainID OR [" & aDomainFieldname & "] = @globalID)"
+                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@domainID", ColumnName:=aDomainFieldname, tablename:=aTablename))
+                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@globalID", ColumnName:=aDomainFieldname, tablename:=aTablename))
+                    End If
+
+                    aCommand.Prepare()
+                End If
+
+                aCommand.SetParameterValue(ID:="@deleted", value:=False)
+                If anObjectDefinition.HasDomainBehavior Then
+                    aCommand.SetParameterValue(ID:="@domainID", value:=CurrentSession.CurrentDomainID)
+                    aCommand.SetParameterValue(ID:="@globalID", value:=ConstGlobalDomain)
+                End If
+
+
+                Dim aRecordCollection As List(Of ormRecord) = aCommand.RunSelect
+                Dim DomainValues As New Dictionary(Of Object, String)
+
+                For Each aRecord As ormRecord In aRecordCollection
+                    Dim aDomainValue As String
+                    If anObjectDefinition.HasDomainBehavior Then
+                        aDomainValue = aRecord.GetValue(1).ToString
+                    Else
+                        aDomainValue = CurrentSession.CurrentDomainID
+                    End If
+
+                    If DomainValues.ContainsKey(aRecord.GetValue(0)) Then
+                        If DomainValues.Item(aRecord.GetValue(0)) = ConstGlobalDomain Then
+                            aDomainValue.Remove(aRecord.GetValue(0))
+                            DomainValues.Add(key:=aRecord.GetValue(0), value:=aDomainValue)
+                        End If
+                    Else
+                        DomainValues.Add(key:=aRecord.GetValue(0), value:=aDomainValue)
+                    End If
+
+                Next
+
+                Return DomainValues.Keys.ToList
+
+
+            Catch ex As Exception
+                Call CoreMessageHandler(exception:=ex, subname:="LookupProperty.UniqueRowValues")
+                Return New List(Of Object)
+
+            End Try
+
+        End Function
+        ''' <summary>
+        ''' Apply the Property function to a value
+        ''' </summary>
+        ''' <param name="in"></param>
+        ''' <param name="out"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function GetValues(entry As iormObjectEntry) As List(Of Object)
+            Dim aList As New List(Of Object)
+
+            Select Case _property
+               
+                Case otLookupProperty.UseAttributeReference
+                    '''
+                    ''' use the object reference
+                    ''' 
+                    Dim aclassdescription As ObjectClassDescription = ot.GetObjectClassDescriptionByID(entry.Objectname)
+                    If aclassdescription Is Nothing Then
+                        CoreMessageHandler(message:="Objectname is not in class repository", arg1:=entry.Objectname, _
+                                          subname:="LookupProperty.GetValues", messagetype:=otCoreMessageType.InternalError)
+                        Return New List(Of Object)
+                    End If
+                    Dim anObjectEntryAttribute As ormObjectEntryAttribute = aclassdescription.GetObjectEntryAttribute(entryname:=entry.Entryname)
+                    If anObjectEntryAttribute Is Nothing Then
+                        CoreMessageHandler(message:="ObjectEntry is not in class repository", arg1:=entry.Objectname & "." & entry.Entryname, _
+                                         subname:="LookupProperty.GetValues", messagetype:=otCoreMessageType.InternalError)
+                        Return New List(Of Object)
+                    End If
+                    If anObjectEntryAttribute.HasValueReferenceObjectEntry Then
+                        Dim names As String() = Shuffle.NameSplitter(anObjectEntryAttribute.ReferenceObjectEntry)
+                        Dim aReference As ormObjectEntryAttribute = ot.GetObjectClassDescriptionByID(id:=names(0)).GetObjectEntryAttribute(entryname:=names(1))
+                        Return UniqueObjectColumnEntryValues(objectentryname:=aReference.EntryName, objectname:=aReference.ObjectName)
+                    Else
+                        CoreMessageHandler(message:="ObjectEntry has no references to lookup", arg1:=entry.Objectname & "." & entry.Entryname, _
+                                         subname:="LookupProperty.GetValues", messagetype:=otCoreMessageType.InternalError)
+                        Return New List(Of Object)
+                    End If
+
+                    
+
+                Case otLookupProperty.UseAttributeValues
+                    '''
+                    ''' User the Posiible Value Attribute Entry 
+                    '''
+                    If entry.PossibleValues IsNot Nothing Then
+                        For Each aValue In entry.PossibleValues
+                            aList.Add(aValue)
+                        Next
+                    End If
+
+                    Return aList
+
+
+                Case otLookupProperty.UseForeignKey
+
+                    '''
+                    ''' use the foreign keys
+                    ''' 
+                    Return Me.UniqueForeignKeyValues(objectentryname:=entry.Entryname, objectname:=entry.Objectname)
+
+                Case otLookupProperty.UseObjectEntry
+                    '''
+                    ''' use the object entry in the argument
+                    ''' 
+                    If Arguments.Count = 0 OrElse String.IsNullOrWhiteSpace(Arguments(0).ToString) Then
+                        CoreMessageHandler(message:="UseObjectEntry Attribute für ObjectEntry has missing reference object entry argument", arg1:=entry.Objectname & "." & entry.Entryname, _
+                                       subname:="LookupProperty.GetValues", messagetype:=otCoreMessageType.InternalError)
+                        Return New List(Of Object)
+                    End If
+                    Dim names As String() = Shuffle.NameSplitter(Arguments(0).ToString)
+                    If names.Count < 2 OrElse String.IsNullOrWhiteSpace(Arguments(0).ToString) Then
+                        CoreMessageHandler(message:="UseObjectEntry Attribute für ObjectEntry has malformatted reference object entry argument '" & Arguments(0).ToString & "'", arg1:=entry.Objectname & "." & entry.Entryname, _
+                                       subname:="LookupProperty.GetValues", messagetype:=otCoreMessageType.InternalError)
+                        Return New List(Of Object)
+                    End If
+                    Dim aclassdescription As ObjectClassDescription = ot.GetObjectClassDescriptionByID(names(0))
+                    If aclassdescription Is Nothing Then
+                        CoreMessageHandler(message:="Objectname is not in class repository", arg1:=names(0), _
+                                          subname:="LookupProperty.GetValues", messagetype:=otCoreMessageType.InternalError)
+                        Return New List(Of Object)
+                    End If
+                    Dim anObjectEntryAttribute As ormObjectEntryAttribute = aclassdescription.GetObjectEntryAttribute(entryname:=names(1))
+                    If anObjectEntryAttribute Is Nothing Then
+                        CoreMessageHandler(message:="ObjectEntry is not in class repository", arg1:=Arguments(0).ToString, _
+                                         subname:="LookupProperty.GetValues", messagetype:=otCoreMessageType.InternalError)
+                        Return New List(Of Object)
+                    End If
+                    Return UniqueObjectColumnEntryValues(objectentryname:=names(1), objectname:=names(0))
+
+                Case otLookupProperty.UseValueList
+                    ''' Value List 
+                    ''' 
+                    Dim aValueList As Commons.ValueList = Commons.ValueList.Retrieve(id:=Me._arguments(0).ToString)
+                    If aValueList IsNot Nothing Then
+                        aList = aValueList.Values
+                        Return aList
+                    Else
+                        CoreMessageHandler(message:="list could not be retrieved", arg1:=Me._arguments(0).ToString, messagetype:=otCoreMessageType.ApplicationError, _
+                                     subname:="LookupProperty.GetList")
+                        Return aList
+                    End If
+                Case Else
+                    CoreMessageHandler(message:="Property function is not implemented", arg1:=_property.ToString, messagetype:=otCoreMessageType.InternalError, _
+                                       subname:="LookupProperty.GetList")
+                    Return aList
+            End Select
+        End Function
         ''' <summary>
         ''' returns the enumeration value
         ''' </summary>
@@ -654,8 +1112,9 @@ Namespace OnTrack.Database
     Public Enum otLookupProperty
         <Description(LookupProperty.UseAttributeReference)> UseAttributeReference = 1
         <Description(LookupProperty.UseForeignKey)> UseForeignKey
-        <Description(LookupProperty.UseObject)> UseObject
+        <Description(LookupProperty.UseObjectEntry)> UseObjectEntry
         <Description(LookupProperty.UseAttributeValues)> UseAttributeValues
+        <Description(LookupProperty.UseVALUELIST)> UseValueList
 
     End Enum
 

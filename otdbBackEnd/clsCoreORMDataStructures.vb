@@ -391,7 +391,7 @@ Namespace OnTrack.Database
 
         Function GetKeyValues(item As T) As DataKeyTuple
 
-        Function GetKeyNames() As String()
+        ReadOnly Property KeyNames() As String()
     End Interface
 
     ''' <summary>
@@ -581,9 +581,11 @@ Namespace OnTrack.Database
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetKeyNames() As String() Implements iormRelationalCollection(Of T).GetKeyNames
-            Return _keyentries
-        End Function
+        Public ReadOnly Property KeyNames() As String() Implements iormRelationalCollection(Of T).KeyNames
+            Get
+                Return _keyentries
+            End Get
+        End Property
 
         ''' <summary>
         ''' extract the key values of the item (keyentries)
@@ -592,7 +594,7 @@ Namespace OnTrack.Database
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function GetKeyValues(item As T) As DataKeyTuple Implements iormRelationalCollection(Of T).GetKeyValues
-            
+
             Dim keys As New DataKeyTuple(_keyentries.Count)
             For i = 0 To _keyentries.GetUpperBound(0)
                 keys.Item(i) = item.GetValue(_keyentries(i))
@@ -648,7 +650,7 @@ Namespace OnTrack.Database
         ''' <param name="keys"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function ContainsKey(keys As Object()) As Boolean Implements iormRelationalCollection(Of T).containsKey
+        Public Function ContainsKey(keys As Object()) As Boolean Implements iormRelationalCollection(Of T).ContainsKey
             Dim aKey As New DataKeyTuple(keys.GetUpperBound(0) + 1)
             aKey.Values = keys
             Return _dictionary.ContainsKey(key:=aKey)
@@ -659,7 +661,7 @@ Namespace OnTrack.Database
         ''' <param name="keys"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function ContainsKey(keys As DataKeyTuple) As Boolean Implements iormRelationalCollection(Of T).containsKey
+        Public Function ContainsKey(keys As DataKeyTuple) As Boolean Implements iormRelationalCollection(Of T).ContainsKey
             Return _dictionary.ContainsKey(key:=keys)
         End Function
 
@@ -684,7 +686,7 @@ Namespace OnTrack.Database
                 aKey.Values = {key}
                 Return _dictionary.ContainsKey(key:=aKey)
             End If
-           
+
 
         End Function
         ''' <summary>
@@ -756,7 +758,7 @@ Namespace OnTrack.Database
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property Item(keys As Object()) As T Implements iormRelationalCollection(Of T).item
+        Public Property Item(keys As Object()) As T Implements iormRelationalCollection(Of T).Item
             Get
                 Dim aKey As New DataKeyTuple(keys.GetUpperBound(0) + 1)
                 aKey.Values = keys
@@ -775,7 +777,7 @@ Namespace OnTrack.Database
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property Item(key As DataKeyTuple) As T Implements iormRelationalCollection(Of T).item
+        Public Property Item(key As DataKeyTuple) As T Implements iormRelationalCollection(Of T).Item
             Get
                 If ContainsKey(key) Then Return _dictionary.Item(key:=key)
             End Get
@@ -791,7 +793,7 @@ Namespace OnTrack.Database
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property Item(key As Object) As T Implements iormRelationalCollection(Of T).item
+        Public Property Item(key As Object) As T Implements iormRelationalCollection(Of T).Item
             Get
                 ' strange we cannot overload
                 If key.GetType.Equals(GetType(DataKeyTuple)) Then

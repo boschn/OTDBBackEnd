@@ -1577,6 +1577,23 @@ Namespace OnTrack.Database
             End Set
         End Property
         ''' <summary>
+        ''' returns a list of tablenames which are referenced in the foreign key
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        ReadOnly Property ForeignKeyReferenceTables As IList(Of String)
+            Get
+                Dim aList As New List(Of String)
+
+                For Each aReference In Me.ForeignKeyReferences
+                    Dim names As String() = Shuffle.NameSplitter(aReference)
+                    If Not aList.Contains(names(0)) Then aList.Add(names(0))
+                Next
+                Return aList
+            End Get
+        End Property
+        ''' <summary>
         ''' Gets or sets the is foreign Key reference string.
         ''' </summary>
         ''' <value>The is nullable.</value>
@@ -3608,7 +3625,7 @@ Namespace OnTrack.Database
         <ormEntryMapping(RelationName:=ConstRColumnEntries, infuseMode:=otInfuseMode.OnInject Or otInfuseMode.OnDemand, _
             keyentries:={ObjectColumnEntry.ConstFNEntryName})> _
         <ormEntryMapping(RelationName:=ConstRCompoundEntries, infuseMode:=otInfuseMode.OnInject Or otInfuseMode.OnDemand, _
-            keyentries:={ObjectCompoundEntry.ConstFNEntryName})> Private _objectentries As New Dictionary(Of String, iormObjectEntry) ' by id
+            keyentries:={ObjectCompoundEntry.ConstFNEntryName})> Private WithEvents _objectentries As New Dictionary(Of String, iormObjectEntry) ' by id
 
 
         '*** Mapping
@@ -3915,7 +3932,28 @@ Namespace OnTrack.Database
                 Return _deletePerFlagBehavior
             End Get
         End Property
+
+        ''' <summary>
+        ''' returns a List of CompoundEntryObjectNames
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property CompoundEntryObjectNames As IList(Of String)
+            Get
+                Dim aList As New List(Of String)
+
+                For Each anEntry As iormObjectEntry In _objectentries.Values
+                    If anEntry.IsCompound AndAlso Not aList.Contains(anEntry.Objectname) Then
+                        aList.Add(anEntry.Objectname)
+                    End If
+                Next
+
+                Return aList
+            End Get
+        End Property
 #End Region
+       
 
         ''' <summary>
         ''' returns a list of entry names
@@ -3949,12 +3987,48 @@ Namespace OnTrack.Database
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function GetEntries(Optional onlyActive As Boolean = True) As IList(Of iormObjectEntry)
-            If Me.IsAlive(subname:="ObjectDefinition.Entries") Then
+            If Me.IsAlive(subname:="ObjectDefinition.GetEntries") Then
                 If onlyActive Then Return _objectentries.Values.Where(Function(x) x.IsActive = True).ToList
                 Return _objectentries.Values.ToList
             Else
                 Return New List(Of iormObjectEntry)
             End If
+        End Function
+        ''' <summary>
+        ''' gets a collection of object compound Entry definitions
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function GetCompoundEntries(Optional onlyActive As Boolean = True) As IList(Of iormObjectEntry)
+            Dim aList As New List(Of iormObjectEntry)
+            If Me.IsAlive(subname:="ObjectDefinition.GetCompoundEntries") Then
+                If onlyActive Then
+                    aList = _objectentries.Values.Where(Function(x) x.IsActive And x.IsCompound).ToList()
+                Else
+                    aList = _objectentries.Values.Where(Function(x) x.IsCompound).ToList
+                End If
+                If aList IsNot Nothing AndAlso aList.Count > 0 Then Return aList
+            End If
+
+            Return New List(Of iormObjectEntry)
+        End Function
+        ''' <summary>
+        ''' gets a collection of object column Entry definitions
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function GetColumnEntries(Optional onlyActive As Boolean = True) As IList(Of iormObjectEntry)
+            Dim aList As New List(Of iormObjectEntry)
+            If Me.IsAlive(subname:="ObjectDefinition.GetColumnEntries") Then
+                If onlyActive Then
+                    aList = _objectentries.Values.Where(Function(x) x.IsActive And x.IsColumn).ToList()
+                Else
+                    aList = _objectentries.Values.Where(Function(x) x.IsColumn).ToList
+                End If
+                If aList IsNot Nothing AndAlso aList.Count > 0 Then Return aList
+            End If
+
+            Return New List(Of iormObjectEntry)
         End Function
 
         ''' <summary>
@@ -4191,7 +4265,7 @@ Namespace OnTrack.Database
         End Function
 
 
-      
+
 
         ''' <summary>
         ''' creates the persistency schema
@@ -5046,7 +5120,7 @@ Namespace OnTrack.Database
                         xid:="OED23", title:="Description", Description:="Description of the field")> Public Const ConstFNDescription As String = "desc"
 
         <ormObjectEntry(typeid:=otDataType.List, isnullable:=True, innertypeid:=otDataType.Text, _
-                        properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty}, _
+                        properties:={ObjectEntryProperty.Keyword}, _
                         xid:="OED24", title:="XChange alias ID", Description:="aliases ID for XChange manager")> Public Const ConstFNalias As String = "alias"
 
        
@@ -6272,11 +6346,15 @@ Namespace OnTrack.Database
 
         <ormObjectEntry(typeid:=otDataType.Text, size:=50, properties:={ObjectEntryProperty.Keyword}, isnullable:=True, posordinal:=110, _
                         properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty}, _
-                        XID:="OED104", title:="compound setter operation", Description:="name of the compound setter method")> Public Const ConstFNCompoundSetter As String = "csetter"
+                        XID:="OED104", title:="compound setter operation", Description:="name of the compound setter method")> Public Const ConstFNCompoundSetter As String = "CSETTER"
 
         <ormObjectEntry(typeid:=otDataType.Text, size:=50, properties:={ObjectEntryProperty.Keyword}, isnullable:=True, posordinal:=111, _
                        properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty}, _
-                       XID:="OED105", title:="compound getter operation", Description:="name of the compound getter method")> Public Const ConstFNCompoundGetter As String = "cgetter"
+                       XID:="OED105", title:="compound getter operation", Description:="name of the compound getter method")> Public Const ConstFNCompoundGetter As String = "CGETTER"
+
+        <ormObjectEntry(typeid:=otDataType.Text, size:=50, properties:={ObjectEntryProperty.Keyword}, isnullable:=True, posordinal:=112, _
+                      properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty}, _
+                      XID:="OED106", title:="compound validator operation", Description:="name of the compound validator method")> Public Const ConstFNCompoundValidator As String = "CVALIDATE"
 
 
         '** compound settings
@@ -6286,11 +6364,13 @@ Namespace OnTrack.Database
         <ormEntryMapping(EntryName:=ConstFNCompoundValueEntryName)> Private _cValueEntryName As String
         <ormEntryMapping(EntryName:=ConstFNCompoundGetter)> Private _CompoundGetterMethodName As String
         <ormEntryMapping(EntryName:=ConstFNCompoundSetter)> Private _CompoundSetterMethodName As String
+        <ormEntryMapping(EntryName:=ConstFNCompoundValidator)> Private _CompoundValidatorMethodName As String
 
         ''' method tags
         ''' 
         Public Const ConstCompoundSetter = "SETTER"
         Public Const ConstCompoundGetter = "GETTER"
+        Public Const ConstCompoundValidator = "VALIDATOR"
 
         ''' <summary>
         ''' constructor of a SchemaDefTableEntry
@@ -6304,6 +6384,18 @@ Namespace OnTrack.Database
 #Region "Properties"
 
         ''' <summary>
+        ''' Gets or sets the name of the compound validator method.
+        ''' </summary>
+        ''' <value>The name of the compound getter method.</value>
+        Public Property CompoundValidatorMethodName() As String
+            Get
+                Return Me._CompoundValidatorMethodName
+            End Get
+            Set(value As String)
+                SetValue(ConstFNCompoundValidator, value)
+            End Set
+        End Property
+        ''' <summary>
         ''' Gets or sets the name of the compound getter method.
         ''' </summary>
         ''' <value>The name of the compound getter method.</value>
@@ -6312,7 +6404,7 @@ Namespace OnTrack.Database
                 Return Me._CompoundGetterMethodName
             End Get
             Set
-                Me._CompoundGetterMethodName = Value
+                SetValue(ConstFNCompoundGetter, Value)
             End Set
         End Property
 
@@ -6324,8 +6416,8 @@ Namespace OnTrack.Database
             Get
                 Return Me._CompoundSetterMethodName
             End Get
-            Set
-                Me._CompoundSetterMethodName = Value
+            Set(value As String)
+                SetValue(ConstFNCompoundSetter, value)
             End Set
         End Property
 
@@ -6411,7 +6503,12 @@ Namespace OnTrack.Database
                 Return Converter.Object2otObject(_defaultvalue, Me.Datatype)
             End Get
             Set(value As Object)
-                SetValue(entryname:=ConstFNDefaultValue, value:=value.ToString)
+                If value IsNot Nothing Then
+                    SetValue(entryname:=ConstFNDefaultValue, value:=value.ToString)
+                Else
+                    SetValue(entryname:=ConstFNDefaultValue, value:=Nothing)
+                End If
+
             End Set
         End Property
 

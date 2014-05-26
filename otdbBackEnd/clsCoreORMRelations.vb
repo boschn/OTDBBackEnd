@@ -484,6 +484,8 @@ Namespace OnTrack.Database
 
         End Function
 
+        
+
         ''' <summary>
         ''' gets the Relation Names of this data object
         ''' </summary>
@@ -598,6 +600,15 @@ Namespace OnTrack.Database
             End Set
         End Property
 
+        ''' <summary>
+        ''' returns true if the relationname is in the relation manager
+        ''' </summary>
+        ''' <param name="relationname"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function Contains(relationname As String) As Boolean
+            Return Me.Relationnames.Contains(relationname)
+        End Function
         ''' <summary>
         ''' selects dataobject from a relation mapped entry  optional if an entryname exists and and optional the value equals
         ''' </summary>
@@ -730,7 +741,8 @@ Namespace OnTrack.Database
 
                             ''' use the index of the container to select if this is the key !
                             ''' 
-                            If entryname <> "" AndAlso aGenericContainer.GetKeyNames.Count = 1 AndAlso aGenericContainer.GetKeyNames.Contains(entryname) Then
+                            Dim keynames As String() = aGenericContainer.Keynames
+                            If entryname <> "" AndAlso keynames.Length = 1 AndAlso Array.Exists(keynames, Function(x) x = entryname) Then
                                 If value IsNot Nothing Then
                                     Dim anObject As iormPersistable = aGenericContainer.Item(value)
                                     If anObject IsNot Nothing Then aList.Add(anObject)

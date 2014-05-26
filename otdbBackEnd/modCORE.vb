@@ -1487,8 +1487,9 @@ Namespace OnTrack
             '**** add to the Connection.errorlog
             '****
             With aNewError
-                .Message = message & vbLf
-                .Message &= exmessagetext
+                    .Message = message & vbLf
+                    .Message &= exmessagetext
+                    If msglog IsNot Nothing Then .Message &= vbLf & msglog.MessageText
                 .Subname = subname
                 .Exception = exception
                 .Tablename = tablename
@@ -1524,32 +1525,33 @@ Namespace OnTrack
 
             Select Case (messagetype)
                 Case otCoreMessageType.ApplicationInfo
-                    System.Diagnostics.Debug.WriteLine(" Type: INFO")
+                        System.Diagnostics.Debug.WriteLine("> Type: INFO")
                 Case otCoreMessageType.ApplicationError
-                    System.Diagnostics.Debug.WriteLine(" Type: ERROR")
+                        System.Diagnostics.Debug.WriteLine("> Type: ERROR")
                 Case otCoreMessageType.ApplicationWarning
-                    System.Diagnostics.Debug.WriteLine(" Type: WARNING")
+                        System.Diagnostics.Debug.WriteLine("> Type: WARNING")
                 Case otCoreMessageType.InternalException
-                    System.Diagnostics.Debug.WriteLine(" Type: Exception")
+                        System.Diagnostics.Debug.WriteLine("> Type: Exception")
                 Case otCoreMessageType.InternalInfo
-                    System.Diagnostics.Debug.WriteLine(" Type: Internal INFORMATION")
+                        System.Diagnostics.Debug.WriteLine("> Type: Internal INFORMATION")
                 Case otCoreMessageType.InternalError
-                    System.Diagnostics.Debug.WriteLine(" Type: Internal ERROR")
+                        System.Diagnostics.Debug.WriteLine("> Type: Internal ERROR")
                 Case otCoreMessageType.InternalWarning
-                    System.Diagnostics.Debug.WriteLine(" Type: Internal Warning")
+                        System.Diagnostics.Debug.WriteLine("> Type: Internal Warning")
                 Case otCoreMessageType.InternalException
-                    System.Diagnostics.Debug.WriteLine(" Type: Internal Exception")
+                        System.Diagnostics.Debug.WriteLine("> Type: Internal Exception")
             End Select
 
-            System.Diagnostics.Debug.WriteLine(" Message:" & message)
-            If arg1 IsNot Nothing Then System.Diagnostics.Debug.WriteLine(" Arguments:" & arg1.ToString)
-            If tablename IsNot Nothing AndAlso tablename <> "" Then System.Diagnostics.Debug.WriteLine(" Tablename: " & tablename)
-            If columnname IsNot Nothing AndAlso columnname <> "" Then System.Diagnostics.Debug.WriteLine(" columnname: " & columnname)
-            If objectname IsNot Nothing AndAlso objectname <> "" Then System.Diagnostics.Debug.WriteLine(" objectname: " & objectname)
-            If entryname IsNot Nothing AndAlso entryname <> "" Then System.Diagnostics.Debug.WriteLine(" Entry: " & entryname)
-            If subname IsNot Nothing AndAlso subname <> "" Then System.Diagnostics.Debug.WriteLine(" Routine:" & CStr(subname))
-            If exmessagetext <> "" Then System.Diagnostics.Debug.WriteLine("Exception Message:" & exmessagetext)
-            If routinestack <> "" Then System.Diagnostics.Debug.WriteLine("Stack:" & routinestack)
+                System.Diagnostics.Debug.WriteLine("> OnTrack Session Message:" & message)
+                If msglog IsNot Nothing Then System.Diagnostics.Debug.WriteLine(">> Object Message Log :" & msglog.MessageText)
+                If arg1 IsNot Nothing Then System.Diagnostics.Debug.WriteLine("> Arguments:" & arg1.ToString)
+                If tablename IsNot Nothing AndAlso tablename <> "" Then System.Diagnostics.Debug.WriteLine("> Tablename: " & tablename)
+                If columnname IsNot Nothing AndAlso columnname <> "" Then System.Diagnostics.Debug.WriteLine("> Columnname: " & columnname)
+                If objectname IsNot Nothing AndAlso objectname <> "" Then System.Diagnostics.Debug.WriteLine("> Objectname: " & objectname)
+                If entryname IsNot Nothing AndAlso entryname <> "" Then System.Diagnostics.Debug.WriteLine("> Entry: " & entryname)
+                If subname IsNot Nothing AndAlso subname <> "" Then System.Diagnostics.Debug.WriteLine("> Routine:" & CStr(subname))
+                If exmessagetext <> "" Then System.Diagnostics.Debug.WriteLine("> Exception Message:" & exmessagetext)
+                If routinestack <> "" Then System.Diagnostics.Debug.WriteLine("> Stack:" & routinestack)
 
 
             '''

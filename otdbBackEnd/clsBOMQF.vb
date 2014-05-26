@@ -84,33 +84,45 @@ Namespace OnTrack.Xchange
             Title:="DomainID", description:="ID of the domain for this message queue")> Public Const ConstFNDomainID = Commons.Domain.ConstFNDomainID
 
         <ormObjectEntry(ReferenceObjectEntry:=XChangeConfiguration.constObjectID & "." & XChangeConfiguration.constFNID, isnullable:=True, _
-            Title:="Title", description:="Title oder header of the message queue")> Public Const ConstFNXConfigID = XChangeConfiguration.constFNID
+            Title:="Xconfig", description:="ID of the XConfiguration for this Message Queue")> Public Const ConstFNXConfigID = XChangeConfiguration.constFNID
 
         <ormObjectEntry(typeid:=otDataType.Text, size:=100, isnullable:=True, _
            Title:="Title", description:="Title oder header of the message queue")> Public Const ConstFNTitle = "TITLE"
         <ormObjectEntry(typeid:=otDataType.Memo, isnullable:=True, _
           Title:="Comment", description:="descriptive text comment for this message queue")> Public Const ConstFNComment = "COMMENT"
+        <ormObjectEntry(typeid:=otDataType.Text, size:=100, isnullable:=True, _
+           Title:="Plan Revision", description:="plan revision for this message queue")> Public Const ConstFNPlanRevision = "PlanRevision"
+
+
+        <ormObjectEntry(ReferenceObjectEntry:=Commons.OrgUnit.ConstObjectID & "." & Commons.OrgUnit.ConstFNID, isnullable:=True, _
+            Title:="Creator OrgUnit", description:="organization unit which is creating the messages")> Public Const ConstFNCREATEOU = "CREATEOU"
+        <ormObjectEntry(ReferenceObjectEntry:=Commons.Person.ConstObjectID & "." & Commons.Person.constFNID, isnullable:=True, _
+             Title:="Creator", description:="responsible person who is creating the messages")> Public Const ConstFNCREATEPERSON = "CREATEPERSON"
+        <ormObjectEntry(typeid:=otDataType.Date, isnullable:=True, _
+         Title:="Creation Date", description:="date on which the message queue was created")> Public Const ConstFNCREATEDate = "CREATEDATE"
 
         <ormObjectEntry(ReferenceObjectEntry:=Commons.OrgUnit.ConstObjectID & "." & Commons.OrgUnit.ConstFNID, isnullable:=True, _
              Title:="Requesting OrgUnit", description:="organization unit which is requesting the messages")> Public Const ConstFNREQOU = "REQOU"
-
         <ormObjectEntry(ReferenceObjectEntry:=Commons.Person.ConstObjectID & "." & Commons.Person.constFNID, isnullable:=True, _
              Title:="Request Person", description:="responsible person who is requesting the messages")> Public Const ConstFNREQPERSON = "REQPERSON"
-
         <ormObjectEntry(typeid:=otDataType.Date, isnullable:=True, _
          Title:="Request Date", description:="date on which the message queue was issued")> Public Const ConstFNReqDate = "REQDATE"
 
+        <ormObjectEntry(ReferenceObjectEntry:=Commons.Person.ConstObjectID & "." & Commons.Person.constFNID, isnullable:=True, _
+            Title:="Request Person", description:="responsible person who is approving the messages")> Public Const ConstFNApprovingPERSON = "APPROVEPERSON"
+        <ormObjectEntry(typeid:=otDataType.Date, isnullable:=True, _
+         Title:="Request Date", description:="date on which the message queue was approved")> Public Const ConstFNApprovalDate = "APPROVEDATE"
+
         <ormObjectEntry(typeid:=otDataType.Timestamp, isnullable:=True, _
             Title:="Precheck Timestamp", description:="Timestamp of last precheck")> Public Const ConstFNPreStamp = "PRESTAMP"
-
         <ormObjectEntry(typeid:=otDataType.Timestamp, isnullable:=True, _
                 Title:="Processed Timestamp", description:="Timestamp of last processed")> Public Const ConstFNProcStamp = "PROCSTAMP"
-
         <ormObjectEntry(ReferenceObjectEntry:=Commons.StatusItem.ConstObjectID & "." & Commons.StatusItem.constFNCode, isnullable:=True, _
             Title:="Processed Status", description:="status code of the last process run")> Public Const ConstFNProcStatus = "PROCSTATUS"
-
         <ormObjectEntry(ReferenceObjectEntry:=Commons.User.ConstObjectID & "." & Commons.User.ConstFNUsername, isnullable:=True, _
            Title:="Processor", description:="username of processed message queue")> Public Const ConstFNProcUser = "PROCUSER"
+        <ormObjectEntry(typeid:=otDataType.Memo, isnullable:=True, _
+          Title:="Process Comment", description:="descriptive text comment for processing the message queue")> Public Const ConstFNProcComment = "ProcCOMMENT"
 
         <ormObjectEntry(ReferenceObjectEntry:=ObjectMessage.ConstObjectID & "." & ObjectMessage.ConstFNContextID)> Public Const ConstFNContextID = ObjectMessage.ConstFNContextID
         <ormObjectEntry(ReferenceObjectEntry:=ObjectMessage.ConstObjectID & "." & ObjectMessage.ConstFNTupleID)> Public Const ConstFNTupleID = ObjectMessage.ConstFNTupleID
@@ -124,7 +136,14 @@ Namespace OnTrack.Xchange
 
         <ormEntryMapping(entryname:=ConstFNREQPERSON)> Private _requestingPerson As String
         <ormEntryMapping(entryname:=ConstFNREQOU)> Private _requestingOU As String
-        <ormEntryMapping(entryname:=ConstFNReqDate)> Private _requestDate As Date
+        <ormEntryMapping(entryname:=ConstFNReqDate)> Private _requestDate As DateTime?
+
+        <ormEntryMapping(entryname:=ConstFNCREATEPERSON)> Private _creatingPerson As String
+        <ormEntryMapping(entryname:=ConstFNCREATEOU)> Private _creatingOU As String
+        <ormEntryMapping(entryname:=ConstFNCREATEDate)> Private _creationDate As DateTime?
+
+        <ormEntryMapping(entryname:=ConstFNApprovingPERSON)> Private _approverperson As String
+        <ormEntryMapping(entryname:=ConstFNApprovalDate)> Private _ApprovalDate As DateTime?
 
         <ormEntryMapping(entryname:=ConstFNWorkspaceID)> Private _workspaceID As String
         <ormEntryMapping(entryname:=ConstFNDomainID)> Private _domainID As String
@@ -133,10 +152,13 @@ Namespace OnTrack.Xchange
 
         <ormEntryMapping(entryname:=ConstFNTitle)> Private _title As String
         <ormEntryMapping(entryname:=ConstFNComment)> Private _cmt As String
+        <ormEntryMapping(entryname:=ConstFNPlanRevision)> Private _planrevision As String
+
         <ormEntryMapping(entryname:=ConstFNPreStamp)> Private _preTimeStamp As DateTime?
         <ormEntryMapping(entryname:=ConstFNProcStamp)> Private _procTimeStamp As DateTime?
         <ormEntryMapping(entryname:=ConstFNProcStatus)> Private _procStatus As String
         <ormEntryMapping(entryname:=ConstFNProcUser)> Private _procUsername As String
+        <ormEntryMapping(entryname:=ConstFNProcComment)> Private _procComment As String
 
         <ormEntryMapping(entryname:=ConstFNContextID)> Private _ContextIdentifier As String
         <ormEntryMapping(entryname:=ConstFNTupleID)> Private _TupleIdentifier As String
@@ -175,6 +197,99 @@ Namespace OnTrack.Xchange
         Private _XBag As XBag
 
 #Region "Properties"
+
+        ''' <summary>
+        ''' Gets or sets the approval date.
+        ''' </summary>
+        ''' <value>The approval date.</value>
+        Public Property ApprovalDate() As DateTime?
+            Get
+                Return Me._ApprovalDate
+            End Get
+            Set(value As DateTime?)
+
+                SetValue(ConstFNApprovalDate, Value)
+            End Set
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the approver person.
+        ''' </summary>
+        ''' <value>The approverperson.</value>
+        Public Property ApprovedBy() As String
+            Get
+                Return Me._approverperson
+            End Get
+            Set(value As String)
+                SetValue(ConstFNApprovingPERSON, Value)
+            End Set
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the planrevision.
+        ''' </summary>
+        ''' <value>The planrevision.</value>
+        Public Property Planrevision() As String
+            Get
+                Return Me._planrevision
+            End Get
+            Set(value As String)
+
+                SetValue(ConstFNPlanRevision, Value)
+            End Set
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the proc comment.
+        ''' </summary>
+        ''' <value>The proc comment.</value>
+        Public Property ProcessComment() As String
+            Get
+                Return Me._procComment
+            End Get
+            Set(value As String)
+                SetValue(ConstFNProcComment, value)
+            End Set
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the creation date.
+        ''' </summary>
+        ''' <value>The creation date.</value>
+        Public Property CreationDate() As DateTime?
+            Get
+                Return Me._creationDate
+            End Get
+            Set
+                SetValue(ConstFNCREATEDate, Value)
+            End Set
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the creating OU.
+        ''' </summary>
+        ''' <value>The creating OU.</value>
+        Public Property CreatingOU() As String
+            Get
+                Return Me._creatingOU
+            End Get
+            Set
+                SetValue(ConstFNCREATEOU, Value)
+            End Set
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the creating person.
+        ''' </summary>
+        ''' <value>The creating person.</value>
+        Public Property Creator() As String
+            Get
+                Return Me._creatingPerson
+            End Get
+            Set(value As String)
+                SetValue(ConstFNCREATEPERSON, value)
+            End Set
+        End Property
 
         ''' <summary>
         ''' Gets or sets the actual used slot ids.
@@ -533,8 +648,29 @@ Namespace OnTrack.Xchange
             End Get
         End Property
 #End Region
+        ''' <summary>
+        ''' returns the status Code of the ProcessStatus
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function ProcessStatusCode() As String
+            If Not Me.IsAlive("ProcessStatus") Then Return Nothing
+            Dim aStatus As StatusItem = Me.ProcessStatus
 
-       
+            If aStatus IsNot Nothing Then Return aStatus.Code
+            Return Nothing
+
+        End Function
+        ''' <summary>
+        ''' returns the status Code of the ProcessStatus - nothing if not processed
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function ProcessStatus() As StatusItem
+            If Not Me.IsAlive("ProcessStatus") Then Return Nothing
+            If Me.Processdate IsNot Nothing Then Return Me.GetHighestStatusItem()
+            Return Nothing
+        End Function
         ''' <summary>
         ''' generates the key for the messages
         ''' </summary>

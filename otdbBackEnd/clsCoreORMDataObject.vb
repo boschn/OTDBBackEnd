@@ -457,27 +457,40 @@ Namespace OnTrack.Database
                     ''' get the entry which is holding the needed data object
                     ''' 
                     Dim aFieldList As List(Of FieldInfo) = Me.ObjectClassDescription.GetMappedRelationFieldInfos(relationName:=aRelationname)
-                    Dim searchvalue As Object = Nothing ' by intension (all are selected if nothing)
 
+                    ''' if last hop
+                    ''' 
+                    ''' have we reached the last hop ?
+                    ''' 
+                   
+                    Dim searchvalue As Object = Nothing ' by intension (all are selected if nothing)
+                    Dim searchvalueentryname As String
+                    Dim searchentryname As String
                     ''' if last hop
                     ''' 
                     ''' have we reached the last hop ?
                     ''' 
                     If aRelationPath.Count = 2 Then
                         searchvalue = entryname
-                        entryname = TryCast(anObjectEntry, ObjectCompoundEntry).CompoundIDEntryname
-                        'searchvalue = TryCast(anObjectEntry, ObjectCompoundEntry).CompoundValueEntryName
+                        searchentryname = TryCast(anObjectEntry, ObjectCompoundEntry).CompoundIDEntryname
+                        searchvalueentryname = TryCast(anObjectEntry, ObjectCompoundEntry).CompoundValueEntryName
+                    Else
+                        searchvalueentryname = entryname
+                        ' do not search anything -> get the objects returned to relation
+                        searchentryname = Nothing
+                        searchvalue = Nothing
                     End If
-
                     ''' get the reference data object selected by compoundID - and also load it
                     ''' 
-                    Dim theReferenceObjects = _relationMgr.GetObjectsFromContainer(relationname:=aRelationname, entryname:=entryname, value:=searchvalue, _
+                    Dim theReferenceObjects = _relationMgr.GetObjectsFromContainer(relationname:=aRelationname, entryname:=searchentryname, value:=searchvalue, _
                                                                                    loadRelationIfNotloaded:=True)
 
                     ''' request the value from there
                     ''' 
                     If theReferenceObjects.Count > 0 Then
-                        Return theReferenceObjects.First.GetValue(entryname)
+                        ' prevent having no value
+                        If searchvalueentryname Is Nothing Then searchvalueentryname = entryname
+                        Return theReferenceObjects.First.GetValue(searchvalueentryname)
                     ElseIf _relationMgr.Status(aRelationname) = DataObjectRelationMgr.RelationStatus.Loaded Then
                         Return Nothing
                     Else
@@ -611,7 +624,7 @@ Namespace OnTrack.Database
 
 
             Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="ormDataObject.getvalue")
+                CoreMessageHandler(exception:=ex, subname:="ormDataObject.getvalue", arg1:=entryname)
                 Return Nothing
             End Try
 
@@ -722,36 +735,47 @@ Namespace OnTrack.Database
                         Me.InfuseRelation(aRelationname)
                     End If
 
-                    ''' get the entry which is holding the needed data object
-                    ''' 
-                    Dim searchvalue As Object
 
                     ''' if last hop
                     ''' 
                     ''' have we reached the last hop ?
                     ''' 
 
+                 
+                    Dim searchvalue As Object = Nothing ' by intension (all are selected if nothing)
+                    Dim searchvalueentryname As String
+                    Dim searchentryname As String
+                    ''' if last hop
+                    ''' 
+                    ''' have we reached the last hop ?
+                    ''' 
                     If aRelationPath.Count = 2 Then
                         searchvalue = entryname
-                        entryname = TryCast(anObjectEntry, ObjectCompoundEntry).CompoundIDEntryname
-                        'searchvalue = TryCast(anObjectEntry, ObjectCompoundEntry).CompoundValueEntryName
+                        searchentryname = TryCast(anObjectEntry, ObjectCompoundEntry).CompoundIDEntryname
+                        searchvalueentryname = TryCast(anObjectEntry, ObjectCompoundEntry).CompoundValueEntryName
+                    Else
+                        searchvalueentryname = entryname
+                        ' do not search anything -> get the objects returned to relation
+                        searchentryname = Nothing
+                        searchvalue = Nothing
                     End If
 
                     ''' get the reference data object selected by compoundID and load it 
                     ''' 
-                    Dim theReferenceObjects = _relationMgr.GetObjectsFromContainer(relationname:=aRelationname, entryname:=entryname, value:=searchvalue, _
+                    Dim theReferenceObjects = _relationMgr.GetObjectsFromContainer(relationname:=aRelationname, entryname:=searchentryname, value:=searchvalue, _
                                                                                   loadRelationIfNotloaded:=True)
 
                     ''' request the value from there
                     ''' 
                     If theReferenceObjects.Count > 0 Then
-
-                        Dim args As ormDataObjectEntryEventArgs = New ormDataObjectEntryEventArgs(object:=Me, entryname:=entryname, value:=value)
+                        '' prevent having no value
+                        If searchvalueentryname Is Nothing Then searchvalueentryname = entryname
+                        Dim args As ormDataObjectEntryEventArgs = New ormDataObjectEntryEventArgs(object:=Me, entryname:=searchvalueentryname, value:=value)
                         RaiseEvent OnEntryChanging(Me, e:=args)
                         If args.Proceed Then
                             ''' recursion call to the setvalue of the next object (related one) to resolve the entry
                             ''' 
-                            If theReferenceObjects.First.SetValue(entryname, value) Then
+                            If theReferenceObjects.First.SetValue(searchvalueentryname, value) Then
                                 RaiseEvent OnEntryChanged(Me, e:=args)
                                 Return args.Proceed
                             End If
@@ -764,7 +788,7 @@ Namespace OnTrack.Database
                         ''' create the relation and reload
                         ''' 
                         If _relationMgr.CreateNInfuseRelations(mode:=otInfuseMode.None, relationnames:={aRelationname}.ToList) Then
-                            theReferenceObjects = _relationMgr.GetObjectsFromContainer(relationname:=aRelationname, entryname:=entryname, value:=searchvalue, _
+                            theReferenceObjects = _relationMgr.GetObjectsFromContainer(relationname:=aRelationname, entryname:=searchentryname, value:=searchvalue, _
                                                                                        loadRelationIfNotloaded:=True)
                             ''' request the value from there
                             ''' 
@@ -773,12 +797,12 @@ Namespace OnTrack.Database
                                 ''' recursion call to the setvalue of the next object (related one) to resolve the entry
                                 ''' 
 
-                                Dim args As ormDataObjectEntryEventArgs = New ormDataObjectEntryEventArgs(object:=Me, entryname:=entryname, value:=value)
+                                Dim args As ormDataObjectEntryEventArgs = New ormDataObjectEntryEventArgs(object:=Me, entryname:=searchvalueentryname, value:=value)
                                 RaiseEvent OnEntryChanging(Me, e:=args)
                                 If args.Proceed Then
                                     ''' recursion call to the setvalue of the next object (related one) to resolve the entry
                                     ''' 
-                                    If theReferenceObjects.First.SetValue(entryname, value) Then
+                                    If theReferenceObjects.First.SetValue(searchvalueentryname, value) Then
                                         RaiseEvent OnEntryChanged(Me, e:=args)
                                         Return args.Proceed
                                     End If
@@ -1084,7 +1108,7 @@ Namespace OnTrack.Database
 
                                 '' reflector set
                                 If Not Reflector.SetFieldValue(field:=field, dataobject:=Me, value:=value) Then
-                                    CoreMessageHandler(message:="field value ob data object could not be set", _
+                                    CoreMessageHandler(message:="field value of data object could not be set", _
                                                         objectname:=Me.ObjectID, subname:="ormDataObject.setValue", _
                                                         messagetype:=otCoreMessageType.InternalError, entryname:=entryname, tablename:=Me.PrimaryTableID)
                                     Return False

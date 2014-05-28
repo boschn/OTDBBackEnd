@@ -86,12 +86,14 @@ Namespace OnTrack
         ''' </summary>
         ''' <remarks></remarks>
 
-        Public Const ConstStatusType_XEnvelope = "XCHANGEENVELOPE"
-        Public Const ConstStatusType_ObjectEntryValidation = "ENTRYVALIDATOR"
-        Public Const ConstStatusType_ObjectValidation = "OBJECTVALIDATOR"
-        Public Const ConstStatusType_ScheduleLifecycle = "SCHEDULINGLFCL"
-        Public Const ConstStatusType_ScheduleProcess = "SCHEDULINGPROC"
-        Public Const ConstStatusType_Tracking = "TRACKING"
+        Public Const ConstStatusType_XEnvelope As String = "XCHANGEENVELOPE"
+        Public Const ConstStatusType_MQF As String = "MQF"
+        Public Const ConstStatusType_MQMessage As String = "MQMESSAGE"
+        Public Const ConstStatusType_ObjectEntryValidation As String = "ENTRYVALIDATOR"
+        Public Const ConstStatusType_ObjectValidation As String = "OBJECTVALIDATOR"
+        Public Const ConstStatusType_ScheduleLifecycle As String = "SCHEDULINGLFCL"
+        Public Const ConstStatusType_ScheduleProcess As String = "SCHEDULINGPROC"
+        Public Const ConstStatusType_Tracking As String = "TRACKING"
 
         ''' <summary>
         ''' obsolete

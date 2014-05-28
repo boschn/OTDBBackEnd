@@ -610,12 +610,12 @@ Namespace OnTrack.Database
             Return Me.Relationnames.Contains(relationname)
         End Function
         ''' <summary>
-        ''' selects dataobject from a relation mapped entry  optional if an entryname exists and and optional the value equals
+        ''' selects dataobject from a relation mapped entry : optional if an entryname exist: select the data objects having the entryname containing the value
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function GetObjectsFromContainer(relationname As String, _
-                                                   Optional entryname As String = "", _
+                                                   Optional entryname As String = Nothing, _
                                                    Optional loadRelationIfNotloaded As Boolean = False, _
                                                    Optional value As Object = Nothing) As List(Of iormPersistable)
 
@@ -640,12 +640,12 @@ Namespace OnTrack.Database
                         If TryCast(_dataobject, iormInfusable).InfuseRelation(relationname) Then
                             Call CoreMessageHandler(subname:="DataObjectRelationMgr.SelectObjectsFromContainer", _
                                                            message:="could not infuse relation into data object", _
-                                                           arg1:=relationname, objectname:=_dataobject.ObjectID, entryname:=entryname, tablename:=_dataobject.primaryTableID)
+                                                           arg1:=relationname, objectname:=_dataobject.ObjectID, entryname:=entryname, tablename:=_dataobject.PrimaryTableID)
                             Return New List(Of iormPersistable)
                         End If
 
                         'Else -> still fetch objects from Container ! there might be somethong
-                    '    Return New List(Of iormPersistable)
+                        '    Return New List(Of iormPersistable)
                     End If
                 End If
                 '''
@@ -663,13 +663,14 @@ Namespace OnTrack.Database
                                                    arg1:=aFieldinfo.Name, _
                                                    objectname:=_dataobject.ObjectID, _
                                                   entryname:=entryname, _
-                                                   tablename:=_dataobject.primaryTableID)
+                                                   tablename:=_dataobject.PrimaryTableID)
 
                         End If
 
                         ''' add it or leave it
-                        If aContainer IsNot Nothing AndAlso (entryname = "" OrElse aContainer.ObjectDefinition.HasEntry(entryname)) AndAlso _
-                            (value Is Nothing OrElse (aContainer.GetValue(entryname).Equals(value))) Then aList.Add(aContainer)
+                        If aContainer IsNot Nothing AndAlso _
+                            (entryname Is Nothing OrElse _
+                             (aContainer.ObjectDefinition.HasEntry(entryname) AndAlso (value Is Nothing OrElse aContainer.GetValue(entryname).Equals(value)))) Then aList.Add(aContainer)
 
 
                         ''' check on arrays
@@ -682,15 +683,18 @@ Namespace OnTrack.Database
                                                    arg1:=aFieldinfo.Name, _
                                                    objectname:=_dataobject.ObjectID, _
                                                   entryname:=entryname, _
-                                                   tablename:=_dataobject.primaryTableID)
+                                                   tablename:=_dataobject.PrimaryTableID)
 
                         End If
                         If aContainer IsNot Nothing Then
                             '' return the search condition
-                            aList.AddRange(aContainer.ToList.Where(Function(x)
-                                                                       Return (entryname = "" OrElse x.ObjectDefinition.HasEntry(entryname)) AndAlso _
-                                                                           (value Is Nothing OrElse x.GetValue(entryname).Equals(value))
-                                                                   End Function))
+                            For Each anObject In aContainer.ToList
+                                If (entryname Is Nothing OrElse _
+                                    (anObject.ObjectDefinition.HasEntry(entryname) AndAlso _
+                                        (value Is Nothing OrElse anObject.GetValue(entryname).Equals(value)))) Then
+                                    aList.Add(anObject)
+                                End If
+                            Next
                         End If
 
                         '*** Lists
@@ -701,12 +705,14 @@ Namespace OnTrack.Database
                             Call CoreMessageHandler(subname:="DataObjectRelationMgr.SelectObjectsFromContainer", _
                                                     message:="could not object mapped entry", _
                                                     arg1:=aFieldinfo.Name, objectname:=_dataobject.ObjectID, _
-                                                   entryname:=entryname, tablename:=_dataobject.primaryTableID)
+                                                   entryname:=entryname, tablename:=_dataobject.PrimaryTableID)
                         End If
                         If aContainer IsNot Nothing Then
                             '' return the search condition
                             For Each anObject In aContainer
-                                If (entryname = "" OrElse anObject.hasentry(entryname)) AndAlso (value Is Nothing OrElse anObject.getvalue(entryname).Equals(value)) Then
+                                If (entryname Is Nothing OrElse _
+                                    (anObject.ObjectDefinition.HasEntry(entryname) AndAlso _
+                                        (value Is Nothing OrElse anObject.GetValue(entryname).Equals(value)))) Then
                                     aList.Add(anObject)
                                 End If
                             Next
@@ -721,7 +727,9 @@ Namespace OnTrack.Database
                         If aContainer IsNot Nothing Then
                             '' return the search condition
                             For Each anObject In aContainer.Values
-                                If (entryname = "" OrElse anObject.hasentry(entryname)) AndAlso (value Is Nothing OrElse anObject.getvalue(entryname).Equals(value)) Then
+                                If (entryname Is Nothing OrElse _
+                                    (anObject.ObjectDefinition.HasEntry(entryname) AndAlso _
+                                        (value Is Nothing OrElse anObject.GetValue(entryname).Equals(value)))) Then
                                     aList.Add(anObject)
                                 End If
                             Next
@@ -732,7 +740,7 @@ Namespace OnTrack.Database
                         If Not Reflector.GetFieldValue(field:=aFieldinfo, dataobject:=_dataobject, value:=aGenericContainer) Then
                             Call CoreMessageHandler(subname:="DataObjectRelationMgr.SelectObjectsFromContainer", _
                                             message:="iormRelationalCollection must not be nothing", _
-                                            arg1:=aFieldinfo.Name, objectname:=_dataobject.ObjectID, entryname:=entryname, tablename:=_dataobject.primaryTableID)
+                                            arg1:=aFieldinfo.Name, objectname:=_dataobject.ObjectID, entryname:=entryname, tablename:=_dataobject.PrimaryTableID)
                         End If
 
                         If aGenericContainer IsNot Nothing Then
@@ -742,7 +750,7 @@ Namespace OnTrack.Database
                             ''' use the index of the container to select if this is the key !
                             ''' 
                             Dim keynames As String() = aGenericContainer.Keynames
-                            If entryname <> "" AndAlso keynames.Length = 1 AndAlso Array.Exists(keynames, Function(x) x = entryname) Then
+                            If entryname IsNot Nothing AndAlso keynames.Length = 1 AndAlso Array.Exists(keynames, Function(x) x = entryname) Then
                                 If value IsNot Nothing Then
                                     Dim anObject As iormPersistable = aGenericContainer.Item(value)
                                     If anObject IsNot Nothing Then aList.Add(anObject)
@@ -754,7 +762,9 @@ Namespace OnTrack.Database
                                 ''' or select conventionally
                                 ''' 
                                 For Each anObject In aGenericContainer
-                                    If (entryname = "" OrElse anObject.ObjectDefinition.HasEntry(entryname)) AndAlso (value Is Nothing OrElse anObject.GetValue(entryname).Equals(value)) Then
+                                    If (entryname Is Nothing OrElse _
+                                     (anObject.ObjectDefinition.HasEntry(entryname) AndAlso _
+                                         (value Is Nothing OrElse anObject.GetValue(entryname).Equals(value)))) Then
                                         aList.Add(anObject)
                                     End If
                                 Next
@@ -769,7 +779,7 @@ Namespace OnTrack.Database
                 Return aList
             Catch ex As Exception
                 Call CoreMessageHandler(subname:="DataObjectRelationMgr.SelectObjectsFromContainer", exception:=ex, _
-                                        arg1:=value, objectname:=_dataobject.ObjectID, entryname:=entryname, tablename:=_dataobject.primaryTableID)
+                                        arg1:=value, objectname:=_dataobject.ObjectID, entryname:=entryname, tablename:=_dataobject.PrimaryTableID)
                 Return New List(Of iormPersistable)
             End Try
         End Function

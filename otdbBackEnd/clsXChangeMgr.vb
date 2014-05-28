@@ -1139,11 +1139,12 @@ Namespace OnTrack.XChange
                     End If
 
 
-                Case otDataType.Text, otDataType.List, otDataType.Memo
-
+                Case otDataType.Text, otDataType.Memo
                     hostvalue = CStr(dbvalue)
                     Return True
-
+                Case otDataType.List
+                    hostvalue = Converter.Enumerable2String(dbvalue)
+                    Return True
                 Case otDataType.Runtime
                     Call CoreMessageHandler(subname:="DefaultConvert2HostValue.convertValue2Hostvalue",
                                             message:="OTDB data '" & dbvalue & "' is not convertible to runtime",

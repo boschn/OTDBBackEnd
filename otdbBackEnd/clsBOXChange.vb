@@ -1040,6 +1040,16 @@ Namespace OnTrack.XChange
             keyentries:={XChangeObject.constFNIDNo})> _
         Private WithEvents _ObjectCollection As New ormRelationCollection(Of XChangeObject)(Me, {XChangeObject.constFNIDNo})
 
+        ''' <summary>
+        ''' Relation to Outline
+        ''' </summary>
+        ''' <remarks></remarks>
+        <ormRelation(linkObject:=GetType(XOutline), toprimaryKeys:={constFNOutline}, _
+                     cascadeonCreate:=False, cascadeOnDelete:=False, cascadeOnUpdate:=False)> _
+        Public Const ConstROutline = "RELOutline"
+
+        <ormEntryMapping(relationName:=ConstROutline, infusemode:=otInfuseMode.OnDemand)> Private _outline As XOutline
+
 
         ''' <summary>
         '''  dynamic entries
@@ -1065,9 +1075,7 @@ Namespace OnTrack.XChange
         ' object ordinalMember -> Members which are driving the ordinal of the complete eXchange
         ' Private _orderByMembers As New Dictionary(Of Object, IXChangeConfigEntry)
 
-        '** dynamic outline
-        Dim _outline As New XOutline
-
+        
 
 
 #Region "Properties"
@@ -1079,32 +1087,25 @@ Namespace OnTrack.XChange
         ''' <value>The S outlineid.</value>
         Public Property OutlineID() As String
             Get
-                If _outlineid Is Nothing Then Return ""
                 Return Me._outlineid
             End Get
             Set(value As String)
                 SetValue(constFNOutline, value)
             End Set
         End Property
+
+        ''' <summary>
+        ''' returns the outline object for this xchangeconfiguration
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
         ReadOnly Property Outline As XOutline
             Get
-                If Me._outlineid <> "" And (Me.IsLoaded Or Me.IsCreated) Then
-                    If Not _outline.IsLoaded And Not _outline.IsCreated Then
-                        If _outline.Inject(Me._outlineid) Then
-                            Return _outline
-                        Else
-                            _outline = New XOutline
-                            Return Nothing
-                        End If
-                    Else
-                        Return _outline
-                    End If
-                Else
-                    _outline = New XOutline
-                    Return Nothing
-                End If
+                If _outlineid Is Nothing Then Return Nothing
+                If Me.GetRelationStatus(ConstROutline) = DataObjectRelationMgr.RelationStatus.Unloaded Then InfuseRelation(ConstROutline)
+                Return _outline
             End Get
-
         End Property
 
 
@@ -1121,11 +1122,7 @@ Namespace OnTrack.XChange
             End Set
         End Property
 
-        '****** getUniqueTag
-        Public Function GetUniqueTag()
-            GetUniqueTag = ConstDelimiter & constTableID & ConstDelimiter & _configname & ConstDelimiter & "0" & ConstDelimiter
-        End Function
-        
+
         ''' <summary>
         ''' gets name of configuration
         ''' </summary>
@@ -1947,13 +1944,24 @@ Namespace OnTrack.XChange
 
 
         ''' <summary>
-        ''' retrieves the ordinal numbers of the objects
+        ''' returns a list of xchangeobjects in ordinal order
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public ReadOnly Property ObjectsByOrderNo() As IList(Of XChangeObject)
             Get
                 Return _objectsByOrderDirectory.Values.ToList
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' returns a list of xchange object names in ordinal order
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property ObjectnamesByOrderNo() As IList(Of String)
+            Get
+                Return _objectsByOrderDirectory.Select(Function(x) x.Value.Objectname).ToList
             End Get
         End Property
 
@@ -2276,7 +2284,7 @@ Namespace OnTrack.XChange
         Implements iormPersistable
         Implements IEnumerable(Of XOutlineItem)
 
-        Public Const constobjectid = "XOutline"
+        Public Const ConstObjectID = "XOUTLINE"
 
         <ormSchemaTableAttribute(Version:=1)> Public Const constTableID = "tblXOutlines"
 
@@ -2286,7 +2294,7 @@ Namespace OnTrack.XChange
         ''' <remarks></remarks>
         <ormObjectEntry(XID:="otl1", primaryKeyordinal:=1, typeid:=otDataType.Text, size:=50,
                     properties:={ObjectEntryProperty.Keyword}, _
-                description:="identifier of the outline", Title:="ID")> Public Const constFNID = "id"
+                description:="identifier of the outline", Title:="ID")> Public Const ConstFNID = "ID"
 
         <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=2, _
                         useforeignkey:=otForeignKeyImplementation.NativeDatabase)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
@@ -2294,29 +2302,102 @@ Namespace OnTrack.XChange
         '''  Fields
         ''' </summary>
         ''' <remarks></remarks>
-        <ormObjectEntry(XID:="otl2", typeid:=otDataType.Text, isnullable:=True, _
-                description:="description of the outline", Title:="description")> Public Const constFNdesc = "desc"
-        <ormObjectEntry(XID:="otl3", typeid:=otDataType.Bool, defaultvalue:=False,
-                        description:="True if deliverable revisions are added dynamically", Title:="DynRev")> Public Const constFNRev = "addrev"
+        <ormObjectEntry(XID:="OTL2", typeid:=otDataType.Text, isnullable:=True, _
+                description:="description of the outline", Title:="description")> Public Const constFNdesc = "DESC"
 
+        
+        <ormObjectEntry(typeid:=otDataType.List, isnullable:=True, _
+                        XID:="OTL5", title:="Business Objects", description:="applicable business objects for this outline")> Public Const ConstFNObjects = "OBJECTS"
 
-        ' key
+        <ormObjectEntry(XID:="OTL10", typeid:=otDataType.Bool, defaultvalue:=False, dbdefaultvalue:="0",
+                       description:="True if deliverable revisions are added dynamically", Title:="DynamicRevision")> Public Const constFNDynamicAddRevisions = "ADDREV"
+        <ormObjectEntry(XID:="OTL11", typeid:=otDataType.Bool, defaultvalue:=False, dbdefaultvalue:="0",
+                        description:="True if items are generated automatically by order", Title:="Dynamic")> Public Const constFNDynamic = "DYNAMIC"
+
+        <ormObjectEntry(XID:="OTL12", typeid:=otDataType.Text, isnullable:=True, _
+               description:="order by clause of the dynamic item", Title:="Orderby")> Public Const constFNOrderBy = "OrderBy"
+
+        ''' <summary>
+        ''' Column Mappings
+        ''' </summary>
+        ''' <remarks></remarks>
         <ormEntryMapping(EntryName:=constFNID)> Private _id As String = ""
         <ormEntryMapping(EntryName:=constFNdesc)> Private _desc As String
-        <ormEntryMapping(EntryName:=constFNRev)> Private _DynamicAddRevisions As Boolean
+        <ormEntryMapping(EntryName:=ConstFNObjects)> Private _Objects As String()
+        <ormEntryMapping(EntryName:=constFNDynamicAddRevisions)> Private _DynamicAddRevisions As Boolean
+        <ormEntryMapping(EntryName:=constFNDynamic)> Private _DynamiBehaviour As Boolean
+        <ormEntryMapping(EntryName:=constFNOrderBy)> Private _OderByClause As String
+        ''' <summary>
+        ''' Relations
+        ''' </summary>
+        ''' <remarks></remarks>
+        <ormRelation(linkobject:=GetType(XOutlineItem), cascadeOnDelete:=True, cascadeOnUpdate:=True, _
+            fromEntries:={ConstFNID}, toEntries:={XOutlineItem.constFNID})> Public Const ConstRItems = "RELITEMS"
+
+        <ormEntryMapping(RelationName:=ConstRItems, infuseMode:=otInfuseMode.OnInject Or otInfuseMode.OnDemand, _
+            keyentries:={XOutlineItem.ConstFNordinals})> Private WithEvents _itemCollection As New ormRelationCollection(Of XOutlineItem)(Me, {XOutlineItem.ConstFNordinals})
 
 
-        ' components itself per key:=posno, item:=cmid
-        Private s_cmids As New OrderedDictionary()
+        ''' <summary>
+        ''' runtime Elements
+        ''' </summary>
+        ''' <remarks></remarks>
 
-
-        '** initialize
-        Public Sub New()
-            Call MyBase.New(constTableID)
-
-        End Sub
+        Private _dynamicCollection As New List(Of XOutlineItem)
 
 #Region "Properties"
+
+        ''' <summary>
+        ''' Gets or sets the oder by clause.
+        ''' </summary>
+        ''' <value>The oder by clause.</value>
+        Public Property OrderByClause As String
+            Get
+                Return Me._OderByClause
+            End Get
+            Set(value As String)
+                SetValue(constFNOrderBy, value)
+            End Set
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the dynami behaviour.
+        ''' </summary>
+        ''' <value>The dynamic behaviour.</value>
+        Public Property DynamicBehaviour As Boolean
+            Get
+                Return Me._DynamiBehaviour
+            End Get
+            Set(value As Boolean)
+                SetValue(constFNDynamic, value)
+            End Set
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the objects.
+        ''' </summary>
+        ''' <value>The objects.</value>
+        Public Property Objects As String()
+            Get
+                Return Me._Objects
+            End Get
+            Set(value As String())
+                SetValue(ConstFNObjects, value)
+            End Set
+        End Property
+
+        ''' <summary>
+        ''' Returns the Collection of OutlineItems in this
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property Items As iormRelationalCollection(Of XOutlineItem)
+            Get
+                Return _itemCollection
+            End Get
+        End Property
+
 
 
         ''' <summary>
@@ -2328,7 +2409,7 @@ Namespace OnTrack.XChange
                 Return Me._desc
             End Get
             Set(value As String)
-                Me._desc = value
+                SetValue(constFNdesc, value)
             End Set
         End Property
 
@@ -2341,7 +2422,7 @@ Namespace OnTrack.XChange
                 Return Me._DynamicAddRevisions
             End Get
             Set(value As Boolean)
-                Me._DynamicAddRevisions = value
+                SetValue(constFNDynamicAddRevisions, value)
             End Set
         End Property
 
@@ -2351,9 +2432,9 @@ Namespace OnTrack.XChange
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        ReadOnly Property id()
+        Public ReadOnly Property ID()
             Get
-                id = _id
+                Return _id
             End Get
 
         End Property
@@ -2363,211 +2444,69 @@ Namespace OnTrack.XChange
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        ReadOnly Property Count() As Long
+        Public ReadOnly Property Count() As Long
             Get
-                Count = s_cmids.Count - 1
+                Return _itemCollection.Count
             End Get
 
         End Property
 #End Region
 
+        
+
         ''' <summary>
-        ''' returns the maximal ordinal of the outline items
+        ''' Add an Item
         ''' </summary>
+        ''' <param name="anEntry"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetMaxordinal() As Ordinal
-            Dim keys() As Object
-            Dim i As Integer
-            Dim max As Ordinal
-
-            If Count >= 0 Then
-                For Each pos As Ordinal In s_cmids.Keys
-                    If pos > max Then max = pos
-                Next
-                'keys = s_cmids.Keys
-                'For i = LBound(keys) To UBound(keys)
-                'If keys(i) > max Then max = keys(i)
-                'Next i
-                GetMaxordinal = max
-            Else
-                GetMaxordinal = New Ordinal(0)
-            End If
-        End Function
-
-        '*** add a Component by cls OTDB
-        '***
-        Public Function AddOutlineItem(anEntry As XOutlineItem) As Boolean
-            Dim flag As Boolean
-            Dim existEntry As New XOutlineItem
-            Dim m As Object
-
-            ' empty
-            If Not Me.IsLoaded And Not Me.IsCreated Then
-                AddOutlineItem = False
-                Exit Function
-            End If
+        Public Function AddItem(item As XOutlineItem) As Boolean
+            If Not Me.IsAlive("AddItem") Then Return False
+            
 
             ' remove and overwrite
-            If s_cmids.Contains(key:=anEntry.ordinal) Then
-                Call s_cmids.Remove(key:=anEntry.ordinal)
+            If _itemCollection.ContainsKey(key:=item.ordinal) Then
+                Call _itemCollection.Remove(item)
             End If
             ' add entry
-            s_cmids.Add(key:=anEntry.ordinal, value:=anEntry)
+            _itemCollection.Add(item)
 
             '
-            AddOutlineItem = True
+            Return True
 
         End Function
-        ''' <summary>
-        ''' Initializes the data obejct
-        ''' </summary>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Sub XoutLine_OnInitialize() Handles Me.OnInitialized
-            s_cmids = New OrderedDictionary()
-        End Sub
+        
 
         ''' <summary>
         ''' ordinals of the components
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function ordinals() As Collection
-
-            If Not Me.IsCreated And Not Me.IsLoaded Then
-                Return Nothing
-            End If
-
-            ordinals = s_cmids.Keys
-        End Function
-        ''' <summary>
-        ''' retrieves a collection of Outline Items
-        ''' </summary>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Function Items() As Collection
-            Dim anEntry As New XOutlineItem
-            Dim aCollection As New Collection
-            Dim m As Object
-
-            If Not Me.IsCreated And Not Me.IsLoaded Then
-                Items = Nothing
-                Exit Function
-            End If
-
-            ' delete each entry
-            For Each kvp As KeyValuePair(Of Ordinal, XOutlineItem) In s_cmids
-                anEntry = kvp.Value
-                If anEntry.ordinal <> New Ordinal(0) Then
-                    aCollection.Add(anEntry)
-                End If
-            Next
-
-            Items = aCollection
+        Public Function Ordinals() As IList(Of DataKeyTuple)
+            Return _itemCollection.Keys
         End Function
 
-        ''' <summary>
-        ''' Create persistable schema for this dataobject
-        ''' </summary>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Overloads Shared Function CreateSchema() As Boolean
-            Return ormDataObject.CreateDataObjectSchema(Of XOutline)()
-        End Function
-        ''' <summary>
-        ''' loads the X Outline from the datastore
-        ''' </summary>
-        ''' <param name="id"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Overloads Function Inject(ByVal id As String) As Boolean
-            Dim pkarry() As Object = {id}
 
-            If MyBase.Inject(pkArray:=pkarry) Then
-                LoadItems(id:=id)
-            End If
-
-            Return Me.IsLoaded
-        End Function
-
-        ''' <summary>
-        ''' load all the related outline items
-        ''' </summary>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Private Function LoadItems(Optional ByVal id As String = "") As Boolean
-            Try
-                If id = "" Then id = Me.id
-
-                Dim aCollection As SortedList(Of Ordinal, XOutlineItem) = XOutlineItem.AllByID(id:=id)
-
-                '* add all
-                For Each anEntry As XOutlineItem In aCollection.Values
-                    If Not Me.AddOutlineItem(anEntry) Then
-                        Call CoreMessageHandler(message:="a XOutlineItem couldnot be added to an outline", arg1:=anEntry.ToString,
-                                                 entryname:=id, objectname:=constTableID, messagetype:=otCoreMessageType.InternalError,
-                                                 subname:="clsOTDBXoutline.loaditems")
-                    End If
-                Next
-
-                Return True
-            Catch ex As Exception
-
-                Call CoreMessageHandler(exception:=ex, subname:="clsOTDBXOutline.loadItems")
-                Me.Unload()
-                Return False
-            End Try
-        End Function
-
-        ''' <summary>
-        ''' persist the Outline and the components
-        ''' </summary>
-        ''' <param name="timestamp"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Overloads Function Persist(Optional ByVal timestamp As Date = constNullDate) As Boolean
-            Try
-                Persist = MyBase.Persist(timestamp:=timestamp)
-                If Persist Then
-                    ' save each entry
-                    For Each anEntry As XOutlineItem In s_cmids.Values
-                        'Dim anEntry As XOutlineItem = kvp.Value
-                        Persist = Persist And anEntry.Persist(timestamp)
-                    Next
-                End If
-
-                Return Persist
-                Exit Function
-
-            Catch ex As Exception
-                Call CoreMessageHandler(exception:=ex, subname:="clsOTDBXOutline.persist")
-                Return False
-            End Try
-
-
-        End Function
         ''' <summary>
         ''' create an persistable outline
         ''' </summary>
         ''' <param name="id"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Function Create(ByVal id As String) As Boolean
-            Dim anEntry As New XOutlineItem
-            Dim pkarray() As Object = {id}
-            If IsLoaded Then
-                Create = False
-                Exit Function
-            End If
+        Public Shared Function Retrieve(ByVal id As String, Optional domainID As String = Nothing) As XOutline
+            If String.IsNullOrWhiteSpace(domainID) Then domainID = CurrentSession.CurrentDomainID
+            Return ormDataObject.Retrieve(Of XOutline)(pkArray:={id.ToUpper, domainID})
+        End Function
 
-            If MyBase.Create(pkArray:=pkarray, checkUnique:=True) Then
-                ' set the primaryKey
-                _id = id
-            End If
-
-            ' abort create if exists
-            Return Me.IsCreated
+        ''' <summary>
+        ''' create an persistable outline
+        ''' </summary>
+        ''' <param name="id"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Shared Function Create(ByVal id As String, Optional domainID As String = Nothing) As XOutline
+            If String.IsNullOrWhiteSpace(domainID) Then domainID = CurrentSession.CurrentDomainID
+            Return ormDataObject.CreateDataObject(Of XOutline)(pkArray:={id.ToUpper, domainID}, domainID:=domainID, checkUnique:=True)
         End Function
 
         '*****
@@ -2593,8 +2532,8 @@ Namespace OnTrack.XChange
             '*** go through all items in Outline and delete the NON-Firstrevisions 
             '*** without checking if the first revisions are in the outline
 
-            For Each item As XOutlineItem In s_cmids.Values
-                Dim keys As List(Of XOutlineItem.OTLineKey) = item.keys
+            For Each item As XOutlineItem In _itemCollection
+                Dim keys As List(Of XOutlineItem.OutlineKey) = item.keys
 
                 '** look for Deliverable UID
                 For Each key In keys
@@ -2612,7 +2551,7 @@ Namespace OnTrack.XChange
             Next
 
             For Each item As XOutlineItem In deletedColl
-                s_cmids.Remove(key:=item.ordinal)
+                _itemCollection.Remove(item)
             Next
 
             Call CoreMessageHandler(message:="outline cleaned from revisions", subname:="clsOTDBXoutline.cleanuprevision",
@@ -2621,27 +2560,106 @@ Namespace OnTrack.XChange
 
         End Function
 
-        Public Function GetEnumerator1() As IEnumerator Implements IEnumerable.GetEnumerator
-            Return Me.GetEnumerator()
+        ''' <summary>
+        ''' add the items dynamically
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        ''' 
+        Private Function RunDynamic(Optional domainid As String = Nothing) As Boolean
+            If Not IsAlive("RunDynamic") Then Return False
+            If domainid Is Nothing Then domainid = Me.DomainID
+            If Not Me.DynamicBehaviour Then Return False
+            If Me.Objects Is Nothing OrElse Me.Objects.Count = 0 Then
+                CoreMessageHandler(message:="For dynamic behavior the objects must be set", messagetype:=otCoreMessageType.ApplicationError, _
+                                   subname:="XOutline.RunDynamic", arg1:=Me.ID)
+                Return False
+            End If
+            Dim anObjectname As String = Me.Objects.First
+            If anObjectname.ToUpper <> Deliverable.ConstObjectID.ToUpper Then
+                CoreMessageHandler(message:="dynamic behavior only supported for deliverables", messagetype:=otCoreMessageType.ApplicationError, _
+                                   subname:="XOutline.RunDynamic", arg1:=Me.ID, objectname:=anObjectname)
+                Return False
+            End If
+            If String.IsNullOrWhiteSpace(Me.OrderByClause) Then
+                CoreMessageHandler(message:="For dynamic behavior the order by clause must be set", messagetype:=otCoreMessageType.ApplicationError, _
+                                  subname:="XOutline.RunDynamic", arg1:=Me.ID)
+                Return False
+            End If
+
+            Try
+                Dim anobjectdefinition As ObjectDefinition = CurrentSession.Objects.GetObject(objectid:=anObjectname)
+                If anobjectdefinition Is Nothing Then
+                    CoreMessageHandler(message:="For dynamic behavior the objects must be set with correct name", messagetype:=otCoreMessageType.ApplicationError, _
+                                 subname:="XOutline.RunDynamic", arg1:=Me.ID, objectname:=anObjectname)
+                    Return False
+                End If
+                Dim aStore As iormDataStore = GetTableStore(anobjectdefinition.Tablenames.First)
+                Dim cached = aStore.GetProperty(ormTableStore.ConstTPNCacheProperty)
+                Dim aCommand As ormSqlSelectCommand = aStore.CreateSqlSelectCommand(Me.ID & "_RunDynamic")
+
+                '** prepare the command if necessary
+                If Not aCommand.Prepared Then
+
+                    aCommand.AddTable(anobjectdefinition.Tablenames.First, addAllFields:=False)
+
+                    '** select
+                    aCommand.select = Deliverable.constFNUid
+
+                    '** where condition
+                    aCommand.Where = "[" & Deliverable.ConstFNIsDeleted & "] = @isdeleted"
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@isdeleted", columnname:=ConstFNIsDeleted))
+                    aCommand.Where = String.Format("AND ([{0}]=@domainID or [{0}]=@globaldomainid)", {ConstFNDomainID})
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@domainID", columnname:=ConstFNDomainID))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@globaldomainid", columnname:=ConstFNDomainID))
+
+                    aCommand.OrderBy = Me.OrderByClause
+                    aCommand.Prepare()
+                End If
+
+                ' set Parameter
+                aCommand.SetParameterValue("@isdeleted", False)
+                aCommand.SetParameterValue("@domainID", domainid)
+                aCommand.SetParameterValue("@globaldomainid", ConstGlobalDomain)
+
+                '** run the Command
+                Dim theRecords As List(Of ormRecord) = aCommand.RunSelect
+                Dim myordinal As Long = 10
+                _dynamicCollection.Clear()
+
+                If theRecords.Count >= 0 Then
+                    For Each aRecord As ormRecord In theRecords
+                        Dim anItem As XOutlineItem = XOutlineItem.Create(Me.ID, ordinal:=myordinal, uid:=aRecord.GetValue(1), runtimeonly:=True)
+                        If anItem IsNot Nothing Then
+                            _dynamicCollection.Add(anItem)
+                            myordinal += 10
+                        End If
+                    Next aRecord
+                End If
+                Return True
+            Catch ex As Exception
+                Call CoreMessageHandler(subname:="Xoutline.RunDynamic", exception:=ex, messagetype:=otCoreMessageType.InternalError)
+                Return False
+            End Try
         End Function
-        '****** Enumerator with dynamic Revisions
-        '******
-        Public Function GetEnumerator() As IEnumerator(Of XOutlineItem) Implements IEnumerable(Of XOutlineItem).GetEnumerator
+
+        ''' <summary>
+        ''' processes the dynamic collection with revisions
+        ''' </summary>
+        ''' <remarks></remarks>
+        Private Sub RunDynamicRevision()
             Dim aDeliverable As New Deliverable
             Dim aFirstRevision As New Deliverable
             Dim returnCollection As New List(Of XOutlineItem)
 
-            If Not Me.IsLoaded And Not Me.IsCreated Then
-                Return returnCollection
-            ElseIf Not Me.DynamicAddRevisions Then
-                Return returnCollection
-            End If
+            If Not IsAlive("RunDynamicRevision") Then Return
+            If Not Me.DynamicAddRevisions Then Return
 
             '*** go through all items in Outline and delete the NON-Firstrevisions 
             '*** without checking if the first revisions are in the outline
 
-            For Each item As XOutlineItem In s_cmids.Values
-                Dim keys As List(Of XOutlineItem.OTLineKey) = item.keys
+            For Each item As XOutlineItem In _itemCollection
+                Dim keys As List(Of XOutlineItem.OutlineKey) = item.keys
 
                 '** look for Deliverable UID
                 If item.IsText Or item.IsGroup Then
@@ -2654,8 +2672,8 @@ Namespace OnTrack.XChange
                                 If aFirstRevision.IsFirstRevision And Not aFirstRevision.IsDeleted Then
                                     ' add all revisions inclusive the follow ups
                                     For Each uid As Long In Deliverable.AllRevisionUIDsBy(aFirstRevision.Uid)
-                                        Dim newKey As New XOutlineItem.OTLineKey(otDataType.[Long], "uid", uid)
-                                        Dim newKeylist As New List(Of XOutlineItem.OTLineKey)
+                                        Dim newKey As New XOutlineItem.OutlineKey(otDataType.[Long], "uid", uid)
+                                        Dim newKeylist As New List(Of XOutlineItem.OutlineKey)
                                         newKeylist.Add(newKey)
                                         Dim newOI As New XOutlineItem
                                         newOI.Create(ID:=item.OutlineID, level:=item.Level, ordinal:=item.ordinal)
@@ -2677,8 +2695,26 @@ Namespace OnTrack.XChange
 
 
             Next
+        End Sub
+        Public Function GetEnumerator1() As IEnumerator Implements IEnumerable.GetEnumerator
+            Return Me.GetEnumerator()
+        End Function
+        ''' <summary>
+        ''' returns an enumerator
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function GetEnumerator() As IEnumerator(Of XOutlineItem) Implements IEnumerable(Of XOutlineItem).GetEnumerator
 
-            Return returnCollection.GetEnumerator
+            If Me.DynamicBehaviour Then
+                Me.RunDynamic()
+                Return _dynamicCollection.GetEnumerator
+            ElseIf Me.DynamicAddRevisions Then
+                Me.RunDynamicRevision()
+                Return _dynamicCollection.GetEnumerator
+            End If
+
+            Return _itemCollection.GetEnumerator
         End Function
 
     End Class
@@ -2700,7 +2736,7 @@ Namespace OnTrack.XChange
         ''' OutlineKey Class as subclass of outline item to make it flexible
         ''' </summary>
         ''' <remarks></remarks>
-        Public Class OTLineKey
+        Public Class OutlineKey
             Private _Value As Object
             Private _ID As String
             Private [_Type] As otDataType
@@ -2803,7 +2839,7 @@ Namespace OnTrack.XChange
 
         <ormEntryMapping(EntryName:=constFNID)> Private _id As String = ""   ' ID of the outline
 
-        Private _keys As New List(Of OTLineKey)    'keys and values
+        Private _keys As New List(Of OutlineKey)    'keys and values
         Private _ordinal As Ordinal ' extramapping
 
         <ormEntryMapping(EntryName:=ConstFNIdent)> Private _level As Long = 0
@@ -2865,11 +2901,11 @@ Namespace OnTrack.XChange
 
         End Property
 
-        Public Property keys() As List(Of OTLineKey)
+        Public Property keys() As List(Of OutlineKey)
             Get
                 keys = _keys
             End Get
-            Set(value As List(Of OTLineKey))
+            Set(value As List(Of OutlineKey))
                 _keys = value
                 Me.IsChanged = True
             End Set
@@ -2889,11 +2925,6 @@ Namespace OnTrack.XChange
 
 #End Region
 
-        '** initialize
-
-        Public Sub New()
-            MyBase.New(constTableID)
-        End Sub
 
         ''' <summary>
         ''' infuses the data object by record
@@ -2901,7 +2932,7 @@ Namespace OnTrack.XChange
         ''' <param name="record"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Sub OnInfused(sender As Object, e As ormDataObjectEventArgs) Handles MyBase.OnInfused
+        Public Sub XOutlineItem_OnInfused(sender As Object, e As ormDataObjectEventArgs) Handles Me.OnInfused
 
             Dim aType As otDataType
             Dim aValue As Object
@@ -2971,13 +3002,60 @@ Namespace OnTrack.XChange
                         End Try
 
                         '**
-                        _keys.Add(New OTLineKey(aType, ids(i), aValue))
+                        _keys.Add(New OutlineKey(aType, ids(i), aValue))
                     End If
                 Next
                 e.Proceed = True
             Catch ex As Exception
                 CoreMessageHandler(exception:=ex, subname:="XOutlineItem.Infuse")
                 Unload()
+                e.AbortOperation = True
+            End Try
+
+        End Sub
+        ''' <summary>
+        ''' handles the feed
+        ''' </summary>
+        ''' <param name="record"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Sub XOutlineItem_OnFed(sender As Object, e As ormDataObjectEventArgs) Handles Me.OnFed
+
+            '***
+            Try
+
+                '** own feed record
+                If _ordinal.Type = OrdinalType.longType Then
+                    Call Me.Record.SetValue(ConstFNordinall, _ordinal.Value)
+                Else
+                    Call Me.Record.SetValue(ConstFNordinall, 0)
+                End If
+
+                '***
+                Dim idstr As String = ConstDelimiter
+                Dim valuestr As String = ConstDelimiter
+                Dim typestr As String = ConstDelimiter
+
+                For Each key As OutlineKey In _keys
+                    idstr &= key.ID & ConstDelimiter
+                    If key.ID.ToLower = "uid" Then
+                        Me.Record.SetValue(ConstFNUid, CLng(key.Value))
+                    End If
+                    typestr &= CLng(key.Type) & ConstDelimiter
+                    valuestr &= CStr(key.Value) & ConstDelimiter
+                Next
+
+                If idstr = ConstDelimiter Then idstr = ""
+                If valuestr = ConstDelimiter Then valuestr = ""
+                If typestr = ConstDelimiter Then typestr = ""
+
+                Call Me.Record.SetValue(ConstFNIDs, UCase(idstr))
+                Call Me.Record.SetValue(ConstFNValues, valuestr)
+                Call Me.Record.SetValue(ConstFNTypes, LCase(typestr))
+                e.Proceed = True
+
+            Catch ex As Exception
+                CoreMessageHandler(exception:=ex, subname:="XOutlineItem.OnFed")
                 e.AbortOperation = True
             End Try
 
@@ -3037,221 +3115,17 @@ Namespace OnTrack.XChange
         ''' <param name="ordinal"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Function Inject(ByVal id As String, ByVal ordinal As String) As Boolean
-            Return Inject(id, New Ordinal(ordinal))
+        Public Shared Function Retrieve(ByVal id As String, ByVal ordinal As String) As XOutlineItem
+            Return Retrieve(id, New Ordinal(ordinal))
         End Function
-        Public Overloads Function Inject(ByVal id As String, ByVal ordinal As Long) As Boolean
-            Return Inject(id, New Ordinal(ordinal))
+        Public Shared Function Retrieve(ByVal id As String, ByVal ordinal As Long) As XOutlineItem
+            Return Retrieve(id, New Ordinal(ordinal))
         End Function
-        Public Overloads Function Inject(ByVal id As String, ByVal ordinal As Ordinal) As Boolean
+        Public Shared Function Retrieve(ByVal id As String, ByVal ordinal As Ordinal) As XOutlineItem
             Dim pkarry() As Object = {id, ordinal.ToString}
-            Return MyBase.Inject(pkarry)
+            Return ormDataObject.Retrieve(Of XOutlineItem)(pkarry)
         End Function
-        ''' <summary>
-        ''' create schema for persistency
-        ''' </summary>
-        ''' <param name="silent"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Overloads Shared Function CreateSchema(Optional silent As Boolean = True) As Boolean
-
-            Return ormDataObject.CreateDataObjectSchema(Of XOutlineItem)()
-
-
-            '            ''''''''''''''''''''''''''''
-            '            ''' THIS IS ONLY FOR LEGACY
-            '            ''' 
-            '            Dim UsedColumnNames As New Collection
-            '            Dim aFieldDesc As New ormFieldDescription
-            '            Dim PrimaryColumnNames As New Collection
-            '            Dim LongOutlineColumnNames As New Collection
-            '            Dim aTable As New ObjectDefinition
-            '            Dim aTableEntry As New IObjectEntryDefinition
-
-
-            '            aFieldDesc.ID = ""
-            '            aFieldDesc.Parameter = ""
-            '            aFieldDesc.Relation = New String() {}
-            '            aFieldDesc.Aliases = New String() {}
-            '            aFieldDesc.objectname = constTableID
-
-
-            '            aTable = New ObjectDefinition
-            '            aTable.Create(constTableID)
-
-            '            '******
-            '            '****** Fields
-
-            '            With aTable
-
-
-            '                On Error GoTo error_handle
-
-
-            '                '*** TaskUID
-            '                '****
-            '                aFieldDesc.Datatype = otFieldDataType.Text
-            '                aFieldDesc.Title = "outline id"
-            '                aFieldDesc.ID = ""
-            '                aFieldDesc.Parameter = ""
-            '                aFieldDesc.ColumnName = "id"
-            '                aFieldDesc.ID = "otl1"
-            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-            '                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
-            '                LongOutlineColumnNames.Add(aFieldDesc.ColumnName)
-
-            '                'Position
-            '                aFieldDesc.Datatype = otFieldDataType.[Long]
-            '                aFieldDesc.Title = "ordinal long"
-            '                aFieldDesc.ColumnName = "ordinall"
-            '                aFieldDesc.ID = "otli2"
-            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-            '                LongOutlineColumnNames.Add(aFieldDesc.ColumnName)
-
-            '                'Position
-            '                aFieldDesc.Datatype = otFieldDataType.Text
-            '                aFieldDesc.Title = "ordinal string"
-            '                aFieldDesc.ColumnName = "ordinals"
-            '                aFieldDesc.ID = "otli3"
-            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-            '                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
-
-            '                'uid
-            '                aFieldDesc.Datatype = otFieldDataType.[Long]
-            '                aFieldDesc.Title = "deliverable uid"
-            '                aFieldDesc.ColumnName = "uid"
-            '                aFieldDesc.ID = "dlvuid"
-            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-            '                UsedColumnNames.Add(aFieldDesc.ColumnName)
-            '                UsedColumnNames.Add("id")
-            '                UsedColumnNames.Add("ordinals")
-
-            '                ' level
-            '                aFieldDesc.Datatype = otFieldDataType.[Long]
-            '                aFieldDesc.Title = "identlevel"
-            '                aFieldDesc.ColumnName = "level"
-            '                aFieldDesc.ID = "otli4"
-            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '                ' typeid
-            '                aFieldDesc.Datatype = otFieldDataType.Text
-            '                aFieldDesc.Title = "types of the outline key"
-            '                aFieldDesc.ColumnName = "types"
-            '                aFieldDesc.ID = "otli10"
-            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '                ' id
-            '                aFieldDesc.Datatype = otFieldDataType.Text
-            '                aFieldDesc.Title = "ids of the outline key"
-            '                aFieldDesc.ColumnName = "ids"
-            '                aFieldDesc.ID = "otli11"
-            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '                ' value #1
-            '                aFieldDesc.Datatype = otFieldDataType.Text
-            '                aFieldDesc.Title = "values of the outline key"
-            '                aFieldDesc.ColumnName = "values"
-            '                aFieldDesc.ID = "otli12"
-            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '                aFieldDesc.ID = ""
-            '                aFieldDesc.Parameter = ""
-            '                aFieldDesc.Relation = New String() {}
-            '                aFieldDesc.Aliases = New String() {}
-
-            '                '***
-            '                '*** TIMESTAMP
-            '                '****
-            '                aFieldDesc.Datatype = otFieldDataType.Timestamp
-            '                aFieldDesc.Title = "last Update"
-            '                aFieldDesc.ColumnName = ConstFNUpdatedOn
-            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '                aFieldDesc.Datatype = otFieldDataType.Timestamp
-            '                aFieldDesc.Title = "creation Date"
-            '                aFieldDesc.ColumnName = ConstFNCreatedOn
-            '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
-
-            '                ' Index
-            '                Call .AddIndex("PrimaryKey", PrimaryColumnNames, isprimarykey:=True)
-            '                Call .AddIndex("longOutline", LongOutlineColumnNames, isprimarykey:=False)
-            '                Call .AddIndex("UsedOutline", UsedColumnNames, isprimarykey:=False)
-            '                ' persist
-            '                .Persist()
-            '                ' change the database
-            '                .CreateObjectSchema()
-            '            End With
-
-            '            CreateSchema = True
-            '            Exit Function
-
-            '            ' Handle the error
-            'error_handle:
-            '            Call CoreMessageHandler(subname:="XOutlineItem.createSchema", objectname:=constTableID)
-            '            CreateSchema = False
-        End Function
-        ''' <summary>
-        ''' Persist the data object to the datastore
-        ''' </summary>
-        ''' <param name="timestamp"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-
-        Public Overloads Function Persist(Optional timestamp As Date = constNullDate) As Boolean
-
-            '* init
-            If Not Me.IsInitialized Then
-                If Not Me.Initialize() Then
-                    Persist = False
-                    Exit Function
-                End If
-            End If
-
-            Try
-                Call Me.Record.SetValue(constFNID, _id)
-                '** own feed record
-                If _ordinal.Type = OrdinalType.longType Then
-                    Call Me.Record.SetValue(ConstFNordinall, _ordinal.Value)
-                Else
-                    Call Me.Record.SetValue(ConstFNordinall, 0)
-                End If
-
-                Call Me.Record.SetValue(ConstFNordinals, _ordinal.ToString)
-                Call Me.Record.SetValue(ConstFNIdent, _level)
-
-                '***
-                Dim idstr As String = ConstDelimiter
-                Dim valuestr As String = ConstDelimiter
-                Dim typestr As String = ConstDelimiter
-
-                For Each key As OTLineKey In _keys
-                    idstr &= key.ID & ConstDelimiter
-                    If key.ID.ToLower = "uid" Then
-                        Me.Record.SetValue(ConstFNUid, CLng(key.Value))
-                    End If
-                    typestr &= CLng(key.Type) & ConstDelimiter
-                    valuestr &= CStr(key.Value) & ConstDelimiter
-                Next
-
-                If idstr = ConstDelimiter Then idstr = ""
-                If valuestr = ConstDelimiter Then valuestr = ""
-                If typestr = ConstDelimiter Then typestr = ""
-
-                Call Me.Record.SetValue(ConstFNIDs, UCase(idstr))
-                Call Me.Record.SetValue(ConstFNValues, valuestr)
-                Call Me.Record.SetValue(ConstFNTypes, LCase(typestr))
-
-                'Call me.record.setValue(OTDBConst_UpdateOn, (Date & " " & Time)) not necessary
-                Return MyBase.Persist(timestamp:=timestamp, doFeedRecord:=True)
-
-            Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="XOutlineItem.persist")
-                Return False
-            End Try
-
-
-        End Function
-
+       
         ''' <summary>
         ''' create a new outline item in the persistable data store
         ''' </summary>
@@ -3261,29 +3135,30 @@ Namespace OnTrack.XChange
         ''' <param name="level"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Function Create(ByVal ID As String, ByVal ordinal As String, Optional uid As Long = 0, Optional level As UShort = 0) As Boolean
-            Return Create(ID, New Ordinal(ordinal), uid, level)
+        Public Shared Function Create(ByVal ID As String, ByVal ordinal As String,
+                                     Optional uid As Long? = Nothing, _
+                                     Optional level As UShort? = Nothing, _
+                                     Optional runtimeonly As Boolean = False) As XOutlineItem
+            Return Create(ID, New Ordinal(ordinal), uid, level, runtimeonly)
         End Function
-        Public Overloads Function Create(ByVal ID As String, ByVal ordinal As Long, Optional uid As Long = 0, Optional level As UShort = 0) As Boolean
-            Return Create(ID, New Ordinal(ordinal), uid, level)
+        Public Shared Function Create(ByVal ID As String, ByVal ordinal As Long, _
+                                      Optional uid As Long? = Nothing, _
+                                      Optional level As UShort? = Nothing, _
+                                      Optional runtimeonly As Boolean = False) As XOutlineItem
+            Return Create(ID, New Ordinal(ordinal), uid, level, runtimeonly)
         End Function
-        Public Overloads Function Create(ByVal ID As String, ByVal ordinal As Ordinal, Optional uid As Long = 0, Optional level As UShort = 0) As Boolean
-            Dim pkarry() As Object = {ID, ordinal.ToString}
-
-            If MyBase.Create(pkarry, checkUnique:=True) Then
-                ' set the primaryKey
-                _id = ID
-                _ordinal = ordinal
-                _keys = New List(Of OTLineKey)
-                If uid <> 0 Then
-                    _keys.Add(New OTLineKey(otDataType.Long, "uid", uid))
-                End If
-
-                _level = level
-                Return Me.IsCreated
-            End If
-
-            Return False
+        Public Shared Function Create(ByVal ID As String, ByVal ordinal As Ordinal, _
+                                      Optional uid As Long? = Nothing, _
+                                      Optional level As UShort? = 0, _
+                                      Optional runtimeonly As Boolean = False) As XOutlineItem
+            Dim aRecord As New ormRecord
+            With aRecord
+                .SetValue(constFNID, ID.ToUpper)
+                .SetValue(ConstFNordinals, ordinal.ToString)
+                If uid.HasValue Then .SetValue(ConstFNUid, uid)
+                If level.HasValue Then .SetValue(ConstFNIdent, level)
+            End With
+            Return ormDataObject.CreateDataObject(Of XOutlineItem)(aRecord, checkUnique:=True, runtimeOnly:=runtimeonly)
         End Function
     End Class
 End Namespace

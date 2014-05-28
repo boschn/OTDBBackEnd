@@ -746,24 +746,25 @@ Namespace OnTrack.Calendar
             Try
                 Dim aStore As iormDataStore = GetTableStore(ConstTableid)
                 Dim cached = aStore.GetProperty(ormTableStore.ConstTPNCacheProperty)
-                Dim aCommand As ormSqlSelectCommand = aStore.CreateSqlSelectCommand("AllByDate")
+                Dim aCommand As ormSqlSelectCommand = aStore.CreateSqlSelectCommand("AllByDate", addAllFields:=False)
 
                 '** prepare the command if necessary
                 If Not aCommand.Prepared Then
 
                     aCommand.AddTable(ConstTableid, addAllFields:=True)
+                    aCommand.select = constFNName
                     '** Depends on the server
                     If aCommand.DatabaseDriver.DatabaseType = otDBServerType.SQLServer And cached Is Nothing Then
                         aCommand.Where = String.Format(" [{0}] = @cname and CONVERT(nvarchar, [{1}], 104) = @datestr and [{2}] = @domainID", _
                                                        {constFNName, constFNTimestamp, constFNDomainID})
-                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@cname", datatype:=otDataType.Text, columnname:=constFNName))
+                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@cname", datatype:=otDataType.Text, notColumn:=True))
                         aCommand.AddParameter(New ormSqlCommandParameter(ID:="@datestr", datatype:=otDataType.Text, notColumn:=True))
                         aCommand.AddParameter(New ormSqlCommandParameter(ID:="@domainID", datatype:=otDataType.Text, notColumn:=True))
 
                     ElseIf aCommand.DatabaseDriver.DatabaseType = otDBServerType.Access And cached Is Nothing Then
                         aCommand.Where = String.Format(" [{0}] = @cname and [{1}] = @date and [{2}]=@domainID", _
                         {constFNName, constFNTimestamp, constFNDomainID})
-                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@cname", datatype:=otDataType.Text, columnname:=constFNName))
+                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@cname", datatype:=otDataType.Text, notColumn:=True))
                         aCommand.AddParameter(New ormSqlCommandParameter(ID:="@date", datatype:=otDataType.Date, notColumn:=True))
                         aCommand.AddParameter(New ormSqlCommandParameter(ID:="@domainID", datatype:=otDataType.Text, notColumn:=True))
 
@@ -771,7 +772,7 @@ Namespace OnTrack.Calendar
                     ElseIf cached IsNot Nothing Then
                         aCommand.Where = String.Format(" [{0}] = @cname and [{1}] = @date and [{2}]=@domainID", _
                        {constFNName, constFNTimestamp, constFNDomainID})
-                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@cname", datatype:=otDataType.Text, columnname:=constFNName))
+                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@cname", datatype:=otDataType.Text, notColumn:=True))
                         aCommand.AddParameter(New ormSqlCommandParameter(ID:="@date", datatype:=otDataType.Date, notColumn:=True))
                         aCommand.AddParameter(New ormSqlCommandParameter(ID:="@domainID", datatype:=otDataType.Text, notColumn:=True))
                     Else

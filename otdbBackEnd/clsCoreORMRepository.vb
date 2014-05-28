@@ -292,6 +292,7 @@ Namespace OnTrack.Database
         ''' <remarks></remarks>
         Private Function AddAlias(ByRef entry As iormObjectEntry) As Boolean
             Dim entries As List(Of iormObjectEntry)
+            If entry.Aliases Is Nothing Then Return True
 
             For Each [alias] As String In entry.Aliases
 
@@ -477,6 +478,7 @@ Namespace OnTrack.Database
                 End If
             End If
 
+            
             '** save it
             If _objectDirectory.ContainsKey([object].ID) Then
                 _objectDirectory.Remove([object].ID)
@@ -4260,7 +4262,7 @@ Namespace OnTrack.Database
             End If
 
             '** set the entry according to the Attribute
-            Return anEntry.SetByAttribute(attribute)
+            Return anEntry.AbstractEntryDefinition_SetByAttribute(attribute)
 
         End Function
 
@@ -4795,12 +4797,14 @@ Namespace OnTrack.Database
                 If anEntry IsNot Nothing Then anEntry.IsActive = Me.HasDeleteFieldBehavior
 
                 ''' Spare fields 
-                For Each anEntry In Me.GetEntries
-                    If anEntry.IsSpareField Then
-                        anEntry.IsActive = Me.HasSpareFieldsBehavior
-                    End If
-                Next
-
+                ''' 
+                If Me.HasSpareFieldsBehavior Then
+                    For Each anEntry In Me.GetEntries
+                        If anEntry.IsSpareField Then
+                            anEntry.IsActive = Me.HasSpareFieldsBehavior
+                        End If
+                    Next
+                End If
             End If
 
         End Sub
@@ -5199,25 +5203,25 @@ Namespace OnTrack.Database
         <ormEntryMapping(EntryName:=ConstFNIsNullable)> Protected _isnullable As Boolean
         <ormEntryMapping(EntryName:=ConstFNDefaultValue)> Protected _defaultvalue As Object
         <ormEntryMapping(EntryName:=ConstFNEntryName)> Protected _entryname As String = ""
-        <ormEntryMapping(EntryName:=ConstFNRelation)> Protected _Relation As String() = {}
-        <ormEntryMapping(EntryName:=ConstFNProperties)> Protected _propertystrings() As String = {}
-        <ormEntryMapping(EntryName:=ConstFNalias)> Protected _aliases As String() = {}
-        <ormEntryMapping(EntryName:=ConstFNTitle)> Protected _title As String = ""
+        <ormEntryMapping(EntryName:=ConstFNRelation)> Protected _Relation As String()
+        <ormEntryMapping(EntryName:=ConstFNProperties)> Protected _propertystrings() As String
+        <ormEntryMapping(EntryName:=ConstFNalias)> Protected _aliases As String()
+        <ormEntryMapping(EntryName:=ConstFNTitle)> Protected _title As String
         <ormEntryMapping(EntryName:=ConstFNUPDC)> Protected _version As Long = 0
-        <ormEntryMapping(EntryName:=ConstFNDescription)> Protected _Description As String = ""
+        <ormEntryMapping(EntryName:=ConstFNDescription)> Protected _Description As String
         <ormEntryMapping(Entryname:=ConstFNType)> Protected _typeid As otObjectEntryType
         <ormEntryMapping(entryname:=ConstFNValidate)> Protected _validate As Boolean = False
         <ormEntryMapping(entryname:=ConstFNRender)> Protected _render As Boolean = False
         <ormEntryMapping(entryname:=ConstFNValues)> Protected _listOfValues As List(Of String) = New List(Of String)
-        <ormEntryMapping(entryname:=ConstFNLookupProperties)> Protected _LookupPropertyStrings As String() = {}
-        <ormEntryMapping(entryname:=ConstFNLookup)> Protected _lookupcondition As String = ""
+        <ormEntryMapping(entryname:=ConstFNLookupProperties)> Protected _LookupPropertyStrings As String()
+        <ormEntryMapping(entryname:=ConstFNLookup)> Protected _lookupcondition As String
         <ormEntryMapping(entryname:=ConstFNLowerRange)> Protected _lowerRangeValue As Long?
         <ormEntryMapping(entryname:=ConstFNUpperRange)> Protected _upperRangeValue As Long?
-        <ormEntryMapping(entryname:=ConstFNRenderRegexMatch)> Protected _renderRegexMatch As String = ""
-        <ormEntryMapping(entryname:=ConstFNRenderRegexPattern)> Protected _renderRegexPattern As String = ""
-        <ormEntryMapping(entryname:=ConstFNValidationRegex)> Protected _validateRegexMatch As String = ""
-        <ormEntryMapping(entryname:=ConstFNValidationProperties)> Protected _validatePropertyStrings As String() = {}
-        <ormEntryMapping(entryname:=ConstFNRenderProperties)> Protected _renderPropertyStrings As String() = {}
+        <ormEntryMapping(entryname:=ConstFNRenderRegexMatch)> Protected _renderRegexMatch As String
+        <ormEntryMapping(entryname:=ConstFNRenderRegexPattern)> Protected _renderRegexPattern As String
+        <ormEntryMapping(entryname:=ConstFNValidationRegex)> Protected _validateRegexMatch As String
+        <ormEntryMapping(entryname:=ConstFNValidationProperties)> Protected _validationPropertyStrings As String()
+        <ormEntryMapping(entryname:=ConstFNRenderProperties)> Protected _renderPropertyStrings As String()
 
         '** events
         'Public Shadows Event OnSwitchRuntimeOff(sender As Object, e As ormDataObjectEventArgs)
@@ -5432,6 +5436,15 @@ Namespace OnTrack.Database
 
             End Set
         End Property
+        Public Property ValidationPropertyStrings As String() Implements iormObjectEntry.ValidationPropertyStrings
+            Get
+                If _validationPropertyStrings Is Nothing Then Return {}
+                Return _validationPropertyStrings
+            End Get
+            Set(value As String())
+                SetValue(ConstFNValidationProperties, value)
+            End Set
+        End Property
         ''' <summary>
         ''' returns true if there is a regular expression condition for validating the object value
         ''' </summary>
@@ -5488,6 +5501,15 @@ Namespace OnTrack.Database
                 If SetValue(entryname:=ConstFNRenderProperties, value:=aPropertyString.ToArray) Then
                     _renderProperties = value
                 End If
+            End Set
+        End Property
+        Public Property RenderPropertyStrings As String() Implements iormObjectEntry.RenderPropertyStrings
+            Get
+                If _renderPropertyStrings Is Nothing Then Return {}
+                Return _renderPropertyStrings
+            End Get
+            Set(value As String())
+                SetValue(ConstFNRenderProperties, value)
             End Set
         End Property
         ''' <summary>
@@ -5564,6 +5586,15 @@ Namespace OnTrack.Database
 
             End Set
         End Property
+        Public Property LookupPropertyStrings As String() Implements iormObjectEntry.LookupPropertyStrings
+            Get
+                If _LookupPropertyStrings Is Nothing Then Return {}
+                Return _LookupPropertyStrings
+            End Get
+            Set(value As String())
+                SetValue(ConstFNLookupProperties, value)
+            End Set
+        End Property
         ''' <summary>
         ''' returns true if there are lookup condition
         ''' </summary>
@@ -5595,7 +5626,7 @@ Namespace OnTrack.Database
         ''' Gets or sets the description.
         ''' </summary>
         ''' <value>The description.</value>
-        Public Overridable Property Description() As String Implements iormObjectEntry.Description
+        Public Overridable Property Description As String Implements iormObjectEntry.Description
             Get
                 Return Me._Description
             End Get
@@ -5609,28 +5640,28 @@ Namespace OnTrack.Database
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public MustOverride Property isNullable() As Boolean Implements iormObjectEntry.IsNullable
+        Public MustOverride Property IsNullable As Boolean Implements iormObjectEntry.IsNullable
         ''' <summary>
         ''' gets or sets the size
         ''' </summary>
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public MustOverride Property Size() As Long? Implements iormObjectEntry.Size
+        Public MustOverride Property Size As Long? Implements iormObjectEntry.Size
         ''' <summary>
         ''' gets or sets the datatype
         ''' </summary>
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public MustOverride Property Datatype() As otDataType Implements iormObjectEntry.Datatype
+        Public MustOverride Property Datatype As otDataType Implements iormObjectEntry.Datatype
         ''' <summary>
         ''' gets or sets the inner datatype
         ''' </summary>
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overridable Property InnerDatatype() As otDataType? Implements iormObjectEntry.InnerDatatype
+        Public Overridable Property InnerDatatype As otDataType? Implements iormObjectEntry.InnerDatatype
             Get
                 Return _innerdatatype
             End Get
@@ -5644,13 +5675,13 @@ Namespace OnTrack.Database
         '''' <value></value>
         '''' <returns></returns>
         '''' <remarks></remarks>
-        Public Overridable Property Defaultvalue() As Object Implements iormObjectEntry.DefaultValue
+        Public Overridable Property Defaultvalue As Object Implements iormObjectEntry.DefaultValue
             Get
                 If Not _isnullable AndAlso _defaultvalue Is Nothing Then
                     Return ot.GetDefaultValue(_datatype)
                 Else
                     If _defaultvalue IsNot Nothing Then
-                        
+
                         Try
 
                             ''' check on enumerations and transform to it
@@ -5691,7 +5722,7 @@ Namespace OnTrack.Database
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public MustOverride Property PrimaryKeyOrdinal() As Long Implements iormObjectEntry.PrimaryKeyOrdinal
+        Public MustOverride Property PrimaryKeyOrdinal As Long Implements iormObjectEntry.PrimaryKeyOrdinal
         ''' <summary>
         ''' gets or sets the nullable
         ''' </summary>
@@ -5704,7 +5735,7 @@ Namespace OnTrack.Database
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property Ordinal() As Long Implements iormObjectEntry.Ordinal
+        Public Property Ordinal As Long Implements iormObjectEntry.Ordinal
             Get
                 Return _ordinal
             End Get
@@ -5718,7 +5749,7 @@ Namespace OnTrack.Database
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public ReadOnly Property Objectname() As String Implements iormObjectEntry.Objectname
+        Public ReadOnly Property Objectname As String Implements iormObjectEntry.Objectname
             Get
                 Objectname = _objectname
             End Get
@@ -5728,7 +5759,7 @@ Namespace OnTrack.Database
         ''' Object cannot be persisted only.
         ''' </summary>
         ''' <value>The run tim only.</value>
-        Public ReadOnly Property RunTimeOnly() As Boolean
+        Public ReadOnly Property RunTimeOnly As Boolean
             Get
                 Return Me._runTimeOnly
             End Get
@@ -5739,7 +5770,7 @@ Namespace OnTrack.Database
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property XID() As String Implements iormObjectEntry.XID
+        Public Property XID As String Implements iormObjectEntry.XID
             Get
                 XID = _xid
             End Get
@@ -5766,7 +5797,7 @@ Namespace OnTrack.Database
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property Typeid() As otObjectEntryType Implements iormObjectEntry.Typeid
+        Public Property Typeid As otObjectEntryType Implements iormObjectEntry.Typeid
             Get
                 Typeid = Me._typeid
 
@@ -5837,6 +5868,7 @@ Namespace OnTrack.Database
         ''' <remarks></remarks>
         Public Property Aliases() As String() Implements iormObjectEntry.Aliases
             Get
+                If _aliases Is Nothing Then Return {}
                 Return _aliases
             End Get
             Set(value As String())
@@ -5851,6 +5883,7 @@ Namespace OnTrack.Database
         ''' <remarks></remarks>
         Public Property Relation() As String()
             Get
+                If _Relation Is Nothing Then Return {}
                 Return _Relation
             End Get
             Set(value As String())
@@ -5877,6 +5910,14 @@ Namespace OnTrack.Database
                 End If
             End Set
         End Property
+        Public Property PropertyStrings As String() Implements iormObjectEntry.PropertyStrings
+            Get
+                Return _propertystrings
+            End Get
+            Set(value As String())
+                SetValue(ConstFNProperties, value)
+            End Set
+        End Property
         ''' <summary>
         ''' returns Title (Column Header)
         ''' </summary>
@@ -5899,18 +5940,20 @@ Namespace OnTrack.Database
         ''' </summary>
         ''' <remarks></remarks>
         Protected Sub registerHandler()
-            AddHandler ormDataObject.OnCreated, AddressOf Me.OnCreated
-            AddHandler ormDataObject.OnCreating, AddressOf Me.OnCreating
-            AddHandler ormDataObject.OnInfused, AddressOf Me.OnInfused
+            AddHandler ormDataObject.OnCreated, AddressOf Me.AbstractEntryDefinition_OnCreated
+            AddHandler ormDataObject.OnCreating, AddressOf Me.AbstractEntryDefinition_OnCreating
+            AddHandler ormDataObject.OnInfused, AddressOf Me.AbstractEntryDefinition_OnInfused
+            AddHandler ormDataObject.OnEntryChanged, AddressOf Me.AbstractEntryDefinition_OnEntryChanged
         End Sub
         ''' <summary>
         ''' deregister Event Handlers
         ''' </summary>
         ''' <remarks></remarks>
         Protected Sub deregisterHandler()
-            RemoveHandler ormDataObject.OnCreated, AddressOf Me.OnCreated
-            RemoveHandler ormDataObject.OnCreating, AddressOf Me.OnCreating
-            RemoveHandler ormDataObject.OnInfused, AddressOf Me.OnInfused
+            RemoveHandler ormDataObject.OnCreated, AddressOf Me.AbstractEntryDefinition_OnCreated
+            RemoveHandler ormDataObject.OnCreating, AddressOf Me.AbstractEntryDefinition_OnCreating
+            RemoveHandler ormDataObject.OnInfused, AddressOf Me.AbstractEntryDefinition_OnInfused
+            RemoveHandler ormDataObject.OnEntryChanged, AddressOf Me.AbstractEntryDefinition_OnEntryChanged
         End Sub
         ''' <summary>
         ''' Handler for the SwitchRuntimeOFF Event after Bootstrapping
@@ -5935,7 +5978,7 @@ Namespace OnTrack.Database
         ''' <param name="attribute"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overridable Function SetByAttribute(attribute As ormObjectEntryAttribute) As Boolean Implements iormObjectEntry.SetByAttribute
+        Public Overridable Function AbstractEntryDefinition_SetByAttribute(attribute As ormObjectEntryAttribute) As Boolean Implements iormObjectEntry.AbstractEntryDefinition_SetByAttribute
             If Not IsAlive(subname:="SetByAttribute") Then Return False
 
 
@@ -5988,7 +6031,7 @@ Namespace OnTrack.Database
         ''' <param name="sender"></param>
         ''' <param name="e"></param>
         ''' <remarks></remarks>
-        Public Sub OnCreated(sender As Object, e As ormDataObjectEventArgs)
+        Public Sub AbstractEntryDefinition_OnCreated(sender As Object, e As ormDataObjectEventArgs)
             Dim myself As AbstractEntryDefinition = TryCast(e.DataObject, AbstractEntryDefinition)
 
             If myself IsNot Nothing Then
@@ -6010,7 +6053,7 @@ Namespace OnTrack.Database
         ''' <param name="sender"></param>
         ''' <param name="e"></param>
         ''' <remarks></remarks>
-        Public Sub OnCreating(sender As Object, e As ormDataObjectEventArgs)
+        Public Sub AbstractEntryDefinition_OnCreating(sender As Object, e As ormDataObjectEventArgs)
             Dim myself As AbstractEntryDefinition = TryCast(e.DataObject, AbstractEntryDefinition)
 
             If myself IsNot Nothing Then
@@ -6024,12 +6067,82 @@ Namespace OnTrack.Database
         End Sub
 
         ''' <summary>
+        ''' handler for entry changed event
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Public Sub AbstractEntryDefinition_OnEntryChanged(sender As Object, e As ormDataObjectEntryEventArgs)
+
+            Try
+                If e.ObjectEntryName.ToUpper = ConstFNProperties.ToUpper AndAlso _propertystrings IsNot Nothing Then
+                    '** the property list in Object presentation
+                    Dim aList As New List(Of ObjectEntryProperty)
+                    For Each propstring In _propertystrings
+                        Try
+                            Dim aProperty As ObjectEntryProperty = New ObjectEntryProperty(propstring)
+                            aList.Add(aProperty)
+                        Catch ex As Exception
+                            Call CoreMessageHandler(subname:="AbstractEntryDefinition_OnInfused", exception:=ex)
+                        End Try
+                    Next
+                    _properties = aList ' assign
+
+
+                ElseIf e.ObjectEntryName.ToUpper = ConstFNValidationProperties.ToUpper AndAlso _validationPropertyStrings IsNot Nothing Then
+
+                    '** the property list in Object presentation
+                    Dim aValidationList As New List(Of ObjectValidationProperty)
+                    For Each propstring In _validationPropertyStrings
+                        Try
+                            Dim aProperty As ObjectValidationProperty = New ObjectValidationProperty(propstring)
+                            aValidationList.Add(aProperty)
+                        Catch ex As Exception
+                            Call CoreMessageHandler(subname:="AbstractEntryDefinition_OnInfused", exception:=ex)
+                        End Try
+                    Next
+                    _validateProperties = aValidationList ' assign
+
+
+                ElseIf e.ObjectEntryName.ToUpper = ConstFNRenderProperties.ToUpper AndAlso _renderPropertyStrings IsNot Nothing Then
+
+                    '** the property list in Object presentation
+                    Dim aRenderList As New List(Of RenderProperty)
+                    For Each propstring In _renderPropertyStrings
+                        Try
+                            Dim aProperty As RenderProperty = New RenderProperty(propstring)
+                            aRenderList.Add(aProperty)
+                        Catch ex As Exception
+                            Call CoreMessageHandler(subname:="AbstractEntryDefinition_OnInfused", exception:=ex)
+                        End Try
+                    Next
+                    _renderProperties = aRenderList ' assign
+
+                ElseIf e.ObjectEntryName.ToUpper = ConstFNLookupProperties.ToUpper AndAlso _LookupPropertyStrings IsNot Nothing Then
+                    '** the property list in Object presentation
+                    Dim aLookupList As New List(Of LookupProperty)
+                    For Each propstring In _LookupPropertyStrings
+                        Try
+                            Dim aProperty As LookupProperty = New LookupProperty(propstring)
+                            aLookupList.Add(aProperty)
+                        Catch ex As Exception
+                            Call CoreMessageHandler(subname:="AbstractEntryDefinition_OnInfused", exception:=ex)
+                        End Try
+                    Next
+                    _lookupProperties = aLookupList ' assign
+                End If
+            Catch ex As Exception
+                CoreMessageHandler(exception:=ex, subname:="AbstractEntryDefinition_OnEntryChanged")
+            End Try
+            
+        End Sub
+        ''' <summary>
         ''' infuses the object from a record
         ''' </summary>
         ''' <param name="aRecord"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Sub OnInfused(sender As Object, e As ormDataObjectEventArgs)
+        Public Sub AbstractEntryDefinition_OnInfused(sender As Object, e As ormDataObjectEventArgs)
 
             Try
 
@@ -6044,40 +6157,70 @@ Namespace OnTrack.Database
                 '    End If
                 'End If
 
-                '** the property list in Object presentation
-                Dim aList As New List(Of ObjectEntryProperty)
-                For Each propstring In _propertystrings
-                    Try
-                        Dim aProperty As ObjectEntryProperty = New ObjectEntryProperty(propstring)
-                        aList.Add(aProperty)
-                    Catch ex As Exception
-                        Call CoreMessageHandler(subname:="AbstractEntryDefinition_OnInfused", exception:=ex)
-                    End Try
-                Next
-                _properties = aList ' assign
-                '** the property list in Object presentation
-                Dim aValidationList As New List(Of ObjectValidationProperty)
-                For Each propstring In _validatePropertyStrings
-                    Try
-                        Dim aProperty As ObjectValidationProperty = New ObjectValidationProperty(propstring)
-                        aValidationList.Add(aProperty)
-                    Catch ex As Exception
-                        Call CoreMessageHandler(subname:="AbstractEntryDefinition_OnInfused", exception:=ex)
-                    End Try
-                Next
-                _validateProperties = aValidationList ' assign
-                '** the property list in Object presentation
-                Dim aRenderList As New List(Of RenderProperty)
-                For Each propstring In _renderPropertyStrings
-                    Try
-                        Dim aProperty As RenderProperty = New RenderProperty(propstring)
-                        aRenderList.Add(aProperty)
-                    Catch ex As Exception
-                        Call CoreMessageHandler(subname:="AbstractEntryDefinition_OnInfused", exception:=ex)
-                    End Try
-                Next
-                _renderProperties = aRenderList ' assign
+                '''
+                ''' setvalue and events are not called during infusion
+                '''
 
+
+                ''** the property list in Object presentation
+                If _propertystrings IsNot Nothing Then
+                    Dim aList As New List(Of ObjectEntryProperty)
+                    For Each propstring In _propertystrings
+                        Try
+                            Dim aProperty As ObjectEntryProperty = New ObjectEntryProperty(propstring)
+                            aList.Add(aProperty)
+                        Catch ex As Exception
+                            Call CoreMessageHandler(subname:="AbstractEntryDefinition_OnInfused", exception:=ex)
+                        End Try
+                    Next
+                    _properties = aList ' assign
+                End If
+               
+
+                ''** the property list in Object presentation
+
+                If _validationPropertyStrings IsNot Nothing Then
+                    Dim aValidationList As New List(Of ObjectValidationProperty)
+                    For Each propstring In _validationPropertyStrings
+                        Try
+                            Dim aProperty As ObjectValidationProperty = New ObjectValidationProperty(propstring)
+                            aValidationList.Add(aProperty)
+                        Catch ex As Exception
+                            Call CoreMessageHandler(subname:="AbstractEntryDefinition_OnInfused", exception:=ex)
+                        End Try
+                    Next
+                    _validateProperties = aValidationList ' assign
+                End If
+
+                ''** the property list in Object presentation
+                If _renderPropertyStrings IsNot Nothing Then
+                    Dim aRenderList As New List(Of RenderProperty)
+                    For Each propstring In _renderPropertyStrings
+                        Try
+                            Dim aProperty As RenderProperty = New RenderProperty(propstring)
+                            aRenderList.Add(aProperty)
+                        Catch ex As Exception
+                            Call CoreMessageHandler(subname:="AbstractEntryDefinition_OnInfused", exception:=ex)
+                        End Try
+                    Next
+                    _renderProperties = aRenderList ' assign
+                End If
+
+                ''** the property list in Object presentation
+                If _LookupPropertyStrings IsNot Nothing Then
+                    Dim aLookupList As New List(Of LookupProperty)
+                    For Each propstring In _LookupPropertyStrings
+                        Try
+                            Dim aProperty As LookupProperty = New LookupProperty(propstring)
+                            aLookupList.Add(aProperty)
+                        Catch ex As Exception
+                            Call CoreMessageHandler(subname:="AbstractEntryDefinition_OnInfused", exception:=ex)
+                        End Try
+                    Next
+                    _lookupProperties = aLookupList ' assign
+
+                End If
+                
             Catch ex As Exception
                 Call CoreMessageHandler(subname:="AbstractEntryDefinition_OnInfused", exception:=ex)
             End Try
@@ -6920,19 +7063,10 @@ Namespace OnTrack.Database
         ''' <remarks></remarks>
         Public Overrides Property IsNullable() As Boolean
             Get
-                If _columndefinition IsNot Nothing AndAlso _columndefinition.IsAlive(subname:="ObjectColumnEntry.IsNullable") Then
-                    Return _columndefinition.IsNullable
-                Else : Return False
-                End If
-
+                Return _isnullable 'local one ! might differ
             End Get
             Set(value As Boolean)
-                If _columndefinition Is Nothing OrElse Not _columndefinition.IsAlive(subname:="ObjectColumnEntry.IsNullable") Then
-                    Return
-                End If
-
-                _columndefinition.IsNullable = value
-                '* local copy
+                '* local copy might differ to _columndefinition
                 SetValue(ConstFNIsNullable, value)
             End Set
         End Property
@@ -7124,20 +7258,22 @@ Namespace OnTrack.Database
         ''' <param name="attribute"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overrides Function SetByAttribute(attribute As ormObjectEntryAttribute) As Boolean
+        Public Overrides Function AbstractEntryDefinition_SetByAttribute(attribute As ormObjectEntryAttribute) As Boolean
             If Not IsAlive(subname:="SetByAttribute") Then Return False
 
 
             With attribute
                 Me.Typeid = otObjectEntryType.Column
                 '** Slot Entry Properties
-                MyBase.SetByAttribute(attribute)
+                MyBase.AbstractEntryDefinition_SetByAttribute(attribute)
 
                 If .HasValueTableName Then Me.TableName = .Tablename
                 If .HasValueColumnName Then Me.Columnname = .ColumnName
 
                 '* column attributes
                 If .HasValueIsNullable Then Me.IsNullable = .IsNullable
+                If .HasValueIsNullable Then Me.ColumnDefinition.IsNullable = .IsNullable ' should be the same in the beginning
+
                 If .hasValuePosOrdinal Then Me.ColumnOrdinal = .Posordinal ' should be the position from a table definition not an object definition
                 If .HasValuePrimaryKeyOrdinal Then Me.PrimaryKeyOrdinal = .PrimaryKeyOrdinal
 

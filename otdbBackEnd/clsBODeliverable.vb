@@ -677,32 +677,36 @@ Namespace OnTrack.Deliverables
             useforeignkey:=otForeignKeyImplementation.NativeDatabase, _
             Description:="workspaceID ID of the schedule")> Public Const ConstFNWorkspaceID = ScheduleEdition.ConstFNWorkspaceID
 
-        <ormObjectEntry(typeid:=otDataType.Date, isnullable:=True, _
-            description:="current target date", title:="target date", XID:="DT6", aliases:={"T2"})> Public Const constFNTarget = "TARGETDATE"
-
-        <ormObjectEntry(typeid:=otDataType.Date, isnullable:=True, _
-            description:="previous target date", title:="previous target date", XID:="DT5", aliases:={"T1"})> Public Const constFNPrevTarget = "PVTD"
-
-        <ormObjectEntry(typeid:=otDataType.Text, size:=50, title:="target revision", Description:="revision of the target", _
-           XID:="DT4", aliases:={"t9"}, isnullable:=True)> Public Const ConstFNRevision = "rev"
-
-        <ormObjectEntry(typeid:=otDataType.Timestamp, isnullable:=True, _
-          description:="target change timestamp", title:="target change", XID:="DT7", aliases:={"A6"})> Public Const constFNTargetChanged = "tchg"
-
         <ormObjectEntry(typeid:=otDataType.Bool, defaultvalue:=False, dbdefaultvalue:="0", _
-          title:="No Target", description:="no target by intention", XID:="DT2")> Public Const ConstFNNoTarget = "notarget"
+          title:="No Target", description:="no target by intention", XID:="DT3")> Public Const ConstFNNoTarget = "notarget"
 
         <ormObjectEntry(typeid:=otDataType.Text, size:=100, isnullable:=True, _
-          title:="Type", description:="type of the target", XID:="DT3")> Public Const ConstFNType = "typeid"
+          title:="Type", description:="type of the target", XID:="DT4")> Public Const ConstFNType = "typeid"
+
+        <ormObjectEntry(typeid:=otDataType.Date, isnullable:=True, _
+           description:="previous target date", title:="previous target date", XID:="DT5")> Public Const constFNPrevTarget = "PVTD"
+
+        <ormObjectEntry(typeid:=otDataType.Date, isnullable:=True, _
+            description:="current target date", title:="target date", XID:="DT6")> Public Const constFNTarget = "TARGETDATE"
+
+       
+      
+        <ormObjectEntry(typeid:=otDataType.Timestamp, isnullable:=True, _
+          description:="target change timestamp", title:="target change", XID:="DT7")> Public Const constFNTargetChanged = "tchg"
+
+        
+
+        <ormObjectEntry(typeid:=otDataType.Text, size:=50, title:="target revision", Description:="revision of the target", _
+         XID:="DT14", isnullable:=True)> Public Const ConstFNRevision = "rev"
 
         <ormObjectEntry(referenceobjectentry:=OrgUnit.ConstObjectID & "." & OrgUnit.ConstFNID, isnullable:=True, _
-           title:="Responsible OrgUnit", description:=" organization unit responsible for the target", XID:="DT5")> Public Const constFNRespOU = "respou"
+           title:="Responsible OrgUnit", description:=" organization unit responsible for the target", XID:="DT15")> Public Const constFNRespOU = "respou"
 
         <ormObjectEntry(referenceobjectentry:=Person.ConstObjectID & "." & Person.constFNID, isnullable:=True, _
-            title:="Responsible Person", description:="responsible person for the target", XID:="DT6")> Public Const constFNResp = "resp"
+            title:="Responsible Person", description:="responsible person for the target", XID:="DT16")> Public Const constFNResp = "resp"
 
         <ormObjectEntry(typeid:=otDataType.Memo, isnullable:=True, _
-            title:="Comment", Description:="comment of the target", XID:="DT7", isnullable:=True)> Public Const ConstFNComment = "cmt"
+            title:="Comment", Description:="comment of the target", XID:="DT17", isnullable:=True)> Public Const ConstFNComment = "cmt"
 
         ' change FK Action since we have the workspace as FK (leads also to domians)
         <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, _
@@ -1254,7 +1258,7 @@ Namespace OnTrack.Deliverables
     ''' <remarks></remarks>
 
     <ormObject(id:=Track.ConstObjectID, description:="tracking status of a deliverable per target and schedule", _
-        modulename:=ConstModuleDeliverables, Version:=1, useCache:=True, adddeletefieldbehavior:=True)> Public Class Track
+        modulename:=ConstModuleDeliverables, Version:=1, useCache:=True, adddeletefieldbehavior:=True, addsparefieldsbehavior:=True)> Public Class Track
         Inherits ormDataObject
         Implements iormPersistable
         Implements iormInfusable
@@ -1323,7 +1327,7 @@ Namespace OnTrack.Deliverables
             XID:="DTR10", isnullable:=True)> Public Const ConstFNForecast = "fcdate"
 
         <ormObjectEntry(typeid:=otDataType.Date, title:="current target", Description:="target date for deliverable", _
-            XID:="DTR11", isnullable:=True)> Public Const ConstFNCurTargetDate = "targetdate"
+            XID:="DTR11", isnullable:=True, ALIASes:={"DT6"})> Public Const ConstFNCurTargetDate = "targetdate"
 
         <ormObjectEntry(referenceobjectentry:=Target.ConstObjectID & "." & Target.ConstFNNoTarget, dbdefaultvalue:="1", defaultvalue:=True, _
             XID:="DTR28", aliases:={"DT2"})> Public Const constFNNoTarget = Target.ConstFNNoTarget
@@ -1895,7 +1899,7 @@ Namespace OnTrack.Deliverables
             _deliverableUID & ConstDelimiter
         End Function
 
-        
+
 
 
 #End Region
@@ -2093,7 +2097,7 @@ Namespace OnTrack.Deliverables
             Return ormDataObject.Retrieve(Of Track)(pkarray)
         End Function
 
-       
+
         ''' <summary>
         ''' OnPersisted Event Handler: Checks which objects are persisted and if these are Deliverable, Target, ScheduleEdition
         ''' </summary>
@@ -2240,11 +2244,11 @@ Namespace OnTrack.Deliverables
                 CoreMessageHandler(exception:=ex, subname:="Track.UpdateTracking")
                 Return False
             End Try
-           
+
 
         End Function
-       
-        
+
+
         ''' <summary>
         ''' updateFromDeliverable -> updated a Track from a given deliverable
         ''' </summary>
@@ -2314,7 +2318,7 @@ Namespace OnTrack.Deliverables
             Return True
         End Function
 
-        
+
         ''' <summary>
         ''' checkOnGAP -> Calculate the GAP
         ''' </summary>
@@ -2340,7 +2344,7 @@ Namespace OnTrack.Deliverables
                     Me.NoTargetByIntention = Me.Target.NotargetByItention
                 End If
             End If
-           
+
 
 
             ''' check on Finish
@@ -2398,7 +2402,7 @@ Namespace OnTrack.Deliverables
                 Return False
             End If
         End Function
-        
+
         ''' <summary>
         ''' checkOnBaselineGAP -> Calculate the baseline GAP
         ''' </summary>

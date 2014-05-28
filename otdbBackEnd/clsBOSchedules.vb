@@ -83,14 +83,16 @@ Namespace OnTrack.Scheduling
         <ormObjectEntry(typeid:=otDataType.Long, defaultvalue:=otDataType.Date, dbdefaultvalue:="6", _
            XID:="bpd4", title:="Datatype", description:="datatype of the milestone")> Public Const ConstFNDatatype = "datatype"
 
-        <ormObjectEntry(referenceobjectentry:=StatusItem.ConstObjectID & "." & StatusItem.constFNType, _
+        <ormObjectEntry(referenceobjectentry:=StatusItem.ConstObjectID & "." & StatusItem.constFNType, isnullable:=True, _
+          lookuppropertystrings:={LookupProperty.UseAttributeReference}, validationPropertyStrings:={ObjectValidationProperty.UseLookup}, _
           XID:="bpd5", title:="Status Item Type", description:="status item type of the milestone")> Public Const ConstFNStatusType = "status"
 
         <ormObjectEntry(typeid:=otDataType.Bool, defaultvalue:=False, dbdefaultvalue:="0", _
          XID:="bpd6", title:="Forecast", description:="set if milestone is a forecast")> Public Const ConstFNIsForecast = "isforecast"
 
         <ormObjectEntry(referenceobjectentry:=ConstObjectID & "." & ConstFNID, isnullable:=True, _
-        XID:="bpd7", title:="Reference", description:="set if milestone is a reference")> Public Const ConstFNRefID = "refid"
+             lookuppropertystrings:={LookupProperty.UseAttributeReference}, validationPropertyStrings:={ObjectValidationProperty.UseLookup}, _
+             XID:="bpd7", title:="Reference", description:="set if milestone is a reference")> Public Const ConstFNRefID = "refid"
 
         <ormObjectEntry(typeid:=otDataType.Long, defaultvalue:=0, dbdefaultvalue:="0", _
                         XID:="bpd8", title:="Ordinal", Description:="ordinal of the object entry")> Public Const ConstFNordinal As String = "ordinal"
@@ -100,17 +102,17 @@ Namespace OnTrack.Scheduling
 
 
         <ormObjectEntry(typeid:=otDataType.List, isnullable:=True, _
-       XID:="bpd10", title:="Attachable ObjectIDs", description:="Object ids to be attached to")> Public Const ConstFNObjectIDs = "objectids"
+                        XID:="bpd10", title:="Attachable ObjectIDs", description:="Object ids to be attached to")> Public Const ConstFNObjectIDs = "objectids"
 
         '** MAPPING
         <ormEntryMapping(EntryName:=ConstFNID)> Private _id As String = ""  ' id
-        <ormEntryMapping(EntryName:=ConstFNTitle)> Private _title As String = ""
-        <ormEntryMapping(EntryName:=ConstFNDescription)> Private _description As String = ""
+        <ormEntryMapping(EntryName:=ConstFNTitle)> Private _title As String
+        <ormEntryMapping(EntryName:=ConstFNDescription)> Private _description As String
         <ormEntryMapping(EntryName:=ConstFNType)> Private _typeid As otMilestoneType
         <ormEntryMapping(EntryName:=ConstFNDatatype)> Private _datatype As otDataType
-        <ormEntryMapping(EntryName:=ConstFNRefID)> Private _refid As String = ""
+        <ormEntryMapping(EntryName:=ConstFNRefID)> Private _refid As String
         <ormEntryMapping(EntryName:=ConstFNIsForecast)> Private _isForecast As Boolean
-        <ormEntryMapping(EntryName:=ConstFNStatusType)> Private _statustypeid As String = ""
+        <ormEntryMapping(EntryName:=ConstFNStatusType)> Private _statustypeid As String
         <ormEntryMapping(EntryName:=ConstFNordinal)> Private _ordinal As Long
         <ormEntryMapping(EntryName:=ConstFNObjectIDs)> Private _objectids As List(Of String)
 
@@ -531,7 +533,7 @@ Namespace OnTrack.Scheduling
         ''' </summary>
         ''' <remarks></remarks>
         <ormObjectEntry(XID:="BSD1", referenceobjectentry:=ScheduleDefinition.ConstObjectID & "." & ScheduleDefinition.ConstFNType, _
-            primaryKeyordinal:=1, aliases:={"SCT1"}, title:="schedule type", _
+            primaryKeyordinal:=1, aliases:={"SCT1"}, title:="schedule type", defaultvalue:="", dbdefaultvalue:="", _
             description:=" type of schedule definition")> Public Const ConstFNType = "scheduletype"
 
         <ormObjectEntry(XID:="BSD2", referenceobjectentry:=MileStoneDefinition.ConstObjectID & "." & MileStoneDefinition.ConstFNID, _
@@ -552,7 +554,7 @@ Namespace OnTrack.Scheduling
             title:="ordinal", description:="ordinal of milestone in schedule")> Public Const ConstFNOrdinal = "ordinal"
 
         <ormObjectEntry(XID:="BSD5", isnullable:=True, _
-            referenceobjectentry:=MileStoneDefinition.ConstObjectID & "." & MileStoneDefinition.ConstFNID, _
+            referenceobjectentry:=MileStoneDefinition.ConstObjectID & "." & MileStoneDefinition.ConstFNID, isnullable:=True, _
             title:="actual of fc milestone id", description:=" actual id of this milestone in schedule")> Public Const ConstFNActualID = "actualid"
 
         <ormObjectEntry(XID:="BSD6", typeid:=otDataType.Bool, dbdefaultvalue:="0", defaultvalue:=False, _
@@ -583,12 +585,12 @@ Namespace OnTrack.Scheduling
         ''' Mapping
         ''' </summary>
         ''' <remarks></remarks>
-        <ormEntryMapping(EntryName:=ConstFNType)> Private _scheduletype As String = ""
+        <ormEntryMapping(EntryName:=ConstFNType)> Private _scheduletype As String
         <ormEntryMapping(EntryName:=ConstFNID)> Private _id As String = ""
-        <ormEntryMapping(EntryName:=ConstFNDesc)> Private _description As String = ""
+        <ormEntryMapping(EntryName:=ConstFNDesc)> Private _description As String
         <ormEntryMapping(EntryName:=ConstFNOrdinal)> Private _Ordinal As Long
         <ormEntryMapping(EntryName:=ConstFNIsFC)> Private _isForecast As Boolean
-        <ormEntryMapping(EntryName:=ConstFNActualID)> Private _actualid As String = ""
+        <ormEntryMapping(EntryName:=ConstFNActualID)> Private _actualid As String
 
         <ormEntryMapping(EntryName:=ConstFNIsMandatory)> Private _isMandatory As Boolean
         <ormEntryMapping(EntryName:=ConstFNIsProhibited)> Private _isProhibited As Boolean

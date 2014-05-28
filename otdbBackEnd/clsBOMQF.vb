@@ -1256,66 +1256,66 @@ Namespace OnTrack.Xchange
         ''' <param name="ActionCommand"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function VerifyAction(Optional ByVal actioncommand As String = "") As Boolean
+        'Public Function VerifyAction(Optional ByVal actioncommand As String = "") As Boolean
 
-            If actioncommand = "" Then
-                actioncommand = LCase(Me.Action)
-            Else
-                actioncommand = CStr(actioncommand)
-            End If
+        '    If actioncommand = "" Then
+        '        actioncommand = LCase(Me.Action)
+        '    Else
+        '        actioncommand = CStr(actioncommand)
+        '    End If
 
-            ' check on it
-            Select Case LCase(Trim(actioncommand))
-                ' CHANGE
-                Case ConstMQFOpChange
-                    VerifyAction = True
-                    ' COMMAND FREEZE
-                Case ConstMQFOpFreeze
+        '    ' check on it
+        '    Select Case LCase(Trim(actioncommand))
+        '        ' CHANGE
+        '        Case ConstMQFOpChange
+        '            VerifyAction = True
+        '            ' COMMAND FREEZE
+        '        Case ConstMQFOpFreeze
 
-                    VerifyAction = True
-                    ' ADD AFTER NOT IMPLEMENTED YET
-                Case ConstMQFOpAddAfter
-                    'theMessages(n).log = addLog(theMessages(n).log, _
-                    '                            "ERROR: in row #" & rowno & ": operation code '" & value & "' is not yet implemented.")
-                    'Set theMessages(n).status = New clsMQFStatus
-                    'theMessages(n).status.code = constStatusCode_skipped
-                    VerifyAction = True
-                    ' ADD NEW REVISION
-                Case ConstMQFOpAddRevision
+        '            VerifyAction = True
+        '            ' ADD AFTER NOT IMPLEMENTED YET
+        '        Case ConstMQFOpAddAfter
+        '            'theMessages(n).log = addLog(theMessages(n).log, _
+        '            '                            "ERROR: in row #" & rowno & ": operation code '" & value & "' is not yet implemented.")
+        '            'Set theMessages(n).status = New clsMQFStatus
+        '            'theMessages(n).status.code = constStatusCode_skipped
+        '            VerifyAction = True
+        '            ' ADD NEW REVISION
+        '        Case ConstMQFOpAddRevision
 
-                    VerifyAction = True
-                    ' NOOP
-                Case ConstMQFOpNoop
-                    'aMQFRowEntry.action = ConstMQFOpNoop
-                    'theMessages(n).log = addLog(theMessages(n).log, _
-                    '"INFO: in row #" & rowno & ": operation code '" & value & "' is meant to do nothing.")
-                    'theMessages(n).processable = theMessages(n).processable And True
-                    'Set theMessages(n).status = New clsMQFStatus
-                    'theMessages(n).status.code = constStatusCode_skipped
-                    'theMessages(n).processable = False
-                    ' DELETE NOT IMPLEMENTED YET
-                    VerifyAction = True
-                Case ConstMQFOpDelete
-                    'theMessages(n).log = addLog(theMessages(n).log, _
-                    '"ERROR: in row #" & rowno & ": operation code '" & value & "' is not yet implemented.")
-                    'theMessages(n).processable = False
-                    VerifyAction = True
-                Case ""
-                    'theMessages(n).log = addLog(theMessages(n).log, _
-                    '                            "INFO: in row #" & rowno & " empty operation code - skipped ")
-                    'Set theMessages(n).status = New clsMQFStatus
-                    'theMessages(n).status.code = constStatusCode_skipped
-                    VerifyAction = False
-                Case Else
-                    'theMessages(n).log = addLog(theMessages(n).log, _
-                    '                            "ERROR: in row #" & rowno & ": operation code '" & value & "' is unknown !")
-                    'Set theMessages(n).status = New clsMQFStatus
-                    'theMessages(n).status.code = constStatusCode_error
-                    VerifyAction = False
+        '            VerifyAction = True
+        '            ' NOOP
+        '        Case ConstMQFOpNoop
+        '            'aMQFRowEntry.action = ConstMQFOpNoop
+        '            'theMessages(n).log = addLog(theMessages(n).log, _
+        '            '"INFO: in row #" & rowno & ": operation code '" & value & "' is meant to do nothing.")
+        '            'theMessages(n).processable = theMessages(n).processable And True
+        '            'Set theMessages(n).status = New clsMQFStatus
+        '            'theMessages(n).status.code = constStatusCode_skipped
+        '            'theMessages(n).processable = False
+        '            ' DELETE NOT IMPLEMENTED YET
+        '            VerifyAction = True
+        '        Case ConstMQFOpDelete
+        '            'theMessages(n).log = addLog(theMessages(n).log, _
+        '            '"ERROR: in row #" & rowno & ": operation code '" & value & "' is not yet implemented.")
+        '            'theMessages(n).processable = False
+        '            VerifyAction = True
+        '        Case ""
+        '            'theMessages(n).log = addLog(theMessages(n).log, _
+        '            '                            "INFO: in row #" & rowno & " empty operation code - skipped ")
+        '            'Set theMessages(n).status = New clsMQFStatus
+        '            'theMessages(n).status.code = constStatusCode_skipped
+        '            VerifyAction = False
+        '        Case Else
+        '            'theMessages(n).log = addLog(theMessages(n).log, _
+        '            '                            "ERROR: in row #" & rowno & ": operation code '" & value & "' is unknown !")
+        '            'Set theMessages(n).status = New clsMQFStatus
+        '            'theMessages(n).status.code = constStatusCode_error
+        '            VerifyAction = False
 
-            End Select
+        '    End Select
 
-        End Function
+        'End Function
         ''' <summary>
         ''' Is Action Processable
         ''' </summary>
@@ -1323,67 +1323,55 @@ Namespace OnTrack.Xchange
         ''' <param name="MSGLOG"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function IsActionProcessable(Optional ByVal actioncommand As String = "", _
+        Public Function IsActionProcessable(Optional ByVal actioncommand As String = Nothing, _
                                             Optional ByRef msglog As ObjectMessageLog = Nothing) As Boolean
 
-            If actioncommand = "" Then
-                actioncommand = LCase(Me.Action)
-            End If
+            If actioncommand IsNot Nothing Then actioncommand = actioncommand.Trim.ToUpper
+            If actioncommand Is Nothing Then actioncommand = Me.Action.ToUpper
 
             'msglog
-            'If msglog Is Nothing Then msglog = Me.ObjectMessageLog
+            If msglog Is Nothing Then msglog = Me.ObjectMessageLog
 
             ' check on it
-            Select Case LCase(Trim(actioncommand))
+            Select Case actioncommand
                 ' CHANGE
                 Case ConstMQFOpChange
                     IsActionProcessable = True
+
                     ' COMMAND FREEZE
                 Case ConstMQFOpFreeze
-                    IsActionProcessable = True
-                    ' ADD AFTER NOT IMPLEMENTED YET
+                    '511;@;MQF;message operation '%1%' in %Tupleidentifier% is not yet implemented;Please correct;99;Error;false;|R1|R1|;|XCHANGEENVELOPE|MQMESSAGE|
+                    Me.ObjectMessageLog.Add(511, Nothing, Nothing, Nothing, Nothing, ConstMQFOpFreeze)
+                    IsActionProcessable = False
+                    
                 Case ConstMQFOpAddAfter
-                    'theMessages(n).log = addLog(theMessages(n).log, _
-                    '                            "ERROR: in row #" & rowno & ": operation code '" & value & "' is not yet implemented.")
-                    'Set theMessages(n).status = New clsMQFStatus
-                    'theMessages(n).status.code = constStatusCode_skipped
                     IsActionProcessable = True
+
                     ' ADD NEW REVISION
                 Case ConstMQFOpAddRevision
                     IsActionProcessable = True
+
                     ' NOOP
                 Case ConstMQFOpNoop
-                    'aMQFRowEntry.action = ConstMQFOpNoop
-                    'theMessages(n).log = addLog(theMessages(n).log, _
-                    '"INFO: in row #" & rowno & ": operation code '" & value & "' is meant to do nothing.")
-                    'theMessages(n).processable = theMessages(n).processable And True
-                    'Set theMessages(n).status = New clsMQFStatus
-                    'theMessages(n).status.code = constStatusCode_skipped
-                    'theMessages(n).processable = False
-                    ' DELETE NOT IMPLEMENTED YET
-                    IsActionProcessable = False
-                Case ConstMQFOpDelete
-                    'theMessages(n).log = addLog(theMessages(n).log, _
-                    ' "ERROR: in row #" & rowno & ": operation code '" & value & "' is not yet implemented.")
+                    '573;@;MQF;message in row %Tupleidentifier% has operation NOOP which means 'DO NOTHING' - skip processing;;99;Error;false;|S1|;|MQMESSAGE|
+                    msglog.Add(573, Nothing, Nothing, Nothing, Nothing)
+                    IsActionProcessable = True
 
-                    'theMessages(n).processable = False
-                    IsActionProcessable = False
+                Case ConstMQFOpDelete
+                    IsActionProcessable = True
+
                 Case ""
-                    'Call MSGLOG.AddMsg("300", Me._queue.TAG, Me.Rowno, "mqf1")
-                    'theMessages(n).log = addLog(theMessages(n).log, _
-                    '                            "INFO: in row #" & rowno & " empty operation code - skipped ")
-                    'Set theMessages(n).status = New clsMQFStatus
-                    'theMessages(n).status.code = constStatusCode_skipped
+                    '513;@;MQF;message operation is missing - message not processed;;99;Error;false;|R1|S1|;|XCHANGEENVELOPE|MQMESSAGE|
+                    msglog.Add(513, Nothing, Nothing, Nothing, Nothing)
                     IsActionProcessable = False
                 Case Else
-                    'theMessages(n).log = addLog(theMessages(n).log, _
-                    '                            "ERROR: in row #" & rowno & ": operation code '" & value & "' is unknown !")
-                    'Set theMessages(n).status = New clsMQFStatus
-                    'theMessages(n).status.code = constStatusCode_error
+                    '510;@;MQF;message operation '%1%' in %Tupleidentifier% is unknown;Please correct;99;Error;false;|R1|R1|;|XCHANGEENVELOPE|MQMESSAGE|
+                    msglog.Add(510, Nothing, Nothing, Nothing, Nothing, actioncommand)
                     IsActionProcessable = False
 
             End Select
 
+            Return IsActionProcessable
         End Function
 
         ''' <summary>
@@ -1426,12 +1414,22 @@ Namespace OnTrack.Xchange
             End If
 
             '''
-            ''' check if action there
+            ''' Check the highest Status if already on aborting than leave it
             ''' 
-            If Me.Action Is Nothing Then
-                Me.ObjectMessageLog.Add(1011, Nothing, Me.ContextIdentifier, Me.TupleIdentifier, Me.EntityIdentifier, aconfigname)
-
-            Else
+            Dim astatusitem As Commons.StatusItem = Me.ObjectMessageLog.GetHighesStatusItem(statustype:=ConstStatusType_MQMessage)
+            If astatusitem IsNot Nothing AndAlso astatusitem.Aborting Then
+                '' skip it
+                '575;@;MQF;message in row %Tupleidentifier% has skip status - skipping again;;99;Error;false;|S1|;|MQMESSAGE|
+                Me.ObjectMessageLog.Add(575, Nothing, Nothing, Nothing, Nothing)
+                result = True
+                '''
+                ''' check if action there
+                ''' 
+            ElseIf String.IsNullOrWhiteSpace(Me.Action) Then
+                '513;@;MQF;message operation is missing - message not processed;;80;Error;false;|R1|;|XCHANGEENVELOPE|
+                Me.ObjectMessageLog.Add(513, Nothing, Me.ContextIdentifier, Me.TupleIdentifier, Me.EntityIdentifier, aconfigname)
+                result = False
+            ElseIf Me.IsActionProcessable(Me.Action, Me.ObjectMessageLog) Then
 
                 '''
                 ''' run the commands
@@ -1445,40 +1443,29 @@ Namespace OnTrack.Xchange
                         ''' 
                         result = True
 
-                    Case ot.ConstMQFOpChange
+                    Case ot.ConstMQFOpChange, ot.ConstMQFOpAddRevision, ot.ConstMQFOpAddRevision
                         '''
                         ''' run the XChange through the envelope
                         ''' 
                         Me.Processed = Me.RunXChange(justprecheck:=True, workerthread:=workerthread)
                         Me.Statusitem = Me.ObjectMessageLog.GetHighesStatusItem(ConstStatusType_XEnvelope)
-                        If Me.Statusitem.Code Like "R*" Then
+                        If Me.Statusitem.Aborting Then
                             result = False
                         Else
                             result = True
                         End If
 
-
-                        '****
-                        '**** ADD REVISION
-                    Case ot.ConstMQFOpAddRevision
-
-                        result = False 'not implemented
-                        '****
-                        '**** ADD-AFTER
-                        '****
-                    Case ot.ConstMQFOpAddAfter
-
-                        result = False 'not implemented
                         '******
                         '****** freeze
                     Case ot.ConstMQFOpFreeze
-
+                        '511;@;MQF;message operation '%1%' in %Tupleidentifier% is not yet implemented;Please correct;99;Error;false;|R1|R1|;|XCHANGEENVELOPE|MQMESSAGE|
+                        Me.ObjectMessageLog.Add(511, Nothing, Nothing, Nothing, Nothing, ConstMQFOpFreeze)
                         result = False 'not implemented
 
                         '****
                         '**** Delete Deliverable
                     Case ot.ConstMQFOpDelete
-                        result = False 'not implemented
+                        result = True 'not implemented
 
                     Case ""
                         '''
@@ -1488,8 +1475,8 @@ Namespace OnTrack.Xchange
                         If Me.MessageQueue IsNot Nothing AndAlso Me.MessageQueue.XChangeConfig IsNot Nothing Then
                             aconfigname = Me.MessageQueue.XChangeConfig.Configname
                         End If
-                        Me.ObjectMessageLog.Add(1011, Nothing, Me.ContextIdentifier, Me.TupleIdentifier, Me.EntityIdentifier, aconfigname, _
-                                                Me.Action)
+                        '513;@;MQF;message operation is missing - message not processed;;80;Error;false;|R1|;|XCHANGEENVELOPE|
+                        Me.ObjectMessageLog.Add(513, Nothing, Me.ContextIdentifier, Me.TupleIdentifier, Me.EntityIdentifier, aconfigname, Me.Action)
                     Case Else
                         '''
                         ''' Operation not known
@@ -1498,7 +1485,8 @@ Namespace OnTrack.Xchange
                         If Me.MessageQueue IsNot Nothing AndAlso Me.MessageQueue.XChangeConfig IsNot Nothing Then
                             aconfigname = Me.MessageQueue.XChangeConfig.Configname
                         End If
-                        Me.ObjectMessageLog.Add(1010, Nothing, Me.ContextIdentifier, Me.TupleIdentifier, Me.EntityIdentifier, aconfigname, _
+                        '512;@;MQF;message operation '%2%' in xchange configuration '%1%' is invalid - operation '%2%' aborted;;90;Error;false;|R1|;|XCHANGEENVELOPE|
+                        Me.ObjectMessageLog.Add(512, Nothing, Me.ContextIdentifier, Me.TupleIdentifier, Me.EntityIdentifier, aconfigname, _
                                                 Me.Action)
 
                 End Select
@@ -1534,14 +1522,26 @@ Namespace OnTrack.Xchange
             ElseIf Not Me.Processable Then
                 Me.ObjectMessageLog.Add(1292, Nothing, Me.ContextIdentifier, Me.TupleIdentifier, Me.EntityIdentifier)
                 Return False
-            ElseIf Me.Action Is Nothing Then
+
+            ElseIf String.IsNullOrWhiteSpace(Me.Action) Then
+                '1010;@;XCHANGE;xchange command '%2%' in xchange configuration '%1%' is invalid - operation '%2%' aborted;;90;Error;false;|R1|;|XCHANGEENVELOPE|
                 Me.ObjectMessageLog.Add(1010, Nothing, Me.ContextIdentifier, Me.TupleIdentifier, Me.EntityIdentifier)
                 Return False
+
+            ElseIf Me.ObjectMessageLog.GetHighesStatusItem(statustype:=ConstStatusType_MQMessage).Code = "S1" Then
+                '' skip it
+                '576;@;MQF;message in row %Tupleidentifier% has skip status - skipping processing again;;99;Error;false;|S1|;|MQMESSAGE|
+                Me.ObjectMessageLog.Add(576, Nothing, Nothing, Nothing, Nothing)
+                Return True
+
             End If
-            '''
+
+            ''' 
             ''' run the commands
             ''' 
+
             Select Case Me.Action.ToUpper
+
 
                 Case ot.ConstMQFOpNoop
                     '''
@@ -1552,14 +1552,14 @@ Namespace OnTrack.Xchange
                     Me.ObjectMessageLog.Add(1290, Nothing, Me.ContextIdentifier, Me.TupleIdentifier, Me.EntityIdentifier, Me.MessageQueue.ID, ot.ConstMQFOpNoop)
                     RaiseEvent OnProcessed(Me, New MQMessage.EventArgs(MQMessage:=Me, result:=result))
 
-                Case ot.ConstMQFOpChange
+                Case ot.ConstMQFOpChange, ot.ConstMQFOpDelete
                     '''
                     ''' run the XChange through the envelope
                     ''' 
                     Me.ProcessedOn = Date.Now
                     Me.Processed = Me.RunXChange(justprecheck:=False, workerthread:=workerthread)
                     Me.Statusitem = Me.ObjectMessageLog.GetHighesStatusItem(ConstStatusType_XEnvelope)
-                    If Me.Statusitem.Code Like "R*" Then
+                    If Me.Statusitem.Aborting Then
                         result = False
                     Else
                         result = True
@@ -1568,148 +1568,54 @@ Namespace OnTrack.Xchange
                     RaiseEvent OnProcessed(Me, New MQMessage.EventArgs(MQMessage:=Me, result:=result))
 
                     'Call updateRowXlsDoc9(INPUTMAPPING:=aMapping, INPUTXCHANGECONFIG:=MQFObject.XChangeConfig)
+
                     '****
                     '**** ADD REVISION
+                    '****
                 Case ot.ConstMQFOpAddRevision
-                    '' fill the Mapping
-                    'aMapping = New Dictionary(Of Object, Object)
-                    'Call aMQFRowEntry.FillMapping(aMapping)
-                    '' get UID
-                    'aConfigmember = MQFObject.XChangeConfig.GetEntryByXID(XID:="uid")
-                    'If Not aConfigmember Is Nothing Then
-                    '    If aConfigmember.IsLoaded Or aConfigmember.IsCreated Then
-                    '        If aMapping.ContainsKey(key:=aConfigmember.Ordinal.Value) Then
-                    '            anUID = aMapping.Item(key:=aConfigmember.Ordinal.Value)
-                    '            aDeliverable = Deliverables.Deliverable.Retrieve(uid:=anUID)
-                    '            If aDeliverable Is Nothing Then
-                    '                '** revision ?!
-                    '                aConfigmember = MQFObject.XChangeConfig.GetEntryByXID(XID:="c16")
-                    '                If Not aConfigmember Is Nothing Then
-                    '                    If aConfigmember.IsLoaded Or aConfigmember.IsCreated Then
-                    '                        If aMapping.ContainsKey(key:=aConfigmember.Ordinal.Value) Then
-                    '                            aRev = aMapping.Item(key:=aConfigmember.Ordinal.Value)
-                    '                        Else
-                    '                            aRev = ""
-                    '                        End If
-                    '                    Else
-                    '                        aRev = ""
-                    '                    End If
-                    '                Else
-                    '                    aRev = ""
-                    '                End If
-                    '                '**
-                    '                aNewDeliverable = aDeliverable.AddRevision(newRevision:=aRev, persist:=True)
-                    '                If Not aNewDeliverable Is Nothing Then
-                    '                    ' substitute UID
-                    '                    aConfigmember = MQFObject.XChangeConfig.GetEntryByXID(XID:="uid")
-                    '                    Call aMapping.Remove(key:=aConfigmember.Ordinal.Value)
-                    '                    Call aMapping.Add(key:=aConfigmember.Ordinal.Value, value:=aNewDeliverable.Uid)
-                    '                    ' substitute REV
-                    '                    aConfigmember = MQFObject.XChangeConfig.GetEntryByXID(XID:="c16")
-                    '                    If Not aConfigmember Is Nothing Then
-                    '                        If aConfigmember.IsLoaded Or aConfigmember.IsCreated Then
-                    '                            If aMapping.ContainsKey(key:=aConfigmember.Ordinal.Value) Then
-                    '                                Call aMapping.Remove(key:=aConfigmember.Ordinal.Value)
-                    '                            End If
-                    '                            Call aMapping.Add(key:=aConfigmember.Ordinal.Value, value:=aNewDeliverable.Revision)
-                    '                        End If
-                    '                    End If
-                    '                    ' substitute TYPEID or ADD
-                    '                    aConfigmember = MQFObject.XChangeConfig.GetEntryByXID(XID:="SC14")
-                    '                    If aConfigmember Is Nothing Then
-                    '                        If MQFObject.XChangeConfig.AddEntryByXID(Xid:="SC14") Then
-                    '                            aConfigmember = MQFObject.XChangeConfig.GetEntryByXID(XID:="SC14")
-                    '                        End If
-                    '                    End If
-                    '                    If aConfigmember.IsLoaded Or aConfigmember.IsCreated Then
-                    '                        If aMapping.ContainsKey(key:=aConfigmember.Ordinal.Value) Then
-                    '                            Call aMapping.Remove(key:=aConfigmember.Ordinal.Value)
-                    '                        End If
-                    '                        Dim aTrack As Deliverables.Track
-                    '                        aTrack = aNewDeliverable.GetTrack
-                    '                        If Not aTrack Is Nothing Then
-                    '                            Call aMapping.Add(key:=aConfigmember.Ordinal.Value, value:=aTrack.Scheduletype)
-                    '                        End If
-                    '                        'Call aMapping.Add(key:=aConfigmember.ordinal.value, c:=aNewDeliverable.getTrack.SCHEDULETYPE)
-                    '                    End If
 
-                    '                    '*** runxchange
-                    '                    'Call aMQFRowEntry.RunXChange(MAPPING:=aMapping)
-                    '                    aMQFRowEntry.ProcessedOn = Now
-                    '                    'how to save new uid ?!
-                    '                    'Call updateRowXlsDoc9(INPUTMAPPING:=aMapping, INPUTXCHANGECONFIG:=MQFObject.XCHANGECONFIG)
-                    '                Else
-                    '                    Call CoreMessageHandler(subname:="MQF.processXLSMQF", message:="AddRevision failed", _
-                    '                                          arg1:=aDeliverable.Uid)
-                    '                End If
-                    '            Else
-                    '                Call CoreMessageHandler(subname:="MQF.processXLSMQF", message:="uid not in mapping", _
-                    '                                      arg1:=anUID)
-                    '            End If
-                    '        Else
-                    '            Call CoreMessageHandler(subname:="MQF.processXLSMQF", message:="load of Deliverable failed", _
-                    '                                  arg1:=aConfigmember.Ordinal.Value)
-                    '        End If
-                    '    Else
-                    '        Call CoreMessageHandler(subname:="MQF.processXLSMQF", message:="uid id not in configuration", _
-                    '                              arg1:="uid")
-                    '    End If
-                    'Else
-                    '    Call CoreMessageHandler(subname:="MQF.processXLSMQF", message:="uid id not in configuration", _
-                    '                          arg1:="uid")
-                    'End If
+                    '''
+                    ''' run the XChange through the envelope
+                    ''' 
+                    Me.ProcessedOn = Date.Now
+                    Me.Processed = Me.RunOpAddRevision(justprecheck:=False, workerthread:=workerthread)
+                    Me.Statusitem = Me.ObjectMessageLog.GetHighesStatusItem(ConstStatusType_XEnvelope)
+                    If Me.Statusitem.Aborting Then
+                        result = False
+                    Else
+                        result = True
+                    End If
+                    Me.Processed = result
+                    RaiseEvent OnProcessed(Me, New MQMessage.EventArgs(MQMessage:=Me, result:=result))
+
 
                     '****
                     '**** ADD-AFTER
                     '****
                 Case ot.ConstMQFOpAddAfter
-                    '' fill the Mapping
-                    'aMapping = New Dictionary(Of Object, Object)
-                    'Call aMQFRowEntry.FillMapping(aMapping)
 
-                    '' create -> deliverable type should be in here
-                    'aDeliverable = Deliverables.Deliverable.Create()
-                    '' aDeliverable = aDeliverable.CreateFirstRevision() not necessary anymore
-                    'If aDeliverable.IsCreated Then
-                    '    aNewUID = aDeliverable.Uid
-                    '    ' substitute UID
-                    '    aConfigmember = MQFObject.XChangeConfig.GetEntryByXID(XID:="uid")
-                    '    If Not aConfigmember Is Nothing Then
-                    '        If aConfigmember.IsLoaded Or aConfigmember.IsCreated Then
-                    '            If aMapping.ContainsKey(key:=aConfigmember.Ordinal.Value) Then
-                    '                anUID = aMapping.Item(key:=aConfigmember.Ordinal.Value)
-                    '                Call aMapping.Remove(key:=aConfigmember.Ordinal.Value)
-                    '            Else
-                    '                anUID = -1
-                    '            End If
-                    '        Else
-                    '            If MQFObject.XChangeConfig.AddEntryByXID(Xid:="uid") Then
-                    '                aConfigmember = MQFObject.XChangeConfig.GetEntryByXID(XID:="uid")
-                    '            End If
-                    '        End If
-                    '    Else
-                    '        If MQFObject.XChangeConfig.AddEntryByXID(Xid:="uid") Then
-                    '            aConfigmember = MQFObject.XChangeConfig.GetEntryByXID(XID:="uid")
-                    '        End If
-                    '    End If
-
-                    '    Call aMapping.Add(key:=aConfigmember.Ordinal.Value, value:=aNewUID)
-
-
-                    '    '*** runxchange
-                    '    'Call aMQFRowEntry.RunXChange(MAPPING:=aMapping)
-                    '    aMQFRowEntry.ProcessedOn = Now
-                    '    '*** TODO : ADD TO OUTLINE
-                    '    System.Diagnostics.Debug.Write("new deliverable added: " & aNewUID & " to be added after uid #" & anUID)
-                    'Else
-                    '    Call CoreMessageHandler(subname:="MQF.processXLSMQF", message:="new deliverable couldn't be created", _
-                    '                          arg1:=anUID, break:=False, messagetype:=otCoreMessageType.ApplicationError)
-                    'End If
+                    '''
+                    ''' run the XChange through the envelope
+                    ''' 
+                    Me.ProcessedOn = Date.Now
+                    Me.Processed = Me.RunOpAddAfter(justprecheck:=False, workerthread:=workerthread)
+                    Me.Statusitem = Me.ObjectMessageLog.GetHighesStatusItem(ConstStatusType_XEnvelope)
+                    If Me.Statusitem.Aborting Then
+                        result = False
+                    Else
+                        result = True
+                    End If
+                    Me.Processed = result
+                    RaiseEvent OnProcessed(Me, New MQMessage.EventArgs(MQMessage:=Me, result:=result))
 
 
                     '******
                     '****** freeze
                 Case ot.ConstMQFOpFreeze
+                    '511;@;MQF;message operation '%1%' in %Tupleidentifier% is not yet implemented;Please correct;99;Error;false;|R1|R1|;|XCHANGEENVELOPE|MQMESSAGE|
+                    Me.ObjectMessageLog.Add(511, Nothing, Nothing, Nothing, Nothing, ConstMQFOpFreeze)
+
+
                     'aMapping = New Dictionary(Of Object, Object)
                     'Call aMQFRowEntry.FillMapping(aMapping)
                     '' get UID
@@ -1747,32 +1653,328 @@ Namespace OnTrack.Xchange
                     '        End If
                     '    End If
                     'End If
-                    '****
-                    '**** Delete Deliverable
-                Case ot.ConstMQFOpDelete
-                    '' fill the Mapping
-                    'aMapping = New Dictionary(Of Object, Object)
-                    'Call aMQFRowEntry.FillMapping(aMapping)
-                    '' get UID
-                    'aConfigmember = MQFObject.XChangeConfig.GetEntryByXID(XID:="uid")
-                    'If Not aConfigmember Is Nothing Then
-                    '    If aConfigmember.IsLoaded Or aConfigmember.IsCreated Then
-                    '        If aMapping.ContainsKey(key:=aConfigmember.Ordinal.Value) Then
-                    '            anUID = aMapping.Item(key:=aConfigmember.Ordinal.Value)
-                    '            aDeliverable = Deliverables.Deliverable.Retrieve(uid:=anUID)
-                    '            If aDeliverable IsNot Nothing Then
-                    '                aDeliverable.Delete()
 
-                    '            End If
-                    '        End If
-                    '    End If
-                    'End If
+                Case Else
+                    '510;@;MQF;message operation '%1%' in %Tupleidentifier% is unknown;Please correct;99;Error;false;|R1|R1|;|XCHANGEENVELOPE|MQMESSAGE|
+                    Me.ObjectMessageLog.Add(510, Nothing, Nothing, Nothing, Nothing, Me.Action.ToUpper)
+                    result = False
+
 
             End Select
 
             Return result
+
         End Function
 
+        ''' <summary>
+        ''' Run MQF Command Add-After on the MQMessage
+        ''' </summary>
+        ''' <param name="justprecheck"></param>
+        ''' <param name="MSGLOG"></param>
+        ''' <param name="MAPPING"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Private Function RunOpAddAfter(Optional justprecheck As Boolean = False, _
+                                       Optional msglog As ObjectMessageLog = Nothing, _
+                                       Optional ByRef workerthread As ComponentModel.BackgroundWorker = Nothing) As Boolean
+
+            If Not Me.IsAlive("RunOpAddAfter") Then Return False
+            If msglog Is Nothing Then msglog = Me.ObjectMessageLog
+
+            Dim aConfig As XChangeConfiguration
+            Dim aConfigEntry As IXChangeConfigEntry
+            Dim anoldUID As Long?
+
+            If Me.MessageQueue Is Nothing Then
+                Call CoreMessageHandler(subname:="MQMessage.RunOpAddAfter", arg1:=Me.MessageQueueID, message:="queue couldn't be loaded", messagetype:=otCoreMessageType.ApplicationError)
+                Return False
+            Else
+                aConfig = Me.MessageQueue.XChangeConfig
+                If aConfig Is Nothing Then
+                    Call CoreMessageHandler(subname:="MQMessage.RunOpAddAfter", arg1:=Me.MessageQueue.XChangeConfigName, message:="XChangeConfig couldn't be loaded", _
+                                            messagetype:=otCoreMessageType.ApplicationError)
+                    Return False
+                End If
+            End If
+
+            '''
+            ''' check for which object this is valid
+            If aConfig.GetObjectByName(objectname:=Deliverable.ConstObjectID) Is Nothing Then
+                '580;@;MQF;message in row %Tupleidentifier% with operation %1% is not possible for object type %2% - operation failed;;95;Error;false;|R1|R1|;|XCHANGEENVELOPE|MQMESSAGE|
+                msglog.Add(580, Nothing, Nothing, Nothing, Nothing, ConstMQFOpAddAfter, Converter.Enumerable2String(aConfig.ObjectnamesByOrderNo), aConfig.Configname)
+                Return False
+            End If
+
+            ' check the object command
+            ' set it to the highes command necessary
+            For Each aConfigEntry In aConfig.ObjectsByOrderNo
+                If aConfigEntry.IsXChanged Then
+                    aConfigEntry.XChangeCmd = aConfig.GetHighestObjectXCmd(aConfigEntry.Objectname)
+                End If
+            Next aConfigEntry
+
+            ''' fill the envelope
+            ''' 
+            For Each aSlot As Xchange.MQXSlot In Me.Slots
+                For Each aConfigEntry In aSlot.XChangeConfigEntries
+                    If Not Me.Xenvelope.AddSlotbyXEntry(entry:=aConfigEntry, _
+                                                  value:=aSlot.Value, isHostValue:=True, _
+                                                  overwriteValue:=False, replaceSlotIfexists:=False, _
+                                                  ValueIsNull:=aSlot.IsNull, SlotIsEmpty:=aSlot.IsEmpty) Then
+
+                    End If
+                Next
+            Next
+
+            '''
+            ''' process the AddAfter
+            ''' 
+            anoldUID = Me.Xenvelope.GetSlotValueByObjectEntryName(entryname:=Deliverable.constFNUid, objectname:=Deliverable.ConstObjectID, asHostValue:=False)
+
+            '' create the deliverable -> deliverable type should be in here
+            Dim aDeliverable As Deliverable = Deliverables.Deliverable.Create()
+            If aDeliverable Is Nothing Then
+                Return False
+            End If
+            System.Diagnostics.Debug.Write("new deliverable added: " & aDeliverable.Uid & " to be added after uid #" & anOldUID)
+
+            ''' extend the config
+            aConfigEntry = Me.MessageQueue.XChangeConfig.GetEntryByObjectEntryName(entryname:=Deliverable.constFNUid)
+            If aConfigEntry Is Nothing Then
+                aConfig.AddEntryByObjectEntry(entryname:=Deliverable.constFNUid, objectname:=Deliverable.ConstObjectID, _
+                                              isXChanged:=True, xcmd:=otXChangeCommandType.UpdateCreate)
+            End If
+            ''' add / substitute the new slot
+            If Not Me.Xenvelope.AddSlotbyXEntry(entry:=aConfigEntry, _
+                                              value:=aDeliverable.Uid, isHostValue:=False, _
+                                              overwriteValue:=True, replaceSlotIfexists:=True, _
+                                              ValueIsNull:=False, SlotIsEmpty:=False) Then
+
+            End If
+
+
+            '''
+            ''' run the xchange
+            ''' 
+            Dim result As Boolean
+            If justprecheck Then
+                result = Me.Xenvelope.RunXPreCheck(msglog)
+            Else
+                result = Me.Xenvelope.RunXChange(msglog)
+            End If
+
+            ''' 
+            ''' extend the Outline
+            '''
+            If result And aConfig.Outline IsNot Nothing Then
+                If aConfig.Outline.DynamicBehaviour = False Then
+                    Throw New NotImplementedException("Outline Update notimplemented")
+                End If
+            End If
+
+            ''' return
+            Return result
+        End Function
+
+        ''' <summary>
+        ''' Run MQF Command Add-After on the MQMessage
+        ''' </summary>
+        ''' <param name="justprecheck"></param>
+        ''' <param name="MSGLOG"></param>
+        ''' <param name="MAPPING"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Private Function RunOpAddRevision(Optional justprecheck As Boolean = False, _
+                                       Optional msglog As ObjectMessageLog = Nothing, _
+                                       Optional ByRef workerthread As ComponentModel.BackgroundWorker = Nothing) As Boolean
+
+            If Not Me.IsAlive("RunOpAddRevision") Then Return False
+            If msglog Is Nothing Then msglog = Me.ObjectMessageLog
+
+            Dim aConfig As XChangeConfiguration
+            Dim aConfigEntry As IXChangeConfigEntry
+            Dim anoldUID As Long?
+
+            If Me.MessageQueue Is Nothing Then
+                Call CoreMessageHandler(subname:="MQMessage.RunOpAddRevision", arg1:=Me.MessageQueueID, message:="queue couldn't be loaded", messagetype:=otCoreMessageType.ApplicationError)
+                Return False
+            Else
+                aConfig = Me.MessageQueue.XChangeConfig
+                If aConfig Is Nothing Then
+                    Call CoreMessageHandler(subname:="MQMessage.RunOpAddRevision", arg1:=Me.MessageQueue.XChangeConfigName, message:="XChangeConfig couldn't be loaded", _
+                                            messagetype:=otCoreMessageType.ApplicationError)
+                    Return False
+                End If
+            End If
+
+            '''
+            ''' check for which object this is valid
+            If aConfig.GetObjectByName(objectname:=Deliverable.ConstObjectID) Is Nothing Then
+                '580;@;MQF;message in row %Tupleidentifier% with operation %1% is not possible for object type %2% - operation failed;;95;Error;false;|R1|R1|;|XCHANGEENVELOPE|MQMESSAGE|
+                msglog.Add(580, Nothing, Nothing, Nothing, Nothing, ConstMQFOpAddAfter, Converter.Enumerable2String(aConfig.ObjectnamesByOrderNo), aConfig.Configname)
+                Return False
+            End If
+
+            ' check the object command
+            ' set it to the highes command necessary
+            For Each aConfigEntry In aConfig.ObjectsByOrderNo
+                If aConfigEntry.IsXChanged Then
+                    aConfigEntry.XChangeCmd = aConfig.GetHighestObjectXCmd(aConfigEntry.Objectname)
+                End If
+            Next aConfigEntry
+
+            ''' fill the envelope
+            ''' 
+            For Each aSlot As XChange.MQXSlot In Me.Slots
+                For Each aConfigEntry In aSlot.XChangeConfigEntries
+                    If Not Me.Xenvelope.AddSlotbyXEntry(entry:=aConfigEntry, _
+                                                  value:=aSlot.Value, isHostValue:=True, _
+                                                  overwriteValue:=False, replaceSlotIfexists:=False, _
+                                                  ValueIsNull:=aSlot.IsNull, SlotIsEmpty:=aSlot.IsEmpty) Then
+
+                    End If
+                Next
+            Next
+
+
+            '' fill the Mapping
+            'aMapping = New Dictionary(Of Object, Object)
+            'Call aMQFRowEntry.FillMapping(aMapping)
+            '' get UID
+            'aConfigmember = MQFObject.XChangeConfig.GetEntryByXID(XID:="uid")
+            'If Not aConfigmember Is Nothing Then
+            '    If aConfigmember.IsLoaded Or aConfigmember.IsCreated Then
+            '        If aMapping.ContainsKey(key:=aConfigmember.Ordinal.Value) Then
+            '            anUID = aMapping.Item(key:=aConfigmember.Ordinal.Value)
+            '            aDeliverable = Deliverables.Deliverable.Retrieve(uid:=anUID)
+            '            If aDeliverable Is Nothing Then
+            '                '** revision ?!
+            '                aConfigmember = MQFObject.XChangeConfig.GetEntryByXID(XID:="c16")
+            '                If Not aConfigmember Is Nothing Then
+            '                    If aConfigmember.IsLoaded Or aConfigmember.IsCreated Then
+            '                        If aMapping.ContainsKey(key:=aConfigmember.Ordinal.Value) Then
+            '                            aRev = aMapping.Item(key:=aConfigmember.Ordinal.Value)
+            '                        Else
+            '                            aRev = ""
+            '                        End If
+            '                    Else
+            '                        aRev = ""
+            '                    End If
+            '                Else
+            '                    aRev = ""
+            '                End If
+            '                '**
+            '                aNewDeliverable = aDeliverable.AddRevision(newRevision:=aRev, persist:=True)
+            '                If Not aNewDeliverable Is Nothing Then
+            '                    ' substitute UID
+            '                    aConfigmember = MQFObject.XChangeConfig.GetEntryByXID(XID:="uid")
+            '                    Call aMapping.Remove(key:=aConfigmember.Ordinal.Value)
+            '                    Call aMapping.Add(key:=aConfigmember.Ordinal.Value, value:=aNewDeliverable.Uid)
+            '                    ' substitute REV
+            '                    aConfigmember = MQFObject.XChangeConfig.GetEntryByXID(XID:="c16")
+            '                    If Not aConfigmember Is Nothing Then
+            '                        If aConfigmember.IsLoaded Or aConfigmember.IsCreated Then
+            '                            If aMapping.ContainsKey(key:=aConfigmember.Ordinal.Value) Then
+            '                                Call aMapping.Remove(key:=aConfigmember.Ordinal.Value)
+            '                            End If
+            '                            Call aMapping.Add(key:=aConfigmember.Ordinal.Value, value:=aNewDeliverable.Revision)
+            '                        End If
+            '                    End If
+            '                    ' substitute TYPEID or ADD
+            '                    aConfigmember = MQFObject.XChangeConfig.GetEntryByXID(XID:="SC14")
+            '                    If aConfigmember Is Nothing Then
+            '                        If MQFObject.XChangeConfig.AddEntryByXID(Xid:="SC14") Then
+            '                            aConfigmember = MQFObject.XChangeConfig.GetEntryByXID(XID:="SC14")
+            '                        End If
+            '                    End If
+            '                    If aConfigmember.IsLoaded Or aConfigmember.IsCreated Then
+            '                        If aMapping.ContainsKey(key:=aConfigmember.Ordinal.Value) Then
+            '                            Call aMapping.Remove(key:=aConfigmember.Ordinal.Value)
+            '                        End If
+            '                        Dim aTrack As Deliverables.Track
+            '                        aTrack = aNewDeliverable.GetTrack
+            '                        If Not aTrack Is Nothing Then
+            '                            Call aMapping.Add(key:=aConfigmember.Ordinal.Value, value:=aTrack.Scheduletype)
+            '                        End If
+            '                        'Call aMapping.Add(key:=aConfigmember.ordinal.value, c:=aNewDeliverable.getTrack.SCHEDULETYPE)
+            '                    End If
+
+            '                    '*** runxchange
+            '                    'Call aMQFRowEntry.RunXChange(MAPPING:=aMapping)
+            '                    aMQFRowEntry.ProcessedOn = Now
+            '                    'how to save new uid ?!
+            '                    'Call updateRowXlsDoc9(INPUTMAPPING:=aMapping, INPUTXCHANGECONFIG:=MQFObject.XCHANGECONFIG)
+            '                Else
+            '                    Call CoreMessageHandler(subname:="MQF.processXLSMQF", message:="AddRevision failed", _
+            '                                          arg1:=aDeliverable.Uid)
+            '                End If
+            '            Else
+            '                Call CoreMessageHandler(subname:="MQF.processXLSMQF", message:="uid not in mapping", _
+            '                                      arg1:=anUID)
+            '            End If
+            '        Else
+            '            Call CoreMessageHandler(subname:="MQF.processXLSMQF", message:="load of Deliverable failed", _
+            '                                  arg1:=aConfigmember.Ordinal.Value)
+            '        End If
+            '    Else
+            '        Call CoreMessageHandler(subname:="MQF.processXLSMQF", message:="uid id not in configuration", _
+            '                              arg1:="uid")
+            '    End If
+            'Else
+            '    Call CoreMessageHandler(subname:="MQF.processXLSMQF", message:="uid id not in configuration", _
+            '                          arg1:="uid")
+            'End If
+
+
+            '''
+            ''' process the AddAfter
+            ''' 
+            anoldUID = Me.Xenvelope.GetSlotValueByObjectEntryName(entryname:=Deliverable.constFNUid, objectname:=Deliverable.ConstObjectID, asHostValue:=False)
+
+            '' create the deliverable -> deliverable type should be in here
+            Dim aDeliverable As Deliverable = Deliverables.Deliverable.Create()
+            If aDeliverable Is Nothing Then
+                Return False
+            End If
+            System.Diagnostics.Debug.Write("new deliverable added: " & aDeliverable.Uid & " to be added after uid #" & anoldUID)
+
+            ''' extend the config
+            aConfigEntry = Me.MessageQueue.XChangeConfig.GetEntryByObjectEntryName(entryname:=Deliverable.constFNUid)
+            If aConfigEntry Is Nothing Then
+                aConfig.AddEntryByObjectEntry(entryname:=Deliverable.constFNUid, objectname:=Deliverable.ConstObjectID, _
+                                              isXChanged:=True, xcmd:=otXChangeCommandType.UpdateCreate)
+            End If
+            ''' add / substitute the new slot
+            If Not Me.Xenvelope.AddSlotbyXEntry(entry:=aConfigEntry, _
+                                              value:=aDeliverable.Uid, isHostValue:=False, _
+                                              overwriteValue:=True, replaceSlotIfexists:=True, _
+                                              ValueIsNull:=False, SlotIsEmpty:=False) Then
+
+            End If
+
+
+            '''
+            ''' run the xchange
+            ''' 
+            Dim result As Boolean
+            If justprecheck Then
+                result = Me.Xenvelope.RunXPreCheck(msglog)
+            Else
+                result = Me.Xenvelope.RunXChange(msglog)
+            End If
+
+            ''' 
+            ''' extend the Outline
+            '''
+            If result And aConfig.Outline IsNot Nothing Then
+                If aConfig.Outline.DynamicBehaviour = False Then
+                    Throw New NotImplementedException("Outline Update notimplemented")
+                End If
+            End If
+
+            ''' return
+            Return result
+        End Function
         ''' <summary>
         ''' Run XChange on the Enry
         ''' </summary>
@@ -1816,7 +2018,7 @@ Namespace OnTrack.Xchange
                     If Not Me.Xenvelope.AddSlotbyXEntry(entry:=aConfigEntry, _
                                                   value:=aSlot.Value, isHostValue:=True, _
                                                   overwriteValue:=False, replaceSlotIfexists:=False, _
-                                                  ValueIsNull:=aSlot.Value Is Nothing) Then
+                                                  ValueIsNull:=aSlot.IsNull, SlotIsEmpty:=aSlot.IsEmpty) Then
 
                     End If
                 Next
@@ -1949,6 +2151,12 @@ Namespace OnTrack.Xchange
         <ormObjectEntry(typeid:=otDataType.Text, defaultvalue:="", isnullable:=True, _
                     title:="value", Description:="text presentation of the slot value")> Public Const ConstFNvalue = "VALUE"
 
+        <ormObjectEntry(typeid:=otDataType.Bool, dbdefaultvalue:="0", defaultvalue:=False, _
+                     title:="IsEmpty", description:="is slot empty (none)")> Public Const ConstFNIsEmpty = "ISEMPTY"
+
+        <ormObjectEntry(typeid:=otDataType.Bool, dbdefaultvalue:="0", defaultvalue:=False, _
+                     title:="IsNull", description:="is slot null (initializing value)")> Public Const ConstFNIsNull = "ISNULL"
+
         <ormObjectEntry(typeid:=otDataType.Bool, defaultvalue:=False, dbdefaultvalue:="0", _
                      title:="Processed", description:="is message processed")> Public Const ConstFNProcessed = "PROCESSED"
 
@@ -1979,6 +2187,8 @@ Namespace OnTrack.Xchange
 
         <ormEntryMapping(entryname:=ConstFNDatatype)> Private _datatype As otDataType?
         <ormEntryMapping(entryname:=ConstFNvalue)> Private _valuestring As String
+        <ormEntryMapping(entryname:=ConstFNIsNull)> Private _isnull As Boolean
+        <ormEntryMapping(entryname:=ConstFNIsEmpty)> Private _isempty As Boolean
 
         <ormEntryMapping(entryname:=ConstFNProcStatus)> Private _procStatus As String
         <ormEntryMapping(entryname:=ConstFNProcStamp)> Private _ProcTimestamp As Date?
@@ -1998,6 +2208,32 @@ Namespace OnTrack.Xchange
 
 #Region "Properties"
 
+
+        ''' <summary>
+        ''' Gets or sets the isempty.
+        ''' </summary>
+        ''' <value>The isempty.</value>
+        Public Property IsEmpty() As Boolean
+            Get
+                Return Me._isempty
+            End Get
+            Set(value As Boolean)
+                SetValue(ConstFNIsEmpty, value)
+            End Set
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the isnull.
+        ''' </summary>
+        ''' <value>The isnull.</value>
+        Public Property IsNull() As Boolean
+            Get
+                Return Me._isnull
+            End Get
+            Set(value As Boolean)
+                SetValue(ConstFNIsNull, value)
+            End Set
+        End Property
 
         ''' <summary>
         ''' sets or gets the context identifier

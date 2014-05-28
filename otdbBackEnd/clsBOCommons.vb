@@ -164,8 +164,8 @@ Namespace OnTrack.Commons
         ''' <remarks></remarks>
 
         Private Sub ValuesCollection_OnAdded(sender As Object, e As Database.ormRelationCollection(Of ValueEntry).EventArgs) Handles _valuesCollection.OnAdded
-            If Not _valuesCollection.Contains(e.Dataobject.Value) Then
-                _valuesCollection.Add(e.Dataobject.Value)
+            If Not _valuesCollection.Contains(e.Dataobject) Then
+                _valuesCollection.Add(e.Dataobject)
             End If
         End Sub
 
@@ -215,9 +215,10 @@ Namespace OnTrack.Commons
          XID:="VE6", title:="Ordinal", description:="ordinal value of the entry")> Public Const ConstFNOrdinal = "ORDINAL"
 
         ' fields
-        <ormEntryMapping(EntryName:=ConstFNDomainID)> Private _DomainID As String = ""
+        <ormEntryMapping(EntryName:=ConstFNDomainID)> Private _DomainID As String
         <ormEntryMapping(EntryName:=ConstFNListID)> Private _ID As String = ""
-        <ormEntryMapping(EntryName:=ConstFNSelector)> Private _selector As String = ""
+        <ormEntryMapping(EntryName:=ConstFNDescription)> Private _Description As String
+        <ormEntryMapping(EntryName:=ConstFNSelector)> Private _selector As String
         <ormEntryMapping(EntryName:=ConstFNValue)> Private _valuestring As String = ""
         <ormEntryMapping(EntryName:=ConstFNOrdinal)> Private _ordinal As Long
         <ormEntryMapping(EntryName:=ConstFNDatatype)> Private _datatype As otDataType = 0
@@ -227,6 +228,19 @@ Namespace OnTrack.Commons
         Private _list As ValueList 'cached backlink
 
 #Region "Properties"
+        ''' <summary>
+        ''' Gets or sets the description.
+        ''' </summary>
+        ''' <value>The description.</value>
+        Public Property Description() As String
+            Get
+                Return Me._Description
+            End Get
+            Set(value As String)
+                SetValue(ConstFNDescription, value)
+            End Set
+        End Property
+
         ''' <summary>
         ''' Gets the value list
         ''' </summary>
@@ -260,7 +274,7 @@ Namespace OnTrack.Commons
         ''' <remarks></remarks>
         Public ReadOnly Property DomainID() As String
             Get
-                DomainID = _DomainID
+                Return _DomainID
             End Get
 
         End Property
@@ -272,7 +286,7 @@ Namespace OnTrack.Commons
         ''' <remarks></remarks>
         Public ReadOnly Property ListID() As String
             Get
-                ListID = _ID
+                Return _ID
             End Get
 
         End Property
@@ -284,7 +298,7 @@ Namespace OnTrack.Commons
         ''' <remarks></remarks>
         Public Property Selector() As String
             Get
-                Selector = _selector
+                Return _selector
             End Get
             Set(value As String)
                 SetValue(ConstFNSelector, value)
@@ -297,12 +311,12 @@ Namespace OnTrack.Commons
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Property Datatype As otDataType
-            Set(value As otDataType)
-                _datatype = value
-            End Set
             Get
-                SetValue(ConstFNDatatype, Value)
+                Return _datatype
             End Get
+            Set(value As otDataType)
+                SetValue(ConstFNDatatype, value)
+            End Set
         End Property
 
         ''' <summary>
@@ -347,7 +361,7 @@ Namespace OnTrack.Commons
         ''' <param name="sender"></param>
         ''' <param name="e"></param>
         ''' <remarks></remarks>
-        Public Sub ValueEntry_OnCreating(sender As Object, e As ormDataObjectEventArgs)
+        Public Sub ValueEntry_OnCreating(sender As Object, e As ormDataObjectEventArgs) Handles Me.OnCreating
             Dim my As ValueEntry = TryCast(e.DataObject, ValueEntry)
 
             If my IsNot Nothing Then
@@ -378,7 +392,7 @@ Namespace OnTrack.Commons
         ''' <param name="sender"></param>
         ''' <param name="e"></param>
         ''' <remarks></remarks>
-        Public Sub ValueEntry_OnCreated(sender As Object, e As ormDataObjectEventArgs)
+        Public Sub ValueEntry_OnCreated(sender As Object, e As ormDataObjectEventArgs) Handles Me.OnCreated
             Dim my As ValueEntry = TryCast(e.DataObject, ValueEntry)
 
             If my IsNot Nothing Then
@@ -403,7 +417,7 @@ Namespace OnTrack.Commons
         ''' <param name="aRecord"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Sub ValueEntry_OnInfused(sender As Object, e As ormDataObjectEventArgs) Handles MyBase.OnInfused
+        Public Sub ValueEntry_OnInfused(sender As Object, e As ormDataObjectEventArgs) Handles Me.OnInfused
             Dim aVAlue As Object
             Dim my As ValueEntry = TryCast(e.DataObject, ValueEntry)
 

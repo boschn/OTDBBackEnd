@@ -320,12 +320,30 @@ Namespace OnTrack.ObjectProperties
                                          ObjectPropertyValue.ConstObjectID}
         Private _set As ObjectPropertySet 'cached
 
+        '** disable some of the inherited columns
+        ''' <summary>
+        ''' Disabled
+        ''' </summary>
+        ''' <remarks></remarks>
+        <ormObjectEntry(isactive:=False)> Public Const ConstFNFinalObjectID As String = "ctblname"
+        <ormObjectEntry(isactive:=False)> Public Const ConstFNCompoundRelation As String = "crelation"
+        <ormObjectEntry(isactive:=False)> Public Const ConstFNCompoundIDEntryname As String = "cidfield"
+        <ormObjectEntry(isactive:=False)> Public Const ConstFNCompoundValueEntryName As String = "cvalfield"
+        <ormObjectEntry(isactive:=False)> Public Const ConstFNCompoundSetter As String = "CSETTER"
+        <ormObjectEntry(isactive:=False)> Public Const ConstFNCompoundGetter As String = "CGETTER"
+        <ormObjectEntry(isactive:=False)> Public Const ConstFNCompoundValidator As String = "CVALIDATE"
+
+        ''' <summary>
+        ''' constructor
+        ''' </summary>
+        ''' <remarks></remarks>
         Public Sub New()
             MyBase.New()
             MyBase.deregisterHandler() ' deregister the derived abstractentry handlers !
             AddHandler ormDataObject.OnCreating, AddressOf ObjectProperty_OnCreating
             AddHandler ormDataObject.OnCreated, AddressOf ObjectProperty_OnCreated
             AddHandler ormDataObject.OnInfused, AddressOf ObjectProperty_OnInfused
+            AddHandler ormDataObject.OnEntryChanged, AddressOf AbstractEntryDefinition_OnEntryChanged '' keep this one
         End Sub
 
 #Region "Properties"
@@ -480,21 +498,22 @@ Namespace OnTrack.ObjectProperties
                 .InnerDatatype = Me.InnerDatatype
                 .Version = Me.Version
                 .Title = Me.Title
+                .propertystrings = .propertystrings
                 .Description = Me.Description
                 ' ordinal calculate an ordinal
                 .Ordinal = 1000 + (Me.PropertySet.Ordinal - 1) * 100 + Me.Ordinal
                 ' addition
                 .LookupCondition = Me.LookupCondition
-                .LookupProperties = Me.LookupProperties
+                .LookupPropertyStrings = Me.LookupPropertyStrings
                 .PossibleValues = Me.PossibleValues
                 .LowerRangeValue = Me.LowerRangeValue
                 .UpperRangeValue = Me.UpperRangeValue
                 .ValidateRegExpression = Me.ValidateRegExpression
-                .Validationproperties = Me.Validationproperties
+                .ValidationPropertyStrings = Me.ValidationPropertyStrings
                 .XID = Me.XID
                 If .XID Is Nothing Then .XID = Me.SetID & "." & Me.ID
                 .IsValidating = Me.IsValidating
-                .RenderProperties = Me.RenderProperties
+                .RenderPropertystrings = Me._renderPropertyStrings
                 .RenderRegExpMatch = Me.RenderRegExpMatch
                 .RenderRegExpPattern = Me.RenderRegExpMatch
                 .IsRendering = Me.IsRendering

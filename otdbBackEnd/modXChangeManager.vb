@@ -44,6 +44,10 @@ Namespace OnTrack.XChange
                                   Optional delimiterChar As Char = ";"c, _
                                   Optional commentChar As Char = "#"c) As Boolean
 
+            CoreMessageHandler(message:="looking next to csv file '" & IO.Path.GetFileName(path) & "' ", _
+                                              arg1:=path, username:=CurrentSession.Username, _
+                                              subname:="CreateDatabase.FeedInitialData", messagetype:=otCoreMessageType.InternalInfo)
+
             ''' request rights and start session if necessary
             ''' 
             If Not ot.CurrentSession.RequestUserAccess(accessRequest:=otAccessRight.ReadUpdateData) Then
@@ -93,13 +97,30 @@ Namespace OnTrack.XChange
                 ''' read the object id of the first object -> must be the key
                 ''' 
                 Dim names As String() = Shuffle.NameSplitter(headerids(0))
-                Dim anObjectEntry As List(Of iormObjectEntry)
+                Dim theObjectEntries As List(Of iormObjectEntry)
+                Dim anObjectDefinition As ObjectDefinition
                 If names.Count > 1 Then
-                    anObjectEntry = ot.CurrentSession.Objects.GetEntryByXID(xid:=names.Last, objectname:=names.First)
+                    theObjectEntries = ot.CurrentSession.Objects.GetEntryByXID(xid:=names.Last, objectname:=names.First)
                 Else
-                    anObjectEntry = ot.CurrentSession.Objects.GetEntryByXID(xid:=names.Last)
+                    theObjectEntries = ot.CurrentSession.Objects.GetEntryByXID(xid:=names.Last)
                 End If
-                If anObjectEntry Is Nothing Then
+                If theObjectEntries Is Nothing OrElse theObjectEntries.Count = 0 Then
+                    '** load object
+                    anObjectDefinition = ot.CurrentSession.Objects.GetObject(objectid:=names.First)
+                    '** get the entry
+                    If anObjectDefinition IsNot Nothing AndAlso anObjectDefinition.GetEntry(entryname:=names.Last) IsNot Nothing Then
+                        theObjectEntries = New List(Of iormObjectEntry)
+                        theObjectEntries.Add(anObjectDefinition.GetEntry(entryname:=names.Last))
+                        '** try to get the Entries by XID Again 
+                    ElseIf anObjectDefinition IsNot Nothing Then
+                        If names.Count > 1 Then
+                            theObjectEntries = ot.CurrentSession.Objects.GetEntryByXID(xid:=names.Last, objectname:=names.First)
+                        Else
+                            theObjectEntries = ot.CurrentSession.Objects.GetEntryByXID(xid:=names.Last)
+                        End If
+                    End If
+                End If
+                If theObjectEntries Is Nothing OrElse theObjectEntries.Count = 0 Then
                     ot.CoreMessageHandler(message:="object entry with xid'" & headerids(0) & "' could not be retrieved - aborted", _
                                          arg1:=Converter.Array2String(headerids), _
                                          subname:="XChangeCSV.FeedInCSV", messagetype:=otCoreMessageType.ApplicationError)
@@ -107,7 +128,7 @@ Namespace OnTrack.XChange
                 End If
 
                 ''' the object definition in this csv
-                Dim anObjectDefinition As ObjectDefinition = ot.CurrentSession.Objects.GetObject(anObjectEntry.Item(0).Objectname)
+                If anObjectDefinition Is Nothing Then anObjectDefinition = ot.CurrentSession.Objects.GetObject(theObjectEntries.First.Objectname)
 
                 ''' build a xconfiguration
                 ''' 
@@ -131,17 +152,22 @@ Namespace OnTrack.XChange
                     Dim aXEnvelope As XEnvelope = aXBag.AddEnvelope(i) ' add the envelope
                     aXEnvelope.TupleIdentifier = aCSVReader.CurrentRecordIndex
                     For j = 0 To aCSVReader.FieldCount - 1
-                        result = result And aXEnvelope.AddSlotByXID(xid:=headerids(j), isHostValue:=True, value:=aCSVReader(j))
+                        If aCSVReader(j) IsNot Nothing Then
+                            Dim aValue = aCSVReader(j)
+                            If Trim(aValue.ToString) = "#NULL#" Then aValue = Nothing
+                            result = result And aXEnvelope.AddSlotByXID(xid:=headerids(j), isHostValue:=True, value:=aValue)
 
-                        If result = False Then
-                            CoreMessageHandler(message:="xchange envelope could not be fully set row #" & aCSVReader.CurrentRecordIndex & " in ordinal " & j, messagetype:=otCoreMessageType.ApplicationError, _
-                                           subname:="CSVXChangeManager.FeedInCSV")
+                            If result = False Then
+                                CoreMessageHandler(message:="xchange envelope could not be fully set row #" & aCSVReader.CurrentRecordIndex & " in ordinal " & j, messagetype:=otCoreMessageType.ApplicationError, _
+                                               subname:="CSVXChangeManager.FeedInCSV")
+                            End If
                         End If
+
                     Next
                     i += 1
                 End While
 
-               
+
                 ''' xchange it
                 ''' 
                 If aXBag.RunPreXCheck(msglog:=aMsgLog) Then
@@ -157,7 +183,7 @@ Namespace OnTrack.XChange
 
             Catch ex As Exception
                 ot.CoreMessageHandler(exception:=ex, subname:="CSVXChangeManager.FeedInCSV", arg1:=path)
-                acsvreader.dispose()
+                aCSVReader.Dispose()
                 Return False
             End Try
 

@@ -1658,7 +1658,15 @@ Namespace OnTrack.Database
 
         ReadOnly Property HasLookupProperties As Boolean
 
-        Function SetByAttribute(attribute As ormObjectEntryAttribute) As Boolean
+        Property LookupPropertyStrings As String()
+
+        Property ValidationPropertyStrings As String()
+
+        Property RenderPropertyStrings As String()
+
+        Property PropertyStrings As String()
+
+        Function AbstractEntryDefinition_SetByAttribute(attribute As ormObjectEntryAttribute) As Boolean
 
         ''' <summary>
         ''' handler for the OnSwitchRuntimeOff event

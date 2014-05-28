@@ -663,13 +663,14 @@ Namespace OnTrack.Database
                         '''
                         ''' optional arguemnt of foreign key
                         ''' 
-                        If [property].Arguments.Count > 1 Then
+                        If [property].Arguments IsNot Nothing AndAlso [property].Arguments.Count > 1 Then
                             CoreMessageHandler(message:="first argument is optional foreign key name - more arguments specified as required ", arg1:=[property].ToString, _
                                            subname:="LookupProperty.Validate", messagetype:=otCoreMessageType.InternalError)
+                            Return False
                         End If
                         
                     Case otLookupProperty.UseObjectEntry
-                        If [property].Arguments.Count = 1 Then
+                        If [property].Arguments IsNot Nothing AndAlso [property].Arguments.Count = 1 Then
                             If [property].Arguments(0) = Nothing OrElse [property].Arguments(0) = "" Then
                                 CoreMessageHandler(message:="first argument must be a object name ", arg1:=[property].ToString, _
                                                subname:="LookupProperty.Validate", messagetype:=otCoreMessageType.InternalError)
@@ -681,7 +682,7 @@ Namespace OnTrack.Database
                             Return False
                         End If
                     Case otLookupProperty.UseValueList
-                        If [property].Arguments.Count = 1 Then
+                        If [property].Arguments IsNot Nothing AndAlso [property].Arguments.Count = 1 Then
                             If [property].Arguments(0) = Nothing OrElse [property].Arguments(0) = "" Then
                                 CoreMessageHandler(message:="first argument must be a value list id ", arg1:=[property].ToString, _
                                                subname:="LookupProperty.Validate", messagetype:=otCoreMessageType.InternalError)
@@ -693,7 +694,7 @@ Namespace OnTrack.Database
                             Return False
                         End If
                     Case otLookupProperty.UseAttributeValues, otLookupProperty.UseAttributeReference
-                        If [property].Arguments.Count > 0 Then
+                        If [property].Arguments IsNot Nothing AndAlso [property].Arguments.Count > 0 Then
                             CoreMessageHandler(message:="Number of arguments wrong (should be none)", arg1:=[property].ToString, _
                                                subname:="LookupProperty.Validate", messagetype:=otCoreMessageType.InternalError)
                             Return False
@@ -701,6 +702,8 @@ Namespace OnTrack.Database
                     Case Else
                         Return True
                 End Select
+
+                Return True
             Catch ex As Exception
                 CoreMessageHandler(exception:=ex, subname:="LookupProperty.Validate")
                 Return False
@@ -758,13 +761,23 @@ Namespace OnTrack.Database
             Dim aTable As TableDefinition = anObjectDefinition.GetTable(aTablename)
             Dim aForeignKey As ForeignKeyDefinition
             Dim found As Boolean = False
+            Dim indexEntry As Integer
+            Dim i As Integer = 0
 
             ''' search the foreign key with the referenc column
             ''' 
             For Each aForeignKey In aTable.ForeignKeys
-                If aForeignKey.ColumnNames.Contains(aColumnname) OrElse (foreignkeyname IsNot Nothing AndAlso aForeignKey.Id = foreignkeyname.ToUpper) Then
-                    found = True
-                    Exit For
+                If foreignkeyname Is Nothing OrElse (foreignkeyname IsNot Nothing AndAlso aForeignKey.Id = foreignkeyname.ToUpper) Then
+                    Dim columns As IList(Of String) = aForeignKey.ColumnNames.ToList
+                    indexEntry = 0
+                    For Each aName In columns
+                        Dim cname = Shuffle.NameSplitter(aName)
+                        If cname(1) = aColumnname Then
+                            found = True
+                            Exit For
+                        End If
+                        indexEntry += 1
+                    Next
                 End If
             Next
 
@@ -774,9 +787,7 @@ Namespace OnTrack.Database
                 Return New List(Of Object)
             End If
 
-            Dim i As Integer = 0
-            Dim indexEntry As Integer = aForeignKey.ColumnNames.ToList.IndexOf(aColumnname)
-            Dim aForeignKeyReferences As List(Of String) = aForeignKey.ForeignKeyReferences.ToList
+           Dim aForeignKeyReferences As List(Of String) = aForeignKey.ForeignKeyReferences.ToList
             Dim aDomainFieldname As String = Commons.Domain.ConstFNDomainID
             Dim aCommand As ormSqlSelectCommand
             Dim theForeignKeyTables As List(Of String) = aForeignKey.ForeignKeyReferenceTables
@@ -785,14 +796,14 @@ Namespace OnTrack.Database
             '''
             ''' set the domain behavior from the referenced tables -> for mixed domain behavior this gets interesting (not implemented)
             ''' 
-            For Each atableid In aForeignKey.TableIDs
+            For Each atableid In theForeignKeyTables
                 hasDomainBehavior = hasDomainBehavior And CurrentSession.Objects.GetTable(atableid).DomainBehavior
             Next
             '''
             '''
             Try
                 If theForeignKeyTables.Count = 1 Then
-                    Dim aStore As iormDataStore = ot.GetTableStore(tableid:=aTablename)
+                    Dim aStore As iormDataStore = ot.GetTableStore(tableid:=theForeignKeyTables.First)
                     aCommand = aStore.CreateSqlSelectCommand(id:=aColumnname & "_FKValues_" & aForeignKey.Id, addAllFields:=False)
                 Else
                     aCommand = ot.CurrentDBDriver.CreateSqlSelectCommand(id:=aTablename & "_" & aColumnname & "_FKValues_" & aForeignKey.Id)
@@ -809,7 +820,7 @@ Namespace OnTrack.Database
                         Next
                     End If
                     ''' build select
-                    aCommand.select = "UNIQUE "
+                    aCommand.select = "DISTINCT "
 
                     If Not allkeys Then
                         '' take the referenceing key entry
@@ -825,25 +836,26 @@ Namespace OnTrack.Database
                         Next
                     End If
 
-                    If hasDomainBehavior Then aCommand.select &= ", [" & aDomainFieldname & "]"
+
 
                     ''' build where
                     '''  
                     For Each atableid In theForeignKeyTables
+                        If hasDomainBehavior Then aCommand.select &= "," & atableid & ".[" & aDomainFieldname & "]"
                         aCommand.Where = atableid & ".[" & ConstFNIsDeleted & "] = @" & atableid & "Deleted "
-                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@" & atableid & "Deleted ", ColumnName:=ConstFNIsDeleted, tablename:=atableid))
+                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@" & atableid & "Deleted ", notColumn:=True, datatype:=otDataType.Bool))
                         If hasDomainBehavior Then
-                            aCommand.Where &= " AND (" & atableid & ".[" & aDomainFieldname & "] = @domainID OR " & atableid & ".[" & aDomainFieldname & "] = @globalID)"
-                            aCommand.AddParameter(New ormSqlCommandParameter(ID:="@" & atableid & "domainID", ColumnName:=aDomainFieldname, tablename:=atableid))
+                            aCommand.Where &= " AND (" & atableid & ".[" & aDomainFieldname & "] = @" & atableid & "domainID OR " & atableid & ".[" & aDomainFieldname & "] = @globalID)"
+                            aCommand.AddParameter(New ormSqlCommandParameter(ID:="@" & atableid & "domainID", notColumn:=True, datatype:=otDataType.Text))
                         End If
 
                     Next
-                    If hasDomainBehavior Then aCommand.AddParameter(New ormSqlCommandParameter(ID:="@globalID", ColumnName:=aDomainFieldname, tablename:=Commons.Domain.ConstTableID))
+                    If hasDomainBehavior Then aCommand.AddParameter(New ormSqlCommandParameter(ID:="@globalID", notColumn:=True, datatype:=otDataType.Text))
                     aCommand.Prepare()
                 End If
 
                 For Each atableid In theForeignKeyTables
-                    aCommand.SetParameterValue(ID:="@" & atableid & "deleted", value:=False)
+                    aCommand.SetParameterValue(ID:="@" & atableid & "Deleted", value:=False)
                     If hasDomainBehavior Then aCommand.SetParameterValue(ID:="@" & atableid & "domainID", value:=CurrentSession.CurrentDomainID)
                 Next
 
@@ -855,18 +867,21 @@ Namespace OnTrack.Database
                 For Each aRecord As ormRecord In aRecordCollection
                     Dim aDomainValue As String
                     If hasDomainBehavior Then
-                        aDomainValue = aRecord.GetValue(1).ToString
+                        aDomainValue = aRecord.GetValue(2).ToString
                     Else
                         aDomainValue = CurrentSession.CurrentDomainID
                     End If
 
-                    If DomainValues.ContainsKey(aRecord.GetValue(0)) Then
-                        If DomainValues.Item(aRecord.GetValue(0)) = ConstGlobalDomain Then
-                            aDomainValue.Remove(aRecord.GetValue(0))
-                            DomainValues.Add(key:=aRecord.GetValue(0), value:=aDomainValue)
+                    Dim aValue As Object = aRecord.GetValue(1)
+                    If aValue IsNot Nothing Then
+                        If DomainValues.ContainsKey(aValue) Then
+                            If DomainValues.Item(aValue) = ConstGlobalDomain Then
+                                aDomainValue.Remove(aValue)
+                                DomainValues.Add(key:=aValue, value:=aDomainValue)
+                            End If
+                        Else
+                            DomainValues.Add(key:=aValue, value:=aDomainValue)
                         End If
-                    Else
-                        DomainValues.Add(key:=aRecord.GetValue(0), value:=aDomainValue)
                     End If
 
                 Next
@@ -937,7 +952,7 @@ Namespace OnTrack.Database
                 Dim aStore As iormDataStore = ot.GetTableStore(tableid:=aTablename)
                 Dim aCommand As ormSqlSelectCommand = aStore.CreateSqlSelectCommand(id:=aColumnname & "_Values", addAllFields:=False)
                 If Not aCommand.Prepared Then
-                    aCommand.select = "UNIQUE [" & aColumnname & "]"
+                    aCommand.select = "DISTINCT [" & aColumnname & "]"
                     If anObjectDefinition.HasDomainBehavior Then aCommand.select &= ", [" & aDomainFieldname & "]"
                     aCommand.Where = ConstFNIsDeleted & " = @deleted "
                     aCommand.AddParameter(New ormSqlCommandParameter(ID:="@deleted", ColumnName:=ConstFNIsDeleted, tablename:=aTablename))
@@ -963,20 +978,22 @@ Namespace OnTrack.Database
                 For Each aRecord As ormRecord In aRecordCollection
                     Dim aDomainValue As String
                     If anObjectDefinition.HasDomainBehavior Then
-                        aDomainValue = aRecord.GetValue(1).ToString
+                        aDomainValue = aRecord.GetValue(2).ToString
                     Else
                         aDomainValue = CurrentSession.CurrentDomainID
                     End If
 
-                    If DomainValues.ContainsKey(aRecord.GetValue(0)) Then
-                        If DomainValues.Item(aRecord.GetValue(0)) = ConstGlobalDomain Then
-                            aDomainValue.Remove(aRecord.GetValue(0))
-                            DomainValues.Add(key:=aRecord.GetValue(0), value:=aDomainValue)
+                    Dim aValue As Object = aRecord.GetValue(1)
+                    If aValue IsNot Nothing Then
+                        If DomainValues.ContainsKey(aValue) Then
+                            If DomainValues.Item(aValue) = ConstGlobalDomain Then
+                                aDomainValue.Remove(aValue)
+                                DomainValues.Add(key:=aValue, value:=aDomainValue)
+                            End If
+                        Else
+                            DomainValues.Add(key:=aValue, value:=aDomainValue)
                         End If
-                    Else
-                        DomainValues.Add(key:=aRecord.GetValue(0), value:=aDomainValue)
                     End If
-
                 Next
 
                 Return DomainValues.Keys.ToList

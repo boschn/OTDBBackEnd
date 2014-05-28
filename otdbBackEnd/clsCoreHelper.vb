@@ -744,9 +744,15 @@ Namespace OnTrack.Database
                 End If
 
                 ' do nothing leave the value
-                If targettype.IsArray Then
+                If value Is Nothing Then
+                    If aSetter IsNot Nothing Then
+                        aSetter(dataobject, value)
+                    Else
+                        field.SetValue(dataobject, value)
+                    End If
+                ElseIf targettype.IsArray Then
                     Dim anArray As String()
-                    If value.GetType.IsArray Then
+                    If value IsNot Nothing AndAlso value.GetType.IsArray Then
                         anArray = value
                     Else
                         anArray = OnTrack.Database.Converter.String2Array(value)

@@ -72,27 +72,69 @@ Namespace OnTrack.Database
                     ''' 
                     If ([in] Is Nothing AndAlso objectentrydefinition.IsNullable) Then
                         Return otValidationResultType.Succeeded
-                        '''
+                   
                         ''' not allowed
                     ElseIf ([in] Is Nothing AndAlso Not objectentrydefinition.IsNullable) Then
                         '1102;@;VALIDATOR;object entry validation for '%1%.%2% (XID %3%) failed. Null or empty value is not allowed.;Provide a correct value;90;Error;false;|R1|R1|;|ENTRYVALIDATOR|XCHANGEENVELOPE|
                         msglog.Add(1102, Nothing, Nothing, Nothing, Nothing, _
                               objectentrydefinition.Objectname, objectentrydefinition.Entryname, objectentrydefinition.XID)
                         Return otValidationResultType.FailedNoProceed
+
+                        ''' here in is something -> if string not whitechar
+                    ElseIf [in].GetType Is GetType(String) AndAlso Not String.IsNullOrWhiteSpace([in].ToString) Then
+                        Return otValidationResultType.Succeeded
+
+                    ElseIf [in].GetType Is GetType(String) AndAlso String.IsNullOrWhiteSpace([in].ToString) Then
+                        '1102;@;VALIDATOR;object entry validation for '%1%.%2% (XID %3%) failed. Null or empty value is not allowed.;Provide a correct value;90;Error;false;|R1|R1|;|ENTRYVALIDATOR|XCHANGEENVELOPE|
+                        msglog.Add(1102, Nothing, Nothing, Nothing, Nothing, _
+                              objectentrydefinition.Objectname, objectentrydefinition.Entryname, objectentrydefinition.XID)
+                        Return otValidationResultType.FailedNoProceed
+
                         ''' not allowed
                         ''' 
-                    ElseIf String.IsNullOrEmpty([in].ToString) Then
+                    ElseIf Not [in].GetType.IsArray AndAlso Not String.IsNullOrWhiteSpace([in].ToString) Then
+                        Return otValidationResultType.Succeeded
+
+                    ElseIf Not [in].GetType.IsArray AndAlso String.IsNullOrWhiteSpace([in].ToString) Then
                         '1102;@;VALIDATOR;object entry validation for '%1%.%2% (XID %3%) failed. Null or empty value is not allowed.;Provide a correct value;90;Error;false;|R1|R1|;|ENTRYVALIDATOR|XCHANGEENVELOPE|
                         msglog.Add(1102, Nothing, Nothing, Nothing, Nothing, _
                               objectentrydefinition.Objectname, objectentrydefinition.Entryname, objectentrydefinition.XID)
                         Return otValidationResultType.FailedNoProceed
-                    ElseIf [in].GetType.IsArray AndAlso [in].count = 0 Then
+
+                    ElseIf Not objectentrydefinition.IsNullable AndAlso [in].GetType.IsArray AndAlso [in].length = 0 Then
                         '1102;@;VALIDATOR;object entry validation for '%1%.%2% (XID %3%) failed. Null or empty value is not allowed.;Provide a correct value;90;Error;false;|R1|R1|;|ENTRYVALIDATOR|XCHANGEENVELOPE|
                         msglog.Add(1102, Nothing, Nothing, Nothing, Nothing, _
                               objectentrydefinition.Objectname, objectentrydefinition.Entryname, objectentrydefinition.XID)
                         Return otValidationResultType.FailedNoProceed
-                    ElseIf Not [in].GetType Is GetType(String) AndAlso ([in].GetType.GetInterfaces.Contains(GetType(IEnumerable)) OrElse [in].GetType.GetInterfaces.Contains(GetType(IList))) Then
-                        If [in].count = 0 Then
+
+                    ElseIf objectentrydefinition.IsNullable AndAlso [in].GetType.IsArray AndAlso [in].length = 0 Then
+                        Return otValidationResultType.Succeeded
+
+                    ElseIf [in].GetType.IsArray AndAlso [in].length > 0 Then
+                        Return ApplyList([in], objectentrydefinition:=objectentrydefinition, msglog:=msglog)
+
+                    ElseIf Not [in].GetType Is GetType(String) AndAlso ([in].GetType Is GetType(List(Of ))) Then
+                        If Not objectentrydefinition.IsNullable AndAlso TryCast([in], IList).Count = 0 Then
+                            '1102;@;VALIDATOR;object entry validation for '%1%.%2% (XID %3%) failed. Null or empty value is not allowed.;Provide a correct value;90;Error;false;|R1|R1|;|ENTRYVALIDATOR|XCHANGEENVELOPE|
+                            msglog.Add(1102, Nothing, Nothing, Nothing, Nothing, _
+                                  objectentrydefinition.Objectname, objectentrydefinition.Entryname, objectentrydefinition.XID)
+                            Return otValidationResultType.FailedNoProceed
+                        ElseIf objectentrydefinition.IsNullable AndAlso TryCast([in], IList).Count = 0 Then
+                            Return otValidationResultType.Succeeded
+
+                        Else
+                            Return ApplyList([in].toArray, objectentrydefinition:=objectentrydefinition, msglog:=msglog)
+                        End If
+
+                    ElseIf Not [in].GetType Is GetType(String) AndAlso ([in].GetType.GetInterfaces.Contains(GetType(IEnumerable))) Then
+                        Dim anArray As Object()
+                        For Each anObject In TryCast([in], IEnumerable)
+                            ReDim Preserve anArray(UBound(anArray) + 1)
+                            anArray(UBound(anArray)) = anObject
+                        Next
+                        If UBound(anArray) > 0 Then
+                            Return ApplyList(anArray, objectentrydefinition:=objectentrydefinition, msglog:=msglog)
+                        Else
                             '1102;@;VALIDATOR;object entry validation for '%1%.%2% (XID %3%) failed. Null or empty value is not allowed.;Provide a correct value;90;Error;false;|R1|R1|;|ENTRYVALIDATOR|XCHANGEENVELOPE|
                             msglog.Add(1102, Nothing, Nothing, Nothing, Nothing, _
                                   objectentrydefinition.Objectname, objectentrydefinition.Entryname, objectentrydefinition.XID)
@@ -101,12 +143,29 @@ Namespace OnTrack.Database
                     End If
                 End If
 
-                ''' branch out -> recusrion
+                '''
+                ''' check if we are processing a list -> branch out
                 ''' 
-                If Not [in].GetType.IsValueType AndAlso ([in].GetType.IsArray) Then
+
+                If [in] Is Nothing OrElse [in].GetType.IsValueType OrElse [in].GetType Is GetType(String) Then
+                    '' do nothing -> continue below
+
+                ElseIf [in].GetType.IsArray AndAlso [in].length > 0 Then
+                    ''' array
                     Return ApplyList([in], objectentrydefinition:=objectentrydefinition, msglog:=msglog)
-                ElseIf Not [in].GetType.IsValueType AndAlso Not [in].GetType Is GetType(String) AndAlso ([in].GetType.GetInterfaces.Contains(GetType(IEnumerable)) OrElse [in].GetType.GetInterfaces.Contains(GetType(IList))) Then
-                    Return ApplyList([in].toarray, objectentrydefinition:=objectentrydefinition, msglog:=msglog)
+
+                ElseIf Not [in].GetType Is GetType(String) AndAlso ([in].GetType Is GetType(List(Of ))) Then
+                    ''' list
+                    Return ApplyList([in].toArray, objectentrydefinition:=objectentrydefinition, msglog:=msglog)
+
+                ElseIf Not [in].GetType Is GetType(String) AndAlso ([in].GetType.GetInterfaces.Contains(GetType(IEnumerable))) Then
+                    ''' enumerable
+                    Dim anArray As Object()
+                    For Each anObject In TryCast([in], IEnumerable)
+                        ReDim Preserve anArray(UBound(anArray) + 1)
+                        anArray(UBound(anArray)) = anObject
+                    Next
+                    Return ApplyList(anArray, objectentrydefinition:=objectentrydefinition, msglog:=msglog)
                 End If
 
                 '''
@@ -134,16 +193,24 @@ Namespace OnTrack.Database
                             Return otValidationResultType.Succeeded
                         End If
 
+                        Dim aLookupList As String = ""
                         ''' check all lookup properties
                         For Each aProperty In objectentrydefinition.LookupProperties
+                            If aLookupList <> "" Then aLookupList &= ","
+                            aLookupList &= aProperty.ToString
+                            If aProperty.Enum = otLookupProperty.UseAttributeValues Then
+                                aLookupList &= " of [" & Converter.Enumerable2String(objectentrydefinition.PossibleValues) & "]"
+                            ElseIf aProperty.Enum = otLookupProperty.UseAttributeReference Then
+
+                            End If
                             Dim aList As IList(Of Object) = aProperty.GetValues(objectentrydefinition)
                             If aList.Contains([in]) Then Return otValidationResultType.Succeeded
                         Next
 
                         'object entry validation for '%1%.%2% (XID %5%) failed. Value '%4%' is not found in lookup condition '%3%'
                         msglog.Add(1105, Nothing, Nothing, Nothing, Nothing, _
-                                   objectentrydefinition.Objectname, objectentrydefinition.Entryname, Converter.Enumerable2String(objectentrydefinition.LookupProperties), _
-                                   [in].ToString, objectentrydefinition.XID)
+                                   objectentrydefinition.Objectname, objectentrydefinition.Entryname, aLookupList, [in].ToString, _
+                                   objectentrydefinition.XID)
                         Return otValidationResultType.FailedNoProceed
 
 
@@ -538,6 +605,13 @@ Namespace OnTrack.Database
                     End If
 
                 Else
+
+                    '''
+                    ''' 1. Validate the compound in the current
+                    ''' 
+
+                    Dim result As otValidationResultType = ObjectValidator.Validate(newvalue:=value, objectentrydefinition:=anObjectEntry, msglog:=msglog)
+
                     '''
                     '''2.  get the relation path and resolve to object
                     ''' 
@@ -562,28 +636,36 @@ Namespace OnTrack.Database
                     ''' 
                     Dim aFieldList As List(Of FieldInfo) = Me.ObjectClassDescription.GetMappedRelationFieldInfos(relationName:=aRelationname)
                     Dim searchvalue As Object = Nothing ' by intension (all are selected if nothing)
-
+                    Dim searchvalueentryname As String
+                    Dim searchentryname As String
                     ''' if last hop
                     ''' 
                     ''' have we reached the last hop ?
                     ''' 
                     If aRelationPath.Count = 2 Then
                         searchvalue = entryname
-                        entryname = TryCast(anObjectEntry, ObjectCompoundEntry).CompoundIDEntryname
-                        'searchvalue = TryCast(anObjectEntry, ObjectCompoundEntry).CompoundValueEntryName
+                        searchentryname = TryCast(anObjectEntry, ObjectCompoundEntry).CompoundIDEntryname
+                        searchvalueentryname = TryCast(anObjectEntry, ObjectCompoundEntry).CompoundValueEntryName
+                    Else
+                        searchvalueentryname = entryname
+                        ' do not search anything -> get the objects returned to relation
+                        searchentryname = Nothing
+                        searchvalue = Nothing
                     End If
 
                     ''' get the reference data object selected by compoundID - and also load it
                     ''' 
-                    Dim theReferenceObjects = _relationMgr.GetObjectsFromContainer(relationname:=aRelationname, entryname:=entryname, value:=searchvalue, _
+                    Dim theReferenceObjects = _relationMgr.GetObjectsFromContainer(relationname:=aRelationname, entryname:=searchentryname, value:=searchvalue, _
                                                                                    loadRelationIfNotloaded:=True)
 
                     ''' request the value from there
                     ''' 
                     If theReferenceObjects.Count > 0 Then
+                        ''' prevent having no value
+                        If searchvalueentryname Is Nothing Then searchvalueentryname = entryname
                         Dim aValidatable As iormValidatable = TryCast(theReferenceObjects.First, iormValidatable)
                         If aValidatable IsNot Nothing Then
-                            Return aValidatable.Validate(entryname:=entryname, value:=value, msglog:=msglog)
+                            Return aValidatable.Validate(entryname:=searchvalueentryname, value:=value, msglog:=msglog)
                         Else
                             Return otValidationResultType.Succeeded
                         End If
@@ -630,19 +712,8 @@ Namespace OnTrack.Database
                 result = otValidationResultType.Succeeded
             Else
                 If msglog Is Nothing Then msglog = Me.ObjectMessageLog
-
-                ''' 
-                ''' check if we are validating a compound
-                ''' 
                 Dim anObjectEntry As iormObjectEntry = Me.ObjectDefinition.GetEntry(entryname:=entryname)
-                If anObjectEntry.IsCompound Then
-                    '''
-                    ''' branch out to validateCompoung
-                    ''' 
-                    Return Me.ValidateCompoundValue(entryname:=entryname, value:=value, msglog:=msglog)
-                End If
-
-
+               
                 ''' 3 Step Validation process
                 ''' 
 
@@ -658,6 +729,7 @@ Namespace OnTrack.Database
                 '''
                 '''  STEP 2 Validate the entry against INTERNAL RULES
                 ''' 
+               
                 result = ObjectValidator.Validate(Me.ObjectDefinition.GetEntry(entryname), newvalue:=value, msglog:=msglog)
                 If result = otValidationResultType.FailedNoProceed Then Return result
 
@@ -665,6 +737,16 @@ Namespace OnTrack.Database
                 ''' 
                 RaiseEvent OnEntryValidated(Me, args)
                 result = args.ValidationResult
+
+                ''' 
+                ''' check if we are validating a compound
+                ''' 
+                If anObjectEntry.IsCompound Then
+                    '''
+                    ''' branch out to validateCompoung
+                    ''' 
+                    result = Me.ValidateCompoundValue(entryname:=entryname, value:=value, msglog:=msglog)
+                End If
 
                 Return result
             End If
@@ -733,8 +815,9 @@ Namespace OnTrack.Database
                         msglog.Add(1101, Nothing, Nothing, Nothing, Nothing,
                                    objectentrydefinition.Objectname, objectentrydefinition.Entryname, objectentrydefinition.Datatype.ToString, newvalue, objectentrydefinition.XID)
                     ElseIf Not objectentrydefinition.IsNullable AndAlso newvalue Is Nothing Then
+                        '1102;@;VALIDATOR;object entry validation for '%1%.%2% (XID %3%) failed. Null or empty value is not allowed.;Provide a correct value;90;Error;false;|R1|R1|;|ENTRYVALIDATOR|XCHANGEENVELOPE|
                         msglog.Add(1102, Nothing, Nothing, Nothing, Nothing,
-                             objectentrydefinition.Objectname, objectentrydefinition.Entryname, objectentrydefinition.Datatype.ToString, newvalue, objectentrydefinition.XID)
+                             objectentrydefinition.Objectname, objectentrydefinition.Entryname, objectentrydefinition.XID)
                     End If
 
                 ElseIf failedflag Then

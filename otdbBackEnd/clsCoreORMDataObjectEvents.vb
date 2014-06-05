@@ -34,7 +34,8 @@ Namespace OnTrack.Database
         Public Event PropertyChanged As System.ComponentModel.PropertyChangedEventHandler Implements System.ComponentModel.INotifyPropertyChanged.PropertyChanged
 
         '** Lifecycle Events
-        Public Event OnDefaultValuesNeeded(sender As Object, e As ormDataObjectEventArgs) Implements iormInfusable.OnDefaultValuesNeeded
+        Public Event OnCreateDefaultValuesNeeded(sender As Object, e As ormDataObjectEventArgs) Implements iormInfusable.OnCreateDefaultValuesNeeded
+        Public Event OnDefaultValueNeeded(sender As Object, e As ormDataObjectEntryEventArgs) Implements iormInfusable.OnDefaultValueNeeded
 
         Public Shared Event ClassOnRetrieving(sender As Object, e As ormDataObjectEventArgs)
         Public Shared Event ClassOnRetrieved(sender As Object, e As ormDataObjectEventArgs)
@@ -206,7 +207,7 @@ Namespace OnTrack.Database
         ''' <param name="sender"></param>
         ''' <param name="e"></param>
         ''' <remarks></remarks>
-        Public Sub ormDataObject_OnDefaultValuesNeeded(sender As Object, e As ormDataObjectEventArgs) Handles Me.OnDefaultValuesNeeded
+        Public Sub ormDataObject_OnDefaultValuesNeeded(sender As Object, e As ormDataObjectEventArgs) Handles Me.OnCreateDefaultValuesNeeded
             Dim result As Boolean = True
 
             '** set the default values of the object
@@ -229,9 +230,9 @@ Namespace OnTrack.Database
                     ' only the columns
                     If anEntry.EntryType = otObjectEntryType.Column And Not e.Record.HasIndex(anEntry.Tablename & "." & anEntry.ColumnName) Then
                         If anEntry.HasValueDefaultValue Then
-                            result = result And e.Record.SetValue(anEntry.Tablename & "." & anEntry.ColumnName, value:=Converter.Object2otObject(anEntry.DefaultValue, anEntry.Typeid))
+                            result = result And e.Record.SetValue(anEntry.Tablename & "." & anEntry.ColumnName, value:=Converter.Object2otObject(anEntry.DefaultValue, anEntry.DataType))
                         ElseIf Not anEntry.HasValueIsNullable OrElse (anEntry.HasValueIsNullable AndAlso Not anEntry.IsNullable) Then
-                            result = result And e.Record.SetValue(anEntry.Tablename & "." & anEntry.ColumnName, value:=ot.GetDefaultValue(anEntry.Typeid))
+                            result = result And e.Record.SetValue(anEntry.Tablename & "." & anEntry.ColumnName, value:=ot.GetDefaultValue(anEntry.DataType))
                         End If
                     End If
                 Next

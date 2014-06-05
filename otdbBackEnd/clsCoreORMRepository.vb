@@ -918,46 +918,46 @@ Namespace OnTrack.Database
                         primaryKeyordinal:=1, useforeignkey:=otForeignKeyImplementation.NativeDatabase)> _
         Public Const ConstFNTableName As String = TableDefinition.ConstFNTablename
 
-        <ormObjectEntry(typeid:=otDataType.Text, size:=100, primaryKeyordinal:=2, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=100, primaryKeyordinal:=2, _
                         properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty}, _
                         title:="Column Name", Description:="column name in the table")> Public Const ConstFNColumnname As String = "ColumnName"
 
         '** Column Specific
 
-        <ormObjectEntry(defaultvalue:=0, typeid:=otDataType.[Long], isnullable:=True, title:="Pos", Description:="position number in record")> _
+        <ormObjectEntry(defaultvalue:=0, Datatype:=otDataType.[Long], isnullable:=True, title:="Pos", Description:="position number in record")> _
         Public Const ConstFNPosition As String = "pos"
 
-        <ormObjectEntry(typeid:=otDataType.Memo, isnullable:=True, properties:={ObjectEntryProperty.Trim}, _
+        <ormObjectEntry(Datatype:=otDataType.Memo, isnullable:=True, properties:={ObjectEntryProperty.Trim}, _
                         title:="Description", Description:="Description of the field")> Public Const ConstFNDescription As String = "desc"
 
-        <ormObjectEntry(typeid:=otDataType.List, innertypeid:=otDataType.Text, _
+        <ormObjectEntry(Datatype:=otDataType.List, innerDatatype:=otDataType.Text, _
                         title:="Properties", Description:="database column properties")> Public Const ConstFNProperties As String = "properties"
 
         <ormObjectEntry(defaultvalue:=otDataType.Text, referenceobjectentry:=ObjectColumnEntry.ConstObjectID & "." & ObjectColumnEntry.ConstFNDatatype, _
                         title:="Datatype", Description:="OTDB field data type")> Public Const ConstFNDatatype As String = "datatype"
 
-        <ormObjectEntry(typeid:=otDataType.Text, isnullable:=True,
+        <ormObjectEntry(Datatype:=otDataType.Text, isnullable:=True,
                         title:="DefaultValue", Description:="default value of the field")> Public Const ConstFNDefaultValue As String = "default"
 
-        <ormObjectEntry(defaultvalue:=0, typeid:=otDataType.Long, lowerRange:=0, _
+        <ormObjectEntry(defaultvalue:=0, Datatype:=otDataType.Long, lowerRange:=0, _
                     title:="UpdateCount", Description:="version counter of updating")> Public Const ConstFNUPDC As String = "updc"
 
-        <ormObjectEntry(typeid:=otDataType.[Long], isnullable:=True, lowerRange:=0, _
+        <ormObjectEntry(Datatype:=otDataType.[Long], isnullable:=True, lowerRange:=0, _
                         title:="Size", Description:="max Length of the Column")> Public Const ConstFNSize As String = "size"
 
-        <ormObjectEntry(typeid:=otDataType.Text, isnullable:=True, properties:={ObjectEntryProperty.Keyword}, _
+        <ormObjectEntry(Datatype:=otDataType.Text, isnullable:=True, properties:={ObjectEntryProperty.Keyword}, _
                        title:="Primary Key name", Description:="name of the primary key index")> Public Const ConstFNindexname As String = "indexname"
 
-        <ormObjectEntry(defaultvalue:=False, typeid:=otDataType.Bool, _
+        <ormObjectEntry(defaultvalue:=False, Datatype:=otDataType.Bool, _
                     title:="Is primary Key", Description:="set if the entry is a primary key")> Public Const ConstFNPrimaryKey As String = "pkey"
 
-        <ormObjectEntry(defaultvalue:=0, typeid:=otDataType.Long, _
+        <ormObjectEntry(defaultvalue:=0, Datatype:=otDataType.Long, _
                     title:="Ordinal in Primary Key", Description:="Ordinal in Primary Key")> Public Const ConstFNPrimaryKeyOrdinal As String = "pkeyno"
 
-        <ormObjectEntry(typeid:=otDataType.Bool, defaultvalue:=False, title:="Is Nullable", Description:="set if the entry is a nullable")> _
+        <ormObjectEntry(Datatype:=otDataType.Bool, defaultvalue:=False, title:="Is Nullable", Description:="set if the entry is a nullable")> _
         Public Const ConstFNIsNullable As String = "isnull"
 
-        <ormObjectEntry(typeid:=otDataType.Bool, defaultvalue:=False, title:="Is Unique", Description:="set if the entry is unique")> _
+        <ormObjectEntry(Datatype:=otDataType.Bool, defaultvalue:=False, title:="Is Unique", Description:="set if the entry is unique")> _
         Public Const ConstFNIsUnique As String = "ISUNIQUE"
 
         'avoid loops
@@ -1281,10 +1281,10 @@ Namespace OnTrack.Database
                 If .HasValueDBDefaultValue Then Me.DefaultValue = .DBDefaultValue
                 If .HasValueDescription Then Me.Description = .Description
                 If .HasValueIsNullable Then Me.IsNullable = .IsNullable
-                If .HasValueTypeID Then Me.Datatype = .Typeid
+                If .HasValueDataType Then Me.Datatype = .DataType
                 If .HasValueVersion Then Me.Version = .Version
                 If .HasValueSize Then Me.Size = .Size
-                If .HasValueParameter Then Me.Properties = Converter.String2Array(.Parameter)
+                If .HasValueParameter Then Me.Properties = Converter.otString2Array(.Parameter)
                 If .hasValuePosOrdinal Then Me.Position = .Posordinal
 
                 If .HasValuePrimaryKeyOrdinal Then
@@ -1297,14 +1297,14 @@ Namespace OnTrack.Database
                 End If
             End With
         End Function
-        
+
         ''' <summary>
         ''' Event Handler for defaultValues
         ''' </summary>
         ''' <param name="sender"></param>
         ''' <param name="e"></param>
         ''' <remarks></remarks>
-        Public Sub OnDefaultValuesNeeded(sender As Object, e As ormDataObjectEventArgs) Handles MyBase.OnDefaultValuesNeeded
+        Public Sub OnDefaultValuesNeeded(sender As Object, e As ormDataObjectEventArgs) Handles MyBase.OnCreateDefaultValuesNeeded
 
             ''' check if we have a datatype text or list
             ''' then set also the size
@@ -1458,28 +1458,28 @@ Namespace OnTrack.Database
                         primaryKeyordinal:=1, useforeignKey:=otForeignKeyImplementation.NativeDatabase)> _
         Public Const ConstFNTableName As String = TableDefinition.ConstFNTablename
 
-        <ormObjectEntry(typeid:=otDataType.Text, size:=100, primaryKeyordinal:=2, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=100, primaryKeyordinal:=2, _
                         properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty}, _
                         title:="Foreign Key Name", Description:="name of the foreign key in the table")> Public Const ConstFNID As String = "ID"
 
         '** Fields
-        <ormObjectEntry(typeid:=otDataType.List, title:="Columns", _
+        <ormObjectEntry(Datatype:=otDataType.List, title:="Columns", _
             Description:="table column references")> Public Const ConstFNColumns As String = "COLUMNS"
 
-        <ormObjectEntry(typeid:=otDataType.Long, defaultvalue:=otForeignKeyImplementation.None, _
+        <ormObjectEntry(Datatype:=otDataType.Long, defaultvalue:=otForeignKeyImplementation.None, _
             title:="Use Foreign Key", _
             Description:="describes the implementation layer of foreign key or if 0 then foreign key is not used")> _
         Public Const ConstFNUseForeignKey As String = "USEFOREIGNKEY"
 
-        <ormObjectEntry(typeid:=otDataType.List, validationPropertyStrings:={ObjectValidationProperty.NotEmpty}, _
+        <ormObjectEntry(Datatype:=otDataType.List, validationPropertyStrings:={ObjectValidationProperty.NotEmpty}, _
             title:="Foreign Key References", Description:="foreign key table columns references")> Public Const ConstFNForeignKeys As String = "FOREIGNKEYS"
 
-        <ormObjectEntry(typeid:=otDataType.List, _
+        <ormObjectEntry(Datatype:=otDataType.List, _
             title:="Foreign Key Properties", Description:="Foreign Key Properties")> Public Const ConstFNForeignKeyProperties As String = "FOREIGNKEYPROP"
 
-        <ormObjectEntry(typeid:=otDataType.Memo, properties:={ObjectEntryProperty.Trim}, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.Memo, properties:={ObjectEntryProperty.Trim}, isnullable:=True, _
                        title:="Description", Description:="Description of the foreign key")> Public Const ConstFNDescription As String = "DESCRIPTION"
-        <ormObjectEntry(defaultvalue:=1, typeid:=otDataType.[Long], lowerrange:=1, _
+        <ormObjectEntry(defaultvalue:=1, Datatype:=otDataType.[Long], lowerrange:=1, _
                         title:="UpdateCount", Description:="version counter of updating")> Public Const ConstFNUPDC As String = "UPDC"
 
         'avoid loops
@@ -1937,29 +1937,29 @@ Namespace OnTrack.Database
         <ormObjectEntry(referenceobjectentry:=TableDefinition.ConstObjectID & "." & TableDefinition.ConstFNTablename, primarykeyordinal:=1, _
             useforeignkey:=otForeignKeyImplementation.NativeDatabase)> Public Const ConstFNTablename = TableDefinition.ConstFNTablename
 
-        <ormObjectEntry(typeid:=otDataType.Text, size:=100, primarykeyordinal:=2,
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=100, primarykeyordinal:=2,
                         properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty}, _
                         title:="Index Name", description:="index name for the table")> Public Const ConstFNIndexName = "index"
         '** Fields
-        <ormObjectEntry(typeid:=otDataType.List, properties:={ObjectEntryProperty.Keyword}, _
+        <ormObjectEntry(Datatype:=otDataType.List, properties:={ObjectEntryProperty.Keyword}, _
                          title:="Columns", description:="column names of the index in order")> Public Const ConstFNColumns = "columns"
 
-        <ormObjectEntry(defaultvalue:=False, dbdefaultvalue:="0", typeid:=otDataType.Bool, _
+        <ormObjectEntry(defaultvalue:=False, dbdefaultvalue:="0", Datatype:=otDataType.Bool, _
                         title:="IsPrimaryKey", Description:="set if the index is the primary key")> Public Const ConstFNIsPrimary As String = "isprimary"
 
-        <ormObjectEntry(typeid:=otDataType.Memo, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.Memo, isnullable:=True, _
                          title:="Index Description", description:="description of the index")> Public Const ConstFNdesc = "desc"
 
-        <ormObjectEntry(defaultvalue:="1", typeid:=otDataType.[Long], lowerRange:=0, _
+        <ormObjectEntry(defaultvalue:="1", Datatype:=otDataType.[Long], lowerRange:=0, _
                                   title:="Version", Description:="version counter of updating")> Public Const ConstFNUPDC As String = "updc"
 
-        <ormObjectEntry(typeid:=otDataType.List, _
+        <ormObjectEntry(Datatype:=otDataType.List, _
                          title:="Properties", description:="properties of the index")> Public Const ConstFNProperties = "properties"
 
-        <ormObjectEntry(typeid:=otDataType.Text, size:=100, defaultvalue:="", properties:={ObjectEntryProperty.Keyword}, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=100, defaultvalue:="", properties:={ObjectEntryProperty.Keyword}, _
                          title:="Database Id", description:="id of the index in the database")> Public Const ConstFNDatabaseID = "dbid"
 
-        <ormObjectEntry(defaultvalue:=False, dbdefaultvalue:="0", typeid:=otDataType.Bool, _
+        <ormObjectEntry(defaultvalue:=False, dbdefaultvalue:="0", Datatype:=otDataType.Bool, _
                                   title:="IsUnique", Description:="set if the index is unique")> Public Const ConstFNIsUnique As String = "ISUNIQUE"
         'avoid loops
         <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, _
@@ -2179,33 +2179,33 @@ Namespace OnTrack.Database
         '** Indices
 
         '** Primary key
-        <ormObjectEntry(typeid:=otDataType.Text, size:=100, primarykeyordinal:=1, properties:={ObjectEntryProperty.Keyword}, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=100, primarykeyordinal:=1, properties:={ObjectEntryProperty.Keyword}, _
                          title:="Table", description:="table name for the object")> Public Const ConstFNTablename = "table"
 
         '** Fields
-        <ormObjectEntry(typeid:=otDataType.Text, size:=100, defaultvalue:="PrimaryKey", properties:={ObjectEntryProperty.Keyword}, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=100, defaultvalue:="PrimaryKey", properties:={ObjectEntryProperty.Keyword}, _
                          title:="PrimaryKey", description:="primary key name for the table")> Public Const ConstFNPrimaryKey = "primarykey"
 
-        <ormObjectEntry(typeid:=otDataType.Memo, _
+        <ormObjectEntry(Datatype:=otDataType.Memo, _
                          title:="Table Description", description:="description of the table")> Public Const ConstFNdesc = "desc"
 
-        <ormObjectEntry(typeid:=otDataType.[Long], defaultvalue:=1, lowerRange:=0, _
+        <ormObjectEntry(Datatype:=otDataType.[Long], defaultvalue:=1, lowerRange:=0, _
                                   title:="Version", Description:="version counter of updating")> Public Const ConstFNUPDC As String = "updc"
 
-        <ormObjectEntry(typeid:=otDataType.List, size:=255, _
+        <ormObjectEntry(Datatype:=otDataType.List, size:=255, _
                                   title:="Properties", Description:="properties on table level")> Public Const ConstFNProperties As String = "properties"
 
-        <ormObjectEntry(typeid:=otDataType.Bool, defaultvalue:=False, _
+        <ormObjectEntry(Datatype:=otDataType.Bool, defaultvalue:=False, _
                         title:="Use Cache", Description:="set if the entry is object cached")> Public Const ConstFNUseCache As String = "usecache"
 
-        <ormObjectEntry(typeid:=otDataType.List, size:=255, _
+        <ormObjectEntry(Datatype:=otDataType.List, size:=255, _
                         title:="Cache", defaultvalue:="", Description:="cache properties on table level")> Public Const ConstFNCacheProperties As String = "cacheproperties"
 
-        <ormObjectEntry(typeid:=otDataType.Bool, defaultvalue:=False, dbdefaultvalue:="0", _
+        <ormObjectEntry(Datatype:=otDataType.Bool, defaultvalue:=False, dbdefaultvalue:="0", _
                                   title:="TableDeleteFlagBehaviour", Description:="set if the object runs the delete per flag behavior")> Public Const ConstFNDeletePerFlag As String = "DeletePerFlag"
-        <ormObjectEntry(typeid:=otDataType.Bool, defaultvalue:=False, dbdefaultvalue:="0", _
+        <ormObjectEntry(Datatype:=otDataType.Bool, defaultvalue:=False, dbdefaultvalue:="0", _
                                   title:="TableSpareFieldsBehaviour", Description:="set if the object has additional spare fields behavior")> Public Const ConstFNSpareFieldsFlag As String = "SpareFields"
-        <ormObjectEntry(typeid:=otDataType.Bool, defaultvalue:=False, dbdefaultvalue:="0", _
+        <ormObjectEntry(Datatype:=otDataType.Bool, defaultvalue:=False, dbdefaultvalue:="0", _
                                   title:="DomainBehaviour", Description:="set if the object belongs to a domain")> Public Const ConstFNDomainFlag As String = "DomainBehavior"
 
         'avoid loops nonsense to have that here but it is inherited
@@ -3047,11 +3047,11 @@ Namespace OnTrack.Database
         <ormObjectEntry(referenceObjectEntry:=ObjectColumnEntry.ConstObjectID & "." & ObjectColumnEntry.ConstFNEntryName, primarykeyordinal:=2 _
                         )> Public Const ConstFNEntryname = AbstractEntryDefinition.ConstFNEntryName
 
-        <ormObjectEntry(typeid:=otDataType.Text, size:=150, primarykeyordinal:=3, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=150, primarykeyordinal:=3, _
                         properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty}, _
                         title:="Operation", description:="business object operation")> Public Const ConstFNOperation = "operation"
 
-        <ormObjectEntry(typeid:=otDataType.Long, primarykeyordinal:=4, defaultvalue:=10, _
+        <ormObjectEntry(Datatype:=otDataType.Long, primarykeyordinal:=4, defaultvalue:=10, _
                         title:="Rule Order", description:="ordinal of the rule")> Public Const ConstFNRuleordinal = "order"
 
         <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=5, _
@@ -3071,23 +3071,23 @@ Namespace OnTrack.Database
                              useforeignkey:=otForeignKeyImplementation.NativeDatabase)> Public Const constFKprimary = "fkpermission"
         '** Fields
 
-        <ormObjectEntry(typeid:=otDataType.Text, size:=255, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=255, _
             title:="RuleType", description:="rule condition")> Public Const ConstFNRuleType = "typeid"
-        <ormObjectEntry(typeid:=otDataType.Text, size:=255, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=255, _
             title:="Rule", description:="rule condition")> Public Const ConstFNRule = "rule"
 
-        <ormObjectEntry(typeid:=otDataType.Bool, defaultvalue:=False, _
+        <ormObjectEntry(Datatype:=otDataType.Bool, defaultvalue:=False, _
             title:="Allow Operation", description:="if condition andalso true allow Operation orelse if condition then disallow")> _
         Public Const ConstFNAllow = "allow"
-        <ormObjectEntry(typeid:=otDataType.Bool, defaultvalue:=False, _
+        <ormObjectEntry(Datatype:=otDataType.Bool, defaultvalue:=False, _
             title:="Exit Operation", description:="if condition andalso exittrue then stop rule processing")> _
         Public Const ConstFNExitTrue = "exitontrue"
-        <ormObjectEntry(typeid:=otDataType.Bool, defaultvalue:=False, _
+        <ormObjectEntry(Datatype:=otDataType.Bool, defaultvalue:=False, _
             title:="Exit Operation", description:="if not condition andalso exitfalse then stop rule processing")> _
         Public Const ConstFNExitFalse = "exitonfalse"
-        <ormObjectEntry(typeid:=otDataType.Memo, _
+        <ormObjectEntry(Datatype:=otDataType.Memo, _
             title:="Description", description:="description of the permission rule")> Public Const ConstFNdesc = "desc"
-        <ormObjectEntry(defaultvalue:=0, typeid:=otDataType.[Long], _
+        <ormObjectEntry(defaultvalue:=0, Datatype:=otDataType.[Long], _
             title:="Version", Description:="version counter of updating")> Public Const ConstFNVersion As String = "updc"
 
         '*** Mappings
@@ -3570,43 +3570,43 @@ Namespace OnTrack.Database
         ''' Primary key Column
         ''' </summary>
         ''' <remarks></remarks>
-        <ormObjectEntry(typeid:=otDataType.Text, size:=50, primarykeyordinal:=1, properties:={ObjectEntryProperty.Keyword}, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=50, primarykeyordinal:=1, properties:={ObjectEntryProperty.Keyword}, _
                          XID:="OBJID", title:="Object ID", description:="unique name of the Object")> Public Const ConstFNID = "id"
 
         ''' <summary>
         ''' Column Definition
         ''' </summary>
         ''' <remarks></remarks>
-        <ormObjectEntry(typeid:=otDataType.Text, size:=150, properties:={ObjectEntryProperty.Trim}, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=150, properties:={ObjectEntryProperty.Trim}, _
                         title:="Object Class Name", description:="class name of the Object")> Public Const ConstFNClass = "class"
-        <ormObjectEntry(typeid:=otDataType.Memo, _
+        <ormObjectEntry(Datatype:=otDataType.Memo, _
                         title:="Object Description", description:="description of the Object")> Public Const ConstFNdesc = "desc"
-        <ormObjectEntry(defaultvalue:="0", typeid:=otDataType.[Long], _
+        <ormObjectEntry(defaultvalue:="0", Datatype:=otDataType.[Long], _
                         title:="Version", Description:="version counter of updating")> Public Const ConstFNVersion As String = "updc"
-        <ormObjectEntry(typeid:=otDataType.Bool, _
+        <ormObjectEntry(Datatype:=otDataType.Bool, _
                         title:="Is Active", defaultvalue:=True, dbdefaultvalue:="1", _
                         Description:="set if the object is active")> Public Const ConstFNISActive As String = "isactive"
-        <ormObjectEntry(typeid:=otDataType.Text, size:=150, properties:={ObjectEntryProperty.Upper, ObjectEntryProperty.Trim}, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=150, properties:={ObjectEntryProperty.Upper, ObjectEntryProperty.Trim}, _
                         title:="Object Module", description:="name of the module the object belongs to")> Public Const ConstFNModule = "module"
-        <ormObjectEntry(typeid:=otDataType.List, size:=255, innertypeid:=otDataType.Text, properties:={ObjectEntryProperty.Keyword}, _
+        <ormObjectEntry(Datatype:=otDataType.List, size:=255, innerDatatype:=otDataType.Text, properties:={ObjectEntryProperty.Keyword}, _
                         title:="Properties", Description:="properties on object level")> Public Const ConstFNProperties As String = "properties"
-        <ormObjectEntry(typeid:=otDataType.Bool, _
+        <ormObjectEntry(Datatype:=otDataType.Bool, _
                         title:="Use Cache", defaultvalue:=False, Description:="set if the entry is object cached")> Public Const ConstFNUseCache As String = "objectcache"
-        <ormObjectEntry(typeid:=otDataType.List, size:=255, innertypeid:=otDataType.Text, properties:={ObjectEntryProperty.Keyword}, _
+        <ormObjectEntry(Datatype:=otDataType.List, size:=255, innerDatatype:=otDataType.Text, properties:={ObjectEntryProperty.Keyword}, _
                         title:="Cache", Description:="cache properties on object level")> Public Const ConstFNCacheProperties As String = "cacheproperties"
-        <ormObjectEntry(typeid:=otDataType.List, size:=255, innertypeid:=otDataType.Text, properties:={ObjectEntryProperty.Keyword}, _
+        <ormObjectEntry(Datatype:=otDataType.List, size:=255, innerDatatype:=otDataType.Text, properties:={ObjectEntryProperty.Keyword}, _
                         title:="Primary Key", description:="names of the object unique keys")> Public Const ConstFNPrimaryKeys = "primarykeynames"
-        <ormObjectEntry(typeid:=otDataType.List, size:=255, innertypeid:=otDataType.Text, properties:={ObjectEntryProperty.Keyword}, _
+        <ormObjectEntry(Datatype:=otDataType.List, size:=255, innerDatatype:=otDataType.Text, properties:={ObjectEntryProperty.Keyword}, _
                         title:="Tables", description:="tables of the object")> Public Const ConstFNtablenames = "tables"
 
-        <ormObjectEntry(typeid:=otDataType.Bool, defaultvalue:=False, dbdefaultvalue:="0", _
+        <ormObjectEntry(Datatype:=otDataType.Bool, defaultvalue:=False, dbdefaultvalue:="0", _
                                   title:="TableDeleteFlagBehaviour", Description:="set if the object runs the delete per flag behavior")> Public Const ConstFNDeletePerFlag As String = "deleteperflag"
-        <ormObjectEntry(typeid:=otDataType.Bool, defaultvalue:=False, dbdefaultvalue:="0", _
+        <ormObjectEntry(Datatype:=otDataType.Bool, defaultvalue:=False, dbdefaultvalue:="0", _
                                   title:="TableSpareFieldsBehaviour", Description:="set if the object has additional spare fields behavior")> Public Const ConstFNSpareFieldsFlag As String = "spareFields"
-        <ormObjectEntry(typeid:=otDataType.Bool, defaultvalue:=False, dbdefaultvalue:="0", _
+        <ormObjectEntry(Datatype:=otDataType.Bool, defaultvalue:=False, dbdefaultvalue:="0", _
                                   title:="DomainBehaviour", Description:="set if the object belongs to a domain")> Public Const ConstFNDomainFlag As String = "domainBehavior"
 
-        <ormObjectEntry(typeid:=otDataType.Bool, defaultvalue:=True, dbdefaultvalue:="1", _
+        <ormObjectEntry(Datatype:=otDataType.Bool, defaultvalue:=True, dbdefaultvalue:="1", _
                                 title:="DefaultPermission", Description:="permission for object if no permissions are found")> Public Const ConstFNDefaultPermission As String = "defaultpermission"
 
         '** do not loop in foreign keys
@@ -3955,7 +3955,7 @@ Namespace OnTrack.Database
             End Get
         End Property
 #End Region
-       
+
 
         ''' <summary>
         ''' returns a list of entry names
@@ -5078,7 +5078,7 @@ Namespace OnTrack.Database
             useforeignkey:=otForeignKeyImplementation.NativeDatabase)> _
         Public Const ConstFNObjectName As String = ObjectDefinition.ConstFNID
 
-        <ormObjectEntry(dbdefaultvalue:="", typeid:=otDataType.Text, size:=100, _
+        <ormObjectEntry(dbdefaultvalue:="", Datatype:=otDataType.Text, size:=100, _
                         properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty}, _
                         xid:="OED1", title:="Object Entry Name", Description:="entry (data slot) name of an Ontrack Object", primaryKeyordinal:=2)> _
         Public Const ConstFNEntryName As String = "entry"
@@ -5090,102 +5090,102 @@ Namespace OnTrack.Database
         ''' </summary>
         ''' <remarks></remarks>
         ''' 
-        <ormObjectEntry(typeid:=otDataType.Text, defaultvalue:=otObjectEntryType.Column, size:=50, _
+        <ormObjectEntry(Datatype:=otDataType.Text, defaultvalue:=otObjectEntryType.Column, size:=50, _
                        properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty}, _
                        xid:="OED3", title:="Entry Type", Description:="OTDB schema entry type")> Public Const ConstFNType As String = "typeid"
 
 
-        <ormObjectEntry(defaultvalue:=otDataType.Text, dbdefaultvalue:="3", typeid:=otDataType.Long, _
+        <ormObjectEntry(defaultvalue:=otDataType.Text, dbdefaultvalue:="3", Datatype:=otDataType.Long, _
                         xid:="OED11", title:="Datatype", Description:="OTDB field data type")> Public Const ConstFNDatatype As String = "datatype"
 
-        <ormObjectEntry(typeid:=otDataType.Text, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.Text, isnullable:=True, _
                         title:="Inner Datatype", Description:="OTDB inner list data type")> Public Const ConstFNInnerDatatype As String = "innertype"
 
         <ormObjectEntry(referenceObjectentry:=ColumnDefinition.ConstObjectID & "." & ColumnDefinition.ConstFNSize, _
                         xid:="OED13", Description:="max Length of the entry")> Public Const ConstFNSize As String = "size"
 
-        <ormObjectEntry(typeid:=otDataType.Long, defaultvalue:=1, dbdefaultvalue:="1", _
+        <ormObjectEntry(Datatype:=otDataType.Long, defaultvalue:=1, dbdefaultvalue:="1", _
                          xid:="OED14", title:="Ordinal", Description:="ordinal of the object entry")> Public Const ConstFNordinal As String = "ordinal"
 
         <ormObjectEntry(referenceObjectentry:=ColumnDefinition.ConstObjectID & "." & ColumnDefinition.ConstFNIsNullable, _
                            xid:="OED15", Description:="is nullable on the object entry level")> Public Const ConstFNIsNullable As String = "isnullable"
 
-        <ormObjectEntry(typeid:=otDataType.Text, size:=255, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=255, isnullable:=True, _
                         xid:="OED16", title:="default value", description:="default value of the object entry on the object level")> _
         Public Const ConstFNDefaultValue As Object = "defaultvalue"
 
-        <ormObjectEntry(typeid:=otDataType.Text, size:=50, isnullable:=True, properties:={ObjectEntryProperty.Keyword}, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=50, isnullable:=True, properties:={ObjectEntryProperty.Keyword}, _
                         xid:="OED21", title:="XChangeID", Description:="ID for XChange manager")> Public Const ConstFNxid As String = "XID"
 
-        <ormObjectEntry(typeid:=otDataType.Text, size:=50, defaultvalue:="", properties:={ObjectEntryProperty.Capitalize, ObjectEntryProperty.Trim}, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=50, defaultvalue:="", properties:={ObjectEntryProperty.Capitalize, ObjectEntryProperty.Trim}, _
                         xid:="OED22", title:="Title", Description:="title for column headers of the field")> Public Const ConstFNTitle As String = "title"
 
-        <ormObjectEntry(typeid:=otDataType.Memo, properties:={ObjectEntryProperty.Trim}, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.Memo, properties:={ObjectEntryProperty.Trim}, isnullable:=True, _
                         xid:="OED23", title:="Description", Description:="Description of the field")> Public Const ConstFNDescription As String = "desc"
 
-        <ormObjectEntry(typeid:=otDataType.List, isnullable:=True, innertypeid:=otDataType.Text, _
+        <ormObjectEntry(Datatype:=otDataType.List, isnullable:=True, innerDatatype:=otDataType.Text, _
                         properties:={ObjectEntryProperty.Keyword}, _
                         xid:="OED24", title:="XChange alias ID", Description:="aliases ID for XChange manager")> Public Const ConstFNalias As String = "alias"
 
-       
 
-        <ormObjectEntry(typeid:=otDataType.List, innertypeid:=otDataType.Text, isnullable:=True, _
+
+        <ormObjectEntry(Datatype:=otDataType.List, innerDatatype:=otDataType.Text, isnullable:=True, _
                         xid:="OED17", title:="Properties", Description:="properties and property functions for the entry")> _
         Public Const ConstFNProperties As String = "properties"
 
-        <ormObjectEntry(defaultvalue:=1, typeid:=otDataType.[Long], lowerrange:=0, _
+        <ormObjectEntry(defaultvalue:=1, Datatype:=otDataType.[Long], lowerrange:=0, _
                         title:="UpdateCount", Description:="version counter of updating")> Public Const ConstFNUPDC As String = "updc"
 
-        <ormObjectEntry(typeid:=otDataType.Bool, defaultvalue:=False, _
+        <ormObjectEntry(Datatype:=otDataType.Bool, defaultvalue:=False, _
                         xid:="OED18", title:="Read Only", Description:="set if the object entry is created internally and can not be changed")> _
         Public Const ConstFNReadonly As String = "readonly"
 
-        <ormObjectEntry(typeid:=otDataType.Bool, defaultvalue:=True, _
+        <ormObjectEntry(Datatype:=otDataType.Bool, defaultvalue:=True, _
                         xid:="OED19", title:="Is Active", Description:="set if the object entry is activated")> _
         Public Const ConstFNActive As String = "active"
 
-        <ormObjectEntry(typeid:=otDataType.List, innertypeid:=otDataType.Text, isnullable:=True, title:="Relation", Description:="relation information")> _
+        <ormObjectEntry(Datatype:=otDataType.List, innerDatatype:=otDataType.Text, isnullable:=True, title:="Relation", Description:="relation information")> _
         Public Const ConstFNRelation As String = "relation"
 
-        <ormObjectEntry(typeid:=otDataType.Bool, defaultvalue:=True, dbdefaultvalue:="0", _
+        <ormObjectEntry(Datatype:=otDataType.Bool, defaultvalue:=True, dbdefaultvalue:="0", _
                         xid:="OED31", title:="Validate Entry", Description:="set if the object entry will be validated")> _
         Public Const ConstFNValidate As String = "validate"
 
-      
 
-        <ormObjectEntry(typeid:=otDataType.List, innertypeid:=otDataType.Text, isnullable:=True, _
+
+        <ormObjectEntry(Datatype:=otDataType.List, innerDatatype:=otDataType.Text, isnullable:=True, _
                         xid:="OED32", title:="List of Values", Description:="list of possible values")> Public Const ConstFNValues As String = "values"
 
-        <ormObjectEntry(typeid:=otDataType.List, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.List, isnullable:=True, _
           xid:="OED33", title:="Lookup Properties", Description:="list of lookup properties")> Public Const ConstFNLookupProperties As String = "lproperties"
 
-        <ormObjectEntry(typeid:=otDataType.List, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.List, isnullable:=True, _
            xid:="OED34", title:="Dynamic Lookup Condition", Description:="lookup condition of possible values")> Public Const ConstFNLookup As String = "lookup"
 
-        <ormObjectEntry(typeid:=otDataType.Long, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.Long, isnullable:=True, _
             xid:="OED35", title:="Lower Range", Description:="lower range value")> Public Const ConstFNLowerRange As String = "lower"
 
-        <ormObjectEntry(typeid:=otDataType.Long, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.Long, isnullable:=True, _
            xid:="OED36", title:="Upper Range", Description:="upper range value")> Public Const ConstFNUpperRange As String = "upper"
 
-        <ormObjectEntry(typeid:=otDataType.List, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.List, isnullable:=True, _
             xid:="OED37", title:="Validation Properties", Description:="list of validation properties")> Public Const ConstFNValidationProperties As String = "vproperties"
 
-        <ormObjectEntry(typeid:=otDataType.Text, size:=255, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=255, isnullable:=True, _
            xid:="OED38", title:="Validation Regex Condition", Description:="regex match for validation to be true")> Public Const ConstFNValidationRegex As String = "validregex"
 
 
-        <ormObjectEntry(typeid:=otDataType.Bool, defaultvalue:=False, _
+        <ormObjectEntry(Datatype:=otDataType.Bool, defaultvalue:=False, _
           xid:="OED41", title:="Render Entry", Description:="set if the object entry will be rendered to a string presentation")> _
         Public Const ConstFNRender As String = "render"
 
-        <ormObjectEntry(typeid:=otDataType.List, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.List, isnullable:=True, _
            xid:="OED42", title:="Render Properties", Description:="list of render properties")> Public Const ConstFNRenderProperties As String = "rproperties"
 
-        <ormObjectEntry(typeid:=otDataType.Text, size:=255, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=255, isnullable:=True, _
             xid:="OED43", title:="Render Regex Condition", Description:="regex match for render to be true")> Public Const ConstFNRenderRegexMatch As String = "renderregexmatch"
 
-        <ormObjectEntry(typeid:=otDataType.Text, size:=255, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=255, isnullable:=True, _
            xid:="OED44", title:="Render Regex Replace", Description:="regex replace pattern for rendering")> Public Const ConstFNRenderRegexPattern As String = "renderregexreplace"
 
         ''' <summary>
@@ -5990,8 +5990,8 @@ Namespace OnTrack.Database
                 If .HasValueIsReadonly Then Me.IsReadonly = .IsReadOnly
                 If .HasValueIsActive Then Me.IsActive = .IsActive
                 If .HasValueDescription Then Me.Description = .Description
-                If .HasValueTypeID Then Me.Datatype = .Typeid
-                If .HasValueInnerTypeID Then Me.InnerDatatype = .InnerTypeid
+                If .HasValueDataType Then Me.Datatype = .DataType
+                If .HasValueInnerDataType Then Me.InnerDatatype = .InnerDataType
                 If .hasValuePosOrdinal Then Me.Ordinal = .Posordinal
                 If .HasValueSize Then Me.Size = .Size
                 If .HasValueDefaultValue Then Me.Defaultvalue = .DefaultValue
@@ -6134,7 +6134,7 @@ Namespace OnTrack.Database
             Catch ex As Exception
                 CoreMessageHandler(exception:=ex, subname:="AbstractEntryDefinition_OnEntryChanged")
             End Try
-            
+
         End Sub
         ''' <summary>
         ''' infuses the object from a record
@@ -6175,7 +6175,7 @@ Namespace OnTrack.Database
                     Next
                     _properties = aList ' assign
                 End If
-               
+
 
                 ''** the property list in Object presentation
 
@@ -6220,7 +6220,7 @@ Namespace OnTrack.Database
                     _lookupProperties = aLookupList ' assign
 
                 End If
-                
+
             Catch ex As Exception
                 Call CoreMessageHandler(subname:="AbstractEntryDefinition_OnInfused", exception:=ex)
             End Try
@@ -6347,7 +6347,7 @@ Namespace OnTrack.Database
                     ''' 
                     For Each aRecord In aDomainRecordCollection.Values
                         Dim aList As New List(Of String)
-                        Dim aliases As String() = Converter.String2Array(aRecord.GetValue(1))
+                        Dim aliases As String() = Converter.otString2Array(aRecord.GetValue(1))
                         For Each anAlias In aliases
                             If Not aDictionary.ContainsKey(anAlias) Then
                                 aDictionary.Add(key:=anAlias, value:=aList)
@@ -6468,34 +6468,34 @@ Namespace OnTrack.Database
         '** Field and tabele are comming from the Abstract Class
 
         '** extend the Table with additional fields
-        <ormObjectEntry(typeid:=otDataType.Text, size:=50, properties:={ObjectEntryProperty.Keyword}, isnullable:=True, posordinal:=100, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=50, properties:={ObjectEntryProperty.Keyword}, isnullable:=True, posordinal:=100, _
                         properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty}, _
                         XID:="OED100", title:="Compound Table", Description:="name of the compound table")> _
         Public Const ConstFNFinalObjectID As String = "ctblname"
 
-        <ormObjectEntry(typeid:=otDataType.List, isnullable:=True, posordinal:=101, _
+        <ormObjectEntry(Datatype:=otDataType.List, isnullable:=True, posordinal:=101, _
                         properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty}, _
                         XID:="OED101", title:="Compound Relation", Description:="relation path to the compound object")> _
         Public Const ConstFNCompoundRelation As String = "crelation"
 
-        <ormObjectEntry(typeid:=otDataType.Text, size:=50, properties:={ObjectEntryProperty.Keyword}, isnullable:=True, posordinal:=102, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=50, properties:={ObjectEntryProperty.Keyword}, isnullable:=True, posordinal:=102, _
                         properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty}, _
                         XID:="OED102", title:="compound id field", Description:="name of the compound id field")> Public Const ConstFNCompoundIDEntryname As String = "cidfield"
 
-        <ormObjectEntry(typeid:=otDataType.Text, size:=255, properties:={ObjectEntryProperty.Keyword}, isnullable:=True, posordinal:=103, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=255, properties:={ObjectEntryProperty.Keyword}, isnullable:=True, posordinal:=103, _
                         properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty}, _
                         XID:="OED103", title:="compound value field", Description:="name of the compound value field")> Public Const ConstFNCompoundValueEntryName As String = "cvalfield"
 
 
-        <ormObjectEntry(typeid:=otDataType.Text, size:=50, properties:={ObjectEntryProperty.Keyword}, isnullable:=True, posordinal:=110, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=50, properties:={ObjectEntryProperty.Keyword}, isnullable:=True, posordinal:=110, _
                         properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty}, _
                         XID:="OED104", title:="compound setter operation", Description:="name of the compound setter method")> Public Const ConstFNCompoundSetter As String = "CSETTER"
 
-        <ormObjectEntry(typeid:=otDataType.Text, size:=50, properties:={ObjectEntryProperty.Keyword}, isnullable:=True, posordinal:=111, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=50, properties:={ObjectEntryProperty.Keyword}, isnullable:=True, posordinal:=111, _
                        properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty}, _
                        XID:="OED105", title:="compound getter operation", Description:="name of the compound getter method")> Public Const ConstFNCompoundGetter As String = "CGETTER"
 
-        <ormObjectEntry(typeid:=otDataType.Text, size:=50, properties:={ObjectEntryProperty.Keyword}, isnullable:=True, posordinal:=112, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=50, properties:={ObjectEntryProperty.Keyword}, isnullable:=True, posordinal:=112, _
                       properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty}, _
                       XID:="OED106", title:="compound validator operation", Description:="name of the compound validator method")> Public Const ConstFNCompoundValidator As String = "CVALIDATE"
 
@@ -6546,7 +6546,7 @@ Namespace OnTrack.Database
             Get
                 Return Me._CompoundGetterMethodName
             End Get
-            Set
+            Set(value As String)
                 SetValue(ConstFNCompoundGetter, Value)
             End Set
         End Property
@@ -6846,7 +6846,7 @@ Namespace OnTrack.Database
                         properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty}, _
                         Description:="corresponding column name of the object entry")> Public Const ConstFNColumnname As String = ColumnDefinition.ConstFNColumnname
 
-        <ormObjectEntry(typeid:=otDataType.Bool, defaultvalue:=False, dbdefaultvalue:="0", posordinal:=92, _
+        <ormObjectEntry(Datatype:=otDataType.Bool, defaultvalue:=False, dbdefaultvalue:="0", posordinal:=92, _
                        title:="SpareFieldTag", Description:="set if the entry is a spare entry")> Public Const ConstFNSpareFieldTag As String = "SpareFieldTag"
 
         ' foreign key doesnot work for some reasons - sqlserver doesnot allow
@@ -6892,7 +6892,7 @@ Namespace OnTrack.Database
         Public Sub New()
             Call MyBase.New()
             _typeid = otObjectEntryType.Column
-            AddHandler ormDataObject.OnDefaultValuesNeeded, AddressOf OnDefaultValuesNeeded
+            AddHandler ormDataObject.OnCreateDefaultValuesNeeded, AddressOf OnDefaultValuesNeeded
             AddHandler ormDataObject.OnFeeding, AddressOf OnFeeding
             AddHandler ormDataObject.OnValidating, AddressOf OnValidating
             AddHandler ormDataObject.OnInitializing, AddressOf OnInitialize
@@ -7280,7 +7280,7 @@ Namespace OnTrack.Database
                 If .HasValueSize Then Me.Size = .Size
                 If .HasValueDBDefaultValue Then Me.DBDefaultValue = .DBDefaultValue
                 If .HasValueSpareFieldTag Then Me.IsSpareField = .SpareFieldTag
-                If .HasValueTypeID Then Me.Datatype = .Typeid
+                If .HasValueDataType Then Me.Datatype = .DataType
 
                 If .HasValueUseForeignKey And .UseForeignKey <> otForeignKeyImplementation.None Then
                     ' we should check if the foreign key from attribute is now in the table.foreignkeys

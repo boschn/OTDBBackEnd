@@ -1,0 +1,36 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ClassDiagram MajorVersion="1" MinorVersion="1">
+  <Class Name="OnTrack.Database.adonetDBDriver" Collapsed="true">
+    <Position X="2" Y="2.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>ANAUZABAQAAADwE4YAAAMAAOgBME0gQHARAABgJAEAA=</HashCode>
+      <FileName>clsADONET.vb</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.283" />
+  </Class>
+  <Class Name="OnTrack.Database.ormDatabaseDriver" Collapsed="true">
+    <Position X="2" Y="1.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AFMcUAAAUAEEjQIYJIBAIAAIgAoAkBRiCQCAGoBkFEg=</HashCode>
+      <FileName>clsCoreORM.vb</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="OnTrack.Database.mssqlDBDriver" Collapsed="true">
+    <Position X="1" Y="4" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AFAIRAAAQAEACQIYAgAAAAAEABIAABRCAQCAEAIkEAA=</HashCode>
+      <FileName>clsADOMSSQL.vb</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="OnTrack.Database.oleDBDriver" Collapsed="true">
+    <Position X="3.25" Y="4" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AEAIRAAAQAEACQIYAAAAAAAEABIAABRCAQCAEAIgEAA=</HashCode>
+      <FileName>clsADOOLEDB.vb</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Font Name="Segoe UI" Size="9" />
+</ClassDiagram>

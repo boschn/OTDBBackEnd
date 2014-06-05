@@ -47,7 +47,7 @@ Namespace OnTrack.XChange
         Private _datatype As otDataType = 0
 
         ' result
-        Private _convertSucceeded As Boolean = False
+        Private _result As Boolean = False
         Private _msglog As ObjectMessageLog
 
         Public Sub New(datatype As otDataType, valuetype As convertValueType, value As Object,
@@ -138,12 +138,12 @@ Namespace OnTrack.XChange
         ''' Gets or sets the convert succeeded.
         ''' </summary>
         ''' <value>The convert succeeded.</value>
-        Public Property ConvertSucceeded() As Boolean
+        Public Property result() As Boolean
             Get
-                Return Me._convertSucceeded
+                Return Me._result
             End Get
             Set(value As Boolean)
-                Me._convertSucceeded = value
+                Me._result = value
             End Set
         End Property
         ''' <summary>
@@ -276,11 +276,27 @@ Namespace OnTrack.XChange
     End Class
 
     ''' <summary>
-    ''' XBag is an arbitary XChange Data Object which constists of different XEnvelopes ordered by
+    ''' XBag is an arbitary runtime and non persistable XChange Data Object which constists of different XEnvelopes ordered by
     ''' ordinals.
     ''' An XBag an Default persistable XChangeConfig
     ''' </summary>
-    ''' <remarks></remarks>
+    ''' <remarks>
+    ''' design principles:
+    ''' 
+    ''' the XBag consists of XEnvelopes which are the record or line by line based elements
+    ''' Processing the XBag means processing all the envelopes in the bag
+    ''' 
+    ''' prechecking is necessary to process the elements
+    ''' 
+    ''' ''' for transformation of data values of the slots especially in the case of special values of the exchanging sub system
+    ''' the events 
+    ''' 
+    ''' ConvertRequest2HostValue
+    ''' ConvertRequest2DBValue 
+    ''' 
+    ''' can be used. These are propagated to the XBAG level
+    ''' 
+    ''' </remarks>
     Public Class XBag
         Implements IEnumerable(Of XEnvelope)
 
@@ -774,9 +790,58 @@ Namespace OnTrack.XChange
     ''' <summary>
     ''' a XSlot represents a Slot in an XEnvelope
     ''' </summary>
-    ''' <remarks></remarks>
+    ''' <remarks>
+    ''' Design principles:
+    ''' 
+    ''' the xslot is a non-persistable data container of an envelope to which it belongs. Basically the xslot is also assigned to one or many otdb
+    ''' object entries but is ordered by the ordering ordinal (which is a column or something the like).
+    ''' 
+    ''' an xslot holds the data in the host value presentation which is the value presentation of the exchanging sub system.
+    ''' the data will be transformed to the otdb datatype by the property dbvalue which is used to store the data value in OnTrack
+    ''' 
+    ''' setting a hostvalue or a dbvalue should also be combined with setting the special values
+    ''' isEmpty which means that the slot has not value at all and is by intention an empty slot which cannot be used to store data
+    ''' IsNull which means the slot has the NOTHING  or NULL value by intention and can be used to set also the database value to null
+    ''' 
+    ''' for transformation of data values especially in the case of special values of the exchanging sub system
+    ''' the events 
+    ''' 
+    ''' ConvertRequest2HostValue
+    ''' ConvertRequest2DBValue 
+    ''' 
+    ''' can be used. These are propagated to the XBAG level
+    ''' 
+    ''' the Event OnSlotValueChanged can be used to be informed if the slot value changes
+    ''' 
+    ''' </remarks>
 
     Public Class XSlot
+
+        ''' <summary>
+        '''  Event Argument Class
+        ''' </summary>
+        ''' <remarks></remarks>
+        Public Class EventArgs
+            Inherits System.EventArgs
+
+            Private _slot As XSlot
+
+            Public Sub New(slot As XSlot)
+                _slot = slot
+            End Sub
+
+            ''' <summary>
+            ''' Gets the xchang config slot.
+            ''' </summary>
+            ''' <value>The slot.</value>
+            Public ReadOnly Property XSlot() As XSlot
+                Get
+                    Return Me._slot
+                End Get
+            End Property
+
+        End Class
+
 
         Private _envelope As XEnvelope
         Private _xentry As XChangeObjectEntry
@@ -801,6 +866,8 @@ Namespace OnTrack.XChange
         Public Event ConvertRequest2HostValue As EventHandler(Of ConvertRequestEventArgs)
         Public Event ConvertRequest2DBValue As EventHandler(Of ConvertRequestEventArgs)
 
+        Public Event OnSlotValueChanged As EventHandler(Of XSlot.EventArgs)
+
         ''' <summary>
         ''' constructor for slot with envelope reference and attribute
         ''' </summary>
@@ -817,6 +884,7 @@ Namespace OnTrack.XChange
             _explicitDatatype = 0 'read from attribute
             AddHandler Me.ConvertRequest2HostValue, AddressOf xenvelope.OnRequestConvert2HostValue
             AddHandler Me.ConvertRequest2DBValue, AddressOf xenvelope.OnRequestConvert2DBValue
+            AddHandler Me.OnSlotValueChanged, AddressOf xenvelope.XEnvelope_OnSlotValueChanged
         End Sub
         ''' <summary>
         ''' constructor for slot with envelope reference and attribute and hostvalue
@@ -964,9 +1032,17 @@ Namespace OnTrack.XChange
                 Return Me._hostvalue
             End Get
             Set(value As Object)
-                Me._hostvalue = value
-                Me.IsEmpty = False ' HACK ! should raise event
-                Me.IsNull = False
+                If (value Is Nothing AndAlso _hostvalue IsNot Nothing) OrElse (value IsNot Nothing AndAlso _hostvalue Is Nothing) _
+                    OrElse (value IsNot Nothing AndAlso _hostvalue IsNot Nothing AndAlso Not _hostvalue.Equals(value)) Then
+                    Me._hostvalue = value
+                    ' Me.IsEmpty = False ' HACK ! should raise event -> not working since assigning nothing is !
+                    If value IsNot Nothing Then
+                        Me.IsNull = False
+                        Me.IsEmpty = False
+                    End If
+
+                    RaiseEvent OnSlotValueChanged(Me, New XSlot.EventArgs(Me))
+                End If
             End Set
         End Property
         ''' <summary>
@@ -1008,7 +1084,7 @@ Namespace OnTrack.XChange
                                                           value:=_hostvalue, isempty:=Me.IsEmpty, isnull:=Me.IsNull)
                 '** raise the event if we have a special eventhandler
                 RaiseEvent ConvertRequest2DBValue(sender:=Me, e:=anArgs)
-                If anArgs.ConvertSucceeded Then
+                If anArgs.result Then
                     Me.IsEmpty = anArgs.HostValueisEmpty
                     Me.IsNull = anArgs.HostValueisNull
                     Return anArgs.Dbvalue
@@ -1033,16 +1109,19 @@ Namespace OnTrack.XChange
                                                           value:=value, isnull:=isNull, isempty:=isEmpty)
 
                 RaiseEvent ConvertRequest2HostValue(sender:=Me, e:=anArgs)
-                If anArgs.ConvertSucceeded Then
+                '** try to convert by event
+                If anArgs.result Then
                     _hostvalue = anArgs.Hostvalue
                     Me.IsEmpty = anArgs.HostValueisEmpty
                     Me.IsNull = anArgs.HostValueisNull
+                    RaiseEvent OnSlotValueChanged(Me, New XSlot.EventArgs(Me))
                 Else
-
+                    '** convert by function
                     If DefaultConvert2HostValue(datatype:=Me.Datatype, dbvalue:=value, hostvalue:=outvalue, _
                                                 dbValueIsEmpty:=Me.IsEmpty, dbValueIsNull:=Me.IsNull, hostValueIsEmpty:=isEmpty, hostValueIsNull:=isNull, _
                                                 msglog:=Me.MessageLog) Then
                         _hostvalue = outvalue
+                        RaiseEvent OnSlotValueChanged(Me, New XSlot.EventArgs(Me))
                     End If
                 End If
 
@@ -1143,7 +1222,7 @@ Namespace OnTrack.XChange
                     hostvalue = CStr(dbvalue)
                     Return True
                 Case otDataType.List
-                    hostvalue = Converter.Enumerable2String(dbvalue)
+                    hostvalue = Converter.Enumerable2otString(dbvalue)
                     Return True
                 Case otDataType.Runtime
                     Call CoreMessageHandler(subname:="DefaultConvert2HostValue.convertValue2Hostvalue",
@@ -1376,7 +1455,31 @@ Namespace OnTrack.XChange
     ''' <summary>
     ''' XChange Envelope is a Member of a Bag and Contains Pairs of ordinal, XSlot
     ''' </summary>
-    ''' <remarks></remarks>
+    ''' <remarks>
+    ''' Design principles:
+    ''' an envelope is an arbitary and non persistable xchange class which is used to put together all related entries of otdb dataobjects in xslots
+    ''' the data exchange is done in 2 steps: 
+    ''' 
+    ''' 1. Prechecking and validating the slots
+    ''' 2. Exchanging and persisting the changes
+    ''' 
+    ''' the envelope constist of xslots which can be adressed by ordinals (of the exchange structure e.g columns), 
+    ''' otdb objectnames and entrynames or otdb entry exchange ids or otdb exchange aliases.
+    ''' 
+    ''' prechecking is necessary to process the elements !
+    ''' 
+    ''' An envelope has a xcmd whch is a operation to be carried out. the xcmd is assigned to the different otdb dataobjects (xobjects)
+    ''' and xslots.
+    ''' 
+    ''' Events:
+    ''' for transformation of data values of the slots especially in the case of special values of the exchanging sub system
+    ''' the events 
+    ''' 
+    ''' ConvertRequest2HostValue
+    ''' ConvertRequest2DBValue 
+    ''' 
+    ''' can be used. These are propagated to the XBAG level
+    ''' </remarks>
     Public Class XEnvelope
         Implements IEnumerable(Of XSlot)
 
@@ -1395,6 +1498,11 @@ Namespace OnTrack.XChange
         Private WithEvents _msglog As New ObjectMessageLog
 
         ''' <summary>
+        ''' track messagelog as objectmessagelog to track the events of this additional messagelog and propagate
+        ''' </summary>
+        ''' <remarks></remarks>
+        Private WithEvents _trackmessagelog As ObjectMessageLog
+        ''' <summary>
         '''  for the object message log envirorment
         ''' </summary>
         ''' <remarks></remarks>
@@ -1408,11 +1516,12 @@ Namespace OnTrack.XChange
         ''' <remarks></remarks>
         Private _validator As New Database.ObjectValidator
 
+
         '** events for convert values
         Public Event ConvertRequest2HostValue As EventHandler(Of ConvertRequestEventArgs)
         Public Event ConvertRequestDBValue As EventHandler(Of ConvertRequestEventArgs)
 
-
+        Public Event OnSlotValueChanged As EventHandler(Of XSlot.EventArgs)
 
         ''' <summary>
         ''' constructor
@@ -1553,6 +1662,25 @@ Namespace OnTrack.XChange
                 Return _slots.Keys
             End Get
         End Property
+        ''' <summary>
+        ''' sets an interim Messagelog to track 
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Private Property trackMessageLog As ObjectMessageLog
+            Get
+                Return _trackmessagelog
+            End Get
+            Set(value As ObjectMessageLog)
+                If value IsNot Nothing Then
+                    _trackmessagelog = value
+                Else
+                    _trackmessagelog = Nothing
+                End If
+               
+            End Set
+        End Property
 
         '**** check functions if exists
         Public Function ContainsOrdinal(ByVal [ordinal] As Ordinal) As Boolean
@@ -1634,6 +1762,7 @@ Namespace OnTrack.XChange
             If Me.ContainsOrdinal(ordinal) Then
                 RemoveHandler _slots.Item(ordinal).ConvertRequest2DBValue, AddressOf Me.OnRequestConvert2DBValue
                 RemoveHandler _slots.Item(ordinal).ConvertRequest2HostValue, AddressOf Me.OnRequestConvert2HostValue
+                RemoveHandler _slots.Item(ordinal).OnSlotValueChanged, AddressOf Me.XEnvelope_OnSlotValueChanged
                 _slots.Remove(ordinal)
                 Return True
             End If
@@ -1793,6 +1922,7 @@ Namespace OnTrack.XChange
             'AddHandler slot.ConvertRequest2HostValue, AddressOf Me.OnRequestConvert2HostValue
             'AddHandler slot.ConvertRequest2DBValue, AddressOf Me.OnRequestConvert2DBValue
             AddHandler slot.MessageLog.OnObjectMessageAdded, AddressOf Me.XEnvelope_OnXSlotMessage
+
             ' add the slot
             _slots.Add(slot.ordinal, value:=slot)
             Return True
@@ -1911,28 +2041,30 @@ Namespace OnTrack.XChange
                 If Me.ContainsOrdinal(ordinal:=entry.Ordinal) And Not replaceSlotIfexists Then
                     If overwriteValue Then
                         Dim aSlot As XSlot = _slots.Item(key:=entry.Ordinal)
+                        aSlot.IsEmpty = SlotIsEmpty
+                        aSlot.IsNull = ValueIsNull
+                        '* set value later than isNull to make sure that dbvalue transformation works
                         If isHostValue Then
                             aSlot.HostValue = value
                         Else
                             aSlot.DBValue = value
                         End If
-                        aSlot.IsEmpty = SlotIsEmpty
-                        aSlot.IsNull = ValueIsNull
                         Return True
                     End If
                     Return False
                 Else
                     Dim aNewSlot As XSlot = New XSlot(Me, entry:=entry)
-                    If isHostValue Then
-                        aNewSlot.HostValue = value
-                    Else
-                        aNewSlot.DBValue = value
-                    End If
                     aNewSlot.ContextIdentifier = Me.ContextIdentifier
                     aNewSlot.TupleIdentifier = Me.TupleIdentifier
                     aNewSlot.EntityIdentifier = entry.Ordinal.Value.ToString
                     aNewSlot.IsEmpty = SlotIsEmpty
                     aNewSlot.IsNull = ValueIsNull
+                    '* set value later than isNull to make sure that dbvalue transformation works
+                    If isHostValue Then
+                        aNewSlot.HostValue = value
+                    Else
+                        aNewSlot.DBValue = value
+                    End If
                     Return Me.AddSlot(slot:=aNewSlot, replaceSlotIfExists:=replaceSlotIfexists)
                 End If
             End If
@@ -2156,6 +2288,16 @@ Namespace OnTrack.XChange
         End Function
 #End Region
 
+
+        ''' <summary>
+        ''' Eventhandler for the Slots OnSlotValueChanged
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Public Sub XEnvelope_OnSlotValueChanged(ByVal sender As Object, ByVal e As XSlot.EventArgs)
+            RaiseEvent OnSlotValueChanged(Me, e) ' cascade
+        End Sub
         ''' <summary>
         ''' Eventhandler for the Slots OnRequestConvert2Hostvalue
         ''' </summary>
@@ -2284,235 +2426,6 @@ Namespace OnTrack.XChange
             Return result
         End Function
 
-        ''' <summary>
-        ''' create and update a object 
-        ''' </summary>
-        ''' <param name="xobject"></param>
-        ''' <param name="record"></param>
-        ''' <param name="pkarray"></param>
-        ''' <param name="msglog"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        'Private Function CreateandUpdateObject(ByRef xobject As XChangeObject,
-        '                                       ByRef record As ormRecord,
-        '                                       ByRef pkarray() As Object,
-        '                                       Optional ByRef msglog As ObjectLog = Nothing
-        '                                        ) As Boolean
-        '    Dim aDataObjectType As System.Type
-        '    Dim aDataobject As iormPersistable
-        '    Dim aDataInfusable As iormInfusable
-        '    Dim aValue As Object = Nothing
-        '    Dim anOldValue As Object = Nothing
-        '    Dim aSlot As XSlot
-
-        '    Dim persistflag As Boolean = False
-
-        '    '** BETTER TO CREATE A NEW OBJECT -> Default values
-        '    If ot.GetObjectClassType(objectname:=xobject.Objectname) IsNot Nothing Then
-        '        aDataObjectType = ot.GetObjectClassType(objectname:=xobject.Objectname)
-        '        aDataobject = Activator.CreateInstance(aDataObjectType)
-        '        aDataInfusable = aDataobject
-        '    Else
-        '        aDataobject = Nothing
-        '        aDataInfusable = Nothing
-        '    End If
-
-        '    '** create new object
-        '    '**
-        '    If xobject.XChangeCmd = otXChangeCommandType.Update And record Is Nothing Then
-        '        Return False
-        '    ElseIf xobject.XChangeCmd = otXChangeCommandType.UpdateCreate And record Is Nothing Then
-        '        '** RECORD based Object creation
-        '        record = New ormRecord
-        '        record.SetTable(xobject.Objectname, fillDefaultValues:=True)
-
-        '        '** BETTER TO CREATE A NEW OBJECT -> Default values
-        '        If aDataobject IsNot Nothing Then
-        '            If Not aDataobject.Create(pkArray:=pkarray) Then
-        '                CoreMessageHandler(message:="Data object with same primary keys exists", messagetype:=otCoreMessageType.ApplicationError, subname:="XEnvelope.RunDefaultXChange4Object")
-        '                aDataobject.Inject(pkArray:=pkarray)
-        '            End If
-        '        End If
-        '        '** set to updateCreate
-        '        For Each anAttribute In Me.Xchangeconfig.GetEntriesByObjectName(objectname:=xobject.Objectname)
-        '            anAttribute.XChangeCmd = otXChangeCommandType.UpdateCreate
-        '            anAttribute.IsXChanged = True
-        '        Next
-        '    End If
-
-        '    '*** set values of object
-        '    '***
-        '    For Each anAttribute In Me.Xchangeconfig.GetEntriesByObjectName(objectname:=xobject.Objectname)
-        '        If anAttribute.IsXChanged AndAlso Not anAttribute.IsReadOnly Then
-        '            If (anAttribute.XChangeCmd = otXChangeCommandType.Update Or anAttribute.XChangeCmd = otXChangeCommandType.UpdateCreate) Then
-        '                aSlot = Me.GetSlot(ordinal:=anAttribute.Ordinal)
-        '                If aSlot IsNot Nothing AndAlso Not aSlot.IsEmpty Then
-        '                    '* get Value from Slot
-        '                    aValue = aSlot.DBValue
-        '                    '* get old value
-        '                    If record.HasIndex(index:=anAttribute.ObjectEntryname) Then
-        '                        anOldValue = record.GetValue(index:=anAttribute.ObjectEntryname)
-        '                    Else
-        '                        anOldValue = Nothing
-        '                    End If
-        '                    '** change if different and not empty
-        '                    If aValue <> anOldValue Then
-        '                        record.SetValue(index:=anAttribute.ObjectEntryname, value:=aValue)
-        '                        persistflag = True
-        '                    End If
-        '                End If
-        '            End If
-        '        End If
-        '    Next
-
-        '    '' if a new record has not all fields set -> ?! what to do then ?
-
-        '    '** BETTER TO CREATE A NEW OBJECT -> Default values
-        '    If persistflag Then
-        '        If aDataobject IsNot Nothing Then
-        '            aDataInfusable.Infuse(record)
-        '            Return aDataobject.Persist()
-        '        Else
-        '            Return record.Persist
-        '        End If
-        '    End If
-
-        'End Function
-
-        ''' <summary>
-        ''' Run the default xchange for a given record
-        ''' </summary>
-        ''' <typeparam name="T"></typeparam>
-        ''' <param name="dataobject"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        'Public Function RunDefaultXchange(ByRef record As ormRecord, _
-        '                                  Optional xobject As XChangeObject = Nothing, _
-        '                                  Optional pkArray As Object() = Nothing, _
-        '                                  Optional ByRef msglog As ObjectLog = Nothing,
-        '                                  Optional ByVal nocompounds As Boolean = False) As Boolean
-        '    Dim aValue As Object
-
-
-        '    '* get the config
-        '    If xobject Is Nothing Then
-        '        'xobject = Me.Xchangeconfig.ObjectByName(objectname:=record.TableIDs)
-        '    End If
-
-        '    ' set msglog
-        '    If msglog Is Nothing Then
-        '        If _msglog Is Nothing Then
-        '            _msglog = New ObjectLog
-        '        End If
-        '        msglog = _msglog
-        '        'msglog.Create(Me.msglogtag)
-        '    End If
-
-        '    '** no record is given
-        '    If record IsNot Nothing Then
-        '        '*** load the record fields not the compounds !
-        '        '***
-        '        For Each aFieldname In record.Keys
-        '            Dim anObjectEntry = CurrentSession.Objects.GetEntry(entryname:=aFieldname, objectname:=xobject.Objectname)
-
-        '            If Me.HasConfigObjectEntryname(entryname:=aFieldname, objectname:=xobject.Objectname) AndAlso Not anObjectEntry.IsCompound Then
-        '                '* get the value and add it -> will be replaced as well !
-        '                aValue = record.GetValue(aFieldname)
-        '                If aValue IsNot Nothing Then
-        '                    Me.AddSlotByObjectEntryName(entryname:=aFieldname, objectname:=xobject.Objectname, value:=aValue, isHostValue:=False,
-        '                                          overwriteValue:=False, extendXConfig:=False)
-        '                End If
-        '            End If
-        '        Next
-
-        '        '*** load the compounds
-        '        '***
-        '        If Not nocompounds Then
-        '            Dim objectType As System.Type = ot.GetObjectClassType(objectname:=xobject.Objectname)
-        '            If objectType IsNot Nothing AndAlso objectType.GetInterface(GetType(iotHasCompounds).FullName) IsNot Nothing Then
-        '                Dim aHasCompounds As iotHasCompounds = Activator.CreateInstance(objectType)
-        '                Dim aInfusable As iormInfusable = TryCast(aHasCompounds, iormInfusable)
-        '                If aInfusable IsNot Nothing Then
-        '                    aInfusable.Infuse(record)
-        '                    If aHasCompounds IsNot Nothing Then
-        '                        aHasCompounds.AddSlotCompounds(Me)
-        '                    Else
-        '                        CoreMessageHandler(message:="the object of type " & xobject.Objectname & " cannot be casted to hasCompunds", _
-        '                                           subname:="XEnvelope.RunDefaultxChange", messagetype:=otCoreMessageType.InternalError)
-        '                    End If
-        '                Else
-        '                    CoreMessageHandler(message:="the object of type " & xobject.Objectname & " cannot be infused", _
-        '                                           subname:="XEnvelope.RunDefaultxChange", messagetype:=otCoreMessageType.InternalError)
-
-        '                End If
-
-        '            End If
-        '        End If
-
-        '    End If
-
-        '    '*** run the command
-        '    '***
-        '    Select Case xobject.XChangeCmd
-
-
-        '        '*** delete
-        '        '***
-        '        Case otXChangeCommandType.Delete
-
-        '            '**** add or update
-        '            '****
-        '        Case otXChangeCommandType.Update, otXChangeCommandType.UpdateCreate
-        '            '* if no primary keys then refill it with the object definition from the record
-        '            If pkArray Is Nothing Then
-        '                ReDim pkArray(xobject.ObjectDefinition.GetNoKeys)
-        '                '**** fill the primary key structure
-        '                Dim i As UShort = 0
-        '                For Each aPKEntry In xobject.ObjectDefinition.GetKeyEntries
-        '                    aValue = record.GetValue(index:=aPKEntry.Entryname)
-        '                    If aValue Is Nothing Then
-        '                        '* try to load from Envelope if not in record
-        '                        aValue = Me.GetSlotValueByObjectEntryName(entryname:=aPKEntry.Entryname, objectname:=xobject.Objectname, asHostValue:=False)
-        '                        If aValue IsNot Nothing Then
-        '                            record.SetValue(index:=aPKEntry.Entryname, value:=aValue) ' set it also in the record
-        '                        End If
-        '                    End If
-        '                    If aValue IsNot Nothing Then
-        '                        '** convert from DB to Host
-        '                        pkArray(i) = aValue
-        '                        i += 1
-        '                    Else
-        '                        Call CoreMessageHandler(message:="value of primary key is not in configuration or envelope :" & xobject.Configname,
-        '                                         arg1:=xobject.Objectname, entryname:=aPKEntry.Entryname, messagetype:=otCoreMessageType.ApplicationError,
-        '                                         subname:="XEnvelope.runDefaultXChange(Record)")
-        '                        Return False
-        '                    End If
-
-        '                Next
-        '            End If
-        '            '** create and Update the object
-        '            Return Me.CreateandUpdateObject(xobject:=xobject, record:=record, pkarray:=pkArray)
-
-        '            '*** duplicate
-        '            '***
-        '        Case otXChangeCommandType.Duplicate
-
-        '            '***
-        '            '*** just read and return
-        '        Case otXChangeCommandType.Read
-        '            Return Not record Is Nothing
-
-        '            '**** no command ?!
-        '        Case Else
-        '            Call CoreMessageHandler(message:="XChangeCmd for this object is not known :" & xobject.Objectname,
-        '                              arg1:=xobject.XChangeCmd, objectname:=xobject.Objectname, messagetype:=otCoreMessageType.ApplicationError,
-        '                              subname:="XEnvelope.runDefaultXChange(Record)")
-        '            Return False
-        '    End Select
-
-
-
-        'End Function
 
         ''' <summary>
         ''' Run the Default Precheck for an exchange object in this envelope
@@ -2522,8 +2435,8 @@ Namespace OnTrack.XChange
         ''' <param name="nocompounds"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function RunDefaultPreCheck(ByRef xobject As XChangeObject,
-                                          Optional ByRef msglog As ObjectMessageLog = Nothing) As Boolean
+        Private Function RunDefaultPreCheck(ByRef xobject As XChangeObject,
+                                           Optional ByRef msglog As ObjectMessageLog = Nothing) As Boolean
             Dim pkarry() As Object
             Dim aValue As Object
 
@@ -2560,12 +2473,12 @@ Namespace OnTrack.XChange
 
             Dim anObject As iormPersistable
             Select Case xobject.XChangeCmd
-                Case otXChangeCommandType.UpdateCreate
+                Case otXChangeCommandType.CreateUpdate
                     anObject = ormDataObject.Retrieve(pkarry, xobject.ObjectDefinition.ObjectType)
                     If anObject Is Nothing Then
                         ''' no object which could be retrieved - a new one will be created
                         If msglog IsNot Nothing Then msglog.Add(1004, CurrentSession.CurrentDomainID, Me.ContextIdentifier, Me.TupleIdentifier, _
-                          Me.EntityIdentifier, xobject.Configname, xobject.ObjectDefinition.ObjectID, Converter.Array2String(pkarry))
+                          Me.EntityIdentifier, xobject.Configname, xobject.ObjectDefinition.ObjectID, Converter.Array2StringList(pkarry))
                     End If
                 Case otXChangeCommandType.Delete, otXChangeCommandType.Duplicate, otXChangeCommandType.Read, otXChangeCommandType.Update
                     '*** read the data
@@ -2574,7 +2487,7 @@ Namespace OnTrack.XChange
                     If anObject Is Nothing Then
                         ''' no object which could be retrieved for such a operation
                         If msglog IsNot Nothing Then msglog.Add(1003, CurrentSession.CurrentDomainID, Me.ContextIdentifier, Me.TupleIdentifier, _
-                          Me.EntityIdentifier, xobject.Configname, xobject.ObjectDefinition.ObjectID, Converter.Array2String(pkarry))
+                          Me.EntityIdentifier, xobject.Configname, xobject.ObjectDefinition.ObjectID, Converter.Array2StringList(pkarry))
                     End If
                 Case Else
                     ''' no command ?!
@@ -2586,7 +2499,7 @@ Namespace OnTrack.XChange
 
             '** run it with the object or without
 
-            Return Me.RunPreCheck(anObject, type:=xobject.ObjectDefinition.ObjectType, xobject:=xobject, msglog:=msglog)
+            Return Me.RunDefaultPreCheck(anObject, xobject:=xobject, msglog:=msglog)
 
         End Function
         ''' <summary>
@@ -2596,25 +2509,17 @@ Namespace OnTrack.XChange
         ''' <param name="dataobject"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function RunPreCheck(ByRef dataobject As iormPersistable, type As System.Type, _
-                                          Optional xobject As XChangeObject = Nothing, _
-                                          Optional msglog As ObjectMessageLog = Nothing) As Boolean
+        Private Function RunDefaultPreCheck(ByRef dataobject As iormPersistable, xobject As XChangeObject, _
+                                           Optional msglog As ObjectMessageLog = Nothing) As Boolean
             Dim aValue As Object
 
             '** no object is given
             If dataobject Is Nothing OrElse Not dataobject.isAlive(throwError:=False) Then
-                dataobject = ot.CreateDataObjectInstance(type)
-            End If
-
-            '* get the config
-            If xobject Is Nothing Then
-                xobject = Me.Xchangeconfig.GetObjectByName(objectname:=dataobject.ObjectID)
+                dataobject = ot.CreateDataObjectInstance(xobject.ObjectDefinition.ObjectType)
             End If
 
             ' set msglog
             If msglog Is Nothing Then msglog = Me.MessageLog
-
-
 
 
             '** run the read first -> to fill the envelope anyway what is happening afterwards
@@ -2652,7 +2557,7 @@ Namespace OnTrack.XChange
                         ''' dataobject doesnot exist delete is absolete
                         msglog.Add(1008, CurrentSession.CurrentDomainID, Me.ContextIdentifier, Me.TupleIdentifier, _
                                    Me.EntityIdentifier, xobject.Configname, xobject.ObjectDefinition.ObjectID, _
-                                   Converter.Array2String(xobject.ObjectDefinition.Keys), xobject.XChangeCmd.ToString)
+                                   Converter.Array2StringList(xobject.ObjectDefinition.Keys), xobject.XChangeCmd.ToString)
                         Return False
                     Else
                         ''' dataobject exists everthing is fine
@@ -2662,48 +2567,92 @@ Namespace OnTrack.XChange
                     End If
                     '**** add or update
                     '****
-                Case otXChangeCommandType.Update, otXChangeCommandType.UpdateCreate
+                Case otXChangeCommandType.Update, otXChangeCommandType.CreateUpdate
                     '*** evaluate even 
                     '***
                     Dim evalflag As Boolean = True
                     For Each anXEntry In Me.Xchangeconfig.GetEntriesByObjectName(objectname:=xobject.Objectname)
-                        If anXEntry.IsXChanged AndAlso Not anXEntry.IsReadOnly Then
-                            If (anXEntry.XChangeCmd = otXChangeCommandType.Update Or anXEntry.XChangeCmd = otXChangeCommandType.UpdateCreate) Then
 
-                                Dim aSlot = Me.GetSlot(ordinal:=anXEntry.Ordinal)
-                                If aSlot IsNot Nothing AndAlso Not aSlot.IsEmpty Then
-                                    '* get Value from Slot DBNULL ist the hack-return
-                                    aValue = aSlot.DBValue
-                                    Dim outvalue As Object
-                                    If Not IsDBNull(aValue) AndAlso dataobject.ObjectDefinition.HasEntry(anXEntry.ObjectEntryname) Then
-                                        ''' use semi optimized way - object definition is cached / entry has to be looked up
-                                        ''' Apply the transformation of the objectentry properties before we validate
-                                        If Not EntryProperties.Apply(anXEntry.ObjectDefinition, entryname:=anXEntry.ObjectEntryname, [in]:=aValue, out:=outvalue) Then
-                                            ''' issue a warning 1006
-                                            msglog.Add(1006, CurrentSession.CurrentDomainID, Me.ContextIdentifier, Me.TupleIdentifier, _
-                                                         Me.EntityIdentifier, xobject.Configname, xobject.ObjectDefinition.ObjectID, anXEntry.ObjectEntryname, aValue)
+                        ''' check on Update if xchanged and not readonly
+                        ''' check on CreateUpdate if not readonly (empty must be provided
+                        ''' 
+                        If (anXEntry.XChangeCmd = otXChangeCommandType.Update AndAlso anXEntry.IsXChanged AndAlso Not anXEntry.IsReadOnly) _
+                            OrElse (anXEntry.XChangeCmd = otXChangeCommandType.CreateUpdate AndAlso Not anXEntry.IsReadOnly) Then
+
+                            Dim aSlot = Me.GetSlot(ordinal:=anXEntry.Ordinal)
+                            If aSlot IsNot Nothing Then
+                                '* get Value from Slot DBNULL ist the hack-return
+                                aValue = aSlot.DBValue
+                                Dim outvalue As Object
+                                If Not IsDBNull(aValue) AndAlso dataobject.ObjectDefinition.HasEntry(anXEntry.ObjectEntryname) Then
+
+
+
+                                    ''' if creating then add the default value if left empty
+                                    ''' 
+                                    If aSlot.IsEmpty AndAlso anXEntry.XChangeCmd = otXChangeCommandType.CreateUpdate Then
+                                        aSlot.IsEmpty = False
+                                        If Not anXEntry.ObjectEntryDefinition.IsNullable Then
+                                            aValue = TryCast(dataobject, iormInfusable).ObjectEntryDefaultValue(anXEntry.ObjectEntryname)
+                                            If aValue Is Nothing Then
+                                                aSlot.IsNull = True
+                                            Else
+                                                aSlot.IsNull = False
+                                            End If
+                                            aSlot.DBValue = aValue
                                         Else
-                                            aValue = outvalue
+                                            aSlot.DBValue = Nothing
+                                            aValue = Nothing
                                         End If
-                                        ''' Validate the value
+                                    End If
+
+                                    ''' do not check empty slots normaly - these are by intention free
+                                    ''' 
+                                    If aSlot.IsEmpty Then
+                                        evalflag = evalflag Or True
+                                    Else
+                                        ''' 
+                                        ''' PHASE I : APPLY THE ENTRY PROPERTIES AND TRANSFORM THE VALUE REQUESTED
+                                        ''' 
+                                        outvalue = aValue ' copy over
+                                        If Not TryCast(dataobject, iormInfusable).Normalizevalue(anXEntry.ObjectEntryname, outvalue) Then
+                                            CoreMessageHandler(message:="Warning ! Could not normalize value", arg1:=outvalue, objectname:=anXEntry.Objectname, _
+                                                                entryname:=anXEntry.ObjectEntryname, subname:="Xenvelope.RunDefaultPrecheck")
+                                        End If
+
+                                        ''' Validate the OutValue
                                         ''' 
                                         Dim result As otValidationResultType = _
-                                            TryCast(dataobject, iormValidatable).Validate(anXEntry.ObjectEntryname, aValue, msglog)
+                                            TryCast(dataobject, iormValidatable).Validate(anXEntry.ObjectEntryname, outvalue, msglog)
+
                                         If result = otValidationResultType.Succeeded Then
                                             evalflag = evalflag Or True
                                         Else
                                             evalflag = evalflag Or False
                                         End If
-                                    Else
-
                                     End If
+
+                                Else
+
                                 End If
                             End If
                         End If
                     Next
                     If evalflag Then
-                        msglog.Add(1091, CurrentSession.CurrentDomainID, Me.ContextIdentifier, Me.TupleIdentifier, Me.EntityIdentifier, _
-                                   xobject.Configname, xobject.ObjectDefinition.ObjectID, xobject.XChangeCmd)
+                        ''' add message if nothing else there
+                        If msglog.Count = 0 Then
+                            '1091;@;XCHANGE;all object entry evaluations were successfull - xchange command '%3%' can be run for object id '%2%' in xchange configuration '%1%';;10;Info;false;|G1|;|XCHANGEENVELOPE|
+                            msglog.Add(1091, CurrentSession.CurrentDomainID, Me.ContextIdentifier, Me.TupleIdentifier, Me.EntityIdentifier, _
+                                       xobject.Configname, xobject.ObjectDefinition.ID, xobject.XChangeCmd.ToString)
+                        Else
+                            Dim aStatusitem = msglog.GetHighesStatusItem(statustype:=ot.ConstStatusType_XEnvelope)
+                            If aStatusitem Is Nothing OrElse (aStatusitem IsNot Nothing AndAlso aStatusitem.Code.ToUpper Like "G%") Then
+                                '1091;@;XCHANGE;all object entry evaluations were successfull - xchange command '%3%' can be run for object id '%2%' in xchange configuration '%1%';;10;Info;false;|G1|;|XCHANGEENVELOPE|
+                                msglog.Add(1091, CurrentSession.CurrentDomainID, Me.ContextIdentifier, Me.TupleIdentifier, Me.EntityIdentifier, _
+                                           xobject.Configname, xobject.ObjectDefinition.ID, xobject.XChangeCmd.ToString)
+                            End If
+                        End If
+
                         Return True
                     Else
                         Return False
@@ -2717,28 +2666,53 @@ Namespace OnTrack.XChange
                         ''' dataobject doesnot exist duplicate not possible
                         msglog.Add(1007, CurrentSession.CurrentDomainID, Me.ContextIdentifier, Me.TupleIdentifier, _
                                    Me.EntityIdentifier, xobject.Configname, xobject.ObjectDefinition.ObjectID, _
-                                   Converter.Array2String(xobject.ObjectDefinition.Keys), xobject.XChangeCmd.ToString)
+                                   Converter.Array2StringList(xobject.ObjectDefinition.Keys), xobject.XChangeCmd.ToString)
                         Return False
                     Else
-                        msglog.Add(1090, CurrentSession.CurrentDomainID, Me.ContextIdentifier, Me.TupleIdentifier, _
-                                   Me.EntityIdentifier, xobject.Configname, xobject.ObjectDefinition.ObjectID, xobject.XChangeCmd)
+                        ''' add message if nothing else there
+                        If msglog.Count = 0 Then
+                            '1091;@;XCHANGE;all object entry evaluations were successfull - xchange command '%3%' can be run for object id '%2%' in xchange configuration '%1%';;10;Info;false;|G1|;|XCHANGEENVELOPE|
+                            msglog.Add(1091, CurrentSession.CurrentDomainID, Me.ContextIdentifier, Me.TupleIdentifier, Me.EntityIdentifier, _
+                                       xobject.Configname, xobject.ObjectDefinition.ID, xobject.XChangeCmd.ToString)
+                        Else
+                            Dim aStatusitem = msglog.GetHighesStatusItem(statustype:=ot.ConstStatusType_XEnvelope)
+                            If aStatusitem Is Nothing OrElse (aStatusitem IsNot Nothing AndAlso aStatusitem.Code.ToUpper Like "G%") Then
+                                '1091;@;XCHANGE;all object entry evaluations were successfull - xchange command '%3%' can be run for object id '%2%' in xchange configuration '%1%';;10;Info;false;|G1|;|XCHANGEENVELOPE|
+                                msglog.Add(1091, CurrentSession.CurrentDomainID, Me.ContextIdentifier, Me.TupleIdentifier, Me.EntityIdentifier, _
+                                           xobject.Configname, xobject.ObjectDefinition.ID, xobject.XChangeCmd.ToString)
+                            End If
+                        End If
+
                         Return True
                     End If
 
                     '***
                     '*** just read and return
                 Case otXChangeCommandType.Read
-
                     If dataobject Is Nothing OrElse Not dataobject.isAlive(throwError:=False) Then
                         ''' dataobject doesnot exist read not possible
                         msglog.Add(1007, CurrentSession.CurrentDomainID, Me.ContextIdentifier, Me.TupleIdentifier, _
                                    Me.EntityIdentifier, xobject.Configname, xobject.ObjectDefinition.ObjectID, _
-                                   Converter.Array2String(xobject.ObjectDefinition.Keys), xobject.XChangeCmd.ToString)
+                                   Converter.Array2StringList(xobject.ObjectDefinition.Keys), xobject.XChangeCmd.ToString)
                         Return False
                     Else
-                        msglog.Add(1090, CurrentSession.CurrentDomainID, Me.ContextIdentifier, Me.TupleIdentifier, _
-                                  Me.EntityIdentifier, xobject.Configname, xobject.ObjectDefinition.ObjectID, xobject.XChangeCmd)
+                        ''' add message if nothing else there
+                        If msglog.Count = 0 Then
+                            '1091;@;XCHANGE;all object entry evaluations were successfull - xchange command '%3%' can be run for object id '%2%' in xchange configuration '%1%';;10;Info;false;|G1|;|XCHANGEENVELOPE|
+                            msglog.Add(1091, CurrentSession.CurrentDomainID, Me.ContextIdentifier, Me.TupleIdentifier, Me.EntityIdentifier, _
+                                       xobject.Configname, xobject.ObjectDefinition.ID, xobject.XChangeCmd.ToString)
+                        Else
+                            Dim aStatusitem = msglog.GetHighesStatusItem(statustype:=ot.ConstStatusType_XEnvelope)
+                            If aStatusitem Is Nothing OrElse (aStatusitem IsNot Nothing AndAlso aStatusitem.Code.ToUpper Like "G%") Then
+                                '1091;@;XCHANGE;all object entry evaluations were successfull - xchange command '%3%' can be run for object id '%2%' in xchange configuration '%1%';;10;Info;false;|G1|;|XCHANGEENVELOPE|
+                                msglog.Add(1091, CurrentSession.CurrentDomainID, Me.ContextIdentifier, Me.TupleIdentifier, Me.EntityIdentifier, _
+                                           xobject.Configname, xobject.ObjectDefinition.ID, xobject.XChangeCmd.ToString)
+                            End If
+                        End If
+
+
                         Return True
+
                     End If
 
                     '**** no command ?!
@@ -2755,13 +2729,13 @@ Namespace OnTrack.XChange
 
         End Function
         ''' <summary>
-        ''' Run the default xchange on a given and alive dataobject
+        ''' Run the default xchange on a given and alive dataobject derived from an xchange object
         ''' </summary>
         ''' <typeparam name="T"></typeparam>
         ''' <param name="dataobject"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function RunXChangeCommand(ByRef dataobject As iormPersistable, type As System.Type, _
+        Private Function RunDefaultXChange(ByRef dataobject As iormPersistable,
                                           Optional xobject As XChangeObject = Nothing, _
                                           Optional ByRef msglog As ObjectMessageLog = Nothing) As Boolean
             Dim aValue As Object
@@ -2815,15 +2789,16 @@ Namespace OnTrack.XChange
 
                     '**** add or update
                     '****
-                Case otXChangeCommandType.Update, otXChangeCommandType.UpdateCreate
+                Case otXChangeCommandType.Update, otXChangeCommandType.CreateUpdate
                     '*** set values of object
                     '***
                     Dim persistflag As Boolean = False
                     For Each anXEntry In Me.Xchangeconfig.GetEntriesByObjectName(objectname:=xobject.Objectname)
-                        
+
                         If anXEntry.IsXChanged AndAlso Not anXEntry.IsReadOnly Then
-                            If (anXEntry.XChangeCmd = otXChangeCommandType.Update Or anXEntry.XChangeCmd = otXChangeCommandType.UpdateCreate) Then
+                            If (anXEntry.XChangeCmd = otXChangeCommandType.Update Or anXEntry.XChangeCmd = otXChangeCommandType.CreateUpdate) Then
                                 Dim aSlot = Me.GetSlot(ordinal:=anXEntry.Ordinal)
+                                ''' only if not empty
                                 If aSlot IsNot Nothing AndAlso Not aSlot.IsEmpty Then
                                     '* get Value from Slot
                                     aValue = aSlot.DBValue
@@ -2837,12 +2812,20 @@ Namespace OnTrack.XChange
                         End If
                     Next
                     If persistflag Then
-                        msglog.Add(1092, Nothing, Me.ContextIdentifier, Me.TupleIdentifier, Me.EntityIdentifier, _
-                                   Me.Xchangeconfig.Configname, xobject.Objectname, Converter.Array2String(dataobject.PrimaryKeyValues))
-                        Return dataobject.Persist()
+                        '** add own handler to catch messages
+                        AddHandler DirectCast(dataobject, iormLoggable).ObjectMessageLog.OnObjectMessageAdded, AddressOf XEnvelope_OnObjectMessageAdded
+                        Me.trackMessageLog = msglog
+                        '** run persist
+                        Dim result As Boolean = dataobject.Persist()
+                        '1092;@;XCHANGE;object of type '%2%' with primary key '%3%' in xchange configuration '%1%' updated;;10;Info;false;|G1|;|XCHANGEENVELOPE|
+                        If result Then msglog.Add(1092, Nothing, Nothing, Nothing, Nothing, _
+                                  Me.Xchangeconfig.Configname, xobject.Objectname, Converter.Array2StringList(dataobject.PrimaryKeyValues))
+                        RemoveHandler DirectCast(dataobject, iormLoggable).ObjectMessageLog.OnObjectMessageAdded, AddressOf XEnvelope_OnObjectMessageAdded
+                        Me.trackMessageLog = Nothing
+                        Return result
                     Else
-                        msglog.Add(1093, Nothing, Me.ContextIdentifier, Me.TupleIdentifier, Me.EntityIdentifier, _
-                                   Me.Xchangeconfig.Configname, xobject.Objectname, Converter.Array2String(dataobject.PrimaryKeyValues))
+                        msglog.Add(1093, Nothing, Nothing, Nothing, Nothing, _
+                                   Me.Xchangeconfig.Configname, xobject.Objectname, Converter.Array2StringList(dataobject.PrimaryKeyValues))
                         Return True ' even if not persisted the operation is successfull
                     End If
 
@@ -2871,14 +2854,40 @@ Namespace OnTrack.XChange
         End Function
 
         ''' <summary>
-        ''' Run the Default XChange for an object by primary keys
+        ''' Event Handler for ObjectMessageLogs propagate
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Public Sub XEnvelope_OnObjectMessageAdded(sender As Object, e As ObjectMessageLog.EventArgs)
+
+            Dim msglog As ObjectMessageLog
+
+            If Me.trackMessageLog IsNot Nothing Then
+                msglog = Me.trackMessageLog
+            Else
+                msglog = Me.MessageLog
+            End If
+
+            '** if concerning ?!
+            If e.Message.StatusItems(statustype:=ConstStatusType_XEnvelope).Count > 0 OrElse _
+               e.Message.StatusItems(statustype:=ConstStatusType_ObjectValidation).Count > 0 OrElse _
+               e.Message.StatusItems(statustype:=ConstStatusType_ObjectEntryValidation).Count > 0 OrElse _
+                e.Message.StatusItems(statustype:=ConstStatusType_MQMessage).Count > 0 OrElse _
+                  e.Message.StatusItems(statustype:=ConstStatusType_MQF).Count > 0 Then
+                '** add it
+                msglog.Add(e.Message)
+            End If
+        End Sub
+        ''' <summary>
+        ''' Run the Default XChange for an xchange object
         ''' </summary>
         ''' <param name="xobject"></param>
         ''' <param name="msglog"></param>
         ''' <param name="nocompounds"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function RunDefaultXChange(ByRef xobject As XChangeObject,
+        Private Function RunDefaultXChange(ByRef xobject As XChangeObject,
                                           Optional ByRef msglog As ObjectMessageLog = Nothing) As Boolean
             Dim pkarry() As Object
             Dim aValue As Object
@@ -2925,15 +2934,15 @@ Namespace OnTrack.XChange
 
             Dim anObject As iormPersistable
             Select Case xobject.XChangeCmd
-                Case otXChangeCommandType.UpdateCreate
-                    ''' try to retrieve
+                Case otXChangeCommandType.CreateUpdate
+                    ''' try to create
                     ''' 
-                    anObject = ormDataObject.Retrieve(pkarry, xobject.ObjectDefinition.ObjectType)
+                    anObject = ormDataObject.CreateDataObject(pkarry, xobject.ObjectDefinition.ObjectType, domainID:=CurrentSession.CurrentDomainID)
 
-                    ''' create the Object 
+                    ''' retrieve the Object 
                     ''' 
                     If anObject Is Nothing Then
-                        anObject = ormDataObject.CreateDataObject(pkarry, xobject.ObjectDefinition.ObjectType, domainID:=CurrentSession.CurrentDomainID)
+                        anObject = ormDataObject.Retrieve(pkarry, xobject.ObjectDefinition.ObjectType)
                     End If
                 Case otXChangeCommandType.Delete, otXChangeCommandType.Duplicate, otXChangeCommandType.Read, otXChangeCommandType.Update
                     '*** read the data
@@ -2946,198 +2955,15 @@ Namespace OnTrack.XChange
 
             '** run it with the object
             If anObject IsNot Nothing Then
-                Return Me.RunXChangeCommand(anObject, type:=xobject.ObjectDefinition.ObjectType, xobject:=xobject, msglog:=msglog)
+                Return Me.RunDefaultXChange(anObject, xobject:=xobject, msglog:=msglog)
             Else
-                CoreMessageHandler(message:="OnTrack DataObject couldnot be retrieved nor created: " & xobject.Objectname, subname:="Xenvelope.RunDefaultXChange", arg1:=xobject.XChangeCmd, messagetype:=otCoreMessageType.InternalError)
+                CoreMessageHandler(message:="OnTrack DataObject could not be retrieved nor created: " & xobject.Objectname, subname:="Xenvelope.RunDefaultXChange", arg1:=xobject.XChangeCmd, messagetype:=otCoreMessageType.InternalError)
 
                 Return False
             End If
 
         End Function
 
-        ''***** fillMappingWithCompounds
-        ''*****
-        'Private Function fillMappingWithCompounds(ByRef RECORD As ormRecord, ByRef MAPPING As Dictionary(Of Object, Object),
-        '                                          ByRef ORIGMAPPING As Dictionary(Of Object, Object),
-        'ByRef TABLE As ObjectDefinition,
-        'Optional ByRef MSGLOG As ObjectMessageLog = Nothing) As Boolean
-        '    Dim aConfigmember As DefaultConvert2HostValue
-        '    Dim aTable As iormDataStore
-        '    Dim aRecord As ormRecord
-        '    Dim aCompRecordColl As New List(Of ormRecord)
-        '    Dim aCompTableDir As New Dictionary(Of String, Dictionary(Of String, iormObjectEntry))
-        '    Dim compoundKeys As Object
-        '    Dim aCompField As Object
-        '    Dim aCompValue As Object
-        '    Dim objectname As Object
-        '    Dim anObjectEntry As iormObjectEntry
-        '    Dim anEntryDir As New Dictionary(Of String, iormObjectEntry)
-        '    Dim aKey As String
-        '    Dim pkarry() As Object
-        '    Dim i As Integer
-        '    Dim m As Object
-        '    Dim aTableName As String
-        '    Dim compValueFieldName As String
-        '    Dim compIDFieldname As String
-        '    Dim aVAlue As Object
-
-        '    Dim aSchedule As New ScheduleEdition
-        '    Dim aScheduleMilestone As New ScheduleMilestone
-        '    Dim specialHandling As Boolean
-
-        '    ' store each Compound
-        '    For Each m In TABLE.GetEntries
-        '        anObjectEntry = m
-        '        If anObjectEntry.XID <> "" And anObjectEntry.IsCompound Then
-        '            If aCompTableDir.ContainsKey(key:=DirectCast(anObjectEntry, ObjectCompoundEntry).CompoundObjectID) Then
-        '                anEntryDir = aCompTableDir.Item(key:=DirectCast(anObjectEntry, ObjectCompoundEntry).CompoundObjectID)
-        '            Else
-        '                anEntryDir = New Dictionary(Of String, iormObjectEntry)
-        '                Call aCompTableDir.Add(key:=DirectCast(anObjectEntry, ObjectCompoundEntry).CompoundObjectID, value:=anEntryDir)
-        '            End If
-        '            ' add the Entry
-        '            If Not anEntryDir.ContainsKey(key:=anObjectEntry.XID) Then
-        '                Call anEntryDir.Add(key:=UCase(anObjectEntry.XID), value:=anObjectEntry)
-        '            Else
-        '                Assert(False)
-
-        '            End If
-        '        End If
-        '    Next m
-
-        '    '**********************************************************
-        '    '**** SPECIAL HANDLING OF tblschedules -> Milestones
-        '    '**********************************************************
-        '    If TABLE.ID.ToLower = aSchedule.PrimaryTableID.ToLower Then
-        '        Dim anUID As Long
-        '        Dim anUPDC As Long
-
-        '        If Not IsNull(RECORD.GetValue("uid")) Then
-        '            anUID = CLng(RECORD.GetValue("uid"))
-        '        Else
-        '            anUID = 0
-        '        End If
-        '        If Not IsNull(RECORD.GetValue("updc")) Then
-        '            anUPDC = CLng(RECORD.GetValue("updc"))
-        '        Else
-        '            anUPDC = 0
-        '        End If
-        '        ' found
-        '        If anUPDC <> 0 And anUID <> 0 Then
-        '            aSchedule = ScheduleEdition.Retrieve(UID:=anUID, updc:=anUPDC)
-        '            If aSchedule IsNot Nothing Then
-        '                specialHandling = True
-        '            Else
-        '                specialHandling = False
-        '            End If
-        '        Else
-        '            specialHandling = False
-        '            'Debug.Print("mmh no schedule for ", anUID, anUPDC)
-        '        End If
-        '    Else
-        '        specialHandling = False
-        '    End If
-
-        '    '*** for each compound table
-        '    '***
-        '    For Each objectname In aCompTableDir.Keys
-
-        '        ' get the Entries
-        '        aTableName = CStr(objectname)
-        '        anEntryDir = aCompTableDir.Item(key:=aTableName)
-        '        anObjectEntry = anEntryDir.First.Value      'first item
-        '        compIDFieldname = DirectCast(anObjectEntry, ObjectCompoundEntry).CompoundIDEntryname
-        '        compValueFieldName = DirectCast(anObjectEntry, ObjectCompoundEntry).CompoundValueEntryName
-
-        '        ' look up the keys
-        '        compoundKeys = DirectCast(anObjectEntry, ObjectCompoundEntry).CompoundRelationPath
-        '        If Not IsArrayInitialized(compoundKeys) Then
-        '            Call CoreMessageHandler(arg1:=anObjectEntry.Entryname, message:="no compound relation found for entryname", subname:="XChangeConfiguration.fillMappingWithCompounds")
-        '            fillMappingWithCompounds = False
-        '            Exit Function
-        '        End If
-        '        ReDim pkarry(UBound(compoundKeys))
-        '        For i = LBound(compoundKeys) To UBound(compoundKeys)
-        '            pkarry(i) = RECORD.GetValue(compoundKeys(i))
-        '        Next i
-
-
-        '        '**********************************************************
-        '        '**** SPECIAL HANDLING OF tblschedules -> Milestones
-        '        '**********************************************************
-        '        If LCase(aTableName) = ScheduleMilestone.constTableID.ToLower And specialHandling Then
-
-        '            For Each anObjectEntry In TABLE.GetEntries
-        '                'aTableEntry = m
-        '                If anObjectEntry.XID <> "" And anObjectEntry.IsCompound Then
-        '                    aCompValue = aSchedule.GetMilestoneValue(ID:=anObjectEntry.XID)
-        '                    'Set aTableEntry = anEntryDir.Item(Key:=LCase(aCompField)) -> should be the same
-        '                    'aConfigmember = Me.AttributeByFieldName(entryname:=aTableEntry.ID, objectname:=aTableEntry.Objectname)
-        '                    aVAlue = Nothing
-        '                    ' map it back -> set values which are not set (e.g. other keys)
-        '                    If Not aConfigmember Is Nothing Then
-        '                        ' save old value
-        '                        If ORIGMAPPING.ContainsKey(key:=aConfigmember.Ordinal.Value) Then
-        '                            Call ORIGMAPPING.Remove(key:=aConfigmember.Ordinal.Value)
-        '                        End If
-        '                        'Call aConfigmember.convertValue4DB(aCompValue, aVAlue)    '-> MAPPING SHOULD BE HOST DATA
-        '                        Call ORIGMAPPING.Add(key:=aConfigmember.Ordinal.Value, value:=aVAlue)
-
-        '                        ' overload depending otRead and not PrimaryKey or otUpdate
-        '                        ' run the original DB Value (runXCHange makes s 4DB too)
-        '                        'Call aConfigmember.runXChange(MAPPING:=MAPPING, VARIABLE:=aCompValue, MSGLOG:=MSGLOG)
-
-        '                    End If
-        '                End If
-        '            Next
-
-        '        Else
-        '            '*************************************************************
-        '            '***** NORMAL HANDLING ON RECORD LEVEL
-        '            '*************************************************************
-
-        '            ' get the compounds
-        '            aTable = GetTableStore(aTableName)
-        '            aCompRecordColl = aTable.GetRecordsByIndex(ConstDefaultCompoundIndexName, keyArray:=pkarry, silent:=True)
-        '            If aCompRecordColl Is Nothing Then
-        '                Call CoreMessageHandler(subname:="XChangeConfiguration.fillMappingWithCompounds", arg1:=ConstDefaultCompoundIndexName,
-        '                                      message:=" the compound index is not found ",
-        '                                       messagetype:=otCoreMessageType.InternalError, objectname:=aTableName)
-        '                Return False
-        '            End If
-
-        '            '**
-        '            For Each aRecord In aCompRecordColl
-        '                aCompField = aRecord.GetValue(compIDFieldname)
-        '                aCompValue = aRecord.GetValue(compValueFieldName)
-
-        '                ' found in Dir
-        '                If anEntryDir.ContainsKey(key:=UCase(aCompField)) Then
-
-        '                    'Set aTableEntry = anEntryDir.Item(Key:=LCase(aCompField)) -> should be the same
-        '                    'aConfigmember = Me.AttributeByFieldName(LCase(aCompField))
-        '                    ' map it back -> set values which are not set (e.g. other keys)
-        '                    If Not aConfigmember Is Nothing Then
-        '                        ' save old value
-        '                        If ORIGMAPPING.ContainsKey(key:=aConfigmember.Ordinal.Value) Then
-        '                            Call ORIGMAPPING.Remove(key:=aConfigmember.Ordinal.Value)
-        '                        End If
-        '                        'Call aConfigmember.convertValue4DB(aCompValue, aVAlue)    '-> MAPPING SHOULD BE HOST DATA
-
-        '                        Call ORIGMAPPING.Add(key:=aConfigmember.Ordinal.Value, value:=aVAlue)
-
-        '                        ' overload depending otXChangeCommandType.Read and not PrimaryKey or otUpdate
-        '                        ' run the original DB Value (runXCHange makes s 4DB too)
-        '                        'Call aConfigmember.runXChange(MAPPING:=MAPPING, VARIABLE:=aCompValue, MSGLOG:=MSGLOG)
-        '                    End If
-        '                End If
-        '            Next aRecord
-        '        End If
-
-        '    Next objectname
-
-        '    fillMappingWithCompounds = True
-        'End Function
 
         ''' <summary>
         ''' Handler for OnObjectMessage Added Event on one of the slots

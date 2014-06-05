@@ -52,13 +52,13 @@ Namespace OnTrack.Deliverables
                         XID:="CDT1", aliases:={"UID"})> Public Const ConstFNUid = Deliverable.constFNUid
 
         '** other columns
-        <ormObjectEntry(typeid:=otDataType.Text, size:=100, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=100, _
            title:="Revision", description:="revision of the target", XID:="T9")> Public Const ConstFNRevision = "rev"
-        <ormObjectEntry(typeid:=otDataType.Long, isnullable:=True, _
-         title:="working counter", description:="update number of the target", XID:="T10")> Public Const ConstWorkUPDC = "updc"
-        <ormObjectEntry(typeid:=otDataType.Long, isnullable:=True, _
-         title:="Alive Counter", description:="update number of the target", XID:="T11")> Public Const ConstAliveUPDC = "aliveupdc"
-        <ormObjectEntry(typeid:=otDataType.Bool, defaultvalue:=True, dbdefaultvalue:="1", _
+        <ormObjectEntry(Datatype:=otDataType.Long, isnullable:=True, _
+         title:="working counter", description:="update number of the working target", XID:="T10")> Public Const ConstWorkUPDC = "workupdc"
+        <ormObjectEntry(Datatype:=otDataType.Long, isnullable:=True, _
+         title:="Alive Counter", description:="update number of the alive target", XID:="T11")> Public Const ConstAliveUPDC = "aliveupdc"
+        <ormObjectEntry(Datatype:=otDataType.Bool, defaultvalue:=True, dbdefaultvalue:="1", _
           title:="is active", description:="is the target active", XID:="DT4")> Public Const ConstFNIsActive = "isactive"
 
         ' change FK Action since we have the workspace as FK (leads also to domians)
@@ -139,7 +139,7 @@ Namespace OnTrack.Deliverables
                 If Me.GetRelationStatus(ConstRDeliverable) = DataObjectRelationMgr.RelationStatus.Unloaded Then InfuseRelation(ConstRDeliverable)
                 Return Me._deliverable
             End Get
-          
+
         End Property
 
         ''' <summary>
@@ -272,7 +272,7 @@ Namespace OnTrack.Deliverables
             End Set
         End Property
 
-       
+
 #End Region
 
         ''' <summary>
@@ -438,7 +438,7 @@ Namespace OnTrack.Deliverables
         ''' <remarks></remarks>
         ''' <returns>the new cloned object or nothing</returns>
         Public Overloads Function Clone(pkarray() As Object, Optional runtimeOnly As Boolean? = Nothing) As WorkspaceTarget Implements iormCloneable(Of WorkspaceTarget).Clone
-            Return MyBase.CloneObject(Of WorkspaceTarget)(pkarray)
+            Return MyBase.Clone(Of WorkspaceTarget)(pkarray)
         End Function
         ''' <summary>
         ''' Clone this data object by primary key
@@ -449,7 +449,7 @@ Namespace OnTrack.Deliverables
         ''' <remarks></remarks>
         Public Overloads Function Clone(ByVal uid As Long, Optional ByVal workspaceID As String = "") As WorkspaceTarget
             Dim pkarray() As Object = {uid, workspaceID}
-            Return Me.CloneObject(Of WorkspaceTarget)(pkarray)
+            Return Me.Clone(Of WorkspaceTarget)(pkarray)
         End Function
         ''' <summary>
         ''' returns a collection of objects filtered by uid
@@ -594,7 +594,7 @@ Namespace OnTrack.Deliverables
         ''' <param name="sender"></param>
         ''' <param name="e"></param>
         ''' <remarks></remarks>
-        Private Sub WorkspaceTarget_OnDefaultValuesNeeded(sender As Object, e As ormDataObjectEventArgs) Handles Me.OnDefaultValuesNeeded
+        Private Sub WorkspaceTarget_OnDefaultValuesNeeded(sender As Object, e As ormDataObjectEventArgs) Handles Me.OnCreateDefaultValuesNeeded
 
             If Not e.Record.HasIndex(ConstFNWorkspaceID) OrElse e.Record.GetValue(ConstFNWorkspaceID) = "" Then
                 e.Record.SetValue(ConstFNWorkspaceID, CurrentSession.CurrentWorkspaceID)
@@ -642,7 +642,7 @@ Namespace OnTrack.Deliverables
             Throw New NotImplementedException("Workspace Target Event Reaction on OnWorkspaceChanged to be implemented")
         End Sub
 
-       
+
     End Class
 
     ''' <summary>
@@ -670,33 +670,33 @@ Namespace OnTrack.Deliverables
             defaultValue:="0", primaryKeyordinal:=1, useforeignkey:=otForeignKeyImplementation.NativeDatabase, _
             XID:="DT1", aliases:={"UID"})> Public Const constFNUid = Deliverable.constFNUid
 
-        <ormObjectEntry(typeid:=otDataType.Long, defaultValue:="0", primaryKeyordinal:=2, _
+        <ormObjectEntry(Datatype:=otDataType.Long, defaultValue:="0", primaryKeyordinal:=2, _
             description:="update count of the target date", title:="Update count", XID:="DT2", aliases:={"UPDC"})> Public Const constFNUpdc = "updc"
 
         <ormObjectEntry(referenceobjectentry:=Workspace.ConstObjectID & "." & Workspace.ConstFNID, _
             useforeignkey:=otForeignKeyImplementation.NativeDatabase, _
             Description:="workspaceID ID of the schedule")> Public Const ConstFNWorkspaceID = ScheduleEdition.ConstFNWorkspaceID
 
-        <ormObjectEntry(typeid:=otDataType.Bool, defaultvalue:=False, dbdefaultvalue:="0", _
+        <ormObjectEntry(Datatype:=otDataType.Bool, defaultvalue:=False, dbdefaultvalue:="0", _
           title:="No Target", description:="no target by intention", XID:="DT3")> Public Const ConstFNNoTarget = "notarget"
 
-        <ormObjectEntry(typeid:=otDataType.Text, size:=100, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=100, isnullable:=True, _
           title:="Type", description:="type of the target", XID:="DT4")> Public Const ConstFNType = "typeid"
 
-        <ormObjectEntry(typeid:=otDataType.Date, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.Date, isnullable:=True, _
            description:="previous target date", title:="previous target date", XID:="DT5")> Public Const constFNPrevTarget = "PVTD"
 
-        <ormObjectEntry(typeid:=otDataType.Date, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.Date, isnullable:=True, _
             description:="current target date", title:="target date", XID:="DT6")> Public Const constFNTarget = "TARGETDATE"
 
-       
-      
-        <ormObjectEntry(typeid:=otDataType.Timestamp, isnullable:=True, _
+
+
+        <ormObjectEntry(Datatype:=otDataType.Timestamp, isnullable:=True, _
           description:="target change timestamp", title:="target change", XID:="DT7")> Public Const constFNTargetChanged = "tchg"
 
-        
 
-        <ormObjectEntry(typeid:=otDataType.Text, size:=50, title:="target revision", Description:="revision of the target", _
+
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=50, title:="target revision", Description:="revision of the target", _
          XID:="DT14", isnullable:=True)> Public Const ConstFNRevision = "rev"
 
         <ormObjectEntry(referenceobjectentry:=OrgUnit.ConstObjectID & "." & OrgUnit.ConstFNID, isnullable:=True, _
@@ -705,7 +705,7 @@ Namespace OnTrack.Deliverables
         <ormObjectEntry(referenceobjectentry:=Person.ConstObjectID & "." & Person.constFNID, isnullable:=True, _
             title:="Responsible Person", description:="responsible person for the target", XID:="DT16")> Public Const constFNResp = "resp"
 
-        <ormObjectEntry(typeid:=otDataType.Memo, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.Memo, isnullable:=True, _
             title:="Comment", Description:="comment of the target", XID:="DT17", isnullable:=True)> Public Const ConstFNComment = "cmt"
 
         ' change FK Action since we have the workspace as FK (leads also to domians)
@@ -759,7 +759,7 @@ Namespace OnTrack.Deliverables
             Get
                 Return Me._notargetByItention
             End Get
-            Set
+            Set(value As Boolean)
                 SetValue(ConstFNNoTarget, Value)
             End Set
         End Property
@@ -896,8 +896,8 @@ Namespace OnTrack.Deliverables
             End Set
         End Property
 
-      
-     
+
+
 
 #End Region
 
@@ -961,7 +961,7 @@ Namespace OnTrack.Deliverables
 
 
         End Sub
-        
+
         ''' <summary>
         ''' create the persistent target by primary key
         ''' </summary>
@@ -1180,7 +1180,7 @@ Namespace OnTrack.Deliverables
             IncreaseRevison = Me.Revision
 
         End Function
-      
+
 
         ''' <summary>
         ''' clone the object with the new primary key
@@ -1206,7 +1206,7 @@ Namespace OnTrack.Deliverables
                 End If
             End If
             '**
-            Return MyBase.CloneObject(Of Target)(pkarray)
+            Return MyBase.Clone(Of Target)(pkarray)
         End Function
 
         ''' <summary>
@@ -1228,7 +1228,7 @@ Namespace OnTrack.Deliverables
         ''' <param name="sender"></param>
         ''' <param name="e"></param>
         ''' <remarks></remarks>
-        Private Sub Target_OnDefaultValuesNeeded(sender As Object, e As ormDataObjectEventArgs) Handles Me.OnDefaultValuesNeeded
+        Private Sub Target_OnDefaultValuesNeeded(sender As Object, e As ormDataObjectEventArgs) Handles Me.OnCreateDefaultValuesNeeded
 
             Dim anUID As Long? = e.Record.GetValue(constFNUid)
 
@@ -1323,10 +1323,10 @@ Namespace OnTrack.Deliverables
             title:="milestone ID delivered", Description:="schedule definition milestone ID for fc delivered", _
             XID:="DTR9", isnullable:=True)> Public Const ConstFNMSIDDelivered = "msfinid"
 
-        <ormObjectEntry(typeid:=otDataType.Date, title:="current forecast", Description:="forecast date for deliverable delivered", _
+        <ormObjectEntry(Datatype:=otDataType.Date, title:="current forecast", Description:="forecast date for deliverable delivered", _
             XID:="DTR10", isnullable:=True)> Public Const ConstFNForecast = "fcdate"
 
-        <ormObjectEntry(typeid:=otDataType.Date, title:="current target", Description:="target date for deliverable", _
+        <ormObjectEntry(Datatype:=otDataType.Date, title:="current target", Description:="target date for deliverable", _
             XID:="DTR11", isnullable:=True, ALIASes:={"DT6"})> Public Const ConstFNCurTargetDate = "targetdate"
 
         <ormObjectEntry(referenceobjectentry:=Target.ConstObjectID & "." & Target.ConstFNNoTarget, dbdefaultvalue:="1", defaultvalue:=True, _
@@ -1338,44 +1338,44 @@ Namespace OnTrack.Deliverables
         <ormObjectEntry(referenceobjectentry:=ScheduleEdition.ConstObjectID & "." & ScheduleEdition.ConstFNpstatus, _
             XID:="DTR13", aliases:={"SC8"}, isnullable:=True)> Public Const ConstFNPStatus = ScheduleEdition.ConstFNpstatus
 
-        <ormObjectEntry(typeid:=otDataType.Text, size:=50, title:="Synchro status", Description:="schedule synchro status", _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=50, title:="Synchro status", Description:="schedule synchro status", _
             XID:="DTR14", isnullable:=True)> Public Const ConstFNSyncStatus = "sync"
 
-        <ormObjectEntry(typeid:=otDataType.Date, title:="Synchro check date", Description:="date of last synchro check status", _
+        <ormObjectEntry(Datatype:=otDataType.Date, title:="Synchro check date", Description:="date of last synchro check status", _
             XID:="DTR15", isnullable:=True)> Public Const ConstFNSyncDate = "syncchkon"
 
-        <ormObjectEntry(typeid:=otDataType.Date, title:="Going Alive Date", Description:="date of schedule going alive", _
+        <ormObjectEntry(Datatype:=otDataType.Date, title:="Going Alive Date", Description:="date of schedule going alive", _
            XID:="DTR16", isnullable:=True)> Public Const ConstFNGoingAliveDate = "goal"
 
-        <ormObjectEntry(typeid:=otDataType.Bool, title:="Delivered", defaultvalue:=False, dbdefaultvalue:="0", _
+        <ormObjectEntry(Datatype:=otDataType.Bool, title:="Delivered", defaultvalue:=False, dbdefaultvalue:="0", _
             Description:="True if deliverable is delivered", XID:="DTR17")> Public Const ConstFNIsFinished = "isfinished"
 
-        <ormObjectEntry(typeid:=otDataType.Text, size:=100, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=100, isnullable:=True, _
                          title:="Blocking Item Reference", description:="Blocking Item Reference id for the deliverable", XID:="DTR18", aliases:={"DLV17"})> _
         Public Const constFNBlockingItemReference = Deliverable.constFNBlockingItemReference
 
-        <ormObjectEntry(typeid:=otDataType.Date, title:="Delivery Date", Description:="date for deliverable to be delivered / finished", _
+        <ormObjectEntry(Datatype:=otDataType.Date, title:="Delivery Date", Description:="date for deliverable to be delivered / finished", _
           XID:="DTR19", isnullable:=True)> Public Const ConstFNFinishedOn = "finish"
 
-        <ormObjectEntry(typeid:=otDataType.Long, title:="Forecast Gap", isnullable:=True, Description:="gap in working days between forecast and target", _
+        <ormObjectEntry(Datatype:=otDataType.Long, title:="Forecast Gap", isnullable:=True, Description:="gap in working days between forecast and target", _
          XID:="DTR20")> Public Const constFNFCGap = "fcgap"
 
-        <ormObjectEntry(typeid:=otDataType.Long, title:="BaseLine Gap", isnullable:=True, Description:="gap in working days between forecast and target", _
+        <ormObjectEntry(Datatype:=otDataType.Long, title:="BaseLine Gap", isnullable:=True, Description:="gap in working days between forecast and target", _
          XID:="DTR21")> Public Const constFNBLGap = "blgap"
 
-        <ormObjectEntry(typeid:=otDataType.Date, title:="Schedule Change Date", isnullable:=True, Description:="forecast last changed on", _
+        <ormObjectEntry(Datatype:=otDataType.Date, title:="Schedule Change Date", isnullable:=True, Description:="forecast last changed on", _
           XID:="DTR23")> Public Const constFNFcChanged = "fcchanged"
 
-        <ormObjectEntry(typeid:=otDataType.Date, title:="Baseline Delivery Date", isnullable:=True, Description:="delivery date from the baseline", _
+        <ormObjectEntry(Datatype:=otDataType.Date, title:="Baseline Delivery Date", isnullable:=True, Description:="delivery date from the baseline", _
           XID:="DTR24")> Public Const ConstFNBaselineFinish = "basefinish"
 
-        <ormObjectEntry(typeid:=otDataType.Bool, title:="Schedule Frozen", defaultvalue:=False, dbdefaultvalue:="0", _
+        <ormObjectEntry(Datatype:=otDataType.Bool, title:="Schedule Frozen", defaultvalue:=False, dbdefaultvalue:="0", _
             Description:="True if schedule is frozen / a baseline exists", XID:="DTR25", aliases:={"SC6"})> Public Const constFNIsFrozen = ScheduleEdition.ConstFNisfrozen
 
-        <ormObjectEntry(typeid:=otDataType.Long, isnullable:=True, title:="Schedule Baseline UpdateCount", description:="update count of the schedule", _
+        <ormObjectEntry(Datatype:=otDataType.Long, isnullable:=True, title:="Schedule Baseline UpdateCount", description:="update count of the schedule", _
             XID:="DTR26", aliases:={"SC17"})> Public Const constFNBaselineUPDC = ScheduleEdition.ConstFNBlUpdc
 
-        <ormObjectEntry(typeid:=otDataType.Date, title:="Baseline Reference Date", Description:="reference date for baseline", _
+        <ormObjectEntry(Datatype:=otDataType.Date, title:="Baseline Reference Date", Description:="reference date for baseline", _
          XID:="DTR27", isnullable:=True)> Public Const ConstFNBaseLineFrom = ScheduleEdition.ConstFNBlDate
 
         <ormObjectEntry(referenceobjectentry:=StatusItem.ConstObjectID & "." & StatusItem.constFNCode, _
@@ -2069,7 +2069,7 @@ Namespace OnTrack.Deliverables
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overloads Function Clone(pkarray() As Object, Optional runtimeOnly As Boolean? = Nothing) As Track Implements iormCloneable(Of Track).Clone
-            Return MyBase.CloneObject(Of Track)(pkarray)
+            Return MyBase.Clone(Of Track)(pkarray)
         End Function
         ''' <summary>
         ''' clone the deliverable track
@@ -2476,7 +2476,7 @@ Namespace OnTrack.Deliverables
         ''' keys
         ''' </summary>
         ''' <remarks></remarks>
-        <ormObjectEntry(typeid:=otDataType.Text, size:=100, primarykeyordinal:=1, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=100, primarykeyordinal:=1, _
            title:="Type", description:="type of the deliverable", XID:="DLVT1")> Public Const constFNTypeID = "id"
         ' switch FK too NOOP since we have a dependency to deliverables
         <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=2, _
@@ -2491,7 +2491,7 @@ Namespace OnTrack.Deliverables
         ''' <remarks></remarks>
         ''' 
 
-        <ormObjectEntry(typeid:=otDataType.Bool, defaultValue:=False, _
+        <ormObjectEntry(Datatype:=otDataType.Bool, defaultValue:=False, _
          title:="scheduled", description:="deliverable is always scheduled", XID:="DLVT20")> Public Const ConstFNScheduled = "isscheduled"
 
         <ormObjectEntry(referenceobjectentry:=ScheduleDefinition.ConstObjectID & "." & ScheduleDefinition.ConstFNType, isnullable:=True, _
@@ -2501,17 +2501,17 @@ Namespace OnTrack.Deliverables
             title:="Organization Unit", description:="default organization unit responsible of the deliverable", XID:="DLVT22")> Public Const constFNDefRespOU = "defrespOU"
 
 
-        <ormObjectEntry(typeid:=otDataType.Text, size:=50, isnullable:=True, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=50, isnullable:=True, isnullable:=True, _
            title:="Function", description:="default function type of the deliverable", XID:="DLVT23")> Public Const constFNDefFunction = "deffunction"
 
         <ormObjectEntry(referenceobjectentry:=OrgUnit.ConstObjectID & "." & OrgUnit.ConstFNID, isnullable:=True, _
           title:="Responsible Unit Target", description:="default target responsible organization Unit", XID:="DLVT24")> Public Const constFNDefTargetOU = "deftargetOu"
 
-        <ormObjectEntry(typeid:=otDataType.Bool, defaultValue:=False, _
+        <ormObjectEntry(Datatype:=otDataType.Bool, defaultValue:=False, _
           title:="Target Necessary", description:="has mandatory target data", XID:="DLVT25")> Public Const constFNhastarget = "hastargetdata"
 
 
-        <ormObjectEntry(typeid:=otDataType.Bool, defaultValue:=False, _
+        <ormObjectEntry(Datatype:=otDataType.Bool, defaultValue:=False, _
           title:="Target Autopublish", description:="target will autopublish if changed", XID:="DLVT28")> Public Const ConstFNAutoPublish = "AUTOPUBLISH"
 
 
@@ -2522,10 +2522,10 @@ Namespace OnTrack.Deliverables
             title:="Revision", description:="default revision value of the deliverable", XID:="DLVT27")> Public Const constFNDefRevision = "defrev"
 
 
-        <ormObjectEntry(typeid:=otDataType.Text, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.Text, isnullable:=True, _
          title:="Description", description:="description of the deliverable type", XID:="DLVT3")> Public Const constFNDescription = "desc"
 
-        <ormObjectEntry(typeid:=otDataType.Memo, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.Memo, isnullable:=True, _
         title:="comment", description:="comments of the deliverable", XID:="DLVT10")> Public Const constFNComment = "cmt"
 
         '*** Mapping
@@ -2818,7 +2818,7 @@ Namespace OnTrack.Deliverables
         Inherits ormDataObject
         Implements iormInfusable
         Implements iormPersistable
-        Implements iormCloneable(Of Deliverable)
+
 
         Public Const ConstObjectID = "DELIVERABLE"
         '** Table
@@ -2836,16 +2836,16 @@ Namespace OnTrack.Deliverables
         <ormSchemaIndex(columnname1:=constFNDeliverableTypeID, columnname2:=constFNUid, columnname3:=ConstFNIsDeleted)> Public Const ConstIndexType = "indType"
 
         '*** primary key
-        <ormObjectEntry(typeid:=otDataType.Long, primarykeyordinal:=1, _
+        <ormObjectEntry(Datatype:=otDataType.Long, primarykeyordinal:=1, _
             title:="Unique ID", description:="unique id of the deliverable", XID:="DLV1", aliases:={"UID"})> _
         Public Const constFNUid = "uid"
 
         '** fields
-        <ormObjectEntry(typeid:=otDataType.Text, size:=100, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=100, _
             title:="category", description:="category of the deliverable", XID:="DLV2")> Public Const constFNCategory = "cat"
-        <ormObjectEntry(typeid:=otDataType.Text, size:=255, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=255, isnullable:=True, _
             title:="id", description:="id of the deliverable", XID:="DLV3")> Public Const constFNDeliverableID = "id"
-        <ormObjectEntry(typeid:=otDataType.Text, size:=100, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=100, isnullable:=True, _
             title:="Matchcode", description:="match code of the deliverable", XID:="DLV4")> Public Const constFNMatchCode = "matchcode"
 
 
@@ -2869,19 +2869,19 @@ Namespace OnTrack.Deliverables
             foreignkeyProperties:={ForeignKeyProperty.OnDelete & "(" & ForeignKeyActionProperty.SetDefault & ")", _
                                    ForeignKeyProperty.OnUpdate & "(" & ForeignKeyActionProperty.Cascade & ")"})> Public Const ConstFNWorkspace = Workspace.ConstFNID
 
-        <ormObjectEntry(typeid:=otDataType.Text, size:=100, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=100, isnullable:=True, _
             title:="Revision", description:="revision of the deliverable", XID:="DLV6")> Public Const constFNRevision = "drev"
 
         <ormObjectEntry(referenceobjectentry:=ConstObjectID & "." & constFNUid, title:="First Revision UID", description:="unique id of the first revision deliverable", _
             XID:="DLV7", isnullable:=True, aliases:={""})> Public Const constFNfuid = "fuid"
 
-        <ormObjectEntry(typeid:=otDataType.Text, size:=100, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=100, isnullable:=True, _
             title:="Change Reference", description:="change reference of the deliverable", XID:="DLV8")> Public Const constFNChangeRef = "chref"
 
-        <ormObjectEntry(typeid:=otDataType.Text, size:=100, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=100, isnullable:=True, _
             title:="Format", description:="format of the deliverable", XID:="DLV9")> Public Const constFNFormat = "frmt"
 
-        <ormObjectEntry(typeid:=otDataType.Text, size:=255, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=255, isnullable:=True, _
             title:="Description", description:="description of the deliverable", XID:="DLV10")> Public Const constFNDescription = "desc"
 
         <ormObjectEntry(referenceobjectentry:=OrgUnit.ConstObjectID & "." & OrgUnit.ConstFNID, isnullable:=True, _
@@ -2900,24 +2900,24 @@ Namespace OnTrack.Deliverables
         <ormObjectEntry(referenceobjectentry:=Person.ConstObjectID & "." & Person.constFNID, _
             title:="Responsible", description:="responsible person for the deliverable", XID:="DLV16")> Public Const constFNResponsiblePerson = "resp"
 
-        <ormObjectEntry(typeid:=otDataType.Text, size:=100, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=100, isnullable:=True, _
             title:="blocking item reference", description:="blocking item reference id for the deliverable", XID:="DLV17")> Public Const constFNBlockingItemReference = "blitemid"
 
-        <ormObjectEntry(typeid:=otDataType.Memo, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.Memo, isnullable:=True, _
             title:="comment", description:="comments and extended description of the deliverable", XID:="DLV18")> Public Const constFNComment = "cmt"
 
-        <ormObjectEntry(typeid:=otDataType.Text, size:=100, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=100, isnullable:=True, _
         title:="wbs reference", description:="work break down structure for the deliverable", XID:="DLV22")> _
         Public Const constFNWBSID = "wbs"
 
-        <ormObjectEntry(typeid:=otDataType.Text, size:=100, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=100, isnullable:=True, _
         title:="wbscode reference", description:="wbscode for the deliverable", XID:="DLV23")> _
         Public Const constFNWBSCode = "wbscode"
 
-        <ormObjectEntry(typeid:=otDataType.Text, size:=50, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=50, isnullable:=True, _
             title:="Function", description:="function of the deliverable", XID:="DLV30")> Public Const constFNFunction = "function"
 
-        <ormObjectEntry(typeid:=otDataType.Text, size:=150, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=150, isnullable:=True, _
            XID:="DLV31", Title:="Workpackage", description:="workpackage of the deliverable")> Public Const ConstFNWorkpackage = "wkpk"
 
 
@@ -3039,13 +3039,12 @@ Namespace OnTrack.Deliverables
         Public Const constOPGetPropertyValueLot = "GetPropertyValueLot"
 
         ''' <summary>
-        ''' constructor
+        ''' dynamic runtime members
         ''' </summary>
         ''' <remarks></remarks>
-        Public Sub New()
-            Call MyBase.New()
-        End Sub
 
+        Private _UniqueEntriesAreTouched As Boolean = False 'flag to raise if a unique entry check need to be done before persisting
+        Private _UniqueEntries As String()
 
 #Region "properties"
 
@@ -3092,7 +3091,7 @@ Namespace OnTrack.Deliverables
                 End If
 
                 Return _scheduleLink
-                
+
             End Get
         End Property
         ''' <summary>
@@ -3106,7 +3105,7 @@ Namespace OnTrack.Deliverables
                 If Not Me.IsAlive(subname:="DeliverableType") Then Return Nothing
                 Me.InfuseRelation(ConstRDeliverableType)
                 Return _deliverableType
-               
+
             End Get
         End Property
         ''' <summary>
@@ -3372,7 +3371,7 @@ Namespace OnTrack.Deliverables
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property [function]() As String
+        Public Property [Function]() As String
             Get
                 Return _function
             End Get
@@ -3380,7 +3379,7 @@ Namespace OnTrack.Deliverables
                 SetValue(constFNFunction, value)
             End Set
         End Property
-        
+
         ''' <summary>
         ''' gets or sets the blocking item reference ID
         ''' </summary>
@@ -3426,10 +3425,6 @@ Namespace OnTrack.Deliverables
 
 #End Region
 
-        '****** getUniqueTag
-        Public Function GetUniqueTag()
-            GetUniqueTag = ConstDelimiter & ConstTableID & ConstDelimiter & _uid & ConstDelimiter
-        End Function
 
         ''' <summary>
         ''' returns the PropertyLink object in relation
@@ -3448,6 +3443,17 @@ Namespace OnTrack.Deliverables
 
             Return Nothing
         End Function
+
+        ''' <summary>
+        ''' OnInitialized Event
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Private Sub Deliverable_OnInitialized(sender As Object, e As ormDataObjectEventArgs) Handles Me.OnInitialized
+            ''' initialize
+            _UniqueEntries = CurrentSession.DeliverableUniqueEntries
+        End Sub
 
         ''' <summary>
         ''' Event Handler for the RelationRetrieveNeeded event
@@ -3671,7 +3677,75 @@ Namespace OnTrack.Deliverables
 
 
 #Region "Static"
+        ''' <summary>
+        ''' retrieve maximum update count from the datastore
+        ''' </summary>
+        ''' <param name="max">the max to be set</param>
+        ''' <param name="workspaceID">optional workspaceID</param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Private Shared Function GenerateNewUID(ByRef newuid As Long, Optional domainID As String = "") As Boolean
+            Dim aDomain As Domain
+            Dim mymax As Long
 
+
+            '** default domain
+            If domainID = "" Then domainID = CurrentSession.CurrentDomainID
+
+
+            Try
+                ' get
+                Dim aStore As iormDataStore = GetTableStore(ConstTableID)
+                Dim aCommand As ormSqlSelectCommand = aStore.CreateSqlSelectCommand(id:="getnewUid", addMe:=True, addAllFields:=False)
+
+                '** prepare the command if necessary
+                If Not aCommand.Prepared Then
+                    aCommand.select = "max([" & constFNUid & "])"
+                    aCommand.Where = "[" & ConstFNDomain & "] = @domain"
+                    aCommand.AddParameter(New ormSqlCommandParameter(id:="@domain", ColumnName:=ConstFNDomain, tablename:=ConstTableID))
+                    aCommand.Prepare()
+                End If
+                aCommand.SetParameterValue(ID:="@domain", value:=domainID)
+
+                '** run the Command
+                Dim theRecords As List(Of ormRecord) = aCommand.RunSelect
+                aDomain = Domain.Retrieve(id:=domainID)
+
+                If theRecords.Count > 0 Then
+                    If Not IsNull(theRecords.Item(0).GetValue(1)) And IsNumeric(theRecords.Item(0).GetValue(1)) Then
+                        mymax = CLng(theRecords.Item(0).GetValue(1))
+                        If Not aDomain Is Nothing Then
+                            If mymax >= (aDomain.MaxDeliverableUID - 10) Then
+                                Call CoreMessageHandler(showmsgbox:=True, message:="Number range for domain ID ends", _
+                                                      arg1:=domainID, messagetype:=otCoreMessageType.ApplicationWarning)
+                            End If
+                        End If
+                    Else
+                        If aDomain IsNot Nothing Then
+                            mymax = aDomain.MinDeliverableUID
+                        Else
+                            GenerateNewUID = False
+                        End If
+
+                    End If
+                    GenerateNewUID = True
+
+                Else
+                    If aDomain IsNot Nothing Then
+                        mymax = aDomain.MinDeliverableUID
+                    Else
+                        GenerateNewUID = False
+                    End If
+                End If
+                If GenerateNewUID Then
+                    newuid = mymax + 1
+                End If
+                Return GenerateNewUID
+            Catch ex As Exception
+                Call CoreMessageHandler(showmsgbox:=False, exception:=ex, subname:="Deliverable.getNewUID")
+                Return False
+            End Try
+        End Function
         ''' <summary>
         ''' Retrieve the Deliverable
         ''' </summary>
@@ -4108,82 +4182,50 @@ Namespace OnTrack.Deliverables
         End Function
 
         ''' <summary>
-        ''' retrieve maximum update count from the datastore
+        ''' On Entry Changed Event
         ''' </summary>
-        ''' <param name="max">the max to be set</param>
-        ''' <param name="workspaceID">optional workspaceID</param>
-        ''' <returns></returns>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
         ''' <remarks></remarks>
-        Private Shared Function GenerateNewUID(ByRef newuid As Long, Optional domainID As String = "") As Boolean
-            Dim aDomain As Domain
-            Dim mymax As Long
+        Public Sub Deliverable_OnEntryChanged(sender As Object, e As ormDataObjectEntryEventArgs) Handles Me.OnEntryChanged
 
-
-            '** default domain
-            If domainID = "" Then domainID = CurrentSession.CurrentDomainID
-
-
-            Try
-                ' get
-                Dim aStore As iormDataStore = GetTableStore(ConstTableID)
-                Dim aCommand As ormSqlSelectCommand = aStore.CreateSqlSelectCommand(id:="getnewUid", addMe:=True, addAllFields:=False)
-
-                '** prepare the command if necessary
-                If Not aCommand.Prepared Then
-                    aCommand.select = "max([" & constFNUid & "])"
-                    aCommand.Where = "[" & ConstFNDomain & "] = @domain"
-                    aCommand.AddParameter(New ormSqlCommandParameter(id:="@domain", ColumnName:=ConstFNDomain, tablename:=ConstTableID))
-                    aCommand.Prepare()
+            If _UniqueEntries IsNot Nothing AndAlso _UniqueEntries.Length > 0 AndAlso _UniqueEntriesAreTouched = False Then
+                If _UniqueEntries.Contains(e.ObjectEntryName) Then
+                    _UniqueEntriesAreTouched = True
                 End If
-                aCommand.SetParameterValue(ID:="@domain", value:=domainID)
+            End If
 
-                '** run the Command
-                Dim theRecords As List(Of ormRecord) = aCommand.RunSelect
-                aDomain = Domain.Retrieve(id:=domainID)
+        End Sub
 
-                If theRecords.Count > 0 Then
-                    If Not IsNull(theRecords.Item(0).GetValue(1)) And IsNumeric(theRecords.Item(0).GetValue(1)) Then
-                        mymax = CLng(theRecords.Item(0).GetValue(1))
-                        If Not aDomain Is Nothing Then
-                            If mymax >= (aDomain.MaxDeliverableUID - 10) Then
-                                Call CoreMessageHandler(showmsgbox:=True, message:="Number range for domain ID ends", _
-                                                      arg1:=domainID, messagetype:=otCoreMessageType.ApplicationWarning)
-                            End If
-                        End If
-                    Else
-                        If aDomain IsNot Nothing Then
-                            mymax = aDomain.MinDeliverableUID
-                        Else
-                            GenerateNewUID = False
-                        End If
-
-                    End If
-                    GenerateNewUID = True
-
-                Else
-                    If aDomain IsNot Nothing Then
-                        mymax = aDomain.MinDeliverableUID
-                    Else
-                        GenerateNewUID = False
-                    End If
-                End If
-                If GenerateNewUID Then
-                    newuid = mymax + 1
-                End If
-                Return GenerateNewUID
-            Catch ex As Exception
-                Call CoreMessageHandler(showmsgbox:=False, exception:=ex, subname:="Deliverable.getNewUID")
-                Return False
-            End Try
-        End Function
-
+        ''' <summary>
+        ''' handler for default Value for an entry needed
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Public Sub Deliverable_OnDefaultValueNeeded(sender As Object, e As ormDataObjectEntryEventArgs) Handles Me.OnDefaultValueNeeded
+            Select Case e.ObjectEntryName
+                Case ConstFNDomain
+                    e.Value = CurrentSession.CurrentDomainID
+                    e.Result = True
+                Case ConstFNWorkspace
+                    e.Value = CurrentSession.CurrentWorkspaceID
+                    e.Result = True
+                Case constFNDeliverableTypeID
+                    e.Value = CurrentSession.DefaultDeliverableTypeID
+                    e.Result = True
+            End Select
+        End Sub
         ''' <summary>
         ''' Handles the On DefaultValues Needed
         ''' </summary>
         ''' <param name="sender"></param>
         ''' <param name="e"></param>
         ''' <remarks></remarks>
-        Public Sub Deliverable_OnDefaultValuesNeeded(sender As Object, e As ormDataObjectEventArgs) Handles Me.OnDefaultValuesNeeded
+        Public Sub Deliverable_OnCreateDefaultValuesNeeded(sender As Object, e As ormDataObjectEventArgs) Handles Me.OnCreateDefaultValuesNeeded
+            '' set these Values too ...
+            '' OnDefaultValuesNeeded is not called before this event
+
             Dim aValue As Object = e.Record.GetValue(ConstFNDomain)
             If aValue Is Nothing OrElse aValue = "" Then e.Record.SetValue(ConstFNDomain, CurrentSession.CurrentDomainID)
             aValue = e.Record.GetValue(ConstFNWorkspace)
@@ -4196,17 +4238,23 @@ Namespace OnTrack.Deliverables
                 End If
             End If
 
-
             ''' Get the Values from the Type
             ''' 
             Dim domainID As String = e.Record.GetValue(ConstFNDomain)
             If domainID Is Nothing OrElse domainID = "" Then domainID = CurrentSession.CurrentDomainID
-            Dim aDeliverableType = DeliverableType.Retrieve(typeid:=aValue, domainID:=domainID)
-            With aDeliverableType
-                If e.Record.GetValue(constFNFunction) Is Nothing Then e.Record.SetValue(constFNFunction, .DefaultFunction)
-                If e.Record.GetValue(constFNRespOU) Is Nothing Then e.Record.SetValue(constFNRespOU, .DefaultRespOU)
-                If e.Record.GetValue(constFNRevision) Is Nothing Then e.Record.SetValue(constFNRevision, .DefaultRevision)
-            End With
+
+            aValue = e.Record.GetValue(constFNDeliverableTypeID)
+            If Not String.IsNullOrWhiteSpace(aValue) Then
+                Dim aDeliverableType = DeliverableType.Retrieve(typeid:=aValue, domainID:=domainID)
+                If aDeliverableType IsNot Nothing Then
+                    With aDeliverableType
+                        If e.Record.GetValue(constFNFunction) Is Nothing Then e.Record.SetValue(constFNFunction, .DefaultFunction)
+                        If e.Record.GetValue(constFNRespOU) Is Nothing Then e.Record.SetValue(constFNRespOU, .DefaultRespOU)
+                        If e.Record.GetValue(constFNRevision) Is Nothing Then e.Record.SetValue(constFNRevision, .DefaultRevision)
+                    End With
+                End If
+            End If
+
         End Sub
         ''' <summary>
         ''' On Creating Handler to set the UID
@@ -4253,232 +4301,51 @@ Namespace OnTrack.Deliverables
             Return ormDataObject.CreateDataObject(Of Deliverable)(aRecord, domainID:=domainID, checkUnique:=True)
         End Function
 
-        '**** createFirstRevision : add a FirstRevision
-        '****
         ''' <summary>
-        ''' createFirstRevision : add a FirstRevision
+        ''' Handler for the On Cloned Event
         ''' </summary>
-        ''' <param name="uid"></param>
-        ''' <param name="newRevision"></param>
-        ''' <param name="persist"></param>
-        ''' <returns></returns>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
         ''' <remarks></remarks>
-        'Public Function CreateFirstRevision(Optional ByVal uid As Long = 0, _
-        'Optional ByVal newRevision As String = "", _
-        'Optional ByVal persist As Boolean = True) As Deliverable
+        Public Sub Deliverable_OnCloned(sender As Object, e As ormDataObjectEventArgs) Handles Me.OnCloned
 
-        '    Dim newDeliverable As Deliverable = Deliverable.Create
-        '    Dim aTrack As New Track
-        '    Dim aFirstSchedule As New ScheduleEdition
-        '    Dim aFirstRevision As New Deliverable
-        '    Dim aNewSchedule As New ScheduleEdition
-        '    Dim aNewTarget As New Target
-        '    Dim aValue As Object
-
-        '    '****
-        '    '****
-        '    If newDeliverable Is Nothing Then
-        '        Call CoreMessageHandler(subname:="Deliverable.createFirstRevision", message:=" clone failed", arg1:=uid)
-        '        CreateFirstRevision = Nothing
-        '        Exit Function
-        '    End If
-
-        '    '*** add Revision
-        '    '***
-        '    If newRevision <> "" Then
-        '        newDeliverable.Revision = newRevision
-        '    Else
-        '        newDeliverable.Revision = "0"
-
-        '    End If
-
-        '    '*** save
-        '    If Me.Persist() Then
-        '        newDeliverable.Persist()
-        '    End If
-
-        '    '*** Schedule initialize
-        '    Call aNewSchedule.Create(uid:=newDeliverable.Uid, updc:=0, scheduletypeid:=CurrentSession.DefaultScheduleTypeID)
-        '    aNewSchedule.WorkspaceID = CurrentSession.CurrentWorkspaceID
-        '    aNewSchedule.Persist()
-
-        '    '** currSchedule
-        '    Dim anewCurrSchedule As New WorkspaceSchedule
-        '    Call anewCurrSchedule.Create(newDeliverable.Uid)
-        '    anewCurrSchedule.AliveEditionUpdc = 0
-        '    anewCurrSchedule.WorkspaceID = CurrentSession.CurrentWorkspaceID
-        '    anewCurrSchedule.Persist()
-
-        '    '*** Targetarget
-        '    Call aNewTarget.Create(newDeliverable.Uid, updc:=0)
-        '    aNewTarget.WorkspaceID = CurrentSession.CurrentWorkspaceID
-        '    aNewTarget.Persist()
-
-        '    Dim anewCurrTarget As WorkspaceTarget = WorkspaceTarget.Create(newDeliverable.Uid, workspaceID:=CurrentSession.CurrentWorkspaceID)
-        '    anewCurrTarget.Persist()
-
-        '    '*** Track
-        '    Dim aNewTrack As New Track
-        '    aNewTrack.workspaceID = CurrentSession.CurrentWorkspaceID
-        '    aNewTrack.Scheduletype = aTrack.Scheduletype
-        '    Call aNewTrack.UpdateFromDeliverable(deliverable:=newDeliverable)
-        '    aNewTrack.Persist()
-
-        '    CreateFirstRevision = newDeliverable
-
-        'End Function
-        '**** addRevision : clone the deliverable and add a new revision
-        '****
-        ''' <summary>
-        ''' clones the deliverable and inserts a new revision
-        ''' </summary>
-        ''' <param name="UID"></param>
-        ''' <param name="newRevision"></param>
-        ''' <param name="persist"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Function AddRevision(Optional ByVal UID As Long = 0, Optional ByVal newRevision As String = "", Optional ByVal persist As Boolean = True) As Deliverable
-
-            Dim newDeliverable As Deliverable
-            Dim aTrack As Track
-            Dim aFirstSchedule As New ScheduleEdition
-            Dim aFirstRevision As New Deliverable
-            Dim aNewSchedule As New ScheduleEdition
-            Dim aNewTarget As New Target
-
-            '****
-            '****
-            If Not Me.IsLoaded And Not Me.IsCreated Then
-                AddRevision = Nothing
-                Exit Function
-            End If
-
-            newDeliverable = Me.Clone(UID)
-            If newDeliverable Is Nothing Then
-                Call CoreMessageHandler(subname:="Deliverable.addRevision", message:=" clone failed", arg1:=UID)
-                AddRevision = Nothing
-                Exit Function
-            End If
-
-            '** add the first revision
-            If Not Me.FirstRevisionUID.HasValue OrElse Me.FirstRevisionUID = 0 Then
-                newDeliverable.FirstRevisionUID = Me.Uid
-                aFirstSchedule = Me.GetWorkScheduleEdition
-                aFirstRevision = Me
-            Else
-                newDeliverable.FirstRevisionUID = Me.FirstRevisionUID
-                aFirstRevision = Deliverable.Retrieve(Me.FirstRevisionUID)
-                If aFirstRevision IsNot Nothing Then
-                    aFirstSchedule = aFirstRevision.GetWorkScheduleEdition
-                End If
-            End If
-
-            '*** add Revision
-            '***
-            If newRevision <> "" Then
-                newDeliverable.Revision = newRevision
-            Else
-                If Me.Revision <> "" Then
-                    newDeliverable.Revision = UCase(Chr(Asc(Mid(Me.Revision, 1, 1)) + 1))
-                    Me.Revision = "0"
-                    If persist Then
-                        Me.Persist()
-                    End If
+            ''' reset the entrys
+            ''' 
+            For Each anEntryname In CurrentSession.DeliverableOnCloningResetEntries
+                Dim anEntry As iormObjectEntry = Me.ObjectDefinition.GetEntry(anEntryname)
+                If anEntry Is Nothing Then
+                    CoreMessageHandler(message:="Entry could not found", subname:="Deliverable_OnCloned", objectname:=Me.ObjectID, entryname:=anEntryname, _
+                                        messagetype:=otCoreMessageType.ApplicationError)
                 Else
-                    newDeliverable.Revision = "A"
+                    ''' reset to default values 
+                    ''' might fail since we are not calling OnCreateDefaultValuesNeeded (was called during called)
+                    ''' 
+                    Dim aValue As Object = Me.ObjectEntryDefaultValue(entryname:=anEntryname)
+                    e.DataObject.SetValue(entryname:=anEntryname, value:=aValue)
                 End If
-            End If
 
-            '*** save
-            If persist Then
-                newDeliverable.Persist()
-            End If
+            Next
 
-            '*** create all the related Objects
-            aTrack = Me.GetTrack
-            If Not aTrack Is Nothing AndAlso aTrack.IsLoaded Then
+            ''' clone also
+            ''' 
+            For Each anObjectID In CurrentSession.DeliverableOnCloningCloneAlso
+                If anObjectID.ToUpper = ObjectProperties.ObjectPropertyValueLot.ConstObjectID.ToUpper Then
+                    If Me.PropertyLink IsNot Nothing Then
+                        Dim aPropertyValueLot As ObjectPropertyValueLot = Me.GetProperties
+                        Dim aClone As ObjectPropertyValueLot = aPropertyValueLot.Clone
+                        Me.PropertyLink.ToUID = aClone.UID
+                        Me.PropertyLink.ToUpdc = aClone.UPDC
+                    End If
 
-                '*** Schedule
-                Call aNewSchedule.Create(uid:=newDeliverable.Uid, updc:=0, scheduletypeid:=aTrack.Scheduletype)
-                aNewSchedule.WorkspaceID = aFirstSchedule.WorkspaceID
-
-                '** hack
-                Call aNewSchedule.SetMilestoneValue("bp80", aFirstSchedule.GetMilestoneValue("bp10"))
-                aNewSchedule.Persist()
-
-                '** currSchedule
-                Dim anewCurrSchedule As New WorkspaceSchedule
-                Call anewCurrSchedule.Create(newDeliverable.Uid)
-                anewCurrSchedule.AliveEditionUpdc = 0
-                anewCurrSchedule.WorkspaceID = aFirstSchedule.WorkspaceID
-                anewCurrSchedule.Persist()
-
-                '*** Targetarget
-                Call aNewTarget.Create(newDeliverable.Uid, updc:=0)
-                aNewTarget.WorkspaceID = aFirstSchedule.WorkspaceID
-                aNewTarget.Persist()
-
-                Dim anewCurrTarget As WorkspaceTarget = WorkspaceTarget.Create(newDeliverable.Uid, workspaceID:=aFirstSchedule.WorkspaceID)
-                anewCurrTarget.Persist()
-
-                '*** Track
-                Dim aNewTrack As New Track
-                aNewTrack.workspaceID = aFirstSchedule.WorkspaceID
-                aNewTrack.Scheduletype = aTrack.Scheduletype
-                Call aNewTrack.UpdateFromDeliverable(deliverable:=newDeliverable)
-                aNewTrack.Persist()
-            End If
-
-
-
-            AddRevision = newDeliverable
-
-        End Function
-
-
-        ''' <summary>
-        ''' Clone the object with its primary key array. if {uid} = {0} generate a new uid
-        ''' </summary>
-        ''' <param name="pkArray"></param>
-        ''' <returns>the new object or nothing</returns>
-        ''' <remarks></remarks>
-        Public Overloads Function Clone(pkArray() As Object, Optional runtimeOnly As Boolean? = Nothing) As Deliverable Implements iormCloneable(Of Deliverable).Clone
-            '*** now we copy the object
-            Dim aNewObject As New Deliverable
-
-            '* must be loaded
-            If Not IsLoaded And Not IsCreated Then
-                Return Nothing
-            End If
-
-            '* init
-            If Not Me.IsInitialized Then
-                If Not Me.Initialize() Then
-                    Return Nothing
+                Else
+                    CoreMessageHandler(message:="object id  not found", subname:="Deliverable_OnCloned", objectname:=anObjectID, _
+                                      messagetype:=otCoreMessageType.ApplicationError)
                 End If
-            End If
-            '* update the record
-            If Not MyBase.Feed() Then
-                Return Nothing
-            End If
-            '* get new uid
-            If pkArray(0) Is Nothing OrElse pkArray(0) = 0 Then
-                If Not Me.GenerateNewUID(pkArray(0), domainID:=Me.DomainID) Then
-                    Call CoreMessageHandler(message:=" couldnot create unique primary key values - couldnot clone", arg1:=pkArray, _
-                                            tablename:=PrimaryTableID, entryname:="uid", messagetype:=otCoreMessageType.InternalError)
-                    Return Nothing
-                End If
-            End If
 
-            '** clone it
-            aNewObject = Me.CloneObject(Of Deliverable)(pkArray)
-            If Not aNewObject Is Nothing Then
-                aNewObject.Record.SetValue(constFNUid, pkArray(0))
-                aNewObject._uid = pkArray(0)
-            End If
+            Next
+        End Sub
 
-            Return aNewObject
-        End Function
+
         ''' <summary>
         ''' Clone the deliverable
         ''' </summary>
@@ -4486,7 +4353,99 @@ Namespace OnTrack.Deliverables
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overloads Function Clone(Optional ByVal uid As Long = 0) As Deliverable
-            Return Me.Clone({uid})
+            Return Me.Clone(Of Deliverable)({uid})
         End Function
-    End Class ''' <summary>
+
+        ''' <summary>
+        ''' Check if the additional UniqueIDs are unique 
+        ''' </summary>
+        ''' <param name="msglog"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Private Function CheckUniqueEntries(Optional msglog As ObjectMessageLog = Nothing) As Boolean
+            If Not Me.IsAlive("CheckUniqueIDs") Then Return False
+            If msglog Is Nothing Then msglog = Me.ObjectMessageLog
+            ''' no uniqueentries ?
+            If _UniqueEntries Is Nothing OrElse _UniqueEntries.Count = 0 Then Return True
+
+
+            ''' build a select
+            ''' 
+            Dim aStore As iormDataStore = Me.PrimaryTableStore
+            Dim aCommand As ormSqlSelectCommand = aStore.CreateSqlSelectCommand("UniqueEntryCheck", addAllFields:=False)
+
+            If Not aCommand.Prepared Then
+                aCommand.select = "[" & constFNUid & "]"
+                For Each anEntryname In _UniqueEntries
+                    If Not Me.ObjectDefinition.HasEntry(anEntryname) Then
+                        CoreMessageHandler(message:="entry name is not defined for this object", entryname:=anEntryname, objectname:=Me.ObjectID, messagetype:=otCoreMessageType.ApplicationError)
+                    Else
+                        Dim anEntry As ObjectColumnEntry = Me.ObjectDefinition.GetEntry(anEntryname)
+                        If Not String.IsNullOrWhiteSpace(aCommand.Where) Then aCommand.Where &= " AND "
+                        aCommand.Where &= " ([" & anEntryname & "] = @" & anEntryname
+                        aCommand.AddParameter(New ormSqlCommandParameter("@" & anEntryname, columnname:=anEntry.Columnname, tablename:=Me.PrimaryTableID))
+                        If anEntry.IsNullable Then
+                            aCommand.Where &= "  OR ([" & anEntryname & "] IS NULL and 1=@" & anEntryname & "flag))"
+                            aCommand.AddParameter(New ormSqlCommandParameter("@" & anEntryname & "flag", notcolumn:=True, datatype:=otDataType.Long))
+
+                        Else
+                            aCommand.Where &= " ) "
+                        End If
+                    End If
+                Next
+            End If
+            aCommand.Prepare()
+            Dim values As New List(Of String)
+            For Each anEntryname In _UniqueEntries
+                If Not Me.ObjectDefinition.HasEntry(anEntryname) Then
+                    CoreMessageHandler(message:="entry name is not defined for this object", entryname:=anEntryname, objectname:=Me.ObjectID, messagetype:=otCoreMessageType.ApplicationError)
+                Else
+                    Dim anEntry As ObjectColumnEntry = Me.ObjectDefinition.GetEntry(anEntryname)
+                    Dim aValue As Object = Me.GetValue(anEntryname)
+                    If anEntry.IsNullable And aValue Is Nothing Then
+                        aCommand.SetParameterValue("@" & anEntryname & "flag", 1)
+                    ElseIf anEntry.IsNullable And aValue IsNot Nothing Then
+                        aCommand.SetParameterValue("@" & anEntryname & "flag", 0)
+                    End If
+                    ''' retrieve a default value even if nullable -> if null the select will fail once
+                    If aValue Is Nothing Then aValue = ot.GetDefaultValue(anEntry.Datatype)
+                    If aValue IsNot Nothing Then values.Add(aValue.ToString)
+                    aCommand.SetParameterValue("@" & anEntryname, aValue)
+
+                End If
+            Next
+
+            Dim aRecordCollection As List(Of ormRecord) = aCommand.RunSelect
+
+            If aRecordCollection.Count = 0 Then Return True
+            '1121;@;VALIDATOR;object validation for %1% failed. The values ('%3') of entries '%2%' must be unique.;Provide a correct value;90;Error;false;|R1|R1|;|OBJECTVALIDATOR|XCHANGEENVELOPE|
+            msglog.Add(1121, Nothing, Nothing, Nothing, Nothing, _
+                       Me.ObjectID, Converter.Array2StringList(_UniqueEntries), Converter.Enumerable2StringList(values))
+            Return False
+        End Function
+        ''' <summary>
+        ''' Validated Event
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Private Sub Deliverable_OnValidated(sender As Object, e As ormDataObjectValidationEventArgs) Handles Me.OnValidated
+
+            ''' check if the additional unique IDs are touched
+            ''' if then check the unique IDs are still unique
+            If _UniqueEntriesAreTouched Then
+                e.AbortOperation = Not Me.CheckUniqueEntries(e.Msglog)
+                If e.AbortOperation Then e.ValidationResult = otValidationResultType.FailedNoProceed
+            End If
+        End Sub
+        ''' <summary>
+        ''' Event Handler for OnPersisted Event to reset the UniqueEntries are Touched Flag
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Private Sub Deliverable_OnPersisted(sender As Object, e As ormDataObjectEventArgs) Handles Me.OnPersisted
+            If Not e.AbortOperation AndAlso _UniqueEntriesAreTouched Then _UniqueEntriesAreTouched = False
+        End Sub
+    End Class
 End Namespace

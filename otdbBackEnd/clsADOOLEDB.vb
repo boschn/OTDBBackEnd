@@ -472,7 +472,7 @@ Namespace OnTrack.Database
                 
                 ''' convert an array object to a string
                 If IsArray(invalue) Then
-                    invalue = Converter.Array2String(invalue)
+                    invalue = Converter.Array2otString(invalue)
                 End If
 
 
@@ -1171,9 +1171,9 @@ Namespace OnTrack.Database
                     '** what to check
                     For Each column In columnsResultList
                         '** check on datatype
-                        If columnattribute.HasValueTypeID AndAlso column.DataType <> GetTargetTypeFor(columnattribute.Typeid) Then
+                        If columnattribute.HasValueDataType AndAlso column.DataType <> GetTargetTypeFor(columnattribute.DataType) Then
                             If Not silent Then
-                                CoreMessageHandler(message:="verifying table column: column data type in database differs from column attribute", arg1:=columnattribute.Typeid, _
+                                CoreMessageHandler(message:="verifying table column: column data type in database differs from column attribute", arg1:=columnattribute.DataType, _
                                                       tablename:=tableid, columnname:=columnname, subname:="oledbdriver.verifyColumnSchema", messagetype:=otCoreMessageType.InternalError)
 
                             End If

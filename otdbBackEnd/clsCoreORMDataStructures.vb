@@ -1304,7 +1304,11 @@ Namespace OnTrack.Database
 
                     If aKey.Values.Count <> _Values.Count Then Return False
                     For i As UShort = 0 To CUShort(aKey.Values.Count - 1)
-                        If aKey(i).GetType.Equals(Me(CUShort(i)).GetType) Then
+                        If aKey(i) Is Nothing AndAlso Me(CUShort(i)) Is Nothing Then
+                            Return True
+                        ElseIf aKey(i) Is Nothing OrElse Me(CUShort(i)) Is Nothing Then
+                            Return False
+                        ElseIf aKey(i).GetType.Equals(Me(CUShort(i)).GetType) Then
                             If Not aKey(CUShort(i)).Equals(Me(CUShort(i))) Then Return False
                         Else
                             Try

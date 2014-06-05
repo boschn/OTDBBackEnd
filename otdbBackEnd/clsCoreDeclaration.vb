@@ -1345,6 +1345,12 @@ Namespace OnTrack.Database
 
     Public Interface iormInfusable
 
+        Function Normalizevalue(entryname As String, ByRef value As Object) As Boolean
+
+        Event OnDefaultValueNeeded(sender As Object, e As ormDataObjectEntryEventArgs)
+
+        ReadOnly Property ObjectEntryDefaultValue(entryname As String) As Object
+
         ''' <summary>
         ''' requests a relation by id to be infused, force if it was loaded and infused before
         ''' </summary>
@@ -1369,7 +1375,7 @@ Namespace OnTrack.Database
         ''' <remarks></remarks>
         Event OnInfused(sender As Object, e As ormDataObjectEventArgs)
 
-        Event OnDefaultValuesNeeded(sender As Object, e As ormDataObjectEventArgs)
+        Event OnCreateDefaultValuesNeeded(sender As Object, e As ormDataObjectEventArgs)
 
         ''' <summary>
         ''' Infuse the object with data from the record
@@ -1687,7 +1693,7 @@ Namespace OnTrack
     ''' </summary>
     ''' <remarks></remarks>
 
-    Public Interface ormLoggable
+    Public Interface iormLoggable
 
 
         ''' <summary>

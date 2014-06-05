@@ -921,7 +921,7 @@ Namespace OnTrack.Database
                 result = result And anobjectdefinition.CreateObjectSchema(silent:=True)
                 If result Then
                     Call ot.CoreMessageHandler(subname:="createDatabase.CreateAndPersist", _
-                                                           message:="Schema for  Object " & anobjectdefinition.ID & " updated or created to version " & anobjectdefinition.Version & ". Tables created or updated:" & Converter.Enumerable2String(anobjectdefinition.Tablenames), _
+                                                           message:="Schema for  Object " & anobjectdefinition.ID & " updated or created to version " & anobjectdefinition.Version & ". Tables created or updated:" & Converter.Enumerable2otString(anobjectdefinition.Tablenames), _
                                                            messagetype:=otCoreMessageType.ApplicationInfo, _
                                                            objectname:=anobjectdefinition.ID, noOtdbAvailable:=True)
                 Else
@@ -1319,7 +1319,7 @@ Namespace OnTrack.Database
             '    aScheduleDefinition.Persist()
             'End If
 
-            'Dim aDeliverable As Deliverable ' = Deliverable.Create(typeid:="FVDS")
+            'Dim aDeliverable As Deliverable ' = Deliverable.Create(Datatype:="FVDS")
             'If aDeliverable Is Nothing Then aDeliverable = Deliverable.Retrieve(uid:=295)
 
             'aDeliverable.Description = "TEST"

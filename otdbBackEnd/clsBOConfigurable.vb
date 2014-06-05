@@ -60,7 +60,7 @@ Namespace OnTrack.Configurables
         ''' <remarks></remarks>
         ''' 
 
-        <ormObjectEntry(typeid:=otDataType.Long, primaryKeyOrdinal:=1, _
+        <ormObjectEntry(Datatype:=otDataType.Long, primaryKeyOrdinal:=1, _
             properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty},
             XID:="CNF1", title:="Configuration UID", description:="UID of the configuration")> Public Const ConstFNConfigUID = "UID"
 
@@ -72,18 +72,18 @@ Namespace OnTrack.Configurables
         ''' fields
         ''' </summary>
         ''' <remarks></remarks>
-        <ormObjectEntry(typeid:=otDataType.Text, size:=50, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=50, _
             properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty},
             XID:="CNF2", title:="Configuration ID", description:="ID of the configuration")> Public Const constFNConfigID = "ID"
 
 
-        <ormObjectEntry(typeid:=otDataType.Text, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.Text, isnullable:=True, _
           XID:="CNF3", title:="Description", description:="description of the configuration")> Public Const ConstFNDescription = "DESC"
 
-        <ormObjectEntry(typeid:=otDataType.List, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.List, isnullable:=True, _
           XID:="CNF4", title:="Properties", description:="properties of the configuration")> Public Const ConstFNProperties = "PROPERTIES"
 
-        <ormObjectEntry(typeid:=otDataType.List, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.List, isnullable:=True, _
              properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty}, _
              defaultvalue:={Deliverable.ConstObjectID}, _
              values:={Deliverable.ConstObjectID, Parts.Part.ConstObjectID}, _
@@ -275,7 +275,7 @@ Namespace OnTrack.Configurables
         <ormObjectEntry(referenceObjectEntry:=Configuration.ConstObjectID & "." & Configuration.ConstFNConfigUID, primarykeyordinal:=1 _
          , defaultvalue:=ConstGlobalDomain)> Public Const ConstFNConfiguID = Configuration.ConstFNConfigUID
 
-        <ormObjectEntry(typeid:=otDataType.Long, primarykeyordinal:=2, _
+        <ormObjectEntry(Datatype:=otDataType.Long, primarykeyordinal:=2, _
          XID:="CCOND2", title:="ID", description:="ID of the configuration condition")> Public Const ConstFNIDNO = "IDNO"
 
         <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=3 _
@@ -292,16 +292,16 @@ Namespace OnTrack.Configurables
         ''' <remarks></remarks>
         ''' 
 
-        <ormObjectEntry(typeid:=otDataType.Text, isnullable:=True, defaultvalue:=otConfigConditionRuleType.FindConfigSet, _
+        <ormObjectEntry(Datatype:=otDataType.Text, isnullable:=True, defaultvalue:=otConfigConditionRuleType.FindConfigSet, _
          XID:="CCOND3", title:="RuleType", description:="rule type of the configuration condition")> Public Const ConstFNRuletype = "ruletype"
 
-        <ormObjectEntry(typeid:=otDataType.Long, defaultvalue:=10, dbdefaultvalue:="10", _
+        <ormObjectEntry(Datatype:=otDataType.Long, defaultvalue:=10, dbdefaultvalue:="10", _
          XID:="CCOND4", title:="Ordinal", description:="ordinal of the configuration condition")> Public Const ConstFNOrdinal = "Ordinal"
 
-        <ormObjectEntry(typeid:=otDataType.Text, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.Text, isnullable:=True, _
           XID:="CCOND5", title:="Description", description:="description of the configuration condition")> Public Const ConstFNDescription = "DESC"
 
-        <ormObjectEntry(typeid:=otDataType.List, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.List, isnullable:=True, _
           XID:="CCOND6", title:="Properties", description:="properties of the configuration condition")> Public Const ConstFNProperties = "PROPERTIES"
 
 

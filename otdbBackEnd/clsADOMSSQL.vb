@@ -438,7 +438,7 @@ Namespace OnTrack.Database
                 
                 '*** array conversion should not occure on this level
                 If IsArray(invalue) Then
-                    invalue = Converter.Array2String(invalue)
+                    invalue = Converter.Array2otString(invalue)
                 End If
 
                 If targetType = SqlDataType.BigInt OrElse targetType = SqlDataType.Int _
@@ -1554,25 +1554,25 @@ Namespace OnTrack.Database
                     '** check name
                     If aTable.Columns.Contains(name:=columnname) Then
                         Dim column = aTable.Columns(columnname)
-                        If columnattribute.HasValueTypeID Then
+                        If columnattribute.HasValueDataType Then
                             '** set standard sizes or other specials
-                            Select Case columnattribute.Typeid
+                            Select Case columnattribute.DataType
                                 Case otDataType.[Long]
                                     If column.DataType.SqlDataType <> SqlDataType.BigInt Then
-                                        If Not silent Then CoreMessageHandler(message:="verifying table column: column data type differs - should be Long", arg1:=columnattribute.Typeid, _
+                                        If Not silent Then CoreMessageHandler(message:="verifying table column: column data type differs - should be Long", arg1:=columnattribute.DataType, _
                                                        tablename:=tableid, columnname:=columnname, subname:="mssqldbdriver.verifyColumnSchema", messagetype:=otCoreMessageType.InternalError)
                                         Return False
                                     End If
 
                                 Case otDataType.Numeric
                                     If column.DataType.SqlDataType <> SqlDataType.Real Then
-                                        If Not silent Then CoreMessageHandler(message:="verifying table column: column data type differs - should be REAL", arg1:=columnattribute.Typeid, _
+                                        If Not silent Then CoreMessageHandler(message:="verifying table column: column data type differs - should be REAL", arg1:=columnattribute.DataType, _
                                                      tablename:=tableid, columnname:=columnname, subname:="mssqldbdriver.verifyColumnSchema", messagetype:=otCoreMessageType.InternalError)
                                         Return False
                                     End If
                                 Case otDataType.List, otDataType.Text
                                     If column.DataType.SqlDataType <> SqlDataType.NVarChar Then
-                                        If Not silent Then CoreMessageHandler(message:="verifying table column: column data type differs - should be NVARCHAR", arg1:=columnattribute.Typeid, _
+                                        If Not silent Then CoreMessageHandler(message:="verifying table column: column data type differs - should be NVARCHAR", arg1:=columnattribute.DataType, _
                                                     tablename:=tableid, columnname:=columnname, subname:="mssqldbdriver.verifyColumnSchema", messagetype:=otCoreMessageType.InternalError)
                                         Return False
                                     End If
@@ -1586,37 +1586,37 @@ Namespace OnTrack.Database
                                     End If
                                 Case otDataType.Memo
                                     If column.DataType.SqlDataType <> SqlDataType.NVarCharMax Then
-                                        If Not silent Then CoreMessageHandler(message:="verifying table column: column data type differs - should be NVARCHARMAX", arg1:=columnattribute.Typeid, _
+                                        If Not silent Then CoreMessageHandler(message:="verifying table column: column data type differs - should be NVARCHARMAX", arg1:=columnattribute.DataType, _
                                                   tablename:=tableid, columnname:=columnname, subname:="mssqldbdriver.verifyColumnSchema", messagetype:=otCoreMessageType.InternalError)
                                         Return False
                                     End If
                                 Case otDataType.Binary
                                     If column.DataType.SqlDataType <> SqlDataType.VarBinaryMax Then
-                                        If Not silent Then CoreMessageHandler(message:="verifying table column: column data type differs - should be VARBINARYMAX", arg1:=columnattribute.Typeid, _
+                                        If Not silent Then CoreMessageHandler(message:="verifying table column: column data type differs - should be VARBINARYMAX", arg1:=columnattribute.DataType, _
                                                  tablename:=tableid, columnname:=columnname, subname:="mssqldbdriver.verifyColumnSchema", messagetype:=otCoreMessageType.InternalError)
                                         Return False
                                     End If
                                 Case otDataType.[Date]
                                     If column.DataType.SqlDataType <> SqlDataType.Date Then
-                                        If Not silent Then CoreMessageHandler(message:="verifying table column: column data type differs - should be DATE", arg1:=columnattribute.Typeid, _
+                                        If Not silent Then CoreMessageHandler(message:="verifying table column: column data type differs - should be DATE", arg1:=columnattribute.DataType, _
                                                 tablename:=tableid, columnname:=columnname, subname:="mssqldbdriver.verifyColumnSchema", messagetype:=otCoreMessageType.InternalError)
                                         Return False
                                     End If
                                 Case otDataType.Time
                                     If column.DataType.SqlDataType <> SqlDataType.Time Then
-                                        If Not silent Then CoreMessageHandler(message:="verifying table column: column data type differs - should be TIME", arg1:=columnattribute.Typeid, _
+                                        If Not silent Then CoreMessageHandler(message:="verifying table column: column data type differs - should be TIME", arg1:=columnattribute.DataType, _
                                                 tablename:=tableid, columnname:=columnname, subname:="mssqldbdriver.verifyColumnSchema", messagetype:=otCoreMessageType.InternalError)
                                         Return False
                                     End If
                                 Case otDataType.Timestamp
                                     If column.DataType.SqlDataType <> SqlDataType.DateTime Then
-                                        If Not silent Then CoreMessageHandler(message:="verifying table column: column data type differs - should be DATETIME", arg1:=columnattribute.Typeid, _
+                                        If Not silent Then CoreMessageHandler(message:="verifying table column: column data type differs - should be DATETIME", arg1:=columnattribute.DataType, _
                                                 tablename:=tableid, columnname:=columnname, subname:="mssqldbdriver.verifyColumnSchema", messagetype:=otCoreMessageType.InternalError)
                                         Return False
                                     End If
                                 Case otDataType.Bool
                                     If column.DataType.SqlDataType <> SqlDataType.Bit Then
-                                        If Not silent Then CoreMessageHandler(message:="verifying table column: column data type differs - should be BIT", arg1:=columnattribute.Typeid, _
+                                        If Not silent Then CoreMessageHandler(message:="verifying table column: column data type differs - should be BIT", arg1:=columnattribute.DataType, _
                                                 tablename:=tableid, columnname:=columnname, subname:="mssqldbdriver.verifyColumnSchema", messagetype:=otCoreMessageType.InternalError)
                                         Return False
                                     End If

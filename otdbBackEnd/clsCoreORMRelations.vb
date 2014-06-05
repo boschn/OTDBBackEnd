@@ -1671,7 +1671,7 @@ Namespace OnTrack.Database
                     '** parameters
                     For i = 0 To aRelationAttribute.ToEntries.Count - 1
                         Dim anEntryAttribute As ormObjectEntryAttribute = _dataobject.ObjectClassDescription.GetObjectEntryAttribute(entryname:=aRelationAttribute.ToEntries(i))
-                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@" & aRelationAttribute.ToEntries(i), datatype:=anEntryAttribute.Typeid, notColumn:=True))
+                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@" & aRelationAttribute.ToEntries(i), datatype:=anEntryAttribute.DataType, notColumn:=True))
                     Next
                     If timestamp.HasValue Then aCommand.AddParameter(New ormSqlCommandParameter(ID:="@" & ConstFNUpdatedOn, datatype:=otDataType.Timestamp, notColumn:=True))
                     'If deletebehavior Then aCommand.AddParameter(New ormSqlCommandParameter(ID:="@deleted", ColumnName:=FNDeleted, tablename:=toTablename))

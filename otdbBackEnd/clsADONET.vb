@@ -1458,7 +1458,7 @@ Namespace OnTrack.Database
                 End If
 
             Catch ex As Exception
-                Console.WriteLine(Date.Now.ToLocalTime & ": could not flush error log to database")
+                Console.WriteLine(Date.Now & ": could not flush error log to database")
                 'DirectCast(_primaryConnection, adonetConnection).IsNativeInternalLocked = False
                 Return False
             End Try

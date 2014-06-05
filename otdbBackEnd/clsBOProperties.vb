@@ -66,23 +66,23 @@ Namespace OnTrack.ObjectProperties
         <ormSchemaTable(version:=1, usecache:=True)> Public Const constTableID = "TBLDEFOBJPROPERTYSETS"
 
         '** primary Keys
-        <ormObjectEntry(typeid:=otDataType.Text, size:=50, primaryKeyOrdinal:=1, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=50, primaryKeyOrdinal:=1, _
             properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty},
             XID:="OPS1", title:="Set ID", description:="ID of the property set")> Public Const ConstFNSetID = "SETID"
 
         <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=2 _
          , useforeignkey:=otForeignKeyImplementation.NativeDatabase, defaultvalue:=ConstGlobalDomain)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
-        <ormObjectEntry(typeid:=otDataType.Text, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.Text, isnullable:=True, _
           XID:="OPS3", title:="Description", description:="description of the property section")> Public Const ConstFNDescription = "DESC"
 
-        <ormObjectEntry(typeid:=otDataType.List, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.List, isnullable:=True, _
           XID:="OPS4", title:="Properties", description:="properties of the object property section")> Public Const ConstFNProperties = "PROPERTIES"
 
-        <ormObjectEntry(typeid:=otDataType.List, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.List, isnullable:=True, _
          XID:="OPS5", title:="Business Objects", description:="applicable business objects for this section")> Public Const ConstFNObjects = "OBJECTS"
 
-        <ormObjectEntry(typeid:=otDataType.Long, defaultvalue:=1, dbdefaultvalue:="1", _
+        <ormObjectEntry(Datatype:=otDataType.Long, defaultvalue:=1, dbdefaultvalue:="1", _
                         XID:="OPS6", title:="Ordinal", Description:="ordinal of the set")> Public Const ConstFNordinal As String = "ORDINAL"
 
         ''' <summary>
@@ -115,7 +115,7 @@ Namespace OnTrack.ObjectProperties
             Get
                 Return Me._ordinal
             End Get
-            Set
+            Set(value As Long)
                 SetValue(ConstFNordinal, Value)
             End Set
         End Property
@@ -265,7 +265,7 @@ Namespace OnTrack.ObjectProperties
             lookupPropertyStrings:={LookupProperty.UseForeignKey & "(" & constFKSet & ")"}, _
             validationPropertyStrings:={ObjectValidationProperty.NotEmpty, ObjectValidationProperty.UseLookup})> Public Const ConstFNSetID = ObjectPropertySet.ConstFNSetID
 
-        <ormObjectEntry(typeid:=otDataType.Text, size:=50, primaryKeyOrdinal:=2, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=50, primaryKeyOrdinal:=2, _
             properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty},
             XID:="OPR2", title:="Name", description:="ID of the property")> Public Const ConstFNPropertyID = "PROPERTYID"
 
@@ -280,7 +280,7 @@ Namespace OnTrack.ObjectProperties
         ''' other fields
         ''' </summary>
         ''' <remarks></remarks>
-        <ormObjectEntry(typeid:=otDataType.List, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.List, isnullable:=True, _
           XID:="OPR4", title:="Extended Properties", description:="internal properties of the object property")> Public Shadows Const ConstFNExtProperties = "EXTPROPERTIES"
 
         ''' <summary>
@@ -288,7 +288,7 @@ Namespace OnTrack.ObjectProperties
         ''' </summary>
         ''' <remarks></remarks>
         ''' 
-       
+
 
         ''' <summary>
         ''' disabled the inherited fields
@@ -493,7 +493,7 @@ Namespace OnTrack.ObjectProperties
                 .Aliases = Me.Aliases
                 .Datatype = Me.Datatype
                 .IsNullable = Me.IsNullable
-                .DefaultValue = Nothing
+                .DefaultValue = Me.DefaultValue
                 .Size = Me.Size
                 .InnerDatatype = Me.InnerDatatype
                 .Version = Me.Version
@@ -592,12 +592,12 @@ Namespace OnTrack.ObjectProperties
                             aCompound.CompoundSetterMethodName = ObjectPropertyValueLot.ConstOPSetCompoundValue
                             aCompound.CompoundGetterMethodName = ObjectPropertyValueLot.ConstOPGetCompoundValue
                         End If
-                ''' set it to the linking objects
-                ''' 
+                        ''' set it to the linking objects
+                        ''' 
 
-                aCompound.Persist()
+                        aCompound.Persist()
 
-            Next
+                    Next
 
 
                 End If
@@ -659,25 +659,25 @@ Namespace OnTrack.ObjectProperties
         End Function
     End Class
 
-'    SELECT      TBLOBJPROPERTYLINKS.FROMOBJECTID, TBLOBJPROPERTYLINKS.fromuid, tblobjpropertylinks.FROMUPDC ,
-'		    TBLOBJPROPERTYLINKS.TOUID, TBLOBJPROPERTYLINKS.toupdc, LOT.PUID, LOT.UPDC, P1.VALUE as '0.0.2.0',P2.value AS '0.0.3.0' , P3.VALUE AS '0.1.0.0', P4.VALUE AS '0.1.3.0', 
-'              P5.VALUE AS '0.1.6.0', P6.VALUE AS '0.2.0.0',  P7.VALUE AS '0.2.3.0', P8.VALUE AS '0.2.6.0', P9.VALUE AS '0.3.0.0',
-'			   P10.VALUE AS '0.4.0.0',  P11.VALUE AS '0.5.0.0',  P12.VALUE AS '0.6.0.0',  P13.VALUE AS '1.0.0.0'
-'FROM            ontrack.dbo.TBLOBJPROPERTYVALUELOTS AS LOT 
-' INNER JOIN               ontrack.dbo.TBLOBJPROPERTYVALUES AS P1 ON LOT.PUID = P1.PUID AND LOT.UPDC = P1.UPDC AND P1.PROPERTYID = '0.0.2.0'
-' INNER JOIN				ontrack.dbo.TBLOBJPROPERTYVALUES AS P2 ON LOT.PUID = P2.PUID AND LOT.UPDC = P2.UPDC AND P2.PROPERTYID = '0.0.3.0'
-' INNER JOIN				ontrack.dbo.TBLOBJPROPERTYVALUES AS P3 ON LOT.PUID = P3.PUID AND LOT.UPDC = P3.UPDC AND P3.PROPERTYID = '0.1.0.0'
-'INNER JOIN				ontrack.dbo.TBLOBJPROPERTYVALUES AS P4 ON LOT.PUID = P4.PUID AND LOT.UPDC = P4.UPDC AND P4.PROPERTYID = '0.1.3.0'
-'INNER JOIN				ontrack.dbo.TBLOBJPROPERTYVALUES AS P5 ON LOT.PUID = P5.PUID AND LOT.UPDC = P5.UPDC AND P5.PROPERTYID = '0.1.6.0'
-'INNER JOIN				ontrack.dbo.TBLOBJPROPERTYVALUES AS P6 ON LOT.PUID = P6.PUID AND LOT.UPDC = P6.UPDC AND P6.PROPERTYID = '0.2.0.0'
-'INNER JOIN				ontrack.dbo.TBLOBJPROPERTYVALUES AS P7 ON LOT.PUID = P7.PUID AND LOT.UPDC = P7.UPDC AND P7.PROPERTYID = '0.2.3.0'
-'INNER JOIN				ontrack.dbo.TBLOBJPROPERTYVALUES AS P8 ON LOT.PUID = P8.PUID AND LOT.UPDC = P8.UPDC AND P8.PROPERTYID = '0.2.6.0'
-'INNER JOIN				ontrack.dbo.TBLOBJPROPERTYVALUES AS P9 ON LOT.PUID = P9.PUID AND LOT.UPDC = P9.UPDC AND P9.PROPERTYID = '0.3.0.0'
-'INNER JOIN				ontrack.dbo.TBLOBJPROPERTYVALUES AS P10 ON LOT.PUID = P10.PUID AND LOT.UPDC = P10.UPDC AND P10.PROPERTYID = '0.4.0.0'
-'INNER JOIN				ontrack.dbo.TBLOBJPROPERTYVALUES AS P11 ON LOT.PUID = P11.PUID AND LOT.UPDC = P11.UPDC AND P11.PROPERTYID = '0.5.0.0'
-'INNER JOIN				ontrack.dbo.TBLOBJPROPERTYVALUES AS P12 ON LOT.PUID = P12.PUID AND LOT.UPDC = P12.UPDC AND P12.PROPERTYID = '0.6.0.0'
-'INNER JOIN				ontrack.dbo.TBLOBJPROPERTYVALUES AS P13 ON LOT.PUID = P13.PUID AND LOT.UPDC = P13.UPDC AND P13.PROPERTYID = '1.0.0.0'
-'inner join	ontrack.dbo.TBLOBJPROPERTYLINKS on lot.puid = TBLOBJPROPERTYLINKS.touid 
+    '    SELECT      TBLOBJPROPERTYLINKS.FROMOBJECTID, TBLOBJPROPERTYLINKS.fromuid, tblobjpropertylinks.FROMUPDC ,
+    '		    TBLOBJPROPERTYLINKS.TOUID, TBLOBJPROPERTYLINKS.toupdc, LOT.PUID, LOT.UPDC, P1.VALUE as '0.0.2.0',P2.value AS '0.0.3.0' , P3.VALUE AS '0.1.0.0', P4.VALUE AS '0.1.3.0', 
+    '              P5.VALUE AS '0.1.6.0', P6.VALUE AS '0.2.0.0',  P7.VALUE AS '0.2.3.0', P8.VALUE AS '0.2.6.0', P9.VALUE AS '0.3.0.0',
+    '			   P10.VALUE AS '0.4.0.0',  P11.VALUE AS '0.5.0.0',  P12.VALUE AS '0.6.0.0',  P13.VALUE AS '1.0.0.0'
+    'FROM            ontrack.dbo.TBLOBJPROPERTYVALUELOTS AS LOT 
+    ' INNER JOIN               ontrack.dbo.TBLOBJPROPERTYVALUES AS P1 ON LOT.PUID = P1.PUID AND LOT.UPDC = P1.UPDC AND P1.PROPERTYID = '0.0.2.0'
+    ' INNER JOIN				ontrack.dbo.TBLOBJPROPERTYVALUES AS P2 ON LOT.PUID = P2.PUID AND LOT.UPDC = P2.UPDC AND P2.PROPERTYID = '0.0.3.0'
+    ' INNER JOIN				ontrack.dbo.TBLOBJPROPERTYVALUES AS P3 ON LOT.PUID = P3.PUID AND LOT.UPDC = P3.UPDC AND P3.PROPERTYID = '0.1.0.0'
+    'INNER JOIN				ontrack.dbo.TBLOBJPROPERTYVALUES AS P4 ON LOT.PUID = P4.PUID AND LOT.UPDC = P4.UPDC AND P4.PROPERTYID = '0.1.3.0'
+    'INNER JOIN				ontrack.dbo.TBLOBJPROPERTYVALUES AS P5 ON LOT.PUID = P5.PUID AND LOT.UPDC = P5.UPDC AND P5.PROPERTYID = '0.1.6.0'
+    'INNER JOIN				ontrack.dbo.TBLOBJPROPERTYVALUES AS P6 ON LOT.PUID = P6.PUID AND LOT.UPDC = P6.UPDC AND P6.PROPERTYID = '0.2.0.0'
+    'INNER JOIN				ontrack.dbo.TBLOBJPROPERTYVALUES AS P7 ON LOT.PUID = P7.PUID AND LOT.UPDC = P7.UPDC AND P7.PROPERTYID = '0.2.3.0'
+    'INNER JOIN				ontrack.dbo.TBLOBJPROPERTYVALUES AS P8 ON LOT.PUID = P8.PUID AND LOT.UPDC = P8.UPDC AND P8.PROPERTYID = '0.2.6.0'
+    'INNER JOIN				ontrack.dbo.TBLOBJPROPERTYVALUES AS P9 ON LOT.PUID = P9.PUID AND LOT.UPDC = P9.UPDC AND P9.PROPERTYID = '0.3.0.0'
+    'INNER JOIN				ontrack.dbo.TBLOBJPROPERTYVALUES AS P10 ON LOT.PUID = P10.PUID AND LOT.UPDC = P10.UPDC AND P10.PROPERTYID = '0.4.0.0'
+    'INNER JOIN				ontrack.dbo.TBLOBJPROPERTYVALUES AS P11 ON LOT.PUID = P11.PUID AND LOT.UPDC = P11.UPDC AND P11.PROPERTYID = '0.5.0.0'
+    'INNER JOIN				ontrack.dbo.TBLOBJPROPERTYVALUES AS P12 ON LOT.PUID = P12.PUID AND LOT.UPDC = P12.UPDC AND P12.PROPERTYID = '0.6.0.0'
+    'INNER JOIN				ontrack.dbo.TBLOBJPROPERTYVALUES AS P13 ON LOT.PUID = P13.PUID AND LOT.UPDC = P13.UPDC AND P13.PROPERTYID = '1.0.0.0'
+    'inner join	ontrack.dbo.TBLOBJPROPERTYLINKS on lot.puid = TBLOBJPROPERTYLINKS.touid 
     ''' <summary>
     ''' the Property LINK class links a busines object to a value collection
     ''' </summary>
@@ -719,11 +719,11 @@ Namespace OnTrack.ObjectProperties
             XID:="OPL1", title:="From Object", description:="from object id of the business object")> _
         Public Const ConstFNFromObjectID = "FROMOBJECTID"
 
-        <ormObjectEntry(typeid:=otDataType.Long, primarykeyordinal:=2, dbdefaultvalue:="0", lowerrange:=0, _
+        <ormObjectEntry(Datatype:=otDataType.Long, primarykeyordinal:=2, dbdefaultvalue:="0", lowerrange:=0, _
             XID:="OPL2", title:="Linked from UID", description:="from uid of the business object")> _
         Public Const ConstFNFromUid = "FROMUID"
 
-        <ormObjectEntry(typeid:=otDataType.Long, primarykeyordinal:=3, dbdefaultvalue:="0", lowerrange:=0, _
+        <ormObjectEntry(Datatype:=otDataType.Long, primarykeyordinal:=3, dbdefaultvalue:="0", lowerrange:=0, _
             XID:="OPL3", title:="Linked from UPDC", description:="from uid of the business object")> _
         Public Const ConstFNFromUpdc = "FROMUPDC"
 
@@ -737,15 +737,15 @@ Namespace OnTrack.ObjectProperties
         ''' </summary>
         ''' <remarks></remarks>
 
-        <ormObjectEntry(typeid:=otDataType.Long, dbdefaultvalue:="0", lowerrange:=0, _
+        <ormObjectEntry(Datatype:=otDataType.Long, dbdefaultvalue:="0", lowerrange:=0, _
             XID:="OPL5", title:="Linked to UID", description:="uid link to the property value lot object")> _
         Public Const ConstFNToUid = "TOUID"
 
-        <ormObjectEntry(typeid:=otDataType.Long, isnullable:=True, lowerrange:=0, _
+        <ormObjectEntry(Datatype:=otDataType.Long, isnullable:=True, lowerrange:=0, _
             XID:="OPL6", title:="Linked to UPDC", description:="updc link to the property value lot object")> _
         Public Const ConstFNToUpdc = "TOUPDC"
 
-        <ormObjectEntry(typeid:=otDataType.Text, size:=50, dbdefaultvalue:="One2One", defaultvalue:=otLinkType.One2One, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=50, dbdefaultvalue:="One2One", defaultvalue:=otLinkType.One2One, _
             XID:="OPL10", title:="Linke Type", description:="object link type")> Public Const ConstFNTypeID = "typeid"
 
         ''' <summary>
@@ -908,7 +908,7 @@ Namespace OnTrack.ObjectProperties
                 ''' we need change the version of the properyvaluelot if we have not done so (then it is created)
                 ''' 
                 If Not Me.PropertyValueLot.IsCreated Then
-                    Dim aNewLot As ObjectPropertyValueLot = Me.PropertyValueLot.Clone()
+                    Dim aNewLot As ObjectPropertyValueLot = Me.PropertyValueLot.Clone(Uid:=Me.ToUID)
                     Me.ToUID = aNewLot.UID
                     Me.ToUpdc = aNewLot.UPDC ' set new one
                     Me.PropertyValueLot.ValidUntil = Date.Now
@@ -1041,7 +1041,6 @@ Namespace OnTrack.ObjectProperties
         modulename:=ConstModuleProperties, Title:="Property Value Lot", description:="Lot of properties values attached to bussiness object")> _
     Public Class ObjectPropertyValueLot
         Inherits ormDataObject
-        Implements iormCloneable(Of ObjectPropertyValueLot)
 
 
         Public Const ConstObjectID = "PropertyValueLot"
@@ -1056,10 +1055,10 @@ Namespace OnTrack.ObjectProperties
         ''' primary keys
         ''' </summary>
         ''' <remarks></remarks>
-        <ormObjectEntry(typeid:=otDataType.Long, primaryKeyOrdinal:=1, dbdefaultvalue:="0", _
+        <ormObjectEntry(Datatype:=otDataType.Long, primaryKeyOrdinal:=1, dbdefaultvalue:="0", _
               XID:="PLOT1", title:="Lot UID", description:="UID of the property value lot")> Public Const constFNUID = "PUID"
 
-        <ormObjectEntry(typeid:=otDataType.Long, dbdefaultvalue:="0", primaryKeyordinal:=2, _
+        <ormObjectEntry(Datatype:=otDataType.Long, dbdefaultvalue:="0", primaryKeyordinal:=2, _
             title:="update count", Description:="Update count of the property value lot", XID:="PLOT2")> Public Const ConstFNUpdc = "UPDC"
 
         ''' <summary>
@@ -1069,17 +1068,17 @@ Namespace OnTrack.ObjectProperties
         <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, defaultvalue:=ConstGlobalDomain, _
           useforeignkey:=otForeignKeyImplementation.None, dbdefaultvalue:=ConstGlobalDomain)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
-        <ormObjectEntry(typeid:=otDataType.Text, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.Text, isnullable:=True, _
           XID:="PLOT3", title:="Description", description:="description of the property value lot")> Public Const ConstFNDescription = "DESC"
 
-        <ormObjectEntry(typeid:=otDataType.List, _
+        <ormObjectEntry(Datatype:=otDataType.List, _
          lookupPropertyStrings:={LookupProperty.UseObjectEntry & "(" & ObjectPropertySet.ConstObjectID & "." & ObjectPropertySet.ConstFNSetID & ")"}, validationPropertyStrings:={ObjectValidationProperty.UseLookup}, _
          XID:="PLOT4", title:="Property Sets", description:="applicable property sets for this lot")> Public Const ConstFNSets = "SETS"
 
-        <ormObjectEntry(typeid:=otDataType.Date, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.Date, isnullable:=True, _
         XID:="PLOT11", title:="valid from", description:="property set is valid from ")> Public Const ConstFNValidFrom = "validfrom"
 
-        <ormObjectEntry(typeid:=otDataType.Date, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.Date, isnullable:=True, _
        XID:="PLOT12", title:="valid until", description:="property set is valid until ")> Public Const ConstFNValiduntil = "validuntil"
 
 
@@ -1357,61 +1356,61 @@ Namespace OnTrack.ObjectProperties
             ElseIf names.Count > 1 And Not _setids.Contains(names(0)) Then
                 Dim aPropertySet = ObjectPropertySet.Retrieve(id:=names(0), domainid:=DomainID)
                 If aPropertySet Is Nothing Then
-                        '' maybe this was not part of the name ?! in another set as unique name ?
-                        If _setids.Count > 0 Then
-                            '' search it
-                            Dim found As Boolean = False
-                            For Each aSetname As String In _setids
-                                Dim aSet As ObjectPropertySet = ObjectPropertySet.Retrieve(id:=aSetname, domainid:=DomainID)
-                                If aSet IsNot Nothing Then
-                                    If aSet.PropertyIDs.Contains(id.ToUpper) Then
-                                        names(0) = aSetname.ToUpper
-                                        names(1) = id.ToUpper
-                                        found = True
-                                        Exit For
-                                    End If
+                    '' maybe this was not part of the name ?! in another set as unique name ?
+                    If _setids.Count > 0 Then
+                        '' search it
+                        Dim found As Boolean = False
+                        For Each aSetname As String In _setids
+                            Dim aSet As ObjectPropertySet = ObjectPropertySet.Retrieve(id:=aSetname, domainid:=DomainID)
+                            If aSet IsNot Nothing Then
+                                If aSet.PropertyIDs.Contains(id.ToUpper) Then
+                                    names(0) = aSetname.ToUpper
+                                    names(1) = id.ToUpper
+                                    found = True
+                                    Exit For
                                 End If
-                            Next
-                            If Not found Then
+                            End If
+                        Next
+                        If Not found Then
                             CoreMessageHandler(message:="property does not exist in any set of the lot", messagetype:=otCoreMessageType.ApplicationError, _
                                            arg1:=id, objectname:=Me.ObjectID, subname:="ObjectPropertyValueLot.SetPropertyValue")
-                                Return False
-                            End If
-                        Else
+                            Return False
+                        End If
+                    Else
                         CoreMessageHandler(message:="property set '" & names(0) & "' to be added does not exist", messagetype:=otCoreMessageType.ApplicationError, _
                                             arg1:=id, objectname:=Me.ObjectID, subname:="ObjectPropertyValueLot.SetPropertyValue")
-                            Return False
+                        Return False
                     End If
 
-                       
+
                 End If
 
-                    ''' add the set
-                    If Not Me.AddSet(names(0)) Then Return False
-                End If
+                ''' add the set
+                If Not Me.AddSet(names(0)) Then Return False
+            End If
 
 
-                If Me.GetRelationStatus(ConstRValues) = DataObjectRelationMgr.RelationStatus.Unloaded Then InfuseRelation(ConstRValues)
+            If Me.GetRelationStatus(ConstRValues) = DataObjectRelationMgr.RelationStatus.Unloaded Then InfuseRelation(ConstRValues)
 
+            ''' 
+            ''' set the value
+            If names.Count > 1 AndAlso _valuesCollection.ContainsKey(key:={names(0), names(1)}) Then
+                ''' check if something is now different
                 ''' 
-                ''' set the value
-                If names.Count > 1 AndAlso _valuesCollection.ContainsKey(key:={names(0), names(1)}) Then
-                    ''' check if something is now different
-                    ''' 
-                    Dim aPropertyvalue As ObjectPropertyValue = _valuesCollection.Item(key:={names(0), names(1)})
+                Dim aPropertyvalue As ObjectPropertyValue = _valuesCollection.Item(key:={names(0), names(1)})
 
-                    ''' on success
-                    If aPropertyvalue.SetValue(ObjectPropertyValue.ConstFNValue, value) Then
+                ''' on success
+                If aPropertyvalue.SetValue(ObjectPropertyValue.ConstFNValue, value) Then
 
-                    End If
-
-                    Return True
-                Else
-                    CoreMessageHandler(message:="property to be added doesnot exist in this set", messagetype:=otCoreMessageType.ApplicationError, _
-                                          arg1:=id, objectname:=Me.ObjectID, subname:="ObjectPropertyValueLot.SetPropertyValue")
-                    ''' not found not in
-                    Return False
                 End If
+
+                Return True
+            Else
+                CoreMessageHandler(message:="property to be added doesnot exist in this set", messagetype:=otCoreMessageType.ApplicationError, _
+                                      arg1:=id, objectname:=Me.ObjectID, subname:="ObjectPropertyValueLot.SetPropertyValue")
+                ''' not found not in
+                Return False
+            End If
 
         End Function
 
@@ -1554,53 +1553,85 @@ Namespace OnTrack.ObjectProperties
         ''' <param name="pkarray"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function Clone() As ObjectPropertyValueLot
+        Public Function Clone(Optional uid As Long? = Nothing, Optional updc As Long? = Nothing) As ObjectPropertyValueLot
             If Not IsAlive(subname:="Clone") Then Return Nothing
 
             Try
-                Dim primarykey As Object() = {Me.UID, Nothing} ' new updc
-                If MyBase.PrimaryTableStore.CreateUniquePkValue(pkArray:=primarykey, tag:=ConstFNUpdc) Then
-                    Return Me.Clone(primarykey)
+                Dim primarykey As Object()
+                If Not uid.HasValue And Not updc.HasValue Then
+                    Dim anuid As Long?
+                    primarykey = {anuid, Nothing} ' new updc
+                    If MyBase.PrimaryTableStore.CreateUniquePkValue(pkArray:=primarykey, tag:=constFNUID) Then
+                        Return MyBase.Clone(Of ObjectPropertyValueLot)(primarykey)
+                    End If
+                ElseIf uid.HasValue And Not updc.HasValue Then
+                    primarykey = {uid, Nothing} ' new updc
+                    If MyBase.PrimaryTableStore.CreateUniquePkValue(pkArray:=primarykey, tag:=ConstFNUpdc) Then
+                        Return MyBase.Clone(Of ObjectPropertyValueLot)(primarykey)
+                    End If
+                Else
+                    primarykey = {uid, updc} ' new updc
+                    If MyBase.PrimaryTableStore.CreateUniquePkValue(pkArray:=primarykey, tag:=ConstFNUpdc) Then
+                        Return MyBase.Clone(Of ObjectPropertyValueLot)(primarykey)
+                    End If
                 End If
+
                 Return Nothing
             Catch ex As Exception
                 Call CoreMessageHandler(subname:="ObjectPropertyValueLot.Clone", exception:=ex)
                 Return Nothing
             End Try
         End Function
+
+        ''' <summary>
+        ''' Clone Handler to clone the related objects as well
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Public Sub ObjectPropertyValueLot_OnCloned(sender As Object, e As ormDataObjectEventArgs) Handles Me.OnCloned
+            If Not e.AbortOperation Then
+                Dim aNewObject As ObjectPropertyValueLot = TryCast(e.DataObject, ObjectPropertyValueLot)
+                ' now clone the Members (Milestones)
+                For Each aPropertyValue In _valuesCollection
+                    aNewObject.Values.Add(aPropertyValue.Clone(uid:=aNewObject.UID, updc:=aNewObject.UPDC, setid:=aPropertyValue.SetID, propertyid:=aPropertyValue.PropertyID))
+                Next
+            End If
+
+        End Sub
         ''' <summary>
         ''' clones an object
         ''' </summary>
         ''' <param name="pkarray"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function Clone(pkarray() As Object, Optional runtimeOnly As Boolean? = Nothing) As ObjectPropertyValueLot Implements iormCloneable(Of ObjectPropertyValueLot).Clone
+        'Public Function Clone(pkarray() As Object, Optional runtimeOnly As Boolean? = Nothing) As ObjectPropertyValueLot Implements iormCloneable(Of ObjectPropertyValueLot).Clone
 
 
-            If Not IsAlive(subname:="Clone") Then Return Nothing
+        '    If Not IsAlive(subname:="Clone") Then Return Nothing
 
-            Try
+        '    Try
 
-                '*** now we copy the object
-                Dim aNewObject As ObjectPropertyValueLot = MyBase.CloneObject(Of ObjectPropertyValueLot)(pkarray)
-                Dim anUid As Long = pkarray(0)
-                Dim anUpdc As Long = pkarray(1)
-                If Not aNewObject Is Nothing Then
-                    ' now clone the Members (Milestones)
-                    For Each aPropertyValue In _valuesCollection
-                        aNewObject.Values.Add(aPropertyValue.Clone(uid:=anUid, updc:=anUpdc, setid:=aPropertyValue.SetID, propertyid:=aPropertyValue.PropertyID))
-                    Next
+        '        '*** now we copy the object
+        '        Dim aNewObject As ObjectPropertyValueLot = MyBase.Clone(Of ObjectPropertyValueLot)(pkarray)
+        '        Dim anUid As Long = pkarray(0)
+        '        Dim anUpdc As Long = pkarray(1)
+        '        If Not aNewObject Is Nothing Then
+        '            ' now clone the Members (Milestones)
+        '            For Each aPropertyValue In _valuesCollection
+        '                aNewObject.Values.Add(aPropertyValue.Clone(uid:=anUid, updc:=anUpdc, setid:=aPropertyValue.SetID, propertyid:=aPropertyValue.PropertyID))
+        '            Next
 
-                    Return aNewObject
-                End If
+        '            Return aNewObject
+        '        End If
 
-                Return Nothing
+        '        Return Nothing
 
-            Catch ex As Exception
-                Call CoreMessageHandler(subname:="ObjectPropertyValueLot.Clone", exception:=ex)
-                Return Nothing
-            End Try
-        End Function
+        '    Catch ex As Exception
+        '        Call CoreMessageHandler(subname:="ObjectPropertyValueLot.Clone", exception:=ex)
+        '        Return Nothing
+        '    End Try
+        'End Function
     End Class
 
 
@@ -1655,13 +1686,13 @@ Namespace OnTrack.ObjectProperties
         '''  Fields
         ''' </summary>
         ''' <remarks></remarks>
-        <ormObjectEntry(typeid:=otDataType.Text, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.Text, isnullable:=True, _
           XID:="PV10", title:="Value", description:="Value in string representation")> Public Const ConstFNValue = "VALUE"
 
         <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, _
           useforeignkey:=otForeignKeyImplementation.None, defaultvalue:=ConstGlobalDomain)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
-        <ormObjectEntry(defaultvalue:=otDataType.Text, typeid:=otDataType.Long, _
+        <ormObjectEntry(defaultvalue:=otDataType.Text, Datatype:=otDataType.Long, _
                               title:="Datatype", Description:="OTDB field data type")> Public Const ConstFNDatatype As String = "datatype"
 
         ''' <summary>
@@ -1698,7 +1729,7 @@ Namespace OnTrack.ObjectProperties
 
 #Region "Properties"
 
-       
+
 
         ''' <summary>
         ''' Gets or sets the datatype of the property.
@@ -1763,7 +1794,7 @@ Namespace OnTrack.ObjectProperties
                 Return Me._SetID
             End Get
         End Property
-        
+
         ''' <summary>
         ''' Gets or sets the value in string presenation.
         ''' </summary>
@@ -1849,7 +1880,7 @@ Namespace OnTrack.ObjectProperties
         ''' <remarks></remarks>
         ''' <returns>the new cloned object or nothing</returns>
         Public Function Clone(pkarray As Object(), Optional runtimeOnly As Boolean? = Nothing) As ObjectPropertyValue Implements iormCloneable(Of ObjectPropertyValue).Clone
-            Return MyBase.CloneObject(Of ObjectPropertyValue)(newpkarray:=pkarray)
+            Return MyBase.Clone(Of ObjectPropertyValue)(newpkarray:=pkarray)
         End Function
     End Class
 

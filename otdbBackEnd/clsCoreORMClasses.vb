@@ -424,8 +424,8 @@ Namespace OnTrack
                         If .HasValueRelation And Not attribute.HasValueRelation Then attribute.Relation = .Relation
                         If .HasValueIsNullable And Not attribute.HasValueIsNullable Then attribute.IsNullable = .IsNullable
                         If .HasValueIsUnique And Not attribute.HasValueIsUnique Then attribute.IsUnique = .IsUnique
-                        If .HasValueTypeID And Not attribute.HasValueTypeID Then attribute.Typeid = .Typeid
-                        If .HasValueInnerTypeID And Not attribute.HasValueInnerTypeID Then attribute.InnerTypeid = .InnerTypeid
+                        If .HasValueDataType And Not attribute.HasValueDataType Then attribute.DataType = .DataType
+                        If .HasValueInnerDataType And Not attribute.HasValueInnerDataType Then attribute.InnerDataType = .InnerDataType
                         If .HasValueSize And Not attribute.HasValueSize Then attribute.Size = .Size
                         If .HasValueDescription And Not attribute.HasValueDescription Then attribute.Description = .Description
                         If .HasValueDBDefaultValue And Not attribute.HasValueDBDefaultValue Then attribute.DBDefaultValue = .DBDefaultValue

@@ -1098,7 +1098,7 @@ Namespace OnTrack.Database
                 Case otLookupProperty.UseValueList
                     ''' Value List 
                     ''' 
-                    Dim aValueList As Commons.ValueList = Commons.ValueList.Retrieve(id:=Me._arguments(0).ToString)
+                    Dim aValueList As Commons.ValueList = CurrentSession.ValueList(name:=Me._arguments(0).ToString)
                     If aValueList IsNot Nothing Then
                         aList = aValueList.Values
                         Return aList

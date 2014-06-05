@@ -94,6 +94,40 @@ Namespace OnTrack.Database
             End Get
         End Property
         ''' <summary>
+        ''' returns the default value for an Entry of this Object
+        ''' </summary>
+        ''' <param name="entryname"></param>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property ObjectEntryDefaultValue(entryname As String) As Object Implements iormInfusable.ObjectEntryDefaultValue
+            Get
+                If Me.ObjectDefinition Is Nothing Then
+                    Dim anEntryAttribute As ormObjectEntryAttribute = Me.ObjectClassDescription.GetObjectEntryAttribute(entryname)
+                    If anEntryAttribute Is Nothing Then Throw New ormException(message:="entry name '" & entryname & "' in object class description '" & Me.ObjectID & "' not found", subname:="ormDataObject.ObjectEntryDefaultValue")
+
+                    Dim args As ormDataObjectEntryEventArgs = New ormDataObjectEntryEventArgs(object:=Me, entryname:=entryname.ToUpper, value:=anEntryAttribute.DefaultValue)
+                    RaiseEvent OnDefaultValueNeeded(Me, args)
+                    If args.Result Then
+                        Return args.Value
+                    Else
+                        Return anEntryAttribute.DefaultValue
+                    End If
+                Else
+                    Dim anEntry As iormObjectEntry = Me.ObjectDefinition.GetEntry(entryname)
+                    If anEntry Is Nothing Then Throw New ormException(message:="entry name '" & entryname & "' in object '" & Me.ObjectID & "' not found", subname:="ormDataObject.ObjectEntryDefaultValue")
+
+                    Dim args As ormDataObjectEntryEventArgs = New ormDataObjectEntryEventArgs(object:=Me, entryname:=entryname.ToUpper, value:=anEntry.DefaultValue)
+                    RaiseEvent OnDefaultValueNeeded(Me, args)
+                    If args.Result Then
+                        Return args.Value
+                    Else
+                        Return anEntry.DefaultValue
+                    End If
+                End If
+            End Get
+        End Property
+        ''' <summary>
         ''' returns the object class description associated with this data object
         ''' </summary>
         ''' <value></value>
@@ -114,9 +148,9 @@ Namespace OnTrack.Database
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overridable Property ContextIdentifier() As String Implements ormLoggable.ContextIdentifier
+        Public Overridable Property ContextIdentifier() As String Implements iormLoggable.ContextIdentifier
             Get
-                Return _ContextIdentifier
+                Return _contextidentifier
             End Get
             Set(value As String)
                 _contextidentifier = value
@@ -128,7 +162,7 @@ Namespace OnTrack.Database
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overridable Property TupleIdentifier() As String Implements ormLoggable.TupleIdentifier
+        Public Overridable Property TupleIdentifier() As String Implements iormLoggable.TupleIdentifier
             Get
                 Return _tupleidentifier
             End Get
@@ -142,7 +176,7 @@ Namespace OnTrack.Database
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overridable Property EntityIdentifier() As String Implements ormLoggable.EntityIdentifier
+        Public Overridable Property EntityIdentifier() As String Implements iormLoggable.EntityIdentifier
             Get
                 Return _entityidentifier
             End Get
@@ -156,7 +190,7 @@ Namespace OnTrack.Database
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property ObjectMessageLog As ObjectMessageLog Implements ormLoggable.ObjectMessageLog
+        Public Property ObjectMessageLog As ObjectMessageLog Implements iormLoggable.ObjectMessageLog
             Get
                 ''' ObjectMessageLog wil always return something (except for errors while infuse)
                 ''' since also there might be messages before the object comes alive
@@ -170,7 +204,7 @@ Namespace OnTrack.Database
                         _ObjectMessageLog = New ObjectMessageLog(Me)
                     End If
                 End If
-               
+
                 Return _ObjectMessageLog
 
             End Get
@@ -261,7 +295,7 @@ Namespace OnTrack.Database
         Public ReadOnly Property ObjectTag() As String
             Get
                 If Not Me.IsAlive(subname:="ObjectTag") Then Return ""
-                Return ConstDelimiter & Me.ObjectID.ToUpper & Converter.Array2String(Me.PrimaryKeyValues)
+                Return ConstDelimiter & Me.ObjectID.ToUpper & Converter.Array2otString(Me.PrimaryKeyValues)
             End Get
         End Property
         ''' <summary>
@@ -463,17 +497,19 @@ Namespace OnTrack.Database
         Public ReadOnly Property PrimaryKeyValues As Object() Implements iormPersistable.PrimaryKeyValues
             Get
 
-                If (_primaryKeyValues Is Nothing OrElse _primaryKeyValues.Length = 0) AndAlso Me.IsAlive(throwError:=False, subname:="PrimaryKeyValue") _
-                    AndAlso _primarykeynames IsNot Nothing AndAlso _primarykeynames.Length > 0 Then
+                If (_primaryKeyValues Is Nothing OrElse _primaryKeyValues.Length = 0) _
+                    AndAlso Me.IsAlive(throwError:=False, subname:="PrimaryKeyValue") Then
 
-                    If _primaryKeyValues Is Nothing OrElse _primaryKeyValues.length <> _primarykeynames.Length Then
+                    _primarykeynames = Me.PrimaryTableStore.TableSchema.PrimaryKeys.ToArray
+                    If _primarykeynames IsNot Nothing AndAlso _primarykeynames.Length > 0 Then
                         ReDim _primaryKeyValues(_primarykeynames.Length - 1)
+
+                        For i = 0 To _primarykeynames.Length - 1
+                            If _primarykeynames(i) IsNot Nothing Then
+                                _primaryKeyValues(i) = Me.GetValue(_primarykeynames(i))
+                            End If
+                        Next
                     End If
-                    For i = 0 To _primarykeynames.Length - 1
-                        If _primarykeynames(i) IsNot Nothing Then
-                            _primaryKeyValues(i) = Me.GetValue(_primarykeynames(i))
-                        End If
-                    Next
                 End If
                 Return _primaryKeyValues
             End Get

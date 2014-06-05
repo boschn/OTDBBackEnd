@@ -36,7 +36,7 @@ Namespace OnTrack.Database
         Implements iormCloneable
         Implements iormValidatable
         Implements iormQueriable
-        Implements ormLoggable 
+        Implements iormLoggable 
 
         ''' <summary>
         ''' important objects to drive data object behavior
@@ -118,7 +118,7 @@ Namespace OnTrack.Database
                                     ForeignKeyProperty.OnUpdate & "(" & ForeignKeyActionProperty.Cascade & ")"})> _
         Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
-        <ormObjectEntry(typeid:=otDataType.Bool, isnullable:=True, posordinal:=1001, _
+        <ormObjectEntry(Datatype:=otDataType.Bool, isnullable:=True, posordinal:=1001, _
             title:="Ignore Domain", description:="flag if the domainValue is to be ignored -> look in global")> _
         Public Const ConstFNIsDomainIgnored As String = "domainignore"
 
@@ -128,29 +128,29 @@ Namespace OnTrack.Database
         ''' Spare member entries
         ''' </summary>
         ''' <remarks></remarks>
-        <ormObjectEntry(typeid:=otDataType.Text, isnullable:=True, size:=255, spareFieldTag:=True, posordinal:=1101, _
+        <ormObjectEntry(Datatype:=otDataType.Text, isnullable:=True, size:=255, spareFieldTag:=True, posordinal:=1101, _
         title:="text parameter 1", description:="text parameter 1")> Public Const ConstFNParamText1 = "param_txt1"
-        <ormObjectEntry(typeid:=otDataType.Text, isnullable:=True, size:=255, spareFieldTag:=True, posordinal:=1102, _
+        <ormObjectEntry(Datatype:=otDataType.Text, isnullable:=True, size:=255, spareFieldTag:=True, posordinal:=1102, _
         title:="text parameter 2", description:="text parameter 2")> Public Const ConstFNParamText2 = "param_txt2"
-        <ormObjectEntry(typeid:=otDataType.Text, size:=255, isnullable:=True, spareFieldTag:=True, posordinal:=1103, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=255, isnullable:=True, spareFieldTag:=True, posordinal:=1103, _
         title:="text parameter 3", description:="text parameter 3")> Public Const ConstFNParamText3 = "param_txt3"
-        <ormObjectEntry(typeid:=otDataType.Numeric, isnullable:=True, spareFieldTag:=True, posordinal:=1201, _
+        <ormObjectEntry(Datatype:=otDataType.Numeric, isnullable:=True, spareFieldTag:=True, posordinal:=1201, _
         title:="numeric parameter 1", description:="numeric parameter 1")> Public Const ConstFNParamNum1 = "param_num1"
-        <ormObjectEntry(typeid:=otDataType.Numeric, isnullable:=True, spareFieldTag:=True, posordinal:=1202, _
+        <ormObjectEntry(Datatype:=otDataType.Numeric, isnullable:=True, spareFieldTag:=True, posordinal:=1202, _
         title:="numeric parameter 2", description:="numeric parameter 2")> Public Const ConstFNParamNum2 = "param_num2"
-        <ormObjectEntry(typeid:=otDataType.Numeric, isnullable:=True, spareFieldTag:=True, posordinal:=1203, _
+        <ormObjectEntry(Datatype:=otDataType.Numeric, isnullable:=True, spareFieldTag:=True, posordinal:=1203, _
         title:="numeric parameter 3", description:="numeric parameter 3")> Public Const ConstFNParamNum3 = "param_num3"
-        <ormObjectEntry(typeid:=otDataType.Date, isnullable:=True, spareFieldTag:=True, posordinal:=1301, _
+        <ormObjectEntry(Datatype:=otDataType.Date, isnullable:=True, spareFieldTag:=True, posordinal:=1301, _
         title:="date parameter 1", description:="date parameter 1")> Public Const ConstFNParamDate1 = "param_date1"
-        <ormObjectEntry(typeid:=otDataType.Date, isnullable:=True, spareFieldTag:=True, posordinal:=1302, _
+        <ormObjectEntry(Datatype:=otDataType.Date, isnullable:=True, spareFieldTag:=True, posordinal:=1302, _
         title:="date parameter 2", description:="date parameter 2")> Public Const ConstFNParamDate2 = "param_date2"
-        <ormObjectEntry(typeid:=otDataType.Date, isnullable:=True, spareFieldTag:=True, posordinal:=1303, _
+        <ormObjectEntry(Datatype:=otDataType.Date, isnullable:=True, spareFieldTag:=True, posordinal:=1303, _
         title:="date parameter 3", description:="date parameter 3")> Public Const ConstFNParamDate3 = "param_date3"
-        <ormObjectEntry(typeid:=otDataType.Bool, isnullable:=True, spareFieldTag:=True, posordinal:=1401, _
+        <ormObjectEntry(Datatype:=otDataType.Bool, isnullable:=True, spareFieldTag:=True, posordinal:=1401, _
         title:="flag parameter 1", description:="flag parameter 1")> Public Const ConstFNParamFlag1 = "param_flag1"
-        <ormObjectEntry(typeid:=otDataType.Bool, isnullable:=True, spareFieldTag:=True, posordinal:=1402, _
+        <ormObjectEntry(Datatype:=otDataType.Bool, isnullable:=True, spareFieldTag:=True, posordinal:=1402, _
         title:="flag parameter 2", description:="flag parameter 2")> Public Const ConstFNParamFlag2 = "param_flag2"
-        <ormObjectEntry(typeid:=otDataType.Bool, isnullable:=True, spareFieldTag:=True, posordinal:=1403, _
+        <ormObjectEntry(Datatype:=otDataType.Bool, isnullable:=True, spareFieldTag:=True, posordinal:=1403, _
         title:="flag parameter 3", description:="flag parameter 3")> Public Const ConstFNParamFlag3 = "param_flag3"
 
         ''' <summary>
@@ -164,17 +164,17 @@ Namespace OnTrack.Database
         ''' Member Entries to drive lifecycle
         ''' </summary>
         ''' <remarks></remarks>
-        <ormObjectEntry(typeid:=otDataType.Timestamp, isnullable:=True, isreadonly:=True, posordinal:=9901, _
+        <ormObjectEntry(Datatype:=otDataType.Timestamp, isnullable:=True, isreadonly:=True, posordinal:=9901, _
            title:="Updated On", Description:="last update time stamp in the data store")> Public Const ConstFNUpdatedOn As String = ot.ConstFNUpdatedOn
 
-        <ormObjectEntry(typeid:=otDataType.Timestamp, isnullable:=True, isreadonly:=True, posordinal:=9902, _
+        <ormObjectEntry(Datatype:=otDataType.Timestamp, isnullable:=True, isreadonly:=True, posordinal:=9902, _
             title:="Created On", Description:="creation time stamp in the data store")> Public Const ConstFNCreatedOn As String = ot.ConstFNCreatedOn
 
-        <ormObjectEntry(typeid:=otDataType.Timestamp, isnullable:=True, isreadonly:=True, posordinal:=9903, _
+        <ormObjectEntry(Datatype:=otDataType.Timestamp, isnullable:=True, isreadonly:=True, posordinal:=9903, _
             title:="Deleted On", Description:="time stamp when the deletion flag was set")> Public Const ConstFNDeletedOn As String = ot.ConstFNDeletedOn
 
         '** Deleted flag
-        <ormObjectEntry(typeid:=otDataType.Bool, defaultvalue:=False, dbdefaultvalue:="0", posordinal:=9904, _
+        <ormObjectEntry(Datatype:=otDataType.Bool, defaultvalue:=False, dbdefaultvalue:="0", posordinal:=9904, _
             title:="Deleted", description:="flag if the entry in the data stored is regarded as deleted depends on the deleteflagbehavior")> _
         Public Const ConstFNIsDeleted As String = ot.ConstFNIsDeleted
 
@@ -840,30 +840,37 @@ Namespace OnTrack.Database
                 Return Nothing
             End Try
         End Function
+
         ''' <summary>
-        ''' check if the entryname has the same value as supplied
+        ''' normalize a value and apply EntryProperties
         ''' </summary>
         ''' <param name="entryname"></param>
-        ''' <param name="member"></param>
         ''' <param name="value"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function EqualsValue(entryname As String, ByVal value As Object) As Boolean Implements iormPersistable.EqualsValue
+        Public Function NormalizeValue(entryname As String, ByRef value As Object) As Boolean Implements iormInfusable.Normalizevalue
             Dim result As Boolean = False
             Dim outvalue As Object
             Dim isnullable As Boolean = False
             Dim aDatatype As otDataType
             ''' 
-            ''' PHASE I : APPLY THE ENTRY PROPERTIES AND TRANSFORM THE VALUE REQUESTED
+            ''' APPLY THE ENTRY PROPERTIES AND TRANSFORM THE VALUE REQUESTED
             ''' 
             If CurrentSession.IsBootstrappingInstallationRequested OrElse CurrentSession.IsStartingUp Then
                 Dim anEntry = Me.ObjectClassDescription.GetObjectEntryAttribute(entryname:=entryname)
                 If anEntry Is Nothing Then
-                    CoreMessageHandler(message:="entryname not found in object class repository - value not checked", arg1:=value, subname:="ormDataObject.EqualsValue", _
+                    CoreMessageHandler(message:="entryname not found in object class repository - value not checked", arg1:=value, subname:="ormDataObject.NormalizeValue", _
                                        objectname:=Me.ObjectID, entryname:=entryname, messagetype:=otCoreMessageType.ApplicationError)
                     Return False
                 Else
-                    aDatatype = anEntry.Typeid
+                    aDatatype = anEntry.DataType
+                End If
+
+                ''' set value to default value if nothing and not nullable
+                ''' 
+                If Not anEntry.IsNullable AndAlso value Is Nothing Then
+                    value = Me.ObjectEntryDefaultValue(entryname:=entryname)
+                    If value Is Nothing Then value = ot.GetDefaultValue(anEntry.DataType)
                 End If
 
                 ''' on bootstrapping let the routine to sort out how to get the properties
@@ -877,14 +884,22 @@ Namespace OnTrack.Database
             Else
                 Dim anEntry = Me.ObjectDefinition.GetEntry(entryname:=entryname)
                 If anEntry Is Nothing Then
-                    CoreMessageHandler(message:="entryname not found in object class repository - value not checked", arg1:=value, subname:="ormDataObject.EqualsValue", _
+                    CoreMessageHandler(message:="entryname not found in object class repository - value not checked", arg1:=value, subname:="ormDataObject.NormalizeValue", _
                                        objectname:=Me.ObjectID, entryname:=entryname, messagetype:=otCoreMessageType.ApplicationError)
                     Return False
                 Else
                     aDatatype = anEntry.Datatype
                 End If
 
+                ''' set value to default value if nothing and not nullable
+                ''' 
+                If Not anEntry.IsNullable AndAlso value Is Nothing Then
+                    value = Me.ObjectEntryDefaultValue(entryname:=entryname)
+                    If value Is Nothing Then value = ot.GetDefaultValue(anEntry.Datatype)
+                End If
+
                 ''' use semy optimized way - object definition is cached / entry has to be looked up
+                ''' 
                 If Not EntryProperties.Apply(Me.ObjectDefinition, entryname:=entryname, [in]:=value, out:=outvalue) Then
                     CoreMessageHandler(message:="applying object entry properties failed - value not checked", arg1:=value, subname:="ormDataObject.EqualsValue", _
                                        objectname:=Me.ObjectID, entryname:=entryname, messagetype:=otCoreMessageType.ApplicationError)
@@ -892,6 +907,54 @@ Namespace OnTrack.Database
                 Else
                     value = outvalue
                 End If
+            End If
+
+            Return True
+        End Function
+        ''' <summary>
+        ''' check if the entryname has the same value as supplied
+        ''' </summary>
+        ''' <param name="entryname"></param>
+        ''' <param name="member"></param>
+        ''' <param name="value"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function EqualsValue(entryname As String, ByVal value As Object) As Boolean Implements iormPersistable.EqualsValue
+            Dim result As Boolean = False
+            Dim outvalue As Object
+            Dim isnullable As Boolean = False
+            Dim aDatatype As otDataType
+
+            ''' 
+            ''' PHASE I : APPLY THE ENTRY PROPERTIES AND TRANSFORM THE VALUE REQUESTED
+            ''' 
+            If Not NormalizeValue(entryname, value) Then
+                CoreMessageHandler(message:="Warning ! Could not normalize value", arg1:=value, objectname:=Me.ObjectID, _
+                                    entryname:=entryname, subname:="ormDataObject.equalsValue")
+            End If
+
+            ''' get datatype
+            ''' 
+            If CurrentSession.IsBootstrappingInstallationRequested OrElse CurrentSession.IsStartingUp Then
+                Dim anEntry = Me.ObjectClassDescription.GetObjectEntryAttribute(entryname:=entryname)
+                If anEntry Is Nothing Then
+                    CoreMessageHandler(message:="entryname not found in object class repository - value not checked", arg1:=value, subname:="ormDataObject.EqualsValue", _
+                                       objectname:=Me.ObjectID, entryname:=entryname, messagetype:=otCoreMessageType.ApplicationError)
+                    Return False
+                Else
+                    aDatatype = anEntry.DataType
+                End If
+
+            Else
+                Dim anEntry = Me.ObjectDefinition.GetEntry(entryname:=entryname)
+                If anEntry Is Nothing Then
+                    CoreMessageHandler(message:="entryname not found in object class repository - value not checked", arg1:=value, subname:="ormDataObject.EqualsValue", _
+                                       objectname:=Me.ObjectID, entryname:=entryname, messagetype:=otCoreMessageType.ApplicationError)
+                    Return False
+                Else
+                    aDatatype = anEntry.Datatype
+                End If
+
             End If
 
             '''
@@ -911,7 +974,7 @@ Namespace OnTrack.Database
                 ElseIf anExistingValue IsNot Nothing AndAlso value Is Nothing Then
                     Return False
                 ElseIf anExistingValue IsNot Nothing AndAlso value IsNot Nothing Then
-                   
+
                     If anExistingValue.GetType.IsValueType AndAlso value.GetType.IsValueType Then
                         aConvertedvalue = Convert.ChangeType(value, ot.GetDatatypeMappingOf(aDatatype))
                         Return anExistingValue.Equals(aConvertedvalue)
@@ -919,10 +982,10 @@ Namespace OnTrack.Database
                         Return anExistingValue.Equals(value)
                         ''' special case
                     ElseIf value.GetType Is GetType(String) AndAlso anExistingValue.GetType.IsArray Then
-                        Return Converter.String2Array(value).SequenceEqual(anExistingValue)
+                        Return Converter.otString2Array(value).SequenceEqual(anExistingValue)
                         'Return Array.Equals(aConvertedvalue, anExistingValue)
                     ElseIf value.GetType Is GetType(String) AndAlso anExistingValue.GetType.GetInterfaces.Contains(GetType(IList)) Then
-                        Return Converter.String2Array(value).ToList.SequenceEqual(anExistingValue)
+                        Return Converter.otString2Array(value).ToList.SequenceEqual(anExistingValue)
                         'aConvertedvalue = Converter.String2Array(value).ToList
                         'Return anExistingValue.Equals(aConvertedvalue) ' list compare
                     ElseIf anExistingValue.GetType.IsEnum Then
@@ -940,7 +1003,7 @@ Namespace OnTrack.Database
 
                 End If
 
-                    Return False
+                Return False
             Catch ex As Exception
                 CoreMessageHandler(exception:=ex, subname:="ormDataObject.EqualsValue", arg1:=value, entryname:=entryname, objectname:=Me.ObjectID)
                 Return False
@@ -960,35 +1023,18 @@ Namespace OnTrack.Database
         ''' <remarks></remarks>
         Public Function SetValue(entryname As String, ByVal value As Object) As Boolean Implements iormPersistable.SetValue
             Dim result As Boolean = False
-            Dim outvalue As Object
             Dim isnullable As Boolean = False
             Dim anObjectEntry As iormObjectEntry
             Dim oldvalue As Object
+
             ''' 
             ''' PHASE I : APPLY THE ENTRY PROPERTIES AND TRANSFORM THE VALUE REQUESTED
             ''' 
-            If CurrentSession.IsBootstrappingInstallationRequested OrElse CurrentSession.IsStartingUp Then
-
-                ''' on bootstrapping let the routine to sort out how to get the properties
-                If Not EntryProperties.Apply(objectid:=Me.ObjectID, entryname:=entryname, [in]:=value, out:=outvalue) Then
-                    CoreMessageHandler(message:="applying object entry properties failed - value not set", arg1:=value, subname:="ormDataObject.SetValue", _
-                                       objectname:=Me.ObjectID, entryname:=entryname, messagetype:=otCoreMessageType.ApplicationError)
-                    Return False
-                Else
-                    value = outvalue
-                End If
-            Else
-
-                ''' use semy optimized way - object definition is cached / entry has to be looked up
-                If Not EntryProperties.Apply(Me.ObjectDefinition, entryname:=entryname, [in]:=value, out:=outvalue) Then
-                    CoreMessageHandler(message:="applying object entry properties failed - value not set", arg1:=value, subname:="ormDataObject.SetValue", _
-                                       objectname:=Me.ObjectID, entryname:=entryname, messagetype:=otCoreMessageType.ApplicationError)
-                    Return False
-                Else
-                    value = outvalue
-                End If
+            If Not Me.NormalizeValue(entryname, value) Then
+                CoreMessageHandler(message:="Warning ! Could not normalize value", arg1:=value, objectname:=Me.ObjectID, _
+                                    entryname:=entryname, subname:="ormDataObject.SetValue")
             End If
-
+            
             '''
             ''' PHASE II: DO VALIDATION
             ''' 
@@ -1484,7 +1530,7 @@ Namespace OnTrack.Database
             '''
             ''' record must be alive
             ''' 
-             If Not Me.Record.Alive Then
+            If Not Me.Record.Alive Then
                 CoreMessageHandler(message:="record is not alive in data object - cannot persist", messagetype:=otCoreMessageType.InternalError, _
                                    subname:="ormDataObject.Persist", objectname:=Me.ObjectID, tablename:=Me.PrimaryTableID)
                 Return False
@@ -1537,7 +1583,7 @@ Namespace OnTrack.Database
                     ''' Failed ?!
                     ''' 
                     CoreMessageHandler(message:="persist operation rejected due to failing validation", messagetype:=otCoreMessageType.ApplicationWarning, _
-                                        subname:="ormDataObject.Persist", arg1:=Converter.Array2String(Me.PrimaryKeyValues), objectname:=Me.ObjectID, _
+                                        subname:="ormDataObject.Persist", arg1:=Converter.Array2StringList(Me.PrimaryKeyValues), objectname:=Me.ObjectID, _
                                         msglog:=Me.ObjectMessageLog)
 
                     ''' return
@@ -2131,7 +2177,7 @@ Namespace OnTrack.Database
 
             ''' raise the Default Values Needed Event
             ''' 
-            RaiseEvent OnDefaultValuesNeeded(Me, ourEventArgs)
+            RaiseEvent OnCreateDefaultValuesNeeded(Me, ourEventArgs)
             If ourEventArgs.Result Then
                 record = ourEventArgs.Record
             End If
@@ -2373,7 +2419,7 @@ Namespace OnTrack.Database
         ''' <param name="runtimeOnly"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overridable Function Clone(newpkarray As Object(), Optional runtimeOnly As Boolean? = Nothing) As Object Implements iormCloneable.Clone
+        Public Overridable Function CloneObject(newpkarray As Object(), Optional runtimeOnly As Boolean? = Nothing) As Object Implements iormCloneable.Clone
             ''' by intention
             Throw New NotImplementedException(message:="use derived version instead")
         End Function
@@ -2383,7 +2429,7 @@ Namespace OnTrack.Database
         ''' <param name="pkarray">primary key array</param>
         ''' <remarks></remarks>
         ''' <returns>the new cloned object or nothing</returns>
-        Public Overloads Function CloneObject(Of T As {iormPersistable, iormInfusable, Class, New})(newpkarray As Object(), _
+        Public Overloads Function Clone(Of T As {iormPersistable, iormInfusable, Class, New})(newpkarray As Object(), _
                                                                                                     Optional runtimeOnly As Boolean? = Nothing) As T
             '
             '*** now we copy the object
@@ -2660,7 +2706,7 @@ Namespace OnTrack.Database
                                         Dim anEntry As iormObjectEntry = CurrentSession.Objects.GetObject(Me.ObjectClassDescription.ObjectAttribute.ID).GetEntry(entryname:=objectentryname)
                                         ''' only if not nullable we use a default value
                                         If anEntry IsNot Nothing Then
-                                            aValue = anEntry.DefaultValue
+                                            aValue = Me.ObjectEntryDefaultValue(anEntry.Entryname)
                                             isNull = False 'reset for the value setting
                                         Else
                                             CoreMessageHandler(message:="object entry not found in object repository", _
@@ -2856,8 +2902,8 @@ Namespace OnTrack.Database
                                 End If
 
                                 '** convert into List
-                                If anEntryAttribute.Typeid = otDataType.List Then
-                                    If aValue IsNot Nothing Then aValue = Converter.Enumerable2String(aValue)
+                                If anEntryAttribute.DataType = otDataType.List Then
+                                    If aValue IsNot Nothing Then aValue = Converter.Enumerable2otString(aValue)
 
                                     '* 
                                 ElseIf aField.FieldType.IsArray OrElse _
@@ -2865,7 +2911,7 @@ Namespace OnTrack.Database
                                     CoreMessageHandler(message:="field member is an array or list type but object entry attribute is not list - transfered to list presentation", objectname:=Me.ObjectID, columnname:=aColumnName, _
                                                    arg1:=aField.Name, entryname:=anEntryAttribute.EntryName, messagetype:=otCoreMessageType.InternalWarning, _
                                                    subname:="ormDataobject.feedRecord")
-                                    aValue = Converter.Enumerable2String(aValue)
+                                    aValue = Converter.Enumerable2otString(aValue)
                                 End If
                                 '*** set the class internal field
                                 record.SetValue(aColumnName, value:=aValue)
@@ -2931,7 +2977,7 @@ Namespace OnTrack.Database
                 '** Fire Event
                 Dim ourEventArgs As New ormDataObjectEventArgs(Me, record:=record, pkarray:=pkArray, usecache:=Me.UseCache, infusemode:=mode, _
                                                                runtimeOnly:=Me.RunTimeOnly)
-               
+
                 RaiseEvent OnInfusing(Me, ourEventArgs)
                 If ourEventArgs.AbortOperation Then
                     Return ourEventArgs.Proceed

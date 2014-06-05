@@ -212,36 +212,76 @@ Namespace OnTrack.Database
     ''' <remarks></remarks>
     Public Class Converter
 
+        ''' <summary>
+        ''' translates an hex integer to argb presentation integer RGB(FF,00,00) = FF but integer = FF0000
+        ''' </summary>
+        ''' <param name="value"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Shared Function Int2ARGB(value As Long) As Long
+            Dim red, green, blue As Long
+            blue = value And &HFF&
+            green = value \ &H100& And &HFF&
+            red = value \ &H10000 And &HFF&
+            Return blue * Math.Pow(255, 2) + green * 255 + red
+        End Function
 
+        ''' <summary>
+        ''' returns a color value in rgb to system.drawing.color
+        ''' </summary>
+        ''' <param name="value"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Shared Function RGB2Color(value As Long) As System.Drawing.Color
+            Dim red, green, blue As Long
+            red = value And &HFF&
+            green = value \ &H100& And &HFF&
+            blue = value \ &H10000 And &HFF&
+            Return System.Drawing.Color.FromArgb(red:=red, green:=green, blue:=blue)
+        End Function
+
+        ''' <summary>
+        ''' returns a color value to hexadecimal (bgr of rgb) 
+        ''' </summary>
+        ''' <param name="value"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Shared Function Color2RGB(color As System.Drawing.Color) As Long
+            Dim red, green, blue As Long
+            blue = color.B
+            green = color.G
+            red = color.R
+            Return blue * Math.Pow(255, 2) + green * 255 + red
+        End Function
         ''' <summary>
         ''' Converts String to Array
         ''' </summary>
         ''' <param name="input"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Shared Function String2Array(input As String) As String()
-            String2Array = SplitMultbyChar(text:=input, DelimChar:=ConstDelimiter)
-            If Not IsArrayInitialized(String2Array) Then
+        Public Shared Function otString2Array(input As String) As String()
+            otString2Array = SplitMultbyChar(text:=input, DelimChar:=ConstDelimiter)
+            If Not IsArrayInitialized(otString2Array) Then
                 Return New String() {}
             Else
-                Return String2Array
+                Return otString2Array
             End If
         End Function
         ''' <summary>
-        ''' Converts Array to String
+        ''' Converts Array to String in otdb Array representation
         ''' </summary>
         ''' <param name="input"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Shared Function Array2String(input() As Object) As String
+        Public Shared Function Array2otString(input() As Object) As String
             Dim i As Integer
             If IsArrayInitialized(input) Then
                 Dim aStrValue As String = ""
                 For i = LBound(input) To UBound(input)
                     If i = LBound(input) Then
-                        aStrValue = ConstDelimiter & UCase(input(i).ToString) & ConstDelimiter
+                        aStrValue = ConstDelimiter & CStr(input(i)) & ConstDelimiter
                     Else
-                        aStrValue = aStrValue & UCase(input(i)) & ConstDelimiter
+                        aStrValue = aStrValue & CStr(input(i)) & ConstDelimiter
                     End If
                 Next i
                 Return aStrValue
@@ -250,12 +290,34 @@ Namespace OnTrack.Database
             End If
         End Function
         ''' <summary>
-        ''' Converts iEnumerable to String
+        ''' Converts Array to String in list representation
         ''' </summary>
         ''' <param name="input"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Shared Function Enumerable2String(input As IEnumerable) As String
+        Public Shared Function Array2StringList(input() As Object, Optional delimiter As Char = ","c) As String
+            Dim i As Integer
+            If IsArrayInitialized(input) Then
+                Dim aStrValue As String = ""
+                For i = LBound(input) To UBound(input)
+                    If i = LBound(input) Then
+                        aStrValue = CStr(input(i))
+                    Else
+                        aStrValue &= delimiter & CStr(input(i))
+                    End If
+                Next i
+                Return aStrValue
+            Else
+                Return ""
+            End If
+        End Function
+        ''' <summary>
+        ''' Converts iEnumerable to String in otdb Array representation
+        ''' </summary>
+        ''' <param name="input"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Shared Function Enumerable2otString(input As IEnumerable) As String
             Dim aStrValue As String = ""
             If input Is Nothing Then Return ""
             For Each anElement In input
@@ -271,6 +333,32 @@ Namespace OnTrack.Database
                     aStrValue = ConstDelimiter & s & ConstDelimiter
                 Else
                     aStrValue &= s & ConstDelimiter
+                End If
+            Next
+            Return aStrValue
+        End Function
+        ''' <summary>
+        ''' Converts iEnumerable to String in list representation
+        ''' </summary>
+        ''' <param name="input"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Shared Function Enumerable2StringList(input As IEnumerable, Optional delimiter As Char = ","c) As String
+            Dim aStrValue As String = ""
+            If input Is Nothing Then Return ""
+            For Each anElement In input
+                Dim s As String
+                If anElement Is Nothing Then
+                    s = ""
+                Else
+                    s = anElement.ToString
+                End If
+
+
+                If aStrValue = "" Then
+                    aStrValue = s
+                Else
+                    aStrValue &= delimiter & s
                 End If
             Next
             Return aStrValue
@@ -375,7 +463,7 @@ Namespace OnTrack.Database
                             failed = True
                         ElseIf input.GetType.IsArray Then
                             failed = False
-                            Return Array2String(input)
+                            Return Array2otString(input)
                         ElseIf Not input.ToString.Contains(ConstDelimiter) Then
                             failed = False
                             Return ConstDelimiter & input.ToString & ConstDelimiter
@@ -431,6 +519,48 @@ Namespace OnTrack.Database
                 failed = True
                 Return Nothing
             End Try
+        End Function
+
+        ''' <summary>
+        ''' return a timestamp in the localTime
+        ''' </summary>
+        ''' <param name="datevalue"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Shared Function DateTime2LocaleDateTimeString(datevalue As DateTime) As String
+            Dim formattimestamp As String = System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.ShortDatePattern & " " & System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.LongTimePattern
+            Return Format(datevalue, formattimestamp)
+        End Function
+
+        ''' <summary>
+        ''' return a date in the date localTime
+        ''' </summary>
+        ''' <param name="datevalue"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Shared Function DateTime2UniversalDateTimeString(datevalue As DateTime) As String
+            Dim formattimestamp As String = System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.UniversalSortableDateTimePattern
+            Return Format(datevalue, formattimestamp)
+        End Function
+        ''' <summary>
+        ''' return a date in the date localTime
+        ''' </summary>
+        ''' <param name="datevalue"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Shared Function Date2LocaleShortDateString(datevalue As Date) As String
+            Dim formattimestamp As String = System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.ShortDatePattern
+            Return Format(DateValue, formattimestamp)
+        End Function
+        ''' <summary>
+        ''' return a date in the date localTime
+        ''' </summary>
+        ''' <param name="datevalue"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Shared Function Time2LocaleShortTimeString(timevalue As DateTime) As String
+            Dim formattimestamp As String = System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.ShortTimePattern
+            Return Format(timevalue, formattimestamp)
         End Function
     End Class
     ''' <summary>
@@ -755,7 +885,7 @@ Namespace OnTrack.Database
                     If value IsNot Nothing AndAlso value.GetType.IsArray Then
                         anArray = value
                     Else
-                        anArray = OnTrack.Database.Converter.String2Array(value)
+                        anArray = OnTrack.Database.Converter.otString2Array(value)
                     End If
 
                     If aSetter IsNot Nothing Then
@@ -788,7 +918,7 @@ Namespace OnTrack.Database
                         Next
 
                     ElseIf value.GetType.Equals(GetType(String)) Then
-                        anArray = OnTrack.Database.Converter.String2Array(value)
+                        anArray = OnTrack.Database.Converter.otString2Array(value)
                         If anArray.Count = 0 Then
                             aList = New List(Of String) 'HACK ! this should be of generic type of the field
                         Else

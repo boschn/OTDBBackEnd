@@ -342,7 +342,7 @@ Namespace OnTrack.UI
                         If (aValue.GetType.IsValueType OrElse aValue.GetType.Equals(GetType(String))) AndAlso Not aValue.GetType.IsArray Then
                             aRow.Item(j) = CTypeDynamic(aValue, Me.Columns.Item(j).DataType)
                         ElseIf Not DBNull.Value.Equals(aValue) Then
-                            aRow.Item(j) = Converter.Enumerable2String(aValue)
+                            aRow.Item(j) = Converter.Enumerable2otString(aValue)
                         End If
 
                         j += 1

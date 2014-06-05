@@ -199,7 +199,7 @@ Namespace OnTrack.Database
                             If aLookupList <> "" Then aLookupList &= ","
                             aLookupList &= aProperty.ToString
                             If aProperty.Enum = otLookupProperty.UseAttributeValues Then
-                                aLookupList &= " of [" & Converter.Enumerable2String(objectentrydefinition.PossibleValues) & "]"
+                                aLookupList &= " of [" & Converter.Enumerable2otString(objectentrydefinition.PossibleValues) & "]"
                             ElseIf aProperty.Enum = otLookupProperty.UseAttributeReference Then
 
                             End If
@@ -209,7 +209,7 @@ Namespace OnTrack.Database
 
                         'object entry validation for '%1%.%2% (XID %5%) failed. Value '%4%' is not found in lookup condition '%3%'
                         msglog.Add(1105, Nothing, Nothing, Nothing, Nothing, _
-                                   objectentrydefinition.Objectname, objectentrydefinition.Entryname, aLookupList, [in].ToString, _
+                                   objectentrydefinition.Objectname, objectentrydefinition.Entryname, aLookupList, CStr([in]), _
                                    objectentrydefinition.XID)
                         Return otValidationResultType.FailedNoProceed
 
@@ -819,6 +819,8 @@ Namespace OnTrack.Database
                         msglog.Add(1102, Nothing, Nothing, Nothing, Nothing,
                              objectentrydefinition.Objectname, objectentrydefinition.Entryname, objectentrydefinition.XID)
                     End If
+                    '* return
+                    Return otValidationResultType.FailedNoProceed
 
                 ElseIf failedflag Then
                     Return otValidationResultType.FailedNoProceed
@@ -850,7 +852,7 @@ Namespace OnTrack.Database
                 '''
                 ''' 3. Apply the Validation Property Function on the Value
                 ''' 
-
+               
                 For Each aProperty In objectentrydefinition.ValidationProperties
                     Dim r As otValidationResultType = aProperty.Apply(newvalue, objectentrydefinition, msglog)
                     If r = otValidationResultType.FailedNoProceed Then

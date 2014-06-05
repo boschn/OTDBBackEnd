@@ -1523,7 +1523,7 @@ Namespace OnTrack
             ''' Diagnostic Log output
             ''' 
 
-            System.Diagnostics.Debug.WriteLine(Date.Now.ToLocalTime)
+            System.Diagnostics.Debug.WriteLine(Date.Now)
 
             Select Case (messagetype)
                 Case otCoreMessageType.ApplicationInfo

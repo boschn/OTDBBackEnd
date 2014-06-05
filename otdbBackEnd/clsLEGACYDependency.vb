@@ -166,8 +166,8 @@ Namespace OnTrack.Scheduling
             ' create new Member
             anEntry = New clsOTDBDependMember
             posno = Me.GetMaxPosNo(TYPEID) + 1
-            If Not anEntry.Create(typeid:=TYPEID, partid:=s_pnid, posno:=posno, dependfromPartID:=PartID) Then
-                Call anEntry.Inject(typeid:=TYPEID, partid:=s_pnid, posno:=posno)
+            If Not anEntry.Create(typeid:=typeid, partid:=s_pnid, posno:=posno, dependfromPartID:=partid) Then
+                Call anEntry.Inject(typeid:=typeid, partid:=s_pnid, posno:=posno)
             End If
             ' set it
             anEntry.dependfromPartID = PartID
@@ -525,7 +525,7 @@ Namespace OnTrack.Scheduling
 
             ' delete each entry / each list and reset !
             For Each m In Me.typeids
-                Call Me.deleteMemberByTypeId(TYPEID:=CStr(m))
+                Call Me.DeleteMemberByTypeId(typeid:=CStr(m))
             Next m
 
             ' reset it
@@ -832,7 +832,7 @@ Namespace OnTrack.Scheduling
 
                         'create for each leave an entry
                         aLeaf = New clsOTDBDependMember
-                        If aLeaf.Create(typeid:=TYPEID, partid:=anEntry.dependfromPartID, posno:=0) Then
+                        If aLeaf.Create(typeid:=typeid, partid:=anEntry.dependfromPartID, posno:=0) Then
                             aLeaf.category = "leaf"
                             aLeaf.isLeaf = True
                             aLeaf.isNode = False
@@ -914,7 +914,7 @@ errorhandle:
             s_pnid = pnid
             ' abort create if exists
             If Not anEntry.Create(typeid:="", partid:=pnid, posno:=0) Then
-                create = False
+                Create = False
                 Exit Function
             End If
             ' header
@@ -1059,7 +1059,7 @@ errorhandle:
             If aDependCheck.Inject(typeid:=TYPEID, partid:=Me.PartID, _
                                    posno:=0, uid:=0, updc:=0) Then
 
-                getlastStatus = aDependCheck.status
+                GetlastStatus = aDependCheck.status
                 Exit Function
             End If
 
@@ -1176,7 +1176,7 @@ errorhandle:
                                 ' more than a headentry
                                 If aDependency.NoMembers(atypeid) > 0 Then
                                     'Debug.Print aClusterID, aLevel, Me.partid & " -> " & anEntry.dependfromPartID
-                                    generateCluster = aDependency.generateCluster(atypeid:=atypeid, aClusterID:=aClusterID, aLevel:=aLevel + 1)
+                                    GenerateCluster = aDependency.GenerateCluster(atypeid:=atypeid, aClusterID:=aClusterID, aLevel:=aLevel + 1)
                                 Else
                                     ' a leaf
                                     If anSubHead.Inject(atypeid, partid:=anEntry.dependfromPartID, posno:=0) Then

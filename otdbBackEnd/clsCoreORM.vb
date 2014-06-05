@@ -296,8 +296,8 @@ Namespace OnTrack
                     ''' look up internally first
                     ''' 
                     Dim anAttribute As ormObjectEntryAttribute = ot.GetSchemaTableColumnAttribute(tablename:=parameter.Tablename, columnname:=parameter.Fieldname)
-                    If anAttribute IsNot Nothing AndAlso anAttribute.HasValueTypeID Then
-                        parameter.Datatype = anAttribute.Typeid
+                    If anAttribute IsNot Nothing AndAlso anAttribute.HasValueDataType Then
+                        parameter.Datatype = anAttribute.DataType
                     End If
                     ''' datatype still not resolved
                     If parameter.Datatype = 0 Then

@@ -50,7 +50,7 @@ Namespace OnTrack.XChange
     Public Enum otXChangeCommandType
         Update = 1
         Delete = 2
-        UpdateCreate = 3
+        CreateUpdate = 3
         Duplicate = 4
         Read = 5
     End Enum
@@ -238,6 +238,7 @@ Namespace OnTrack.XChange
 
 
         Public Const ConstObjectID As String = "XChangeConfigObject"
+
 #Region "Properties"
 
         ''' <summary>
@@ -276,6 +277,24 @@ Namespace OnTrack.XChange
             End Get
         End Property
 
+        ''' <summary>
+        ''' gets or sets the Xchange Command
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Overloads Property XChangeCmd() As otXChangeCommandType Implements IXChangeConfigEntry.XChangeCmd
+            Get
+                Return _xcmd
+            End Get
+            Set(value As otXChangeCommandType)
+                MyBase.XChangeCmd = value
+                ''' set also all the entries to the same XChangeCmd
+                For Each anEntry In Me.XChangeConfig.GetEntriesByObjectName(Me.Objectname)
+                    anEntry.XChangeCmd = value
+                Next
+            End Set
+        End Property
 #End Region
 
         ''' <summary>
@@ -442,7 +461,7 @@ Namespace OnTrack.XChange
         <ormObjectEntry(referenceObjectEntry:=XChangeConfiguration.constObjectID & "." & XChangeConfiguration.constFNID, primaryKeyordinal:=1, _
                         title:="XChangeConfigID", description:="name of the eXchange Configuration")> Public Const ConstFNXConfigID = XChangeConfiguration.constFNID
 
-        <ormObjectEntry(typeid:=otDataType.Long, primaryKeyordinal:=2,
+        <ormObjectEntry(Datatype:=otDataType.Long, primaryKeyordinal:=2,
                         title:="Identity Number", description:="unique id in the the eXchange Configuration")> Public Const constFNIDNo = "IDNO"
 
         <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=3, _
@@ -467,41 +486,41 @@ Namespace OnTrack.XChange
         <ormObjectEntry(referenceObjectEntry:=ObjectColumnEntry.ConstObjectID & "." & ObjectColumnEntry.ConstFNEntryName, _
                        isnullable:=True)> Public Const ConstFNEntryname = "entryname" ' might be null since only object are also members
 
-        <ormObjectEntry(typeid:=otDataType.Text, isnullable:=True,
+        <ormObjectEntry(Datatype:=otDataType.Text, isnullable:=True,
                         title:="Description", description:="Description of the member")> Public Const ConstFNDesc = "desc"
 
-        <ormObjectEntry(typeid:=otDataType.Text, size:=50, isnullable:=True,
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=50, isnullable:=True,
                         properties:={ObjectEntryProperty.Keyword}, _
                         title:="XChange ID", description:="ID  of the Attribute in theObjectDefinition")> Public Const ConstFNXID = "id"
 
-        <ormObjectEntry(typeid:=otDataType.Text, isnullable:=True,
+        <ormObjectEntry(Datatype:=otDataType.Text, isnullable:=True,
                         title:="ordinal", description:="ordinal for the Attribute Mapping")> Public Const constFNordinal = "ORDINALVALUE"
 
-        <ormObjectEntry(typeid:=otDataType.Text, title:="Type", defaultvalue:=otXChangeConfigEntryType.ObjectEntry, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.Text, title:="Type", defaultvalue:=otXChangeConfigEntryType.ObjectEntry, isnullable:=True, _
             description:="type of the XChange configuration entry")> Public Const ConstFNTypeid = "typeid"
 
 
-        <ormObjectEntry(typeid:=otDataType.Bool, defaultvalue:=False, dbdefaultvalue:="0", _
+        <ormObjectEntry(Datatype:=otDataType.Bool, defaultvalue:=False, dbdefaultvalue:="0", _
             title:="Is Entry Read-Only", description:="Set if this entry is read-only - value in OTDB cannot be overwritten")>
         Public Const constFNIsReadonly = "isreadonly"
 
-        <ormObjectEntry(typeid:=otDataType.Bool, defaultvalue:=False, dbdefaultvalue:="0", _
+        <ormObjectEntry(Datatype:=otDataType.Bool, defaultvalue:=False, dbdefaultvalue:="0", _
             title:="Is ordered", description:="Set if this entry is ordered")>
         Public Const constFNIsOrder = "isorder"
 
-        <ormObjectEntry(typeid:=otDataType.Bool, defaultvalue:=False, dbdefaultvalue:="0", _
+        <ormObjectEntry(Datatype:=otDataType.Bool, defaultvalue:=False, dbdefaultvalue:="0", _
             title:="Is dynamic attribute", description:="Set if this entry is dynamic")>
         Public Const constFNIsDynamic = "isdynamic"
 
-        <ormObjectEntry(typeid:=otDataType.Bool, defaultvalue:=False, dbdefaultvalue:="0", _
+        <ormObjectEntry(Datatype:=otDataType.Bool, defaultvalue:=False, dbdefaultvalue:="0", _
             title:="Attribute is not exchanged", description:="Set if this attribute is not exchanged")>
         Public Const constFNIsNotXChanged = "isnotxchg"
 
-        <ormObjectEntry(typeid:=otDataType.Text, isnullable:=True,
+        <ormObjectEntry(Datatype:=otDataType.Text, isnullable:=True,
                         properties:={ObjectEntryProperty.Keyword}, _
                         title:="XChange Command", description:="XChangeCommand to run on this")> Public Const constFNXCMD = "xcmd"
 
-        <ormObjectEntry(typeid:=otDataType.Long, isnullable:=True,
+        <ormObjectEntry(Datatype:=otDataType.Long, isnullable:=True,
             title:="Order Number", description:="ordinal number in which entriy is processed")>
         Public Const constFNOrderNo = "orderno"
 
@@ -535,7 +554,8 @@ Namespace OnTrack.XChange
         'dynamic
         Protected _EntryDefinition As iormObjectEntry
         Protected _ObjectDefinition As ObjectDefinition
-        ' Protected _aliases As String()    ' not saved !
+        Protected _XChangeConfig As XChangeConfiguration ' backlink cache
+
 
         '** initialize
         Public Sub New()
@@ -879,6 +899,18 @@ Namespace OnTrack.XChange
             End Set
         End Property
 
+        ''' <summary>
+        ''' returns the the xchange config of this entry
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property XChangeConfig As XChangeConfiguration
+            Get
+                If _XChangeConfig Is Nothing Then _XChangeConfig = Xchange.XChangeConfiguration.Retrieve(configname:=_configname)
+                Return _XChangeConfig
+            End Get
+        End Property
 #End Region
 
         ''' <summary>
@@ -982,7 +1014,7 @@ Namespace OnTrack.XChange
         ''' </summary>
         ''' <remarks></remarks>
         ''' 
-        <ormObjectEntry(typeid:=otDataType.Text, size:=50, primaryKeyordinal:=1, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=50, primaryKeyordinal:=1, _
              properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty}, _
              Title:="Name", Description:="Name of XChange Configuration")> Public Const constFNID = "configname"
 
@@ -994,14 +1026,14 @@ Namespace OnTrack.XChange
         ''' </summary>
         ''' <remarks></remarks>
         ''' 
-        <ormObjectEntry(typeid:=otDataType.Text, isnullable:=True,
+        <ormObjectEntry(Datatype:=otDataType.Text, isnullable:=True,
              Title:="Description", Description:="Description of XChange Configuration")>
         Public Const constFNDesc = "desc"
 
-        <ormObjectEntry(typeid:=otDataType.Memo, isnullable:=True,
+        <ormObjectEntry(Datatype:=otDataType.Memo, isnullable:=True,
              Title:="Comments", Description:="Comments")> Public Const constFNTitle = "cmt"
 
-        <ormObjectEntry(typeid:=otDataType.Bool, defaultvalue:=False,
+        <ormObjectEntry(Datatype:=otDataType.Bool, defaultvalue:=False,
              Title:="IsDynamic", Description:="the XChange Config accepts dynamic addition of XChangeIDs")> Public Const constFNDynamic = "isdynamic"
 
         <ormObjectEntry(referenceObjectEntry:=XOutline.constobjectid & "." & XOutline.constFNID, isnullable:=True, _
@@ -1255,8 +1287,8 @@ Namespace OnTrack.XChange
                         Else
                             'aHighestXcmd = aChangeMember.xChangeCmd
                         End If
-                    Case otXChangeCommandType.UpdateCreate
-                        If aHighestXcmd = 0 Or aHighestXcmd = otXChangeCommandType.Read Or aHighestXcmd = otXChangeCommandType.UpdateCreate Then
+                    Case otXChangeCommandType.CreateUpdate
+                        If aHighestXcmd = 0 Or aHighestXcmd = otXChangeCommandType.Read Or aHighestXcmd = otXChangeCommandType.CreateUpdate Then
                             aHighestXcmd = aChangeMember.XChangeCmd
                         Else
                             'aHighestXcmd = aChangeMember.xChangeCmd
@@ -1297,8 +1329,8 @@ Namespace OnTrack.XChange
                         Else
                             'aHighestXcmd = aChangeMember.xChangeCmd
                         End If
-                    Case otXChangeCommandType.UpdateCreate
-                        If aHighestXcmd = 0 Or aHighestXcmd = otXChangeCommandType.Read Or aHighestXcmd = otXChangeCommandType.UpdateCreate Then
+                    Case otXChangeCommandType.CreateUpdate
+                        If aHighestXcmd = 0 Or aHighestXcmd = otXChangeCommandType.Read Or aHighestXcmd = otXChangeCommandType.CreateUpdate Then
                             aHighestXcmd = aChangeMember.XChangeCmd
                         Else
                             'aHighestXcmd = aChangeMember.xChangeCmd
@@ -1361,11 +1393,11 @@ Namespace OnTrack.XChange
             End If
 
             ' return if exists
-            If Not _ObjectCollection.ContainsKey(key:=name) Then
+            If Not _ObjectDictionary.ContainsKey(key:=name) Then
                 SetObjectXCmd = False
                 Exit Function
             Else
-                aMember = _ObjectCollection.Item(key:=name)
+                aMember = _ObjectDictionary.Item(key:=name)
                 ' depending what the current object xcmd, set it to "max" operation
                 Select Case aMember.XChangeCmd
 
@@ -1375,7 +1407,7 @@ Namespace OnTrack.XChange
                         End If
                     Case otXChangeCommandType.Delete
                         ' keep it
-                    Case otXChangeCommandType.UpdateCreate
+                    Case otXChangeCommandType.CreateUpdate
                         If xchangecommand <> otXChangeCommandType.Read And xchangecommand <> otXChangeCommandType.Update Then
                             aMember.XChangeCmd = xchangecommand
                         End If
@@ -2292,7 +2324,7 @@ Namespace OnTrack.XChange
         ''' Keys
         ''' </summary>
         ''' <remarks></remarks>
-        <ormObjectEntry(XID:="otl1", primaryKeyordinal:=1, typeid:=otDataType.Text, size:=50,
+        <ormObjectEntry(XID:="otl1", primaryKeyordinal:=1, Datatype:=otDataType.Text, size:=50,
                     properties:={ObjectEntryProperty.Keyword}, _
                 description:="identifier of the outline", Title:="ID")> Public Const ConstFNID = "ID"
 
@@ -2302,19 +2334,19 @@ Namespace OnTrack.XChange
         '''  Fields
         ''' </summary>
         ''' <remarks></remarks>
-        <ormObjectEntry(XID:="OTL2", typeid:=otDataType.Text, isnullable:=True, _
+        <ormObjectEntry(XID:="OTL2", Datatype:=otDataType.Text, isnullable:=True, _
                 description:="description of the outline", Title:="description")> Public Const constFNdesc = "DESC"
 
         
-        <ormObjectEntry(typeid:=otDataType.List, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.List, isnullable:=True, _
                         XID:="OTL5", title:="Business Objects", description:="applicable business objects for this outline")> Public Const ConstFNObjects = "OBJECTS"
 
-        <ormObjectEntry(XID:="OTL10", typeid:=otDataType.Bool, defaultvalue:=False, dbdefaultvalue:="0",
+        <ormObjectEntry(XID:="OTL10", Datatype:=otDataType.Bool, defaultvalue:=False, dbdefaultvalue:="0",
                        description:="True if deliverable revisions are added dynamically", Title:="DynamicRevision")> Public Const constFNDynamicAddRevisions = "ADDREV"
-        <ormObjectEntry(XID:="OTL11", typeid:=otDataType.Bool, defaultvalue:=False, dbdefaultvalue:="0",
+        <ormObjectEntry(XID:="OTL11", Datatype:=otDataType.Bool, defaultvalue:=False, dbdefaultvalue:="0",
                         description:="True if items are generated automatically by order", Title:="Dynamic")> Public Const constFNDynamic = "DYNAMIC"
 
-        <ormObjectEntry(XID:="OTL12", typeid:=otDataType.Text, isnullable:=True, _
+        <ormObjectEntry(XID:="OTL12", Datatype:=otDataType.Text, isnullable:=True, _
                description:="order by clause of the dynamic item", Title:="Orderby")> Public Const constFNOrderBy = "OrderBy"
 
         ''' <summary>
@@ -2790,7 +2822,7 @@ Namespace OnTrack.XChange
         <ormObjectEntry(XID:="otl1", primaryKeyordinal:=1, referenceObjectEntry:=XOutline.constobjectid & "." & XOutline.constFNID, _
             title:="Outline ID", description:="identifier of the outline")> Public Const constFNID = XOutline.constFNID
 
-        <ormObjectEntry(XID:="otli3", primaryKeyordinal:=2, typeid:=otDataType.Text, size:=255,
+        <ormObjectEntry(XID:="otli3", primaryKeyordinal:=2, Datatype:=otDataType.Text, size:=255,
          title:="ordinals", description:="ordinal as string of the outline item")> Public Const ConstFNordinals = "ordials"
 
         <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=3, _
@@ -2809,32 +2841,32 @@ Namespace OnTrack.XChange
         ''' fields
         ''' </summary>
         ''' <remarks></remarks>
-        <ormObjectEntry(XID:="otli2", typeid:=otDataType.Long,
+        <ormObjectEntry(XID:="otli2", Datatype:=otDataType.Long,
            title:="ordinal", description:="ordinal as long of the outline")> Public Const ConstFNordinall = "ordiall"
 
         <ormObjectEntry(XID:="dlvuid", referenceobjectentry:=Deliverable.ConstObjectID & "." & Deliverable.constFNUid, _
         isnullable:=True, useforeignkey:=otForeignKeyImplementation.NativeDatabase,
          title:="deliverable uid", description:="uid of the deliverable")> Public Const ConstFNUid = Deliverable.constFNUid
 
-        <ormObjectEntry(XID:="otli4", typeid:=otDataType.Long, defaultvalue:=1,
+        <ormObjectEntry(XID:="otli4", Datatype:=otDataType.Long, defaultvalue:=1,
           title:="identlevel", description:="identlevel as string of the outline")> Public Const ConstFNIdent = "level"
 
-        <ormObjectEntry(XID:="otli10", typeid:=otDataType.List, innertypeid:=otDataType.Text,
+        <ormObjectEntry(XID:="otli10", Datatype:=otDataType.List, innerDatatype:=otDataType.Text,
          title:="Types", description:="types the outline key")> Public Const ConstFNTypes = "types"
 
-        <ormObjectEntry(XID:="otli11", typeid:=otDataType.List, innertypeid:=otDataType.Text,
+        <ormObjectEntry(XID:="otli11", Datatype:=otDataType.List, innerDatatype:=otDataType.Text,
          title:="IDs", description:="ids the outline key")> Public Const ConstFNIDs = "ids"
 
-        <ormObjectEntry(XID:="otli12", typeid:=otDataType.List, innertypeid:=otDataType.Text,
+        <ormObjectEntry(XID:="otli12", Datatype:=otDataType.List, innerDatatype:=otDataType.Text,
         title:="Values", description:="values the outline key")> Public Const ConstFNValues = "values"
 
-        <ormObjectEntry(XID:="otli13", typeid:=otDataType.Bool, defaultvalue:=False,
+        <ormObjectEntry(XID:="otli13", Datatype:=otDataType.Bool, defaultvalue:=False,
         title:="Grouping Item", description:="check if this an grouping item")> Public Const ConstFNisgroup = "isgrouped"
 
-        <ormObjectEntry(XID:="otli14", typeid:=otDataType.Bool, defaultvalue:=False,
+        <ormObjectEntry(XID:="otli14", Datatype:=otDataType.Bool, defaultvalue:=False,
        title:="Text Item", description:="check if this an text item")> Public Const ConstFNisText = "istext"
 
-        <ormObjectEntry(XID:="otli14", typeid:=otDataType.Text, isnullable:=True,
+        <ormObjectEntry(XID:="otli14", Datatype:=otDataType.Text, isnullable:=True,
        title:="Text", description:="Text if a text item")> Public Const ConstFNText = "text"
 
         <ormEntryMapping(EntryName:=constFNID)> Private _id As String = ""   ' ID of the outline

@@ -1179,8 +1179,8 @@ Namespace OnTrack.Database
         Protected _ID As String = Nothing
 
         Protected _TableID As String = Nothing
-        Protected _Typeid As Nullable(Of otDataType)
-        Protected _InnerTypeID As Nullable(Of otDataType)
+        Protected _Datatype As Nullable(Of otDataType)
+        Protected _InnerDataType As Nullable(Of otDataType)
         Protected _size As Nullable(Of Long)
         Protected _Parameter As String = Nothing
         Protected _primaryKeyOrdinal As Nullable(Of Short)
@@ -1355,37 +1355,37 @@ Namespace OnTrack.Database
             End Get
         End Property
         ''' <summary>
-        ''' Gets or sets the typeid.
+        ''' Gets or sets the Datatype.
         ''' </summary>
         ''' <value>The typeid.</value>
-        Public Property Typeid() As otDataType
+        Public Property DataType() As otDataType
             Get
-                Return Me._Typeid
+                Return Me._Datatype
             End Get
             Set(value As otDataType)
-                Me._Typeid = value
+                Me._Datatype = value
             End Set
         End Property
-        Public ReadOnly Property HasValueTypeID As Boolean
+        Public ReadOnly Property HasValueDataType As Boolean
             Get
-                Return _Typeid.HasValue
+                Return _Datatype.HasValue
             End Get
         End Property
         ''' <summary>
-        ''' Gets or sets the inner typeid of list.
+        ''' Gets or sets the nested inner Datatype of Datatype list.
         ''' </summary>
         ''' <value>The typeid.</value>
-        Public Property InnerTypeid() As otDataType
+        Public Property InnerDataType() As otDataType
             Get
-                Return Me._InnerTypeID
+                Return Me._InnerDataType
             End Get
             Set(value As otDataType)
-                Me._InnerTypeID = value
+                Me._InnerDataType = value
             End Set
         End Property
-        Public ReadOnly Property HasValueInnerTypeID As Boolean
+        Public ReadOnly Property HasValueInnerDataType As Boolean
             Get
-                Return _InnerTypeID.HasValue
+                Return _InnerDataType.HasValue
             End Get
         End Property
         ''' <summary>

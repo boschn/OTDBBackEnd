@@ -341,7 +341,7 @@ Namespace OnTrack.Scheduling
                 aDependency = New clsOTDBDependency
                 If Not aDependency.loadbyDependant(aPart.PartID) Then
                     aDependency.create(aPart.PartID)
-                ElseIf aDependency.NoMembers(TYPEID:=ConstDepTypeIDIFC) > 0 Then
+                ElseIf aDependency.NoMembers(typeid:=ConstDepTypeIDIFC) > 0 Then
                     aDependency.delete()
                 End If
                 If aPart.CreateDependencyFromInterfaces(aDependency) Then

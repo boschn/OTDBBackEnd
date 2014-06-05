@@ -46,7 +46,7 @@ Namespace OnTrack.Parts
         <ormSchemaTable(Version:=2)> Public Const ConstTableID As String = "tblParts"
 
         '*** Primary key
-        <ormObjectEntry(typeid:=otDataType.Text, size:=100, primarykeyOrdinal:=1, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=100, primarykeyOrdinal:=1, _
             XID:="pt1", Aliases:={"C10"}, title:="PartID", description:="unique ID of the part")> Public Const ConstFNPartID = "pnid"
 
         '** Indices
@@ -58,10 +58,10 @@ Namespace OnTrack.Parts
         <ormSchemaIndex(columnName1:=ConstFNDomainID, columnname2:=ConstFNPartID, columnname3:=ConstFNIsDeleted)> Public Const constIndexDomain = "indDomains"
 
         '*** Fields
-        <ormObjectEntry(typeid:=otDataType.Text, size:=150, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=150, isnullable:=True, _
             XID:="pt2", Title:="Description", description:="description of the part")> Public Const ConstFNDescription = "desc"
 
-        <ormObjectEntry(typeid:=otDataType.Text, size:=150, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=150, isnullable:=True, _
            XID:="pt3", aliases:={"DLV31"}, Title:="Workpackage", description:="workpackage of the part")> Public Const ConstFNWorkpackage = "wkpk"
 
         <ormObjectEntry(referenceobjectentry:=Commons.Workspace.ConstObjectID & "." & Commons.Workspace.ConstFNID, _
@@ -76,25 +76,25 @@ Namespace OnTrack.Parts
         <ormObjectEntry(referenceobjectentry:=OrgUnit.ConstObjectID & "." & OrgUnit.ConstFNID, isnullable:=True, _
             XID:="pt5", title:="Responsible OrgUnit", description:=" organization unit responsible for the part", XID:="")> Public Const constFNRespOU = "respou"
 
-        <ormObjectEntry(typeid:=otDataType.Text, size:=50, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=50, isnullable:=True, _
             XID:="pt6", title:="Type", description:="type of the part", XID:="DLV13")> Public Const constFNTypeID = "typeid"
 
-        <ormObjectEntry(typeid:=otDataType.Text, size:=150, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=150, isnullable:=True, _
             XID:="pt7", title:="Category", description:="category of the part", XID:="DLV13")> Public Const constFNCategory = "cat"
 
-        <ormObjectEntry(typeid:=otDataType.Text, size:=100, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=100, isnullable:=True, _
             XID:="pt8", title:="blocking item reference", description:="blocking item reference id for the deliverable", aliases:={"DLV17"})> Public Const constFNBlockingItemReference = "blitemid"
 
-        <ormObjectEntry(typeid:=otDataType.Text, size:=100, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=100, isnullable:=True, _
             XID:="pt9", aliases:={"dlv8"}, title:="Change Reference", description:="change reference of the deliverable")> Public Const constFNChangeRef = "chref"
 
-        <ormObjectEntry(typeid:=otDataType.Memo, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.Memo, isnullable:=True, _
             XID:="pt10", title:="comment", description:="comments of the part", XID:="DLV18")> Public Const constFNComment = "cmt"
 
-        <ormObjectEntry(typeid:=otDataType.Text, size:=100, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=100, isnullable:=True, _
             XID:="pt11", title:="Matchcode", description:="match code of the part")> Public Const constFNMatchCode = "matchcode"
 
-        <ormObjectEntry(typeid:=otDataType.Text, size:=50, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=50, isnullable:=True, _
              XID:="pt12", Title:="Function", description:="function of the deliverable")> Public Const constFNFunction = "function"
 
 

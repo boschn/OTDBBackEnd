@@ -91,7 +91,7 @@ Namespace OnTrack.XChange
                 Dim headerids As String()
                 ReDim headerids(aCSVReader.FieldCount)
                 headerids = aCSVReader.GetFieldHeaders
-                Dim headerstring As String = Converter.Array2String(headerids)
+                Dim headerstring As String = Converter.Array2otString(headerids)
                 
 
                 ''' read the object id of the first object -> must be the key
@@ -122,7 +122,7 @@ Namespace OnTrack.XChange
                 End If
                 If theObjectEntries Is Nothing OrElse theObjectEntries.Count = 0 Then
                     ot.CoreMessageHandler(message:="object entry with xid'" & headerids(0) & "' could not be retrieved - aborted", _
-                                         arg1:=Converter.Array2String(headerids), _
+                                         arg1:=Converter.Array2otString(headerids), _
                                          subname:="XChangeCSV.FeedInCSV", messagetype:=otCoreMessageType.ApplicationError)
                     Return False
                 End If
@@ -133,7 +133,7 @@ Namespace OnTrack.XChange
                 ''' build a xconfiguration
                 ''' 
                 Dim aXConfig As XChangeConfiguration = XChangeManager.CreateXChangeConfigFromIDs(configname:=aConfigName, objectids:={anObjectDefinition.ID}, runtimeOnly:=True, _
-                                                                                                 xids:=headerids, xcmd:=otXChangeCommandType.UpdateCreate)
+                                                                                                 xids:=headerids, xcmd:=otXChangeCommandType.CreateUpdate)
                 If aXConfig Is Nothing Then
                     Return False
                 Else

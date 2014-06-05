@@ -20,13 +20,19 @@ Public Module modHelperVBA
     '********** isEmpty compares on the Nothing
     '**********
     '**********
+    ''' <summary>
+    ''' returns True if the object is empty - nothing or "" or Whitespace
+    ''' </summary>
+    ''' <param name="value"></param>
+    ''' <returns></returns>
+    ''' <remarks></remarks>
     Public Function IsEmpty(ByRef value As Object) As Boolean
         If value Is Nothing Then
-            IsEmpty = True
-        ElseIf TypeOf (value) Is String AndAlso String.IsNullOrEmpty(value) Then
-            IsEmpty = True
+            Return True
+        ElseIf String.IsNullOrWhiteSpace(value) Then
+            Return True
         Else
-            IsEmpty = False
+            Return False
         End If
 
     End Function

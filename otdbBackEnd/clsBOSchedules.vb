@@ -836,7 +836,7 @@ Namespace OnTrack.Scheduling
                 End If
                 ''' even if it is early to retrieve the set and set it (since this might disposed since we have not run through checkuniqueness and cache)
                 ''' we need to check on the object here
-                _scheduledefinition = ScheduleDefinition.Retrieve(id:=aScheduletypeID)
+                _scheduledefinition = ScheduleDefinition.Retrieve(id:=aScheduletypeID, domainid:=Me.DomainID)
                 If _scheduledefinition Is Nothing Then
                     CoreMessageHandler(message:="schedule definition does  does not exist", subname:="ScheduleMilestoneDefinition.OnCreated", _
                                        messagetype:=otCoreMessageType.ApplicationError, _
@@ -858,7 +858,7 @@ Namespace OnTrack.Scheduling
 
             If my IsNot Nothing Then
                 If _scheduledefinition Is Nothing Then
-                    _scheduledefinition = ScheduleDefinition.Retrieve(id:=Me.ScheduleTypeID)
+                    _scheduledefinition = ScheduleDefinition.Retrieve(id:=Me.ScheduleTypeID, domainid:=Me.DomainID)
                     If _scheduledefinition Is Nothing Then
                         CoreMessageHandler(message:="object propert set doesnot exist", subname:="ScheduleMilestoneDefinition.OnCreated", _
                                           messagetype:=otCoreMessageType.ApplicationError, _
@@ -894,7 +894,8 @@ Namespace OnTrack.Scheduling
         ''' <param name="id"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Retrieve(ByVal scheduletype As String, ByVal ID As String, Optional domainID As String = "", Optional forcereload As Boolean = False) As ScheduleMilestoneDefinition
+        Public Overloads Shared Function Retrieve(ByVal scheduletype As String, ByVal ID As String, Optional domainID As String = Nothing, Optional forcereload As Boolean = False) As ScheduleMilestoneDefinition
+            If String.IsNullOrWhiteSpace(domainID) Then domainID = CurrentSession.CurrentDomainID
             Return Retrieve(Of ScheduleMilestoneDefinition)(pkArray:={scheduletype.ToUpper, ID.ToUpper, domainID}, domainID:=domainID, forceReload:=forcereload)
         End Function
 
@@ -907,7 +908,7 @@ Namespace OnTrack.Scheduling
         ''' <remarks></remarks>
         Public Function GetMilestoneDefinition() As MileStoneDefinition
             If Not IsAlive(subname:="GetMilestoneDefinition") Then Return Nothing
-            Return MileStoneDefinition.Retrieve(id:=Me.ID)
+            Return MileStoneDefinition.Retrieve(id:=Me.ID, domainID:=Me.DomainID)
         End Function
 
 
@@ -927,8 +928,8 @@ Namespace OnTrack.Scheduling
         ''' <param name="ID"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Create(ByVal scheduletype As String, ByVal ID As String, Optional domainID As String = "") As ScheduleMilestoneDefinition
-            If domainID = "" Then domainID = CurrentSession.CurrentDomainID
+        Public Overloads Shared Function Create(ByVal scheduletype As String, ByVal ID As String, Optional domainID As String = Nothing) As ScheduleMilestoneDefinition
+            If String.IsNullOrWhiteSpace(domainID) Then domainID = CurrentSession.CurrentDomainID
             Dim pkarray() As Object = {scheduletype.ToUpper, ID.ToUpper, domainID}
             Return ormDataObject.CreateDataObject(Of ScheduleMilestoneDefinition)(pkarray, domainID:=domainID, checkUnique:=True)
         End Function
@@ -1103,7 +1104,14 @@ Namespace OnTrack.Scheduling
             If ofActualID Is Nothing Then
                 Return _milestoneCollection.Where(Function(x) x.IsActual = False And x.IsFinish = True).Select(Function(x) x.ID).ToArray
             Else
-                Return _milestoneCollection.Where(Function(x) x.IsActual = False And x.IsFinish = True AndAlso x.ActualOfFC(x.ID) = ofActualID).Select(Function(x) x.ID).ToArray
+                Dim aList As New List(Of String)
+
+                For Each aMilstone In _milestoneCollection
+                    If Not aMilstone.IsActual AndAlso aMilstone.IsFinish AndAlso aMilstone.ActualOfFC = ofActualID Then
+                        aList.Add(aMilstone.ID)
+                    End If
+                Next
+                Return aList.ToArray
             End If
 
         End Function
@@ -1153,8 +1161,9 @@ Namespace OnTrack.Scheduling
         ''' <param name="id"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Retrieve(ByVal id As String, Optional domainid As String = "", Optional forcereload As Boolean = False) As ScheduleDefinition
-            Return Retrieve(Of ScheduleDefinition)(pkArray:={id.ToUpper}, domainID:=domainid, forceReload:=forcereload)
+        Public Overloads Shared Function Retrieve(ByVal id As String, Optional domainid As String = Nothing, Optional forcereload As Boolean = False) As ScheduleDefinition
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
+            Return Retrieve(Of ScheduleDefinition)(pkArray:={id.ToUpper, domainid}, domainID:=domainid, forceReload:=forcereload)
         End Function
 
         ''' <summary>
@@ -1163,8 +1172,8 @@ Namespace OnTrack.Scheduling
         ''' <param name="SCHEDULETYPE"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Shared Function Create(ByVal id As String, Optional domainid As String = "") As ScheduleDefinition
-            If domainid = "" Then domainid = CurrentSession.CurrentDomainID
+        Public Shared Function Create(ByVal id As String, Optional domainid As String = Nothing) As ScheduleDefinition
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
             Dim pkarray() As Object = {id.ToUpper, domainid}
             Return ormDataObject.CreateDataObject(Of ScheduleDefinition)(pkarray, domainID:=domainid, checkUnique:=True)
         End Function
@@ -1336,8 +1345,7 @@ Namespace OnTrack.Scheduling
         ''' </summary>
         ''' <remarks></remarks>
         <ormRelation(linkobject:=GetType(StatusItem), fromentries:={ConstFNlcstatus}, _
-            toentries:={StatusItem.ConstObjectID & "." & StatusItem.constFNCode}, _
-            linkjoin:=" AND [" & StatusItem.constFNType & "] = '" & ConstStatusType_ScheduleLifecycle & "'", _
+            toentries:={StatusItem.constFNCode}, linkjoin:=" AND [" & StatusItem.constFNType & "] = '" & ConstStatusType_ScheduleLifecycle & "'", _
             cascadeOnCreate:=False, cascadeOnDelete:=False, cascadeOnUpdate:=False)> Public Const ConstRLifeCycleSatus = "RELLFCLSTATUS"
 
         <ormEntryMapping(RelationName:=ConstRLifeCycleSatus, infuseMode:=otInfuseMode.OnDemand)> Private WithEvents _lifecylcestatus As StatusItem
@@ -1347,8 +1355,7 @@ Namespace OnTrack.Scheduling
         ''' </summary>
         ''' <remarks></remarks>
         <ormRelation(linkobject:=GetType(StatusItem), fromentries:={ConstFNlcstatus}, _
-            toentries:={StatusItem.ConstObjectID & "." & StatusItem.constFNCode}, _
-            linkjoin:=" AND [" & StatusItem.constFNType & "] = '" & ConstStatusType_ScheduleProcess & "'", _
+            toentries:={StatusItem.constFNCode}, linkjoin:=" AND [" & StatusItem.constFNType & "] = '" & ConstStatusType_ScheduleProcess & "'", _
             cascadeOnCreate:=False, cascadeOnDelete:=False, cascadeOnUpdate:=False)> Public Const ConstRProcessSatus = "RELPROCSTATUS"
 
         <ormEntryMapping(RelationName:=ConstRProcessSatus, infuseMode:=otInfuseMode.OnDemand)> Private WithEvents _processstatus As StatusItem
@@ -1466,7 +1473,7 @@ Namespace OnTrack.Scheduling
                 ' set the internal defschedule link
                 If LCase(_typeid) <> LCase(value) Then
 
-                    defschedule = ScheduleDefinition.Retrieve(id:=value)
+                    defschedule = ScheduleDefinition.Retrieve(id:=value, domainid:=Me.DomainID)
                     If defschedule Is Nothing Then
                         Call CoreMessageHandler(message:="TypeID has not schedule defined", subname:="Schedule.typeID", _
                                               arg1:=value)
@@ -1609,9 +1616,12 @@ Namespace OnTrack.Scheduling
                 Return _processstatus
             End Get
             Set(value As StatusItem)
-                If value.TypeID = ConstStatusType_ScheduleProcess Then
-                    Me._ProcessStatusCode = value.Code
+                If value IsNot Nothing AndAlso value.TypeID = ConstStatusType_ScheduleProcess Then
+                    Me.ProcessStatusCode = value.Code
                     _processstatus = value
+                Else
+                    Me.ProcessStatusCode = Nothing
+                    _processstatus = Nothing
                 End If
             End Set
         End Property
@@ -1641,9 +1651,13 @@ Namespace OnTrack.Scheduling
                 Return _lifecylcestatus
             End Get
             Set(value As StatusItem)
-                If value.TypeID = ConstStatusType_ScheduleLifecycle Then
+              
+                If value IsNot Nothing AndAlso value.TypeID = ConstStatusType_ScheduleLifecycle Then
                     Me.LifeCycleStatusCode = value.Code
                     _lifecylcestatus = value
+                Else
+                    Me.LifeCycleStatusCode = Nothing
+                    _lifecylcestatus = Nothing
                 End If
             End Set
         End Property
@@ -1967,7 +1981,7 @@ Namespace OnTrack.Scheduling
             If _milestoneCollection.ContainsKey({aRealID}) Then
                 aMember = _milestoneCollection.Item({aRealID})
             Else
-                aMember = ScheduleMilestone.Create(UID:=Me.Uid, updc:=Me.Updc, ID:=aRealID)
+                aMember = ScheduleMilestone.Create(UID:=Me.Uid, updc:=Me.Updc, ID:=aRealID, domainid:=Me.DomainID, workspaceid:=Me.WorkspaceID)
                 If aMember Is Nothing Then aMember = ScheduleMilestone.Retrieve(UID:=Me.Uid, updc:=Me.Updc, ID:=aRealID)
                 If aMember Is Nothing Then
                     Call CoreMessageHandler(arg1:=id, subname:="Schedule.setMilestone", tablename:=ConstTableID, _
@@ -2149,7 +2163,7 @@ Namespace OnTrack.Scheduling
                 Exit Function
             End If
 
-            aScheduleMSDef = ScheduleMilestoneDefinition.Retrieve(scheduletype:=Me.Typeid, ID:=MSID)
+            aScheduleMSDef = ScheduleMilestoneDefinition.Retrieve(scheduletype:=Me.Typeid, ID:=MSID, domainID:=Me.DomainID)
             If aScheduleMSDef Is Nothing Then
                 MoveMilestone = False
                 Exit Function
@@ -2279,7 +2293,7 @@ Namespace OnTrack.Scheduling
                 atypeid = Me.Typeid
             End If
 
-            aScheduleDef = ScheduleDefinition.Retrieve(id:=atypeid)
+            aScheduleDef = ScheduleDefinition.Retrieve(id:=atypeid, domainid:=Me.DomainID)
             If aScheduleDef Is Nothing Then
                 Call CoreMessageHandler(subname:="Schedule.getDefScheduleMSbyOrder", message:=" scheduletype of '" & atypeid & "' not found", arg1:=atypeid)
                 Return Nothing
@@ -2291,7 +2305,7 @@ Namespace OnTrack.Scheduling
                 End If
                 ' go through
                 For Each aScheduleMSDef In aMSDefCollection
-                    aMilestoneDef = MileStoneDefinition.Retrieve(id:=aScheduleMSDef.ID)
+                    aMilestoneDef = MileStoneDefinition.Retrieve(id:=aScheduleMSDef.ID, domainID:=Me.DomainID)
                     If aMilestoneDef IsNot Nothing Then
                         If (aMilestoneDef.Datatype = otMilestoneType.Status And Not justDates) Or justDates Then
                             Call aCollection.Add(item:=aScheduleMSDef)
@@ -2364,8 +2378,11 @@ Namespace OnTrack.Scheduling
         ''' <remarks></remarks>
         Private Sub ScheduleEdition_OnDefaultValuesNeeded(sender As Object, e As ormDataObjectEventArgs) Handles Me.OnCreateDefaultValuesNeeded
 
-            If Not e.Record.HasIndex(ConstFNWorkspaceID) OrElse e.Record.GetValue(ConstFNWorkspaceID) = "" Then
+            If Not e.Record.HasIndex(ConstFNWorkspaceID) OrElse String.IsNullOrWhiteSpace(e.Record.GetValue(ConstFNWorkspaceID)) Then
                 e.Record.SetValue(ConstFNWorkspaceID, CurrentSession.CurrentWorkspaceID)
+            End If
+            If Not e.Record.HasIndex(ConstFNDomainID) OrElse String.IsNullOrWhiteSpace(e.Record.GetValue(ConstFNDomainID)) Then
+                e.Record.SetValue(ConstFNDomainID, CurrentSession.CurrentDomainID)
             End If
         End Sub
         ''' <summary>
@@ -2388,7 +2405,7 @@ Namespace OnTrack.Scheduling
                     CoreMessageHandler(message:="data object could not be cast to Schedule", subname:="Schedule_OnRelationload", messagetype:=otCoreMessageType.InternalError)
                     Exit Sub
                 End If
-                Dim aScheduleDefinition As ScheduleDefinition = ScheduleDefinition.Retrieve(id:=meme.Typeid)
+                Dim aScheduleDefinition As ScheduleDefinition = ScheduleDefinition.Retrieve(id:=meme.Typeid, domainid:=meme.DomainID)
                 If aScheduleDefinition Is Nothing Then
                     CoreMessageHandler(message:="schedule definition could not be retrieved", arg1:=meme.Typeid, _
                                        subname:="Schedule_OnRelationload", messagetype:=otCoreMessageType.InternalError)
@@ -2405,7 +2422,7 @@ Namespace OnTrack.Scheduling
                         aMilestone.IsEnabled = False
                     Else
                         Dim aScheduleMSDef As ScheduleMilestoneDefinition = aCollection.Item({aMilestone.ID})
-                        Dim aMSDef As MileStoneDefinition = MileStoneDefinition.Retrieve(aScheduleMSDef.ID)
+                        Dim aMSDef As MileStoneDefinition = MileStoneDefinition.Retrieve(aScheduleMSDef.ID, domainID:=Me.DomainID)
 
                         If Not aScheduleMSDef.IsProhibited AndAlso aMSDef IsNot Nothing Then
                             isCache = False
@@ -2515,7 +2532,7 @@ Namespace OnTrack.Scheduling
                 Return False
             End If
 
-            Dim aSchedule As ScheduleDefinition = ScheduleDefinition.Retrieve(id:=Me.Typeid)
+            Dim aSchedule As ScheduleDefinition = ScheduleDefinition.Retrieve(id:=Me.Typeid, domainid:=Me.DomainID)
             If aSchedule Is Nothing Then
                 CoreMessageHandler(message:="schedule type of this schedule could not be retrieved - can not create default milestones", _
                                    arg1:=_typeid, messagetype:=otCoreMessageType.ApplicationError, subname:="Schedule.CreateDefaultMilestones")
@@ -2535,7 +2552,7 @@ Namespace OnTrack.Scheduling
             ''' 
             For Each aScheduleMSDef In aCollection
                 ' get the milestone definition
-                Dim aMSDef As MileStoneDefinition = MileStoneDefinition.Retrieve(aScheduleMSDef.ID)
+                Dim aMSDef As MileStoneDefinition = MileStoneDefinition.Retrieve(aScheduleMSDef.ID, domainID:=Me.DomainID)
 
                 If Not aScheduleMSDef.IsProhibited AndAlso aMSDef IsNot Nothing Then
                     isCache = False
@@ -2566,7 +2583,7 @@ Namespace OnTrack.Scheduling
                     Dim aMilestone As ScheduleMilestone
                     If Not isCache Then
                         '' create
-                        aMilestone = ScheduleMilestone.Create(UID:=_uid, updc:=anUpdc, ID:=aScheduleMSDef.ID)
+                        aMilestone = ScheduleMilestone.Create(UID:=_uid, updc:=anUpdc, ID:=aScheduleMSDef.ID, domainid:=Me.DomainID, workspaceid:=Me.WorkspaceID)
                         '' retrieve
                         If aMilestone Is Nothing Then aMilestone = ScheduleMilestone.Retrieve(UID:=_uid, updc:=anUpdc, ID:=aScheduleMSDef.ID)
                     Else
@@ -2647,21 +2664,24 @@ Namespace OnTrack.Scheduling
         ''' <remarks></remarks>
         Public Overloads Shared Function Create(ByVal uid As Long, _
                                 Optional ByVal updc As Long = 0, _
-                                Optional ByVal workspaceID As String = "", _
-                                Optional ByVal scheduletypeid As String = "") As ScheduleEdition
+                                Optional ByVal workspaceID As String = Nothing, _
+                                Optional ByVal scheduletypeid As String = Nothing, _
+                                Optional ByVal domainid As String = Nothing) As ScheduleEdition
 
 
-            If workspaceID = "" Then workspaceID = CurrentSession.CurrentWorkspaceID
-            If scheduletypeid = "" Then scheduletypeid = CurrentSession.DefaultScheduleTypeID
+            If String.IsNullOrWhiteSpace(workspaceID) Then workspaceID = CurrentSession.CurrentWorkspaceID
+            If String.IsNullOrWhiteSpace(scheduletypeid) Then scheduletypeid = CurrentSession.DefaultScheduleTypeID
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
             Dim aRecord As New ormRecord
             With aRecord
                 .SetValue(ConstFNUid, uid)
                 .SetValue(ConstFNUpdc, updc)
-                .SetValue(ConstFNWorkspaceID, workspaceID)
-                If scheduletypeid <> "" Then .SetValue(ConstFNTypeid, scheduletypeid)
+                If Not String.IsNullOrWhiteSpace(workspaceID) Then .SetValue(ConstFNWorkspaceID, workspaceID)
+                If Not String.IsNullOrWhiteSpace(scheduletypeid) Then .SetValue(ConstFNTypeid, scheduletypeid)
+                If Not String.IsNullOrWhiteSpace(domainid) Then .SetValue(ConstFNDomainID, domainid)
             End With
 
-            Return ormDataObject.CreateDataObject(Of ScheduleEdition)(aRecord, checkUnique:=True)
+            Return ormDataObject.CreateDataObject(Of ScheduleEdition)(aRecord, checkUnique:=True, domainID:=domainid)
 
         End Function
 
@@ -2691,7 +2711,7 @@ Namespace OnTrack.Scheduling
             ID = ID.ToUpper
             aRealID = aDefSchedule.GetMilestoneIDByAlias(AliasID:=ID)
             If aRealID = "" Then aRealID = ID
-            Dim aDefMilestone As MileStoneDefinition = MileStoneDefinition.Retrieve(id:=aRealID)
+            Dim aDefMilestone As MileStoneDefinition = MileStoneDefinition.Retrieve(id:=aRealID, domainID:=Me.DomainID)
 
             ' check aliases
             If aDefSchedule Is Nothing Then
@@ -2759,7 +2779,7 @@ Namespace OnTrack.Scheduling
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function HasMilestoneDate(ByVal ID As String) As Boolean
-            HasMilestoneDate = Me.HasMilestone(ID:=ID, mstypeid:=otMilestoneType.[Date], hasData:=False)
+            Return Me.HasMilestone(ID:=ID, mstypeid:=otMilestoneType.[Date], hasData:=True)
         End Function
         ''' <summary>
         ''' returns true if the milestone has no data or does not exist (optional ifNotExists)
@@ -3213,9 +3233,18 @@ Namespace OnTrack.Scheduling
             If msglog Is Nothing Then msglog = Me.ObjectMessageLog
             If Not Me.IsAlive("CheckScheduleLifeCycle") Then Return otValidationResultType.FailedNoProceed
 
+            ''' clear log
+            ''' 
+            For Each message In msglog
+                If message.StatusItems(statustype:=ConstStatusType_ScheduleLifecycle).Count > 0 Then
+                    message.Delete()
+                End If
+            Next
+
+
             Dim aScheduleDefinition As ScheduleDefinition = Me.ScheduleDefinition
             If aScheduleDefinition Is Nothing Then
-                msglog.Add(2101, Nothing, Nothing, Nothing, Nothing, Me.Uid, Me.Updc)
+                msglog.Add(2101, Nothing, Nothing, Nothing, Nothing, Me, Me.Uid, Me.Updc)
                 Return otValidationResultType.FailedNoProceed
             End If
 
@@ -3223,7 +3252,7 @@ Namespace OnTrack.Scheduling
             ''' 
             For Each anID As String In aScheduleDefinition.GetFCFinishID
                 If Not Me.HasMilestoneDate(anID) Then
-                    msglog.Add(2100, Nothing, Nothing, Nothing, Nothing, aScheduleDefinition.ID, anID)
+                    msglog.Add(2100, Nothing, Nothing, Nothing, Nothing, Me, aScheduleDefinition.ID, anID)
                 End If
             Next
 
@@ -3239,7 +3268,7 @@ Namespace OnTrack.Scheduling
                     ''' is the schedule finished ? - checks are obsolete
                     ''' 
                     If aMilestone.Value IsNot Nothing AndAlso aMilestone.IsValid Then
-                        msglog.Add(2211, Nothing, Nothing, Nothing, Nothing, aScheduleDefinition.ID, aMilestone.ID, CType(aMilestone.Value, Date))
+                        msglog.Add(2211, Nothing, Nothing, Nothing, Nothing, Me, aScheduleDefinition.ID, aMilestone.ID, CType(aMilestone.Value, Date))
                     End If
                 End If
                 '''
@@ -3250,25 +3279,28 @@ Namespace OnTrack.Scheduling
                 If aMSDef IsNot Nothing Then
                     If aMilestone.Value IsNot Nothing AndAlso aMSDef.IsFacultative Then
                         If aMilestone.IsActual Then
-                            msglog.Add(2105, Nothing, Nothing, Nothing, Nothing, aScheduleDefinition.ID, aMilestone.ID)
+                            msglog.Add(2105, Nothing, Nothing, Nothing, Nothing, Me, aScheduleDefinition.ID, aMilestone.ID)
                         Else
-                            msglog.Add(2108, Nothing, Nothing, Nothing, Nothing, aScheduleDefinition.ID, aMilestone.ID)
+                            msglog.Add(2108, Nothing, Nothing, Nothing, Nothing, Me, aScheduleDefinition.ID, aMilestone.ID)
                         End If
 
                     End If
                     If aMilestone.Value Is Nothing AndAlso aMSDef.IsMandatory Then
                         If aMilestone.IsActual Then
-                            msglog.Add(2104, Nothing, Nothing, Nothing, Nothing, aScheduleDefinition.ID, aMilestone.ID)
+                            ' doesnot make sense actual and mandatory means that if this is overdue it cannot be neglected
+                            ' for lfcl this means the schedule has not started but actual milestones in the past which are null
+
+                            'msglog.Add(2104, Nothing, Nothing, Nothing, Nothing, Me, aScheduleDefinition.ID, aMilestone.ID)
                         Else
-                            msglog.Add(2107, Nothing, Nothing, Nothing, Nothing, aScheduleDefinition.ID, aMilestone.ID)
+                            msglog.Add(2107, Nothing, Nothing, Nothing, Nothing, Me, aScheduleDefinition.ID, aMilestone.ID)
                         End If
 
                     End If
                     If aMilestone.Value IsNot Nothing AndAlso aMSDef.IsProhibited Then
                         If aMilestone.IsActual Then
-                            msglog.Add(2103, Nothing, Nothing, Nothing, Nothing, aScheduleDefinition.ID, aMilestone.ID, aMilestone.Value)
+                            msglog.Add(2103, Nothing, Nothing, Nothing, Nothing, Me, aScheduleDefinition.ID, aMilestone.ID, aMilestone.Value)
                         Else
-                            msglog.Add(2106, Nothing, Nothing, Nothing, Nothing, aScheduleDefinition.ID, aMilestone.ID, aMilestone.Value)
+                            msglog.Add(2106, Nothing, Nothing, Nothing, Nothing, Me, aScheduleDefinition.ID, aMilestone.ID, aMilestone.Value)
                         End If
 
                     End If
@@ -3281,12 +3313,12 @@ Namespace OnTrack.Scheduling
                     If IsDate(aMilestone.Value) Then
                         If Not CalendarEntry.IsAvailableOn(refdate:=CDate(aMilestone.Value), name:=CurrentSession.DefaultCalendarName) Then
                             ''' not available ?!
-                            msglog.Add(2210, Nothing, Nothing, Nothing, Nothing, aScheduleDefinition.ID, aMilestone.ID, _
+                            msglog.Add(2210, Nothing, Nothing, Nothing, Nothing, Me, aScheduleDefinition.ID, aMilestone.ID, _
                                        CDate(aMilestone.Value), CurrentSession.DefaultCalendarName)
                         End If
                     Else
                         ''' not a date ?!
-                        msglog.Add(2102, Nothing, Nothing, Nothing, Nothing, aScheduleDefinition.ID, aMilestone.ID, aMilestone.Value)
+                        msglog.Add(2102, Nothing, Nothing, Nothing, Nothing, Me, aScheduleDefinition.ID, aMilestone.ID, aMilestone.Value)
                     End If
 
                 End If
@@ -3296,13 +3328,13 @@ Namespace OnTrack.Scheduling
             ''' final status
             ''' 
             If Me.LifeCycleStatus Is Nothing Then
-                msglog.Add(2200, Nothing, Nothing, Nothing, Nothing, aScheduleDefinition.ID)
+                msglog.Add(2200, Nothing, Nothing, Nothing, Nothing, Me, aScheduleDefinition.ID)
                 Return otValidationResultType.Succeeded
             ElseIf Not Me.LifeCycleStatus.Aborting Then
-                msglog.Add(2201, Nothing, Nothing, Nothing, Nothing, aScheduleDefinition.ID)
-                Return otValidationResultType.FailedButProceed
+                msglog.Add(2201, Nothing, Nothing, Nothing, Nothing, Me, aScheduleDefinition.ID)
+                Return otValidationResultType.WarningProceed
             Else
-                Return otValidationResultType.FailedNoProceed
+                Return otValidationResultType.FailedButProceed
             End If
         End Function
 
@@ -3316,9 +3348,17 @@ Namespace OnTrack.Scheduling
             If msglog Is Nothing Then msglog = Me.ObjectMessageLog
             If Not Me.IsAlive("CheckScheduleProcessStatus") Then Return otValidationResultType.FailedNoProceed
 
+            ''' clear log
+            ''' 
+            For Each message In msglog
+                If message.StatusItems(statustype:=ConstStatusType_ScheduleProcess).Count > 0 Then
+                    message.Delete()
+                End If
+            Next
+
             Dim aScheduleDefinition As ScheduleDefinition = Me.ScheduleDefinition
             If aScheduleDefinition Is Nothing Then
-                msglog.Add(2101, Nothing, Nothing, Nothing, Nothing, Me.Uid, Me.Updc)
+                msglog.Add(2101, Nothing, Nothing, Nothing, Nothing, Me, Me.Uid, Me.Updc)
                 Return otValidationResultType.FailedNoProceed
             End If
 
@@ -3330,7 +3370,8 @@ Namespace OnTrack.Scheduling
                 '''
                 ''' is it a finishing milestone ?!
                 ''' 
-                If aMilestone.IsActual AndAlso aMilestone.IsFinishingMilestone AndAlso aMilestone.IsDate AndAlso aMilestone.IsValid Then
+                If aMilestone.IsActual AndAlso aMilestone.Value IsNot Nothing AndAlso _
+                    aMilestone.IsFinishingMilestone AndAlso aMilestone.IsDate AndAlso aMilestone.IsValid Then
                     '''
                     ''' check on finishing
                     ''' 
@@ -3351,11 +3392,11 @@ Namespace OnTrack.Scheduling
                     If aMilestone.Value IsNot Nothing Then
                         Dim span As Integer = DateDiff("d", aFinishFCDate, afinishdate)
                         If span >= -30 AndAlso span <= 30 Then
-                            msglog.Add(2901, Nothing, Nothing, Nothing, Nothing, aScheduleDefinition.ID, span)
+                            msglog.Add(2901, Nothing, Nothing, Nothing, Nothing, Me, aScheduleDefinition.ID, span)
                         ElseIf span > 30 Then
-                            msglog.Add(2903, Nothing, Nothing, Nothing, Nothing, aScheduleDefinition.ID, span)
+                            msglog.Add(2903, Nothing, Nothing, Nothing, Nothing, Me, aScheduleDefinition.ID, span)
                         ElseIf span < -30 Then
-                            msglog.Add(2902, Nothing, Nothing, Nothing, Nothing, aScheduleDefinition.ID, span)
+                            msglog.Add(2902, Nothing, Nothing, Nothing, Nothing, Me, aScheduleDefinition.ID, span)
                         End If
                     Else
                         '''
@@ -3363,13 +3404,13 @@ Namespace OnTrack.Scheduling
                         ''' 
                         Dim span As Integer = DateDiff("d", aFinishFCDate, Date.Now)
                         If span > CurrentSession.TodayLatency + 30 Then
-                            msglog.Add(2610, Nothing, Nothing, Nothing, Nothing, aScheduleDefinition.ID, aFinishFCDate, span)
+                            msglog.Add(2610, Nothing, Nothing, Nothing, Nothing, Me, aScheduleDefinition.ID, aFinishFCDate, span)
                         ElseIf span > CurrentSession.TodayLatency Then
-                            msglog.Add(2611, Nothing, Nothing, Nothing, Nothing, aScheduleDefinition.ID, aFinishFCDate, span)
-                        ElseIf span >= -CurrentSession.TodayLatency Then
-                            msglog.Add(2612, Nothing, Nothing, Nothing, Nothing, aScheduleDefinition.ID, aFinishFCDate, -span)
+                            msglog.Add(2611, Nothing, Nothing, Nothing, Nothing, Me, aScheduleDefinition.ID, aFinishFCDate, span)
+                        ElseIf span < CurrentSession.TodayLatency Then
+                            msglog.Add(2612, Nothing, Nothing, Nothing, Nothing, Me, aScheduleDefinition.ID, aFinishFCDate, -span)
                         Else
-                            msglog.Add(2613, Nothing, Nothing, Nothing, Nothing, aScheduleDefinition.ID, aFinishFCDate, -span)
+                            msglog.Add(2613, Nothing, Nothing, Nothing, Nothing, Me, aScheduleDefinition.ID, aFinishFCDate, -span)
                         End If
                     End If
 
@@ -3396,7 +3437,7 @@ Namespace OnTrack.Scheduling
             result = Me.CheckScheduleLifeCycle(msglog:=msglog)
             status = msglog.GetHighesStatusItem(statustype:=ConstStatusType_ScheduleLifecycle)
             Me.LifeCycleStatus = status
-            If status.Aborting OrElse result = otValidationResultType.FailedNoProceed Then
+            If status IsNot Nothing AndAlso (status.Aborting OrElse result = otValidationResultType.FailedNoProceed) Then
                 Return otValidationResultType.FailedNoProceed
             End If
 
@@ -3406,7 +3447,7 @@ Namespace OnTrack.Scheduling
             result = Me.CheckScheduleProcessStatus(msglog:=msglog)
             status = msglog.GetHighesStatusItem(statustype:=ConstStatusType_ScheduleProcess)
             Me.ProcessStatus = status
-            If status.Aborting OrElse result = otValidationResultType.FailedNoProceed Then
+            If status IsNot Nothing AndAlso (status.Aborting OrElse result = otValidationResultType.FailedNoProceed) Then
                 Return otValidationResultType.FailedNoProceed
             End If
 
@@ -3655,6 +3696,7 @@ Namespace OnTrack.Scheduling
             End Try
         End Function
 
+      
     End Class
 
     ''' <summary>
@@ -3840,8 +3882,11 @@ Namespace OnTrack.Scheduling
             Get
                 If Not Me.IsAlive("ScheduleMilestoneDefinition") Then Return Nothing
                 If Me.ScheduleEdition Is Nothing Then Return Nothing
-                If _schedulemilestonedefinition Is Nothing Then _schedulemilestonedefinition = Scheduling.ScheduleMilestoneDefinition.Retrieve(Me.ScheduleEdition.Typeid, ID:=Me.ID)
-                Return Me._schedulemilestonedefinition
+                If _schedulemilestonedefinition Is Nothing Then
+                    _schedulemilestonedefinition = _
+                        Scheduling.ScheduleMilestoneDefinition.Retrieve(Me.ScheduleEdition.Typeid, ID:=Me.ID, domainID:=Me.DomainID)
+                End If
+              Return Me._schedulemilestonedefinition
             End Get
 
         End Property
@@ -4049,8 +4094,8 @@ Namespace OnTrack.Scheduling
             ''' 
             If anID IsNot Nothing AndAlso anUPDC.HasValue AndAlso anUID.HasValue Then
                 Dim anEdition = Scheduling.ScheduleEdition.Retrieve(UID:=anUID, updc:=anUPDC)
-                Dim aMilestoneDef = Scheduling.MileStoneDefinition.Retrieve(id:=anID)
-                Dim aScheduleMilestoneDef = Scheduling.ScheduleMilestoneDefinition.Retrieve(scheduletype:=anEdition.Typeid, ID:=anID)
+                Dim aMilestoneDef = Scheduling.MileStoneDefinition.Retrieve(id:=anID, domainID:=Me.DomainID)
+                Dim aScheduleMilestoneDef = Scheduling.ScheduleMilestoneDefinition.Retrieve(scheduletype:=anEdition.Typeid, ID:=anID, domainID:=Me.DomainID)
 
                 If Not e.Record.HasIndex(ConstFNDatatype) OrElse e.Record.GetValue(ConstFNDatatype) Is Nothing OrElse e.Record.GetValue(ConstFNDatatype) = 0 Then
                     e.Record.SetValue(ConstFNDatatype, aMilestoneDef.Datatype)
@@ -4263,7 +4308,7 @@ Namespace OnTrack.Scheduling
                     ''' prohibited
                     ''' 
                     If aDef IsNot Nothing AndAlso aDef.IsProhibited Then
-                        e.Msglog.Add(2302, Nothing, Nothing, Nothing, Nothing, Me.UID, Me.Updc, Me.ID, e.Value, aDef.ScheduleTypeID)
+                        e.Msglog.Add(2302, Nothing, Nothing, Nothing, Nothing, Me, Me.UID, Me.Updc, Me.ID, e.Value, aDef.ScheduleTypeID)
                         e.Value = Nothing
                         e.Result = True
                         e.ValidationResult = otValidationResultType.FailedButProceed
@@ -4291,7 +4336,7 @@ Namespace OnTrack.Scheduling
             If (e.ObjectEntryName = ConstFNvalue OrElse e.ObjectEntryName = ConstFNvaluedate) AndAlso Me.IsDate Then
 
                 If e.Value IsNot Nothing AndAlso Not Microsoft.VisualBasic.IsDate(e.Value) Then
-                    e.Msglog.Add(2300, Nothing, Nothing, Nothing, Nothing, Me.UID, Me.Updc, Me.ID)
+                    e.Msglog.Add(2300, Nothing, Nothing, Nothing, Nothing, Me, Me.UID, Me.Updc, Me.ID)
                     e.ValidationResult = otValidationResultType.FailedNoProceed
                     Return
                 ElseIf e.Value IsNot Nothing And Microsoft.VisualBasic.IsDate(e.Value) Then
@@ -4299,14 +4344,14 @@ Namespace OnTrack.Scheduling
                     ''' prohibited
                     ''' 
                     If aDef.IsProhibited Then
-                        e.Msglog.Add(2303, Nothing, Nothing, Nothing, Nothing, Me.UID, Me.Updc, Me.ID, e.Value, aDef.ScheduleTypeID)
+                        e.Msglog.Add(2303, Nothing, Nothing, Nothing, Nothing, Me, Me.UID, Me.Updc, Me.ID, e.Value, aDef.ScheduleTypeID)
                         e.ValidationResult = otValidationResultType.FailedNoProceed
                         Return
                     End If
                     ''' not in calendar
                     ''' 
                     If Not CalendarEntry.HasDate(refDate:=CDate(e.Value)) Then
-                        e.Msglog.Add(2301, Nothing, Nothing, Nothing, Nothing, Me.UID, Me.Updc, Me.ID, e.Value)
+                        e.Msglog.Add(2301, Nothing, Nothing, Nothing, Nothing, Me, Me.UID, Me.Updc, Me.ID, e.Value)
                         e.ValidationResult = otValidationResultType.FailedNoProceed
                         Return
                     Else
@@ -4334,9 +4379,21 @@ Namespace OnTrack.Scheduling
         ''' <param name="FORCE"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Create(ByVal UID As Long, ByVal updc As Long, ByVal ID As String) As ScheduleMilestone
+        Public Overloads Shared Function Create(ByVal UID As Long, ByVal updc As Long, ByVal ID As String, _
+                                                Optional domainid As String = Nothing, _
+                                                Optional workspaceid As String = Nothing) As ScheduleMilestone
             Dim pkarray() As Object = {UID, updc, ID}
-            Return ormDataObject.CreateDataObject(Of ScheduleMilestone)(pkarray, checkUnique:=True)
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
+            If String.IsNullOrWhiteSpace(workspaceid) Then workspaceid = CurrentSession.CurrentWorkspaceID
+            Dim aRecord As New ormRecord
+            With aRecord
+                .SetValue(ConstFNUid, UID)
+                .SetValue(ConstFNUpdc, updc)
+                .SetValue(ConstFNID, ID)
+                .SetValue(ConstFNDomainID, domainid) ' add this for the milestone definition and we are not under domainbehavior
+                .SetValue(ConstFNWorkspace, workspaceid)
+            End With
+            Return ormDataObject.CreateDataObject(Of ScheduleMilestone)(aRecord, checkUnique:=True, domainID:=domainid)
         End Function
 
         ''' <summary>
@@ -4458,8 +4515,7 @@ Namespace OnTrack.Scheduling
             XID:="SL2", title:="Linked from UID", description:="uid link from the scheduled object")> Public Const ConstFNFromUID = "FROMUID"
 
         <ormObjectEntry(referenceobjectentry:=MileStoneDefinition.ConstObjectID & "." & MileStoneDefinition.ConstFNID, primarykeyordinal:=3, _
-            dbdefaultValue:="", _
-             properties:={ObjectEntryProperty.Keyword}, _
+            dbdefaultValue:="", properties:={ObjectEntryProperty.Keyword}, _
             XID:="SL3", title:="Linked from Milestone", description:="uid link from the scheduled object milestone")> Public Const ConstFNFromMilestoneID = "FROMMS"
 
         ''' <summary>
@@ -4480,8 +4536,7 @@ Namespace OnTrack.Scheduling
 
         <ormObjectEntry(referenceobjectentry:=MileStoneDefinition.ConstObjectID & "." & MileStoneDefinition.ConstFNID, _
             primarykeyordinal:=5, _
-             properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.UseLookup}, _
-             LookupPropertyStrings:={LookupProperty.UseAttributeReference}, _
+             properties:={ObjectEntryProperty.Keyword}, _
             XID:="SL6", title:="Linked to Milestone", description:="uid link to the scheduled object milestone")> Public Const CONSTFNToMilestoneID = "TOMS"
 
         ' deactivate ForeignKEy we do not have this object in domains
@@ -5225,7 +5280,7 @@ Namespace OnTrack.Scheduling
                         aWorkingEdition.Incfcupdc()
                         aWorkingEdition.LastForecastUpdate = timestamp
                         '** right-move of new Schedule if we are frozen
-                        If Me.AliveEdition IsNot Nothing OrElse Me.AliveEdition.IsFrozen Then
+                        If Me.AliveEdition IsNot Nothing AndAlso Me.AliveEdition.IsFrozen Then
                             Dim aNewDate As Date?
                             Dim anOldDate As Date?
                             For Each anID In aWorkingEdition.ScheduleDefinition.GetActualFinishID
@@ -5364,7 +5419,7 @@ Namespace OnTrack.Scheduling
                 End If
                 '' create
                 If aSchedule Is Nothing Then
-                    aSchedule = ScheduleEdition.Create(uid:=Me.UID, workspaceID:=Me.WorkspaceID, scheduletypeid:=Me.ScheduleTypeID)
+                    aSchedule = ScheduleEdition.Create(uid:=Me.UID, workspaceID:=Me.WorkspaceID, domainid:=Me.DomainID, scheduletypeid:=Me.ScheduleTypeID)
                     '' try to get a missed one
                     If aSchedule Is Nothing Then
                         Dim aWorkspace As Commons.Workspace = Me.Workspace
@@ -5502,14 +5557,19 @@ error_handler:
         ''' <param name="workspaceID"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Shared Function Create(Optional ByVal UID As Long = 0, Optional ByVal workspaceID As String = "", Optional scheduletypeid As String = "") As WorkspaceSchedule
-            If workspaceID = "" Then workspaceID = CurrentSession.CurrentWorkspaceID
-            If scheduletypeid = "" Then scheduletypeid = CurrentSession.DefaultScheduleTypeID
+        Public Shared Function Create(Optional ByVal UID As Long = 0, _
+                                      Optional ByVal workspaceID As String = Nothing, _
+                                      Optional domainid As String = Nothing, _
+                                      Optional scheduletypeid As String = Nothing) As WorkspaceSchedule
+            If String.IsNullOrWhiteSpace(workspaceID) Then workspaceID = CurrentSession.CurrentWorkspaceID
+            If String.IsNullOrWhiteSpace(scheduletypeid) Then scheduletypeid = CurrentSession.DefaultScheduleTypeID
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
             Dim aRecord As New ormRecord
             With aRecord
                 .SetValue(ConstFNUID, UID)
                 .SetValue(ConstFNWorkspaceID, workspaceID)
                 .SetValue(ConstFNTypeid, scheduletypeid)
+                .SetValue(ConstFNDomainID, domainid)
             End With
             Return ormDataObject.CreateDataObject(Of WorkspaceSchedule)(aRecord, checkUnique:=True)
         End Function
@@ -5578,7 +5638,7 @@ error_handler:
                 If Not Me.Workspace.IsBasespace OrElse Not Me.Workspace.HasActuals Then
                     '' create the base and actual !
                     Dim aWorkspace As Workspace = Me.Workspace.GetFirstActual
-                    Dim aBaseSchedule = ScheduleEdition.Create(uid:=Me.UID, workspaceID:=aWorkspace.ID, scheduletypeid:=Me.ScheduleTypeID)
+                    Dim aBaseSchedule = ScheduleEdition.Create(uid:=Me.UID, workspaceID:=aWorkspace.ID, domainid:=Me.DomainID, scheduletypeid:=Me.ScheduleTypeID)
                     AddHandler Me.OnPersisted, AddressOf aBaseSchedule.Request_Perist
                 End If
 
@@ -5586,7 +5646,7 @@ error_handler:
                 '' this will be an empty one (recursive cloneing from workspace stack should be implemented later)
                 If _workingedition Is Nothing Then
                     If _aliveedition Is Nothing Then
-                        aScheduleEdition = ScheduleEdition.Create(uid:=Me.UID, workspaceID:=Me.WorkspaceID, scheduletypeid:=Me.ScheduleTypeID)
+                        aScheduleEdition = ScheduleEdition.Create(uid:=Me.UID, workspaceID:=Me.WorkspaceID, domainid:=Me.DomainID, scheduletypeid:=Me.ScheduleTypeID)
                     Else
                         '' clone the last alive edition for the working edition
                         aScheduleEdition = _aliveedition.Clone()

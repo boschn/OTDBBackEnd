@@ -54,7 +54,7 @@ Namespace OnTrack.Database
         ''' <value>The table store.</value>
         Public ReadOnly Property PrimaryTableStore() As iormDataStore Implements iormPersistable.PrimaryTableStore
             Get
-                If _record IsNot Nothing AndAlso _record.Alive AndAlso _record.TableStores IsNot Nothing Then
+                If _record IsNot Nothing AndAlso _record.Alive AndAlso _record.TableStores IsNot Nothing AndAlso _record.TableStores.Count > 0 Then
                     Return _record.GetTablestore(Me.PrimaryTableID)
                     ''' assume about the tablestore to choose
                 ElseIf Not Me.RunTimeOnly AndAlso Me.PrimaryTableID IsNot Nothing Then
@@ -294,7 +294,7 @@ Namespace OnTrack.Database
         ''' <remarks></remarks>
         Public ReadOnly Property ObjectTag() As String
             Get
-                If Not Me.IsAlive(subname:="ObjectTag") Then Return ""
+
                 Return ConstDelimiter & Me.ObjectID.ToUpper & Converter.Array2otString(Me.PrimaryKeyValues)
             End Get
         End Property
@@ -489,6 +489,22 @@ Namespace OnTrack.Database
             End Set
         End Property
         ''' <summary>
+        ''' returns an array of the primarykey entry names
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property PrimaryKeyEntrynames As String()
+            Get
+                If (_primarykeynames Is Nothing OrElse _primarykeynames.Length = 0) Then
+                    Dim aDescription = ot.GetObjectClassDescriptionByID(id:=Me.ObjectID)
+                    _primarykeynames = aDescription.PrimaryKeyEntryNames
+                End If
+
+                Return _primarykeynames
+            End Get
+        End Property
+        ''' <summary>
         ''' returns the primaryKeyvalues
         ''' </summary>
         ''' <value></value>
@@ -497,16 +513,14 @@ Namespace OnTrack.Database
         Public ReadOnly Property PrimaryKeyValues As Object() Implements iormPersistable.PrimaryKeyValues
             Get
 
-                If (_primaryKeyValues Is Nothing OrElse _primaryKeyValues.Length = 0) _
-                    AndAlso Me.IsAlive(throwError:=False, subname:="PrimaryKeyValue") Then
+                If (_primaryKeyValues Is Nothing OrElse _primaryKeyValues.Length = 0) Then
 
-                    _primarykeynames = Me.PrimaryTableStore.TableSchema.PrimaryKeys.ToArray
-                    If _primarykeynames IsNot Nothing AndAlso _primarykeynames.Length > 0 Then
-                        ReDim _primaryKeyValues(_primarykeynames.Length - 1)
+                    If Me.PrimaryKeyEntrynames IsNot Nothing AndAlso PrimaryKeyEntrynames.Length > 0 Then
+                        ReDim _primaryKeyValues(Me.PrimaryKeyEntrynames.Length - 1)
 
-                        For i = 0 To _primarykeynames.Length - 1
-                            If _primarykeynames(i) IsNot Nothing Then
-                                _primaryKeyValues(i) = Me.GetValue(_primarykeynames(i))
+                        For i = 0 To Me.PrimaryKeyEntrynames.Length - 1
+                            If Me.PrimaryKeyEntrynames(i) IsNot Nothing Then
+                                _primaryKeyValues(i) = Me.GetValue(Me.PrimaryKeyEntrynames(i))
                             End If
                         Next
                     End If

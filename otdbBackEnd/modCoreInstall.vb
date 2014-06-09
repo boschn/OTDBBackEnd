@@ -24,22 +24,24 @@ Namespace OnTrack.Database
         ''' <remarks></remarks>
         Public Sub Scheduling()
 
-            If Not ot.CurrentSession.RequireAccessRight(otAccessRight.AlterSchema) Then
-                Call ot.CoreMessageHandler(message:="Access right couldnot be set to AlterSchema", subname:="modCreateDB.createDatabase_Schedule", _
-                                             messagetype:=otCoreMessageType.ApplicationInfo, break:=False)
-                Exit Sub
-            End If
+            'If Not ot.CurrentSession.RequireAccessRight(otAccessRight.AlterSchema) Then
+            '    Call ot.CoreMessageHandler(message:="Access right couldnot be set to AlterSchema", subname:="modCreateDB.createDatabase_Schedule", _
+            '                                 messagetype:=otCoreMessageType.ApplicationInfo, break:=False)
+            '    Exit Sub
+            'End If
 
 
-            Dim aCurrSCHEDULE As New WorkspaceSchedule
-            Dim aCurrTarget As New WorkspaceTarget
+            'Dim aCurrSCHEDULE As New WorkspaceSchedule
+            'Dim aCurrTarget As New WorkspaceTarget
 
-            'Dim aMSPivot As New clsOTDBMilestonePivot
-            'Dim aPivotMSP As New clsOTDBPivotMSPSchedule
-            Dim aDepend As New clsOTDBDependMember
-            Dim aCluster As New clsOTDBCluster
+            ''Dim aMSPivot As New clsOTDBMilestonePivot
+            ''Dim aPivotMSP As New clsOTDBPivotMSPSchedule
+            'Dim aDepend As New clsOTDBDependMember
+            'Dim aCluster As New clsOTDBCluster
 
-
+            '''
+            ''' LEGACY OBSOLETE CODE SAMPLES 
+            ''' 
 
 
             'Dim aSchedule As New Schedule
@@ -868,32 +870,32 @@ Namespace OnTrack.Database
             'End If
 
 
-            Dim aDependCheck As New clsOTDBDependCheck
-            If Not aDependCheck.CreateSchema() Then
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="createDatabase", message:="partsdependeny couldn't be created")
-            Else
+            'Dim aDependCheck As New clsOTDBDependCheck
+            'If Not aDependCheck.CreateSchema() Then
+            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="createDatabase", message:="partsdependeny couldn't be created")
+            'Else
 
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_Schedule", message:="Dependency Check Object is up-to-date", _
-                                             messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aDependCheck.PrimaryTableID)
+            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_Schedule", message:="Dependency Check Object is up-to-date", _
+            '                                 messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aDependCheck.PrimaryTableID)
 
-            End If
+            'End If
 
-            If Not aDepend.CreateSchema() Then
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="createDatabase", message:="dependency object couldn't be created")
-            Else
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_Schedule", message:="dependency object is up-to-date", _
-                                             messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aDepend.PrimaryTableID)
+            'If Not aDepend.CreateSchema() Then
+            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="createDatabase", message:="dependency object couldn't be created")
+            'Else
+            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_Schedule", message:="dependency object is up-to-date", _
+            '                                 messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aDepend.PrimaryTableID)
 
-            End If
+            'End If
 
 
-            If Not aCluster.createSchema() Then
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="createDatabase", message:="cluster couldn't be created")
-            Else
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_Schedule", message:="dependency cluster is up-to-date", _
-                                             messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aCluster.PrimaryTableID)
+            'If Not aCluster.createSchema() Then
+            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="createDatabase", message:="cluster couldn't be created")
+            'Else
+            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_Schedule", message:="dependency cluster is up-to-date", _
+            '                                 messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aCluster.PrimaryTableID)
 
-            End If
+            'End If
 
 
 
@@ -1161,10 +1163,21 @@ Namespace OnTrack.Database
             Dim sessionrunning As Boolean = CurrentSession.IsRunning
             Dim sessionstarted As Boolean = False
             Dim sessionaborted As Boolean = False
+
+            '** if not global domain shutdown
+            If (sessionrunning AndAlso ot.CurrentSession.CurrentDomainID <> ConstGlobalDomain) Then
+                Call ot.CoreMessageHandler(showmsgbox:=True, subname:="modCreateDB.createDatabase_RUN", _
+                                                       message:="shutting down current session since it is not in the global domain", _
+                                                       messagetype:=otCoreMessageType.InternalInfo)
+                CurrentSession.ShutDown(force:=True)
+                sessionrunning = False
+            End If
+            '** no session runnnig -> startup
             If Not sessionrunning Then
                 ''' if we have to abort the starting up
                 If CurrentSession.IsStartingUp Then sessionaborted = CurrentSession.RequestToAbortStartingUp()
-                sessionstarted = CurrentSession.StartUp(otAccessRight.AlterSchema, messagetext:="Please start up a Session to setup initial data")
+                sessionstarted = CurrentSession.StartUp(otAccessRight.AlterSchema, domainID:=ConstGlobalDomain, messagetext:="Please start up a Session to setup initial data")
+
             End If
 
             '***

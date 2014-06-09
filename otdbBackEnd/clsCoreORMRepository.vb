@@ -223,7 +223,7 @@ Namespace OnTrack.Database
         Private Sub OnDomainInitialize(sender As Object, e As DomainEventArgs) Handles _Domain.OnInitialize
             If _DomainID = "" And Not IsInitialized Then
                 If e.Domain IsNot Nothing Then
-                    _DomainID = e.Domain.DomainID
+                    _DomainID = e.Domain.ID
                 End If
 
             End If
@@ -268,7 +268,7 @@ Namespace OnTrack.Database
         ''' <remarks></remarks>
         Private Function AddXID(ByRef entry As iormObjectEntry) As Boolean
             Dim entries As List(Of iormObjectEntry)
-
+           
             If _XIDDirectory.ContainsKey(key:=UCase(entry.XID)) Then
                 entries = _XIDDirectory.Item(key:=UCase(entry.XID))
             Else
@@ -332,11 +332,17 @@ Namespace OnTrack.Database
             Return True
         End Function
 
+        ''' <summary>
+        ''' Handler for the Domain changing event
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
         Public Sub OnDomainChanging(sender As Object, e As SessionEventArgs) Handles _Session.OnDomainChanging
             If Not IsInitialized Then
                 SyncLock _lock
                     If e.NewDomain IsNot Nothing Then
-                        _DomainID = e.NewDomain.DomainID
+                        _DomainID = e.NewDomain.ID
                     Else
                         _DomainID = DirectCast(sender, Session).CurrentDomainID
                     End If
@@ -345,25 +351,31 @@ Namespace OnTrack.Database
 
             End If
         End Sub
+        ''' <summary>
+        ''' handler for the domain Changed Event
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
         Public Sub OnDomainChanged(sender As Object, e As SessionEventArgs) Handles _Session.OnDomainChanged
             If Not IsInitialized Then
                 SyncLock _lock
                     _DomainID = DirectCast(sender, Session).CurrentDomainID
                 End SyncLock
-
+                '** initialize the store
                 Initialize()
             End If
         End Sub
         ''' <summary>
-        ''' Initialize
+        ''' Initialize the repository and load the minimum objects
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function Initialize() As Boolean
+        Public Function Initialize(Optional force As Boolean = False) As Boolean
             Dim aDBDriver As iormDatabaseDriver
 
             '* donot doe it again
-            If Me.IsInitialized Then Return False
+            If Me.IsInitialized AndAlso Not force Then Return False
 
             If _DomainID = "" Then
                 CoreMessageHandler(message:="DomainID is not set in objectStore", arg1:=Me._Session.SessionID, messagetype:=otCoreMessageType.InternalError, _
@@ -399,17 +411,18 @@ Namespace OnTrack.Database
                         theObjectnames = objectsToLoad.ToString.Split(delimiters)
                     End If
 
-                    CoreMessageHandler(message:="Initializing " & ot.GetBootStrapObjectClassIDs.Count & " OnTrack Bootstrapping Objects ....", messagetype:=otCoreMessageType.ApplicationInfo, subname:="ObjectRepository.Initialize")
+                    CoreMessageHandler(message:="Initializing " & ot.GetBootStrapObjectClassIDs.Count & " OnTrack Bootstrapping Objects in Domain '" & _DomainID & "' ....", messagetype:=otCoreMessageType.ApplicationInfo, subname:="ObjectRepository.Initialize")
 
                     Dim i As UShort = 1
 
                     '** load the bootstrapping core
                     For Each name In ot.GetBootStrapObjectClassIDs
                         name = Trim(name.ToUpper) ' for some reasons better to trim
-                        Dim anObject As ObjectDefinition = _
-                            ObjectDefinition.Retrieve(objectname:=name, dbdriver:=aDBDriver, domainID:=_DomainID)
+                        Dim anObject As ObjectDefinition = Me.GetObject(objectid:=name, domainid:=_DomainID)
+
+                        'ObjectDefinition.Retrieve(objectname:=name, dbdriver:=aDBDriver, domainID:=_DomainID)
                         If anObject IsNot Nothing Then
-                            Me.LoadIntoRepository(anObject)
+                            'Me.LoadIntoRepository(anObject)
                             CoreMessageHandler(message:="Initialized OnTrack " & i & "/" & ot.GetBootStrapObjectClassIDs.Count & " Bootstrapping Object " & name, messagetype:=otCoreMessageType.ApplicationInfo, subname:="ObjectRepository.Initialize")
 
                         Else
@@ -478,7 +491,7 @@ Namespace OnTrack.Database
                 End If
             End If
 
-            
+
             '** save it
             If _objectDirectory.ContainsKey([object].ID) Then
                 _objectDirectory.Remove([object].ID)
@@ -699,9 +712,10 @@ Namespace OnTrack.Database
         ''' <param name="objectname">name of the object</param>
         ''' <returns>an Entry object or nothing </returns>
         ''' <remarks></remarks>
-        Public Function GetObject(objectid As String, Optional runtimeOnly As Boolean = False) As ObjectDefinition
+        Public Function GetObject(objectid As String, Optional domainid As String = Nothing, Optional runtimeOnly As Boolean = False) As ObjectDefinition
             Dim anObject As ObjectDefinition
             objectid = objectid.ToUpper
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
 
             If _objectDirectory.ContainsKey(key:=objectid) Then
                 Return _objectDirectory.Item(key:=objectid)
@@ -710,10 +724,10 @@ Namespace OnTrack.Database
                 '** no runtime -> better ask the session
                 If Not runtimeOnly Then runtimeOnly = _Session.IsBootstrappingInstallationRequested
                 '** retrieve Object
-                anObject = ObjectDefinition.Retrieve(objectname:=objectid, domainID:=_DomainID, runtimeOnly:=runtimeOnly)
+                anObject = ObjectDefinition.Retrieve(objectname:=objectid, domainID:=domainid, runtimeOnly:=runtimeOnly)
                 '** no object in persistancy but creatable from class description
                 If anObject Is Nothing AndAlso ot.GetObjectClassDescriptionByID(id:=objectid) IsNot Nothing Then
-                    anObject = ObjectDefinition.Create(objectID:=objectid, runTimeOnly:=runtimeOnly)
+                    anObject = ObjectDefinition.Create(objectID:=objectid, domainID:=domainid, runTimeOnly:=runtimeOnly)
                     If anObject Is Nothing Then
                         CoreMessageHandler(message:="Failed to retrieve the object definition in non runtime mode", arg1:=objectid, _
                                             objectname:=objectid, messagetype:=otCoreMessageType.InternalError, subname:="ObjectRepository.getObject")
@@ -725,6 +739,7 @@ Namespace OnTrack.Database
                     End If
                 End If
                 If anObject IsNot Nothing Then
+                   
                     '*** add to repository
                     LoadIntoRepository(anObject)
                     If HasObject(objectid:=objectid) Then
@@ -774,7 +789,7 @@ Namespace OnTrack.Database
         ''' <param name="Alias"></param>
         ''' <returns>an Entry object or nothing </returns>
         ''' <remarks></remarks>
-        Public Function GetEntryByXID([xid] As String, Optional objectname As String = "") As IList(Of iormObjectEntry)
+        Public Function GetEntriesByXID([xid] As String, Optional objectname As String = "") As IList(Of iormObjectEntry)
             xid = xid.ToUpper
             objectname = objectname.ToUpper
             If _XIDDirectory.ContainsKey(xid) Then
@@ -796,7 +811,7 @@ Namespace OnTrack.Database
                     If objectname <> "" AndAlso names(0) = objectname Then
                         Me.GetObject(names(0)) ' load the object full
                         If _XIDDirectory.ContainsKey(xid) Then
-                            Return GetEntryByXID(xid) 'recursion by intention
+                            Return GetEntriesByXID(xid) 'recursion by intention
                         Else
                             CoreMessageHandler(message:="xid could not be found in XIDDirectory although reference object was loaded", _
                                                arg1:=xid, objectname:=objectname, _
@@ -809,7 +824,7 @@ Namespace OnTrack.Database
                     End If
                     ' return
                     If _XIDDirectory.ContainsKey(xid) Then
-                        Return GetEntryByXID(xid)
+                        Return GetEntriesByXID(xid)
                     Else
                         CoreMessageHandler(message:="xid could not be found in XIDDirectory although reference object was loaded", _
                                                arg1:=xid, _
@@ -4498,7 +4513,7 @@ Namespace OnTrack.Database
             '    End If
             'End If
             ' register handler
-            AddHandler entry.PropertyChanged, AddressOf ObjectDefinition_OnEntryChanged
+            AddHandler TryCast(entry, ormDataObject).PropertyChanged, AddressOf ObjectDefinition_OnEntryChanged
 
             ' add entry
             _objectentries.Add(key:=entry.Entryname.ToUpper, value:=entry)
@@ -4523,7 +4538,7 @@ Namespace OnTrack.Database
             If Not IsAlive(subname:="Hasentry") Then Return False
             If isActive Then
                 If _objectentries.ContainsKey(key:=entryname.ToUpper) Then
-                    Return _objectentries.Item(key:=entryname.ToUpper).isAlive
+                    Return _objectentries.Item(key:=entryname.ToUpper).IsActive
                 Else
                     Return False
                 End If
@@ -4789,7 +4804,7 @@ Namespace OnTrack.Database
                 anEntry = Me.GetEntry(entryname:=Domain.ConstFNIsDomainIgnored)
                 If anEntry IsNot Nothing Then anEntry.IsActive = Me.HasDomainBehavior
                 anEntry = Me.GetEntry(entryname:=Domain.ConstFNDomainID)
-                If anEntry IsNot Nothing Then anEntry.IsActive = Me.HasDomainBehavior
+                If anEntry IsNot Nothing And Me.ID <> Domain.ConstObjectID Then anEntry.IsActive = Me.HasDomainBehavior
 
                 anEntry = Me.GetEntry(entryname:=ConstFNIsDeleted)
                 If anEntry IsNot Nothing Then anEntry.IsActive = Me.HasDeleteFieldBehavior
@@ -4860,7 +4875,7 @@ Namespace OnTrack.Database
         ''' <param name="name"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Function GetQuery(name As String, Optional domainid As String = "") As iormQueriedEnumeration
+        Public Overloads Function GetQuery(name As String, Optional domainid As String = Nothing) As iormQueriedEnumeration
             ''' function gets a queried enumeration mostly from the attribute unless we have no 
             ''' query objects in the core
             If Not Me.IsAlive(subname:="Objectdefinition.GetQuery") Then Return Nothing
@@ -4889,7 +4904,7 @@ Namespace OnTrack.Database
             'End If
 
             '** DOMAIN ID
-            If domainid = "" Then domainid = ConstGlobalDomain
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
 
             '** check on the operation right for this object for the current username (might be that during session startup otdb username is not set)
             If Not CurrentSession.IsStartingUp AndAlso Not ot.GetBootStrapObjectClassIDs.Contains(anObjectID) _
@@ -4958,8 +4973,8 @@ Namespace OnTrack.Database
                 ''' 
                 If CurrentSession.IsBootstrappingInstallationRequested _
                   OrElse ot.GetBootStrapObjectClassnames.Contains(Me.Classname.ToUpper) Then
-                    hasDomainBehavior = Me.ObjectHasDomainBehavior
-                    hasDeleteBehavior = Me.ObjectHasDeletePerFlagBehavior
+                    hasDomainBehavior = Me.HasDomainBehavior
+                    hasDeleteBehavior = Me.HasDeleteFieldBehavior
                 Else
                     hasDomainBehavior = aDescription.ObjectAttribute.AddDomainBehavior
                     hasDeleteBehavior = aDescription.ObjectAttribute.AddDeleteFieldBehavior
@@ -4974,7 +4989,6 @@ Namespace OnTrack.Database
                 ''' build domain behavior and deleteflag
                 ''' 
                 If hasDomainBehavior Then
-                    If domainid = "" Then domainid = CurrentSession.CurrentDomainID
                     ''' add where
                     If Not String.IsNullOrWhiteSpace(where) Then where &= " AND "
                     where &= String.Format(" ([{0}] = @{0} OR [{0}] = @Global{0})", ConstFNDomainID)
@@ -5048,7 +5062,7 @@ Namespace OnTrack.Database
         useCache:=True, AddDeletefieldBehavior:=True, AddDomainBehavior:=True, isbootstrap:=True, Version:=1)> _
     Public MustInherit Class AbstractEntryDefinition
         Inherits ormDataObject
-        Implements iormPersistable, iormInfusable, iormObjectEntry
+        Implements iormPersistable, iormInfusable, iormObjectEntry, System.ComponentModel.INotifyPropertyChanged
 
         ''' <summary>
         ''' Object ID
@@ -5232,7 +5246,7 @@ Namespace OnTrack.Database
         ''' <param name="sender"></param>
         ''' <param name="e"></param>
         ''' <remarks></remarks>
-        Public Event PropertyChanged As System.ComponentModel.PropertyChangedEventHandler Implements iormObjectEntry.PropertyChanged
+        Public Event PropertyChanged As System.ComponentModel.PropertyChangedEventHandler Implements System.ComponentModel.INotifyPropertyChanged.PropertyChanged
 
         ''' <summary>
         ''' dynamic members
@@ -5261,7 +5275,7 @@ Namespace OnTrack.Database
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public ReadOnly Property IsMapped As Boolean Implements iormObjectEntry.IsMapped
+        Public Property IsMapped As Boolean Implements iormObjectEntry.IsMapped
             Get
                 Dim aDescription = ot.GetObjectClassDescriptionByID(Me.Objectname)
                 If aDescription IsNot Nothing Then
@@ -5269,6 +5283,10 @@ Namespace OnTrack.Database
                 End If
                 Return False
             End Get
+            Set(value As Boolean)
+                Throw New InvalidOperationException
+            End Set
+
         End Property
         ''' <summary>
         ''' gets or sets the readonly flag
@@ -5749,10 +5767,13 @@ Namespace OnTrack.Database
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public ReadOnly Property Objectname As String Implements iormObjectEntry.Objectname
+        Public Property Objectname As String Implements iormObjectEntry.Objectname
             Get
                 Objectname = _objectname
             End Get
+            Set(value As String)
+                Throw New InvalidOperationException
+            End Set
         End Property
 
         ''' <summary>
@@ -5785,10 +5806,13 @@ Namespace OnTrack.Database
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public ReadOnly Property Entryname As String Implements iormObjectEntry.Entryname
+        Public Property Entryname As String Implements iormObjectEntry.Entryname
             Get
                 Return _entryname
             End Get
+            Set(value As String)
+                Throw New InvalidOperationException("not allowed to set Entryname")
+            End Set
         End Property
 
         ''' <summary>
@@ -6787,9 +6811,10 @@ Namespace OnTrack.Database
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overloads Shared Function Retrieve(ByVal objectname As String, entryname As String, _
-                                                  Optional ByVal domainID As String = "", _
+                                                  Optional ByVal domainID As String = Nothing, _
                                                   Optional runtimeOnly As Boolean = False) As ObjectCompoundEntry
-            Return Retrieve(Of ObjectCompoundEntry)(pkArray:={objectname.ToUpper, entryname.ToUpper}, domainID:=domainID, runtimeOnly:=runtimeOnly)
+            If String.IsNullOrWhiteSpace(domainID) Then domainID = CurrentSession.CurrentDomainID
+            Return Retrieve(Of ObjectCompoundEntry)(pkArray:={objectname.ToUpper, entryname.ToUpper, domainID}, domainID:=domainID, runtimeOnly:=runtimeOnly)
         End Function
 
 
@@ -6831,7 +6856,7 @@ Namespace OnTrack.Database
                 usecache:=True, isbootstrap:=True, Version:=1)> _
     Public Class ObjectColumnEntry
         Inherits AbstractEntryDefinition
-        Implements iormPersistable, iormInfusable, iormObjectEntry
+        Implements iormPersistable, iormInfusable, iormObjectEntry, System.ComponentModel.INotifyPropertyChanged
 
 
         '*** CONST Schema
@@ -6881,8 +6906,7 @@ Namespace OnTrack.Database
         ''' <param name="sender"></param>
         ''' <param name="e"></param>
         ''' <remarks></remarks>
-        'Public Event PropertyChanged As System.ComponentModel.PropertyChangedEventHandler Implements System.ComponentModel.INotifyPropertyChanged.PropertyChanged
-        Public Event PropertyChanged As System.ComponentModel.PropertyChangedEventHandler Implements iormObjectEntry.PropertyChanged
+         Public Event PropertyChanged As System.ComponentModel.PropertyChangedEventHandler Implements System.ComponentModel.INotifyPropertyChanged.PropertyChanged
 
 
         ''' <summary>
@@ -7299,8 +7323,11 @@ Namespace OnTrack.Database
         ''' <param name="domainID"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Retrieve(ByVal objectname As String, entryname As String, Optional ByVal domainID As String = "", Optional runtimeOnly As Boolean = False) As ObjectColumnEntry
-            Return Retrieve(Of ObjectColumnEntry)(pkArray:={objectname.ToUpper, entryname.ToUpper}, domainID:=domainID, runtimeOnly:=runtimeOnly)
+        Public Overloads Shared Function Retrieve(ByVal objectname As String, entryname As String, _
+                                                  Optional ByVal domainID As String = Nothing, _
+                                                  Optional runtimeOnly As Boolean = False) As ObjectColumnEntry
+            If String.IsNullOrWhiteSpace(domainID) Then domainID = CurrentSession.CurrentDomainID
+            Return Retrieve(Of ObjectColumnEntry)(pkArray:={objectname.ToUpper, entryname.ToUpper, domainID}, domainID:=domainID, runtimeOnly:=runtimeOnly)
         End Function
 
         ''' <summary>

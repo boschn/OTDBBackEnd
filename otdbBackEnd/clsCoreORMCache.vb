@@ -128,9 +128,29 @@ Namespace OnTrack.Database
         ''' <remarks></remarks>
         Sub OnCheckingUniquenessDataObject(sender As Object, e As OnTrack.Database.ormDataObjectEventArgs)
 
+        ''' <summary>
+        ''' after infusion of dataobject
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
         Sub OnInfusedDataObject(sender As Object, e As ormDataObjectEventArgs)
 
+        ''' <summary>
+        ''' starting infusion of dataobject
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
         Sub OnInfusingDataObject(sender As Object, e As ormDataObjectEventArgs)
+
+        ''' <summary>
+        ''' after Overloaded a domain specific dataobject with a global domain event
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Sub OnOverloadedDataObject(sender As Object, e As ormDataObjectOverloadedEventArgs)
 
     End Interface
 
@@ -354,10 +374,17 @@ Namespace OnTrack.Database
         Private _registeredObjects As New Dictionary(Of String, ormDataTupleMetaClass(Of iormPersistable))
 
         ''' <summary>
-        ''' the Object Cache
+        ''' the Object Cache of overloaded objects per object id  
+        ''' and the primary key of the domain specific object but the object of the overload
         ''' </summary>
         ''' <remarks></remarks>
-        Private _cachedObjects As New SortedList(Of String, Concurrent.ConcurrentDictionary(Of ormPrimaryKey(Of iormPersistable), CachedObject(Of iormPersistable)))
+        Private _cachedOverloadedObjects As New SortedList(Of String, Concurrent.ConcurrentDictionary(Of ormPrimaryKey(Of iormPersistable), CachedObject(Of iormPersistable)))
+
+        ''' <summary>
+        ''' the Object Cache per objectid and then the primary key of the objects of loaded objects
+        ''' </summary>
+        ''' <remarks></remarks>
+        Private _cachedLoadedObjects As New SortedList(Of String, Concurrent.ConcurrentDictionary(Of ormPrimaryKey(Of iormPersistable), CachedObject(Of iormPersistable)))
 
         ''' <summary>
         ''' dynamic
@@ -375,6 +402,7 @@ Namespace OnTrack.Database
         Private _assignments As String(,) = {{"ClassOnInfusing", "OnInfusingDataObject"}, _
                                              {"ClassOnInfused", "OnInfusedDataObject"}, _
                                              {"ClassOnRetrieved", "OnRetrievedDataObject"}, _
+                                             {"ClassOnOverloaded", "OnOverloadedDataObject"}, _
                                              {"ClassOnRetrieving", "OnRetrievingDataObject"}, _
                                              {"ClassOnCreated", "OnCreatedDataObject"}, _
                                              {"ClassOnCreating", "OnCreatingDataObject"}, _
@@ -446,7 +474,7 @@ Namespace OnTrack.Database
         Public Function Shutdown(Optional force As Boolean = False) As Boolean Implements iormObjectCacheManager.Shutdown
             ''' flush all objects
             ''' 
-            _cachedObjects.Clear()
+            _cachedLoadedObjects.Clear()
             _registeredObjects.Clear()
             _isStarted = False
         End Function
@@ -457,7 +485,7 @@ Namespace OnTrack.Database
         ''' <returns></returns>
         ''' <remarks></remarks>
         Private Function FlushCache() As Boolean
-            _cachedObjects.Clear()
+            _cachedLoadedObjects.Clear()
         End Function
 
         ''' <summary>
@@ -570,7 +598,7 @@ Namespace OnTrack.Database
                                     ''' therefore we cannot check if we have already hooked up the base static event
                                     ''' means that events will be registered once per class BUT multiple in the base class
                                     ''' since we cannot change the declaring type and not check it otherwise
-                                    ''' therefore manually check for base clas ormDataObject and set flag and skip it 
+                                    ''' therefore manually check for base class ormDataObject and set flag and skip it 
                                     ' Dim aFields = [type].GetFields(bindingAttr:=Reflection.BindingFlags.FlattenHierarchy Or 
                                     'Reflection.BindingFlags.Static Or Reflection.BindingFlags.Instance Or Reflection.BindingFlags.IgnoreCase Or Reflection.BindingFlags.NonPublic Or Reflection.BindingFlags.Public)
                                     'If aFieldInfo IsNot Nothing Then
@@ -709,8 +737,8 @@ Namespace OnTrack.Database
                 '** get the data
                 Dim theobjects As Concurrent.ConcurrentDictionary(Of ormPrimaryKey(Of iormPersistable), CachedObject(Of iormPersistable))
                 SyncLock _lockObject
-                    If _cachedObjects.ContainsKey(e.DataObject.GetType.Name) Then
-                        theobjects = _cachedObjects.Item(e.DataObject.GetType.Name)
+                    If _cachedLoadedObjects.ContainsKey(e.DataObject.GetType.Name) Then
+                        theobjects = _cachedLoadedObjects.Item(e.DataObject.GetType.Name)
                     End If
                 End SyncLock
                 ''' do not check if the primary key contains nothing (in cases in which keys will be generated
@@ -720,21 +748,42 @@ Namespace OnTrack.Database
                     If theobjects.ContainsKey(key:=searchkeys) Then
                         Dim aBucket = theobjects.Item(key:=searchkeys)
                         e.DataObject = TryCast(aBucket.Object, ormDataObject)
-                        aBucket.LastAccessStamp = DateTime.Now
-                        e.Result = True ' yes we have a result
-                        e.AbortOperation = True ' abort creating use object instead
-                        Exit Sub
-                    Else
-                        e.AbortOperation = False
-                        e.Result = True
-                        Exit Sub
+                        If e.DataObject IsNot Nothing Then
+                            aBucket.LastAccessStamp = DateTime.Now
+                            e.Result = True ' yes we have a result
+                            e.AbortOperation = True ' abort creating use object instead
+                            Exit Sub
+                        End If
+                    ElseIf e.DataObject.ObjectHasDomainBehavior Then
+                        ''' check the overload cache -> do nothing since this might be the start of an end overloading
+                        ''' 
+                        'SyncLock _lockObject
+                        '    If _cachedOverloadedObjects.ContainsKey(e.DataObject.GetType.Name) Then
+                        '        theobjects = _cachedOverloadedObjects.Item(e.DataObject.GetType.Name)
+                        '    Else
+                        '        e.Result = False
+                        '        e.AbortOperation = False
+                        '        Exit Sub
+                        '    End If
+                        'End SyncLock
+
+                        'searchkeys = New ormPrimaryKey(Of iormPersistable)(e.Pkarray)
+                        '''' found in overload
+                        'If theobjects.ContainsKey(key:=searchkeys) Then
+                        '    Dim aBucket = theobjects.Item(key:=searchkeys)
+                        '    e.DataObject = TryCast(aBucket.Object, ormDataObject)
+                        '    If e.DataObject IsNot Nothing Then
+                        '        aBucket.LastAccessStamp = DateTime.Now
+                        '        e.Result = True 'success
+                        '        e.AbortOperation = True
+                        '        Exit Sub
+                        '    End If
+                        'End If
                     End If
-                Else
-                    e.AbortOperation = False
-                    e.Result = True
-                    Exit Sub
                 End If
             End If
+
+            ''' no result
             e.AbortOperation = False
             e.Result = True
             Exit Sub
@@ -752,11 +801,11 @@ Namespace OnTrack.Database
                 If e.DataObject Is Nothing OrElse e.Pkarray Is Nothing OrElse e.Pkarray.Count = 0 Then Exit Sub
                 '** get the data
                 SyncLock _lockObject
-                    If _cachedObjects.ContainsKey(e.DataObject.GetType.Name) Then
-                        theobjects = _cachedObjects.Item(e.DataObject.GetType.Name)
+                    If _cachedLoadedObjects.ContainsKey(e.DataObject.GetType.Name) Then
+                        theobjects = _cachedLoadedObjects.Item(e.DataObject.GetType.Name)
                     Else
                         theobjects = New Concurrent.ConcurrentDictionary(Of ormPrimaryKey(Of iormPersistable), CachedObject(Of iormPersistable))()
-                        _cachedObjects.Add(key:=e.DataObject.GetType.Name, value:=theobjects)
+                        _cachedLoadedObjects.Add(key:=e.DataObject.GetType.Name, value:=theobjects)
                     End If
                 End SyncLock
 
@@ -766,9 +815,11 @@ Namespace OnTrack.Database
                     aBucket.IsCreated = True
                     aBucket.CreationDate = DateTime.Now
                     theobjects.TryAdd(key:=searchkeys, value:=aBucket)
-
+                    ''' check if new object ends an overload
+                    ''' 
+                    EndOverloading(searchkeys, e.DataObject)
                     e.AbortOperation = False
-                    e.Result = True 'success
+                    e.Result = False 'success
                     Exit Sub
                 Else
                     Dim aBucket = theobjects.Item(key:=searchkeys)
@@ -789,6 +840,8 @@ Namespace OnTrack.Database
 
 
             End If
+
+
             e.AbortOperation = False
             e.Result = False
             Exit Sub
@@ -806,30 +859,30 @@ Namespace OnTrack.Database
                 Dim theobjects As Concurrent.ConcurrentDictionary(Of ormPrimaryKey(Of iormPersistable), CachedObject(Of iormPersistable))
                 If e.DataObject Is Nothing OrElse e.Pkarray Is Nothing OrElse e.Pkarray.Count = 0 Then Exit Sub
                 SyncLock _lockObject
-                    If _cachedObjects.ContainsKey(e.DataObject.GetType.Name) Then
-                        theobjects = _cachedObjects.Item(e.DataObject.GetType.Name)
+                    If _cachedLoadedObjects.ContainsKey(e.DataObject.GetType.Name) Then
+                        theobjects = _cachedLoadedObjects.Item(e.DataObject.GetType.Name)
                     End If
                 End SyncLock
+
                 If theobjects IsNot Nothing Then
                     Dim searchkeys = New ormPrimaryKey(Of iormPersistable)(e.Pkarray)
                     If theobjects.ContainsKey(key:=searchkeys) Then
                         Dim aBucket = theobjects.Item(key:=searchkeys)
                         e.DataObject = TryCast(aBucket.Object, ormDataObject)
-                        aBucket.LastAccessStamp = DateTime.Now
-                        e.Result = True 'success
-                        e.AbortOperation = True ' abort cloning use object insted
-                        Exit Sub
-                    Else
-                        e.AbortOperation = False
-                        e.Result = True
-                        Exit Sub
+                        If e.DataObject IsNot Nothing Then
+                            aBucket.LastAccessStamp = DateTime.Now
+                            e.Result = True 'success
+                            e.AbortOperation = True ' abort cloning use object insted
+                            Exit Sub
+                        End If
+                    ElseIf e.DataObject.ObjectHasDomainBehavior Then
+                        ''' do nothing -> this might the start of end overloading
+                        ''' 
                     End If
-                Else
-                    e.AbortOperation = False
-                    e.Result = False
-                    Exit Sub
                 End If
             End If
+
+            ''' nothing in cache
             e.AbortOperation = False
             e.Result = False
             Exit Sub
@@ -847,11 +900,11 @@ Namespace OnTrack.Database
                 If e.DataObject Is Nothing OrElse e.Pkarray Is Nothing OrElse e.Pkarray.Count = 0 Then Exit Sub
                 '** get the data
                 SyncLock _lockObject
-                    If _cachedObjects.ContainsKey(e.DataObject.GetType.Name) Then
-                        theobjects = _cachedObjects.Item(e.DataObject.GetType.Name)
+                    If _cachedLoadedObjects.ContainsKey(e.DataObject.GetType.Name) Then
+                        theobjects = _cachedLoadedObjects.Item(e.DataObject.GetType.Name)
                     Else
                         theobjects = New Concurrent.ConcurrentDictionary(Of ormPrimaryKey(Of iormPersistable), CachedObject(Of iormPersistable))()
-                        _cachedObjects.Add(key:=e.DataObject.GetType.Name, value:=theobjects)
+                        _cachedLoadedObjects.Add(key:=e.DataObject.GetType.Name, value:=theobjects)
                     End If
                 End SyncLock
 
@@ -861,7 +914,7 @@ Namespace OnTrack.Database
                     aBucket.IsCreated = True
                     aBucket.CreationDate = DateTime.Now
                     theobjects.TryAdd(key:=searchkeys, value:=aBucket)
-
+                    EndOverloading(searchkeys, e.DataObject)
                     e.AbortOperation = False
                     e.Result = True 'success
                     Exit Sub
@@ -885,8 +938,8 @@ Namespace OnTrack.Database
 
 
             End If
-               
 
+            e.AbortOperation = False
             e.Result = False
             Exit Sub
         End Sub
@@ -904,11 +957,11 @@ Namespace OnTrack.Database
 
                 '** get the data
                 SyncLock _lockObject
-                    If _cachedObjects.ContainsKey(e.DataObject.GetType.Name) Then
-                        theobjects = _cachedObjects.Item(e.DataObject.GetType.Name)
+                    If _cachedLoadedObjects.ContainsKey(e.DataObject.GetType.Name) Then
+                        theobjects = _cachedLoadedObjects.Item(e.DataObject.GetType.Name)
                     Else
                         theobjects = New Concurrent.ConcurrentDictionary(Of ormPrimaryKey(Of iormPersistable), CachedObject(Of iormPersistable))()
-                        _cachedObjects.Add(key:=e.DataObject.GetType.Name, value:=theobjects)
+                        _cachedLoadedObjects.Add(key:=e.DataObject.GetType.Name, value:=theobjects)
                     End If
                 End SyncLock
 
@@ -922,10 +975,9 @@ Namespace OnTrack.Database
                 End If
                 aBucket.LastAccessStamp = DateTime.Now
                 aBucket.IsDeleted = True
-                e.AbortOperation = False
-                e.Result = True 'success
-                Exit Sub
             End If
+
+
             e.AbortOperation = False
             e.Result = False
             Exit Sub
@@ -944,11 +996,11 @@ Namespace OnTrack.Database
 
                 '** get the data
                 SyncLock _lockObject
-                    If _cachedObjects.ContainsKey(e.DataObject.GetType.Name) Then
-                        theobjects = _cachedObjects.Item(e.DataObject.GetType.Name)
+                    If _cachedLoadedObjects.ContainsKey(e.DataObject.GetType.Name) Then
+                        theobjects = _cachedLoadedObjects.Item(e.DataObject.GetType.Name)
                     Else
                         theobjects = New Concurrent.ConcurrentDictionary(Of ormPrimaryKey(Of iormPersistable), CachedObject(Of iormPersistable))()
-                        _cachedObjects.Add(key:=e.DataObject.GetType.Name, value:=theobjects)
+                        _cachedLoadedObjects.Add(key:=e.DataObject.GetType.Name, value:=theobjects)
                     End If
                 End SyncLock
 
@@ -962,10 +1014,8 @@ Namespace OnTrack.Database
                 End If
                 aBucket.LastAccessStamp = DateTime.Now
                 aBucket.IsDeleted = False
-                e.AbortOperation = False
-                e.Result = True 'success
-                Exit Sub
             End If
+
             e.AbortOperation = False
             e.Result = False
             Exit Sub
@@ -984,11 +1034,11 @@ Namespace OnTrack.Database
 
                 '** get the data
                 SyncLock _lockObject
-                    If _cachedObjects.ContainsKey(e.DataObject.GetType.Name) Then
-                        theobjects = _cachedObjects.Item(e.DataObject.GetType.Name)
+                    If _cachedLoadedObjects.ContainsKey(e.DataObject.GetType.Name) Then
+                        theobjects = _cachedLoadedObjects.Item(e.DataObject.GetType.Name)
                     Else
                         theobjects = New Concurrent.ConcurrentDictionary(Of ormPrimaryKey(Of iormPersistable), CachedObject(Of iormPersistable))()
-                        _cachedObjects.Add(key:=e.DataObject.GetType.Name, value:=theobjects)
+                        _cachedLoadedObjects.Add(key:=e.DataObject.GetType.Name, value:=theobjects)
                     End If
                 End SyncLock
 
@@ -1000,17 +1050,87 @@ Namespace OnTrack.Database
                 Else
                     aBucket = theobjects.Item(key:=searchkeys)
                 End If
+                EndOverloading(searchkeys, e.DataObject)
                 aBucket.PersistedDate = DateTime.Now
                 aBucket.IsPersisted = True
-                e.AbortOperation = False
-                e.Result = True 'success
-                Exit Sub
             End If
+
             e.AbortOperation = False
-            e.Result = True
+            e.Result = False
             Exit Sub
         End Sub
 
+        ''' <summary>
+        ''' checks and deletes an overloading object
+        ''' </summary>
+        ''' <param name="searchkeys"></param>
+        ''' <param name="dataobject"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Private Function EndOverloading(searchkeys As ormPrimaryKey(Of iormPersistable), dataobject As ormDataObject) As Boolean
+
+            If dataobject IsNot Nothing AndAlso _
+                dataobject.ObjectHasDomainBehavior AndAlso dataobject.DomainID <> ConstGlobalDomain Then
+                Dim theobjects As Concurrent.ConcurrentDictionary(Of ormPrimaryKey(Of iormPersistable), CachedObject(Of iormPersistable))
+
+                '** get the data
+                SyncLock _lockObject
+                    If _cachedOverloadedObjects.ContainsKey(dataobject.GetType.Name) Then
+                        theobjects = _cachedOverloadedObjects.Item(dataobject.GetType.Name)
+                    Else
+                        Return False
+                    End If
+                End SyncLock
+
+                Dim aBucket As CachedObject(Of iormPersistable)
+                If theobjects.ContainsKey(key:=searchkeys) Then
+                    aBucket = theobjects.Item(key:=searchkeys)
+                    Return theobjects.TryRemove(key:=searchkeys, value:=aBucket)
+                End If
+            End If
+
+            Return False
+        End Function
+
+        ''' <summary>
+        ''' OnRetrieving Event Handler for the ORM Data Object - add to cache the overloading of domain specific
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Public Sub OnOverloadedDataObject(sender As Object, e As ormDataObjectOverloadedEventArgs) Implements iormObjectCacheManager.OnOverloadedDataObject
+            ''' store only if object is not in globaldomain
+            ''' 
+            If _isStarted AndAlso e.UseCache Then
+                Dim theobjects As Concurrent.ConcurrentDictionary(Of ormPrimaryKey(Of iormPersistable), CachedObject(Of iormPersistable))
+                If e.DataObject Is Nothing OrElse e.Pkarray Is Nothing OrElse e.Pkarray.Count = 0 Then Exit Sub
+
+                '** get the data
+                SyncLock _lockObject
+                    If _cachedOverloadedObjects.ContainsKey(e.DataObject.GetType.Name) Then
+                        theobjects = _cachedOverloadedObjects.Item(e.DataObject.GetType.Name)
+                    Else
+                        theobjects = New Concurrent.ConcurrentDictionary(Of ormPrimaryKey(Of iormPersistable), CachedObject(Of iormPersistable))()
+                        _cachedOverloadedObjects.Add(key:=e.DataObject.GetType.Name, value:=theobjects)
+                    End If
+                End SyncLock
+
+                Dim searchkeys = New ormPrimaryKey(Of iormPersistable)(e.DomainPKArray)
+                Dim aBucket As CachedObject(Of iormPersistable)
+                If Not theobjects.ContainsKey(key:=searchkeys) Then
+                    aBucket = New CachedObject(Of iormPersistable)(e.DataObject)
+                    theobjects.TryAdd(key:=searchkeys, value:=aBucket)
+                Else
+                    aBucket = theobjects.Item(key:=searchkeys)
+                End If
+                aBucket.PersistedDate = DateTime.Now
+                aBucket.IsPersisted = True
+            End If
+
+            e.AbortOperation = False
+            e.Result = False
+            Exit Sub
+        End Sub
         ''' <summary>
         ''' OnRetrieving Event Handler for the ORM Data Object - check if object exists in cache and use it from there
         ''' </summary>
@@ -1024,8 +1144,8 @@ Namespace OnTrack.Database
                 '** get the data
                 Dim theobjects As Concurrent.ConcurrentDictionary(Of ormPrimaryKey(Of iormPersistable), CachedObject(Of iormPersistable))
                 SyncLock _lockObject
-                    If _cachedObjects.ContainsKey(e.DataObject.GetType.Name) Then
-                        theobjects = _cachedObjects.Item(e.DataObject.GetType.Name)
+                    If _cachedLoadedObjects.ContainsKey(e.DataObject.GetType.Name) Then
+                        theobjects = _cachedLoadedObjects.Item(e.DataObject.GetType.Name)
                     End If
                 End SyncLock
                 If theobjects IsNot Nothing Then
@@ -1033,19 +1153,45 @@ Namespace OnTrack.Database
                     If theobjects.ContainsKey(key:=searchkeys) Then
                         Dim aBucket = theobjects.Item(key:=searchkeys)
                         e.DataObject = TryCast(aBucket.Object, ormDataObject)
-                        aBucket.LastAccessStamp = DateTime.Now
-                        e.Result = True 'success
-                        e.AbortOperation = True
-                        Exit Sub
-                    Else
+                        If e.DataObject IsNot Nothing Then
+                            aBucket.LastAccessStamp = DateTime.Now
+                            e.Result = True 'success
+                            e.AbortOperation = True
+                            Exit Sub
+                        End If
+                    ElseIf e.DataObject.ObjectHasDomainBehavior Then
+                        ''' check the overload cache
+                        ''' 
+                        SyncLock _lockObject
+                            If _cachedOverloadedObjects.ContainsKey(e.DataObject.GetType.Name) Then
+                                theobjects = _cachedOverloadedObjects.Item(e.DataObject.GetType.Name)
+                            Else
+                                e.Result = False
+                                e.AbortOperation = False
+                                Exit Sub
+                            End If
+                        End SyncLock
 
-                        e.Result = False
-                        e.AbortOperation = False
-                        Exit Sub
+                        searchkeys = New ormPrimaryKey(Of iormPersistable)(e.Pkarray)
+                        ''' found in overload
+                        If theobjects.ContainsKey(key:=searchkeys) Then
+                            Dim aBucket = theobjects.Item(key:=searchkeys)
+                            e.DataObject = TryCast(aBucket.Object, ormDataObject)
+                            If e.DataObject IsNot Nothing Then
+                                aBucket.LastAccessStamp = DateTime.Now
+                                e.Result = True 'success
+                                e.AbortOperation = True
+                                Exit Sub
+                            End If
+                        End If
+
                     End If
-
                 End If
             End If
+
+
+            ''' not found in cache
+            ''' 
             e.AbortOperation = False
             e.Result = False
             Exit Sub
@@ -1065,11 +1211,11 @@ Namespace OnTrack.Database
 
                 '** get the data
                 SyncLock _lockObject
-                    If _cachedObjects.ContainsKey(e.DataObject.GetType.Name) Then
-                        theobjects = _cachedObjects.Item(e.DataObject.GetType.Name)
+                    If _cachedLoadedObjects.ContainsKey(e.DataObject.GetType.Name) Then
+                        theobjects = _cachedLoadedObjects.Item(e.DataObject.GetType.Name)
                     Else
                         theobjects = New Concurrent.ConcurrentDictionary(Of ormPrimaryKey(Of iormPersistable), CachedObject(Of iormPersistable))()
-                        _cachedObjects.Add(key:=e.DataObject.GetType.Name, value:=theobjects)
+                        _cachedLoadedObjects.Add(key:=e.DataObject.GetType.Name, value:=theobjects)
                     End If
                 End SyncLock
 
@@ -1079,6 +1225,7 @@ Namespace OnTrack.Database
                     aBucket.RetrieveData = DateTime.Now
                     aBucket.IsRetrieved = True
                     theobjects.TryAdd(key:=searchkeys, value:=aBucket)
+                    EndOverloading(searchkeys, e.DataObject)
                     e.AbortOperation = False
                     e.Result = True 'success
                     Exit Sub
@@ -1088,7 +1235,7 @@ Namespace OnTrack.Database
                     ''' to check on this we would need a GUID for each Bucket
                     Dim aBucket = theobjects.Item(key:=searchkeys)
                     Dim aDataObject As iormPersistable = TryCast(aBucket.Object, ormDataObject)
-                    If aDataObject.GUID <> e.DataObject.Guid Then
+                    If aDataObject IsNot Nothing AndAlso aDataObject.GUID <> e.DataObject.Guid Then
                         CoreMessageHandler(message:="Dataobject was retrieved which was already in cache but under another guid", subname:="ormObjectCacheManager.OnRetrievedDataObject", objectname:=e.DataObject.ObjectID, _
                                            messagetype:=otCoreMessageType.InternalWarning, arg1:=Converter.Array2otString(e.DataObject.PrimaryKeyValues))
                         e.Result = False ' do nothing in the case
@@ -1121,8 +1268,8 @@ Namespace OnTrack.Database
                 '** get the data
                 Dim theobjects As Concurrent.ConcurrentDictionary(Of ormPrimaryKey(Of iormPersistable), CachedObject(Of iormPersistable))
                 SyncLock _lockObject
-                    If _cachedObjects.ContainsKey(e.DataObject.GetType.Name) Then
-                        theobjects = _cachedObjects.Item(e.DataObject.GetType.Name)
+                    If _cachedLoadedObjects.ContainsKey(e.DataObject.GetType.Name) Then
+                        theobjects = _cachedLoadedObjects.Item(e.DataObject.GetType.Name)
                     End If
                 End SyncLock
                 If theobjects IsNot Nothing Then
@@ -1131,31 +1278,20 @@ Namespace OnTrack.Database
                         Dim aBucket = theobjects.Item(key:=searchkeys)
                         aBucket.LastAccessStamp = DateTime.Now
                         Dim aDataObject = TryCast(aBucket.Object, ormDataObject)
-                        If aDataObject.Guid <> e.DataObject.Guid Then
+                        If aDataObject IsNot Nothing AndAlso aDataObject.Guid <> e.DataObject.Guid Then
                             '** return the existing object
                             e.DataObject = aDataObject
                             e.Result = True
                             e.AbortOperation = True
                             Exit Sub
-                        Else
-                            e.Result = False
-                            e.AbortOperation = False
-                            Exit Sub
                         End If
-
-                    Else
-                        e.AbortOperation = False
-                        e.Result = False
-                        Exit Sub
                     End If
-                Else
-                    e.AbortOperation = False
-                    e.Result = False
-                    Exit Sub
                 End If
             End If
+
+            ''' no chache
             e.AbortOperation = False
-            e.Result = True
+            e.Result = False
             Exit Sub
         End Sub
 
@@ -1173,11 +1309,11 @@ Namespace OnTrack.Database
 
                 '** get the data
                 SyncLock _lockObject
-                    If _cachedObjects.ContainsKey(e.DataObject.GetType.Name) Then
-                        theobjects = _cachedObjects.Item(e.DataObject.GetType.Name)
+                    If _cachedLoadedObjects.ContainsKey(e.DataObject.GetType.Name) Then
+                        theobjects = _cachedLoadedObjects.Item(e.DataObject.GetType.Name)
                     Else
                         theobjects = New Concurrent.ConcurrentDictionary(Of ormPrimaryKey(Of iormPersistable), CachedObject(Of iormPersistable))()
-                        _cachedObjects.Add(key:=e.DataObject.GetType.Name, value:=theobjects)
+                        _cachedLoadedObjects.Add(key:=e.DataObject.GetType.Name, value:=theobjects)
                     End If
                 End SyncLock
 
@@ -1194,13 +1330,14 @@ Namespace OnTrack.Database
                     End If
 
                     theobjects.TryAdd(key:=searchkeys, value:=aBucket)
+                    EndOverloading(searchkeys, e.DataObject)
                     e.AbortOperation = False
                     e.Result = False 'success
                     Exit Sub
                 Else
                     Dim aBucket = theobjects.Item(key:=searchkeys)
                     Dim aDataObject = TryCast(aBucket.Object, ormDataObject)
-                    If aDataObject.Guid <> e.DataObject.Guid Then
+                    If aDataObject IsNot Nothing AndAlso aDataObject.Guid <> e.DataObject.Guid Then
                         CoreMessageHandler("Warning ! infused object already in cache", subname:="ormObjectCacheManager.OnInfusedDataObject", _
                                            messagetype:=otCoreMessageType.InternalWarning, _
                                           objectname:=aDataObject.ObjectID, arg1:=e.Pkarray)
@@ -1208,14 +1345,8 @@ Namespace OnTrack.Database
                         e.Result = True
                         e.AbortOperation = True
                         Exit Sub
-                    Else
-                        e.Result = False
-                        e.AbortOperation = False
-                        Exit Sub
                     End If
-
                 End If
-
             End If
 
             e.AbortOperation = False
@@ -1233,8 +1364,8 @@ Namespace OnTrack.Database
                 '** get the data
                 Dim theobjects As Concurrent.ConcurrentDictionary(Of ormPrimaryKey(Of iormPersistable), CachedObject(Of iormPersistable))
                 SyncLock _lockObject
-                    If _cachedObjects.ContainsKey(e.DataObject.GetType.Name) Then
-                        theobjects = _cachedObjects.Item(e.DataObject.GetType.Name)
+                    If _cachedLoadedObjects.ContainsKey(e.DataObject.GetType.Name) Then
+                        theobjects = _cachedLoadedObjects.Item(e.DataObject.GetType.Name)
                     End If
                 End SyncLock
                 If theobjects IsNot Nothing Then

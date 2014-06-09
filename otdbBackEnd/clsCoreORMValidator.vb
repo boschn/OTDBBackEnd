@@ -76,7 +76,7 @@ Namespace OnTrack.Database
                         ''' not allowed
                     ElseIf ([in] Is Nothing AndAlso Not objectentrydefinition.IsNullable) Then
                         '1102;@;VALIDATOR;object entry validation for '%1%.%2% (XID %3%) failed. Null or empty value is not allowed.;Provide a correct value;90;Error;false;|R1|R1|;|ENTRYVALIDATOR|XCHANGEENVELOPE|
-                        msglog.Add(1102, Nothing, Nothing, Nothing, Nothing, _
+                        msglog.Add(1102, Nothing, Nothing, Nothing, Nothing, Nothing, _
                               objectentrydefinition.Objectname, objectentrydefinition.Entryname, objectentrydefinition.XID)
                         Return otValidationResultType.FailedNoProceed
 
@@ -86,7 +86,7 @@ Namespace OnTrack.Database
 
                     ElseIf [in].GetType Is GetType(String) AndAlso String.IsNullOrWhiteSpace([in].ToString) Then
                         '1102;@;VALIDATOR;object entry validation for '%1%.%2% (XID %3%) failed. Null or empty value is not allowed.;Provide a correct value;90;Error;false;|R1|R1|;|ENTRYVALIDATOR|XCHANGEENVELOPE|
-                        msglog.Add(1102, Nothing, Nothing, Nothing, Nothing, _
+                        msglog.Add(1102, Nothing, Nothing, Nothing, Nothing, Nothing, _
                               objectentrydefinition.Objectname, objectentrydefinition.Entryname, objectentrydefinition.XID)
                         Return otValidationResultType.FailedNoProceed
 
@@ -97,13 +97,13 @@ Namespace OnTrack.Database
 
                     ElseIf Not [in].GetType.IsArray AndAlso String.IsNullOrWhiteSpace([in].ToString) Then
                         '1102;@;VALIDATOR;object entry validation for '%1%.%2% (XID %3%) failed. Null or empty value is not allowed.;Provide a correct value;90;Error;false;|R1|R1|;|ENTRYVALIDATOR|XCHANGEENVELOPE|
-                        msglog.Add(1102, Nothing, Nothing, Nothing, Nothing, _
+                        msglog.Add(1102, Nothing, Nothing, Nothing, Nothing, Nothing, _
                               objectentrydefinition.Objectname, objectentrydefinition.Entryname, objectentrydefinition.XID)
                         Return otValidationResultType.FailedNoProceed
 
                     ElseIf Not objectentrydefinition.IsNullable AndAlso [in].GetType.IsArray AndAlso [in].length = 0 Then
                         '1102;@;VALIDATOR;object entry validation for '%1%.%2% (XID %3%) failed. Null or empty value is not allowed.;Provide a correct value;90;Error;false;|R1|R1|;|ENTRYVALIDATOR|XCHANGEENVELOPE|
-                        msglog.Add(1102, Nothing, Nothing, Nothing, Nothing, _
+                        msglog.Add(1102, Nothing, Nothing, Nothing, Nothing, Nothing, _
                               objectentrydefinition.Objectname, objectentrydefinition.Entryname, objectentrydefinition.XID)
                         Return otValidationResultType.FailedNoProceed
 
@@ -116,7 +116,7 @@ Namespace OnTrack.Database
                     ElseIf Not [in].GetType Is GetType(String) AndAlso ([in].GetType Is GetType(List(Of ))) Then
                         If Not objectentrydefinition.IsNullable AndAlso TryCast([in], IList).Count = 0 Then
                             '1102;@;VALIDATOR;object entry validation for '%1%.%2% (XID %3%) failed. Null or empty value is not allowed.;Provide a correct value;90;Error;false;|R1|R1|;|ENTRYVALIDATOR|XCHANGEENVELOPE|
-                            msglog.Add(1102, Nothing, Nothing, Nothing, Nothing, _
+                            msglog.Add(1102, Nothing, Nothing, Nothing, Nothing, Nothing, _
                                   objectentrydefinition.Objectname, objectentrydefinition.Entryname, objectentrydefinition.XID)
                             Return otValidationResultType.FailedNoProceed
                         ElseIf objectentrydefinition.IsNullable AndAlso TryCast([in], IList).Count = 0 Then
@@ -136,7 +136,7 @@ Namespace OnTrack.Database
                             Return ApplyList(anArray, objectentrydefinition:=objectentrydefinition, msglog:=msglog)
                         Else
                             '1102;@;VALIDATOR;object entry validation for '%1%.%2% (XID %3%) failed. Null or empty value is not allowed.;Provide a correct value;90;Error;false;|R1|R1|;|ENTRYVALIDATOR|XCHANGEENVELOPE|
-                            msglog.Add(1102, Nothing, Nothing, Nothing, Nothing, _
+                            msglog.Add(1102, Nothing, Nothing, Nothing, Nothing, Nothing, _
                                   objectentrydefinition.Objectname, objectentrydefinition.Entryname, objectentrydefinition.XID)
                             Return otValidationResultType.FailedNoProceed
                         End If
@@ -179,7 +179,7 @@ Namespace OnTrack.Database
                         '''
                         If (Not objectentrydefinition.IsNullable AndAlso [in] Is Nothing) OrElse ([in] IsNot Nothing AndAlso String.IsNullOrEmpty([in].ToString)) Then
                             '1102;@;VALIDATOR;object entry validation for '%1%.%2% (XID %3%) failed. Null or empty value is not allowed.;Provide a correct value;90;Error;false;|R1|R1|;|ENTRYVALIDATOR|XCHANGEENVELOPE|
-                            msglog.Add(1102, Nothing, Nothing, Nothing, Nothing, _
+                            msglog.Add(1102, Nothing, Nothing, Nothing, Nothing, Nothing, _
                                   objectentrydefinition.Objectname, objectentrydefinition.Entryname, objectentrydefinition.XID)
                             Return otValidationResultType.FailedNoProceed
                         End If
@@ -208,7 +208,7 @@ Namespace OnTrack.Database
                         Next
 
                         'object entry validation for '%1%.%2% (XID %5%) failed. Value '%4%' is not found in lookup condition '%3%'
-                        msglog.Add(1105, Nothing, Nothing, Nothing, Nothing, _
+                        msglog.Add(1105, Nothing, Nothing, Nothing, Nothing, Nothing, _
                                    objectentrydefinition.Objectname, objectentrydefinition.Entryname, aLookupList, CStr([in]), _
                                    objectentrydefinition.XID)
                         Return otValidationResultType.FailedNoProceed
@@ -339,9 +339,12 @@ Namespace OnTrack.Database
             ''' 
             ''' Validate all the Entries against current value
             ''' 
+            Dim aDescription As ObjectClassDescription = ot.GetObjectClassDescriptionByID(Me.ObjectID)
             For Each anEntryname In Me.ObjectDefinition.Entrynames
-                result = Me.Validate(entryname:=anEntryname, value:=GetValue(entryname:=anEntryname), msglog:=msglog)
-                If result = otValidationResultType.FailedNoProceed Then Return result
+                If aDescription.MappedColumnNames.Contains(anEntryname) Then
+                    result = Me.Validate(entryname:=anEntryname, value:=GetValue(entryname:=anEntryname), msglog:=msglog)
+                    If result = otValidationResultType.FailedNoProceed Then Return result
+                End If
             Next
 
             ''' 
@@ -812,11 +815,11 @@ Namespace OnTrack.Database
                 Converter.Object2otObject(newvalue, objectentrydefinition.Datatype, isnullable:=objectentrydefinition.IsNullable, failed:=failedflag)
                 If failedflag And msglog IsNot Nothing Then
                     If newvalue IsNot Nothing Then
-                        msglog.Add(1101, Nothing, Nothing, Nothing, Nothing,
+                        msglog.Add(1101, Nothing, Nothing, Nothing, Nothing, Nothing, _
                                    objectentrydefinition.Objectname, objectentrydefinition.Entryname, objectentrydefinition.Datatype.ToString, newvalue, objectentrydefinition.XID)
                     ElseIf Not objectentrydefinition.IsNullable AndAlso newvalue Is Nothing Then
                         '1102;@;VALIDATOR;object entry validation for '%1%.%2% (XID %3%) failed. Null or empty value is not allowed.;Provide a correct value;90;Error;false;|R1|R1|;|ENTRYVALIDATOR|XCHANGEENVELOPE|
-                        msglog.Add(1102, Nothing, Nothing, Nothing, Nothing,
+                        msglog.Add(1102, Nothing, Nothing, Nothing, Nothing, Nothing, _
                              objectentrydefinition.Objectname, objectentrydefinition.Entryname, objectentrydefinition.XID)
                     End If
                     '* return
@@ -838,12 +841,12 @@ Namespace OnTrack.Database
                 ''' 
                 If objectentrydefinition.Datatype = otDataType.Long OrElse objectentrydefinition.Datatype = otDataType.Numeric Then
                     If objectentrydefinition.LowerRangeValue.HasValue AndAlso objectentrydefinition.LowerRangeValue > CLng(newvalue) Then
-                        msglog.Add(1103, Nothing, Nothing, Nothing, Nothing,
+                        msglog.Add(1103, Nothing, Nothing, Nothing, Nothing, Nothing, _
                         objectentrydefinition.Objectname, objectentrydefinition.Entryname, objectentrydefinition.LowerRangeValue, newvalue, objectentrydefinition.XID)
                         Return otValidationResultType.FailedNoProceed
                     End If
                     If objectentrydefinition.UpperRangeValue.HasValue AndAlso objectentrydefinition.UpperRangeValue < CLng(newvalue) Then
-                        msglog.Add(1104, Nothing, Nothing, Nothing, Nothing,
+                        msglog.Add(1104, Nothing, Nothing, Nothing, Nothing, Nothing, _
                         objectentrydefinition.Objectname, objectentrydefinition.Entryname, objectentrydefinition.UpperRangeValue, newvalue, objectentrydefinition.XID)
                         Return otValidationResultType.FailedNoProceed
                     End If
@@ -869,7 +872,7 @@ Namespace OnTrack.Database
                     Dim aRegexObj As Regex = New Regex(objectentrydefinition.ValidateRegExpression)
                     If Not aRegexObj.IsMatch(newvalue.ToString) Then
                         '1106;@;VALIDATOR;object entry validation for '%1%.%2% (XID %5%) failed. Value '%4%' is not matching against regular expression '%3%'.;Provide a correct value;90;Error;false;|R1|R1|;|ENTRYVALIDATOR|XCHANGEENVELOPE|
-                        msglog.Add(1106, Nothing, Nothing, Nothing, Nothing, _
+                        msglog.Add(1106, Nothing, Nothing, Nothing, Nothing, Nothing, _
                                    objectentrydefinition.Objectname, objectentrydefinition.Entryname, objectentrydefinition.ValidateRegExpression, newvalue, objectentrydefinition.XID)
                         result = otValidationResultType.FailedNoProceed
                     End If

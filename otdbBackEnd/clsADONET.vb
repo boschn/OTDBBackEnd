@@ -3515,6 +3515,14 @@ Namespace OnTrack.Database
 
                         Return aCollection
                     Else
+                        ' replace parametervalues out of the paramter -> might be different to the prepared one
+                        If parameters IsNot Nothing Then
+                            For Each aParameter In parameters
+                                If Not aParameterValues.ContainsKey(key:=aParameter.ID) Then
+                                    aParameterValues.Add(aParameter.ID, aParameter.Value)
+                                End If
+                            Next
+                        End If
                         '** NOCACHE
                         '** run the Command
                         Dim theRecords As List(Of ormRecord) = _

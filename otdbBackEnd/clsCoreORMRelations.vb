@@ -310,6 +310,7 @@ Namespace OnTrack.Database
             Private _fieldinfo As FieldInfo
             Private _dataobject As ormDataObject
             Private _infusemode As otInfuseMode
+            Private _objectmessagelog As ObjectMessageLog
 
             ''' <summary>
             ''' constructor
@@ -338,6 +339,8 @@ Namespace OnTrack.Database
             End Sub
 
 #Region "Properties"
+
+           
             ''' <summary>
             ''' Gets or sets the mode.
             ''' </summary>
@@ -347,7 +350,7 @@ Namespace OnTrack.Database
                     Return Me._infusemode
                 End Get
                 Set(value As otInfuseMode)
-                    Me._infusemode = Value
+                    Me._infusemode = value
                 End Set
             End Property
 
@@ -360,7 +363,7 @@ Namespace OnTrack.Database
                     Return Me._dataobject
                 End Get
                 Set(value As ormDataObject)
-                    Me._dataobject = Value
+                    Me._dataobject = value
                 End Set
             End Property
 
@@ -423,6 +426,7 @@ Namespace OnTrack.Database
         Private WithEvents _dataobject As ormDataObject 'link to the data object
         Private _relationStatus As RelationStatus() 'status of the relation in order of ObjectClassDescription.RelationAttributes
         Private _isInitialized As Boolean = False
+        Private _objectmessagelog As ObjectMessageLog
 
         Public Event OnRelatedObjectsRetrieveRequest(sender As Object, e As DataObjectRelationMgr.EventArgs)
         Public Event OnRelatedObjectsCreateRequest(sender As Object, e As DataObjectRelationMgr.EventArgs)
@@ -475,6 +479,12 @@ Namespace OnTrack.Database
                     _relationStatus(i) = RelationStatus.Unloaded
                 Next
 
+                '** objectmessagelog -> recursion since this is also called on infuse the log relation
+                '** late bound instead
+                'If _objectmessagelog Is Nothing Then
+                '    _objectmessagelog = _dataobject.ObjectMessageLog
+                'End If
+
                 _isInitialized = True
                 Return _isInitialized
             Catch ex As Exception
@@ -484,7 +494,21 @@ Namespace OnTrack.Database
 
         End Function
 
-        
+        ''' <summary>
+        ''' returns a ObjectMessageLog
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property ObjectMessageLog As ObjectMessageLog
+            Get
+                '** objectmessagelog
+                If _objectmessagelog Is Nothing Then
+                    _objectmessagelog = _dataobject.ObjectMessageLog
+                End If
+                Return _objectmessagelog
+            End Get
+        End Property
 
         ''' <summary>
         ''' gets the Relation Names of this data object
@@ -1180,8 +1204,12 @@ Namespace OnTrack.Database
                             ''' Cascade Update
                             If cascadeUpdate AndAlso cascadeUpdate = aRelationAttribute.CascadeOnUpdate Then
 
+                                ''' listen to the messages
+                                AddHandler TryCast(anObject, iormLoggable).ObjectMessageLog.OnObjectMessageAdded, AddressOf Me.DataObject_OnObjectMessageAdded
                                 ''' here persist
                                 anObject.Persist(timestamp:=timestamp)
+                                ''' stop listing to the messages
+                                RemoveHandler TryCast(anObject, iormLoggable).ObjectMessageLog.OnObjectMessageAdded, AddressOf Me.DataObject_OnObjectMessageAdded
 
                                 ''' if we are not loaded with check on uniqueness
                                 ''' and cascade the relation updates
@@ -1210,6 +1238,21 @@ Namespace OnTrack.Database
             End Try
 
         End Function
+        ''' <summary>
+        ''' Event Handler for ObjectMessageLogs propagate
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Public Sub DataObject_OnObjectMessageAdded(sender As Object, e As ObjectMessageLog.EventArgs)
+
+            '** if concerning ?!
+            If e.Message.StatusItems(statustype:=ConstStatusType_ObjectValidation).Count > 0 OrElse _
+                e.Message.StatusItems(statustype:=ConstStatusType_ObjectEntryValidation).Count > 0 Then
+                '** add it
+                Me.ObjectMessageLog.Add(e.Message)
+            End If
+        End Sub
         ''' <summary>
         ''' create a  related objects from a relation attribute for a object class described by a classdescriptor
         ''' </summary>

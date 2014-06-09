@@ -611,7 +611,9 @@ Namespace OnTrack.Database
             Dim args = New ormRelationCollection(Of T).EventArgs(item)
             RaiseEvent OnAdding(Me, args)
             If args.Cancel Then Return
-
+            If item Is Nothing Then
+                Throw New InvalidOperationException("nothing cannot be added")
+            End If
             ''' get the keys
             Dim keys = Me.GetKeyValues(item)
 

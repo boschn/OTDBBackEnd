@@ -38,6 +38,7 @@ Namespace OnTrack.Database
         Public Event OnDefaultValueNeeded(sender As Object, e As ormDataObjectEntryEventArgs) Implements iormInfusable.OnDefaultValueNeeded
 
         Public Shared Event ClassOnRetrieving(sender As Object, e As ormDataObjectEventArgs)
+        Public Shared Event ClassOnOverloaded(sender As Object, e As ormDataObjectOverloadedEventArgs)
         Public Shared Event ClassOnRetrieved(sender As Object, e As ormDataObjectEventArgs)
 
         Public Event OnInjected(sender As Object, e As ormDataObjectEventArgs) Implements iormPersistable.OnInjected
@@ -76,10 +77,10 @@ Namespace OnTrack.Database
         Public Event OnCreating(sender As Object, e As ormDataObjectEventArgs) Implements iormPersistable.OnCreating
         Public Event OnCreated(sender As Object, e As ormDataObjectEventArgs) Implements iormPersistable.OnCreated
 
-        Public Event OnCloning(sender As Object, e As ormDataObjectEventArgs) Implements iormCloneable.OnCloning
-        Public Event OnCloned(sender As Object, e As ormDataObjectEventArgs) Implements iormCloneable.OnCloned
-        Public Shared Event ClassOnCloning(sender As Object, e As ormDataObjectEventArgs)
-        Public Shared Event ClassOnCloned(sender As Object, e As ormDataObjectEventArgs)
+        Public Event OnCloning(sender As Object, e As ormDataObjectCloneEventArgs) Implements iormCloneable.OnCloning
+        Public Event OnCloned(sender As Object, e As ormDataObjectCloneEventArgs) Implements iormCloneable.OnCloned
+        Public Shared Event ClassOnCloning(sender As Object, e As ormDataObjectCloneEventArgs)
+        Public Shared Event ClassOnCloned(sender As Object, e As ormDataObjectCloneEventArgs)
 
         Public Event OnInitializing(sender As Object, e As ormDataObjectEventArgs)
         Public Event OnInitialized(sender As Object, e As ormDataObjectEventArgs)
@@ -245,6 +246,97 @@ Namespace OnTrack.Database
     End Class
 
     ''' <summary>
+    ''' Event Class for the substitute event
+    ''' </summary>
+    ''' <remarks></remarks>
+    Public Class ormDataObjectOverloadedEventArgs
+        Inherits ormDataObjectEventArgs
+
+        Private _globalPKArray As Object()
+
+        ''' <summary>
+        ''' constructor
+        ''' </summary>
+        ''' <remarks></remarks>
+        Public Sub New(globalPKarray As Object(), domainPKArray As Object(), dataobject As ormDataObject, _
+                       Optional usecache As Boolean = True, _
+                         Optional ByRef msglog As ObjectMessageLog = Nothing,
+                        Optional timestamp? As DateTime = Nothing)
+
+            MyBase.New(object:=dataobject, pkarray:=domainPKArray, msglog:=msglog, timestamp:=timestamp, usecache:=usecache)
+            _globalPKArray = globalPKarray
+        End Sub
+        ''' <summary>
+        ''' Gets or sets the old object.
+        ''' </summary>
+        ''' <value>The old object.</value>
+        Public ReadOnly Property GlobalPKArray() As Object()
+            Get
+                Return _globalPKArray
+            End Get
+
+        End Property
+        ''' <summary>
+        ''' Gets or sets the old object.
+        ''' </summary>
+        ''' <value>The old object.</value>
+        Public Property DomainPKArray() As Object()
+            Get
+                Return Me.Pkarray
+            End Get
+            Set(value As Object())
+                Me.Pkarray = value
+            End Set
+
+        End Property
+    End Class
+    ''' <summary>
+    ''' Event Class for the clone event
+    ''' </summary>
+    ''' <remarks></remarks>
+    Public Class ormDataObjectCloneEventArgs
+        Inherits ormDataObjectEventArgs
+
+        Private _oldObject As ormDataObject
+
+
+        ''' <summary>
+        ''' constructor
+        ''' </summary>
+        ''' <remarks></remarks>
+        Public Sub New([newObject] As ormDataObject, _
+                       [oldObject] As ormDataObject, _
+                         Optional ByRef msglog As ObjectMessageLog = Nothing,
+                        Optional timestamp? As DateTime = Nothing)
+
+            MyBase.New(object:=newObject, msglog:=msglog, timestamp:=timestamp)
+            _oldObject = [oldObject]
+        End Sub
+        ''' <summary>
+        ''' Gets or sets the old object.
+        ''' </summary>
+        ''' <value>The old object.</value>
+        Public ReadOnly Property OldObject() As ormDataObject
+            Get
+                Return Me._oldObject
+            End Get
+            
+        End Property
+        ''' <summary>
+        ''' Gets or sets the old object.
+        ''' </summary>
+        ''' <value>The old object.</value>
+        Public Property NewObject() As ormDataObject
+            Get
+                Return Me.DataObject
+            End Get
+            Set(value As ormDataObject)
+                Me.DataObject = value
+            End Set
+
+        End Property
+    End Class
+    ''' <summary>
     ''' Event Arguments for Data Object Events
     ''' </summary>
     ''' <remarks></remarks>
@@ -252,20 +344,20 @@ Namespace OnTrack.Database
     Public Class ormDataObjectEventArgs
         Inherits EventArgs
 
-        Private _Object As ormDataObject
-        Private _Record As ormRecord
-        Private _DescribedByAttributes As Boolean = False
-        Private _UseCache As Boolean = False
-        Private _pkarray As Object()
-        Private _relationIDs As List(Of String)
-        Private _Abort As Boolean = False
-        Private _result As Boolean = True
-        Private _domainID As String = ConstGlobalDomain
-        Private _hasDomainBehavior As Boolean = False
-        Private _infusemode As otInfuseMode?
-        Private _timestamp As DateTime? = DateTime.Now
-        Private _runtimeonly As Boolean = False
-        Private _msglog As ObjectMessageLog
+        Protected _Object As ormDataObject
+        Protected _Record As ormRecord
+        Protected _DescribedByAttributes As Boolean = False
+        Protected _UseCache As Boolean = False
+        Protected _pkarray As Object()
+        Protected _relationIDs As List(Of String)
+        Protected _Abort As Boolean = False
+        Protected _result As Boolean = True
+        Protected _domainID As String = ConstGlobalDomain
+        Protected _hasDomainBehavior As Boolean = False
+        Protected _infusemode As otInfuseMode?
+        Protected _timestamp As DateTime? = DateTime.Now
+        Protected _runtimeonly As Boolean = False
+        Protected _msglog As ObjectMessageLog
 
         ''' <summary>
         ''' constructor

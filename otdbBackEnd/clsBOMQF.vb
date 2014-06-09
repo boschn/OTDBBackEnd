@@ -45,7 +45,7 @@ Namespace OnTrack.Xchange
     ''' 
     <ormObject(Version:=2, id:=MessageQueue.ConstObjectID, modulename:=ConstModuleXChange, _
         Description:="message queue object with message entries as interacting transactional interface with ontrack", _
-        title:="Message Queue", adddeletefieldbehavior:=True, usecache:=True)> _
+        title:="Message Queue", usecache:=True)> _
     Public Class MessageQueue
         Inherits ormDataObject
         Implements iormLoggable
@@ -208,7 +208,7 @@ Namespace OnTrack.Xchange
             End Get
             Set(value As DateTime?)
 
-                SetValue(ConstFNApprovalDate, Value)
+                SetValue(ConstFNApprovalDate, value)
             End Set
         End Property
 
@@ -221,7 +221,7 @@ Namespace OnTrack.Xchange
                 Return Me._approverperson
             End Get
             Set(value As String)
-                SetValue(ConstFNApprovingPERSON, Value)
+                SetValue(ConstFNApprovingPERSON, value)
             End Set
         End Property
 
@@ -235,7 +235,7 @@ Namespace OnTrack.Xchange
             End Get
             Set(value As String)
 
-                SetValue(ConstFNPlanRevision, Value)
+                SetValue(ConstFNPlanRevision, value)
             End Set
         End Property
 
@@ -261,7 +261,7 @@ Namespace OnTrack.Xchange
                 Return Me._creationDate
             End Get
             Set(value As DateTime?)
-                SetValue(ConstFNCREATEDate, Value)
+                SetValue(ConstFNCREATEDate, value)
             End Set
         End Property
 
@@ -274,7 +274,7 @@ Namespace OnTrack.Xchange
                 Return Me._creatingOU
             End Get
             Set(value As String)
-                SetValue(ConstFNCREATEOU, Value)
+                SetValue(ConstFNCREATEOU, value)
             End Set
         End Property
 
@@ -310,7 +310,7 @@ Namespace OnTrack.Xchange
                 Return Me._ProcessLogordinal
             End Get
             Set(value As Object)
-                Me._ProcessLogordinal = Value
+                Me._ProcessLogordinal = value
             End Set
         End Property
 
@@ -323,7 +323,7 @@ Namespace OnTrack.Xchange
                 Return Me._ProcessDateordinal
             End Get
             Set(value As Object)
-                Me._ProcessDateordinal = Value
+                Me._ProcessDateordinal = value
             End Set
         End Property
 
@@ -349,7 +349,7 @@ Namespace OnTrack.Xchange
                 Return Me._ProcessStatusordinal
             End Get
             Set(value As Object)
-                Me._ProcessStatusordinal = Value
+                Me._ProcessStatusordinal = value
             End Set
         End Property
 
@@ -547,7 +547,7 @@ Namespace OnTrack.Xchange
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property Comment() As String
+        Public Property Description() As String
             Get
                 Return _cmt
             End Get
@@ -647,6 +647,25 @@ Namespace OnTrack.Xchange
                 Return result
             End Get
         End Property
+
+        ''' <summary>
+        ''' set the domainid for all messages in which the message queue is run
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Overloads Property DomainID As String
+            Get
+                Return MyBase.DomainID
+            End Get
+            Set(value As String)
+                MyBase.DomainID = value
+                For Each aMessage In Me.Messages
+                    aMessage.DomainID = MyBase.DomainID
+                Next
+
+            End Set
+        End Property
 #End Region
         ''' <summary>
         ''' returns the status Code of the ProcessStatus
@@ -710,11 +729,17 @@ Namespace OnTrack.Xchange
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function CreateMessage(Optional no As Long? = Nothing) As MQMessage
+            Dim aMessage As MQMessage
             If no.HasValue Then
-                Return _messages.AddCreate({no})
+                aMessage = _messages.AddCreate({no})
             Else
-                Return _messages.AddCreate()
+                aMessage = _messages.AddCreate()
             End If
+            '** set values
+            If aMessage IsNot Nothing Then
+                aMessage.DomainID = Me.DomainID
+            End If
+            Return aMessage
         End Function
 
 
@@ -814,10 +839,19 @@ Namespace OnTrack.Xchange
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function Precheck(Optional ByRef workerthread As ComponentModel.BackgroundWorker = Nothing) As Boolean
+        Public Function Precheck(Optional ByRef workerthread As ComponentModel.BackgroundWorker = Nothing, _
+                                 Optional switchDomainid As String = Nothing) As Boolean
             Precheck = True
             Dim progress As Long
             Dim maximum As Long = Me.Messages.Count
+
+            '* switch domain
+            If switchDomainid IsNot Nothing AndAlso switchDomainid <> CurrentSession.CurrentDomainID Then
+                Me.DomainID = switchDomainid
+                CurrentSession.SwitchToDomain(switchDomainid)
+            Else
+                Me.DomainID = CurrentSession.CurrentDomainID
+            End If
 
             ' step through the RowEntries
             For Each aMessage As MQMessage In Me.Messages
@@ -861,7 +895,7 @@ Namespace OnTrack.Xchange
     ''' 
     <ormObject(Version:=2, id:=MQMessage.ConstObjectID, modulename:=ConstModuleXChange, _
        Description:="message object of a message queue as interacting transactional interface with ontrack", _
-       title:="Message", adddeletefieldbehavior:=True, usecache:=True)> _
+       title:="Message", usecache:=True)> _
     Public Class MQMessage
         Inherits ormDataObject
         Implements iormLoggable
@@ -1232,7 +1266,7 @@ Namespace OnTrack.Xchange
                 e.Dataobject.SetValue(MQXSlot.ConstFNIDNO, Me.IDNO)
                 Dim aSlotid As String = e.Dataobject.GetValue(MQXSlot.ConstFNSlotID)
                 If aSlotid IsNot Nothing Then
-                    If Not Me.MessageQueue.UsedSlotIDs.contains(aSlotid) Then Me.MessageQueue.usedslotids.add(aSlotid)
+                    If Not Me.MessageQueue.UsedSlotIDs.Contains(aSlotid) Then Me.MessageQueue.UsedSlotIDs.Add(aSlotid)
                 End If
             End If
         End Sub
@@ -1262,77 +1296,17 @@ Namespace OnTrack.Xchange
         ''' <param name="i"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Function CreateSlot(ByVal idno As Long) As MQXSlot
+        Function CreateAddedSlot(ByVal idno As Long) As MQXSlot
             If Not Me.IsAlive("CreateSlot") Then Return Nothing
-            Return _slots.AddCreate(keys:={idno})
+            Dim aSlot As MQXSlot = _slots.AddCreate(keys:={idno})
+            '** setdefaults
+            If aSlot IsNot Nothing Then
+                aSlot.DomainID = Me.DomainID
+            End If
+            Return aSlot
         End Function
 
-        ''' <summary>
-        ''' verify action
-        ''' </summary>
-        ''' <param name="ActionCommand"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        'Public Function VerifyAction(Optional ByVal actioncommand As String = "") As Boolean
 
-        '    If actioncommand = "" Then
-        '        actioncommand = LCase(Me.Action)
-        '    Else
-        '        actioncommand = CStr(actioncommand)
-        '    End If
-
-        '    ' check on it
-        '    Select Case LCase(Trim(actioncommand))
-        '        ' CHANGE
-        '        Case ConstMQFOpChange
-        '            VerifyAction = True
-        '            ' COMMAND FREEZE
-        '        Case ConstMQFOpFreeze
-
-        '            VerifyAction = True
-        '            ' ADD AFTER NOT IMPLEMENTED YET
-        '        Case ConstMQFOpAddAfter
-        '            'theMessages(n).log = addLog(theMessages(n).log, _
-        '            '                            "ERROR: in row #" & rowno & ": operation code '" & value & "' is not yet implemented.")
-        '            'Set theMessages(n).status = New clsMQFStatus
-        '            'theMessages(n).status.code = constStatusCode_skipped
-        '            VerifyAction = True
-        '            ' ADD NEW REVISION
-        '        Case ConstMQFOpAddRevision
-
-        '            VerifyAction = True
-        '            ' NOOP
-        '        Case ConstMQFOpNoop
-        '            'aMQFRowEntry.action = ConstMQFOpNoop
-        '            'theMessages(n).log = addLog(theMessages(n).log, _
-        '            '"INFO: in row #" & rowno & ": operation code '" & value & "' is meant to do nothing.")
-        '            'theMessages(n).processable = theMessages(n).processable And True
-        '            'Set theMessages(n).status = New clsMQFStatus
-        '            'theMessages(n).status.code = constStatusCode_skipped
-        '            'theMessages(n).processable = False
-        '            ' DELETE NOT IMPLEMENTED YET
-        '            VerifyAction = True
-        '        Case ConstMQFOpDelete
-        '            'theMessages(n).log = addLog(theMessages(n).log, _
-        '            '"ERROR: in row #" & rowno & ": operation code '" & value & "' is not yet implemented.")
-        '            'theMessages(n).processable = False
-        '            VerifyAction = True
-        '        Case ""
-        '            'theMessages(n).log = addLog(theMessages(n).log, _
-        '            '                            "INFO: in row #" & rowno & " empty operation code - skipped ")
-        '            'Set theMessages(n).status = New clsMQFStatus
-        '            'theMessages(n).status.code = constStatusCode_skipped
-        '            VerifyAction = False
-        '        Case Else
-        '            'theMessages(n).log = addLog(theMessages(n).log, _
-        '            '                            "ERROR: in row #" & rowno & ": operation code '" & value & "' is unknown !")
-        '            'Set theMessages(n).status = New clsMQFStatus
-        '            'theMessages(n).status.code = constStatusCode_error
-        '            VerifyAction = False
-
-        '    End Select
-
-        'End Function
         ''' <summary>
         ''' Is Action Processable
         ''' </summary>
@@ -1358,7 +1332,8 @@ Namespace OnTrack.Xchange
                     ' COMMAND FREEZE
                 Case ConstMQFOpFreeze
                     '511;@;MQF;message operation '%1%' in %Tupleidentifier% is not yet implemented;Please correct;99;Error;false;|R1|R1|;|XCHANGEENVELOPE|MQMESSAGE|
-                    Me.ObjectMessageLog.Add(511, Nothing, Nothing, Nothing, Nothing, ConstMQFOpFreeze)
+                    Me.ObjectMessageLog.Add(511, Nothing, Nothing, Nothing, Nothing, Me, _
+                                            ConstMQFOpFreeze)
                     IsActionProcessable = False
 
                 Case ConstMQFOpAddAfter
@@ -1371,7 +1346,7 @@ Namespace OnTrack.Xchange
                     ' NOOP
                 Case ConstMQFOpNoop
                     '573;@;MQF;message in row %Tupleidentifier% has operation NOOP which means 'DO NOTHING' - skip processing;;99;Error;false;|S1|;|MQMESSAGE|
-                    msglog.Add(573, Nothing, Nothing, Nothing, Nothing)
+                    msglog.Add(573, Nothing, Nothing, Nothing, Nothing, Me)
                     IsActionProcessable = True
 
                 Case ConstMQFOpDelete
@@ -1379,11 +1354,11 @@ Namespace OnTrack.Xchange
 
                 Case ""
                     '513;@;MQF;message operation is missing - message not processed;;99;Error;false;|R1|S1|;|XCHANGEENVELOPE|MQMESSAGE|
-                    msglog.Add(513, Nothing, Nothing, Nothing, Nothing)
+                    msglog.Add(513, Nothing, Nothing, Nothing, Nothing, Me)
                     IsActionProcessable = False
                 Case Else
                     '510;@;MQF;message operation '%1%' in %Tupleidentifier% is unknown;Please correct;99;Error;false;|R1|R1|;|XCHANGEENVELOPE|MQMESSAGE|
-                    msglog.Add(510, Nothing, Nothing, Nothing, Nothing, actioncommand)
+                    msglog.Add(510, Nothing, Nothing, Nothing, Nothing, Me, actioncommand)
                     IsActionProcessable = False
 
             End Select
@@ -1421,7 +1396,8 @@ Namespace OnTrack.Xchange
         ''' <param name="msglog"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function PreCheck(Optional ByRef workerthread As ComponentModel.BackgroundWorker = Nothing) As Boolean
+        Public Function PreCheck(Optional ByRef workerthread As ComponentModel.BackgroundWorker = Nothing, _
+                                 Optional domainid As String = Nothing) As Boolean
             Dim result As Boolean
 
             If Not Me.IsAlive("Precheck") Then Return False
@@ -1430,6 +1406,10 @@ Namespace OnTrack.Xchange
                 aconfigname = Me.MessageQueue.XChangeConfig.Configname
             End If
 
+            '* set the domainid
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
+            If Me.DomainID <> domainid Then Me.DomainID = domainid
+
             '''
             ''' Check the highest Status if already on aborting than leave it
             ''' 
@@ -1437,12 +1417,12 @@ Namespace OnTrack.Xchange
             If astatusitem IsNot Nothing AndAlso astatusitem.Code Like "S*" Then
                 '' skip it
                 '575;@;MQF;message in row %Tupleidentifier% has skip status - skipping again;;99;Error;false;|S1|;|MQMESSAGE|
-                Me.ObjectMessageLog.Add(575, Nothing, Nothing, Nothing, Nothing)
+                Me.ObjectMessageLog.Add(575, Nothing, Nothing, Nothing, Nothing, Me)
                 result = True
 
             ElseIf Me.Processed Then
                 '577;@;MQF;message in row %Tupleidentifier% was already processed processed on %1% by %2% - skipping prechecking / processing again;;99;Error;false;|S1|;|MQMESSAGE|
-                Me.ObjectMessageLog.Add(577, Nothing, Nothing, Nothing, Nothing, _
+                Me.ObjectMessageLog.Add(577, Nothing, Nothing, Nothing, Nothing, Me, _
                                         Me.ProcessedOn, Me.MessageQueue.ProcessedByUsername)
                 result = True
 
@@ -1468,6 +1448,15 @@ Namespace OnTrack.Xchange
                 Me.Processed = False
                 Me.ProcessedOn = Nothing
 
+                ''' check on some default values
+                ''' 
+                If String.IsNullOrWhiteSpace(Me.DomainID) Then
+                    Me.DomainID = CurrentSession.CurrentDomainID
+                End If
+                ' set default values for the slots
+                For Each aSlot In Me.Slots
+                    If String.IsNullOrWhiteSpace(aSlot.DomainID) OrElse aSlot.DomainID <> Me.DomainID Then aSlot.DomainID = Me.DomainID
+                Next
                 '''
                 ''' run the commands
                 ''' 
@@ -1502,7 +1491,28 @@ Namespace OnTrack.Xchange
                             result = True
                         End If
 
-                    Case ot.ConstMQFOpAddRevision, ot.ConstMQFOpAddAfter
+                    Case ot.ConstMQFOpAddRevision
+
+                        '''
+                        ''' set the xchange command - set to update since the create will be done
+                        ''' 
+                        For Each aXChangeObject In Me.MessageQueue.XChangeConfig.ObjectsByOrderNo
+                            If aXChangeObject.IsXChanged Then
+                                aXChangeObject.XChangeCmd = otXChangeCommandType.Update
+                            End If
+                        Next aXChangeObject
+                        '''
+                        ''' run the XChange through the envelope
+                        ''' 
+                        Me.Processed = Me.RunXChange(justprecheck:=True, workerthread:=workerthread)
+                        Me.Statusitem = Me.ObjectMessageLog.GetHighesStatusItem(ConstStatusType_XEnvelope)
+                        If Me.Statusitem.Aborting Then
+                            result = False
+                        Else
+                            result = True
+                        End If
+                    Case ot.ConstMQFOpAddAfter
+
                         '''
                         ''' set the xchange command
                         ''' 
@@ -1592,22 +1602,22 @@ Namespace OnTrack.Xchange
 
             ''' preprocess needed first
             If Me.PrecheckedOn Is Nothing Then
-                Me.ObjectMessageLog.Add(1291, Nothing, Me.ContextIdentifier, Me.TupleIdentifier, Me.EntityIdentifier)
+                Me.ObjectMessageLog.Add(1291, Nothing, Me.ContextIdentifier, Me.TupleIdentifier, Me.EntityIdentifier, Me)
                 Return False
                 ''' needs to be successfull
             ElseIf Not Me.Processable Then
-                Me.ObjectMessageLog.Add(1292, Nothing, Me.ContextIdentifier, Me.TupleIdentifier, Me.EntityIdentifier)
+                Me.ObjectMessageLog.Add(1292, Nothing, Me.ContextIdentifier, Me.TupleIdentifier, Me.EntityIdentifier, Me)
                 Return False
 
             ElseIf String.IsNullOrWhiteSpace(Me.Action) Then
                 '1010;@;XCHANGE;xchange command '%2%' in xchange configuration '%1%' is invalid - operation '%2%' aborted;;90;Error;false;|R1|;|XCHANGEENVELOPE|
-                Me.ObjectMessageLog.Add(1010, Nothing, Me.ContextIdentifier, Me.TupleIdentifier, Me.EntityIdentifier)
+                Me.ObjectMessageLog.Add(1010, Nothing, Me.ContextIdentifier, Me.TupleIdentifier, Me.EntityIdentifier, Me)
                 Return False
 
             ElseIf Me.ObjectMessageLog.GetHighesStatusItem(statustype:=ConstStatusType_MQMessage) IsNot Nothing AndAlso Me.ObjectMessageLog.GetHighesStatusItem(statustype:=ConstStatusType_MQMessage).Code = "S1" Then
                 '' skip it
                 '576;@;MQF;message in row %Tupleidentifier% has skip status - skipping processing again;;99;Error;false;|S1|;|MQMESSAGE|
-                Me.ObjectMessageLog.Add(576, Nothing, Nothing, Nothing, Nothing)
+                Me.ObjectMessageLog.Add(576, Nothing, Nothing, Nothing, Nothing, Me)
                 Return True
 
             End If
@@ -1684,11 +1694,14 @@ Namespace OnTrack.Xchange
                     Me.ProcessedOn = Date.Now
                     result = Me.RunOpAddAfter(justprecheck:=False, msglog:=Me.ObjectMessageLog, workerthread:=workerthread)
                     Me.Statusitem = Me.ObjectMessageLog.GetHighesStatusItem(ConstStatusType_XEnvelope)
-                    If Me.Statusitem.Aborting Then
-                        result = False
-                    Else
-                        result = True
+                    If result = True Then
+                        If Me.Statusitem IsNot Nothing AndAlso Me.Statusitem.Aborting Then
+                            result = False
+                        Else
+                            result = True
+                        End If
                     End If
+
                     Me.Processed = result
                     RaiseEvent OnProcessed(Me, New MQMessage.EventArgs(MQMessage:=Me, result:=result))
 
@@ -1764,7 +1777,7 @@ Namespace OnTrack.Xchange
 
             If Not Me.IsAlive("RunOpAddAfter") Then Return False
             If msglog Is Nothing Then msglog = Me.ObjectMessageLog
-
+            Dim aDeliverable As Deliverable
             Dim aConfig As XChangeConfiguration
             Dim aConfigEntry As IXChangeConfigEntry
             Dim anoldUID As Long?
@@ -1786,7 +1799,8 @@ Namespace OnTrack.Xchange
                 ''' check for which object this is valid
                 If aConfig.GetObjectByName(objectname:=Deliverable.ConstObjectID) Is Nothing Then
                     '580;@;MQF;message in row %Tupleidentifier% with operation %1% is not possible for object type %2% - operation failed;;95;Error;false;|R1|R1|;|XCHANGEENVELOPE|MQMESSAGE|
-                    msglog.Add(580, Nothing, Nothing, Nothing, Nothing, ConstMQFOpAddAfter, Converter.Enumerable2Stringlist(aConfig.ObjectnamesByOrderNo), aConfig.Configname)
+                    msglog.Add(580, Nothing, Nothing, Nothing, Nothing, Me, _
+                               ConstMQFOpAddAfter, Converter.Enumerable2StringList(aConfig.ObjectnamesByOrderNo), aConfig.Configname)
                     Return False
                 End If
 
@@ -1821,7 +1835,7 @@ Namespace OnTrack.Xchange
                 Dim aDeliverableType As DeliverableType = DeliverableType.Retrieve(typeid:=aTypeid)
                 If aDeliverableType Is Nothing Then
                     '583;@;MQF;deliverable type '%2' from message in row %Tupleidentifier% with operation %1% not found - operation failed;;95;Error;false;|R1|R1|;|XCHANGEENVELOPE|MQMESSAGE|
-                    msglog.Add(583, Nothing, Nothing, Nothing, Nothing, _
+                    msglog.Add(583, Nothing, Nothing, Nothing, Nothing, Me, _
                                ConstMQFOpAddAfter, aTypeid)
                     Return False
                 End If
@@ -1832,7 +1846,7 @@ Namespace OnTrack.Xchange
                 Dim aWorkspace As Workspace = Workspace.Retrieve(aWorkspaceID)
                 If aWorkspace Is Nothing Then
                     '585;@;MQF;workspace id '%2' from message in row %Tupleidentifier% with operation %1% not found - operation failed;;95;Error;false;|R1|R1|;|XCHANGEENVELOPE|MQMESSAGE|
-                    msglog.Add(585, Nothing, Nothing, Nothing, Nothing, _
+                    msglog.Add(585, Nothing, Nothing, Nothing, Nothing, Me, _
                                ConstMQFOpAddAfter, aWorkspaceID)
                     Return False
                 End If
@@ -1843,32 +1857,37 @@ Namespace OnTrack.Xchange
                 Dim aDomain As Domain = Domain.Retrieve(aDomainID)
                 If aDomain Is Nothing Then
                     '584;@;MQF;domain id '%2' from message in row %Tupleidentifier% with operation %1% not found - operation failed;;95;Error;false;|R1|R1|;|XCHANGEENVELOPE|MQMESSAGE|
-                    msglog.Add(584, Nothing, Nothing, Nothing, Nothing, _
+                    msglog.Add(584, Nothing, Nothing, Nothing, Nothing, Me, _
                                ConstMQFOpAddAfter, aDomainID)
                     Return False
                 End If
 
-                '' create the deliverable -> deliverable type should be in here
-                Dim aDeliverable As Deliverable = Deliverables.Deliverable.Create(typeid:=aTypeid, workspaceID:=aWorkspaceID, domainID:=aDomainID)
-                If aDeliverable Is Nothing Then
-                    '589;@;MQF;processing of message from %Tupleidentifier% with operation %1% failed due to an internal error %2%  - please see session error log under in session %3% under id %4% for details ;;99;Error;false;|R1|R1|;|XCHANGEENVELOPE|MQMESSAGE|
-                    msglog.Add(589, Nothing, Nothing, Nothing, Nothing, _
-                               ConstMQFOpAddAfter, ot.GetLastError.Message, ot.GetLastError.MessageLogTag, ot.GetLastError.ID)
-                    Return False
-                End If
+                ''' real run
+                ''' 
+                If Not justprecheck Then
 
-                ''' extend the config
-                aConfigEntry = Me.MessageQueue.XChangeConfig.GetEntryByObjectEntryName(entryname:=Deliverable.constFNUid)
-                If aConfigEntry Is Nothing Then
-                    aConfig.AddEntryByObjectEntry(entryname:=Deliverable.constFNUid, objectname:=Deliverable.ConstObjectID, _
-                                                  isXChanged:=True, xcmd:=otXChangeCommandType.CreateUpdate)
-                End If
-                ''' add / substitute the new slot
-                If Not Me.Xenvelope.AddSlotbyXEntry(entry:=aConfigEntry, _
-                                                  value:=aDeliverable.Uid, isHostValue:=False, _
-                                                  overwriteValue:=True, replaceSlotIfexists:=True, _
-                                                  ValueIsNull:=False, SlotIsEmpty:=False) Then
+                    '' create the deliverable -> deliverable type should be in here
+                    aDeliverable = Deliverables.Deliverable.Create(typeid:=aTypeid, workspaceID:=aWorkspaceID, domainID:=aDomainID)
+                    If aDeliverable Is Nothing Then
+                        '589;@;MQF;processing of message from %Tupleidentifier% with operation %1% failed due to an internal error %2%  - please see session error log under in session %3% under id %4% for details ;;99;Error;false;|R1|R1|;|XCHANGEENVELOPE|MQMESSAGE|
+                        msglog.Add(589, Nothing, Nothing, Nothing, Nothing, Me, _
+                                   ConstMQFOpAddAfter, ot.GetLastError.Message, ot.GetLastError.MessageLogTag, ot.GetLastError.ID)
+                        Return False
+                    End If
 
+                    ''' extend the config
+                    aConfigEntry = Me.MessageQueue.XChangeConfig.GetEntryByObjectEntryName(entryname:=Deliverable.constFNUid)
+                    If aConfigEntry Is Nothing Then
+                        aConfig.AddEntryByObjectEntry(entryname:=Deliverable.constFNUid, objectname:=Deliverable.ConstObjectID, _
+                                                      isXChanged:=True, xcmd:=otXChangeCommandType.CreateUpdate)
+                    End If
+                    ''' add / substitute the new slot
+                    If Not Me.Xenvelope.AddSlotbyXEntry(entry:=aConfigEntry, _
+                                                      value:=aDeliverable.Uid, isHostValue:=False, _
+                                                      overwriteValue:=True, replaceSlotIfexists:=True, _
+                                                      ValueIsNull:=False, SlotIsEmpty:=False) Then
+
+                    End If
                 End If
 
 
@@ -1893,16 +1912,17 @@ Namespace OnTrack.Xchange
 
                 If result Then
                     '521;@;MQF;a new deliverable with uid %1% created;;01;Info;false;|G1|G1|;|XCHANGEENVELOPE|MQMESSAGE|
-                    msglog.Add(521, Nothing, Nothing, Nothing, Nothing, _
+                    msglog.Add(521, Nothing, Nothing, Nothing, Nothing, Me, _
                                aDeliverable.Uid)
                 End If
+
                 ''' return
                 Return result
 
             Catch ex As Exception
                 CoreMessageHandler(exception:=ex, subname:="MQMessage.RunOpAddAfter")
                 '589;@;MQF;processing of message from %Tupleidentifier% with operation %1% failed due to an internal error %2%  - please see session error log under in session %3% under id %4% for details ;;99;Error;false;|R1|R1|;|XCHANGEENVELOPE|MQMESSAGE|
-                msglog.Add(589, Nothing, Nothing, Nothing, Nothing, _
+                msglog.Add(589, Nothing, Nothing, Nothing, Nothing, Me, _
                            ConstMQFOpAddAfter, ot.GetLastError.Message, ot.GetLastError.MessageLogTag, ot.GetLastError.ID)
                 Return False
             End Try
@@ -1922,7 +1942,7 @@ Namespace OnTrack.Xchange
 
             If Not Me.IsAlive("RunOpAddRevision") Then Return False
             If msglog Is Nothing Then msglog = Me.ObjectMessageLog
-
+            Dim aDeliverable As Deliverable
             Dim aConfig As XChangeConfiguration
             Dim aConfigEntry As IXChangeConfigEntry
             Dim anExistingUID As Long?
@@ -1944,7 +1964,8 @@ Namespace OnTrack.Xchange
                 ''' check for which object this is valid
                 If aConfig.GetObjectByName(objectname:=Deliverable.ConstObjectID) Is Nothing Then
                     '580;@;MQF;message in row %Tupleidentifier% with operation %1% is not possible for object type %2% - operation failed;;95;Error;false;|R1|R1|;|XCHANGEENVELOPE|MQMESSAGE|
-                    msglog.Add(580, Nothing, Nothing, Nothing, Nothing, ConstMQFOpAddAfter, Converter.Enumerable2otString(aConfig.ObjectnamesByOrderNo), aConfig.Configname)
+                    msglog.Add(580, Nothing, Nothing, Nothing, Nothing, Me, _
+                               ConstMQFOpAddAfter, Converter.Enumerable2StringList(aConfig.ObjectnamesByOrderNo), aConfig.Configname)
                     Return False
                 End If
 
@@ -1970,6 +1991,8 @@ Namespace OnTrack.Xchange
                 '        End If
                 '    Next
                 'Next
+
+
                 '''
                 ''' process the AddRevision - clone the existing
                 ''' 
@@ -1979,35 +2002,39 @@ Namespace OnTrack.Xchange
                 Dim anExistingDeliverable As Deliverable = Deliverables.Deliverable.Retrieve(uid:=anExistingUID)
                 If anExistingDeliverable Is Nothing Then
                     '581;@;MQF;object of type %2% (key: %3%)couldnot be retrieved for message in row %Tupleidentifier% with operation %1% - operation failed;;95;Error;false;|R1|R1|;|XCHANGEENVELOPE|MQMESSAGE|
-                    msglog.Add(581, Nothing, Nothing, Nothing, Nothing, _
+                    msglog.Add(581, Nothing, Nothing, Nothing, Nothing, Me, _
                                 ConstMQFOpAddRevision, Deliverable.ConstObjectID, anExistingUID.ToString)
                     Return False
                 End If
 
-                ''' clone the deliverable
+                ''' real run
                 ''' 
-                Dim aDeliverable = anExistingDeliverable.Clone()
-                If aDeliverable Is Nothing Then
-                    '582;@;MQF;object of type %2% (from object with key: %3%) could not be cloned for message in row %Tupleidentifier% with operation %1% - operation failed;;95;Error;false;|R1|R1|;|XCHANGEENVELOPE|MQMESSAGE|
-                    msglog.Add(581, Nothing, Nothing, Nothing, Nothing, _
-                                ConstMQFOpAddRevision, Deliverable.ConstObjectID, anExistingUID.ToString)
-                    Return False
-                End If
+                If Not justprecheck Then
 
-                ''' extend the config
-                aConfigEntry = Me.MessageQueue.XChangeConfig.GetEntryByObjectEntryName(entryname:=Deliverable.constFNUid)
-                If aConfigEntry Is Nothing Then
-                    aConfig.AddEntryByObjectEntry(entryname:=Deliverable.constFNUid, objectname:=Deliverable.ConstObjectID, _
-                                                  isXChanged:=True, xcmd:=otXChangeCommandType.CreateUpdate)
-                End If
-                ''' add / substitute the new slot
-                If Not Me.Xenvelope.AddSlotbyXEntry(entry:=aConfigEntry, _
-                                                  value:=aDeliverable.Uid, isHostValue:=False, _
-                                                  overwriteValue:=True, replaceSlotIfexists:=True, _
-                                                  ValueIsNull:=False, SlotIsEmpty:=False) Then
+                    ''' clone the deliverable
+                    ''' 
+                    aDeliverable = anExistingDeliverable.AddRevisionClone()
+                    If aDeliverable Is Nothing Then
+                        '582;@;MQF;object of type %2% (from object with key: %3%) could not be cloned for message in row %Tupleidentifier% with operation %1% - operation failed;;95;Error;false;|R1|R1|;|XCHANGEENVELOPE|MQMESSAGE|
+                        msglog.Add(581, Nothing, Nothing, Nothing, Nothing, Me, _
+                                    ConstMQFOpAddRevision, Deliverable.ConstObjectID, anExistingUID.ToString)
+                        Return False
+                    End If
 
-                End If
+                    ''' extend the config
+                    aConfigEntry = Me.MessageQueue.XChangeConfig.GetEntryByObjectEntryName(entryname:=Deliverable.constFNUid)
+                    If aConfigEntry Is Nothing Then
+                        aConfig.AddEntryByObjectEntry(entryname:=Deliverable.constFNUid, objectname:=Deliverable.ConstObjectID, _
+                                                      isXChanged:=True, xcmd:=otXChangeCommandType.CreateUpdate)
+                    End If
+                    ''' add / substitute the new slot
+                    If Not Me.Xenvelope.AddSlotbyXEntry(entry:=aConfigEntry, _
+                                                      value:=aDeliverable.Uid, isHostValue:=False, _
+                                                      overwriteValue:=True, replaceSlotIfexists:=True, _
+                                                      ValueIsNull:=False, SlotIsEmpty:=False) Then
 
+                    End If
+                End If
 
                 '''
                 ''' run the xchange
@@ -2033,13 +2060,19 @@ Namespace OnTrack.Xchange
                 ''' 
                 If aDeliverable.IsCreated OrElse aDeliverable.IsChanged Then result = aDeliverable.Persist()
 
+                If result Then
+                    '522;@;MQF;a new deliverable revision with uid %1% for uid %2% and id '%3%', revision '%4%' , change reference '%5%' created;;01;Info;false;|G1|G1|;|XCHANGEENVELOPE|MQMESSAGE|
+                    msglog.Add(522, Nothing, Nothing, Nothing, Nothing, Me, _
+                               aDeliverable.Uid, anExistingDeliverable.Uid, aDeliverable.DeliverableID, aDeliverable.Revision, aDeliverable.ChangeReferenceID)
+                End If
+
                 ''' return
                 Return result
 
             Catch ex As Exception
                 CoreMessageHandler(exception:=ex, subname:="MQMessage.RunOPAddRevision")
                 '589;@;MQF;processing of message from %Tupleidentifier% with operation %1% failed due to an internal error %2%  - please see session error log under in session %3% under id %4% for details ;;99;Error;false;|R1|R1|;|XCHANGEENVELOPE|MQMESSAGE|
-                msglog.Add(589, Nothing, Nothing, Nothing, Nothing, _
+                msglog.Add(589, Nothing, Nothing, Nothing, Nothing, Me, _
                            ConstMQFOpAddRevision, ot.GetLastError.Message, ot.GetLastError.MessageLogTag, ot.GetLastError.ID)
                 Return False
             End Try
@@ -2098,6 +2131,18 @@ Namespace OnTrack.Xchange
                         End If
                     Next
                 Next
+
+                ''' do we have a domain ID ? . add mine
+                ''' 
+                If Not Me.Xenvelope.HasSlotByObjectEntryName(entryname:=Commons.Domain.ConstFNDomainID, objectname:=aXchangeObject.Objectname) Then
+                    If aXchangeObject.ObjectDefinition.HasDomainBehavior Then
+                        If Not Me.Xenvelope.AddSlotByObjectEntryName(entryname:=Commons.Domain.ConstFNDomainID, objectname:=aXchangeObject.Objectname, _
+                                                         value:=Me.DomainID, isHostValue:=False, _
+                                                         overwriteValue:=True, ValueIsNull:=False, SlotIsEmpty:=False) Then
+
+                        End If
+                    End If
+                End If
             End If
 
             '''
@@ -2166,7 +2211,7 @@ Namespace OnTrack.Xchange
         ''' <param name="e"></param>
         ''' <remarks></remarks>
         Private Sub MQMessage_OnEnvelopeObjectMessageAdded(sender As Object, e As OnTrack.ObjectMessageLog.EventArgs)
-            Me.ObjectMessageLog.CopyFrom(e.Message)
+            Me.ObjectMessageLog.Add(e.Message)
         End Sub
 
 
@@ -2195,7 +2240,7 @@ Namespace OnTrack.Xchange
     ''' 
     <ormObject(Version:=2, id:=MQXSlot.ConstObjectID, modulename:=ConstModuleXChange, _
       Description:="xchange slot object of a message in the message queue to hold the xchange entry", _
-      title:="Message", adddeletefieldbehavior:=True, usecache:=True)> _
+      title:="Message", usecache:=True)> _
     Public Class MQXSlot
         Inherits ormDataObject
         Implements iormPersistable

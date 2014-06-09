@@ -134,20 +134,21 @@ Namespace OnTrack
         '''  Parameters names for config parameters read from .ini or documents
         ''' </summary>
         ''' <remarks></remarks>
-        Public Const ConstCPNUseConfigSetName = "parameter_otdb_configsetname" ' ConfigSetname to use
-        Public Const ConstCPNConfigFileName = "parameter_otdb_configfilename"
-        Public Const ConstCPNConfigFileLocation = "parameter_otdb_configfilelocation"
-        Public Const ConstCPNDriverName = "parameter_otdb_drivername"
-        Public Const ConstCPNDBType = "parameter_otdb_databasetype"
-        Public Const ConstCPNDBPath = "parameter_otdb_dbpath"
-        Public Const ConstCPNDBName = "parameter_otdb_dbname"
-        Public Const ConstCPNDBUser = "parameter_otdb_dbuser"
-        Public Const ConstCPNDBPassword = "parameter_otdb_dbpassword"
-        Public Const ConstCPNDBSQLServerUseMars = "parameter_otdb_sqlserverusemars"
-        Public Const ConstCPNDBConnection = "parameter_otdb_connection"
-        Public Const ConstCPNDBUseseek = "parameter_otdb_driver_useseek"
-        Public Const ConstCPNDescription = "parameter_otdb_configset_description"
-        Public Const constCPNUseLogAgent = "parameter_otdb_uselogagent"
+        Public Const ConstCPNUseConfigSetName = "otdb_parameter_configsetname" ' ConfigSetname to use
+        Public Const ConstCPNConfigFileName = "otdb_parameter_configfilename"
+        Public Const ConstCPNConfigFileLocation = "otdb_parameter_configfilelocation"
+        Public Const ConstCPNDriverName = "otdb_parameter_drivername"
+        Public Const ConstCPNDBType = "otdb_parameter_databasetype"
+        Public Const ConstCPNDBPath = "otdb_parameter_dbpath"
+        Public Const ConstCPNDBName = "otdb_parameter_dbname"
+        Public Const ConstCPNDBUser = "otdb_parameter_dbuser"
+        Public Const ConstCPNDBPassword = "otdb_parameter_dbpassword"
+        Public Const ConstCPNDBSQLServerUseMars = "otdb_parameter_sqlserverusemars"
+        Public Const ConstCPNDBConnection = "otdb_parameter_connection"
+        Public Const ConstCPNDBUseseek = "otdb_parameter_driver_useseek"
+        Public Const ConstCPNDescription = "otdb_parameter_configset_description"
+        Public Const constCPNUseLogAgent = "otdb_parameter_uselogagent"
+        Public Const constCPNDefaultDomainid = "otdb_parameter_default_domainid"
         ''' <summary>
         ''' config Property value
         ''' </summary>
@@ -629,7 +630,9 @@ Namespace OnTrack
                             Case "use", "current", ConstCPNUseConfigSetName
                                 'ot.CurrentConfigSetName = valueString this doesnot work since the Config set might not be loaded 
                                 parameterName = ConstCPNUseConfigSetName
-                            Case "path", ConstCPNDBPath.tolower
+                            Case "defaultdomainid", constCPNDefaultDomainid.ToLower
+                                parameterName = constCPNDefaultDomainid
+                            Case "path", ConstCPNDBPath.ToLower
                                 parameterName = ConstCPNDBPath
                             Case "name", ConstCPNDBName
                                 parameterName = ConstCPNDBName
@@ -760,13 +763,15 @@ Namespace OnTrack
             Return _configurations.GetSet(configsetname, sequence:=sequence)
         End Function
         ''' <summary>
-        ''' returns the config set for a configsetname with a driversequence
+        ''' returns true if the named configset has the config property
         ''' </summary>
         ''' <param name="configsetname"></param>
         ''' <param name="driverseq"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function HasConfigSetProperty(propertyname As String, configsetname As String, Optional sequence As ComplexPropertyStore.Sequence = ComplexPropertyStore.Sequence.Primary) As Boolean
+        Public Function HasConfigSetProperty(propertyname As String, _
+                                             Optional configsetname As String = Nothing, _
+                                             Optional sequence As ComplexPropertyStore.Sequence = ComplexPropertyStore.Sequence.Primary) As Boolean
             Return _configurations.HasProperty(name:=propertyname, setname:=configsetname, sequence:=sequence)
         End Function
         ''' <summary>

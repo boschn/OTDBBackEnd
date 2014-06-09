@@ -561,30 +561,30 @@ Namespace OnTrack.Calendar
 
             '** run sqlstatement
             Try
-                Dim aStore = GetTableStore(ConstTableid)
-                Dim aCommand As ormSqlSelectCommand = aStore.CreateSqlSelectCommand(id:="availabledays", addAllFields:=False, addMe:=False)
+                Dim aStore = ot.GetTableStore(ConstTableid)
+                Dim aCommand As ormSqlSelectCommand = aStore.CreateSqlSelectCommand(id:="availabledays", addAllFields:=False, addMe:=True)
                 If Not aCommand.Prepared Then
                     aCommand.select = "count(id)"
-                    aCommand.Where = String.Format("[{0}]=@cname and [{1}] > @date1 and [{1}] <@date2 and [{2}] <> @avail and [{3}]=@typeID and ([{5}]=@domainid )", _
-                    {constFNName, constFNTimestamp, constFNIsNotAvailable, constFNDomainID})
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@cname", columnname:="cname", tablename:=ConstTableid))
+                    aCommand.Where = String.Format("[{0}]=@cname and [{1}] > @date1 and [{1}] <@date2 and [{2}] <> @notavail and [{3}]=@typeID ", _
+                    {constFNName, constFNTimestamp, constFNIsNotAvailable, ConstFNTypeID, constFNDomainID})
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@cname", datatype:=otDataType.Text, notColumn:=True))
                     aCommand.AddParameter(New ormSqlCommandParameter(ID:="@date1", datatype:=otDataType.Date, notColumn:=True))
                     aCommand.AddParameter(New ormSqlCommandParameter(ID:="@date2", datatype:=otDataType.Date, notColumn:=True))
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@avail", datatype:=otDataType.Bool, notColumn:=True))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@notavail", datatype:=otDataType.Bool, notColumn:=True))
                     aCommand.AddParameter(New ormSqlCommandParameter(ID:="@typeid", datatype:=otDataType.[Long], notColumn:=True))
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@domainid", datatype:=otDataType.Text, notColumn:=True))
+                    'aCommand.AddParameter(New ormSqlCommandParameter(ID:="@domainid", datatype:=otDataType.Text, notColumn:=True))
                     'aCommand.AddParameter(New ormSqlCommandParameter(ID:="@globalDomain", datatype:=otFieldDataType.Text, notColumn:=True))
 
                     aCommand.Prepare()
                 End If
 
                 '** values
-                aCommand.SetParameterValue(ID:="@cnamd", value:=name)
+                aCommand.SetParameterValue(ID:="@cname", value:=name)
                 aCommand.SetParameterValue(ID:="@date1", value:=fromdate)
                 aCommand.SetParameterValue(ID:="@date2", value:=untildate)
-                aCommand.SetParameterValue(ID:="@typeid", value:=True)
+                aCommand.SetParameterValue(ID:="@notavail", value:=True)
                 aCommand.SetParameterValue(ID:="@typeid", value:=otCalendarEntryType.DayEntry)
-                aCommand.SetParameterValue(ID:="@domainid", value:=domainid)
+                'aCommand.SetParameterValue(ID:="@domainid", value:=domainid)
                 'aCommand.SetParameterValue(ID:="@globalDomain", value:=ConstGlobalDomain)
 
                 Dim resultRecords As List(Of ormRecord) = aCommand.RunSelect

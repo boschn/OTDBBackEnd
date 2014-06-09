@@ -705,9 +705,9 @@ Namespace OnTrack.XChange
                     If _entryname IsNot Nothing And Me.Objectname IsNot Nothing Then
                         _EntryDefinition = CurrentSession.Objects.GetEntry(objectname:=Me.Objectname, entryname:=Me.ObjectEntryname)
                     ElseIf Me.Objectname IsNot Nothing And Me.XID IsNot Nothing Then
-                        _EntryDefinition = CurrentSession.Objects.GetEntryByXID(xid:=_xid, objectname:=Me.Objectname).First
+                        _EntryDefinition = CurrentSession.Objects.GetEntriesByXID(xid:=_xid, objectname:=Me.Objectname).First
                     Else
-                        _EntryDefinition = CurrentSession.Objects.GetEntryByXID(xid:=_xid).First
+                        _EntryDefinition = CurrentSession.Objects.GetEntriesByXID(xid:=_xid).First
                     End If
 
                 End If
@@ -1618,14 +1618,14 @@ Namespace OnTrack.XChange
         ''' <remarks></remarks>
         Public Function AddEntryByXID(ByVal Xid As String,
                                             Optional ByVal ordinal As Object = Nothing,
-                                            Optional ByVal objectname As String = "",
+                                            Optional ByVal objectname As String = Nothing,
                                             Optional ByVal isXChanged As Boolean = True,
                                             Optional ByVal xcmd As otXChangeCommandType = Nothing,
                                             Optional ByVal [readonly] As Boolean = False) As Boolean
 
 
             AddEntryByXID = False
-            objectname = objectname.ToUpper
+            If objectname IsNot Nothing Then objectname = objectname.ToUpper
             Xid = Xid.ToUpper
 
             ' isalive
@@ -1633,7 +1633,7 @@ Namespace OnTrack.XChange
 
             '*** no objectname -> get all IDs in objects
             If objectname = "" Then
-                Dim anEntrylist As List(Of iormObjectEntry) = CurrentSession.Objects.GetEntryByXID(xid:=Xid)
+                Dim anEntrylist As List(Of iormObjectEntry) = CurrentSession.Objects.GetEntriesByXID(xid:=Xid)
                 For Each anEntry In anEntrylist.ToArray 'make sure that the list is not changing (clone it) - maybe we are adding entries
                     '** compare to objects in order
                     If Me.NoObjects > 0 Then
@@ -1657,7 +1657,7 @@ Namespace OnTrack.XChange
                 Next
 
             Else
-                Dim aList As List(Of iormObjectEntry) = CurrentSession.Objects.GetEntryByXID(xid:=Xid)
+                Dim aList As List(Of iormObjectEntry) = CurrentSession.Objects.GetEntriesByXID(xid:=Xid)
                 For Each entry In aList.ToArray 'make sure that the list is not changing (clone it) - maybe we are adding entries
                     If objectname = entry.Objectname Then
                         AddEntryByXID = AddEntryByObjectEntry(objectentry:=entry, ordinal:=ordinal,
@@ -2166,7 +2166,7 @@ Namespace OnTrack.XChange
             GetEntryByXID = GetEntrybyAlias(XID, objectname)
             If GetEntryByXID Is Nothing Then
                 '* check all Objects coming through with this ID
-                For Each anObjectEntry In CurrentSession.Objects.GetEntryByXID(xid:=XID)
+                For Each anObjectEntry In CurrentSession.Objects.GetEntriesByXID(xid:=XID)
                     '** check on all the XConfig Objects
                     For Each anObjectMember In Me.ObjectsByOrderNo
                         '* if ID is included as Alias Name

@@ -79,6 +79,7 @@ Namespace OnTrack
         Private _IsInitialized As Boolean = False
         Private _IsStartupRunning As Boolean = False
         Private _IsRunning As Boolean = False
+        Private _IsDomainSwitching As Boolean = False
         Private _IsBootstrappingInstallRequested As Boolean = False ' BootstrappingInstall ?
         Private _IsInstallationRunning As Boolean = False ' actual Installallation running ?
 
@@ -95,6 +96,7 @@ Namespace OnTrack
         Private _ObjectPermissionCache As New Dictionary(Of String, Boolean)
         Private _ValueListCache As New Dictionary(Of String, ValueList)
         Private _ObjectCache As ormObjectCacheManager
+
 
 
         'shadow Reference for Events
@@ -202,8 +204,8 @@ Namespace OnTrack
             Get
                 Return Me._CurrentDomainID
             End Get
-            Set(value As String)
-                Call SwitchToDomain(value)
+            Private Set(value As String)
+                _CurrentDomainID = value
             End Set
         End Property
         ''' <summary>
@@ -252,16 +254,21 @@ Namespace OnTrack
             End Set
         End Property
         ''' <summary>
-        ''' Gets or sets the Objects.
+        ''' Gets or sets the Objects for an optional domainid
         ''' </summary>
         ''' <value>The Objects.</value>
-        Public ReadOnly Property Objects() As ObjectRepository
+        Public ReadOnly Property Objects(Optional domainid As String = Nothing) As ObjectRepository
             Get
                 If Not Me.IsRunning AndAlso Not Me.IsStartingUp AndAlso Not Me.IsInstallationRunning AndAlso Not Me.IsBootstrappingInstallationRequested Then
                     CoreMessageHandler(message:="OnTrack Session needs to be started before accessing the Object Repository", messagetype:=otCoreMessageType.InternalError, _
                                        subname:="Session.Objects")
                 End If
-                If _DomainObjectsDir.ContainsKey(key:=_CurrentDomainID) Then
+                ''' if domain switching then  use global domain repository untill domain is fully switched
+                If Me.IsDomainSwitching AndAlso _DomainObjectsDir.ContainsKey(key:=ConstGlobalDomain) Then
+                    Return _DomainObjectsDir.Item(key:=ConstGlobalDomain)
+                ElseIf Not String.IsNullOrWhiteSpace(domainid) AndAlso _DomainObjectsDir.ContainsKey(key:=domainid) Then
+                    Return _DomainObjectsDir.Item(key:=domainid)
+                ElseIf _DomainObjectsDir.ContainsKey(key:=_CurrentDomainID) Then
                     Return _DomainObjectsDir.Item(key:=_CurrentDomainID)
                 Else
                     Return Nothing
@@ -476,7 +483,18 @@ Namespace OnTrack
                 Me._IsStartupRunning = value
             End Set
         End Property
-
+        ''' <summary>
+        ''' Gets or sets the is statup Mode
+        ''' </summary>
+        ''' <value></value>
+        Public Property IsDomainSwitching() As Boolean
+            Get
+                Return Me._IsDomainSwitching
+            End Get
+            Private Set(value As Boolean)
+                Me._IsDomainSwitching = value
+            End Set
+        End Property
         ''' <summary>
         ''' Gets or sets the default workspaceID.
         ''' </summary>
@@ -786,6 +804,9 @@ Namespace OnTrack
 
             '** install
             If sequence = sequence.Primary Then
+                '** set domainid to global without switching
+                _CurrentDomainID = ot.ConstGlobalDomain
+                '** go into global
                 If _primaryDBDriver.InstallOnTrackDatabase(askBefore:=True, modules:={}) Then
                     Return True
                 Else
@@ -1332,8 +1353,9 @@ Namespace OnTrack
         ''' <param name="AccessRequest"></param>
         ''' <returns>True if successfull False else</returns>
         ''' <remarks></remarks>
-        Public Function StartUp(AccessRequest As otAccessRight, Optional useconfigsetname As String = "", _
-                            Optional domainID As String = "", _
+        Public Function StartUp(AccessRequest As otAccessRight, _
+                                Optional useconfigsetname As String = "", _
+                            Optional domainID As String = Nothing, _
                             Optional OTDBUsername As String = "", _
                             Optional OTDBPassword As String = "", _
                             Optional installIfNecessary As Boolean? = Nothing, _
@@ -1343,13 +1365,14 @@ Namespace OnTrack
             Dim result As Boolean
 
             Try
-                If Me.IsRunning Or Me.IsStartingUp Then
+                If Me.IsRunning OrElse Me.IsStartingUp Then
                     CoreMessageHandler(message:="Session is already running or starting up - further startups not possible", arg1:=Me.SessionID, subname:="Session.Startup", messagetype:=otCoreMessageType.InternalInfo)
                     Return False
                 End If
 
                 '** default is install on startup
                 If Not installIfNecessary.HasValue Then installIfNecessary = True
+                If String.IsNullOrWhiteSpace(domainID) Then domainID = _CurrentDomainID
 
                 '** set statup
                 Me.IsStartingUp = True
@@ -1373,8 +1396,29 @@ Namespace OnTrack
                     Me.IsStartingUp = False
                     Return False
                 End If
-                '** domain
-                If domainID = "" Then Me.CurrentDomainID = ConstGlobalDomain ' set the current domain (_domainID)
+
+                '** set domain without switching since it is not running
+                '**
+                If String.IsNullOrWhiteSpace(domainID) Then
+                    If ot.HasConfigSetProperty(constCPNDefaultDomainid) Then
+                        domainID = CStr(ot.GetConfigProperty(constCPNDefaultDomainid)).ToUpper
+                        If Not String.IsNullOrWhiteSpace(domainID) Then
+                            Me.CurrentDomainID = domainID
+                        Else
+                            Me.CurrentDomainID = ConstGlobalDomain
+                        End If
+                    ElseIf ot.HasConfigSetProperty(constCPNDefaultDomainid, configsetname:=ConstGlobalConfigSetName) Then
+                        domainID = CStr(ot.GetConfigProperty(constCPNDefaultDomainid, configsetname:=ConstGlobalConfigSetName)).ToUpper
+                        If Not String.IsNullOrWhiteSpace(domainID) Then
+                            Me.CurrentDomainID = domainID
+                        Else
+                            Me.CurrentDomainID = ConstGlobalDomain
+                        End If
+
+                    Else
+                        Me.CurrentDomainID = ConstGlobalDomain ' set the current domain (_domainID)
+                    End If
+                End If
 
                 '*** get the Schema Version
                 aValue = _primaryDBDriver.GetDBParameter(ConstPNBSchemaVersion, silent:=True)
@@ -1427,7 +1471,7 @@ Namespace OnTrack
 
                 '** request access
                 If RequestUserAccess(accessRequest:=AccessRequest, username:=OTDBUsername, _
-                                    password:=OTDBPassword, domainID:=_CurrentDomainID, loginOnDisConnected:=True, loginOnFailed:=True, messagetext:=messagetext.Clone) Then
+                                    password:=OTDBPassword, domainID:=domainID, loginOnDisConnected:=True, loginOnFailed:=True, messagetext:=messagetext.Clone) Then
                     '** the starting up aborted
                     If Not Me.IsStartingUp Then
                         CoreMessageHandler(message:="Startup of Session was aborted", _
@@ -1526,133 +1570,177 @@ Namespace OnTrack
         ''' <param name="newDomainID"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Private Function SwitchToDomain(newDomainID As String) As Boolean
+        Public Function SwitchToDomain(newDomainID As String) As Boolean
             Dim newDomain As Domain
 
-            '* return if not running -> me.running might be false but connection is there since
-            '* we are coming here during startup
-            If _primaryDBDriver Is Nothing OrElse _primaryConnection Is Nothing _
-            OrElse (_primaryConnection IsNot Nothing And Not _primaryConnection.IsConnected) Then
-                _CurrentDomainID = newDomainID
-                _loadDomainReqeusted = True
-                Return True
-            End If
+            Try
+                '* return if not running -> me.running might be false but connection is there since
+                '* we are coming here during startup
+                If _primaryDBDriver Is Nothing OrElse _primaryConnection Is Nothing _
+                OrElse (_primaryConnection IsNot Nothing And Not _primaryConnection.IsConnected) Then
+                    _CurrentDomainID = newDomainID
+                    _loadDomainReqeusted = True
+                    Return True
+                End If
 
-            '* no change
-            If (_CurrentDomainID <> "" And newDomainID = _CurrentDomainID) And Not _loadDomainReqeusted Then
-                Return True
-            End If
+                '* no change
+                If (_CurrentDomainID <> "" And newDomainID = _CurrentDomainID) And Not _loadDomainReqeusted Then
+                    Return True
+                End If
 
-            '** if table exists -> no bootstrap
+                ' repository for constglobaldomain is create in session initalize
+                'If Not _DomainObjectsDir.ContainsKey(key:=ConstGlobalDomain) Then
+                '    Dim aStore = New ObjectRepository(Me)
+                '    _DomainObjectsDir.Add(key:=ConstGlobalDomain, value:=aStore)
+                '    aStore.RegisterCache(_ObjectCache)
+                'End If
 
-            newDomain = Domain.Retrieve(id:=newDomainID, dbdriver:=Me._primaryDBDriver, runtimeOnly:=Me.IsBootstrappingInstallationRequested)
-            Dim saveDomain As Boolean = False
+                If newDomainID <> ConstGlobalDomain Then
+                    Dim aStore As ObjectRepository = _DomainObjectsDir.Item(key:=ConstGlobalDomain)
+                    If Not aStore.IsInitialized Then
+                        ''' we need a initialized repository for global domain before we can switch
+                        ''' to a different custom domain
+                        ''' initialization is done via event domainchanged
+                        ''' best ist to run recursive switch to domain
+                        Me.SwitchToDomain(ConstGlobalDomain)
+                    End If
+                End If
 
-            '** check on bootstrapping 
-            If newDomain Is Nothing And Not Me.IsBootstrappingInstallationRequested Then
-                CoreMessageHandler(message:="domain does not exist", arg1:=newDomainID, subname:="Session.SetDomain", messagetype:=otCoreMessageType.ApplicationError)
-                Return False
-            ElseIf newDomain Is Nothing And Me.IsBootstrappingInstallationRequested Then
-                '** bootstrapping database install
-                newDomainID = ConstGlobalDomain
-                'newDomain = New Domain()
-                'newDomain.Create(domainID:=newDomainID)
-                Me._CurrentDomain = Nothing
+                '' set the session status for domain switching / changing
+                '' set it here since Domain.retieve will access the Repository and fall back to Global might necessary
+                ''
+                Me.IsDomainSwitching = True
+
+                '** if table exists -> no bootstrap
+                newDomain = Domain.Retrieve(id:=newDomainID, dbdriver:=Me._primaryDBDriver, runtimeOnly:=Me.IsBootstrappingInstallationRequested)
+                Dim saveDomain As Boolean = False
+
+                '** check on bootstrapping 
+                If newDomain Is Nothing And Not Me.IsBootstrappingInstallationRequested Then
+                    CoreMessageHandler(message:="domain does not exist - falling back to global domain", arg1:=newDomainID, subname:="Session.SetDomain", messagetype:=otCoreMessageType.ApplicationError)
+                    newDomain = Domain.Retrieve(id:=ConstGlobalDomain, dbdriver:=Me._primaryDBDriver, runtimeOnly:=Me.IsBootstrappingInstallationRequested)
+                    If newDomain Is Nothing Then
+                        CoreMessageHandler(message:="global domain does not exist", arg1:=ConstGlobalDomain, subname:="Session.SetDomain", messagetype:=otCoreMessageType.InternalError)
+                        Return False
+                    End If
+
+                ElseIf newDomain Is Nothing And Me.IsBootstrappingInstallationRequested Then
+                    '** bootstrapping database install
+                    newDomainID = ConstGlobalDomain
+                    'newDomain = New Domain()
+                    'newDomain.Create(domainID:=newDomainID)
+                    Me._CurrentDomain = Nothing
+                    Me._CurrentDomainID = newDomainID
+                    _loadDomainReqeusted = True
+                    RaiseEvent OnDomainChanging(Me, New SessionEventArgs(Me, Nothing))
+                    Me.IsDomainSwitching = False
+                    Return True
+                Else
+                    
+                    '** we have a domain
+                    newDomain.RegisterSession(Me)
+
+                    '** add new Repository
+                    If Not _DomainObjectsDir.ContainsKey(key:=newDomainID) Then
+                        Dim aStore = New ObjectRepository(Me)
+                        _DomainObjectsDir.Add(key:=newDomainID, value:=aStore)
+                        aStore.RegisterCache(_ObjectCache)
+                    End If
+
+                    '* reset cache
+                    _ObjectPermissionCache.Clear()
+                    _ValueListCache.Clear()
+
+                    
+
+                    '** raise event
+                    RaiseEvent OnDomainChanging(Me, New SessionEventArgs(Me, newDomain))
+
+                    '*** read the Domain Settings
+                    '***
+
+                    If newDomain.HasSetting(id:=ConstCPDependencySynchroMinOverlap) Then
+                        Me.DependencySynchroMinOverlap = newDomain.GetSetting(id:=ConstCPDependencySynchroMinOverlap).value
+                    Else
+                        Me.DependencySynchroMinOverlap = 7
+                    End If
+
+                    If newDomain.HasSetting(id:=ConstCPDefaultWorkspace) Then
+                        Me.DefaultWorkspaceID = newDomain.GetSetting(id:=ConstCPDefaultWorkspace).value
+                        _CurrentWorkspaceID = _DefaultWorkspace
+                    Else
+                        Me.DefaultWorkspaceID = ""
+                    End If
+
+                    If newDomain.HasSetting(id:=ConstCPDefaultCalendarName) Then
+                        Me.DefaultCalendarName = newDomain.GetSetting(id:=ConstCPDefaultCalendarName).value
+                    Else
+                        Me.DefaultCalendarName = "default"
+                    End If
+
+                    If newDomain.HasSetting(id:=ConstCPDefaultTodayLatency) Then
+                        Me.TodayLatency = newDomain.GetSetting(id:=ConstCPDefaultTodayLatency).value
+                    Else
+                        Me.TodayLatency = -14
+                    End If
+
+                    If newDomain.HasSetting(id:=ConstCDefaultScheduleTypeID) Then
+                        Me.DefaultScheduleTypeID = newDomain.GetSetting(id:=ConstCDefaultScheduleTypeID).value
+                    Else
+                        Me.DefaultScheduleTypeID = "none"
+
+                    End If
+
+                    If newDomain.HasSetting(id:=ConstCPDefaultDeliverableTypeID) Then
+                        Me.DefaultDeliverableTypeID = newDomain.GetSetting(id:=ConstCPDefaultDeliverableTypeID).value
+                    Else
+                        Me.DefaultDeliverableTypeID = ""
+                    End If
+
+                    If newDomain.HasSetting(id:=ConstCPAutoPublishTarget) Then
+                        Me.AutoPublishTarget = newDomain.GetSetting(id:=ConstCPAutoPublishTarget).value
+                    Else
+                        Me.AutoPublishTarget = False
+                    End If
+
+                    If newDomain.HasSetting(id:=ConstCPDeliverableOnCloningCloneAlso) Then
+                        Me.DeliverableOnCloningCloneAlso = Converter.otString2Array(newDomain.GetSetting(id:=ConstCPDeliverableOnCloningCloneAlso).value)
+                    Else
+                        Me.DeliverableOnCloningCloneAlso = {}
+                    End If
+
+                    If newDomain.HasSetting(id:=ConstCPDeliverableUniqueEntries) Then
+                        Me.DeliverableUniqueEntries = Converter.otString2Array(newDomain.GetSetting(id:=ConstCPDeliverableUniqueEntries).value)
+                    Else
+                        Me.DeliverableUniqueEntries = {}
+                    End If
+
+                    If newDomain.HasSetting(id:=ConstCPDeliverableOnCloningResetEntries) Then
+                        Me.DeliverableOnCloningResetEntries = Converter.otString2Array(newDomain.GetSetting(id:=ConstCPDeliverableOnCloningResetEntries).value)
+                    Else
+                        Me.DeliverableOnCloningResetEntries = {}
+                    End If
+                End If
+
+
+                Me._CurrentDomain = newDomain
                 Me._CurrentDomainID = newDomainID
-                _loadDomainReqeusted = True
-                RaiseEvent OnDomainChanging(Me, New SessionEventArgs(Me, Nothing))
+                _loadDomainReqeusted = False
 
+                ''' rause the domain changed event
+                RaiseEvent OnDomainChanged(Me, New SessionEventArgs(Me))
+                CoreMessageHandler(message:="Domain switched to '" & newDomainID & "' - " & newDomain.Description, _
+                                    subname:="Session.SwitchToDomain", messagetype:=otCoreMessageType.ApplicationInfo)
+                Me.IsDomainSwitching = False
                 Return True
-            Else
 
-                '** we have a domain
-                newDomain.RegisterSession(Me)
-                If Not _DomainObjectsDir.ContainsKey(key:=newDomainID) Then
-                    Dim aStore = New ObjectRepository(Me)
-                    _DomainObjectsDir.Add(key:=newDomainID, value:=aStore)
-                    aStore.RegisterCache(_ObjectCache)
-                End If
-                '* reset cache
-                _ObjectPermissionCache.Clear()
-                _ValueListCache.Clear()
-                '** raise event
-                RaiseEvent OnDomainChanging(Me, New SessionEventArgs(Me, newDomain))
-
-                '*** read the Domain Settings
-                '***
-
-                If newDomain.HasSetting(id:=ConstCPDependencySynchroMinOverlap) Then
-                    Me.DependencySynchroMinOverlap = newDomain.GetSetting(id:=ConstCPDependencySynchroMinOverlap).value
-                Else
-                    Me.DependencySynchroMinOverlap = 7
-                End If
-
-                If newDomain.HasSetting(id:=ConstCPDefaultWorkspace) Then
-                    Me.DefaultWorkspaceID = newDomain.GetSetting(id:=ConstCPDefaultWorkspace).value
-                    _CurrentWorkspaceID = _DefaultWorkspace
-                Else
-                    Me.DefaultWorkspaceID = ""
-                End If
-
-                If newDomain.HasSetting(id:=ConstCPDefaultCalendarName) Then
-                    Me.DefaultCalendarName = newDomain.GetSetting(id:=ConstCPDefaultCalendarName).value
-                Else
-                    Me.DefaultCalendarName = "default"
-                End If
-
-                If newDomain.HasSetting(id:=ConstCPDefaultTodayLatency) Then
-                    Me.TodayLatency = newDomain.GetSetting(id:=ConstCPDefaultTodayLatency).value
-                Else
-                    Me.TodayLatency = -14
-                End If
-
-                If newDomain.HasSetting(id:=ConstCDefaultScheduleTypeID) Then
-                    Me.DefaultScheduleTypeID = newDomain.GetSetting(id:=ConstCDefaultScheduleTypeID).value
-                Else
-                    Me.DefaultScheduleTypeID = "none"
-
-                End If
-
-                If newDomain.HasSetting(id:=ConstCPDefaultDeliverableTypeID) Then
-                    Me.DefaultDeliverableTypeID = newDomain.GetSetting(id:=ConstCPDefaultDeliverableTypeID).value
-                Else
-                    Me.DefaultDeliverableTypeID = ""
-                End If
-
-                If newDomain.HasSetting(id:=ConstCPAutoPublishTarget) Then
-                    Me.AutoPublishTarget = newDomain.GetSetting(id:=ConstCPAutoPublishTarget).value
-                Else
-                    Me.AutoPublishTarget = False
-                End If
-
-                If newDomain.HasSetting(id:=ConstCPDeliverableOnCloningCloneAlso) Then
-                    Me.DeliverableOnCloningCloneAlso = Converter.otString2Array(newDomain.GetSetting(id:=ConstCPDeliverableOnCloningCloneAlso).value)
-                Else
-                    Me.DeliverableOnCloningCloneAlso = {}
-                End If
-
-                If newDomain.HasSetting(id:=ConstCPDeliverableUniqueEntries) Then
-                    Me.DeliverableUniqueEntries = Converter.otString2Array(newDomain.GetSetting(id:=ConstCPDeliverableUniqueEntries).value)
-                Else
-                    Me.DeliverableUniqueEntries = {}
-                End If
-
-                If newDomain.HasSetting(id:=ConstCPDeliverableOnCloningResetEntries) Then
-                    Me.DeliverableOnCloningResetEntries = Converter.otString2Array(newDomain.GetSetting(id:=ConstCPDeliverableOnCloningResetEntries).value)
-                Else
-                    Me.DeliverableOnCloningResetEntries = {}
-                End If
-            End If
-
-
-            Me._CurrentDomain = newDomain
-            Me._CurrentDomainID = newDomainID
-            _loadDomainReqeusted = False
-
-
-            RaiseEvent OnDomainChanged(Me, New SessionEventArgs(Me))
-
-            Return True
+            Catch ex As Exception
+                CoreMessageHandler(exception:=ex, subname:="Session.SwitchToDomain")
+                _loadDomainReqeusted = False
+                Me.IsDomainSwitching = False
+                Return False
+            End Try
+            
         End Function
         ''' <summary>
         ''' Initialize and set all Parameters
@@ -1717,8 +1805,8 @@ Namespace OnTrack
                     '* set it here that we are really loading in SetDomain and not only 
                     '* assigning _DomainID (if no connection is available)
                     If SwitchToDomain(newDomainID:=domainID) Then
-                        Call CoreMessageHandler(message:="Session Domain set to " & domainID, _
-                                                messagetype:=otCoreMessageType.InternalInfo, _
+                        Call CoreMessageHandler(message:="Session Domain set to '" & domainID & "' - " & CurrentSession.CurrentDomain.Description, _
+                                                messagetype:=otCoreMessageType.ApplicationInfo, _
                                                 subname:="Session.startupSesssionEnviorment")
                     End If
                     '** the starting up aborted
@@ -1832,7 +1920,25 @@ Namespace OnTrack
             _ObjectPermissionCache.Clear()
         End Sub
 
+        ''' <summary>
+        ''' handler for domain switched
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Private Sub Session_OnDomainChanged(sender As Object, e As SessionEventArgs) Handles Me.OnDomainChanged
 
+        End Sub
+
+        ''' <summary>
+        ''' handler for myself domain changing
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Private Sub Session_OnDomainChanging(sender As Object, e As SessionEventArgs) Handles Me.OnDomainChanging
+
+        End Sub
     End Class
 
     ''' <summary>
@@ -2785,6 +2891,10 @@ Namespace OnTrack
         ''' </summary>
         ''' <remarks></remarks>
         Public Overloads Sub Clear()
+            '** delete messages
+            For Each message In Me
+                message.Delete()
+            Next
             MyBase.Clear()
             _MessagesPerStatusType.Clear()
         End Sub
@@ -2854,17 +2964,7 @@ Namespace OnTrack
 
             End Try
         End Function
-        ''' <summary>
-        ''' copy an existing message to this log
-        ''' </summary>
-        ''' <param name="message"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Function CopyFrom(message As ObjectMessage) As Boolean
-            Dim aNewMessage As ObjectMessage = message.Clone(Of ObjectMessage)({Me.Tag, Me.MaxMessageNo + 1})
-            Me.Add(aNewMessage)
-            Return True
-        End Function
+        
         '*** addMsg adds a Message to the MessageLog with the associated
         '***
         '*** Contextordinal (can be Nothing) as MQF or other ordinal
@@ -2882,8 +2982,9 @@ Namespace OnTrack
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overloads Function Add(message As ObjectMessage) As Boolean
-            Return Me.Add(message.MessageTypeID, message.DomainID, message.ContextIdentifier, _
-                          message.TupleIdentifier, message.EntityIdentifier, message.Parameters)
+            Return Me.Add(message.MessageTypeID, message.DomainID, _
+                          message.ContextIdentifier, message.TupleIdentifier, message.EntityIdentifier, _
+                          message.Sender, message.Parameters)
         End Function
         ''' <summary>
         ''' adds a message of the message type uid to the log
@@ -2900,13 +3001,14 @@ Namespace OnTrack
                              ByVal contextidentifier As String, _
                              ByVal tupleIdentifier As String, _
                              ByVal entitityIdentifier As String, _
+                             ByVal sender As Object, _
                              ParamArray args() As Object) As Boolean
 
             Dim runtimeOnly As Boolean = False
 
             ''' default values
             If domainid Is Nothing OrElse domainid = "" Then domainid = CurrentSession.CurrentDomainID
-            If String.IsNullOrWhiteSpace(ContextIdentifier) Then ContextIdentifier = Me.ContextIdentifier
+            If String.IsNullOrWhiteSpace(contextidentifier) Then contextidentifier = Me.ContextIdentifier
             If String.IsNullOrWhiteSpace(tupleIdentifier) Then tupleIdentifier = Me.TupleIdentifier
             If String.IsNullOrWhiteSpace(entitityIdentifier) Then entitityIdentifier = Me.EntityIdentifier
 
@@ -2926,7 +3028,7 @@ Namespace OnTrack
                 Dim anObjectname As String = ""
                 If _container IsNot Nothing Then anObjectname = _container.ObjectID
                 Dim context As String
-                If ContextIdentifier IsNot Nothing Then context &= ContextIdentifier
+                If contextidentifier IsNot Nothing Then context &= contextidentifier
                 If tupleIdentifier IsNot Nothing Then context &= tupleIdentifier & ConstDelimiter
                 If entitityIdentifier IsNot Nothing Then context &= entitityIdentifier & ConstDelimiter
 
@@ -2951,14 +3053,31 @@ Namespace OnTrack
                 anIDNo = 1
             End If
 
-            '''
-
+            ''' check on tag - set it
+            If String.IsNullOrWhiteSpace(Me.Tag) Then
+                If _container IsNot Nothing Then _tag = TryCast(_container, ormDataObject).ObjectTag
+                If String.IsNullOrWhiteSpace(_tag) Then _tag = Guid.NewGuid.ToString
+                For Each message In Me
+                    message.Tag = _tag
+                Next
+            End If
+            
+            ''' 
+            ''' create message
+            ''' 
             Dim aMessage As ObjectMessage = ObjectMessage.Create(msglogtag:=Me.Tag, no:=anIDNo, typeuid:=typeuid, _
                                                                  contextIdentifier:=contextidentifier, tupleIdentifier:=tupleIdentifier, entitityIdentifier:=entitityIdentifier, _
                                                                  parameters:=args, runtimeOnly:=runtimeOnly)
 
 
             If aMessage IsNot Nothing Then
+                If aMessageDefinition IsNot Nothing Then aMessage.IsPersisted = aMessageDefinition.IsPersisted
+                aMessage.Username = CurrentSession.Username
+                aMessage.Sessionid = CurrentSession.SessionID
+                '* try to get the sender
+                If sender Is Nothing Then sender = _container
+                aMessage.Sender = sender
+                '* add
                 MyBase.Add(item:=aMessage)
                 Return True
             End If
@@ -3149,6 +3268,9 @@ Namespace OnTrack
         <ormObjectEntry(Datatype:=otDataType.Timestamp, isnullable:=True, _
                        XID:="olog9", title:="Timestamp", description:="timestamp of the message")> Public Const ConstFNTimeStamp = "TIMESTAMP"
 
+        <ormObjectEntry(Datatype:=otDataType.Bool, defaultvalue:=False, dbdefaultvalue:="0", _
+                       XID:="olog10", title:="Persist", description:="if set than this message will be persisted")> Public Const ConstFNPERSIST = "PERSIST"
+
         <ormObjectEntry(referenceObjectEntry:=ObjectMessageType.ConstObjectID & "." & ObjectMessageType.constFNArea, isnullable:=True, _
                         XID:="olog11")> Public Const ConstFNArea = "AREA"
         <ormObjectEntry(referenceObjectEntry:=ObjectMessageType.ConstObjectID & "." & ObjectMessageType.constFNWeight, isnullable:=True, _
@@ -3165,6 +3287,15 @@ Namespace OnTrack
 
         <ormObjectEntry(referenceObjectEntry:=Workspace.ConstObjectID & "." & Workspace.ConstFNID, isnullable:=True, _
                      XID:="olog16", title:="current Workspace id", description:="current workspace id")> Public Const ConstFNWORKSPACEID = "WORKSPACEID"
+
+        <ormObjectEntry(referenceObjectEntry:=ObjectDefinition.ConstObjectID & "." & ObjectDefinition.ConstFNID, isnullable:=True, _
+                      XID:="olog21", title:="Objectname", description:="Object name")> Public Const ConstFNObjectname = "Objectname"
+        <ormObjectEntry(referenceObjectEntry:=ObjectColumnEntry.ConstObjectID & "." & ObjectColumnEntry.ConstFNEntryName, isnullable:=True, _
+                      XID:="olog22", title:="Entryname", description:="entry name of the object")> Public Const ConstFNEntryname = "Entryname"
+
+        <ormObjectEntry(datatype:=otDataType.List, size:=255, isnullable:=True, _
+                     XID:="olog23", title:="PrimaryKeyValues", description:="values of the primary key of the object")> Public Const ConstFnPkValues = "pkvalues"
+
         ''' <summary>
         ''' Mappings
         ''' </summary>
@@ -3173,6 +3304,8 @@ Namespace OnTrack
         <ormEntryMapping(EntryName:=ConstFNNo)> Private _no As Long?
         <ormEntryMapping(EntryName:=ConstFNMessageTypeUID)> Private _typeuid As Long
         <ormEntryMapping(EntryName:=ConstFNMessage)> Private _message As String
+
+        <ormEntryMapping(EntryName:=ConstFNPERSIST)> Private _persistflag As Boolean
 
         <ormEntryMapping(EntryName:=ConstFNContextID)> Private _ContextID As String
         <ormEntryMapping(EntryName:=ConstFNTupleID)> Private _TupleID As String
@@ -3186,6 +3319,12 @@ Namespace OnTrack
         <ormEntryMapping(EntryName:=ConstFNSessionTAG)> Private _sessionid As String
         <ormEntryMapping(EntryName:=ConstFNWorkspaceID)> Private _workspaceID As String
         <ormEntryMapping(EntryName:=ConstFNSessionMSGNo)> Private _sessionmsgno As Long
+
+        <ormEntryMapping(EntryName:=ConstFNObjectname)> Private _objectname As String
+        <ormEntryMapping(EntryName:=ConstFNEntryname)> Private _entryname As String
+        <ormEntryMapping(EntryName:=ConstFnPkValues)> Private _objpkvalues As String()
+
+
         ''' <summary>
         ''' Relation to ScheduleDefinition
         ''' </summary>
@@ -3201,9 +3340,102 @@ Namespace OnTrack
         ''' </summary>
         ''' <remarks></remarks>
         Private _lock As New Object
+        Private _sender As Object
 
 
 #Region "properties"
+
+        ''' <summary>
+        ''' Gets or sets the persistflag.
+        ''' </summary>
+        ''' <value>The persistflag.</value>
+        Public Property IsPersisted() As Boolean
+            Get
+                Return Me._persistflag
+            End Get
+            Set(value As Boolean)
+                Me._persistflag = Value
+            End Set
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the sender.
+        ''' </summary>
+        ''' <value>The sender.</value>
+        Public Property Sender() As Object
+            Get
+                Return Me._sender
+            End Get
+            Set(value As Object)
+                If value IsNot Nothing Then
+                    Dim apersistable As iormPersistable = TryCast(value, iormPersistable)
+                    If apersistable IsNot Nothing Then
+                        Me.Objectname = apersistable.ObjectID
+                        Dim aList As New List(Of String)
+                        For Each aValue As Object In apersistable.PrimaryKeyValues
+                            aList.Add(CStr(aValue))
+                        Next
+                        Me.LoggableKeyValues = aList.ToArray
+                    Else
+                        Me.Objectname = value.GetType.FullName
+                    End If
+                End If
+                _sender = value
+            End Set
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the username.
+        ''' </summary>
+        ''' <value>The username.</value>
+        Public Property Username() As String
+            Get
+                Return Me._username
+            End Get
+            Set(value As String)
+                SetValue(ConstFNUsername, value)
+            End Set
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the primary key values of the loggable sender object .
+        ''' </summary>
+        ''' <value>The objpkvalues.</value>
+        Public Property LoggableKeyValues() As String()
+            Get
+                Return Me._objpkvalues
+            End Get
+            Set(value As String())
+                SetValue(ConstFnPkValues, value)
+            End Set
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the entryname.
+        ''' </summary>
+        ''' <value>The entryname.</value>
+        Public Property Entryname() As String
+            Get
+                Return Me._entryname
+            End Get
+            Set(value As String)
+                SetValue(ConstFNEntityID, value)
+            End Set
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the objectname.
+        ''' </summary>
+        ''' <value>The objectname.</value>
+        Public Property Objectname() As String
+            Get
+                Return Me._objectname
+            End Get
+            Set(value As String)
+                SetValue(ConstFNObjectname, value)
+            End Set
+        End Property
+
         ''' <summary>
         ''' returns true if data object has primary keys and is alive
         ''' </summary>
@@ -3227,8 +3459,7 @@ Namespace OnTrack
                 Return Me._workspaceID
             End Get
             Set(value As String)
-
-                SetValue(ConstFNWORKSPACEID, Value)
+                SetValue(ConstFNWORKSPACEID, value)
             End Set
         End Property
 
@@ -3308,9 +3539,7 @@ Namespace OnTrack
                 Return _tag
             End Get
             Set(value As String)
-                If Not Me.IsDataObject Then
-                    SetValue(ConstFNTag, value)
-                End If
+                SetValue(ConstFNTag, value)
             End Set
         End Property
 

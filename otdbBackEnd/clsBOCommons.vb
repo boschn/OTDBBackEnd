@@ -571,7 +571,7 @@ Namespace OnTrack.Commons
     ''' Domain Setting Definition Class
     ''' </summary>
     ''' <remarks></remarks>
-    <ormObject(id:=DomainSetting.ConstObjectID, modulename:=ConstModuleCommons, description:="properties per domain", _
+    <ormObject(id:=DomainSetting.ConstObjectID, modulename:=ConstModuleCommons, adddomainbehavior:=True, description:="properties per domain", _
         Version:=1, useCache:=True)> Public Class DomainSetting
         Inherits ormDataObject
         Implements iormInfusable
@@ -587,7 +587,7 @@ Namespace OnTrack.Commons
             title:="domain", Description:="domain identifier", defaultvalue:=ConstGlobalDomain, _
             primaryKeyordinal:=1, _
             isactive:=True, useforeignkey:=otForeignKeyImplementation.ORM)> _
-        Const ConstFNDomainID As String = "DOMAIN"
+        Const ConstFNDomainID As String = Domain.ConstFNDomainID
 
         <ormObjectEntry(XID:="DMS2", _
            Datatype:=otDataType.Text, size:=100, primaryKeyordinal:=2, _
@@ -708,6 +708,8 @@ Namespace OnTrack.Commons
                                 Return CDbl(0)
                             End If
                             Return CLng(_valuestring)
+                        Case otDataType.Bool
+                            Return CBool(_valuestring)
                         Case Else
                             CoreMessageHandler(message:="data type not covered: " & _datatype, arg1:=_valuestring, subname:="DomainSetting.value", _
                                                messagetype:=otCoreMessageType.ApplicationError)
@@ -740,13 +742,28 @@ Namespace OnTrack.Commons
         ''' <param name="id"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function RetrieveByDomain(ByVal domainID As String, Optional forcereload As Boolean = False) As List(Of DomainSetting)
-            Dim aList As List(Of DomainSetting) = ormDataObject.AllDataObject(Of DomainSetting)(ID:="allbyDomain", _
-                                                                                      where:="[" & ConstFNDomainID & "] = @" & ConstFNDomainID, _
-                                                                                      parameters:={New ormSqlCommandParameter(id:="@" & ConstFNDomainID, columnname:=ConstFNDomainID, tablename:=ConstTableID, value:=domainID)}.ToList)
+        Public Overloads Shared Function RetrieveForDomain(domainid As String) As List(Of DomainSetting)
+            Dim aList As List(Of DomainSetting) = ormDataObject.AllDataObject(Of DomainSetting)(ID:="allforDomain", domainID:=domainid)
+            'Additional parameters and where clause is not needed - automatically settings for the current domainid are selected
+            'by the algo
+            'where:="[" & ConstFNDomainID & "] = @" & ConstFNDomainID, _
+            'parameters:={New ormSqlCommandParameter(id:="@" & ConstFNDomainID, columnname:=ConstFNDomainID, tablename:=ConstTableID, value:=domainID)}.ToList)
             Return aList
         End Function
-
+        ''' <summary>
+        ''' Retrieve the workspaceID Cache Object
+        ''' </summary>
+        ''' <param name="id"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Overloads Shared Function RetrieveAllofCurrentDomain() As List(Of DomainSetting)
+            Dim aList As List(Of DomainSetting) = ormDataObject.AllDataObject(Of DomainSetting)(ID:="allbyDomain")
+            'Additional parameters and where clause is not needed - automatically settings for the current domainid are selected
+            'by the algo
+            'where:="[" & ConstFNDomainID & "] = @" & ConstFNDomainID, _
+            'parameters:={New ormSqlCommandParameter(id:="@" & ConstFNDomainID, columnname:=ConstFNDomainID, tablename:=ConstTableID, value:=domainID)}.ToList)
+            Return aList
+        End Function
 
         ''' <summary>
         ''' creates with this object a new persistable Def workspaceID
@@ -3313,12 +3330,15 @@ Namespace OnTrack.Commons
 
 
         ' field mappings
-        <ormEntryMapping(EntryName:=ConstFNDomainID)> Private _ID As String = ""
-        <ormEntryMapping(EntryName:=ConstFNDescription)> Private _description As String = ""
+        <ormEntryMapping(EntryName:=ConstFNDomainID)> Private _domainID As String
+        <ormEntryMapping(EntryName:=ConstFNDescription)> Private _description As String
         <ormEntryMapping(EntryName:=ConstFNIsGlobal)> Private _isGlobal As Boolean
 
         <ormEntryMapping(EntryName:=ConstFNMinDeliverableUID)> Private _min_deliverable_uid As Long
         <ormEntryMapping(EntryName:=ConstFNMaxDeliverableUID)> Private _max_deliverable_uid As Long
+
+        ' inherited from dataobject -> disabled
+        '<ormEntryMapping(EntryName:=ConstFNDomainID, enabled:=False)> Protected _domainID As String = ConstGlobalDomain
 
         ' dynamics
         Private _listtings As New Dictionary(Of String, DomainSetting)
@@ -3338,7 +3358,7 @@ Namespace OnTrack.Commons
         ''' <remarks></remarks>
         <ormPropertyMappingAttribute(ID:="ID", fieldname:=ConstFNDomainID, tablename:=ConstTableID)> ReadOnly Property ID() As String
             Get
-                ID = _ID
+                ID = _domainID
             End Get
 
         End Property
@@ -3546,8 +3566,8 @@ Namespace OnTrack.Commons
         ''' <remarks></remarks>
         Public Function LoadSettings() As Boolean
             Dim aListDomain As New List(Of DomainSetting)
-            If ConstGlobalDomain <> Me.ID Then aListDomain = DomainSetting.RetrieveByDomain(domainID:=Me.ID)
-            Dim aListGlobal As List(Of DomainSetting) = DomainSetting.RetrieveByDomain(domainID:=ConstGlobalDomain)
+            If ConstGlobalDomain <> Me.ID Then aListDomain = DomainSetting.RetrieveForDomain(domainid:=Me.ID)
+            Dim aListGlobal As List(Of DomainSetting) = DomainSetting.RetrieveForDomain(domainid:=ConstGlobalDomain)
 
             '** first for the global
             For Each aSetting In aListGlobal

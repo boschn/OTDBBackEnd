@@ -51,6 +51,7 @@ Namespace OnTrack.Database
             Dim aRecordCollection As New List(Of ormRecord)
             Dim aStore As iormDataStore
             Dim anObject As New T
+            If String.IsNullOrWhiteSpace(domainID) Then domainID = CurrentSession.CurrentDomainID
 
             '** is a session running ?!
             If Not CurrentSession.IsRunning AndAlso Not CurrentSession.IsStartingUp Then
@@ -83,7 +84,7 @@ Namespace OnTrack.Database
                 ''' build domain behavior and deleteflag
                 ''' 
                 If anObject.ObjectHasDomainBehavior Then
-                    If domainID = "" Then domainID = CurrentSession.CurrentDomainID
+                    If String.IsNullOrWhiteSpace(domainID) Then domainID = CurrentSession.CurrentDomainID
                     ''' add where
                     If Not String.IsNullOrWhiteSpace(where) Then where &= " AND "
                     where &= String.Format(" ([{0}] = @{0} OR [{0}] = @Global{0})", ConstFNDomainID)
@@ -291,10 +292,12 @@ Namespace OnTrack.Database
         ''' <summary>
         ''' constructors
         ''' </summary>
-        ''' <remarks></remarks>
+        ''' <remarks>
+        ''' set domainid if bound to a domain otherwise currentdomain
+        ''' </remarks>
         Public Sub New(type As System.Type, _
                        Optional id As String = "", _
-                       Optional domainID As String = "",
+                       Optional domainID As String = Nothing,
                        Optional where As String = "", _
                        Optional orderby As String = "", _
                        Optional tablenames As String() = Nothing, _
@@ -541,7 +544,7 @@ Namespace OnTrack.Database
         End Property
 
         ''' <summary>
-        ''' Gets or sets the domainid.
+        ''' Gets or sets the static domainid in this query.
         ''' </summary>
         ''' <value>The domainid.</value>
         Public Property Domainid() As String
@@ -817,7 +820,7 @@ Namespace OnTrack.Database
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function Run() As Boolean
+        Public Function Run(Optional domainid As String = Nothing) As Boolean
 
             ''' prepare
             ''' 
@@ -833,9 +836,21 @@ Namespace OnTrack.Database
                 ''' should be reworked
                 Dim anObjectDefinition As ObjectDefinition = CurrentSession.Objects.GetObject(_objectid)
                 Dim hasDomainBehavior As Boolean = False
-                If anObjectDefinition Is Nothing Then
-                    hasDomainBehavior = anObjectDefinition.ObjectHasDomainBehavior
+                If anObjectDefinition IsNot Nothing Then
+                    hasDomainBehavior = anObjectDefinition.HasDomainBehavior
                 End If
+                If hasDomainBehavior Then
+                    If String.IsNullOrWhiteSpace(domainid) Then domainid = Me.Domainid
+                    If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
+                    ''' set domain parameter
+                    Dim aDomainIDParameter = _select.Parameters.Find(Function(x)
+                                                                         Return x.ID.ToUpper = "@" & Domain.ConstFNDomainID.ToUpper
+                                                                     End Function)
+                    If aDomainIDParameter IsNot Nothing Then
+                        aDomainIDParameter.Value = domainid
+                    End If
+                End If
+
                 ''' run the statement
                 ''' 
                 _qryStart = DateTime.Now
@@ -853,7 +868,7 @@ Namespace OnTrack.Database
                                     _qrystopwatch.ElapsedMilliseconds & " ms and returned " & _qrycount & " records", _
                                    messagetype:=otCoreMessageType.InternalInfo, subname:="ormQueriedEnumeration.Run")
 
-                If hasDomainBehavior And Domainid <> ConstGlobalDomain Then
+                If hasDomainBehavior And domainid <> ConstGlobalDomain Then
 
                     Dim aDomainRecordCollection As New Dictionary(Of String, ormRecord)
                     Dim pknames = CurrentSession.CurrentDBDriver.GetTableSchema(tableID:=_select.TableIDs.First).PrimaryKeys

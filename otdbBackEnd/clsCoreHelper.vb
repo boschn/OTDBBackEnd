@@ -85,12 +85,14 @@ Namespace OnTrack.Database
                 ''' 
                 domindex = aSchema.GetDomainIDPKOrdinal
                 If domindex > 0 Then
-                    If domainid = "" Then domainid = CurrentSession.CurrentDomainID
+                    If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
                     ''' check if the count of the arrays match
                     If pkarray.Count = aSchema.NoPrimaryKeyFields Then
                         ' set only if nothing is set
-                        If pkarray(domindex - 1) Is Nothing OrElse pkarray(domindex - 1) = "" Then
+                        If pkarray(domindex - 1) Is Nothing OrElse String.IsNullOrWhiteSpace(pkarray(domindex - 1)) Then
                             pkarray(domindex - 1) = UCase(domainid) ' set the domainid
+                        ElseIf pkarray(domindex - 1) <> UCase(domainid) Then
+                            pkarray(domindex - 1) = UCase(domainid)
                         End If
                     Else
                         ''' extend the primary key
@@ -128,11 +130,13 @@ Namespace OnTrack.Database
                     Dim keynames As String() = anTableAttribute.PrimaryKeyColumnNames
                     domindex = Array.FindIndex(keynames, Function(s) s.ToLower = Domain.ConstFNDomainID.ToLower)
                     If domindex >= 0 Then
-                        If domainid = "" Then domainid = CurrentSession.CurrentDomainID
+                        If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
 
                         If pkarray.Count = keynames.Count Then
                             ' set only if nothing is set
-                            If pkarray(domindex) Is Nothing OrElse pkarray(domindex) = "" Then
+                            If pkarray(domindex) Is Nothing OrElse String.IsNullOrWhiteSpace(pkarray(domindex)) Then
+                                pkarray(domindex) = UCase(domainid)
+                            ElseIf pkarray(domindex) <> UCase(domainid) Then
                                 pkarray(domindex) = UCase(domainid)
                             End If
                         Else

@@ -1,5 +1,5 @@
 ﻿
-REM ***********************************************************************************************************************************************''' <summary>
+REM ***********************************************************************************************************************************************''' <summary>''' <summary>
 REM *********** ON TRACK DATABASE BACKEND LIBRARY
 REM ***********
 REM *********** CORE ORM Attribute Classes for On Track Database Backend Library
@@ -1825,6 +1825,7 @@ Namespace OnTrack.Database
     <AttributeUsage(AttributeTargets.Field, AllowMultiple:=False, Inherited:=True)> _
     Public Class ormObjectEntryAttribute
         Inherits ormSchemaTableColumnAttribute
+        Implements iormObjectEntry
 
 
         Private _Title As String = Nothing
@@ -1865,11 +1866,11 @@ Namespace OnTrack.Database
         ''' Gets or sets the type of the entry.
         ''' </summary>
         ''' <value>The type of the entry.</value>
-        Public Property EntryType() As otObjectEntryType
+        Public Property EntryType() As otObjectEntryType Implements iormObjectEntry.Typeid
             Get
                 Return Me._EntryType
             End Get
-            Set
+            Set(value As otObjectEntryType)
                 Me._EntryType = Value
             End Set
         End Property
@@ -1882,15 +1883,15 @@ Namespace OnTrack.Database
         ''' Gets or sets the lookup condition.
         ''' </summary>
         ''' <value>The lookup condition.</value>
-        Public Property LookupCondition() As String
+        Public Property LookupCondition() As String Implements iormObjectEntry.LookupCondition
             Get
                 Return Me._lookupCondition
             End Get
-            Set
+            Set(value As String)
                 Me._lookupCondition = Value
             End Set
         End Property
-        Public ReadOnly Property HasValueLookupCondition As Boolean
+        Public ReadOnly Property HasValueLookupCondition As Boolean Implements iormObjectEntry.HasLookupCondition
             Get
                 Return _lookupCondition IsNot Nothing 'AndAlso _validateRegExp <> "" empty string is possible
             End Get
@@ -1899,15 +1900,15 @@ Namespace OnTrack.Database
         ''' Gets or sets the render reg exp pattern.
         ''' </summary>
         ''' <value>The render reg exp pattern.</value>
-        Public Property RenderRegExpPattern() As String
+        Public Property RenderRegExpPattern() As String Implements iormObjectEntry.RenderRegExpPattern
             Get
                 Return Me._RenderRegExpPattern
             End Get
-            Set
+            Set(value As String)
                 Me._RenderRegExpPattern = Value
             End Set
         End Property
-        Public ReadOnly Property HasValueRenderRegExpPattern As Boolean
+        Public ReadOnly Property HasValueRenderRegExpPattern As Boolean Implements iormObjectEntry.HasRenderRegExpression
             Get
                 Return _RenderRegExpPattern IsNot Nothing 'AndAlso _validateRegExp <> "" empty string is possible
             End Get
@@ -1916,15 +1917,15 @@ Namespace OnTrack.Database
         ''' Gets or sets the render reg exp match.
         ''' </summary>
         ''' <value>The render reg exp match.</value>
-        Public Property RenderRegExpMatch() As String
+        Public Property RenderRegExpMatch() As String Implements iormObjectEntry.RenderRegExpMatch
             Get
                 Return Me._RenderRegExpMatch
             End Get
-            Set
+            Set(value As String)
                 Me._RenderRegExpMatch = Value
             End Set
         End Property
-        Public ReadOnly Property HasValueRenderRegExpMatch As Boolean
+        Public ReadOnly Property HasValueRenderRegExpMatch As Boolean 'Implements iormObjectEntry.HasRenderRegMatch
             Get
                 Return _RenderRegExpMatch IsNot Nothing 'AndAlso _validateRegExp <> "" empty string is possible
             End Get
@@ -1933,7 +1934,7 @@ Namespace OnTrack.Database
         ''' Gets or sets the object entry properties.
         ''' </summary>
         ''' <value>The render properties.</value>
-        Public Property Properties() As String()
+        Public Property Properties() As String() Implements iormObjectEntry.PropertyStrings
             Get
                 Dim aList As New List(Of String)
                 For Each aP In _properties
@@ -1953,12 +1954,12 @@ Namespace OnTrack.Database
                 End Try
             End Set
         End Property
-        Public Property ObjectEntryProperties As ObjectEntryProperty()
+        Public Property ObjectEntryProperties As List(Of ObjectEntryProperty) Implements iormObjectEntry.Properties
             Get
-                Return _properties
+                Return _properties.ToList
             End Get
-            Set(value As ObjectEntryProperty())
-                _properties = value
+            Set(value As List(Of ObjectEntryProperty))
+                _properties = value.ToArray
             End Set
         End Property
         Public ReadOnly Property HasValueObjectEntryProperties As Boolean
@@ -1974,7 +1975,7 @@ Namespace OnTrack.Database
         ''' Gets or sets the object entry properties.
         ''' </summary>
         ''' <value>The render properties.</value>
-        Public Property RenderPropertyStrings() As String()
+        Public Property RenderPropertyStrings() As String() Implements iormObjectEntry.RenderPropertyStrings
             Get
                 Dim aList As New List(Of String)
                 For Each aP In _RenderProperties
@@ -1994,12 +1995,12 @@ Namespace OnTrack.Database
                 End Try
             End Set
         End Property
-        Public Property RenderProperties() As RenderProperty()
+        Public Property RenderProperties() As List(Of RenderProperty) Implements iormObjectEntry.RenderProperties
             Get
-                Return Me._RenderProperties
+                Return Me._RenderProperties.ToList
             End Get
-            Set(value As RenderProperty())
-                Me._RenderProperties = Value
+            Set(value As List(Of RenderProperty))
+                Me._RenderProperties = value.ToArray
             End Set
         End Property
         Public ReadOnly Property HasValueRenderProperties As Boolean
@@ -2011,7 +2012,7 @@ Namespace OnTrack.Database
         ''' Gets or sets the isActive flag
         ''' </summary>
         ''' <value>The render.</value>
-        Public Property IsActive As Boolean
+        Public Property IsActive As Boolean Implements iormObjectEntry.IsActive
             Get
                 Return Me._isActive
             End Get
@@ -2028,7 +2029,7 @@ Namespace OnTrack.Database
         ''' Gets or sets the readonly flag
         ''' </summary>
         ''' <value>The render.</value>
-        Public Property [IsReadOnly] As Boolean
+        Public Property [IsReadOnly] As Boolean Implements iormObjectEntry.IsReadonly
             Get
                 Return Me._isReadonly
             End Get
@@ -2045,15 +2046,15 @@ Namespace OnTrack.Database
         ''' Gets or sets the render.
         ''' </summary>
         ''' <value>The render.</value>
-        Public Property Render() As Boolean?
+        Public Property Render() As Boolean Implements iormObjectEntry.IsRendering
             Get
                 Return Me._render
             End Get
-            Set
-                Me._render = Value
+            Set(value As Boolean)
+                Me._render = value
             End Set
         End Property
-        Public ReadOnly Property HasValueRender As Boolean
+        Public ReadOnly Property HasValueRender As Boolean Implements iormObjectEntry.HasRenderProperties
             Get
                 Return _render.HasValue
             End Get
@@ -2062,15 +2063,15 @@ Namespace OnTrack.Database
         ''' Gets or sets the validate reg exp.
         ''' </summary>
         ''' <value>The validate reg exp.</value>
-        Public Property ValidateRegExp() As String
+        Public Property ValidateRegExp() As String Implements iormObjectEntry.ValidateRegExpression
             Get
                 Return Me._validateRegExp
             End Get
-            Set
+            Set(value As String)
                 Me._validateRegExp = Value
             End Set
         End Property
-        Public ReadOnly Property HasValueValidateRegExp As Boolean
+        Public ReadOnly Property HasValueValidateRegExp As Boolean Implements iormObjectEntry.HasValidateRegExpression
             Get
                 Return _validateRegExp IsNot Nothing 'AndAlso _validateRegExp <> "" empty is possible
             End Get
@@ -2080,7 +2081,7 @@ Namespace OnTrack.Database
         ''' </summary>
         ''' <value>The validation properties.</value>
         '''  
-        Public Property LookupPropertyStrings() As String()
+        Public Property LookupPropertyStrings() As String() Implements iormObjectEntry.LookupPropertyStrings
             Get
                 Dim aList As New List(Of String)
                 For Each aP In _ValidationProperties
@@ -2100,15 +2101,15 @@ Namespace OnTrack.Database
                 End Try
             End Set
         End Property
-        Public Property LookupProperties() As LookupProperty()
+        Public Property LookupProperties() As List(Of LookupProperty) Implements iormObjectEntry.LookupProperties
             Get
-                Return Me._LookupProperties
+                Return Me._LookupProperties.ToList
             End Get
-            Set(value As LookupProperty())
-                Me._LookupProperties = value
+            Set(value As List(Of LookupProperty))
+                Me._LookupProperties = value.ToArray
             End Set
         End Property
-        Public ReadOnly Property HasValueLookupProperties As Boolean
+        Public ReadOnly Property HasValueLookupProperties As Boolean Implements iormObjectEntry.HasLookupProperties
             Get
                 Return _LookupProperties IsNot Nothing AndAlso _LookupProperties.Count > 0
             End Get
@@ -2118,7 +2119,7 @@ Namespace OnTrack.Database
         ''' </summary>
         ''' <value>The validation properties.</value>
         '''  
-        Public Property ValidationPropertyStrings() As String()
+        Public Property ValidationPropertyStrings() As String() Implements iormObjectEntry.ValidationPropertyStrings
             Get
                 Dim aList As New List(Of String)
                 For Each aP In _ValidationProperties
@@ -2138,24 +2139,49 @@ Namespace OnTrack.Database
                 End Try
             End Set
         End Property
-        Public Property ValidationProperties() As ObjectValidationProperty()
+        Public Property ValidationProperties() As List(Of ObjectValidationProperty) Implements iormObjectEntry.ValidationProperties
             Get
-                Return Me._ValidationProperties
+                Return Me._ValidationProperties.ToList
             End Get
-            Set(value As ObjectValidationProperty())
-                Me._ValidationProperties = value
+            Set(value As List(Of ObjectValidationProperty))
+                Me._ValidationProperties = value.ToArray
             End Set
         End Property
-        Public ReadOnly Property HasValueValidationProperties As Boolean
+        Public ReadOnly Property HasValueValidationProperties As Boolean Implements iormObjectEntry.HasValidationProperties
             Get
                 Return _ValidationProperties IsNot Nothing AndAlso _ValidationProperties.Count > 0
             End Get
         End Property
         ''' <summary>
-        ''' Gets or sets the values.
+        ''' Gets or sets the possible values in string presentation as list
         ''' </summary>
         ''' <value>The values.</value>
-        Public Property Values() As String()
+        Public Property PossibleValues As List(Of String) Implements iormObjectEntry.PossibleValues
+            Get
+                Return Me._Values.ToList
+            End Get
+            Set(value As List(Of String))
+                Me._Values = value.ToArray
+            End Set
+        End Property
+        ''' <summary>
+        ''' Gets or sets the description.
+        ''' </summary>
+        ''' <value>The description.</value>
+        Public Property Description() As String Implements iormObjectEntry.Description
+            Get
+                Return MyBase.Description
+            End Get
+            Set(value As String)
+                MyBase.Description = value
+            End Set
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the possible values in string presentation as array.
+        ''' </summary>
+        ''' <value>The values.</value>
+        Public Property Values As String()
             Get
                 Return Me._Values
             End Get
@@ -2163,7 +2189,7 @@ Namespace OnTrack.Database
                 Me._Values = value
             End Set
         End Property
-        Public ReadOnly Property HasValueValues As Boolean
+        Public ReadOnly Property HasValueValues As Boolean Implements iormObjectEntry.HasPossibleValues
             Get
                 Return _Values IsNot Nothing AndAlso _Values.Count > 0
             End Get
@@ -2180,10 +2206,34 @@ Namespace OnTrack.Database
                 Me._upperRange = value
             End Set
         End Property
-        Public ReadOnly Property HasValueUpperRange As Boolean
+        ''' <summary>
+        ''' Gets or sets the upper range as nullable
+        ''' </summary>
+        ''' <value>The upper range.</value>
+        Public Property UpperRangeValue() As Long? Implements iormObjectEntry.UpperRangeValue
+            Get
+                Return Me._upperRange
+            End Get
+            Set(value As Long?)
+                Me._upperRange = value
+            End Set
+        End Property
+        Public ReadOnly Property HasValueUpperRange As Boolean Implements iormObjectEntry.HasUpperRangeValue
             Get
                 Return _upperRange.HasValue
             End Get
+        End Property
+        ''' <summary>
+        ''' Gets or sets the lower range as nullable.
+        ''' </summary>
+        ''' <value>The lower range.</value>
+        Public Property LowerRangeValue() As Long? Implements iormObjectEntry.LowerRangeValue
+            Get
+                Return Me._LowerRange
+            End Get
+            Set(value As Long?)
+                Me._LowerRange = value
+            End Set
         End Property
         ''' <summary>
         ''' Gets or sets the lower range.
@@ -2197,7 +2247,7 @@ Namespace OnTrack.Database
                 Me._LowerRange = value
             End Set
         End Property
-        Public ReadOnly Property HasValueLowerRange As Boolean
+        Public ReadOnly Property HasValueLowerRange As Boolean Implements iormObjectEntry.HasLowerRangeValue
             Get
                 Return _LowerRange.HasValue
             End Get
@@ -2206,12 +2256,12 @@ Namespace OnTrack.Database
         ''' Gets or sets the validate.
         ''' </summary>
         ''' <value>The validate.</value>
-        Public Property Validate() As Boolean?
+        Public Property Validate() As Boolean Implements iormObjectEntry.IsValidating
             Get
                 Return Me._validate
             End Get
-            Set(value As Boolean?)
-                Me._validate = Value
+            Set(value As Boolean)
+                Me._validate = value
             End Set
         End Property
         Public ReadOnly Property HasValueValidate As Boolean
@@ -2223,7 +2273,7 @@ Namespace OnTrack.Database
         ''' Gets or sets the name of the object.
         ''' </summary>
         ''' <value>The name of the object.</value>
-        Public Property ObjectName() As String
+        Public Property ObjectName() As String Implements iormObjectEntry.Objectname
             Get
                 Return Me._objectName
             End Get
@@ -2240,7 +2290,7 @@ Namespace OnTrack.Database
         ''' Gets or sets the default value in DB presentation.
         ''' </summary>
         ''' <value>The default value.</value>
-        Public Property DefaultValue() As Object
+        Public Property DefaultValue() As Object Implements iormObjectEntry.DefaultValue
             Get
                 Return Me._DefaultValue
             End Get
@@ -2257,7 +2307,7 @@ Namespace OnTrack.Database
         ''' Gets or sets the name of the column.
         ''' </summary>
         ''' <value>The name of the column.</value>
-        Public Property EntryName() As String
+        Public Property EntryName() As String Implements iormObjectEntry.Entryname
             Get
                 Return Me._objectEntryName
             End Get
@@ -2274,7 +2324,7 @@ Namespace OnTrack.Database
         ''' Gets or sets the name of the column.
         ''' </summary>
         ''' <value>The name of the column.</value>
-        Public Property XID() As String
+        Public Property XID() As String Implements iormObjectEntry.XID
             Get
                 Return Me._XID
             End Get
@@ -2291,11 +2341,11 @@ Namespace OnTrack.Database
         ''' Gets or sets the primary key ordinal.
         ''' </summary>
         ''' <value>The primary key ordinal.</value>
-        Public Property KeyOrdinal() As Short
+        Public Property KeyOrdinal() As Long Implements iormObjectEntry.PrimaryKeyOrdinal
             Get
                 Return Me._KeyOrdinal
             End Get
-            Set(value As Short)
+            Set(value As Long)
                 If value > 0 Then
                     Me._KeyOrdinal = value
                 Else
@@ -2314,11 +2364,11 @@ Namespace OnTrack.Database
         ''' Gets or sets the pos ordinal.
         ''' </summary>
         ''' <value>The pos ordinal.</value>
-        Public Property Posordinal() As UShort
+        Public Property Posordinal() As Long Implements iormObjectEntry.Ordinal
             Get
                 Return Me._Posordinal
             End Get
-            Set(value As UShort)
+            Set(value As Long)
                 Me._Posordinal = value
             End Set
         End Property
@@ -2337,7 +2387,7 @@ Namespace OnTrack.Database
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property SpareFieldTag As Boolean
+        Public Property SpareFieldTag As Boolean Implements iormObjectEntry.IsSpareField
             Get
                 Return _SpareFieldTag
             End Get
@@ -2354,7 +2404,7 @@ Namespace OnTrack.Database
         ''' Gets or sets the title.
         ''' </summary>
         ''' <value>The title.</value>
-        Public Property Title() As String
+        Public Property Title() As String Implements iormObjectEntry.Title
             Get
                 Return Me._Title
             End Get
@@ -2407,7 +2457,7 @@ Namespace OnTrack.Database
         ''' Gets or sets the aliases.
         ''' </summary>
         ''' <value>The aliases.</value>
-        Public Property Aliases() As String()
+        Public Property Aliases() As String() Implements iormObjectEntry.Aliases
             Get
                 Return Me._aliases
             End Get
@@ -2426,11 +2476,11 @@ Namespace OnTrack.Database
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property Version As UShort
+        Public Property Version As Long Implements iormObjectEntry.Version
             Get
                 Return Me._Version
             End Get
-            Set(value As UShort)
+            Set(value As Long)
                 Me._Version = value
             End Set
         End Property
@@ -2452,6 +2502,161 @@ Namespace OnTrack.Database
             name &= "]"
             Return name
         End Function
+        ''' <summary>
+        ''' set the datatype for the objectentry attribute (stub)
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Property Datatype() As otDataType Implements iormObjectEntry.Datatype
+            Get
+                Return MyBase.DataType
+            End Get
+            Set(value As otDataType)
+                MyBase.DataType = value
+            End Set
+        End Property
+
+        ''' <summary>
+        ''' returns true if the Entry is mapped to a class member field
+        ''' </summary>
+        ''' Inherits iormPersistable -&gt; ObjectEntryAttribute is also covering this
+        ''' Inherits System.ComponentModel.INotifyPropertyChanged
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        ''' <value></value>
+        Public Property IsMapped() As Boolean Implements iormObjectEntry.IsMapped
+            Get
+                ' TODO: Implement this property setter
+                Throw New InvalidOperationException()
+            End Get
+            Set(value As Boolean)
+                ' TODO: Implement this property setter
+                Throw New InvalidOperationException()
+            End Set
+        End Property
+        ''' <summary>
+        ''' returns True if the Entry is a Column
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        ''' <value></value>
+        Public Property IsColumn() As Boolean Implements iormObjectEntry.IsColumn
+            Get
+                Return True
+            End Get
+            Set(value As Boolean)
+                ' TODO: Implement this property setter
+                Throw New InvalidOperationException()
+            End Set
+        End Property
+        ''' <summary>
+        ''' returns true if the Entry is a Compound entry
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        ''' <value></value>
+        Public Property IsCompound() As Boolean Implements iormObjectEntry.IsCompound
+            Get
+                Return False
+            End Get
+            Set(value As Boolean)
+                ' TODO: Implement this property setter
+                Throw New InvalidOperationException()
+            End Set
+        End Property
+       
+        ''' <summary>
+        ''' Gets or sets the size.
+        ''' </summary>
+        ''' <value>The size.</value>
+        Public Property Size() As Long
+            Get
+                Return MyBase.Size
+            End Get
+            Set(value As Long)
+                MyBase.Size = value
+            End Set
+        End Property
+        ''' <summary>
+        ''' Gets or sets the size as nullable.
+        ''' </summary>
+        ''' <value>The size.</value>
+        Public Property SizeValue() As Long? Implements iormObjectEntry.Size
+            Get
+                Return MyBase.Size
+            End Get
+            Set(value As Long?)
+                If value.HasValue Then
+                    MyBase.Size = value.Value
+                Else
+                    MyBase._size = Nothing
+                End If
+
+
+            End Set
+        End Property
+        ''' <summary>
+        ''' Gets or sets the is nullable.
+        ''' </summary>
+        ''' <value>The is nullable.</value>
+        Public Property IsNullable() As Boolean Implements iormObjectEntry.IsNullable
+            Get
+                Return MyBase.IsNullable
+            End Get
+            Set(value As Boolean)
+                MyBase.IsNullable = value
+            End Set
+        End Property
+       
+        ''' <summary>
+        ''' Gets or sets the inner datatype.
+        ''' </summary>
+        ''' <value>The inner datatype.</value>
+        Public Property InnerDatatype() As otDataType
+            Get
+                Return MyBase.InnerDataType
+            End Get
+            Set(value As otDataType)
+                If value = 0 Then
+                    MyBase.InnerDataType = Nothing
+                Else
+                    MyBase.InnerDataType = value
+                End If
+            End Set
+        End Property
+        ''' <summary>
+        ''' Gets or sets the inner datatype as nullable.
+        ''' </summary>
+        ''' <value>The inner datatype.</value>
+        Public Property InnerDatatypeValue() As otDataType? Implements iormObjectEntry.InnerDatatype
+            Get
+                Return MyBase.InnerDataType
+            End Get
+            Set(value As otDataType?)
+                MyBase.InnerDataType = value
+            End Set
+        End Property
+        
+        ''' <summary>
+        ''' Abstracts the entry definition_ set by attribute.
+        ''' </summary>
+        ''' <param name="attribute">The attribute.</param>
+        ''' <returns></returns>
+        Public Function AbstractEntryDefinition_SetByAttribute(attribute As ormObjectEntryAttribute) As Boolean Implements iormObjectEntry.AbstractEntryDefinition_SetByAttribute
+            ' TODO: Implement this property setter
+            Throw New InvalidOperationException()
+        End Function
+        ''' <summary>
+        ''' handler for the OnSwitchRuntimeOff event
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Public Sub OnswitchRuntimeOff(sender As Object, e As ormDataObjectEventArgs) Implements iormObjectEntry.OnswitchRuntimeOff
+            ' TODO: Implement this property setter
+            Throw New InvalidOperationException()
+        End Sub
     End Class
     ''' <summary>
     ''' Attribute for Const fields to describe the schema
@@ -3277,3 +3482,4 @@ Namespace OnTrack.Database
     End Class
 
 End Namespace
+

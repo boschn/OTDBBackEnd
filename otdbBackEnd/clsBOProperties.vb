@@ -378,7 +378,7 @@ Namespace OnTrack.ObjectProperties
             Get
 
                 If _set Is Nothing Then
-                    _set = ObjectPropertySet.Retrieve(id:=_setid)
+                    _set = ObjectPropertySet.Retrieve(id:=_setid, domainid:=Me.DomainID)
                     If _set Is Nothing Then
                         CoreMessageHandler(message:="object property set does not exist", subname:="ObjectProperty.PropertySet", _
                                            messagetype:=otCoreMessageType.ApplicationError, _
@@ -428,7 +428,7 @@ Namespace OnTrack.ObjectProperties
                 End If
                 ''' even if it is early to retrieve the set and set it (since this might disposed since we have not run through checkuniqueness and cache)
                 ''' we need to check on the object here
-                _set = ObjectPropertySet.Retrieve(id:=setid)
+                _set = ObjectPropertySet.Retrieve(id:=setid, domainid:=Me.DomainID)
                 If _set Is Nothing Then
                     CoreMessageHandler(message:="object propert set doesnot exist", subname:="ObjectProperty.OnCreated", _
                                        messagetype:=otCoreMessageType.ApplicationError, _
@@ -450,7 +450,7 @@ Namespace OnTrack.ObjectProperties
 
             If my IsNot Nothing Then
                 If _set Is Nothing Then
-                    _set = ObjectPropertySet.Retrieve(id:=SetID)
+                    _set = ObjectPropertySet.Retrieve(id:=SetID, domainid:=Me.DomainID)
                     If _set Is Nothing Then
                         CoreMessageHandler(message:="object propert set doesnot exist", subname:="ObjectProperty.OnCreated", _
                                           messagetype:=otCoreMessageType.ApplicationError, _
@@ -490,6 +490,7 @@ Namespace OnTrack.ObjectProperties
             ''' 
             With compound
                 '' type and field
+
                 .Aliases = Me.Aliases
                 .Datatype = Me.Datatype
                 .IsNullable = Me.IsNullable
@@ -528,6 +529,18 @@ Namespace OnTrack.ObjectProperties
 
             End With
         End Sub
+
+        ''' <summary>
+        ''' set the default values for the create event
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Private Sub ObjectProperty_OnCreateDefaultValuesNeeded(sender As Object, e As ormDataObjectEventArgs) Handles Me.OnCreateDefaultValuesNeeded
+            If Not e.Record.HasIndex(ConstFNType) Then e.Record.SetValue(ConstFNType, otObjectEntryType.Compound.ToString)
+        End Sub
+
+       
         ''' <summary>
         ''' OnPersisted Handler to add the Properties as Compounds to the ObjectIDs
         ''' </summary>
@@ -571,7 +584,7 @@ Namespace OnTrack.ObjectProperties
                                                                                      entryname:=Me.ID, domainID:=Me.DomainID, _
                                                                                      runtimeOnly:=Me.RunTimeOnly, checkunique:=True)
                         If aCompound Is Nothing Then aCompound = ObjectCompoundEntry.Retrieve(objectname:=names(0), _
-                                                                                     entryname:=Me.ID, runtimeOnly:=Me.RunTimeOnly)
+                                                                                     entryname:=Me.ID, domainID:=Me.DomainID, runtimeOnly:=Me.RunTimeOnly)
 
                         ''' set the values
                         ''' 
@@ -623,7 +636,7 @@ Namespace OnTrack.ObjectProperties
                     ''' create all the relational path
                     ''' 
                     For i = apath.GetUpperBound(0) To apath.GetUpperBound(0) - 1
-                        Dim aCompound As ObjectCompoundEntry = ObjectCompoundEntry.Retrieve(apath(i), Me.ID, runtimeOnly:=Me.RunTimeOnly)
+                        Dim aCompound As ObjectCompoundEntry = ObjectCompoundEntry.Retrieve(apath(i), Me.ID, domainID:=Me.DomainID, runtimeOnly:=Me.RunTimeOnly)
                         If aCompound IsNot Nothing Then aCompound.Delete()
                     Next
 
@@ -657,6 +670,19 @@ Namespace OnTrack.ObjectProperties
             Dim primarykey As Object() = {setid.ToUpper, ID.ToUpper, domainid}
             Return ormDataObject.Retrieve(Of ObjectProperty)(pkArray:=primarykey)
         End Function
+
+        ''' <summary>
+        ''' set default value event for object entry
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Private Sub ObjectProperty_OnDefaultValueNeeded(sender As Object, e As ormDataObjectEntryEventArgs) Handles Me.OnDefaultValueNeeded
+            If e.ObjectEntryName = ConstFNType Then
+                e.Value = otObjectEntryType.Compound
+                e.Result = True
+            End If
+        End Sub
     End Class
 
     '    SELECT      TBLOBJPROPERTYLINKS.FROMOBJECTID, TBLOBJPROPERTYLINKS.fromuid, tblobjpropertylinks.FROMUPDC ,
@@ -891,8 +917,8 @@ Namespace OnTrack.ObjectProperties
         ''' <returns></returns>
         ''' <remarks></remarks>
         <ormObjectOperationMethod(operationname:=ConstOPSetCompoundValue, tag:=ObjectCompoundEntry.ConstCompoundSetter, _
-            parameterEntries:={ObjectCompoundEntry.ConstFNEntryName, ObjectCompoundEntry.ConstFNValues})> _
-        Public Function SetPropertyValue(id As String, value As Object) As Boolean
+            parameterEntries:={ObjectCompoundEntry.ConstFNEntryName, ObjectCompoundEntry.ConstFNValues, Domain.ConstFNDomainID})> _
+        Public Function SetPropertyValue(id As String, value As Object, Optional domainid As String = Nothing) As Boolean
             If Not IsAlive(subname:="SetPropertyValue") Then Return False
 
             ''' get the relation
@@ -901,6 +927,8 @@ Namespace OnTrack.ObjectProperties
                 Return False
             End If
 
+            '**
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
             '''
             ''' check if the new Property value is different then old one
             ''' 
@@ -908,13 +936,13 @@ Namespace OnTrack.ObjectProperties
                 ''' we need change the version of the properyvaluelot if we have not done so (then it is created)
                 ''' 
                 If Not Me.PropertyValueLot.IsCreated Then
-                    Dim aNewLot As ObjectPropertyValueLot = Me.PropertyValueLot.Clone(Uid:=Me.ToUID)
+                    Dim aNewLot As ObjectPropertyValueLot = Me.PropertyValueLot.Clone(uid:=Me.ToUID)
                     Me.ToUID = aNewLot.UID
                     Me.ToUpdc = aNewLot.UPDC ' set new one
                     Me.PropertyValueLot.ValidUntil = Date.Now
                     _prevVersionLots.Add(_propertyValueLot)
                     _propertyValueLot = aNewLot
-
+                    _propertyValueLot.DomainID = domainid
                 End If
 
                 Return _propertyValueLot.SetValue(entryname:=id, value:=value)
@@ -986,10 +1014,10 @@ Namespace OnTrack.ObjectProperties
         Public Overloads Shared Function Create(fromObjectID As String, _
                                                 fromuid As Long, _
                                                 Optional fromupdc As Long = 0, _
-                                                Optional domainid As String = "", _
+                                                Optional domainid As String = Nothing, _
                                                 Optional toUID As Long? = Nothing, _
                                                 Optional toUpdc As Long? = Nothing) As ObjectPropertyLink
-            If domainid = "" Then domainid = CurrentSession.CurrentDomainID
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
             Dim primarykey As Object() = {fromObjectID, fromuid, fromupdc, domainid}
 
             '' set values
@@ -1219,10 +1247,11 @@ Namespace OnTrack.ObjectProperties
         ''' <returns></returns>
         ''' <remarks></remarks>
         <ormObjectOperationMethod(operationname:=ConstOPGetCompoundValue, tag:=ObjectCompoundEntry.ConstCompoundGetter, _
-            parameterEntries:={ObjectCompoundEntry.ConstFNEntryName, ObjectCompoundEntry.ConstFNValues})> _
-        Public Function GetPropertyValue(id As String, ByRef value As Object) As Boolean
+            parameterEntries:={ObjectCompoundEntry.ConstFNEntryName, ObjectCompoundEntry.ConstFNValues, Domain.ConstFNDomainID})> _
+        Public Function GetPropertyValue(id As String, ByRef value As Object, Optional domainid As String = Nothing) As Boolean
             If Not IsAlive(subname:="GetPropertyValue") Then Return Nothing
             Dim propertyID As String = id.ToUpper
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
 
             ''' the id should be in a canonical form
             ''' 
@@ -1256,7 +1285,7 @@ Namespace OnTrack.ObjectProperties
                     ' fine nothing do to
                 Else
                     '' check if the setid exists
-                    Dim aPropertySet = ObjectPropertySet.Retrieve(id:=names(0), domainid:=DomainID)
+                    Dim aPropertySet = ObjectPropertySet.Retrieve(id:=names(0), domainid:=domainid)
                     If aPropertySet Is Nothing Then
                         '' maybe this was not part of the name ?! in another set as unique name ?
                         If _setids.Count > 0 Then
@@ -1264,7 +1293,7 @@ Namespace OnTrack.ObjectProperties
                             Dim aSet As ObjectPropertySet
                             Dim found As Boolean = False
                             For Each aSetname As String In _setids
-                                aSet = ObjectPropertySet.Retrieve(id:=aSetname, domainid:=DomainID)
+                                aSet = ObjectPropertySet.Retrieve(id:=aSetname, domainid:=domainid)
                                 If aSet IsNot Nothing Then
                                     If aSet.PropertyIDs.Contains(id.ToUpper) Then
                                         names(0) = aSetname.ToUpper
@@ -1324,10 +1353,11 @@ Namespace OnTrack.ObjectProperties
         ''' <returns></returns>
         ''' <remarks></remarks>
         <ormObjectOperationMethod(operationname:=ConstOPSetCompoundValue, tag:=ObjectCompoundEntry.ConstCompoundSetter, _
-            parameterEntries:={ObjectCompoundEntry.ConstFNEntryName, ObjectCompoundEntry.ConstFNValues})> _
-        Public Function SetPropertyValue(id As String, value As Object) As Boolean
+            parameterEntries:={ObjectCompoundEntry.ConstFNEntryName, ObjectCompoundEntry.ConstFNValues, Domain.ConstFNDomainID})> _
+        Public Function SetPropertyValue(id As String, value As Object, Optional domainid As String = Nothing) As Boolean
             If Not IsAlive(subname:="SetPropertyValue") Then Return Nothing
 
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
 
             ''' the id should be in a canonical form
             ''' 
@@ -1354,14 +1384,14 @@ Namespace OnTrack.ObjectProperties
 
                 ''' extend the properties by this set
             ElseIf names.Count > 1 And Not _setids.Contains(names(0)) Then
-                Dim aPropertySet = ObjectPropertySet.Retrieve(id:=names(0), domainid:=DomainID)
+                Dim aPropertySet = ObjectPropertySet.Retrieve(id:=names(0), domainid:=domainid)
                 If aPropertySet Is Nothing Then
                     '' maybe this was not part of the name ?! in another set as unique name ?
                     If _setids.Count > 0 Then
                         '' search it
                         Dim found As Boolean = False
                         For Each aSetname As String In _setids
-                            Dim aSet As ObjectPropertySet = ObjectPropertySet.Retrieve(id:=aSetname, domainid:=DomainID)
+                            Dim aSet As ObjectPropertySet = ObjectPropertySet.Retrieve(id:=aSetname, domainid:=domainid)
                             If aSet IsNot Nothing Then
                                 If aSet.PropertyIDs.Contains(id.ToUpper) Then
                                     names(0) = aSetname.ToUpper
@@ -1556,31 +1586,9 @@ Namespace OnTrack.ObjectProperties
         Public Function Clone(Optional uid As Long? = Nothing, Optional updc As Long? = Nothing) As ObjectPropertyValueLot
             If Not IsAlive(subname:="Clone") Then Return Nothing
 
-            Try
-                Dim primarykey As Object()
-                If Not uid.HasValue And Not updc.HasValue Then
-                    Dim anuid As Long?
-                    primarykey = {anuid, Nothing} ' new updc
-                    If MyBase.PrimaryTableStore.CreateUniquePkValue(pkArray:=primarykey, tag:=constFNUID) Then
-                        Return MyBase.Clone(Of ObjectPropertyValueLot)(primarykey)
-                    End If
-                ElseIf uid.HasValue And Not updc.HasValue Then
-                    primarykey = {uid, Nothing} ' new updc
-                    If MyBase.PrimaryTableStore.CreateUniquePkValue(pkArray:=primarykey, tag:=ConstFNUpdc) Then
-                        Return MyBase.Clone(Of ObjectPropertyValueLot)(primarykey)
-                    End If
-                Else
-                    primarykey = {uid, updc} ' new updc
-                    If MyBase.PrimaryTableStore.CreateUniquePkValue(pkArray:=primarykey, tag:=ConstFNUpdc) Then
-                        Return MyBase.Clone(Of ObjectPropertyValueLot)(primarykey)
-                    End If
-                End If
-
-                Return Nothing
-            Catch ex As Exception
-                Call CoreMessageHandler(subname:="ObjectPropertyValueLot.Clone", exception:=ex)
-                Return Nothing
-            End Try
+            Dim primarykey As Object()
+            primarykey = {uid, updc}
+            Return MyBase.Clone(Of ObjectPropertyValueLot)(primarykey)
         End Function
 
         ''' <summary>
@@ -1589,9 +1597,9 @@ Namespace OnTrack.ObjectProperties
         ''' <param name="sender"></param>
         ''' <param name="e"></param>
         ''' <remarks></remarks>
-        Public Sub ObjectPropertyValueLot_OnCloned(sender As Object, e As ormDataObjectEventArgs) Handles Me.OnCloned
+        Public Sub ObjectPropertyValueLot_OnCloned(sender As Object, e As ormDataObjectCloneEventArgs) Handles Me.OnCloned
             If Not e.AbortOperation Then
-                Dim aNewObject As ObjectPropertyValueLot = TryCast(e.DataObject, ObjectPropertyValueLot)
+                Dim aNewObject As ObjectPropertyValueLot = TryCast(e.newobject, ObjectPropertyValueLot)
                 ' now clone the Members (Milestones)
                 For Each aPropertyValue In _valuesCollection
                     aNewObject.Values.Add(aPropertyValue.Clone(uid:=aNewObject.UID, updc:=aNewObject.UPDC, setid:=aPropertyValue.SetID, propertyid:=aPropertyValue.PropertyID))
@@ -1859,6 +1867,7 @@ Namespace OnTrack.ObjectProperties
                 Else
                     ''' set this too
                     _datatype = _propertyDefinition.Datatype
+                    _value = _propertyDefinition.DefaultValue
                 End If
             End If
         End Sub

@@ -100,23 +100,23 @@ Namespace OnTrack.XChange
                 Dim theObjectEntries As List(Of iormObjectEntry)
                 Dim anObjectDefinition As ObjectDefinition
                 If names.Count > 1 Then
-                    theObjectEntries = ot.CurrentSession.Objects.GetEntryByXID(xid:=names.Last, objectname:=names.First)
+                    theObjectEntries = ot.CurrentSession.Objects.GetEntriesByXID(xid:=names.Last, objectname:=names.First)
                 Else
-                    theObjectEntries = ot.CurrentSession.Objects.GetEntryByXID(xid:=names.Last)
+                    theObjectEntries = ot.CurrentSession.Objects.GetEntriesByXID(xid:=names.Last)
                 End If
                 If theObjectEntries Is Nothing OrElse theObjectEntries.Count = 0 Then
                     '** load object
                     anObjectDefinition = ot.CurrentSession.Objects.GetObject(objectid:=names.First)
                     '** get the entry
-                    If anObjectDefinition IsNot Nothing AndAlso anObjectDefinition.GetEntry(entryname:=names.Last) IsNot Nothing Then
+                    If anObjectDefinition IsNot Nothing AndAlso anObjectDefinition.HasEntry(entryname:=names.Last) Then
                         theObjectEntries = New List(Of iormObjectEntry)
                         theObjectEntries.Add(anObjectDefinition.GetEntry(entryname:=names.Last))
                         '** try to get the Entries by XID Again 
                     ElseIf anObjectDefinition IsNot Nothing Then
                         If names.Count > 1 Then
-                            theObjectEntries = ot.CurrentSession.Objects.GetEntryByXID(xid:=names.Last, objectname:=names.First)
+                            theObjectEntries = ot.CurrentSession.Objects.GetEntriesByXID(xid:=names.Last, objectname:=names.First)
                         Else
-                            theObjectEntries = ot.CurrentSession.Objects.GetEntryByXID(xid:=names.Last)
+                            theObjectEntries = ot.CurrentSession.Objects.GetEntriesByXID(xid:=names.Last)
                         End If
                     End If
                 End If

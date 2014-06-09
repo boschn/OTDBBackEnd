@@ -376,10 +376,12 @@ Namespace OnTrack.Deliverables
                         Me.WorkingTargetUPDC = Nothing
                         '' cannot generate an new updc on a created edition (getmax will not work on unpersisted objects)
                         If _alivetarget.IsCreated Then
-                            _workingtarget = aWorkingTarget.Clone(_alivetarget.UPDC + 1)
+                            _workingtarget = aWorkingTarget.Clone(_alivetarget.UID, _alivetarget.UPDC + 1)
                         Else
                             _workingtarget = aWorkingTarget.Clone()
                         End If
+                        '* should be cloned but to make sure
+                        _workingtarget.DomainID = aWorkingTarget.DomainID
 
                         Me.WorkingTargetUPDC = _workingtarget.UPDC
                     End If
@@ -2057,9 +2059,19 @@ Namespace OnTrack.Deliverables
         ''' <param name="targetUPDC"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Create(ByVal deliverableUID As Long, ByVal scheduleUID As Long, ByVal scheduleUPDC As Long, ByVal targetUPDC As Long) As Track
+        Public Overloads Shared Function Create(ByVal deliverableUID As Long, ByVal scheduleUID As Long, ByVal scheduleUPDC As Long, ByVal targetUPDC As Long, _
+                                                Optional domainid As String = Nothing) As Track
             Dim pkarray() As Object = {deliverableUID, scheduleUID, scheduleUPDC, targetUPDC}
-            Return ormDataObject.CreateDataObject(Of Track)(pkarray, checkUnique:=True)
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
+            Dim aRecord As New ormRecord
+            With aRecord
+                .SetValue(constFNDeliverableUid, deliverableUID)
+                .SetValue(constFNScheduleUid, scheduleUID)
+                .SetValue(constFNScheduleUpdc, scheduleUPDC)
+                .SetValue(constFNTargetUpdc, targetUPDC)
+                .SetValue(ConstFNDomainID, domainid)
+            End With
+            Return ormDataObject.CreateDataObject(Of Track)(aRecord, domainID:=domainid, checkUnique:=True)
         End Function
 
         ''' <summary>
@@ -2128,7 +2140,7 @@ Namespace OnTrack.Deliverables
                         If aScheduleEdition IsNot Nothing Then
                             aTrack = Track.Retrieve(deliverableUID:=aTarget.UID, targetUPDC:=aTarget.UPDC, scheduleUID:=aScheduleEdition.Uid, scheduleUPDC:=aScheduleEdition.Updc)
                             If aTrack Is Nothing Then
-                                aTrack = Track.Create(deliverableUID:=aTarget.UID, targetUPDC:=aTarget.UPDC, scheduleUID:=aScheduleEdition.Uid, scheduleUPDC:=aScheduleEdition.Updc)
+                                aTrack = Track.Create(deliverableUID:=aTarget.UID, targetUPDC:=aTarget.UPDC, scheduleUID:=aScheduleEdition.Uid, scheduleUPDC:=aScheduleEdition.Updc, domainid:=aDeliverable.DomainID)
                             End If
                             If aTrack IsNot Nothing Then
                                 '** save only if the dependend objects have been saved
@@ -2152,7 +2164,7 @@ Namespace OnTrack.Deliverables
                             If aTarget IsNot Nothing Then
                                 aTrack = Track.Retrieve(deliverableUID:=aTarget.UID, targetUPDC:=aTarget.UPDC, scheduleUID:=aScheduleEdition.Uid, scheduleUPDC:=aScheduleEdition.Updc)
                                 If aTrack Is Nothing Then
-                                    aTrack = Track.Create(deliverableUID:=aTarget.UID, targetUPDC:=aTarget.UPDC, scheduleUID:=aScheduleEdition.Uid, scheduleUPDC:=aScheduleEdition.Updc)
+                                    aTrack = Track.Create(deliverableUID:=aTarget.UID, targetUPDC:=aTarget.UPDC, scheduleUID:=aScheduleEdition.Uid, scheduleUPDC:=aScheduleEdition.Updc, domainid:=aDeliverable.DomainID)
                                 End If
                                 If aTrack IsNot Nothing Then
                                     '** save only if the depend objects have been saved !
@@ -2186,6 +2198,10 @@ Namespace OnTrack.Deliverables
 
             Try
                 With Me
+                    If Me.DeliverableUID = 2 Then
+                        Debug.Write("")
+
+                    End If
                     ''' target
                     ''' 
                     .TargetRevision = Me.Target.Revision
@@ -2378,14 +2394,13 @@ Namespace OnTrack.Deliverables
             End If
 
             ''' set the target
-            If Not Me.NoTargetByIntention Then
+            If Me.CurrentTargetDate IsNot Nothing Then
                 aTargetDate = Me.CurrentTargetDate
-                If aTargetDate Is Nothing Then
-                    ''' error condition !
-                    ''' 
-                End If
-            Else
+            ElseIf Me.NoTargetByIntention Then
                 aTargetDate = aDate
+            Else
+                ''' error condition !
+                ''' 
             End If
 
             ''' calculate the gap
@@ -2933,6 +2948,7 @@ Namespace OnTrack.Deliverables
         'Private s_customerID As String = "" outdated movved to targets
         <ormEntryMapping(EntryName:=constFNRespOU)> Private _respOUID As String
         <ormEntryMapping(EntryName:=constFNMatchCode)> Private _matchcode As String
+        <ormEntryMapping(EntryName:=ConstFNDomain)> Private _domainID As String
         'Private s_assycode As String = "" obsolete
         <ormEntryMapping(EntryName:=constFNPartID)> Private _partID As String
         <ormEntryMapping(EntryName:=constFNChangeRef)> Private _changerefID As String
@@ -2982,7 +2998,7 @@ Namespace OnTrack.Deliverables
         ''' Relation to DeliverableType
         ''' </summary>
         ''' <remarks></remarks>
-        <ormRelation(linkObject:=GetType(DeliverableType), toprimaryKeys:={constFNDeliverableTypeID}, _
+        <ormRelation(linkObject:=GetType(DeliverableType), toprimaryKeys:={constFNDeliverableTypeID, ConstFNDomain}, _
                      cascadeonCreate:=False, cascadeOnDelete:=False, cascadeOnUpdate:=False)> _
         Public Const ConstRDeliverableType = "RELDeliverableType"
 
@@ -3047,6 +3063,19 @@ Namespace OnTrack.Deliverables
         Private _UniqueEntries As String()
 
 #Region "properties"
+
+        ''' <summary>
+        ''' Gets or sets the domain ID.
+        ''' </summary>
+        ''' <value>The domain ID.</value>
+        Public Property DomainID() As String
+            Get
+                Return Me._domainID
+            End Get
+            Set(value As String)
+                SetValue(ConstFNDomain, value)
+            End Set
+        End Property
 
         ''' <summary>
         ''' gets the UID of the deliverable (unique)
@@ -3505,7 +3534,7 @@ Namespace OnTrack.Deliverables
             If e.RelationID = ConstRPropertyLink Then
                 Dim aPropertyLink As ObjectPropertyLink = ObjectPropertyLink.Create(fromObjectID:=Deliverable.ConstObjectID, fromuid:=Me.Uid, fromupdc:=0)
                 If aPropertyLink Is Nothing Then aPropertyLink = ObjectPropertyLink.Retrieve(fromObjectID:=Deliverable.ConstObjectID, fromUid:=Me.Uid, fromUpdc:=0)
-                Dim aPropertyLot As ObjectPropertyValueLot = ObjectPropertyValueLot.Create()
+                Dim aPropertyLot As ObjectPropertyValueLot = ObjectPropertyValueLot.Create(domainid:=Me.DomainID)
                 If aPropertyLink IsNot Nothing Then
                     aPropertyLink.ToUID = aPropertyLot.UID
                     aPropertyLink.ToUpdc = aPropertyLot.UPDC
@@ -3514,7 +3543,7 @@ Namespace OnTrack.Deliverables
                     aPropertyLink.InfuseRelation(aPropertyLink.ConstRPropertyValueLot)
                     If Me.DeliverableType IsNot Nothing Then
                         For Each aSetid In Me.DeliverableType.DefaultPropertySets
-                            aPropertyLot.AddSet(aSetid)
+                            aPropertyLot.AddSet(aSetid, domainid:=Me.DomainID)
                         Next
                     End If
 
@@ -3533,7 +3562,7 @@ Namespace OnTrack.Deliverables
 
                 Dim aScheduleLink As ScheduleLink = Scheduling.ScheduleLink.RetrieveDeliverableLinkFrom(deliverableUID:=Me.Uid)
                 If aScheduleLink Is Nothing Then
-                    Dim aSchedule As WorkspaceSchedule = WorkspaceSchedule.Create(scheduletypeid:=myself.DeliverableType.DefaultScheduleType, workspaceID:=aWorkspaceID)
+                    Dim aSchedule As WorkspaceSchedule = WorkspaceSchedule.Create(scheduletypeid:=myself.DeliverableType.DefaultScheduleType, domainid:=Me.DomainID, workspaceID:=aWorkspaceID)
                     aScheduleLink = Scheduling.ScheduleLink.Create(fromObjectID:=Me.ObjectID, fromuid:=Me.Uid, toScheduleUid:=aSchedule.UID)
                     ''' back to the ScheduleLink
                     If aScheduleLink IsNot Nothing Then
@@ -3546,7 +3575,7 @@ Namespace OnTrack.Deliverables
                     Dim aSchedule As WorkspaceSchedule = WorkspaceSchedule.Retrieve(UID:=aScheduleLink.ToUid, workspaceID:=aWorkspaceID)
                     '' create
                     If aSchedule Is Nothing Then
-                        aSchedule = WorkspaceSchedule.Create(scheduletypeid:=aScheduletype, workspaceID:=aWorkspaceID)
+                        aSchedule = WorkspaceSchedule.Create(scheduletypeid:=aScheduletype, DomainID:=Me.DomainID, workspaceID:=aWorkspaceID)
                     End If
                     ''' back to the ScheduleLink
                     If aSchedule IsNot Nothing Then
@@ -3570,7 +3599,7 @@ Namespace OnTrack.Deliverables
                 End If
 
                 ''' always gives the current workspace
-                Dim aWorkspaceTarget As WorkspaceTarget = Deliverables.WorkspaceTarget.Create(uid:=Me.Uid)
+                Dim aWorkspaceTarget As WorkspaceTarget = Deliverables.WorkspaceTarget.Create(uid:=Me.Uid, domainID:=Me.DomainID)
                 If aWorkspaceTarget Is Nothing Then aWorkspaceTarget = Deliverables.WorkspaceTarget.Retrieve(uid:=Me.Uid)
                 If aWorkspaceTarget IsNot Nothing AndAlso myself.DeliverableType IsNot Nothing Then
                     If aWorkspaceTarget.Target IsNot Nothing Then
@@ -3610,7 +3639,7 @@ Namespace OnTrack.Deliverables
                     Dim aTarget = Me.GetTarget()
 
                     If aScheduleUPDC.HasValue AndAlso aTarget IsNot Nothing Then
-                        Dim aTrack As Track = Track.Create(deliverableUID:=Me.Uid, scheduleUID:=aSchedule.UID, scheduleUPDC:=aSchedule.WorkingEditionUpdc, targetUPDC:=aTarget.UPDC)
+                        Dim aTrack As Track = Track.Create(deliverableUID:=Me.Uid, scheduleUID:=aSchedule.UID, scheduleUPDC:=aSchedule.WorkingEditionUpdc, targetUPDC:=aTarget.UPDC, DomainID:=Me.DomainID)
                         Dim aCollection = Deliverables.Track.AllByDeliverable(deliverableUID:=Me.Uid)
                         e.RelationObjects.AddRange(aCollection)
                     End If
@@ -3718,6 +3747,12 @@ Namespace OnTrack.Deliverables
                             If mymax >= (aDomain.MaxDeliverableUID - 10) Then
                                 Call CoreMessageHandler(showmsgbox:=True, message:="Number range for domain ID ends", _
                                                       arg1:=domainID, messagetype:=otCoreMessageType.ApplicationWarning)
+                                GenerateNewUID = True
+                            ElseIf mymax < aDomain.MinDeliverableUID Then
+                                Call CoreMessageHandler(showmsgbox:=False, message:="number range for deliverables in domain '" & domainID & "' is less than the min uid - new deliverable set to minimum ", _
+                                                     arg1:=domainID, messagetype:=otCoreMessageType.InternalInfo)
+                                mymax = aDomain.MinDeliverableUID
+                                GenerateNewUID = True
                             End If
                         End If
                     Else
@@ -4263,12 +4298,13 @@ Namespace OnTrack.Deliverables
         ''' <param name="e"></param>
         ''' <remarks></remarks>
         Public Sub Deliverable_OnCreating(sender As Object, e As ormDataObjectEventArgs) Handles Me.OnCreating
-
+            Dim domainid As String = e.Record.GetValue(ConstFNDomain)
+            If domainid Is Nothing Then domainid = CurrentSession.CurrentDomainID
             Dim uid As Long? = e.Record.GetValue(constFNUid)
             Dim aNewUid As Long
             ' get NEW UID
             If uid.HasValue OrElse uid = 0 Then
-                If Not Me.GenerateNewUID(aNewUid, domainID:=DomainID) Then
+                If Not Me.GenerateNewUID(aNewUid, domainID:=domainid) Then
                     Call CoreMessageHandler(message:="could not generate new UID", subname:="Deliverable.OnCreating", _
                                             arg1:=uid, messagetype:=otCoreMessageType.InternalError)
                 End If
@@ -4307,8 +4343,9 @@ Namespace OnTrack.Deliverables
         ''' <param name="sender"></param>
         ''' <param name="e"></param>
         ''' <remarks></remarks>
-        Public Sub Deliverable_OnCloned(sender As Object, e As ormDataObjectEventArgs) Handles Me.OnCloned
+        Public Sub Deliverable_OnCloned(sender As Object, e As ormDataObjectCloneEventArgs) Handles Me.OnCloned
 
+            Dim aDeliverableClone As Deliverable = TryCast(e.DataObject, Deliverable)
             ''' reset the entrys
             ''' 
             For Each anEntryname In CurrentSession.DeliverableOnCloningResetEntries
@@ -4321,7 +4358,7 @@ Namespace OnTrack.Deliverables
                     ''' might fail since we are not calling OnCreateDefaultValuesNeeded (was called during called)
                     ''' 
                     Dim aValue As Object = Me.ObjectEntryDefaultValue(entryname:=anEntryname)
-                    e.DataObject.SetValue(entryname:=anEntryname, value:=aValue)
+                    aDeliverableClone.SetValue(entryname:=anEntryname, value:=aValue)
                 End If
 
             Next
@@ -4331,10 +4368,10 @@ Namespace OnTrack.Deliverables
             For Each anObjectID In CurrentSession.DeliverableOnCloningCloneAlso
                 If anObjectID.ToUpper = ObjectProperties.ObjectPropertyValueLot.ConstObjectID.ToUpper Then
                     If Me.PropertyLink IsNot Nothing Then
-                        Dim aPropertyValueLot As ObjectPropertyValueLot = Me.GetProperties
-                        Dim aClone As ObjectPropertyValueLot = aPropertyValueLot.Clone
-                        Me.PropertyLink.ToUID = aClone.UID
-                        Me.PropertyLink.ToUpdc = aClone.UPDC
+                        Dim aPropertyValueLot As ObjectPropertyValueLot = aDeliverableClone.GetProperties
+                        For Each aValue In Me.GetProperties.Values
+                            aPropertyValueLot.SetPropertyValue(id:=aValue.PropertyID, value:=aValue.ValueString, domainid:=Me.DomainID)
+                        Next
                     End If
 
                 Else
@@ -4343,6 +4380,12 @@ Namespace OnTrack.Deliverables
                 End If
 
             Next
+
+            ''' take the first revision forward
+            ''' 
+            If Me.FirstRevisionUID.HasValue AndAlso Me.FirstRevisionUID <> 0 Then
+                aDeliverableClone.FirstRevisionUID = Me.FirstRevisionUID
+            End If
         End Sub
 
 
@@ -4354,6 +4397,29 @@ Namespace OnTrack.Deliverables
         ''' <remarks></remarks>
         Public Overloads Function Clone(Optional ByVal uid As Long = 0) As Deliverable
             Return Me.Clone(Of Deliverable)({uid})
+        End Function
+
+
+        ''' <summary>
+        ''' Clone the deliverable to a revision
+        ''' </summary>
+        ''' <param name="UID">new uid If 0 then generate a new uid</param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Overloads Function AddRevisionClone(Optional ByVal uid As Long = 0) As Deliverable
+            Dim aNewRevision = Me.Clone(uid:=uid)
+
+            If aNewRevision IsNot Nothing Then
+                If Me.FirstRevisionUID.HasValue AndAlso Me.FirstRevisionUID <> 0 Then
+                    If Not aNewRevision.FirstRevisionUID.HasValue Then
+                        aNewRevision.FirstRevisionUID = Me.FirstRevisionUID
+                    End If
+                Else
+                    aNewRevision.FirstRevisionUID = Me.Uid
+                End If
+            End If
+
+            Return aNewRevision
         End Function
 
         ''' <summary>
@@ -4419,7 +4485,7 @@ Namespace OnTrack.Deliverables
 
             If aRecordCollection.Count = 0 Then Return True
             '1121;@;VALIDATOR;object validation for %1% failed. The values ('%3') of entries '%2%' must be unique.;Provide a correct value;90;Error;false;|R1|R1|;|OBJECTVALIDATOR|XCHANGEENVELOPE|
-            msglog.Add(1121, Nothing, Nothing, Nothing, Nothing, _
+            msglog.Add(1121, Nothing, Nothing, Nothing, Nothing, Me, _
                        Me.ObjectID, Converter.Array2StringList(_UniqueEntries), Converter.Enumerable2StringList(values))
             Return False
         End Function

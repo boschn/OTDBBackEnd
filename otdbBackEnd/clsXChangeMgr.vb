@@ -1328,7 +1328,8 @@ Namespace OnTrack.XChange
                     Else
                         ' ERROR
                         If msglog IsNot Nothing Then
-                            msglog.Add(1201, CurrentSession.CurrentDomainID, Nothing, Nothing, Nothing, "", "", datatype, hostvalue.ToString, "")
+                            msglog.Add(1201, CurrentSession.CurrentDomainID, Nothing, Nothing, Nothing, Nothing, _
+                                       "", "", datatype, hostvalue.ToString, "")
                         End If
                         CoreMessageHandler(message:="value is not convertible to numeric or long", arg1:=hostvalue,
                                            subname:="Xslot.DefaultConvert2DBValue", messagetype:=otCoreMessageType.ApplicationError)
@@ -1351,7 +1352,8 @@ Namespace OnTrack.XChange
                         ' ERROR
                         ' ERROR
                         If msglog IsNot Nothing Then
-                            msglog.Add(1201, CurrentSession.CurrentDomainID, Nothing, Nothing, Nothing, "", "", datatype, hostvalue.ToString, "")
+                            msglog.Add(1201, CurrentSession.CurrentDomainID, Nothing, Nothing, Nothing, Nothing, _
+                                       "", "", datatype, hostvalue.ToString, "")
                         End If
                         CoreMessageHandler(message:="value is not convertible to string", subname:="Xslot.DefaultConvert2DBValue",
                                             messagetype:=otCoreMessageType.ApplicationError)
@@ -1386,7 +1388,8 @@ Namespace OnTrack.XChange
                         Return True
                     Else
                         If msglog IsNot Nothing Then
-                            msglog.Add(1201, CurrentSession.CurrentDomainID, Nothing, Nothing, Nothing, "", "", datatype, hostvalue.ToString, "")
+                            msglog.Add(1201, CurrentSession.CurrentDomainID, Nothing, Nothing, Nothing, Nothing, _
+                                       "", "", datatype, hostvalue.ToString, "")
                         End If
                         Call CoreMessageHandler(subname:="XSlot.convert2DBValue",
                                               message:="OTDB data '" & hostvalue & "' is not convertible to Date",
@@ -1426,7 +1429,8 @@ Namespace OnTrack.XChange
                         Return True
                     Else
                         If msglog IsNot Nothing Then
-                            msglog.Add(1201, CurrentSession.CurrentDomainID, Nothing, Nothing, Nothing, "", "", datatype, hostvalue.ToString, "")
+                            msglog.Add(1201, CurrentSession.CurrentDomainID, Nothing, Nothing, Nothing, Nothing, _
+                                       "", "", datatype, hostvalue.ToString, "")
                         End If
                         Call CoreMessageHandler(subname:="XSlot.convert2DBValue",
                                             message:="OTDB data '" & hostvalue & "' is not convertible to boolean",
@@ -2446,7 +2450,7 @@ Namespace OnTrack.XChange
             '*** build the primary key array
             If xobject.ObjectDefinition.GetNoKeys = 0 Then
                 If msglog IsNot Nothing Then msglog.Add(1009, CurrentSession.CurrentDomainID, Me.ContextIdentifier, Me.TupleIdentifier, _
-                           Me.EntityIdentifier, xobject.Configname, xobject.ObjectDefinition.ObjectID, xobject.XChangeCmd.ToString)
+                           Me.EntityIdentifier, Me, xobject.Configname, xobject.ObjectDefinition.ObjectID, xobject.XChangeCmd.ToString)
                 Return False
             Else
                 ReDim pkarry(xobject.ObjectDefinition.GetNoKeys - 1)
@@ -2462,7 +2466,7 @@ Namespace OnTrack.XChange
                     i += 1
                 Else
                     If msglog IsNot Nothing Then msglog.Add(1002, CurrentSession.CurrentDomainID, Me.ContextIdentifier, Me.TupleIdentifier, _
-                          Me.EntityIdentifier, xobject.Configname, xobject.ObjectDefinition.ObjectID, aPKEntry.Entryname)
+                          Me.EntityIdentifier, Me, xobject.Configname, xobject.ObjectDefinition.ObjectID, aPKEntry.Entryname)
                     Return False
                 End If
 
@@ -2478,7 +2482,7 @@ Namespace OnTrack.XChange
                     If anObject Is Nothing Then
                         ''' no object which could be retrieved - a new one will be created
                         If msglog IsNot Nothing Then msglog.Add(1004, CurrentSession.CurrentDomainID, Me.ContextIdentifier, Me.TupleIdentifier, _
-                          Me.EntityIdentifier, xobject.Configname, xobject.ObjectDefinition.ObjectID, Converter.Array2StringList(pkarry))
+                          Me.EntityIdentifier, Me, xobject.Configname, xobject.ObjectDefinition.ObjectID, Converter.Array2StringList(pkarry))
                     End If
                 Case otXChangeCommandType.Delete, otXChangeCommandType.Duplicate, otXChangeCommandType.Read, otXChangeCommandType.Update
                     '*** read the data
@@ -2487,12 +2491,12 @@ Namespace OnTrack.XChange
                     If anObject Is Nothing Then
                         ''' no object which could be retrieved for such a operation
                         If msglog IsNot Nothing Then msglog.Add(1003, CurrentSession.CurrentDomainID, Me.ContextIdentifier, Me.TupleIdentifier, _
-                          Me.EntityIdentifier, xobject.Configname, xobject.ObjectDefinition.ObjectID, Converter.Array2StringList(pkarry))
+                          Me.EntityIdentifier, Me, xobject.Configname, xobject.ObjectDefinition.ObjectID, Converter.Array2StringList(pkarry))
                     End If
                 Case Else
                     ''' no command ?!
                     If msglog IsNot Nothing Then msglog.Add(1005, CurrentSession.CurrentDomainID, Me.ContextIdentifier, Me.TupleIdentifier, _
-                      Me.EntityIdentifier, xobject.Configname, xobject.ObjectDefinition.ObjectID, xobject.XChangeCmd)
+                      Me.EntityIdentifier, Me, xobject.Configname, xobject.ObjectDefinition.ObjectID, xobject.XChangeCmd)
                     CoreMessageHandler(message:="XCMD is not implemented for XConfig " & xobject.Configname, subname:="Xenvelope.RunDefaultXChange", arg1:=xobject.XChangeCmd, messagetype:=otCoreMessageType.InternalError)
                     Return False
             End Select
@@ -2556,13 +2560,13 @@ Namespace OnTrack.XChange
                     If dataobject Is Nothing OrElse Not dataobject.isAlive(throwError:=False) Then
                         ''' dataobject doesnot exist delete is absolete
                         msglog.Add(1008, CurrentSession.CurrentDomainID, Me.ContextIdentifier, Me.TupleIdentifier, _
-                                   Me.EntityIdentifier, xobject.Configname, xobject.ObjectDefinition.ObjectID, _
+                                   Me.EntityIdentifier, Me, xobject.Configname, xobject.ObjectDefinition.ObjectID, _
                                    Converter.Array2StringList(xobject.ObjectDefinition.Keys), xobject.XChangeCmd.ToString)
                         Return False
                     Else
                         ''' dataobject exists everthing is fine
                         msglog.Add(1090, CurrentSession.CurrentDomainID, Me.ContextIdentifier, Me.TupleIdentifier, _
-                                   Me.EntityIdentifier, xobject.Configname, xobject.ObjectDefinition.ObjectID, xobject.XChangeCmd)
+                                   Me.EntityIdentifier, Me, xobject.Configname, xobject.ObjectDefinition.ObjectID, xobject.XChangeCmd)
                         Return True
                     End If
                     '**** add or update
@@ -2642,13 +2646,13 @@ Namespace OnTrack.XChange
                         ''' add message if nothing else there
                         If msglog.Count = 0 Then
                             '1091;@;XCHANGE;all object entry evaluations were successfull - xchange command '%3%' can be run for object id '%2%' in xchange configuration '%1%';;10;Info;false;|G1|;|XCHANGEENVELOPE|
-                            msglog.Add(1091, CurrentSession.CurrentDomainID, Me.ContextIdentifier, Me.TupleIdentifier, Me.EntityIdentifier, _
+                            msglog.Add(1091, CurrentSession.CurrentDomainID, Me.ContextIdentifier, Me.TupleIdentifier, Me.EntityIdentifier, Me, _
                                        xobject.Configname, xobject.ObjectDefinition.ID, xobject.XChangeCmd.ToString)
                         Else
                             Dim aStatusitem = msglog.GetHighesStatusItem(statustype:=ot.ConstStatusType_XEnvelope)
                             If aStatusitem Is Nothing OrElse (aStatusitem IsNot Nothing AndAlso aStatusitem.Code.ToUpper Like "G%") Then
                                 '1091;@;XCHANGE;all object entry evaluations were successfull - xchange command '%3%' can be run for object id '%2%' in xchange configuration '%1%';;10;Info;false;|G1|;|XCHANGEENVELOPE|
-                                msglog.Add(1091, CurrentSession.CurrentDomainID, Me.ContextIdentifier, Me.TupleIdentifier, Me.EntityIdentifier, _
+                                msglog.Add(1091, CurrentSession.CurrentDomainID, Me.ContextIdentifier, Me.TupleIdentifier, Me.EntityIdentifier, Me, _
                                            xobject.Configname, xobject.ObjectDefinition.ID, xobject.XChangeCmd.ToString)
                             End If
                         End If
@@ -2665,20 +2669,20 @@ Namespace OnTrack.XChange
                     If dataobject Is Nothing OrElse Not dataobject.isAlive(throwError:=False) Then
                         ''' dataobject doesnot exist duplicate not possible
                         msglog.Add(1007, CurrentSession.CurrentDomainID, Me.ContextIdentifier, Me.TupleIdentifier, _
-                                   Me.EntityIdentifier, xobject.Configname, xobject.ObjectDefinition.ObjectID, _
+                                   Me.EntityIdentifier, Me, xobject.Configname, xobject.ObjectDefinition.ObjectID, _
                                    Converter.Array2StringList(xobject.ObjectDefinition.Keys), xobject.XChangeCmd.ToString)
                         Return False
                     Else
                         ''' add message if nothing else there
                         If msglog.Count = 0 Then
                             '1091;@;XCHANGE;all object entry evaluations were successfull - xchange command '%3%' can be run for object id '%2%' in xchange configuration '%1%';;10;Info;false;|G1|;|XCHANGEENVELOPE|
-                            msglog.Add(1091, CurrentSession.CurrentDomainID, Me.ContextIdentifier, Me.TupleIdentifier, Me.EntityIdentifier, _
+                            msglog.Add(1091, CurrentSession.CurrentDomainID, Me.ContextIdentifier, Me.TupleIdentifier, Me.EntityIdentifier, Me, _
                                        xobject.Configname, xobject.ObjectDefinition.ID, xobject.XChangeCmd.ToString)
                         Else
                             Dim aStatusitem = msglog.GetHighesStatusItem(statustype:=ot.ConstStatusType_XEnvelope)
                             If aStatusitem Is Nothing OrElse (aStatusitem IsNot Nothing AndAlso aStatusitem.Code.ToUpper Like "G%") Then
                                 '1091;@;XCHANGE;all object entry evaluations were successfull - xchange command '%3%' can be run for object id '%2%' in xchange configuration '%1%';;10;Info;false;|G1|;|XCHANGEENVELOPE|
-                                msglog.Add(1091, CurrentSession.CurrentDomainID, Me.ContextIdentifier, Me.TupleIdentifier, Me.EntityIdentifier, _
+                                msglog.Add(1091, CurrentSession.CurrentDomainID, Me.ContextIdentifier, Me.TupleIdentifier, Me.EntityIdentifier, Me, _
                                            xobject.Configname, xobject.ObjectDefinition.ID, xobject.XChangeCmd.ToString)
                             End If
                         End If
@@ -2692,20 +2696,20 @@ Namespace OnTrack.XChange
                     If dataobject Is Nothing OrElse Not dataobject.isAlive(throwError:=False) Then
                         ''' dataobject doesnot exist read not possible
                         msglog.Add(1007, CurrentSession.CurrentDomainID, Me.ContextIdentifier, Me.TupleIdentifier, _
-                                   Me.EntityIdentifier, xobject.Configname, xobject.ObjectDefinition.ObjectID, _
+                                   Me.EntityIdentifier, Me, xobject.Configname, xobject.ObjectDefinition.ObjectID, _
                                    Converter.Array2StringList(xobject.ObjectDefinition.Keys), xobject.XChangeCmd.ToString)
                         Return False
                     Else
                         ''' add message if nothing else there
                         If msglog.Count = 0 Then
                             '1091;@;XCHANGE;all object entry evaluations were successfull - xchange command '%3%' can be run for object id '%2%' in xchange configuration '%1%';;10;Info;false;|G1|;|XCHANGEENVELOPE|
-                            msglog.Add(1091, CurrentSession.CurrentDomainID, Me.ContextIdentifier, Me.TupleIdentifier, Me.EntityIdentifier, _
+                            msglog.Add(1091, CurrentSession.CurrentDomainID, Me.ContextIdentifier, Me.TupleIdentifier, Me.EntityIdentifier, Me, _
                                        xobject.Configname, xobject.ObjectDefinition.ID, xobject.XChangeCmd.ToString)
                         Else
                             Dim aStatusitem = msglog.GetHighesStatusItem(statustype:=ot.ConstStatusType_XEnvelope)
                             If aStatusitem Is Nothing OrElse (aStatusitem IsNot Nothing AndAlso aStatusitem.Code.ToUpper Like "G%") Then
                                 '1091;@;XCHANGE;all object entry evaluations were successfull - xchange command '%3%' can be run for object id '%2%' in xchange configuration '%1%';;10;Info;false;|G1|;|XCHANGEENVELOPE|
-                                msglog.Add(1091, CurrentSession.CurrentDomainID, Me.ContextIdentifier, Me.TupleIdentifier, Me.EntityIdentifier, _
+                                msglog.Add(1091, CurrentSession.CurrentDomainID, Me.ContextIdentifier, Me.TupleIdentifier, Me.EntityIdentifier, Me, _
                                            xobject.Configname, xobject.ObjectDefinition.ID, xobject.XChangeCmd.ToString)
                             End If
                         End If
@@ -2719,7 +2723,7 @@ Namespace OnTrack.XChange
                 Case Else
                     ''' no command ?!
                     msglog.Add(1005, CurrentSession.CurrentDomainID, Me.ContextIdentifier, Me.TupleIdentifier, _
-                      Me.EntityIdentifier, xobject.Configname, xobject.ObjectDefinition.ObjectID, xobject.XChangeCmd)
+                      Me.EntityIdentifier, Me, xobject.Configname, xobject.ObjectDefinition.ObjectID, xobject.XChangeCmd)
                     Call CoreMessageHandler(message:="XChangeCmd for this object is not known :" & xobject.Objectname,
                                       arg1:=xobject.XChangeCmd, objectname:=xobject.Objectname, messagetype:=otCoreMessageType.ApplicationError,
                                       subname:="XEnvelope.runXChangeCMD")
@@ -2818,13 +2822,13 @@ Namespace OnTrack.XChange
                         '** run persist
                         Dim result As Boolean = dataobject.Persist()
                         '1092;@;XCHANGE;object of type '%2%' with primary key '%3%' in xchange configuration '%1%' updated;;10;Info;false;|G1|;|XCHANGEENVELOPE|
-                        If result Then msglog.Add(1092, Nothing, Nothing, Nothing, Nothing, _
+                        If result Then msglog.Add(1092, Nothing, Nothing, Nothing, Nothing, Me, _
                                   Me.Xchangeconfig.Configname, xobject.Objectname, Converter.Array2StringList(dataobject.PrimaryKeyValues))
                         RemoveHandler DirectCast(dataobject, iormLoggable).ObjectMessageLog.OnObjectMessageAdded, AddressOf XEnvelope_OnObjectMessageAdded
                         Me.trackMessageLog = Nothing
                         Return result
                     Else
-                        msglog.Add(1093, Nothing, Nothing, Nothing, Nothing, _
+                        msglog.Add(1093, Nothing, Nothing, Nothing, Nothing, Me, _
                                    Me.Xchangeconfig.Configname, xobject.Objectname, Converter.Array2StringList(dataobject.PrimaryKeyValues))
                         Return True ' even if not persisted the operation is successfull
                     End If
@@ -2891,6 +2895,8 @@ Namespace OnTrack.XChange
                                           Optional ByRef msglog As ObjectMessageLog = Nothing) As Boolean
             Dim pkarry() As Object
             Dim aValue As Object
+            Dim aDomainID As String
+
 
             ' set msglog
             If msglog Is Nothing Then msglog = Me.MessageLog
@@ -2899,7 +2905,7 @@ Namespace OnTrack.XChange
             If xobject.ObjectDefinition.GetNoKeys = 0 Then
                 ''' error 1009 no primary keys in object definition
                 If msglog IsNot Nothing Then msglog.Add(1009, CurrentSession.CurrentDomainID, Me.ContextIdentifier, Me.TupleIdentifier, _
-                     Me.EntityIdentifier, xobject.Configname, xobject.ObjectDefinition.ObjectID, xobject.XChangeCmd.ToString)
+                     Me.EntityIdentifier, Me, xobject.Configname, xobject.ObjectDefinition.ObjectID, xobject.XChangeCmd.ToString)
 
                 Call CoreMessageHandler(message:="primary key of table is Nothing in xchange config:" & xobject.Configname,
                                       arg1:=xobject.Objectname, messagetype:=otCoreMessageType.InternalError, subname:="XEnvelope.runDefaultXChange4Object")
@@ -2919,7 +2925,7 @@ Namespace OnTrack.XChange
                 Else
                     ''' error 1002 value of primary key is not there
                     If msglog IsNot Nothing Then msglog.Add(1002, CurrentSession.CurrentDomainID, Me.ContextIdentifier, Me.TupleIdentifier, _
-                         Me.EntityIdentifier, xobject.Configname, xobject.ObjectDefinition.ObjectID, aPKEntry.Entryname)
+                         Me.EntityIdentifier, Me, xobject.Configname, xobject.ObjectDefinition.ObjectID, aPKEntry.Entryname)
 
                     Call CoreMessageHandler(message:="value of primary key is not in configuration or envelope :" & xobject.Configname,
                                      arg1:=xobject.Objectname, entryname:=aPKEntry.Entryname, messagetype:=otCoreMessageType.ApplicationError,
@@ -2929,6 +2935,22 @@ Namespace OnTrack.XChange
 
             Next
 
+            '''
+            ''' recover the domain id
+            '''  
+            If xobject.Objectname.ToUpper <> Commons.Domain.ConstObjectID.ToUpper Then
+                aValue = Me.GetSlotValueByObjectEntryName(entryname:=Commons.Domain.ConstFNDomainID, objectname:=xobject.Objectname, asHostValue:=False)
+                If Not String.IsNullOrWhiteSpace(aValue) Then
+                    If Commons.Domain.Retrieve(id:=aValue) IsNot Nothing Then
+                        aDomainID = aValue
+                    Else
+                        aDomainID = CurrentSession.CurrentDomainID
+                    End If
+                Else
+                    aDomainID = CurrentSession.CurrentDomainID
+                End If
+            End If
+
             ''' check if we need a object and how to get it
             ''' then run the command
 
@@ -2937,7 +2959,7 @@ Namespace OnTrack.XChange
                 Case otXChangeCommandType.CreateUpdate
                     ''' try to create
                     ''' 
-                    anObject = ormDataObject.CreateDataObject(pkarry, xobject.ObjectDefinition.ObjectType, domainID:=CurrentSession.CurrentDomainID)
+                    anObject = ormDataObject.CreateDataObject(pkarry, xobject.ObjectDefinition.ObjectType, domainID:=aDomainID)
 
                     ''' retrieve the Object 
                     ''' 
@@ -2974,7 +2996,7 @@ Namespace OnTrack.XChange
         Private Sub XEnvelope_OnXSlotMessage(sender As Object, e As ObjectMessageLog.EventArgs)
             If sender.GetType Is GetType(XSlot) Then
             End If
-            If _msglog IsNot Nothing Then _msglog.CopyFrom(e.Message)
+            If _msglog IsNot Nothing Then _msglog.Add(e.Message)
         End Sub
 
 

@@ -416,6 +416,8 @@ Namespace OnTrack.Database
                                 Case ObjectCompoundEntry.ConstFNValues
                                     theParameters(j) = returnValue
                                     returnValueIndex = j
+                                Case Domain.ConstFNDomainID
+                                    theParameters(j) = Me.DomainID
                             End Select
 
                         End If
@@ -569,14 +571,15 @@ Namespace OnTrack.Database
                 '''
                 ''' retrieve the fieldinfos of the mapping
                 ''' 
-                Dim afieldinfos = aClassDescription.GetEntryFieldInfos(entryname)
-                If afieldinfos.Count = 0 Then
+                Dim thefieldinfos = aClassDescription.GetEntryFieldInfos(entryname)
+                If thefieldinfos.Count = 0 Then
                     CoreMessageHandler(message:="Warning ! ObjectEntry is not mapped to a class field member or the entry name is not valid", arg1:=value, _
                                        objectname:=Me.ObjectID, entryname:=entryname, _
                                         messagetype:=otCoreMessageType.InternalError, subname:="ormDataObject.GetValue")
-                ElseIf afieldinfos.Count > 1 And fieldmembername = "" Then
+                    Return Nothing
 
-
+                ElseIf thefieldinfos.Count > 1 And fieldmembername = "" Then
+                    ''' ????
                 End If
 
                 '''
@@ -587,7 +590,9 @@ Namespace OnTrack.Database
                     CoreMessageHandler(message:="object entry attribute couldnot be retrieved from class description", arg1:=value, _
                                        objectname:=Me.ObjectID, entryname:=entryname, _
                                         messagetype:=otCoreMessageType.InternalError, subname:="ormDataObject.GetValue")
+                    Return Nothing
                 End If
+
                 Dim isnullable As Boolean = False
                 If anEntryAttribute.HasValueIsNullable Then
                     isnullable = anEntryAttribute.IsNullable
@@ -597,7 +602,7 @@ Namespace OnTrack.Database
                 '''
                 ''' search values of the mapped fields
                 ''' 
-                For Each field In afieldinfos
+                For Each field In thefieldinfos
 
                     If Not Reflector.GetFieldValue(field:=field, dataobject:=Me, value:=value) Then
                         CoreMessageHandler(message:="field value ob data object couldnot be retrieved", _
@@ -688,6 +693,8 @@ Namespace OnTrack.Database
                                     theParameters(j) = entryname
                                 Case ObjectCompoundEntry.ConstFNValues
                                     theParameters(j) = value
+                                Case Domain.ConstFNDomainID
+                                    theParameters(j) = Me.DomainID
                             End Select
 
                         End If
@@ -853,17 +860,16 @@ Namespace OnTrack.Database
             Dim outvalue As Object
             Dim isnullable As Boolean = False
             Dim aDatatype As otDataType
+            Dim anEntry As iormObjectEntry
             ''' 
             ''' APPLY THE ENTRY PROPERTIES AND TRANSFORM THE VALUE REQUESTED
             ''' 
             If CurrentSession.IsBootstrappingInstallationRequested OrElse CurrentSession.IsStartingUp Then
-                Dim anEntry = Me.ObjectClassDescription.GetObjectEntryAttribute(entryname:=entryname)
+                anEntry = Me.ObjectClassDescription.GetObjectEntryAttribute(entryname:=entryname)
                 If anEntry Is Nothing Then
                     CoreMessageHandler(message:="entryname not found in object class repository - value not checked", arg1:=value, subname:="ormDataObject.NormalizeValue", _
                                        objectname:=Me.ObjectID, entryname:=entryname, messagetype:=otCoreMessageType.ApplicationError)
                     Return False
-                Else
-                    aDatatype = anEntry.DataType
                 End If
 
                 ''' set value to default value if nothing and not nullable
@@ -882,7 +888,7 @@ Namespace OnTrack.Database
                     value = outvalue
                 End If
             Else
-                Dim anEntry = Me.ObjectDefinition.GetEntry(entryname:=entryname)
+                anEntry = Me.ObjectDefinition.GetEntry(entryname:=entryname)
                 If anEntry Is Nothing Then
                     CoreMessageHandler(message:="entryname not found in object class repository - value not checked", arg1:=value, subname:="ormDataObject.NormalizeValue", _
                                        objectname:=Me.ObjectID, entryname:=entryname, messagetype:=otCoreMessageType.ApplicationError)
@@ -1434,12 +1440,12 @@ Namespace OnTrack.Database
                     Else
                         aStore = dbdriver.GetTableStore(Me.PrimaryTableID)
                     End If
+
+                    '''
+                    ''' load the record from the store
+                    ''' 
                     aRecord = aStore.GetRecordByPrimaryKey(pkArray)
-                    '* on domain behavior ? -> reload from  the global domain
-                    If Me.ObjectHasDomainBehavior AndAlso aRecord Is Nothing AndAlso domainID <> ConstGlobalDomain Then
-                        Shuffle.ChecknFixPimaryKey(Me.ObjectID, pkarray:=pkArray, domainid:=ConstGlobalDomain, runtimeOnly:=RunTimeOnly)
-                        aRecord = aStore.GetRecordByPrimaryKey(pkArray)
-                    End If
+
                 End If
 
                 '* still nothing ?!
@@ -1472,7 +1478,7 @@ Namespace OnTrack.Database
 
                     ''' INFUSE THE OBJECT from the record
                     ''' 
-                    Dim anewDataobject = Me
+                    Dim anewDataobject As iormPersistable = Me
                     '** reset flags
                     If InfuseDataObject(record:=aRecord, dataobject:=anewDataobject, mode:=otInfuseMode.OnInject) Then
                         If Me.Guid <> anewDataobject.Guid Then
@@ -1608,7 +1614,9 @@ Namespace OnTrack.Database
                 ''' 
                 If _ObjectMessageLog IsNot Nothing AndAlso _ObjectMessageLog.Count > 0 Then
                     For Each aMessage In _ObjectMessageLog
-                        If Not aMessage.RunTimeOnly Then aMessage.Persist(timestamp:=timestamp)
+                        If Not aMessage.RunTimeOnly AndAlso aMessage.IsPersisted Then
+                            aMessage.Persist(timestamp:=timestamp)
+                        End If
                     Next
                 End If
 
@@ -2104,7 +2112,7 @@ Namespace OnTrack.Database
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overridable Function Create(ByRef record As ormRecord, _
-                                              Optional domainID As String = "", _
+                                              Optional domainID As String = Nothing, _
                                               Optional checkUnique As Boolean = True, _
                                               Optional runtimeOnly As Boolean = False) As Boolean Implements iormPersistable.Create
 
@@ -2147,7 +2155,7 @@ Namespace OnTrack.Database
             Dim pkarray As Object()
 
             '** domainid
-            If domainID = "" Then domainID = ConstGlobalDomain
+            If String.IsNullOrWhiteSpace(domainID) Then domainID = ConstGlobalDomain
 
             '** fire event
             Dim ourEventArgs As New ormDataObjectEventArgs(record:=record, object:=Me, infuseMode:=otInfuseMode.OnCreate, _
@@ -2175,12 +2183,20 @@ Namespace OnTrack.Database
             '** set on the runtime Only Flag
             If runtimeOnly Then SwitchRuntimeON()
 
+            '''
             ''' raise the Default Values Needed Event
             ''' 
             RaiseEvent OnCreateDefaultValuesNeeded(Me, ourEventArgs)
             If ourEventArgs.Result Then
                 record = ourEventArgs.Record
             End If
+            ''' set default values
+            If Me.ObjectHasDomainBehavior Then
+                If Not record.HasIndex(ConstFNDomainID) OrElse String.IsNullOrWhiteSpace(record.GetValue(ConstFNDomainID)) Then
+                    record.SetValue(ConstFNDomainID, domainID)
+                End If
+            End If
+
 
             ''' set the record (and merge with property assignement)
             ''' 
@@ -2326,11 +2342,12 @@ Namespace OnTrack.Database
             '** use Cache ?!
             useCache = anObject.useCache
             Dim hasDomainBehavior As Boolean = anObject.ObjectHasDomainBehavior
-            If domainID = "" Then domainID = CurrentSession.CurrentDomainID
+            If String.IsNullOrWhiteSpace(domainID) Then domainID = CurrentSession.CurrentDomainID
+            Dim aObjectID As String = anObject.ObjectID
 
             ''' fix primary key
             ''' 
-            Shuffle.ChecknFixPimaryKey(anObject.ObjectID, pkarray:=pkArray, domainid:=domainID, runtimeOnly:=runtimeOnly)
+            Shuffle.ChecknFixPimaryKey(aObjectID, pkarray:=pkArray, domainid:=domainID, runtimeOnly:=runtimeOnly)
 
             '* fire event
             Dim ourEventArgs As New ormDataObjectEventArgs(anObject, domainID:=domainID, domainBehavior:=hasDomainBehavior, pkArray:=pkArray, usecache:=useCache)
@@ -2352,7 +2369,7 @@ Namespace OnTrack.Database
                 If hasDomainBehavior AndAlso domainID <> ConstGlobalDomain Then
                     '* Domain Behavior - is global cached but it might be that we are missing the domain related one if one has been created
                     '* after load of the object - since not in cache
-                    Shuffle.ChecknFixPimaryKey(anObject.ObjectID, pkarray:=pkArray, domainid:=ConstGlobalDomain, runtimeOnly:=runtimeOnly)
+                    Shuffle.ChecknFixPimaryKey(aObjectID, pkarray:=pkArray, domainid:=ConstGlobalDomain, runtimeOnly:=runtimeOnly)
                     '* fire event again
                     ourEventArgs = New ormDataObjectEventArgs(anObject, domainID:=domainID, domainBehavior:=hasDomainBehavior, pkArray:=pkArray)
                     RaiseEvent ClassOnRetrieving(Nothing, ourEventArgs)
@@ -2379,6 +2396,17 @@ Namespace OnTrack.Database
             '* load object if not runtime only
             If (anObject Is Nothing OrElse forceReload) And Not runtimeOnly Then
                 anObject = ormDataObject.InjectDataObject(pkArray:=pkArray, type:=type, domainID:=domainID, dbdriver:=dbdriver)
+                If anObject Is Nothing AndAlso hasDomainBehavior AndAlso domainID <> ConstGlobalDomain Then
+                    '* on domain behavior ? -> reload from  the global domain
+                    Dim domainPKArray As Object() = pkArray.Clone
+                    Shuffle.ChecknFixPimaryKey(aObjectID, pkarray:=pkArray, domainid:=ConstGlobalDomain, runtimeOnly:=runtimeOnly)
+                    anObject = ormDataObject.Retrieve(pkArray:=pkArray, type:=type, domainID:=ConstGlobalDomain, dbdriver:=dbdriver)
+                    ''' add it to cache
+                    If anObject IsNot Nothing Then
+                        RaiseEvent ClassOnOverloaded(Nothing, _
+                                                      New ormDataObjectOverloadedEventArgs(globalPKarray:=pkArray, domainPKArray:=domainPKArray, dataobject:=anObject))
+                    End If
+                End If
             End If
 
             '* fire event
@@ -2442,7 +2470,7 @@ Namespace OnTrack.Database
 
 
             '* fire class event
-            Dim ourEventArgs As New ormDataObjectEventArgs(TryCast(aNewObject, ormDataObject), record:=Me.Record, pkarray:=newpkarray, runtimeOnly:=Me.RunTimeOnly)
+            Dim ourEventArgs As New ormDataObjectCloneEventArgs(newObject:=TryCast(aNewObject, ormDataObject), oldObject:=Me)
             ourEventArgs.UseCache = Me.UseCache
             RaiseEvent ClassOnCloning(Me, ourEventArgs)
             If ourEventArgs.AbortOperation Then
@@ -2460,7 +2488,6 @@ Namespace OnTrack.Database
             End If
 
             '* fire object event
-            ourEventArgs = New ormDataObjectEventArgs(TryCast(aNewObject, ormDataObject), record:=Me.Record, pkarray:=newpkarray, usecache:=Me.UseCache, runtimeOnly:=Me.RunTimeOnly)
             RaiseEvent OnCloning(Me, ourEventArgs)
             If ourEventArgs.AbortOperation Then
                 If ourEventArgs.Result AndAlso ourEventArgs.DataObject IsNot Nothing Then
@@ -2495,8 +2522,7 @@ Namespace OnTrack.Database
             End If
 
             '** Fire Event
-            ourEventArgs = New ormDataObjectEventArgs(TryCast(aNewObject, ormDataObject), record:=aNewObject.Record, _
-                                                      pkarray:=newpkarray, runtimeOnly:=Me.RunTimeOnly, usecache:=Me.UseCache)
+            ourEventArgs = New ormDataObjectCloneEventArgs(newObject:=TryCast(aNewObject, ormDataObject), oldObject:=Me)
 
             RaiseEvent OnCloned(Me, ourEventArgs)
             If ourEventArgs.AbortOperation Then
@@ -2604,8 +2630,8 @@ Namespace OnTrack.Database
         ''' <remarks></remarks>
         Public Overridable Function Delete(Optional timestamp As DateTime = constNullDate) As Boolean Implements iormPersistable.Delete
 
-            '** initialize
-            If Not Me.IsInitialized AndAlso Not Me.Initialize Then Return False
+            '** initialize -> no error if not alive
+            If Not Me.IsAlive(throwError:=False) Then Return False
             '** check on the operation right for this object
             If Not RunTimeOnly AndAlso Not CurrentSession.ValidateAccessRights(accessrequest:=otAccessRight.ReadUpdateData, _
                                                                                domainid:=DomainID, _
@@ -2640,10 +2666,10 @@ Namespace OnTrack.Database
             If aObjectDefinition IsNot Nothing AndAlso aObjectDefinition.HasDeleteFieldBehavior Then
                 _IsDeleted = True
                 _deletedOn = timestamp
-                Me.Persist(timestamp)
+                If Me.IsLoaded AndAlso Not Me.RunTimeOnly Then Me.Persist(timestamp)
             Else
                 'delete the  object itself
-                If Not Me.RunTimeOnly Then _IsDeleted = _record.Delete()
+                If Not Me.RunTimeOnly AndAlso Me.IsLoaded Then _IsDeleted = _record.Delete()
                 If _IsDeleted Then
                     Me.Unload()
                     _deletedOn = timestamp

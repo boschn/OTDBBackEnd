@@ -1225,11 +1225,26 @@ Namespace OnTrack.Database
 
         Function Feed(Optional record As ormRecord = Nothing) As Boolean
 
-        Function isAlive(Optional subname As String = "", Optional throwError As Boolean = True) As Boolean
+        ''' <summary>
+        ''' retruns true or throws error if the dataobject is alive (created, retrieved, infused)
+        ''' </summary>
+        ''' <param name="subname"></param>
+        ''' <param name="throwError"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Function IsAlive(Optional subname As String = "", Optional throwError As Boolean = True) As Boolean
 
+        ''' <summary>
+        ''' create the dataobject as persistable object in the data store
+        ''' </summary>
+        ''' <param name="record"></param>
+        ''' <param name="domainID"></param>
+        ''' <param name="checkUnique"></param>
+        ''' <param name="runtimeOnly"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
 
-
-        Function Create(ByRef record As ormRecord, Optional domainID As String = "", Optional checkUnique As Boolean = True, Optional runtimeOnly As Boolean = False) As Boolean
+        Function Create(ByRef record As ormRecord, Optional domainID As String = Nothing, Optional checkUnique As Boolean = True, Optional runtimeOnly As Boolean = False) As Boolean
 
         ReadOnly Property DatabaseDriver As iormDatabaseDriver
         ''' <summary>
@@ -1418,8 +1433,8 @@ Namespace OnTrack.Database
         ''' <param name="sender"></param>
         ''' <param name="e"></param>
         ''' <remarks></remarks>
-        Event OnCloning(sender As Object, e As ormDataObjectEventArgs)
-        Event OnCloned(sender As Object, e As ormDataObjectEventArgs)
+        Event OnCloning(sender As Object, e As ormDataObjectCloneEventArgs)
+        Event OnCloned(sender As Object, e As ormDataObjectCloneEventArgs)
 
     End Interface
 
@@ -1447,15 +1462,15 @@ Namespace OnTrack.Database
     ''' </summary>
     ''' <remarks></remarks>
     Public Interface iormObjectEntry
-        Inherits iormPersistable
-        Inherits System.ComponentModel.INotifyPropertyChanged
+        'Inherits iormPersistable -> ObjectEntryAttribute is also covering this
+        'Inherits System.ComponentModel.INotifyPropertyChanged
         ''' <summary>
         ''' returns true if the Entry is mapped to a class member field
         ''' </summary>
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        ReadOnly Property IsMapped As Boolean
+        Property IsMapped As Boolean
 
         ''' <summary>
         ''' True if ObjectEntry has a defined lower value
@@ -1517,7 +1532,7 @@ Namespace OnTrack.Database
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        ReadOnly Property Objectname() As String
+        Property Objectname() As String
 
         ''' <summary>
         ''' sets or gets the XchangeManager ID for the field 
@@ -1533,7 +1548,7 @@ Namespace OnTrack.Database
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        ReadOnly Property Entryname() As String
+        Property Entryname() As String
 
         ''' <summary>
         ''' sets or gets the type otObjectEntryDefinitionType

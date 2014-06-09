@@ -1533,7 +1533,7 @@ Namespace OnTrack
         Public Function GetMappedColumnFieldInfos(columnname As String, _
                                                   Optional tablename As String = "", _
                                                   Optional onlyenabled As Boolean = True) As List(Of FieldInfo)
-            Dim aFieldname As String = ""
+            Dim aColumnname As String = ""
             Dim aTablename As String = ""
             If columnname Is Nothing Then
                 CoreMessageHandler(message:="function called with nothing as columnname", subname:="ObjectClassDescription.GetMappedColumnFieldInfos", arg1:=Me.ObjectAttribute.ID, _
@@ -1549,9 +1549,9 @@ Namespace OnTrack
                 Else
                     aTablename = tablename.ToUpper
                 End If
-                aFieldname = names(1)
+                aColumnname = names(1)
             Else
-                aFieldname = columnname.ToUpper
+                aColumnname = columnname.ToUpper
                 aTablename = _TableAttributes.Keys.First
                 If _TableAttributes.Count > 1 Then
                     CoreMessageHandler(message:="more than one tables in the description but no table name specified in the column name or as argument", _
@@ -1569,8 +1569,9 @@ Namespace OnTrack
                     End If
 
                 End If
-                If _TableColumnsMappings.Item(key:=aTablename).ContainsKey(key:=aFieldname) Then
-                    Return _TableColumnsMappings.Item(key:=aTablename).Item(key:=aFieldname)
+                If _TableColumnsMappings.Item(key:=aTablename).ContainsKey(key:=aColumnname) Then
+
+                    Return _TableColumnsMappings.Item(key:=aTablename).Item(key:=aColumnname)
                 Else
                     Return New List(Of FieldInfo)
                 End If
@@ -2022,7 +2023,7 @@ Namespace OnTrack
                                        subname:="ObjectClassDescription.InitializeEntryMapping", objectname:=_Type.Name)
 
                 End If
-
+               
                 '** default -> Table/Column mapping
                 If Not aMappingAttribute.HasValueTablename Then
                     tablename = _TableAttributes.First.Key

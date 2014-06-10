@@ -896,12 +896,14 @@ Namespace OnTrack.Database
                         ''' 
                     End If
                 End If
-            End If
 
-            ''' nothing in cache
-            e.AbortOperation = False
-            e.Result = False
-            Exit Sub
+
+                e.AbortOperation = False
+                e.Result = False
+                Exit Sub
+
+            End If
+            '*** do really nothing we not on start
         End Sub
 
         ''' <summary>
@@ -953,11 +955,12 @@ Namespace OnTrack.Database
                 End If
 
 
-            End If
+                e.AbortOperation = False
+                e.Result = False
+                Exit Sub
 
-            e.AbortOperation = False
-            e.Result = False
-            Exit Sub
+            End If
+            '*** do really nothing we not on start
         End Sub
 
         ''' <summary>
@@ -991,12 +994,13 @@ Namespace OnTrack.Database
                 End If
                 aBucket.LastAccessStamp = DateTime.Now
                 aBucket.IsDeleted = True
+
+                e.AbortOperation = False
+                e.Result = False
+                Exit Sub
+
             End If
-
-
-            e.AbortOperation = False
-            e.Result = False
-            Exit Sub
+            '*** do really nothing we not on start
         End Sub
 
         ''' <summary>
@@ -1032,9 +1036,7 @@ Namespace OnTrack.Database
                 aBucket.IsDeleted = False
             End If
 
-            e.AbortOperation = False
-            e.Result = False
-            Exit Sub
+            '*** do really nothing we not on start
         End Sub
 
         ''' <summary>
@@ -1069,11 +1071,13 @@ Namespace OnTrack.Database
                 EndOverloading(searchkeys, e.DataObject)
                 aBucket.PersistedDate = DateTime.Now
                 aBucket.IsPersisted = True
-            End If
 
-            e.AbortOperation = False
-            e.Result = False
-            Exit Sub
+                e.AbortOperation = False
+                e.Result = False
+                Exit Sub
+
+            End If
+            '*** do really nothing we not on start
         End Sub
 
         ''' <summary>
@@ -1141,11 +1145,13 @@ Namespace OnTrack.Database
                 End If
                 aBucket.PersistedDate = DateTime.Now
                 aBucket.IsPersisted = True
+
+                e.AbortOperation = False
+                e.Result = False
+                Exit Sub
             End If
 
-            e.AbortOperation = False
-            e.Result = False
-            Exit Sub
+            '*** do really nothing
         End Sub
         ''' <summary>
         ''' OnRetrieving Event Handler for the ORM Data Object - check if object exists in cache and use it from there
@@ -1203,14 +1209,13 @@ Namespace OnTrack.Database
 
                     End If
                 End If
+           
+                e.AbortOperation = False
+                e.Result = False
+                Exit Sub
             End If
 
-
-            ''' not found in cache
-            ''' 
-            e.AbortOperation = False
-            e.Result = False
-            Exit Sub
+            '*** do really nothing
         End Sub
 
         ''' <summary>
@@ -1266,11 +1271,13 @@ Namespace OnTrack.Database
                     Exit Sub
                 End If
 
+
+                e.AbortOperation = False
+                e.Result = False
+                Exit Sub
             End If
 
-            e.AbortOperation = False
-            e.Result = False
-            Exit Sub
+            '*** do really nothing
         End Sub
         ''' <summary>
         ''' OnCreating Event Handler for the ORM Data Object - check if the object exists in cache
@@ -1303,12 +1310,13 @@ Namespace OnTrack.Database
                         End If
                     End If
                 End If
+
+                e.AbortOperation = False
+                e.Result = False
+                Exit Sub
             End If
 
-            ''' no chache
-            e.AbortOperation = False
-            e.Result = False
-            Exit Sub
+            '*** do really nothing
         End Sub
 
         ''' <summary>
@@ -1354,7 +1362,7 @@ Namespace OnTrack.Database
                     Dim aBucket = theobjects.Item(key:=searchkeys)
                     Dim aDataObject = TryCast(aBucket.Object, ormDataObject)
                     If aDataObject IsNot Nothing AndAlso aDataObject.Guid <> e.DataObject.Guid Then
-                        CoreMessageHandler("Warning ! infused object already in cache", subname:="ormObjectCacheManager.OnInfusedDataObject", _
+                        CoreMessageHandler(message:="Warning ! infused object already in cache", subname:="ormObjectCacheManager.OnInfusedDataObject", _
                                            messagetype:=otCoreMessageType.InternalWarning, _
                                           objectname:=aDataObject.ObjectID, arg1:=e.Pkarray)
                         e.DataObject = aDataObject
@@ -1363,11 +1371,13 @@ Namespace OnTrack.Database
                         Exit Sub
                     End If
                 End If
+
+                e.AbortOperation = False
+                e.Result = False
+                Exit Sub
             End If
 
-            e.AbortOperation = False
-            e.Result = False
-            Exit Sub
+            '*** do really nothing
         End Sub
         ''' <summary>
         ''' OnDeleted Event Handler for the ORM Data Object
@@ -1391,26 +1401,15 @@ Namespace OnTrack.Database
                         e.DataObject = TryCast(aBucket.Object, ormDataObject)
                         aBucket.LastAccessStamp = DateTime.Now
                         e.Proceed = False
-                        e.Result = False 'success
                         e.AbortOperation = True ' abort creating use object instead
                         Exit Sub
-                    Else
-                        e.Result = True
-                        e.Proceed = True
-                        e.AbortOperation = False
-                        Exit Sub
                     End If
-                Else
-                    e.Result = True
-                    e.Proceed = True
-                    e.AbortOperation = False
-                    Exit Sub
                 End If
+
+                e.Proceed = True
+                e.AbortOperation = False
+                Exit Sub
             End If
-            e.Proceed = True
-            e.Result = True
-            e.AbortOperation = False
-            Exit Sub
         End Sub
 
     End Class

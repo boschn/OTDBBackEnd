@@ -1431,20 +1431,20 @@ Namespace OnTrack
         ''' <param name="messagetype"></param>
         ''' <param name="MSGLOG"></param>
         ''' <remarks></remarks>
-        Public Sub CoreMessageHandler(Optional ByVal showmsgbox As Boolean = False, _
-        Optional ByVal exception As Exception = Nothing, _
-        Optional ByVal arg1 As Object = Nothing, _
-        Optional ByVal subname As String = "", _
-        Optional ByVal tablename As String = "", _
-        Optional ByVal columnname As String = "", _
-        Optional ByVal objectname As String = "", _
-        Optional ByVal entryname As String = "", _
-        Optional ByVal message As String = "", _
-        Optional ByVal break As Boolean = False, _
-        Optional ByVal noOtdbAvailable As Boolean = False, _
-        Optional ByVal messagetype As otCoreMessageType = otCoreMessageType.ApplicationError, _
-        Optional ByRef msglog As ObjectMessageLog = Nothing, _
-        Optional ByVal username As String = "")
+        Public Sub CoreMessageHandler(Optional ByVal message As String = "", _
+                                        Optional ByVal exception As Exception = Nothing, _
+                                        Optional ByVal arg1 As Object = Nothing, _
+                                        Optional ByVal subname As String = "", _
+                                        Optional ByVal tablename As String = "", _
+                                        Optional ByVal columnname As String = "", _
+                                        Optional ByVal objectname As String = "", _
+                                        Optional ByVal entryname As String = "", _
+                                        Optional ByVal showmsgbox As Boolean = False, _
+                                        Optional ByVal break As Boolean = False, _
+                                        Optional ByVal noOtdbAvailable As Boolean = False, _
+                                        Optional ByVal messagetype As otCoreMessageType = otCoreMessageType.ApplicationError, _
+                                        Optional ByRef msglog As ObjectMessageLog = Nothing, _
+                                        Optional ByVal username As String = "")
             '<CallerMemberName> Optional memberName As String = Nothing, _
             '   <CallerFilePath> Optional sourcefilePath As String = Nothing, _
             '  <CallerLineNumber()> Optional sourceLineNumber As Integer = 0)
@@ -1454,100 +1454,100 @@ Namespace OnTrack
 
             Try
 
-          
-            ''' EXCEPTION HANDLING
-            ''' 
-            If exception IsNot Nothing Then
-                messagetype = otCoreMessageType.InternalException
-                '** build the extended exception message
-                exmessagetext &= vbLf & "Exception of " & exception.GetType.ToString
-                exmessagetext &= vbLf & " --> " & exception.Message
-                exmessagetext &= vbLf & "Source: " & exception.Source
 
-                If exception.InnerException IsNot Nothing Then
-                    exmessagetext &= vbLf & "Inner Exception --> " & exception.InnerException.ToString
-                End If
+                ''' EXCEPTION HANDLING
+                ''' 
+                If exception IsNot Nothing Then
+                    messagetype = otCoreMessageType.InternalException
+                    '** build the extended exception message
+                    exmessagetext &= vbLf & "Exception of " & exception.GetType.ToString
+                    exmessagetext &= vbLf & " --> " & exception.Message
+                    exmessagetext &= vbLf & "Source: " & exception.Source
 
-                If TypeOf exception Is SqlException Then
-                    Dim sqlexcept As SqlException = TryCast(exception, SqlException)
-                    If sqlexcept IsNot Nothing Then
-                        exmessagetext &= vbLf & "Errorcode:" & sqlexcept.ErrorCode
-                        exmessagetext &= vbLf & "Errors:" & sqlexcept.Errors.ToString
-                        exmessagetext &= vbLf & "LineNumber:" & sqlexcept.LineNumber
-                        exmessagetext &= vbLf & "Server:" & sqlexcept.Server
-                    End If
-                ElseIf TypeOf exception Is OleDbException Then
-                    Dim oleexcept As OleDbException = TryCast(exception, OleDbException)
-                    If oleexcept IsNot Nothing Then
-                        exmessagetext &= vbLf & "Errorcode:" & oleexcept.ErrorCode
-                        exmessagetext &= vbLf & "Errors:" & oleexcept.Errors.ToString
+                    If exception.InnerException IsNot Nothing Then
+                        exmessagetext &= vbLf & "Inner Exception --> " & exception.InnerException.ToString
                     End If
 
+                    If TypeOf exception Is SqlException Then
+                        Dim sqlexcept As SqlException = TryCast(exception, SqlException)
+                        If sqlexcept IsNot Nothing Then
+                            exmessagetext &= vbLf & "Errorcode:" & sqlexcept.ErrorCode
+                            exmessagetext &= vbLf & "Errors:" & sqlexcept.Errors.ToString
+                            exmessagetext &= vbLf & "LineNumber:" & sqlexcept.LineNumber
+                            exmessagetext &= vbLf & "Server:" & sqlexcept.Server
+                        End If
+                    ElseIf TypeOf exception Is OleDbException Then
+                        Dim oleexcept As OleDbException = TryCast(exception, OleDbException)
+                        If oleexcept IsNot Nothing Then
+                            exmessagetext &= vbLf & "Errorcode:" & oleexcept.ErrorCode
+                            exmessagetext &= vbLf & "Errors:" & oleexcept.Errors.ToString
+                        End If
+
+                    End If
+
+                    routinestack &= exception.StackTrace
+
+
                 End If
 
-                routinestack &= exception.StackTrace
 
-
-            End If
-
-
-            '**** add to the Connection.errorlog
-            '****
-            With aNewError
+                '**** add to the Connection.errorlog
+                '****
+                With aNewError
                     .Message = message & vbLf
                     .Message &= exmessagetext
                     If msglog IsNot Nothing Then .Message &= vbLf & msglog.MessageText
-                .Subname = subname
-                .Exception = exception
-                .Tablename = tablename
-                '.Arguments = arg1
-                If arg1 IsNot Nothing And Not IsArray(arg1) Then
-                    .Arguments = arg1.ToString
-                Else
-                    .Arguments = ""
-                End If
-                .Exception = exception
-                .messagetype = messagetype
-                .StackTrace = routinestack
-                .Objectname = objectname
-                .ObjectEntry = entryname
-                .Columnname = columnname
-                .Timestamp = Date.Now
-                If Not _CurrentSession Is Nothing AndAlso username = "" Then 'use the internal variable not to startup a session
-                    .Username = _CurrentSession.Username
-                Else
-                    .Username = username
-                End If
-            End With
+                    .Subname = subname
+                    .Exception = exception
+                    .Tablename = tablename
+                    '.Arguments = arg1
+                    If arg1 IsNot Nothing And Not IsArray(arg1) Then
+                        .Arguments = arg1.ToString
+                    Else
+                        .Arguments = ""
+                    End If
+                    .Exception = exception
+                    .messagetype = messagetype
+                    .StackTrace = routinestack
+                    .Objectname = objectname
+                    .ObjectEntry = entryname
+                    .Columnname = columnname
+                    .Timestamp = Date.Now
+                    If Not _CurrentSession Is Nothing AndAlso username = "" Then 'use the internal variable not to startup a session
+                        .Username = _CurrentSession.Username
+                    Else
+                        .Username = username
+                    End If
+                End With
 
-            ''' Add to Log for flushing later
-            ''' 
-            AddErrorToLog(aNewError)
+                ''' Add to Log for flushing later
+                ''' 
+                AddErrorToLog(aNewError)
 
 
-            ''' Diagnostic Log output
-            ''' 
+                ''' Diagnostic Log output
+                ''' 
 
-            System.Diagnostics.Debug.WriteLine(Date.Now)
+                System.Diagnostics.Debug.WriteLine(Date.Now)
 
-            Select Case (messagetype)
-                Case otCoreMessageType.ApplicationInfo
+                Select Case (messagetype)
+                    Case otCoreMessageType.ApplicationInfo
                         System.Diagnostics.Debug.WriteLine("> Type: INFO")
-                Case otCoreMessageType.ApplicationError
+                    Case otCoreMessageType.ApplicationError
                         System.Diagnostics.Debug.WriteLine("> Type: ERROR")
-                Case otCoreMessageType.ApplicationWarning
+                    Case otCoreMessageType.ApplicationWarning
                         System.Diagnostics.Debug.WriteLine("> Type: WARNING")
-                Case otCoreMessageType.InternalException
+                    Case otCoreMessageType.InternalException
                         System.Diagnostics.Debug.WriteLine("> Type: Exception")
-                Case otCoreMessageType.InternalInfo
+                    Case otCoreMessageType.InternalInfo
                         System.Diagnostics.Debug.WriteLine("> Type: Internal INFORMATION")
-                Case otCoreMessageType.InternalError
+                    Case otCoreMessageType.InternalError
                         System.Diagnostics.Debug.WriteLine("> Type: Internal ERROR")
-                Case otCoreMessageType.InternalWarning
+                    Case otCoreMessageType.InternalWarning
                         System.Diagnostics.Debug.WriteLine("> Type: Internal Warning")
-                Case otCoreMessageType.InternalException
+                    Case otCoreMessageType.InternalException
                         System.Diagnostics.Debug.WriteLine("> Type: Internal Exception")
-            End Select
+                End Select
 
                 System.Diagnostics.Debug.WriteLine("> OnTrack Session Message:" & message)
                 If msglog IsNot Nothing Then System.Diagnostics.Debug.WriteLine(">> Object Message Log :" & msglog.MessageText)
@@ -1561,52 +1561,52 @@ Namespace OnTrack
                 If routinestack <> "" Then System.Diagnostics.Debug.WriteLine("> Stack:" & routinestack)
 
 
-            '''
-            ''' Messagebox Handling
-            '''
-            If showmsgbox Then
-                With New CoreMessageBox
-                    '* Message Heaxder
-                    Select Case messagetype
-                        Case otCoreMessageType.ApplicationError
-                            .Title = "ERROR"
-                        Case otCoreMessageType.ApplicationInfo
-                            .Title = "INFO"
-                        Case otCoreMessageType.ApplicationWarning
-                            .Title = "WARNING"
-                        Case otCoreMessageType.ApplicationException
-                            .Title = "EXCEPTION"
-                        Case otCoreMessageType.InternalInfo
-                            .Title = "INTERNAL INFO"
-                        Case otCoreMessageType.InternalError
-                            .Title = "INTERNAL ERROR"
-                        Case otCoreMessageType.InternalException
-                            .Title = exception.GetType.ToString & " INTERNAL EXCEPTION FROM " & exception.Source
-                        Case otCoreMessageType.InternalWarning
-                            .Title = "INTERNAL WARNING"
-                    End Select
-                    .Title &= " from " & subname
-                    '* Message
-                    .Message = "Message: " & message
-                    If arg1 IsNot Nothing Then .Message &= vbLf & "Argument:" & arg1
-                    If objectname IsNot Nothing AndAlso objectname <> "" Then .Message &= vbLf & "Object: " & objectname
-                    If entryname IsNot Nothing AndAlso entryname <> "" Then .Message &= vbLf & "Entry: " & entryname
-                    If tablename IsNot Nothing AndAlso tablename <> "" Then .Message &= vbLf & "Table: " & tablename
-                    If columnname IsNot Nothing AndAlso columnname <> "" Then .Message &= vbLf & "Column: " & columnname
-                    If subname IsNot Nothing AndAlso subname <> "" Then .Message &= vbLf & "Routine: " & CStr(subname)
-                    .Message &= vbLf & exmessagetext
+                '''
+                ''' Messagebox Handling
+                '''
+                If showmsgbox Then
+                    With New CoreMessageBox
+                        '* Message Heaxder
+                        Select Case messagetype
+                            Case otCoreMessageType.ApplicationError
+                                .Title = "ERROR"
+                            Case otCoreMessageType.ApplicationInfo
+                                .Title = "INFO"
+                            Case otCoreMessageType.ApplicationWarning
+                                .Title = "WARNING"
+                            Case otCoreMessageType.ApplicationException
+                                .Title = "EXCEPTION"
+                            Case otCoreMessageType.InternalInfo
+                                .Title = "INTERNAL INFO"
+                            Case otCoreMessageType.InternalError
+                                .Title = "INTERNAL ERROR"
+                            Case otCoreMessageType.InternalException
+                                .Title = exception.GetType.ToString & " INTERNAL EXCEPTION FROM " & exception.Source
+                            Case otCoreMessageType.InternalWarning
+                                .Title = "INTERNAL WARNING"
+                        End Select
+                        .Title &= " from " & subname
+                        '* Message
+                        .Message = "Message: " & message
+                        If arg1 IsNot Nothing Then .Message &= vbLf & "Argument:" & arg1
+                        If objectname IsNot Nothing AndAlso objectname <> "" Then .Message &= vbLf & "Object: " & objectname
+                        If entryname IsNot Nothing AndAlso entryname <> "" Then .Message &= vbLf & "Entry: " & entryname
+                        If tablename IsNot Nothing AndAlso tablename <> "" Then .Message &= vbLf & "Table: " & tablename
+                        If columnname IsNot Nothing AndAlso columnname <> "" Then .Message &= vbLf & "Column: " & columnname
+                        If subname IsNot Nothing AndAlso subname <> "" Then .Message &= vbLf & "Routine: " & CStr(subname)
+                        .Message &= vbLf & exmessagetext
 
-                    .type = CoreMessageBox.MessageType.Error
-                    .buttons = CoreMessageBox.ButtonType.OK
-                    .Show()
-                End With
+                        .type = CoreMessageBox.MessageType.Error
+                        .buttons = CoreMessageBox.ButtonType.OK
+                        .Show()
+                    End With
 
-            End If
+                End If
 
-            ' break
-            If messagetype <> otCoreMessageType.ApplicationInfo And messagetype <> otCoreMessageType.InternalInfo Then
-                Debug.Assert(Not break)
-            End If
+                ' break
+                If messagetype <> otCoreMessageType.ApplicationInfo And messagetype <> otCoreMessageType.InternalInfo Then
+                    Debug.Assert(Not break)
+                End If
 
             Catch ex As Exception
                 Debug.WriteLine("{0} Exception raised in CoreMessageHandler", Date.Now)

@@ -847,6 +847,10 @@ Namespace OnTrack.Database
                                                                          Return x.ID.ToUpper = "@" & Domain.ConstFNDomainID.ToUpper
                                                                      End Function)
                     If aDomainIDParameter IsNot Nothing Then
+                        If _parametervalues.ContainsKey(key:="@" & Domain.ConstFNDomainID.ToUpper) Then
+                            _parametervalues.Remove(key:="@" & Domain.ConstFNDomainID.ToUpper)
+                        End If
+                        _parametervalues.Add(key:="@" & Domain.ConstFNDomainID.ToUpper, value:=domainid)
                         aDomainIDParameter.Value = domainid
                     End If
                 End If

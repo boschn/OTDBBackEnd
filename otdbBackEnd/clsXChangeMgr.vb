@@ -2451,7 +2451,7 @@ Namespace OnTrack.XChange
             '*** build the primary key array
             If xobject.XObjectDefinition.GetNoKeys = 0 Then
                 If msglog IsNot Nothing Then msglog.Add(1009, CurrentSession.CurrentDomainID, Me.ContextIdentifier, Me.TupleIdentifier, _
-                           Me.EntityIdentifier, Me, xobject.Configname, xobject.XObjectDefinition.ObjectID, xobject.XChangeCmd.ToString)
+                           Me.EntityIdentifier, Me, xobject.Configname, xobject.xobjectdefinition.id, xobject.XChangeCmd.ToString)
                 Return False
             Else
                 ReDim pkarry(xobject.XObjectDefinition.GetNoKeys - 1)
@@ -2467,7 +2467,7 @@ Namespace OnTrack.XChange
                     i += 1
                 Else
                     If msglog IsNot Nothing Then msglog.Add(1002, CurrentSession.CurrentDomainID, Me.ContextIdentifier, Me.TupleIdentifier, _
-                          Me.EntityIdentifier, Me, xobject.Configname, xobject.XObjectDefinition.ObjectID, aPKEntry.Entryname)
+                          Me.EntityIdentifier, Me, xobject.Configname, xobject.xobjectdefinition.id, aPKEntry.Entryname)
                     Return False
                 End If
 
@@ -2483,7 +2483,7 @@ Namespace OnTrack.XChange
                     If anObject Is Nothing Then
                         ''' no object which could be retrieved - a new one will be created
                         If msglog IsNot Nothing Then msglog.Add(1004, CurrentSession.CurrentDomainID, Me.ContextIdentifier, Me.TupleIdentifier, _
-                          Me.EntityIdentifier, Me, xobject.Configname, xobject.XObjectDefinition.ObjectID, Converter.Array2StringList(pkarry))
+                          Me.EntityIdentifier, Me, xobject.Configname, xobject.XObjectDefinition.ID, Converter.Array2StringList(pkarry))
                     End If
                 Case otXChangeCommandType.Delete, otXChangeCommandType.Duplicate, otXChangeCommandType.Read, otXChangeCommandType.Update
                     '*** read the data
@@ -2492,12 +2492,12 @@ Namespace OnTrack.XChange
                     If anObject Is Nothing Then
                         ''' no object which could be retrieved for such a operation
                         If msglog IsNot Nothing Then msglog.Add(1003, CurrentSession.CurrentDomainID, Me.ContextIdentifier, Me.TupleIdentifier, _
-                          Me.EntityIdentifier, Me, xobject.Configname, xobject.XObjectDefinition.ObjectID, Converter.Array2StringList(pkarry))
+                          Me.EntityIdentifier, Me, xobject.Configname, xobject.XObjectDefinition.ID, Converter.Array2StringList(pkarry))
                     End If
                 Case Else
                     ''' no command ?!
                     If msglog IsNot Nothing Then msglog.Add(1005, CurrentSession.CurrentDomainID, Me.ContextIdentifier, Me.TupleIdentifier, _
-                      Me.EntityIdentifier, Me, xobject.Configname, xobject.XObjectDefinition.ObjectID, xobject.XChangeCmd)
+                      Me.EntityIdentifier, Me, xobject.Configname, xobject.xobjectdefinition.id, xobject.XChangeCmd.ToString)
                     CoreMessageHandler(message:="XCMD is not implemented for XConfig " & xobject.Configname, subname:="Xenvelope.RunDefaultXChange", arg1:=xobject.XChangeCmd, messagetype:=otCoreMessageType.InternalError)
                     Return False
             End Select
@@ -2561,13 +2561,13 @@ Namespace OnTrack.XChange
                     If dataobject Is Nothing OrElse Not dataobject.isAlive(throwError:=False) Then
                         ''' dataobject doesnot exist delete is absolete
                         msglog.Add(1008, CurrentSession.CurrentDomainID, Me.ContextIdentifier, Me.TupleIdentifier, _
-                                   Me.EntityIdentifier, Me, xobject.Configname, xobject.XObjectDefinition.ObjectID, _
+                                   Me.EntityIdentifier, Me, xobject.Configname, xobject.xobjectdefinition.id, _
                                    Converter.Array2StringList(xobject.XObjectDefinition.Keys), xobject.XChangeCmd.ToString)
                         Return False
                     Else
                         ''' dataobject exists everthing is fine
                         msglog.Add(1090, CurrentSession.CurrentDomainID, Me.ContextIdentifier, Me.TupleIdentifier, _
-                                   Me.EntityIdentifier, Me, xobject.Configname, xobject.XObjectDefinition.ObjectID, xobject.XChangeCmd)
+                                   Me.EntityIdentifier, Me, xobject.Configname, xobject.XObjectDefinition.ID, xobject.XChangeCmd.ToString)
                         Return True
                     End If
                     '**** add or update
@@ -2670,7 +2670,7 @@ Namespace OnTrack.XChange
                     If dataobject Is Nothing OrElse Not dataobject.isAlive(throwError:=False) Then
                         ''' dataobject doesnot exist duplicate not possible
                         msglog.Add(1007, CurrentSession.CurrentDomainID, Me.ContextIdentifier, Me.TupleIdentifier, _
-                                   Me.EntityIdentifier, Me, xobject.Configname, xobject.XObjectDefinition.ObjectID, _
+                                   Me.EntityIdentifier, Me, xobject.Configname, xobject.xobjectdefinition.id, _
                                    Converter.Array2StringList(xobject.XObjectDefinition.Keys), xobject.XChangeCmd.ToString)
                         Return False
                     Else
@@ -2697,7 +2697,7 @@ Namespace OnTrack.XChange
                     If dataobject Is Nothing OrElse Not dataobject.isAlive(throwError:=False) Then
                         ''' dataobject doesnot exist read not possible
                         msglog.Add(1007, CurrentSession.CurrentDomainID, Me.ContextIdentifier, Me.TupleIdentifier, _
-                                   Me.EntityIdentifier, Me, xobject.Configname, xobject.XObjectDefinition.ObjectID, _
+                                   Me.EntityIdentifier, Me, xobject.Configname, xobject.xobjectdefinition.id, _
                                    Converter.Array2StringList(xobject.XObjectDefinition.Keys), xobject.XChangeCmd.ToString)
                         Return False
                     Else
@@ -2724,7 +2724,7 @@ Namespace OnTrack.XChange
                 Case Else
                     ''' no command ?!
                     msglog.Add(1005, CurrentSession.CurrentDomainID, Me.ContextIdentifier, Me.TupleIdentifier, _
-                      Me.EntityIdentifier, Me, xobject.Configname, xobject.XObjectDefinition.ObjectID, xobject.XChangeCmd)
+                      Me.EntityIdentifier, Me, xobject.Configname, xobject.xobjectdefinition.id, xobject.XChangeCmd)
                     Call CoreMessageHandler(message:="XChangeCmd for this object is not known :" & xobject.Objectname,
                                       arg1:=xobject.XChangeCmd, objectname:=xobject.Objectname, messagetype:=otCoreMessageType.ApplicationError,
                                       subname:="XEnvelope.runXChangeCMD")
@@ -2855,7 +2855,7 @@ Namespace OnTrack.XChange
                     '1094;@;XCHANGE;xchange command '%4' run for object of type '%2%' with primary key '%3%';;10;Info;false;|G1|;|XCHANGEENVELOPE|
                     msglog.Add(1094, Nothing, Nothing, Nothing, Nothing, Me, _
                               Me.Xchangeconfig.Configname, xobject.Objectname, Converter.Array2StringList(dataobject.PrimaryKeyValues), xobject.XChangeCmd.ToString)
-                    
+
                     '** just return successfull
                     Return True
 
@@ -2918,7 +2918,7 @@ Namespace OnTrack.XChange
             If xobject.XObjectDefinition.GetNoKeys = 0 Then
                 ''' error 1009 no primary keys in object definition
                 If msglog IsNot Nothing Then msglog.Add(1009, CurrentSession.CurrentDomainID, Me.ContextIdentifier, Me.TupleIdentifier, _
-                     Me.EntityIdentifier, Me, xobject.Configname, xobject.XObjectDefinition.ObjectID, xobject.XChangeCmd.ToString)
+                     Me.EntityIdentifier, Me, xobject.Configname, xobject.xobjectdefinition.id, xobject.XChangeCmd.ToString)
 
                 Call CoreMessageHandler(message:="primary key of table is Nothing in xchange config:" & xobject.Configname,
                                       arg1:=xobject.Objectname, messagetype:=otCoreMessageType.InternalError, subname:="XEnvelope.runDefaultXChange4Object")
@@ -2938,7 +2938,7 @@ Namespace OnTrack.XChange
                 Else
                     ''' error 1002 value of primary key is not there
                     If msglog IsNot Nothing Then msglog.Add(1002, CurrentSession.CurrentDomainID, Me.ContextIdentifier, Me.TupleIdentifier, _
-                         Me.EntityIdentifier, Me, xobject.Configname, xobject.XObjectDefinition.ObjectID, aPKEntry.Entryname)
+                         Me.EntityIdentifier, Me, xobject.Configname, xobject.xobjectdefinition.id, aPKEntry.Entryname)
 
                     Call CoreMessageHandler(message:="value of primary key is not in configuration or envelope :" & xobject.Configname,
                                      arg1:=xobject.Objectname, entryname:=aPKEntry.Entryname, messagetype:=otCoreMessageType.ApplicationError,

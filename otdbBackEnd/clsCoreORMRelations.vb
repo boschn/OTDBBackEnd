@@ -276,15 +276,19 @@ Namespace OnTrack.Database
             If Not ourEventArgs.Proceed Then Return ourEventArgs.Proceed
 
             ''' cascade it to the relation manager
-            _relationMgr.CascadeRelations(cascadeUpdate:=cascadeUpdate, cascadeDelete:=cascadeDelete, _
-                                           relationnames:=relationnames, timestamp:=timestamp, uniquenesswaschecked:=uniquenesswaschecked)
+            If _relationMgr.CascadeRelations(cascadeUpdate:=cascadeUpdate, cascadeDelete:=cascadeDelete, _
+                                           relationnames:=relationnames, timestamp:=timestamp, uniquenesswaschecked:=uniquenesswaschecked) Then
 
 
 
-            '* Fire Event OnRelationLoaded
-            ourEventArgs = New ormDataObjectEventArgs(Me, Nothing, , relationID:=relationnames)
-            RaiseEvent ClassOnCascadedRelation(Me, ourEventArgs)
-            Return ourEventArgs.Proceed
+                '* Fire Event OnRelationLoaded
+                ourEventArgs = New ormDataObjectEventArgs(Me, Nothing, , relationID:=relationnames)
+                RaiseEvent ClassOnCascadedRelation(Me, ourEventArgs)
+                Return ourEventArgs.Proceed
+            Else
+                Return False
+            End If
+
         End Function
     End Class
 
@@ -1186,7 +1190,7 @@ Namespace OnTrack.Database
                 ''' go through all relations
                 ''' 
                 If relationnames Is Nothing Then relationnames = _dataobject.ObjectClassDescription.RelationNames
-
+                Dim result As Boolean = True
 
                 For Each relationname In relationnames
                     Dim aRelationAttribute = _dataobject.ObjectClassDescription.GetRelationAttribute(relationname:=relationname)
@@ -1207,7 +1211,7 @@ Namespace OnTrack.Database
                                 ''' listen to the messages
                                 AddHandler TryCast(anObject, iormLoggable).ObjectMessageLog.OnObjectMessageAdded, AddressOf Me.DataObject_OnObjectMessageAdded
                                 ''' here persist
-                                anObject.Persist(timestamp:=timestamp)
+                                result = result And anObject.Persist(timestamp:=timestamp)
                                 ''' stop listing to the messages
                                 RemoveHandler TryCast(anObject, iormLoggable).ObjectMessageLog.OnObjectMessageAdded, AddressOf Me.DataObject_OnObjectMessageAdded
 
@@ -1220,7 +1224,7 @@ Namespace OnTrack.Database
                             End If
                             ''' Cascade Delete
                             If cascadeDelete AndAlso cascadeDelete = aRelationAttribute.CascadeOnDelete Then
-                                anObject.Delete(timestamp:=timestamp)
+                                result = result And anObject.Delete(timestamp:=timestamp)
                             End If
 
                         Next
@@ -1229,7 +1233,7 @@ Namespace OnTrack.Database
                 Next
 
                 ''' return
-                Return True
+                Return result
 
             Catch ex As Exception
                 CoreMessageHandler(exception:=ex, arg1:=relationnames.ToString, objectname:=_dataobject.ObjectID, _

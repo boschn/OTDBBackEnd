@@ -1551,7 +1551,17 @@ Namespace OnTrack.Xchange
                             End If
                         Next aXChnageObject
 
-                        result = True 'not implemented
+                        ''' run the XChange through the envelope
+                        ''' 
+                        Me.Processed = Me.RunXChange(justprecheck:=True, workerthread:=workerthread)
+
+                        Me.Statusitem = Me.ObjectMessageLog.GetHighesStatusItem(ConstStatusType_XEnvelope)
+                        If Me.Statusitem.Aborting Then
+                            result = False
+                        Else
+                            result = True
+                        End If
+
 
                     Case ""
                         '''
@@ -1653,10 +1663,10 @@ Namespace OnTrack.Xchange
                     Me.ProcessedOn = Date.Now
                     Me.Processed = Me.RunXChange(justprecheck:=False, msglog:=Me.ObjectMessageLog, workerthread:=workerthread)
                     Me.Statusitem = Me.ObjectMessageLog.GetHighesStatusItem(ConstStatusType_XEnvelope)
-                    If Me.Statusitem.Aborting Then
+                    If Me.Statusitem IsNot Nothing AndAlso Me.Statusitem.Aborting Then
                         result = False
                     Else
-                        result = True
+                        result = Me.Processed
                     End If
                     Me.Processed = result
                     RaiseEvent OnProcessed(Me, New MQMessage.EventArgs(MQMessage:=Me, result:=result))
@@ -1674,10 +1684,10 @@ Namespace OnTrack.Xchange
                     Me.ProcessedOn = Date.Now
                     Me.Processed = Me.RunOpAddRevision(justprecheck:=False, msglog:=Me.ObjectMessageLog, workerthread:=workerthread)
                     Me.Statusitem = Me.ObjectMessageLog.GetHighesStatusItem(ConstStatusType_XEnvelope)
-                    If Me.Statusitem.Aborting Then
+                    If Me.Statusitem IsNot Nothing AndAlso Me.Statusitem.Aborting Then
                         result = False
                     Else
-                        result = True
+                        result = Me.Processed
                     End If
                     Me.Processed = result
                     RaiseEvent OnProcessed(Me, New MQMessage.EventArgs(MQMessage:=Me, result:=result))
@@ -1694,15 +1704,13 @@ Namespace OnTrack.Xchange
                     Me.ProcessedOn = Date.Now
                     result = Me.RunOpAddAfter(justprecheck:=False, msglog:=Me.ObjectMessageLog, workerthread:=workerthread)
                     Me.Statusitem = Me.ObjectMessageLog.GetHighesStatusItem(ConstStatusType_XEnvelope)
-                    If result = True Then
-                        If Me.Statusitem IsNot Nothing AndAlso Me.Statusitem.Aborting Then
-                            result = False
-                        Else
-                            result = True
-                        End If
+                    If Me.Statusitem IsNot Nothing AndAlso Me.Statusitem.Aborting Then
+                        result = False
+                    Else
+                        result = Me.Processed
                     End If
-
                     Me.Processed = result
+
                     RaiseEvent OnProcessed(Me, New MQMessage.EventArgs(MQMessage:=Me, result:=result))
 
 
@@ -2132,16 +2140,10 @@ Namespace OnTrack.Xchange
                     Next
                 Next
 
-                ''' do we have a domain ID ? . add mine
+                ''' do we have a domain ID ? . add mine even if the current object is not on domainbehavior -> addit for compounds
                 ''' 
-                If Not Me.Xenvelope.HasSlotByObjectEntryName(entryname:=Commons.Domain.ConstFNDomainID, objectname:=aXchangeObject.Objectname) Then
-                    If aXchangeObject.ObjectDefinition.HasDomainBehavior Then
-                        If Not Me.Xenvelope.AddSlotByObjectEntryName(entryname:=Commons.Domain.ConstFNDomainID, objectname:=aXchangeObject.Objectname, _
-                                                         value:=Me.DomainID, isHostValue:=False, _
-                                                         overwriteValue:=True, ValueIsNull:=False, SlotIsEmpty:=False) Then
-
-                        End If
-                    End If
+                Dim aDomainXID As String = CurrentSession.Objects.GetObject(objectid:=Domain.ConstObjectID).GetEntry(entryname:=Domain.ConstFNDomainID).XID
+                If Not Me.Xenvelope.AddSlotByXID(xid:=aDomainXID, value:=Me.DomainID, extendXConfig:=True, replaceSlotIfExists:=False) Then
                 End If
             End If
 

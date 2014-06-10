@@ -1177,6 +1177,12 @@ Namespace OnTrack.Database
 
         ReadOnly Property TableIDs As String()
 
+        ''' <summary>
+        ''' get the persistable object definition
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
         ReadOnly Property ObjectDefinition As ObjectDefinition
 
 

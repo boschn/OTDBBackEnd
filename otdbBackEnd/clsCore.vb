@@ -92,7 +92,7 @@ Namespace OnTrack
         Private _UILogin As UI.CoreLoginForm
         Private _AccessLevel As otAccessRight    ' access
 
-        Private _DomainObjectsDir As New Dictionary(Of String, ObjectRepository)
+        Private _DomainRepositories As New Dictionary(Of String, ObjectRepository)
         Private _ObjectPermissionCache As New Dictionary(Of String, Boolean)
         Private _ValueListCache As New Dictionary(Of String, ValueList)
         Private _ObjectCaches As New Dictionary(Of String, ormObjectCacheManager)
@@ -112,7 +112,7 @@ Namespace OnTrack
         Public Event StartOfBootStrapInstallation As EventHandler(Of SessionEventArgs)
         Public Event EndOfBootStrapInstallation As EventHandler(Of SessionEventArgs)
 
-       
+
 
         ''' <summary>
         ''' Constructor
@@ -151,7 +151,7 @@ Namespace OnTrack
             _primaryConnection = Nothing
             _logagent = Nothing
             _UILogin = Nothing
-            _DomainObjectsDir = Nothing
+            _DomainRepositories = Nothing
             _ObjectCaches.Clear()
         End Sub
 
@@ -264,12 +264,12 @@ Namespace OnTrack
                                        subname:="Session.Objects")
                 End If
                 ''' if domain switching then  use global domain repository untill domain is fully switched
-                If Me.IsDomainSwitching AndAlso _DomainObjectsDir.ContainsKey(key:=ConstGlobalDomain) Then
-                    Return _DomainObjectsDir.Item(key:=ConstGlobalDomain)
-                ElseIf Not String.IsNullOrWhiteSpace(domainid) AndAlso _DomainObjectsDir.ContainsKey(key:=domainid) Then
-                    Return _DomainObjectsDir.Item(key:=domainid)
-                ElseIf _DomainObjectsDir.ContainsKey(key:=_CurrentDomainID) Then
-                    Return _DomainObjectsDir.Item(key:=_CurrentDomainID)
+                If Me.IsDomainSwitching AndAlso _DomainRepositories.ContainsKey(key:=ConstGlobalDomain) Then
+                    Return _DomainRepositories.Item(key:=ConstGlobalDomain)
+                ElseIf Not String.IsNullOrWhiteSpace(domainid) AndAlso _DomainRepositories.ContainsKey(key:=domainid) Then
+                    Return _DomainRepositories.Item(key:=domainid)
+                ElseIf _DomainRepositories.ContainsKey(key:=_CurrentDomainID) Then
+                    Return _DomainRepositories.Item(key:=_CurrentDomainID)
                 Else
                     Return Nothing
                 End If
@@ -721,11 +721,11 @@ Namespace OnTrack
                 _ObjectCaches.First.Value.Start()
 
                 '** create ObjectStore
-                Dim aStore As New ObjectRepository(Me)
+                Dim aStore As New ObjectRepository(Me, ConstGlobalDomain)
                 aStore.RegisterCache(_ObjectCaches.First.Value)
+                _DomainRepositories.Clear()
+                _DomainRepositories.Add(key:=ConstGlobalDomain, value:=aStore)
 
-                _DomainObjectsDir.Clear()
-                _DomainObjectsDir.Add(key:=ConstGlobalDomain, value:=aStore)
                 _CurrentDomainID = ConstGlobalDomain
                 _loadDomainReqeusted = True
                 _CurrentDomain = Nothing
@@ -913,8 +913,8 @@ Namespace OnTrack
         ''' <param name="e"></param>
         ''' <remarks></remarks>
         Public Sub RaiseObjectChangedDefinitionEvent(sender As Object, e As ObjectDefinition.EventArgs)
-            If _DomainObjectsDir.ContainsKey(key:=_CurrentDomainID) Then
-                _DomainObjectsDir.Item(key:=_CurrentDomainID).OnObjectDefinitionChanged(sender, e)
+            If _DomainRepositories.ContainsKey(key:=_CurrentDomainID) Then
+                _DomainRepositories.Item(key:=_CurrentDomainID).OnObjectDefinitionChanged(sender, e)
             End If
         End Sub
         ''' <summary>
@@ -1558,10 +1558,10 @@ Namespace OnTrack
             _AccessLevel = 0
             _Username = ""
             _IsInitialized = False
-            For Each anObjectstore In _DomainObjectsDir.Values
+            For Each anObjectstore In _DomainRepositories.Values
                 'anObjectstore.reset()
             Next
-            _DomainObjectsDir.Clear()
+            _DomainRepositories.Clear()
             _errorLog.Clear()
             Return True
         End Function
@@ -1585,8 +1585,8 @@ Namespace OnTrack
                     Return True
                 End If
 
-                '* no change
-                If (_CurrentDomainID <> "" And newDomainID = _CurrentDomainID) And Not _loadDomainReqeusted Then
+                '* no change or domain is set but not loaded
+                If (Not String.IsNullOrWhiteSpace(_CurrentDomainID) AndAlso newDomainID = _CurrentDomainID AndAlso Not _loadDomainReqeusted) Then
                     Return True
                 End If
 
@@ -1598,13 +1598,13 @@ Namespace OnTrack
                 'End If
 
                 If newDomainID <> ConstGlobalDomain Then
-                    Dim aStore As ObjectRepository = _DomainObjectsDir.Item(key:=ConstGlobalDomain)
+                    Dim aStore As ObjectRepository = _DomainRepositories.Item(key:=ConstGlobalDomain)
                     If Not aStore.IsInitialized Then
                         ''' we need a initialized repository for global domain before we can switch
                         ''' to a different custom domain
                         ''' initialization is done via event domainchanged
                         ''' best ist to run recursive switch to domain
-                        Me.SwitchToDomain(ConstGlobalDomain)
+                        'Me.SwitchToDomain(ConstGlobalDomain)
                     End If
                 End If
 
@@ -1643,12 +1643,12 @@ Namespace OnTrack
                     newDomain.RegisterSession(Me)
 
                     '** add new Repository
-                    If Not _DomainObjectsDir.ContainsKey(key:=newDomainID) Then
-                        Dim aStore = New ObjectRepository(Me)
+                    If Not _DomainRepositories.ContainsKey(key:=newDomainID) Then
+                        Dim aStore = New ObjectRepository(Me, newDomainID)
                         If Not _ObjectCaches.ContainsKey(key:=newDomainID) Then
                             _ObjectCaches.Add(key:=newDomainID, value:=New ormObjectCacheManager(Me, newDomainID))
                         End If
-                        _DomainObjectsDir.Add(key:=newDomainID, value:=aStore)
+                        _DomainRepositories.Add(key:=newDomainID, value:=aStore)
                         aStore.RegisterCache(_ObjectCaches.Item(key:=newDomainID))
                         _ObjectCaches.Item(key:=newDomainID).Start()
                     End If
@@ -1656,8 +1656,6 @@ Namespace OnTrack
                     '* reset cache
                     _ObjectPermissionCache.Clear()
                     _ValueListCache.Clear()
-
-
 
                     '** raise event
                     RaiseEvent OnDomainChanging(Me, New SessionEventArgs(Me, newDomain))
@@ -1790,8 +1788,21 @@ Namespace OnTrack
                         Return False
                     End If
 
-                    '*** Parameters
-                    '***
+                    '''
+                    ''' load domain before retrieving any data
+                    ''' 
+                    If String.IsNullOrWhiteSpace(domainid) Then domainid = Me.CurrentDomainID
+                    '* set it here that we are really loading in SetDomain and not only 
+                    '* assigning _DomainID (if no connection is available)
+                    If SwitchToDomain(newDomainID:=domainid) Then
+                        Call CoreMessageHandler(message:="Session Domain set to '" & domainid & "' - " & CurrentSession.CurrentDomain.Description, _
+                                                messagetype:=otCoreMessageType.ApplicationInfo, _
+                                                subname:="Session.startupSesssionEnviorment")
+                    End If
+
+                    '''
+                    ''' load the user
+                    ''' 
                     _Username = _primaryDBDriver.CurrentConnection.Dbuser
                     _OTDBUser = User.Retrieve(username:=_primaryDBDriver.CurrentConnection.Dbuser)
                     If Not _OTDBUser Is Nothing AndAlso _OTDBUser.IsLoaded Then
@@ -1806,15 +1817,7 @@ Namespace OnTrack
                         Return False
                     End If
 
-                    '** load Domain
-                    If String.IsNullOrWhiteSpace(domainID) Then domainID = Me.CurrentDomainID
-                    '* set it here that we are really loading in SetDomain and not only 
-                    '* assigning _DomainID (if no connection is available)
-                    If SwitchToDomain(newDomainID:=domainID) Then
-                        Call CoreMessageHandler(message:="Session Domain set to '" & domainID & "' - " & CurrentSession.CurrentDomain.Description, _
-                                                messagetype:=otCoreMessageType.ApplicationInfo, _
-                                                subname:="Session.startupSesssionEnviorment")
-                    End If
+                   
                     '** the starting up aborted
                     If Not Me.IsStartingUp Then
                         CoreMessageHandler(message:="Startup of Session was aborted", _

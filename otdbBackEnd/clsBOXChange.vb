@@ -135,7 +135,13 @@ Namespace OnTrack.XChange
         ''' <remarks></remarks>
         Property XChangeCmd() As otXChangeCommandType
 
-
+        ''' <summary>
+        ''' gets the xchange object object definition
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Property xobjectdefinition As ObjectDefinition
 
         ''' <summary>
         ''' Primary Key Indexno
@@ -734,7 +740,7 @@ Namespace OnTrack.XChange
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Property [XObjectDefinition] As ObjectDefinition
+        Public Overloads Property [XObjectDefinition] As ObjectDefinition Implements IXChangeConfigEntry.xobjectdefinition
             Get
                 Dim aDefinition As ObjectDefinition
 
@@ -1328,21 +1334,29 @@ Namespace OnTrack.XChange
             For Each aChangeMember As XChangeObjectEntry In listofAttributes
                 'aChangeMember = m
                 Select Case aChangeMember.XChangeCmd
-                    Case otXChangeCommandType.Read
+                    Case otXChangeCommandType.Delete
                         If aHighestXcmd = 0 Then
                             aHighestXcmd = aChangeMember.XChangeCmd
                         Else
                             'aHighestXcmd = aChangeMember.xChangeCmd
                         End If
 
+                    Case otXChangeCommandType.Read
+                        If aHighestXcmd = 0 Or aHighestXcmd = otXChangeCommandType.Delete Then
+                            aHighestXcmd = aChangeMember.XChangeCmd
+                        Else
+                            'aHighestXcmd = aChangeMember.xChangeCmd
+                        End If
+
                     Case otXChangeCommandType.Update
-                        If aHighestXcmd = 0 Or aHighestXcmd = otXChangeCommandType.Read Then
+                        If aHighestXcmd = 0 Or aHighestXcmd = otXChangeCommandType.Read Or aHighestXcmd = otXChangeCommandType.Delete Then
                             aHighestXcmd = aChangeMember.XChangeCmd
                         Else
                             'aHighestXcmd = aChangeMember.xChangeCmd
                         End If
                     Case otXChangeCommandType.CreateUpdate
-                        If aHighestXcmd = 0 Or aHighestXcmd = otXChangeCommandType.Read Or aHighestXcmd = otXChangeCommandType.CreateUpdate Then
+                        If aHighestXcmd = 0 Or aHighestXcmd = otXChangeCommandType.Delete Or aHighestXcmd = otXChangeCommandType.Read _
+                            Or aHighestXcmd = otXChangeCommandType.CreateUpdate Then
                             aHighestXcmd = aChangeMember.XChangeCmd
                         Else
                             'aHighestXcmd = aChangeMember.xChangeCmd

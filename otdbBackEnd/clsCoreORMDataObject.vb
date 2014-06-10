@@ -2679,29 +2679,37 @@ Namespace OnTrack.Database
             '*** cascade the operation through the related members
             Dim result As Boolean = Me.CascadeRelations(cascadeDelete:=True)
 
-            '** determine how to delete
-            Dim aObjectDefinition As ObjectDefinition = Me.ObjectDefinition
-            '** per flag
-            If aObjectDefinition IsNot Nothing AndAlso aObjectDefinition.HasDeleteFieldBehavior Then
-                _IsDeleted = True
-                _deletedOn = timestamp
-                If Me.IsLoaded AndAlso Not Me.RunTimeOnly Then Me.Persist(timestamp)
-            Else
-                'delete the  object itself
-                If Not Me.RunTimeOnly AndAlso Me.IsLoaded Then _IsDeleted = _record.Delete()
-                If _IsDeleted Then
-                    Me.Unload()
+            If result Then
+                '** determine how to delete
+                Dim aObjectDefinition As ObjectDefinition = Me.ObjectDefinition
+                '** per flag
+                If aObjectDefinition IsNot Nothing AndAlso aObjectDefinition.HasDeleteFieldBehavior Then
+                    _IsDeleted = True
                     _deletedOn = timestamp
+                    Feed()
+                    '** save only on the record level
+                    If Me.IsLoaded AndAlso Not Me.RunTimeOnly Then _IsDeleted = _record.Persist(timestamp)
+                Else
+                    'delete the  object itself
+                    If Not Me.RunTimeOnly AndAlso Me.IsLoaded Then _IsDeleted = _record.Delete()
+                    If _IsDeleted Then
+                        Me.Unload()
+                        _deletedOn = timestamp
+                    End If
+
                 End If
 
+                '** fire Event
+                ourEventArgs.Result = _IsDeleted
+                RaiseEvent OnDeleted(Me, ourEventArgs)
+                RaiseEvent ClassOnDeleted(Me, ourEventArgs)
+                Return _IsDeleted
+            Else
+                CoreMessageHandler("object could not delete  cascaded objected", subname:="ormDataObject.Delete", objectname:=Me.ObjectID, _
+                                   arg1:=Converter.Array2StringList(Me.PrimaryKeyValues))
+                Return False
             End If
 
-            '** fire Event
-            ourEventArgs.Result = _IsDeleted
-            RaiseEvent OnDeleted(Me, ourEventArgs)
-            RaiseEvent ClassOnDeleted(Me, ourEventArgs)
-            _IsDeleted = ourEventArgs.Result
-            Return _IsDeleted
         End Function
         ''' <summary>
         ''' infuse a data objects object entry column mapped members

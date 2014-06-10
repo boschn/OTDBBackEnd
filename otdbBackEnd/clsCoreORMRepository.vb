@@ -114,8 +114,9 @@ Namespace OnTrack.Database
         ''' <param name="connection"></param>
         ''' <remarks></remarks>
 
-        Sub New(ByRef Session As Session)
+        Sub New(ByRef session As Session, domainid As String)
             _Session = Session
+            _DomainID = domainid
         End Sub
 
 #Region "Properties"
@@ -339,17 +340,7 @@ Namespace OnTrack.Database
         ''' <param name="e"></param>
         ''' <remarks></remarks>
         Public Sub OnDomainChanging(sender As Object, e As SessionEventArgs) Handles _Session.OnDomainChanging
-            If Not IsInitialized Then
-                SyncLock _lock
-                    If e.NewDomain IsNot Nothing Then
-                        _DomainID = e.NewDomain.ID
-                    Else
-                        _DomainID = DirectCast(sender, Session).CurrentDomainID
-                    End If
-
-                End SyncLock
-
-            End If
+           
         End Sub
         ''' <summary>
         ''' handler for the domain Changed Event
@@ -358,13 +349,12 @@ Namespace OnTrack.Database
         ''' <param name="e"></param>
         ''' <remarks></remarks>
         Public Sub OnDomainChanged(sender As Object, e As SessionEventArgs) Handles _Session.OnDomainChanged
-            If Not IsInitialized Then
-                SyncLock _lock
-                    _DomainID = DirectCast(sender, Session).CurrentDomainID
-                End SyncLock
-                '** initialize the store
-                Initialize()
-            End If
+            Dim aDomain As String
+            SyncLock _lock
+                aDomain = DirectCast(sender, Session).CurrentDomainID
+            End SyncLock
+            '** initialize the repository if we switched to the domain of it
+            If aDomain = _DomainID Then Initialize()
         End Sub
         ''' <summary>
         ''' Initialize the repository and load the minimum objects
@@ -538,7 +528,7 @@ Namespace OnTrack.Database
         ''' <returns>an Entry object or nothing </returns>
         ''' <remarks></remarks>
         Public Function GetTable(tablename As String, Optional runtimeOnly As Boolean? = Nothing) As TableDefinition
-
+            ' Me.Initialize() -> recursion since this function  is used on initializing
             tablename = tablename.ToUpper
             If runtimeOnly Is Nothing Then runtimeOnly = _Session.IsBootstrappingInstallationRequested
 
@@ -604,6 +594,7 @@ Namespace OnTrack.Database
         ''' <returns>an Entry object or nothing </returns>
         ''' <remarks></remarks>
         Public Function GetColumnEntry(columnname As String, Optional tablename As String = "", Optional runtimeOnly As Boolean? = Nothing) As ColumnDefinition
+            ' Me.Initialize() -> recursion since this function  is used on initializing
             columnname = columnname.ToUpper
             tablename = tablename.ToUpper
             If runtimeOnly Is Nothing Then runtimeOnly = _Session.IsBootstrappingInstallationRequested
@@ -639,6 +630,7 @@ Namespace OnTrack.Database
         ''' <returns>an Entry object or nothing </returns>
         ''' <remarks></remarks>
         Public Function GetEntry(entryname As String, Optional objectname As String = "", Optional runtimeOnly As Boolean? = Nothing) As iormObjectEntry
+            ' Me.Initialize() -> recursion since this function  is used on initializing
             entryname = entryname.ToUpper
             objectname = objectname.ToUpper
             If runtimeOnly Is Nothing Then runtimeOnly = _Session.IsBootstrappingInstallationRequested
@@ -684,6 +676,7 @@ Namespace OnTrack.Database
         ''' <returns>an Entry object or nothing </returns>
         ''' <remarks></remarks>
         Public Function HasObject(objectid As String) As Boolean
+            ' Me.Initialize() -> recursion since this function  is used on initializing
 
             If _objectDirectory.ContainsKey(key:=objectid.ToUpper) Then
                 Return True
@@ -699,6 +692,7 @@ Namespace OnTrack.Database
         ''' <returns>an Entry object or nothing </returns>
         ''' <remarks></remarks>
         Public Function GetObjectByClassname(classname As String, Optional runtimeOnly As Boolean = False) As ObjectDefinition
+            ' Me.Initialize() -> recursion since this function  is used on initializing
             If _objectClassDirectory.ContainsKey(key:=classname) Then
                 Return _objectClassDirectory.Item(key:=classname)
                 ' try to reload
@@ -712,6 +706,7 @@ Namespace OnTrack.Database
         ''' <returns>an Entry object or nothing </returns>
         ''' <remarks></remarks>
         Public Function GetObject(objectid As String, Optional domainid As String = Nothing, Optional runtimeOnly As Boolean = False) As ObjectDefinition
+            ' Me.Initialize() -> recursion since this function  is used on initializing
             Dim anObject As ObjectDefinition
             objectid = objectid.ToUpper
             If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
@@ -761,6 +756,7 @@ Namespace OnTrack.Database
         ''' <returns>an Entry object or nothing </returns>
         ''' <remarks></remarks>
         Public Function HasEntry(objectname As String, entryname As String) As Boolean
+            ' Me.Initialize() -> recursion since this function  is used on initializing
             If _entryDirectory.ContainsKey(key:=objectname & "." & entryname) Then
                 Return True
             Else
@@ -775,6 +771,7 @@ Namespace OnTrack.Database
         ''' <returns>an Entry object or nothing </returns>
         ''' <remarks></remarks>
         Public Function GetEntries(objectname As String) As List(Of iormObjectEntry)
+            ' Me.Initialize() -> recursion since this function  is used on initializing
             If _objectDirectory.ContainsKey(key:=objectname) Then
                 Return _objectDirectory.Item(key:=objectname).GetEntries
             Else
@@ -790,6 +787,7 @@ Namespace OnTrack.Database
         ''' <returns>an Entry object or nothing </returns>
         ''' <remarks></remarks>
         Public Function GetEntriesByXID([xid] As String, Optional objectname As String = "") As IList(Of iormObjectEntry)
+            ' Me.Initialize() -> recursion since this function  is used on initializing
             xid = xid.ToUpper
             objectname = objectname.ToUpper
             If _XIDDirectory.ContainsKey(xid) Then
@@ -845,6 +843,7 @@ Namespace OnTrack.Database
         ''' <returns>an Entry object or nothing </returns>
         ''' <remarks></remarks>
         Public Function GetEntryByAlias([alias] As String, Optional objectname As String = "") As IList(Of iormObjectEntry)
+            ' Me.Initialize() -> recursion since this function  is used on initializing
             [alias] = [alias].ToUpper
             If _aliasDirectory.ContainsKey([alias]) Then
                 If objectname = "" Then
@@ -899,6 +898,7 @@ Namespace OnTrack.Database
         ''' <returns>an Entry object or nothing </returns>
         ''' <remarks></remarks>
         Public Function GetEntryByAlias([aliases]() As String, Optional objectname As String = "") As List(Of iormObjectEntry)
+            ' Me.Initialize() -> recursion since this function  is used on initializing
             Dim theEntries As New List(Of iormObjectEntry)
 
             For Each [alias] In aliases
@@ -4930,6 +4930,20 @@ Namespace OnTrack.Database
                 Return Nothing
             End If
 
+            Dim hasDomainBehavior As Boolean
+            Dim hasDeleteBehavior As Boolean
+
+            ''' this returns only a definition if it was previously loaded
+            ''' 
+            If CurrentSession.IsBootstrappingInstallationRequested _
+              OrElse ot.GetBootStrapObjectClassnames.Contains(Me.Classname.ToUpper) Then
+                hasDomainBehavior = Me.HasDomainBehavior
+                hasDeleteBehavior = Me.HasDeleteFieldBehavior
+            Else
+                hasDomainBehavior = aDescription.ObjectAttribute.AddDomainBehavior
+                hasDeleteBehavior = aDescription.ObjectAttribute.AddDeleteFieldBehavior
+            End If
+
             ''' get the Select-Command
             Dim aSelectCommand As ormSqlSelectCommand = aStore.CreateSqlSelectCommand(name)
 
@@ -4966,19 +4980,7 @@ Namespace OnTrack.Database
                         Return Nothing
                     End If
                 End If
-                Dim hasDomainBehavior As Boolean
-                Dim hasDeleteBehavior As Boolean
-
-                ''' this returns only a definition if it was previously loaded
-                ''' 
-                If CurrentSession.IsBootstrappingInstallationRequested _
-                  OrElse ot.GetBootStrapObjectClassnames.Contains(Me.Classname.ToUpper) Then
-                    hasDomainBehavior = Me.HasDomainBehavior
-                    hasDeleteBehavior = Me.HasDeleteFieldBehavior
-                Else
-                    hasDomainBehavior = aDescription.ObjectAttribute.AddDomainBehavior
-                    hasDeleteBehavior = aDescription.ObjectAttribute.AddDeleteFieldBehavior
-                End If
+                
 
                 Dim primaryTablename As String = aDescription.PrimaryTable
 
@@ -5037,6 +5039,19 @@ Namespace OnTrack.Database
                 End If
 
             End If
+
+            ''' set the current domain parameters
+            ''' 
+            If hasDomainBehavior Then
+                ''' add where
+                ''' add parameters
+                Dim aParameter As ormSqlCommandParameter = _
+                    aSelectCommand.Parameters.Find(Function(x)
+                                                       Return x.ID.ToUpper = "@" & ConstFNDomainID.ToUpper
+                                                   End Function)
+                If aParameter IsNot Nothing Then aParameter.Value = CurrentSession.CurrentDomainID
+            End If
+               
 
             ''' return a new Queries enumeration with the embedded command
             Dim aQE As ormQueriedEnumeration = New ormQueriedEnumeration(type:=type, command:=aSelectCommand, id:=Me.ID & "." & name)

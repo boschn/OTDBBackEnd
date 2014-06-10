@@ -2580,18 +2580,22 @@ Namespace OnTrack.Database
                                            messagetype:=otCoreMessageType.InternalError, noOtdbAvailable:=True, subname:="mssqlConnection.OnInternalConnection")
             End If
         End Function
-
-        Public Shadows Function RaiseOnConnected() Handles MyBase.OnConnection
-            RaiseEvent OnConnection(Me, New ormConnectionEventArgs(Me))
-
-        End Function
-        Public Shadows Function RaiseOnDisConnected() Handles MyBase.OnDisconnection
-            RaiseEvent OnDisconnection(Me, New ormConnectionEventArgs(Me))
+        ''' <summary>
+        ''' Raise the OnConnected Event
+        ''' </summary>
+        ''' <param name="domainid"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Shadows Sub MssqlConnection_OnConnected(sender As Object, e As ormConnectionEventArgs) Handles MyBase.OnConnection
+            RaiseEvent OnConnection(sender, e)
+        End Sub
+        Public Shadows Sub MssqlConnection_RaiseOnDisConnected(sender As Object, e As ormConnectionEventArgs) Handles MyBase.OnDisconnection
+            RaiseEvent OnDisconnection(sender, e)
             _Server = Nothing
             _Database = Nothing
             _SMOConnection.ForceDisconnected()
             _SMOConnection = Nothing
-        End Function
+        End Sub
 
         ''' <summary>
         ''' Gets or sets the connection.

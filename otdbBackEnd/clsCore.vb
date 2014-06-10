@@ -95,7 +95,7 @@ Namespace OnTrack
         Private _DomainObjectsDir As New Dictionary(Of String, ObjectRepository)
         Private _ObjectPermissionCache As New Dictionary(Of String, Boolean)
         Private _ValueListCache As New Dictionary(Of String, ValueList)
-        Private _ObjectCache As ormObjectCacheManager
+        Private _ObjectCaches As New Dictionary(Of String, ormObjectCacheManager)
 
 
 
@@ -152,7 +152,7 @@ Namespace OnTrack
             _logagent = Nothing
             _UILogin = Nothing
             _DomainObjectsDir = Nothing
-            _ObjectCache = Nothing
+            _ObjectCaches.Clear()
         End Sub
 
 #Region "Properties"
@@ -716,13 +716,13 @@ Namespace OnTrack
                 End If
 
                 '** create Object Cache
-                If _ObjectCache Is Nothing Then _ObjectCache = New ormObjectCacheManager(Me)
-                ot.ObjectClassRepository.RegisterCacheManager(_ObjectCache)
-                _ObjectCache.Start()
+                If _ObjectCaches.Count = 0 Then _ObjectCaches.Add(key:=ConstGlobalDomain, value:=New ormObjectCacheManager(Me, ConstGlobalDomain))
+                ot.ObjectClassRepository.RegisterCacheManager(_ObjectCaches.First.Value)
+                _ObjectCaches.First.Value.Start()
 
                 '** create ObjectStore
                 Dim aStore As New ObjectRepository(Me)
-                aStore.RegisterCache(_ObjectCache)
+                aStore.RegisterCache(_ObjectCaches.First.Value)
 
                 _DomainObjectsDir.Clear()
                 _DomainObjectsDir.Add(key:=ConstGlobalDomain, value:=aStore)
@@ -873,7 +873,7 @@ Namespace OnTrack
         ''' <returns>True if successfull</returns>
         ''' <remarks></remarks>
         Public Function RequireAccessRight(accessRequest As otAccessRight, _
-                                            Optional domainID As String = "", _
+                                            Optional domainID As String = Nothing, _
                                             Optional reLogin As Boolean = True) As Boolean
             Dim anUsername As String
             '** lazy initialize
@@ -890,11 +890,13 @@ Namespace OnTrack
             '* how to check and wha to do
 
             If Me.IsRunning Then
-                If domainID = "" Then domainID = Me.CurrentDomainID
+                If String.IsNullOrWhiteSpace(domainID) Then domainID = Me.CurrentDomainID
                 anUsername = Me.OTdbUser.Username
+
                 Return Me.RequestUserAccess(accessRequest:=accessRequest, username:=anUsername, domainID:=domainID, loginOnFailed:=reLogin)
             Else
-                If domainID = "" Then domainID = ConstGlobalDomain
+                If String.IsNullOrWhiteSpace(domainID) Then domainID = ConstGlobalDomain
+
                 If Me.StartUp(AccessRequest:=accessRequest, domainID:=domainID) Then
                     Return Me.ValidateAccessRights(accessrequest:=accessRequest, domainid:=domainID)
                 Else
@@ -960,7 +962,7 @@ Namespace OnTrack
         ''' <remarks></remarks>
 
         Public Function ValidateAccessRights(accessrequest As otAccessRight, _
-                                                Optional domainid As String = "", _
+                                                Optional domainid As String = Nothing, _
                                                 Optional ByRef objecttransactions As String() = Nothing) As Boolean
             Dim result As Boolean = False
 
@@ -1033,7 +1035,7 @@ Namespace OnTrack
         Public Function RequestUserAccess(accessRequest As otAccessRight, _
                                             Optional ByRef username As String = "", _
                                             Optional ByRef password As String = "", _
-                                            Optional ByRef domainID As String = "", _
+                                            Optional ByRef domainid As String = Nothing, _
                                             Optional ByRef [objecttransactions] As String() = Nothing, _
                                             Optional loginOnDisConnected As Boolean = False, _
                                             Optional loginOnFailed As Boolean = False, _
@@ -1057,7 +1059,7 @@ Namespace OnTrack
 
             ElseIf Not Me.IsRunning Then
 
-                If domainID = "" Then domainID = ConstGlobalDomain
+                If String.IsNullOrWhiteSpace(domainID) Then domainID = ConstGlobalDomain
                 '*** OTDBUsername supplied
 
                 If loginOnDisConnected And accessRequest <> ConstDefaultAccessRight Then
@@ -1141,7 +1143,7 @@ Namespace OnTrack
                 '**** CONNECTION !
             Else
                 '** stay in the current domain 
-                If domainID = "" Then domainID = ot.CurrentSession.CurrentDomainID
+                If String.IsNullOrWhiteSpace(domainID) Then domainID = ot.CurrentSession.CurrentDomainID
 
                 '** validate the current user with the request if it is failing then
                 '** do check again
@@ -1636,22 +1638,26 @@ Namespace OnTrack
                     Me.IsDomainSwitching = False
                     Return True
                 Else
-                    
+
                     '** we have a domain
                     newDomain.RegisterSession(Me)
 
                     '** add new Repository
                     If Not _DomainObjectsDir.ContainsKey(key:=newDomainID) Then
                         Dim aStore = New ObjectRepository(Me)
+                        If Not _ObjectCaches.ContainsKey(key:=newDomainID) Then
+                            _ObjectCaches.Add(key:=newDomainID, value:=New ormObjectCacheManager(Me, newDomainID))
+                        End If
                         _DomainObjectsDir.Add(key:=newDomainID, value:=aStore)
-                        aStore.RegisterCache(_ObjectCache)
+                        aStore.RegisterCache(_ObjectCaches.Item(key:=newDomainID))
+                        _ObjectCaches.Item(key:=newDomainID).Start()
                     End If
 
                     '* reset cache
                     _ObjectPermissionCache.Clear()
                     _ValueListCache.Clear()
 
-                    
+
 
                     '** raise event
                     RaiseEvent OnDomainChanging(Me, New SessionEventArgs(Me, newDomain))
@@ -1740,7 +1746,7 @@ Namespace OnTrack
                 Me.IsDomainSwitching = False
                 Return False
             End Try
-            
+
         End Function
         ''' <summary>
         ''' Initialize and set all Parameters
@@ -1748,7 +1754,7 @@ Namespace OnTrack
         ''' <param name="FORCE"></param>
         ''' <returns>true if successful</returns>
         ''' <remarks></remarks>
-        Private Function StartUpSessionEnviorment(Optional ByVal force As Boolean = False, Optional domainID As String = "") As Boolean
+        Private Function StartUpSessionEnviorment(Optional ByVal force As Boolean = False, Optional domainid As String = Nothing) As Boolean
             Dim aValue As Object
 
             Try
@@ -1801,7 +1807,7 @@ Namespace OnTrack
                     End If
 
                     '** load Domain
-                    If domainID = "" Then domainID = Me.CurrentDomainID
+                    If String.IsNullOrWhiteSpace(domainID) Then domainID = Me.CurrentDomainID
                     '* set it here that we are really loading in SetDomain and not only 
                     '* assigning _DomainID (if no connection is available)
                     If SwitchToDomain(newDomainID:=domainID) Then
@@ -1930,15 +1936,7 @@ Namespace OnTrack
 
         End Sub
 
-        ''' <summary>
-        ''' handler for myself domain changing
-        ''' </summary>
-        ''' <param name="sender"></param>
-        ''' <param name="e"></param>
-        ''' <remarks></remarks>
-        Private Sub Session_OnDomainChanging(sender As Object, e As SessionEventArgs) Handles Me.OnDomainChanging
-
-        End Sub
+       
     End Class
 
     ''' <summary>
@@ -2661,7 +2659,7 @@ Namespace OnTrack
                 Debug.WriteLine("{0}", ex.Message)
                 Debug.WriteLine("{0}", ex.StackTrace)
             End Try
-         
+
         End Sub
         ''' <summary>
         ''' returns the size of the log
@@ -2964,7 +2962,7 @@ Namespace OnTrack
 
             End Try
         End Function
-        
+
         '*** addMsg adds a Message to the MessageLog with the associated
         '***
         '*** Contextordinal (can be Nothing) as MQF or other ordinal
@@ -3007,7 +3005,7 @@ Namespace OnTrack
             Dim runtimeOnly As Boolean = False
 
             ''' default values
-            If domainid Is Nothing OrElse domainid = "" Then domainid = CurrentSession.CurrentDomainID
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
             If String.IsNullOrWhiteSpace(contextidentifier) Then contextidentifier = Me.ContextIdentifier
             If String.IsNullOrWhiteSpace(tupleIdentifier) Then tupleIdentifier = Me.TupleIdentifier
             If String.IsNullOrWhiteSpace(entitityIdentifier) Then entitityIdentifier = Me.EntityIdentifier
@@ -3061,7 +3059,7 @@ Namespace OnTrack
                     message.Tag = _tag
                 Next
             End If
-            
+
             ''' 
             ''' create message
             ''' 
@@ -3471,7 +3469,7 @@ Namespace OnTrack
             Get
                 Return Me._sessionid
             End Get
-            Set
+            Set(value As String)
                 SetValue(ConstFNSessionTAG, Value)
             End Set
         End Property
@@ -3497,7 +3495,7 @@ Namespace OnTrack
             Get
                 Return Me._Weight
             End Get
-            Set
+            Set(value As Double?)
                 Me._Weight = Value
             End Set
         End Property
@@ -3510,7 +3508,7 @@ Namespace OnTrack
             Get
                 Return Me._Area
             End Get
-            Set
+            Set(value As String)
                 SetValue(ConstFNArea, Value)
             End Set
         End Property
@@ -3523,7 +3521,7 @@ Namespace OnTrack
             Get
                 Return Me._Parameters
             End Get
-            Set
+            Set(value As String())
                 SetValue(ConstFNParameters, Value)
             End Set
         End Property
@@ -3611,9 +3609,9 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public ReadOnly Property HighestStatusItems(Optional domainid As String = "", Optional statustype As String = Nothing) As IList(Of StatusItem)
+        Public ReadOnly Property HighestStatusItems(Optional domainid As String = Nothing, Optional statustype As String = Nothing) As IList(Of StatusItem)
             Get
-                If domainid = "" Then domainid = CurrentSession.CurrentDomainID
+                If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
                 Dim aShortlist As IEnumerable(Of StatusItem) = Me.StatusItems(domainid:=domainid, statustype:=statustype)
                 If aShortlist Is Nothing OrElse aShortlist.Count = 0 Then Return New List(Of StatusItem)
                 Dim highest As Integer = aShortlist.Max(Function(x) x.Weight)
@@ -3627,10 +3625,10 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public ReadOnly Property StatusItems(Optional domainid As String = "", Optional statustype As String = Nothing) As IList(Of Commons.StatusItem)
+        Public ReadOnly Property StatusItems(Optional domainid As String = Nothing, Optional statustype As String = Nothing) As IList(Of Commons.StatusItem)
             Get
                 If Me.MessageType IsNot Nothing Then
-                    If domainid = "" Then domainid = CurrentSession.CurrentDomainID
+                    If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
                     Return Me.MessageType.StatusItems(domainid:=domainid, statustype:=statustype)
                 End If
                 Return New List(Of StatusItem)
@@ -3711,10 +3709,10 @@ Namespace OnTrack
                                       Optional ByVal tupleIdentifier As String = Nothing, _
                                       Optional ByVal entitityIdentifier As String = Nothing, _
                                       Optional parameters As Object() = Nothing,
-                                      Optional ByVal domainid As String = "", _
+                                      Optional ByVal domainid As String = Nothing, _
                                       Optional checkUnique As Boolean = False, _
                                       Optional runtimeOnly As Boolean = True) As ObjectMessage
-            If domainid = "" Then domainid = CurrentSession.CurrentDomainID
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
             Dim aRecord As New ormRecord
             With aRecord
                 If msglogtag IsNot Nothing Then .SetValue(ConstFNTag, msglogtag.ToUpper)

@@ -190,8 +190,8 @@ Namespace OnTrack.ObjectProperties
         ''' <param name="domainid"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Retrieve(id As String, Optional domainid As String = "") As ObjectPropertySet
-            If domainid = "" Then domainid = CurrentSession.CurrentDomainID
+        Public Overloads Shared Function Retrieve(id As String, Optional domainid As String = Nothing) As ObjectPropertySet
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
             Return ormDataObject.Retrieve(Of ObjectPropertySet)(pkArray:={id.ToUpper, domainid.ToUpper}, domainID:=domainid)
         End Function
 
@@ -202,8 +202,8 @@ Namespace OnTrack.ObjectProperties
         ''' <param name="domainid"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Create(id As String, Optional domainid As String = "") As ObjectPropertySet
-            If domainid = "" Then domainid = CurrentSession.CurrentDomainID
+        Public Overloads Shared Function Create(id As String, Optional domainid As String = Nothing) As ObjectPropertySet
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
             Return ormDataObject.CreateDataObject(Of ObjectPropertySet)(pkArray:={id.ToUpper, domainid.ToUpper}, domainID:=domainid, checkUnique:=True)
         End Function
 
@@ -651,8 +651,8 @@ Namespace OnTrack.ObjectProperties
         ''' <param name="domainid"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Create(setid As String, ID As String, Optional domainid As String = "") As ObjectProperty
-            If domainid = "" Then domainid = CurrentSession.CurrentDomainID
+        Public Overloads Shared Function Create(setid As String, ID As String, Optional domainid As String = Nothing) As ObjectProperty
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
             Dim primarykey As Object() = {setid.ToUpper, ID.ToUpper, domainid}
             Return ormDataObject.CreateDataObject(Of ObjectProperty)(pkArray:=primarykey, domainID:=domainid, checkUnique:=True)
         End Function
@@ -665,8 +665,8 @@ Namespace OnTrack.ObjectProperties
         ''' <param name="domainid"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Retrieve(setid As String, ID As String, Optional domainid As String = "") As ObjectProperty
-            If domainid = "" Then domainid = CurrentSession.CurrentDomainID
+        Public Overloads Shared Function Retrieve(setid As String, ID As String, Optional domainid As String = Nothing) As ObjectProperty
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
             Dim primarykey As Object() = {setid.ToUpper, ID.ToUpper, domainid}
             Return ormDataObject.Retrieve(Of ObjectProperty)(pkArray:=primarykey)
         End Function
@@ -1046,8 +1046,8 @@ Namespace OnTrack.ObjectProperties
         ''' <param name="tomilestone"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Retrieve(fromObjectID As String, fromUid As Long, fromUpdc As Long, Optional domainid As String = "") As ObjectPropertyLink
-            If domainid = "" Then domainid = CurrentSession.CurrentDomainID
+        Public Overloads Shared Function Retrieve(fromObjectID As String, fromUid As Long, fromUpdc As Long, Optional domainid As String = Nothing) As ObjectPropertyLink
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
             Dim primarykey As Object() = {fromObjectID, fromUid, fromUpdc, domainid}
             Return ormDataObject.Retrieve(Of ObjectPropertyLink)(primarykey)
         End Function
@@ -1452,7 +1452,7 @@ Namespace OnTrack.ObjectProperties
         ''' <param name="value"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function AddSet(id As String, Optional domainid As String = "") As Boolean
+        Public Function AddSet(id As String, Optional domainid As String = Nothing) As Boolean
             If Not IsAlive(subname:="AddSet") Then Return Nothing
             id = id.ToUpper
             Dim aPropertySet = ObjectPropertySet.Retrieve(id:=id, domainid:=domainid)
@@ -1492,8 +1492,8 @@ Namespace OnTrack.ObjectProperties
         ''' <param name="domainid"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Retrieve(uid As Long, updc As Long, Optional domainid As String = "") As ObjectPropertyValueLot
-            If domainid = "" Then domainid = CurrentSession.CurrentDomainID
+        Public Overloads Shared Function Retrieve(uid As Long, updc As Long, Optional domainid As String = Nothing) As ObjectPropertyValueLot
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
             Return ormDataObject.Retrieve(Of ObjectPropertyValueLot)(pkArray:={uid, updc}, domainID:=domainid)
         End Function
 
@@ -1535,8 +1535,8 @@ Namespace OnTrack.ObjectProperties
         ''' <param name="domainid"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Create(Optional uid As Long = 0, Optional updc As Long = 0, Optional domainid As String = "") As ObjectPropertyValueLot
-            If domainid = "" Then domainid = CurrentSession.CurrentDomainID
+        Public Overloads Shared Function Create(Optional uid As Long = 0, Optional updc As Long = 0, Optional domainid As String = Nothing) As ObjectPropertyValueLot
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
             Return ormDataObject.CreateDataObject(Of ObjectPropertyValueLot)(pkArray:={uid, updc}, domainID:=domainid, checkUnique:=True)
         End Function
 
@@ -1827,8 +1827,8 @@ Namespace OnTrack.ObjectProperties
         ''' <param name="domainid"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Retrieve(uid As Long, updc As Long, setid As String, propertyid As String, Optional domainid As String = "") As ObjectPropertyValue
-            If domainid = "" Then domainid = CurrentSession.CurrentDomainID
+        Public Overloads Shared Function Retrieve(uid As Long, updc As Long, setid As String, propertyid As String, Optional domainid As String = Nothing) As ObjectPropertyValue
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
             Return ormDataObject.Retrieve(Of ObjectPropertyValue)(pkArray:={uid, updc, setid, propertyid, domainid}, domainID:=domainid)
         End Function
 
@@ -1840,8 +1840,8 @@ Namespace OnTrack.ObjectProperties
         ''' <param name="domainid"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Create(uid As Long, updc As Long, setid As String, propertyid As String, Optional domainid As String = "") As ObjectPropertyValue
-            If domainid = "" Then domainid = CurrentSession.CurrentDomainID
+        Public Overloads Shared Function Create(uid As Long, updc As Long, setid As String, propertyid As String, Optional domainid As String = Nothing) As ObjectPropertyValue
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
             Return ormDataObject.CreateDataObject(Of ObjectPropertyValue)(pkArray:={uid, updc, setid, propertyid, domainid}, domainID:=domainid, checkUnique:=True)
         End Function
 
@@ -1878,8 +1878,8 @@ Namespace OnTrack.ObjectProperties
         ''' <param name="pkarray">primary key array</param>
         ''' <remarks></remarks>
         ''' <returns>the new cloned object or nothing</returns>
-        Public Function Clone(uid As Long, updc As Long, setid As String, propertyid As String, Optional domainid As String = "") As ObjectPropertyValue
-            If domainid = "" Then domainid = CurrentSession.CurrentDomainID
+        Public Function Clone(uid As Long, updc As Long, setid As String, propertyid As String, Optional domainid As String = Nothing) As ObjectPropertyValue
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
             Return Clone(pkArray:={uid, updc, setid, propertyid, domainid})
         End Function
         ''' <summary>

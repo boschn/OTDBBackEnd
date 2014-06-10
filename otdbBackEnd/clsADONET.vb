@@ -1754,7 +1754,7 @@ Namespace OnTrack.Database
         ''' <returns></returns>
         Public Overrides Function Connect(Optional FORCE As Boolean = False, _
                                             Optional accessRequest As otAccessRight = otAccessRight.[ReadOnly], _
-                                            Optional domainID As String = "", _
+                                            Optional domainid As String = Nothing, _
                                             Optional OTDBUsername As String = "", _
                                             Optional OTDBPassword As String = "", _
                                             Optional exclusive As Boolean = False, _

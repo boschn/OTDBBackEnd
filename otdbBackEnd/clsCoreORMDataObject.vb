@@ -1351,7 +1351,7 @@ Namespace OnTrack.Database
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function InjectDataObject(pkArray() As Object, type As System.Type, _
-                                                                     Optional domainID As String = "", _
+                                                                     Optional domainid As String = Nothing, _
                                                                      Optional dbdriver As iormDatabaseDriver = Nothing) As iormPersistable
             Dim aDataObject As iormPersistable = ot.CreateDataObjectInstance(type)
 
@@ -1370,7 +1370,7 @@ Namespace OnTrack.Database
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function InjectDataObject(Of T As {iormInfusable, iormPersistable, New})(pkArray() As Object, _
-                                                                                               Optional domainID As String = "", _
+                                                                                               Optional domainid As String = Nothing, _
                                                                                                Optional dbdriver As iormDatabaseDriver = Nothing) As T
             Return InjectDataObject(pkArray:=pkArray, type:=GetType(T), domainID:=domainID, dbdriver:=dbdriver)
         End Function
@@ -1381,7 +1381,7 @@ Namespace OnTrack.Database
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overridable Function Inject(ByRef pkArray() As Object, _
-                                           Optional domainID As String = "", _
+                                           Optional domainid As String = Nothing, _
                                            Optional dbdriver As iormDatabaseDriver = Nothing, _
                                            Optional loadDeleted As Boolean = False) As Boolean Implements iormPersistable.Inject
             Dim aRecord As ormRecord
@@ -1781,14 +1781,17 @@ Namespace OnTrack.Database
         <ormObjectOperationMethod(Description:="Creates a Data Object by primary keys from store)", _
             OperationName:="GeneralCreateByPrimaryKeys", TransactionID:=ConstOPCreate, tag:=ObjectClassDescription.ConstMTCreateDataObject)> _
         Public Shared Function CreateDataObject(ByRef pkArray() As Object, type As System.Type, _
-                                 Optional domainID As String = "",
-                                 Optional checkUnique As Boolean = True, _
-                                 Optional runtimeOnly As Boolean = False) As iormPersistable
+                                 Optional domainID As String = Nothing,
+                                 Optional checkUnique As Boolean? = Nothing, _
+                                 Optional runtimeOnly As Boolean? = Nothing) As iormPersistable
 
             Dim aDataobject As iormPersistable = ot.CreateDataObjectInstance(type)
-
+            ''' defautl values
+            If String.IsNullOrWhiteSpace(domainID) Then domainID = CurrentSession.CurrentDomainID
+            If Not checkUnique.HasValue Then checkUnique = True
+            If Not runtimeOnly.HasValue Then runtimeOnly = False
             ''' Substitute the DomainID if necessary
-            If domainID = "" Then domainID = CurrentSession.CurrentDomainID
+            If String.IsNullOrWhiteSpace(domainID) Then domainID = CurrentSession.CurrentDomainID
             ''' fix the primary key
             Shuffle.ChecknFixPimaryKey(aDataobject.ObjectID, domainid:=domainID, pkarray:=pkArray, runtimeOnly:=runtimeOnly)
 
@@ -1840,13 +1843,16 @@ Namespace OnTrack.Database
 
         Public Shared Function CreateDataObject(Of T As {iormInfusable, iormPersistable, New}) _
                             (ByRef pkArray() As Object,
-                             Optional domainID As String = "",
-                             Optional checkUnique As Boolean = True, _
-                             Optional runtimeOnly As Boolean = False) As iormPersistable
+                             Optional domainID As String = Nothing,
+                             Optional checkUnique As Boolean? = Nothing, _
+                             Optional runtimeOnly As Boolean? = Nothing) As iormPersistable
             Dim aDataObject As New T
 
-            ''' Substitute the DomainID if necessary
-            If domainID = "" Then domainID = CurrentSession.CurrentDomainID
+            ''' defautl values
+            If String.IsNullOrWhiteSpace(domainID) Then domainID = CurrentSession.CurrentDomainID
+            If Not checkUnique.HasValue Then checkUnique = True
+            If Not runtimeOnly.HasValue Then runtimeOnly = False
+
             ''' fix primary key
             Shuffle.ChecknFixPimaryKey(aDataObject.ObjectID, domainid:=domainID, pkarray:=pkArray, runtimeOnly:=runtimeOnly)
 
@@ -1898,15 +1904,18 @@ Namespace OnTrack.Database
         ''' <remarks></remarks>
         Public Shared Function CreateDataObject(Of T As {iormInfusable, iormPersistable, New}) _
                             (ByRef record As ormRecord,
-                             Optional domainID As String = "",
-                             Optional checkUnique As Boolean = True, _
-                             Optional runtimeOnly As Boolean = False) As iormPersistable
+                             Optional domainID As String = Nothing,
+                             Optional checkUnique As Boolean? = Nothing, _
+                             Optional runtimeOnly As Boolean? = Nothing) As iormPersistable
             Dim aDataObject As New T
-
+            ''' defautl values
+            If String.IsNullOrWhiteSpace(domainID) Then domainID = CurrentSession.CurrentDomainID
+            If Not checkUnique.HasValue Then checkUnique = True
+            If Not runtimeOnly.HasValue Then runtimeOnly = False
             ''' Get the Primary key
             Dim pkarray As Object() = ExtractPrimaryKey(record:=record, objectID:=aDataObject.ObjectID, runtimeOnly:=runtimeOnly)
             ''' Substitute the DomainID if necessary
-            If domainID = "" Then domainID = CurrentSession.CurrentDomainID
+            If String.IsNullOrWhiteSpace(domainID) Then domainID = CurrentSession.CurrentDomainID
 
             ''' fix primary key
             Shuffle.ChecknFixPimaryKey(aDataObject.ObjectID, domainid:=domainID, pkarray:=pkarray, runtimeOnly:=runtimeOnly)
@@ -1955,7 +1964,7 @@ Namespace OnTrack.Database
         ''' <param name="pkArray"></param>
         ''' <remarks></remarks>
         Private Function CopyPrimaryKeyToRecord(ByRef pkArray() As Object, ByRef record As ormRecord,
-                                                Optional domainID As String = "", _
+                                                Optional domainid As String = Nothing, _
                                                 Optional runtimeOnly As Boolean = False) As Boolean
             Dim aList As List(Of String)
             If Not runtimeOnly Then
@@ -1971,7 +1980,7 @@ Namespace OnTrack.Database
                 End If
             End If
             Dim i As UShort = 0
-            If domainID = "" Then domainID = ConstGlobalDomain
+            If String.IsNullOrWhiteSpace(domainID) Then domainID = ConstGlobalDomain
             ReDim Preserve pkArray(aList.Count - 1)
             For Each acolumnname In aList
                 If (record.IsBound AndAlso record.HasIndex(acolumnname)) OrElse Not record.IsBound Then
@@ -2113,9 +2122,13 @@ Namespace OnTrack.Database
         ''' <remarks></remarks>
         Public Overridable Function Create(ByRef record As ormRecord, _
                                               Optional domainID As String = Nothing, _
-                                              Optional checkUnique As Boolean = True, _
-                                              Optional runtimeOnly As Boolean = False) As Boolean Implements iormPersistable.Create
+                                              Optional checkUnique As Boolean? = Nothing, _
+                                              Optional runtimeOnly As Boolean? = Nothing) As Boolean Implements iormPersistable.Create
 
+            ''' defautl values
+            If String.IsNullOrWhiteSpace(domainID) Then domainID = CurrentSession.CurrentDomainID
+            If Not checkUnique.HasValue Then checkUnique = True
+            If Not runtimeOnly.HasValue Then runtimeOnly = False
             '** is a session running ?!
             If Not runtimeOnly AndAlso Not CurrentSession.IsRunning AndAlso Not CurrentSession.IsStartingUp Then
                 Call CoreMessageHandler(message:="data object cannot be created - start session to database first", _
@@ -2209,14 +2222,15 @@ Namespace OnTrack.Database
             ''' infuse what we have in the record
             ''' 
             Dim aDataobject = Me
+           
             If Not InfuseDataObject(record:=record, dataobject:=aDataobject, mode:=otInfuseMode.OnCreate) Then
                 CoreMessageHandler(message:="InfuseDataobject failed", messagetype:=otCoreMessageType.InternalError, subname:="ormDataObject.Create")
                 If aDataobject.Guid <> Me.Guid Then
-                    CoreMessageHandler(message:="data object was substitutet in instance create function during infuse ?!", messagetype:=otCoreMessageType.InternalWarning, _
+                    CoreMessageHandler(message:="data object was substituted in instance create function during infuse ?!", messagetype:=otCoreMessageType.InternalWarning, _
                         subname:="ormDataObject.Create")
                 End If
             End If
-
+           
             '** set status
             _domainID = domainID
             _isCreated = True
@@ -2245,10 +2259,13 @@ Namespace OnTrack.Database
         ''' <returns></returns>
         ''' <remarks></remarks>
         Protected Overridable Function Create(ByRef pkArray() As Object, _
-                                              Optional domainID As String = "", _
-                                              Optional checkUnique As Boolean = True, _
-                                              Optional runtimeOnly As Boolean = False) As Boolean Implements iormPersistable.Create
-
+                                              Optional domainID As String = Nothing, _
+                                              Optional checkUnique As Boolean? = Nothing, _
+                                              Optional runtimeOnly As Boolean? = Nothing) As Boolean Implements iormPersistable.Create
+            ''' defautl values
+            If String.IsNullOrWhiteSpace(domainID) Then domainID = CurrentSession.CurrentDomainID
+            If Not checkUnique.HasValue Then checkUnique = True
+            If Not runtimeOnly.HasValue Then runtimeOnly = False
 
             '*** add the primary keys
             '** is a session running ?!
@@ -2268,7 +2285,7 @@ Namespace OnTrack.Database
             End If
 
             '** set default
-            If domainID = "" Then domainID = ConstGlobalDomain
+            If String.IsNullOrWhiteSpace(domainID) Then domainID = ConstGlobalDomain
 
             '** copy the primary keys
             CopyPrimaryKeyToRecord(pkArray:=pkArray, record:=Me.Record, domainID:=domainID, runtimeOnly:=runtimeOnly)
@@ -2288,10 +2305,10 @@ Namespace OnTrack.Database
         ''' <remarks></remarks>
         Public Overloads Shared Function Retrieve(Of T As {iormInfusable, ormDataObject, iormPersistable, New}) _
             (pkArray() As Object, _
-             Optional domainID As String = "", _
+             Optional domainID As String = Nothing, _
              Optional dbdriver As iormDatabaseDriver = Nothing, _
-             Optional forceReload As Boolean = False, _
-             Optional runtimeOnly As Boolean = False) As T
+             Optional forceReload As Boolean? = Nothing, _
+             Optional runtimeOnly As Boolean? = Nothing) As T
             Return Retrieve(pkArray:=pkArray, type:=GetType(T), domainID:=domainID, dbdriver:=dbdriver, forceReload:=forceReload, runtimeOnly:=runtimeOnly)
         End Function
         ''' <summary>
@@ -2305,14 +2322,17 @@ Namespace OnTrack.Database
         <ormObjectOperationMethod(Description:="Retrieve a Data Object by primary keys from store)", _
             OperationName:="GeneralRetrieveByPrimaryKeys", Tag:=ObjectClassDescription.ConstMTRetrieve, TransactionID:=ConstOPRetrieve)> _
         Public Overloads Shared Function Retrieve(pkArray() As Object, type As System.Type, _
-                 Optional domainID As String = "", _
+                 Optional domainID As String = Nothing, _
                  Optional dbdriver As iormDatabaseDriver = Nothing, _
-                 Optional forceReload As Boolean = False, _
-                 Optional runtimeOnly As Boolean = False) As iormPersistable
+                 Optional forceReload As Boolean? = Nothing, _
+                 Optional runtimeOnly As Boolean? = Nothing) As iormPersistable
 
             Dim useCache As Boolean = True
+            If String.IsNullOrWhiteSpace(domainID) Then domainID = CurrentSession.CurrentDomainID
+            If Not runtimeOnly.HasValue Then runtimeOnly = False
+            If Not forceReload.HasValue Then forceReload = False
             Dim anObject As iormPersistable = ot.CreateDataObjectInstance(type)
-
+           
 
             '** is a session running ?!
             If Not runtimeOnly AndAlso Not CurrentSession.IsRunning AndAlso Not CurrentSession.IsStartingUp Then
@@ -2342,8 +2362,7 @@ Namespace OnTrack.Database
             '** use Cache ?!
             useCache = anObject.useCache
             Dim hasDomainBehavior As Boolean = anObject.ObjectHasDomainBehavior
-            If String.IsNullOrWhiteSpace(domainID) Then domainID = CurrentSession.CurrentDomainID
-            Dim aObjectID As String = anObject.ObjectID
+           Dim aObjectID As String = anObject.ObjectID
 
             ''' fix primary key
             ''' 
@@ -2703,6 +2722,7 @@ Namespace OnTrack.Database
             '*** infuse each mapped column to member
             '*** if it is in the record
             Try
+               
 
                 For Each aColumnName In Me.ObjectClassDescription.MappedColumnNames
                     Dim aFieldList As List(Of FieldInfo) = Me.ObjectClassDescription.GetMappedColumnFieldInfos(columnname:=aColumnName)
@@ -2713,7 +2733,10 @@ Namespace OnTrack.Database
                             objectentryname = aMappingAttribute.EntryName
                             Dim isNull As Boolean
                             Dim aValue As Object
+
                             If Me.Record.HasIndex(aColumnName) Then
+                                'Dim aStopwatch1 As New Diagnostics.Stopwatch
+                                'aStopwatch1.Start()
                                 '*** set the class internal field
                                 aValue = Me.Record.GetValue(aColumnName, isNull:=isNull)
 
@@ -2729,8 +2752,9 @@ Namespace OnTrack.Database
                                             aValue = Me.ObjectClassDescription.GetObjectEntryAttribute(entryname:=objectentryname).DefaultValue
                                         End If
                                     Else
-                                        Dim anEntry As iormObjectEntry = CurrentSession.Objects.GetObject(Me.ObjectClassDescription.ObjectAttribute.ID).GetEntry(entryname:=objectentryname)
-                                        ''' only if not nullable we use a default value
+                                        Dim anEntry As iormObjectEntry = Me.ObjectDefinition.GetEntry(entryname:=objectentryname)
+
+                                          ''' only if not nullable we use a default value
                                         If anEntry IsNot Nothing Then
                                             aValue = Me.ObjectEntryDefaultValue(anEntry.Entryname)
                                             isNull = False 'reset for the value setting
@@ -2743,6 +2767,11 @@ Namespace OnTrack.Database
                                     End If
                                 End If
 
+                                'aStopwatch1.Stop()
+                                'Debug.WriteLine(">>>>>> GETVALUE:" & aStopwatch1.ElapsedTicks)
+                                'Dim aStopwatch2 As New Diagnostics.Stopwatch
+                                'aStopwatch2.Start()
+
                                 ''' set the value
                                 ''' 
                                 If Not isNull AndAlso aValue IsNot Nothing Then
@@ -2753,6 +2782,9 @@ Namespace OnTrack.Database
                                     End If
 
                                 End If
+
+                                'aStopwatch2.Stop()
+                                'Debug.WriteLine(">>>>>> SETVALUE:" & aStopwatch2.ElapsedTicks)
                             End If
                         End If
                     Next
@@ -3030,10 +3062,10 @@ Namespace OnTrack.Database
 
                 '*** INFUSE THE COLUMN MAPPED MEMBERS
                 Dim aResult As Boolean = InfuseColumnMapping(mode:=mode)
-
+                
                 '*** INFUSE THE RELATION MAPPED MEMBERS
                 aResult = aResult And InfuseRelationMapped(mode:=mode)
-
+               
                 If Not aResult Then
                     Return aResult
                 End If

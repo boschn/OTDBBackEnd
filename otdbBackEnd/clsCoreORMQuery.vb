@@ -41,7 +41,7 @@ Namespace OnTrack.Database
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function AllDataObject(Of T As {iormInfusable, iormPersistable, New})(Optional ID As String = "All", _
-                                                                                  Optional domainID As String = "",
+                                                                                  Optional domainid As String = Nothing,
                                                                                    Optional where As String = "", _
                                                                                    Optional orderby As String = "", _
                                                                                    Optional parameters As List(Of ormSqlCommandParameter) = Nothing, _
@@ -315,7 +315,7 @@ Namespace OnTrack.Database
             ''' create a sql select command
             ''' 
             _select = New ormSqlSelectCommand(id)
-            If domainID = "" Then domainID = ConstGlobalDomain
+            If String.IsNullOrWhiteSpace(domainID) Then domainID = ConstGlobalDomain
             Me.Domainid = domainID
             Me.Where = where
             Me.Orderby = orderby

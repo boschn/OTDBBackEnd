@@ -138,8 +138,8 @@ Namespace OnTrack.Commons
         ''' <param name="domainid"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Retrieve(id As String, Optional domainid As String = "") As ValueList
-            If domainid = "" Then domainid = CurrentSession.CurrentDomainID
+        Public Overloads Shared Function Retrieve(id As String, Optional domainid As String = Nothing) As ValueList
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
             Return ormDataObject.Retrieve(Of ValueList)(pkArray:={id.ToUpper, domainid.ToUpper}, domainID:=domainid)
         End Function
 
@@ -150,8 +150,8 @@ Namespace OnTrack.Commons
         ''' <param name="domainid"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Create(id As String, Optional domainid As String = "") As ValueList
-            If domainid = "" Then domainid = CurrentSession.CurrentDomainID
+        Public Overloads Shared Function Create(id As String, Optional domainid As String = Nothing) As ValueList
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
             Return ormDataObject.CreateDataObject(Of ValueList)(pkArray:={id.ToUpper, domainid.ToUpper}, domainID:=domainid, checkUnique:=True)
         End Function
 
@@ -537,8 +537,8 @@ Namespace OnTrack.Commons
         ''' <param name="id"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Retrieve(ByVal listID As String, ByVal value As Object, Optional ByVal domainID As String = "", Optional forcereload As Boolean = False) As ValueEntry
-            If domainID = "" Then domainID = CurrentSession.CurrentDomainID
+        Public Overloads Shared Function Retrieve(ByVal listID As String, ByVal value As Object, Optional ByVal domainid As String = Nothing, Optional forcereload As Boolean = False) As ValueEntry
+            If String.IsNullOrWhiteSpace(domainID) Then domainID = CurrentSession.CurrentDomainID
             Dim pkarray() As Object = {UCase(listID), value.ToString, UCase(domainID)}
             Return Retrieve(Of ValueEntry)(pkArray:=pkarray, forceReload:=forcereload)
         End Function
@@ -548,7 +548,7 @@ Namespace OnTrack.Commons
         ''' <param name="id"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function RetrieveByListID(ByVal listID As String, Optional ByVal domainID As String = "", Optional forcereload As Boolean = False) As List(Of ValueEntry)
+        Public Overloads Shared Function RetrieveByListID(ByVal listID As String, Optional ByVal domainid As String = Nothing, Optional forcereload As Boolean = False) As List(Of ValueEntry)
             Dim aList As List(Of ValueEntry) = ormDataObject.AllDataObject(Of ValueEntry)(ID:="allbyListID", domainID:=domainID)
             Return aList
         End Function
@@ -559,8 +559,8 @@ Namespace OnTrack.Commons
         ''' <param name="workspaceID"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Shared Function Create(ByVal listid As String, ByVal value As Object, Optional ByVal domainID As String = "") As ValueEntry
-            If domainID = "" Then domainID = CurrentSession.CurrentDomainID
+        Public Shared Function Create(ByVal listid As String, ByVal value As Object, Optional ByVal domainid As String = Nothing) As ValueEntry
+            If String.IsNullOrWhiteSpace(domainID) Then domainID = CurrentSession.CurrentDomainID
             Dim primarykey() As Object = {UCase(listid), value.ToString, UCase(domainID)}
             Return ormDataObject.CreateDataObject(Of ValueEntry)(primarykey, checkUnique:=True)
         End Function
@@ -995,8 +995,8 @@ Namespace OnTrack.Commons
         ''' <param name="id"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Retrieve(ByVal groupname As String, Optional domainid As String = "", Optional forcereload As Boolean = False) As Group
-            If domainid = "" Then domainid = CurrentSession.CurrentDomainID
+        Public Overloads Shared Function Retrieve(ByVal groupname As String, Optional domainid As String = Nothing, Optional forcereload As Boolean = False) As Group
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
             Return Retrieve(Of Group)(pkArray:={groupname, domainid}, domainID:=domainid, forceReload:=forcereload)
         End Function
 
@@ -1006,8 +1006,8 @@ Namespace OnTrack.Commons
         ''' <param name="groupname"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Shared Function Create(ByVal groupname As String, Optional domainid As String = "") As Group
-            If domainid = "" Then domainid = CurrentSession.CurrentDomainID
+        Public Shared Function Create(ByVal groupname As String, Optional domainid As String = Nothing) As Group
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
             Dim primarykey() As Object = {groupname, domainid}
             Return ormDataObject.CreateDataObject(Of Group)(primarykey, domainID:=domainid, checkUnique:=True)
         End Function
@@ -1085,8 +1085,8 @@ Namespace OnTrack.Commons
         ''' <param name="id"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Retrieve(ByVal groupname As String, ByVal username As String, Optional ByVal domainid As String = "", Optional forcereload As Boolean = False) As GroupMember
-            If domainid = "" Then domainid = CurrentSession.CurrentDomainID
+        Public Overloads Shared Function Retrieve(ByVal groupname As String, ByVal username As String, Optional ByVal domainid As String = Nothing, Optional forcereload As Boolean = False) As GroupMember
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
             Return Retrieve(Of GroupMember)(pkArray:={groupname, username, domainid}, domainID:=domainid, forceReload:=forcereload)
         End Function
 
@@ -1116,8 +1116,8 @@ Namespace OnTrack.Commons
         ''' <param name="groupname"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Create(ByVal groupname As String, ByVal username As String, Optional ByVal domainid As String = "", Optional runtimeOnly As Boolean = False) As GroupMember
-            If domainid = "" Then domainid = CurrentSession.CurrentDomainID
+        Public Overloads Shared Function Create(ByVal groupname As String, ByVal username As String, Optional ByVal domainid As String = Nothing, Optional runtimeOnly As Boolean = False) As GroupMember
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
             Dim primarykey() As Object = {groupname, username, domainid}
             Return ormDataObject.CreateDataObject(Of GroupMember)(primarykey, domainID:=domainid, checkUnique:=False, runtimeOnly:=runtimeOnly)
         End Function
@@ -2152,7 +2152,7 @@ Namespace OnTrack.Commons
         ''' <param name="name"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Retrieve(ByVal firstname As String, ByVal midnames As String(), ByVal sirname As String, Optional domainID As String = "") As Person
+        Public Overloads Shared Function Retrieve(ByVal firstname As String, ByVal midnames As String(), ByVal sirname As String, Optional domainid As String = Nothing) As Person
             Return Retrieve(id:=BuildID(firstname:=firstname, midnames:=midnames, sirname:=sirname), domainID:=domainID)
         End Function
         ''' <summary>
@@ -2161,7 +2161,7 @@ Namespace OnTrack.Commons
         ''' <param name="id"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Retrieve(ByVal id As String, Optional domainID As String = "", Optional forcereload As Boolean = False) As Person
+        Public Overloads Shared Function Retrieve(ByVal id As String, Optional domainid As String = Nothing, Optional forcereload As Boolean = False) As Person
             Dim primarykey() As Object = {id, domainID}
             Return Retrieve(Of Person)(pkArray:=primarykey, domainID:=domainID, forceReload:=forcereload)
         End Function
@@ -2171,7 +2171,7 @@ Namespace OnTrack.Commons
         ''' <param name="name"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function Inject(ByVal firstname As String, ByVal sirname As String, Optional ByVal midnames As String() = Nothing, Optional domainID As String = "") As Boolean
+        Public Function Inject(ByVal firstname As String, ByVal sirname As String, Optional ByVal midnames As String() = Nothing, Optional domainid As String = Nothing) As Boolean
             Return Inject(id:=BuildID(firstname:=firstname, midnames:=midnames, sirname:=sirname), domainID:=domainID)
         End Function
         ''' <summary>
@@ -2180,7 +2180,7 @@ Namespace OnTrack.Commons
         ''' <param name="Name"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function Inject(ByVal id As String, Optional domainID As String = "") As Boolean
+        Public Function Inject(ByVal id As String, Optional domainid As String = Nothing) As Boolean
             Dim primarykey() As Object = {id, domainID}
             Return MyBase.Inject(pkArray:=primarykey, domainID:=domainID)
         End Function
@@ -2200,7 +2200,7 @@ Namespace OnTrack.Commons
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Shared Function All(Optional domainID As String = "") As List(Of Person)
+        Public Shared Function All(Optional domainid As String = Nothing) As List(Of Person)
             Return ormDataObject.AllDataObject(Of Person)(domainID:=domainID)
         End Function
 
@@ -2229,7 +2229,7 @@ Namespace OnTrack.Commons
         ''' <param name="name"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function Create(ByVal id As String, Optional domainID As String = "") As Boolean
+        Public Function Create(ByVal id As String, Optional domainid As String = Nothing) As Boolean
             Dim primarykey() As Object = {id, domainID}
             ' set the primaryKey
             Return MyBase.Create(primarykey, domainID:=domainID, checkUnique:=True)
@@ -2240,7 +2240,7 @@ Namespace OnTrack.Commons
         ''' <param name="name"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function Create(ByVal firstname As String, ByVal sirname As String, Optional ByVal midnames As String() = Nothing, Optional domainID As String = "") As Boolean
+        Public Function Create(ByVal firstname As String, ByVal sirname As String, Optional ByVal midnames As String() = Nothing, Optional domainid As String = Nothing) As Boolean
             Return Create(id:=BuildID(firstname:=firstname, midnames:=midnames, sirname:=sirname), domainID:=domainID)
         End Function
     End Class
@@ -2409,10 +2409,10 @@ Namespace OnTrack.Commons
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public ReadOnly Property StatusItems(Optional domainid As String = "", Optional statustype As String = Nothing) As IList(Of StatusItem)
+        Public ReadOnly Property StatusItems(Optional domainid As String = Nothing, Optional statustype As String = Nothing) As IList(Of StatusItem)
             Get
                 Dim aList As New List(Of StatusItem)
-                If domainid = "" Then domainid = CurrentSession.CurrentDomainID
+                If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
                 For Each aPair In _StatusCodeDictionary
                     Dim aCode As String = aPair.Value
                     Dim aType As String = aPair.Key
@@ -2476,8 +2476,8 @@ Namespace OnTrack.Commons
         ''' <param name="domainID"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Shared Function Retrieve(ByVal uid As Long, Optional domainID As String = "") As ObjectMessageType
-            If domainID = "" Then domainID = CurrentSession.CurrentDomainID
+        Public Shared Function Retrieve(ByVal uid As Long, Optional domainid As String = Nothing) As ObjectMessageType
+            If String.IsNullOrWhiteSpace(domainID) Then domainID = CurrentSession.CurrentDomainID
             Dim primarykey() As Object = {uid, domainID}
             Return ormDataObject.Retrieve(Of ObjectMessageType)(pkArray:=primarykey)
         End Function
@@ -2488,7 +2488,7 @@ Namespace OnTrack.Commons
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function All(Optional domainID As String = "") As List(Of ObjectMessageType)
+        Public Function All(Optional domainid As String = Nothing) As List(Of ObjectMessageType)
             Return ormDataObject.AllDataObject(Of ObjectMessageType)(domainID:=domainID)
         End Function
 
@@ -2499,7 +2499,7 @@ Namespace OnTrack.Commons
         ''' <param name="ID"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Function Create(ByVal uid As Long, Optional ByVal domainID As String = "") As Boolean
+        Public Overloads Function Create(ByVal uid As Long, Optional ByVal domainid As String = Nothing) As Boolean
             Dim primarykey() As Object = {uid}
             ' set the primaryKey
             Return MyBase.Create(primarykey, domainID:=domainID, checkUnique:=True)
@@ -2928,8 +2928,8 @@ Namespace OnTrack.Commons
         ''' <param name="id"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Retrieve([typeid] As String, code As String, Optional domainID As String = "", Optional forcereload As Boolean = False) As StatusItem
-            If domainID = "" Then domainID = CurrentSession.CurrentDomainID
+        Public Overloads Shared Function Retrieve([typeid] As String, code As String, Optional domainid As String = Nothing, Optional forcereload As Boolean = False) As StatusItem
+            If String.IsNullOrWhiteSpace(domainID) Then domainID = CurrentSession.CurrentDomainID
             Dim pkarry() As Object = {typeid.ToUpper, code.ToUpper, domainID}
             Return Retrieve(Of StatusItem)(pkArray:=pkarry, domainID:=domainID, forceReload:=forcereload)
         End Function
@@ -2942,9 +2942,9 @@ Namespace OnTrack.Commons
         ''' <param name="code"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Shared Function Create(ByVal typeid As String, ByVal code As String, Optional ByVal domainID As String = "") As StatusItem
+        Public Shared Function Create(ByVal typeid As String, ByVal code As String, Optional ByVal domainid As String = Nothing) As StatusItem
             ' set the primaryKey
-            If domainID = "" Then domainID = CurrentSession.CurrentDomainID
+            If String.IsNullOrWhiteSpace(domainID) Then domainID = CurrentSession.CurrentDomainID
             Dim primarykey() As Object = {typeid.ToUpper, code.ToUpper, domainID}
             Return ormDataObject.CreateDataObject(Of StatusItem)(primarykey, domainID:=domainID, checkUnique:=True)
         End Function
@@ -3258,8 +3258,8 @@ Namespace OnTrack.Commons
         ''' <param name="id"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Retrieve(ByVal id As String, Optional domainid As String = "", Optional forcereload As Boolean = False) As Workspace
-            If domainid = "" Then domainid = CurrentSession.CurrentDomainID
+        Public Overloads Shared Function Retrieve(ByVal id As String, Optional domainid As String = Nothing, Optional forcereload As Boolean = False) As Workspace
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
             Dim pkarray() As Object = {UCase(id)}
             Return Retrieve(Of Workspace)(pkArray:=pkarray, domainID:=domainid, forceReload:=forcereload)
         End Function
@@ -3271,8 +3271,8 @@ Namespace OnTrack.Commons
         ''' <param name="workspaceID"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Create(ByVal workspaceID As String, Optional ByVal domainid As String = "") As Workspace
-            If domainid = "" Then domainid = CurrentSession.CurrentDomainID
+        Public Overloads Shared Function Create(ByVal workspaceID As String, Optional ByVal domainid As String = Nothing) As Workspace
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
             Dim primarykey() As Object = {workspaceID.ToUpper}
             Return ormDataObject.CreateDataObject(Of Workspace)(pkArray:=primarykey, domainID:=domainid, checkUnique:=True)
         End Function
@@ -3769,7 +3769,7 @@ Namespace OnTrack.Commons
         ''' <param name="id"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Retrieve(ByVal id As String, Optional domainID As String = "", Optional forcereload As Boolean = False) As OrgUnit
+        Public Overloads Shared Function Retrieve(ByVal id As String, Optional domainid As String = Nothing, Optional forcereload As Boolean = False) As OrgUnit
             Return Retrieve(Of OrgUnit)(pkArray:={domainID, id}, domainID:=domainID, forceReload:=forcereload)
         End Function
 
@@ -3784,7 +3784,7 @@ Namespace OnTrack.Commons
         End Function
         '**** create : create a new Object with primary keys
         '****
-        Public Shared Function Create(ByVal id As String, Optional domainID As String = "") As OrgUnit
+        Public Shared Function Create(ByVal id As String, Optional domainid As String = Nothing) As OrgUnit
             Dim primarykey() As Object = {id, domainID}
             ' set the primaryKey
             Return CreateDataObject(Of OrgUnit)(primarykey, domainID:=domainID, checkUnique:=True)
@@ -3863,7 +3863,7 @@ Namespace OnTrack.Commons
         ''' <param name="id"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Retrieve(ByVal id As String, Optional domainid As String = "", Optional forcereload As Boolean = False) As Site
+        Public Overloads Shared Function Retrieve(ByVal id As String, Optional domainid As String = Nothing, Optional forcereload As Boolean = False) As Site
             Return Retrieve(Of Site)(pkArray:={UCase(id), domainid}, domainID:=domainid, forceReload:=forcereload)
         End Function
         ''' <summary>
@@ -3872,7 +3872,7 @@ Namespace OnTrack.Commons
         ''' <param name="ID"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function Inject(ByVal id As String, Optional domainID As String = "") As Boolean
+        Public Function Inject(ByVal id As String, Optional domainid As String = Nothing) As Boolean
             Dim pkarry() As Object = {UCase(id), domainID}
             Return MyBase.Inject(pkArray:=pkarry, domainID:=domainID)
         End Function
@@ -3890,7 +3890,7 @@ Namespace OnTrack.Commons
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function All(Optional domainID As String = "") As List(Of Site)
+        Public Function All(Optional domainid As String = Nothing) As List(Of Site)
             Return ormDataObject.AllDataObject(Of Site)(domainID:=domainID)
         End Function
         '**** create : create a new Object with primary keys
@@ -3901,7 +3901,7 @@ Namespace OnTrack.Commons
         ''' <param name="domainID"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Create(ByVal id As String, Optional domainID As String = "") As Site
+        Public Overloads Shared Function Create(ByVal id As String, Optional domainid As String = Nothing) As Site
             Dim primarykey() As Object = {id, domainID}
             ' set the primaryKey
             Return ormDataObject.CreateDataObject(Of Site)(primarykey, domainID:=domainID, checkUnique:=True)

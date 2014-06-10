@@ -312,16 +312,16 @@ Namespace OnTrack.XChange
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overloads Shared Function Create(ByVal configname As String, indexno As Long, _
-                                                Optional objectname As String = "", _
+                                                Optional objectname As String = Nothing, _
                                                 Optional xcmd As otXChangeCommandType = otXChangeCommandType.Read,
-                                                Optional domainid As String = "", _
+                                                Optional domainid As String = Nothing, _
                                                 Optional runtimeonly As Boolean = False) As XChangeObject
             Dim aRecord As New ormRecord
             With aRecord
                 .SetValue(ConstFNXConfigID, configname.ToUpper)
                 .SetValue(constFNIDNo, indexno)
-                .SetValue(ConstFNObjectID, objectname.ToUpper)
-                .SetValue(ConstFNDomainID, domainid)
+                If Not String.IsNullOrWhiteSpace(objectname) Then .SetValue(ConstFNObjectID, objectname.ToUpper)
+                If Not String.IsNullOrWhiteSpace(domainid) Then .SetValue(ConstFNDomainID, domainid)
                 .SetValue(constFNXCMD, xcmd)
                 .SetValue(ConstFNTypeid, otXChangeConfigEntryType.Object)
                 .SetValue(constFNOrderNo, indexno)
@@ -337,8 +337,8 @@ Namespace OnTrack.XChange
         ''' <param name="indexno"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Retrieve(ByVal configname As String, indexno As Long, Optional domainid As String = "", Optional runtimeonly As Boolean = False) As XChangeObject
-            If domainid = "" Then domainid = CurrentSession.CurrentDomainID
+        Public Overloads Shared Function Retrieve(ByVal configname As String, indexno As Long, Optional domainid As String = Nothing, Optional runtimeonly As Boolean = False) As XChangeObject
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
             Return ormDataObject.Retrieve(Of XChangeObject)({configname.ToUpper, indexno, domainid}, runtimeOnly:=runtimeonly)
         End Function
     End Class
@@ -412,7 +412,7 @@ Namespace OnTrack.XChange
         ''' <param name="indexno"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Create(ByVal configname As String, indexno As Long, Optional domainid As String = "", Optional runtimeonly As Boolean = False) As XChangeObjectEntry
+        Public Overloads Shared Function Create(ByVal configname As String, indexno As Long, Optional domainid As String = Nothing, Optional runtimeonly As Boolean = False) As XChangeObjectEntry
             Dim aRecord As New ormRecord
             With aRecord
                 .SetValue(ConstFNXConfigID, configname.ToUpper)
@@ -430,8 +430,8 @@ Namespace OnTrack.XChange
         ''' <param name="indexno"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Retrieve(ByVal configname As String, indexno As Long, Optional domainid As String = "", Optional runtimeonly As Boolean = False) As XChangeObjectEntry
-            If domainid = "" Then domainid = CurrentSession.CurrentDomainID
+        Public Overloads Shared Function Retrieve(ByVal configname As String, indexno As Long, Optional domainid As String = Nothing, Optional runtimeonly As Boolean = False) As XChangeObjectEntry
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
             Return ormDataObject.Retrieve(Of XChangeObjectEntry)({configname.ToUpper, indexno, domainid}, domainID:=domainid, runtimeOnly:=runtimeonly)
         End Function
     End Class
@@ -612,8 +612,6 @@ Namespace OnTrack.XChange
             End Set
         End Property
 
-       
-
         ''' <summary>
         ''' gets or sets the objectname to which the entry belongs
         ''' </summary>
@@ -693,6 +691,20 @@ Namespace OnTrack.XChange
             End Set
         End Property
         ''' <summary>
+        ''' gets or sets the domain ID - set it to nothing alwyas the currentdomainId will apply
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Overloads Property Domainid As String
+            Get
+                If String.IsNullOrWhiteSpace(MyBase.DomainID) Then Return CurrentSession.CurrentDomainID
+            End Get
+            Set(value As String)
+                MyBase.DomainID = value
+            End Set
+        End Property
+        ''' <summary>
         ''' gets the ObjectEntry Definition for the XChange Member
         ''' </summary>
         ''' <value></value>
@@ -703,11 +715,11 @@ Namespace OnTrack.XChange
                 If _EntryDefinition Is Nothing AndAlso IsAlive(throwError:=False) Then
 
                     If _entryname IsNot Nothing And Me.Objectname IsNot Nothing Then
-                        _EntryDefinition = CurrentSession.Objects.GetEntry(objectname:=Me.Objectname, entryname:=Me.ObjectEntryname)
+                        _EntryDefinition = CurrentSession.Objects(domainid:=Me.Domainid).GetEntry(objectname:=Me.Objectname, entryname:=Me.ObjectEntryname)
                     ElseIf Me.Objectname IsNot Nothing And Me.XID IsNot Nothing Then
-                        _EntryDefinition = CurrentSession.Objects.GetEntriesByXID(xid:=_xid, objectname:=Me.Objectname).First
+                        _EntryDefinition = CurrentSession.Objects(domainid:=Me.Domainid).GetEntriesByXID(xid:=_xid, objectname:=Me.Objectname).First
                     Else
-                        _EntryDefinition = CurrentSession.Objects.GetEntriesByXID(xid:=_xid).First
+                        _EntryDefinition = CurrentSession.Objects(domainid:=Me.Domainid).GetEntriesByXID(xid:=_xid).First
                     End If
 
                 End If
@@ -717,18 +729,18 @@ Namespace OnTrack.XChange
 
         End Property
         ''' <summary>
-        ''' Object Definition
+        ''' return the ObjectDefinition of the associated XObject (not the XObjectEntry - nor the Objectdefinition of the XchangeConfig itself)
         ''' </summary>
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property [ObjectDefinition] As ObjectDefinition
+        Public Overloads Property [XObjectDefinition] As ObjectDefinition
             Get
                 Dim aDefinition As ObjectDefinition
 
                 If (Me.IsCreated Or Me.IsLoaded) And _ObjectDefinition Is Nothing Then
                     If Me.Objectname <> "" Then
-                        aDefinition = CurrentSession.Objects.GetObject(Me.Objectname)
+                        aDefinition = CurrentSession.Objects(domainid:=Me.Domainid).GetObject(Me.Objectname)
                         If Not aDefinition Is Nothing Then
                             _ObjectDefinition = aDefinition
                         End If
@@ -1107,7 +1119,7 @@ Namespace OnTrack.XChange
         ' object ordinalMember -> Members which are driving the ordinal of the complete eXchange
         ' Private _orderByMembers As New Dictionary(Of Object, IXChangeConfigEntry)
 
-        
+
 
 
 #Region "Properties"
@@ -1351,7 +1363,8 @@ Namespace OnTrack.XChange
         ''' <returns></returns>
         ''' <remarks></remarks>
         ''' 
-        Public Function SetOrdinalForXID(ByVal XID As String, ByVal ordinal As Object, Optional ByVal objectname As String = "") As Boolean
+        Public Function SetOrdinalForXID(ByVal XID As String, ByVal ordinal As Object, _
+                                         Optional ByVal objectname As String = Nothing) As Boolean
             Dim anEntry As New XChangeObjectEntry
             ' Nothing
             If Not IsAlive("setOrdinalForXid") Then Return False
@@ -1420,6 +1433,23 @@ Namespace OnTrack.XChange
             End If
             SetObjectXCmd = True
         End Function
+
+        ''' <summary>
+        ''' refresh all ObjectLoads
+        ''' </summary>
+        ''' <param name="domainid"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function RefreshObjects(Optional domainid As String = Nothing) As Boolean
+            If Not Me.IsAlive("RefreshObects") Then Return False
+
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
+            For Each anXObject As XChangeObject In _ObjectCollection
+                CurrentSession.Objects(domainid:=domainid).GetObject(anXObject.Objectname, domainid:=domainid)
+            Next
+            Return True
+        End Function
+
         '*** add an Object by Name
         '***
         ''' <summary>
@@ -1431,11 +1461,13 @@ Namespace OnTrack.XChange
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function AddObjectByName(ByVal name As String,
+                                        Optional domainid As String = Nothing, _
                                         Optional ByVal orderno As Long = 0,
                                         Optional ByVal xcmd As otXChangeCommandType = 0) As Boolean
 
             Dim aXchangeObject As New XChangeObject
-            Dim anObjectDef As ObjectDefinition = CurrentSession.Objects.GetObject(name)
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
+            Dim anObjectDef As ObjectDefinition = CurrentSession.Objects(domainid:=domainid).GetObject(name)
             name = name.ToUpper
             If xcmd = 0 Then xcmd = otXChangeCommandType.Read
 
@@ -1462,7 +1494,7 @@ Namespace OnTrack.XChange
             End If
 
             ' add 
-            aXchangeObject = XChangeObject.Create(Me.Configname, Me.GetMaxIDNO + 1, objectname:=name, xcmd:=xcmd, domainid:=DomainID, runtimeonly:=Me.RunTimeOnly)
+            aXchangeObject = XChangeObject.Create(Me.Configname, Me.GetMaxIDNO + 1, objectname:=name, xcmd:=xcmd, domainid:=domainid, runtimeonly:=Me.RunTimeOnly)
             If aXchangeObject IsNot Nothing Then
                 _ObjectCollection.Add(aXchangeObject)
                 Return True
@@ -1488,7 +1520,8 @@ Namespace OnTrack.XChange
                                                 Optional ByVal ordinal As Object = Nothing,
                                                 Optional ByVal isXChanged As Boolean = True,
                                                 Optional ByVal xcmd As otXChangeCommandType = 0,
-                                                Optional ByVal [readonly] As Boolean = False) As Boolean
+                                                Optional ByVal [readonly] As Boolean = False, _
+                                            Optional domainid As String = Nothing) As Boolean
 
             ' Nothing
             If Not IsAlive("AddEntryByObjectEntry") Then Return False
@@ -1499,7 +1532,7 @@ Namespace OnTrack.XChange
 
 
             If Not anObjectEntry Is Nothing Then
-                Return Me.AddEntryByObjectEntry(objectentry:=anObjectEntry, objectname:=objectname, ordinal:=ordinal, isxchanged:=isXChanged, xcmd:=xcmd, [readonly]:=[readonly])
+                Return Me.AddEntryByObjectEntry(objectentry:=anObjectEntry, objectname:=objectname, domainid:=domainid, ordinal:=ordinal, isxchanged:=isXChanged, xcmd:=xcmd, [readonly]:=[readonly])
             Else
                 Call CoreMessageHandler(message:="field entry not found", arg1:=objectname & "." & entryname, messagetype:=otCoreMessageType.InternalError,
                                          subname:="XChangeConfiguration.addAttributeByField")
@@ -1521,15 +1554,16 @@ Namespace OnTrack.XChange
         ''' <remarks></remarks>
         Public Function AddEntryByObjectEntry(ByRef objectentry As iormObjectEntry,
                                         Optional ByVal ordinal As Object = Nothing,
-                                        Optional ByVal objectname As String = "",
+                                        Optional ByVal objectname As String = Nothing,
                                         Optional ByVal isxchanged As Boolean = True,
                                         Optional ByVal xcmd As otXChangeCommandType = 0,
-                                        Optional ByVal [readonly] As Boolean = False) As Boolean
+                                        Optional ByVal [readonly] As Boolean = False, _
+                                        Optional domainid As String = Nothing) As Boolean
             Dim anEntry As XChangeObjectEntry
             Dim aVAlue As Object
             Dim aXchangeObject As XChangeObject
-            objectname = objectname.ToUpper
-
+            If Not String.IsNullOrWhiteSpace(objectname) Then objectname = objectname.ToUpper
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
 
             ' isalive
             If Not Me.IsAlive(subname:="AddEntryByObjectEntry") Then Return False
@@ -1558,7 +1592,7 @@ Namespace OnTrack.XChange
             End If
 
             '*** Add the Object if necessary
-            If objectname = "" Then
+            If String.IsNullOrWhiteSpace(objectname) Then
                 aXchangeObject = Me.GetObjectByName(objectentry.Objectname)
                 If aXchangeObject Is Nothing Then
                     If Me.AddObjectByName(name:=objectentry.Objectname, xcmd:=xcmd) Then
@@ -1579,7 +1613,7 @@ Namespace OnTrack.XChange
             If xcmd = 0 Then xcmd = otXChangeCommandType.Read
 
             ' add the component
-            anEntry = XChangeObjectEntry.Create(Me.Configname, Me.GetMaxIDNO + 1)
+            anEntry = XChangeObjectEntry.Create(Me.Configname, Me.GetMaxIDNO + 1, domainid:=domainid)
             If anEntry IsNot Nothing Then
                 anEntry.XID = objectentry.XID
                 If Not TypeOf ordinal Is OnTrack.Database.Ordinal Then
@@ -1590,7 +1624,7 @@ Namespace OnTrack.XChange
                 anEntry.ObjectEntryname = objectentry.Entryname
                 anEntry.IsXChanged = isxchanged
                 anEntry.IsReadOnly = [readonly]
-                'aMember.[ObjectEntryDefinition] = objectentry dynamic
+                anEntry.Domainid = domainid
                 anEntry.Objectname = aXchangeObject.Objectname
                 anEntry.XChangeCmd = xcmd
                 ' add the Object too
@@ -1621,28 +1655,32 @@ Namespace OnTrack.XChange
                                             Optional ByVal objectname As String = Nothing,
                                             Optional ByVal isXChanged As Boolean = True,
                                             Optional ByVal xcmd As otXChangeCommandType = Nothing,
-                                            Optional ByVal [readonly] As Boolean = False) As Boolean
+                                            Optional ByVal [readonly] As Boolean = False, _
+                                            Optional domainid As String = Nothing) As Boolean
 
 
             AddEntryByXID = False
             If objectname IsNot Nothing Then objectname = objectname.ToUpper
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
             Xid = Xid.ToUpper
 
             ' isalive
             If Not Me.IsAlive(subname:="AddEntryByXID") Then Return False
 
             '*** no objectname -> get all IDs in objects
-            If objectname = "" Then
-                Dim anEntrylist As List(Of iormObjectEntry) = CurrentSession.Objects.GetEntriesByXID(xid:=Xid)
+            If String.IsNullOrWhiteSpace(objectname) Then
+                ''' make sure that the objects needed are really loaded in anything else than the currentdomain
+                Dim anEntrylist As List(Of iormObjectEntry) = CurrentSession.Objects(domainid:=domainid).GetEntriesByXID(xid:=Xid)
                 For Each anEntry In anEntrylist.ToArray 'make sure that the list is not changing (clone it) - maybe we are adding entries
                     '** compare to objects in order
                     If Me.NoObjects > 0 Then
                         Dim aList As List(Of XChangeObject) = Me.ObjectsByOrderNo
-                        For Each anObjectEntry In aList.ToArray 'make sure that the list is not changing (clone it) - maybe we are adding entries
+                        For Each anObjectEntry As XChangeObject In aList.ToArray 'make sure that the list is not changing (clone it) - maybe we are adding entries
                             If anEntry.Objectname = anObjectEntry.Objectname Then
                                 AddEntryByXID = AddEntryByObjectEntry(objectentry:=anEntry, ordinal:=ordinal,
                                                                   isxchanged:=isXChanged,
                                                                   objectname:=anEntry.Objectname,
+                                                                  domainid:=domainid, _
                                                                   xcmd:=xcmd, readonly:=[readonly])
                             End If
                         Next
@@ -1650,7 +1688,7 @@ Namespace OnTrack.XChange
 
                     Else
                         AddEntryByXID = AddEntryByObjectEntry(objectentry:=anEntry, ordinal:=ordinal,
-                                                          isxchanged:=isXChanged,
+                                                          isxchanged:=isXChanged, domainid:=domainid, _
                                                           objectname:=anEntry.Objectname, xcmd:=xcmd, readonly:=[readonly])
                     End If
 
@@ -1663,6 +1701,7 @@ Namespace OnTrack.XChange
                         AddEntryByXID = AddEntryByObjectEntry(objectentry:=entry, ordinal:=ordinal,
                                                           isxchanged:=isXChanged,
                                                           objectname:=entry.Objectname,
+                                                           domainid:=domainid, _
                                                           xcmd:=xcmd, readonly:=[readonly])
                     End If
                 Next
@@ -1683,10 +1722,11 @@ Namespace OnTrack.XChange
         ''' <param name="ID"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function Exists(Optional ByVal objectname As String = "", Optional ByVal XID As String = "") As Boolean
+        Public Function Exists(Optional ByVal objectname As String = Nothing, _
+                               Optional ByVal XID As String = Nothing) As Boolean
             Dim flag As Boolean
-            objectname = objectname.ToUpper
-            XID = XID.ToUpper
+            If Not String.IsNullOrWhiteSpace(objectname) Then objectname = objectname.ToUpper
+            If Not String.IsNullOrWhiteSpace(XID) Then XID = XID.ToUpper
 
             ' Nothing
             If Not Me.IsLoaded And Not Me.IsCreated Then
@@ -1695,14 +1735,14 @@ Namespace OnTrack.XChange
             End If
 
             ' missing arguments
-            If objectname = "" Then
+            If String.IsNullOrWhiteSpace(objectname) Then
                 Call CoreMessageHandler(subname:="XChangeConfiguration.exists", message:="objectname was not set", _
                                         messagetype:=otCoreMessageType.InternalError)
                 Exists = False
                 Exit Function
             End If
             ' missing arguments
-            If objectname = "" And XID = "" Then
+            If String.IsNullOrWhiteSpace(objectname) AndAlso String.IsNullOrWhiteSpace(XID) Then
                 Call CoreMessageHandler(subname:="XChangeConfiguration.exists", message:="set either objectname or attributename - not both", _
                                         messagetype:=otCoreMessageType.InternalError)
                 Exists = False
@@ -1710,7 +1750,7 @@ Namespace OnTrack.XChange
             End If
 
             '+ check
-            If objectname <> "" And XID = "" Then
+            If Not String.IsNullOrWhiteSpace(XID) AndAlso String.IsNullOrWhiteSpace(XID) Then
                 If _ObjectCollection.ContainsKey(key:=objectname) Then
                     Exists = True
                 Else
@@ -2054,15 +2094,15 @@ Namespace OnTrack.XChange
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function GetEntryByObjectEntryName(ByVal entryname As String,
-                                                    Optional ByVal objectname As String = "") As XChangeObjectEntry
+                                                    Optional ByVal objectname As String = Nothing) As XChangeObjectEntry
 
             Dim anEntry As XChangeObjectEntry
             If Not IsAlive(subname:="GetEntryByObjectEntryName") Then Return Nothing
-            objectname = objectname.ToUpper
+            If Not String.IsNullOrWhiteSpace(objectname) Then objectname = objectname.ToUpper
             entryname = entryname.ToUpper
 
             Dim alist As List(Of XChangeObjectEntry)
-            If objectname <> "" Then
+            If Not String.IsNullOrWhiteSpace(objectname) Then
                 '* might be we have the object but no fields
                 If _entriesByObjectnameDirectory.ContainsKey(key:=objectname) Then
                     alist = _entriesByObjectnameDirectory.Item(key:=objectname)
@@ -2092,14 +2132,15 @@ Namespace OnTrack.XChange
             End If
 
             '** search also by ID and consequent by ALIAS
-            Dim anObjectEntry As iormObjectEntry = CurrentSession.Objects.GetEntry(objectname:=objectname, entryname:=entryname)
-            If Not anObjectEntry Is Nothing AndAlso anObjectEntry.XID IsNot Nothing Then
-                anEntry = Me.GetEntryByXID(XID:=anObjectEntry.XID, objectname:=objectname)
-                If Not anEntry Is Nothing Then
-                    Return anEntry
+            If Not String.IsNullOrWhiteSpace(objectname) Then
+                Dim anObjectEntry As iormObjectEntry = CurrentSession.Objects.GetEntry(objectname:=objectname, entryname:=entryname)
+                If Not anObjectEntry Is Nothing AndAlso anObjectEntry.XID IsNot Nothing Then
+                    anEntry = Me.GetEntryByXID(XID:=anObjectEntry.XID, objectname:=objectname)
+                    If Not anEntry Is Nothing Then
+                        Return anEntry
+                    End If
                 End If
             End If
-
 
             Return Nothing
         End Function
@@ -2126,11 +2167,11 @@ Namespace OnTrack.XChange
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function GetEntryByXID(ByVal XID As String, _
-                                        Optional ByVal objectname As String = "") As XChangeObjectEntry
+                                        Optional ByVal objectname As String = Nothing) As XChangeObjectEntry
 
             Dim aCollection As IEnumerable
             Dim names As String() = Shuffle.NameSplitter(XID.ToUpper)
-            If names.Count = 0 OrElse objectname <> "" Then
+            If names.Count = 0 OrElse Not String.IsNullOrWhiteSpace(objectname) Then
                 XID = names.First
                 objectname = objectname.ToUpper
             ElseIf names.Count > 1 Then
@@ -2139,7 +2180,7 @@ Namespace OnTrack.XChange
             Else
                 ' case we have a canonical xid
                 XID = names.First
-                objectname = objectname.ToUpper
+                If Not String.IsNullOrWhiteSpace(objectname) Then objectname = objectname.ToUpper
             End If
 
 
@@ -2151,13 +2192,15 @@ Namespace OnTrack.XChange
             If _entriesXIDList.ContainsKey(XID) Then
                 aCollection = _entriesXIDList.Item(XID)
                 For Each entry As XChangeObjectEntry In aCollection
-                    If objectname <> "" AndAlso entry.Objectname = objectname Then
+                    If Not String.IsNullOrWhiteSpace(objectname) AndAlso entry.Objectname = objectname Then
                         Return entry
-                    ElseIf objectname = "" Then
+                    ElseIf String.IsNullOrWhiteSpace(objectname) Then
                         Return entry
                     End If
                 Next
-
+                '** special case it was one xid and no objectname
+            ElseIf _entriesXIDList.ContainsKey(objectname & "." & XID) Then
+                Return _entriesXIDList.Item(objectname & "." & XID).First
             End If
 
             '** look into aliases 
@@ -2223,10 +2266,10 @@ Namespace OnTrack.XChange
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function GetEntrybyAlias(ByVal [alias] As String,
-                                        Optional ByVal objectname As String = "") As XChangeObjectEntry
+                                        Optional ByVal objectname As String = Nothing) As XChangeObjectEntry
 
             Dim aCollection As IEnumerable
-            objectname = objectname.ToUpper
+            If Not String.IsNullOrWhiteSpace(objectname) Then objectname = objectname.ToUpper
 
             If Not Me.IsCreated And Not Me.IsLoaded Then
                 GetEntrybyAlias = Nothing
@@ -2237,9 +2280,9 @@ Namespace OnTrack.XChange
 
                 aCollection = _aliasDirectory.Item(UCase([alias]))
                 For Each entry As XChangeObjectEntry In aCollection
-                    If objectname <> "" AndAlso entry.Objectname = objectname Then
+                    If Not String.IsNullOrWhiteSpace(objectname) AndAlso entry.Objectname = objectname Then
                         Return entry
-                    ElseIf objectname = "" Then
+                    ElseIf String.IsNullOrWhiteSpace(objectname) Then
                         Return entry
                     End If
                 Next
@@ -2255,10 +2298,10 @@ Namespace OnTrack.XChange
         ''' <param name="objectname">optional objectname</param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetObjectEntries(Optional objectname As String = "") As IEnumerable(Of XChangeObjectEntry)
+        Public Function GetObjectEntries(Optional objectname As String = Nothing) As IEnumerable(Of XChangeObjectEntry)
             If Not IsAlive(subname:="GetObjectEntries") Then Return New List(Of IXChangeConfigEntry)
 
-            If objectname <> "" Then
+            If Not String.IsNullOrWhiteSpace(objectname) Then
                 Return GetEntriesByObjectName(objectname)
             Else
                 Return _entriesXIDDirectory.Values.ToList
@@ -2272,10 +2315,10 @@ Namespace OnTrack.XChange
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overloads Shared Function Retrieve(ByVal configname As String, _
-                                                  Optional domainid As String = "", _
+                                                  Optional domainid As String = Nothing, _
                                                   Optional runtimeonly As Boolean = False) As XChangeConfiguration
 
-            If domainid = "" Then domainid = CurrentSession.CurrentDomainID
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
             Dim primarykey() As Object = {configname.ToUpper, domainid}
             Return ormDataObject.Retrieve(Of XChangeConfiguration)(primarykey, runtimeOnly:=runtimeonly)
         End Function
@@ -2287,9 +2330,9 @@ Namespace OnTrack.XChange
         ''' <param name="configname"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Create(ByVal configname As String, Optional domainid As String = "", Optional runtimeonly As Boolean = False) As XChangeConfiguration
+        Public Overloads Shared Function Create(ByVal configname As String, Optional domainid As String = Nothing, Optional runtimeonly As Boolean = False) As XChangeConfiguration
             Dim primarykey() As Object = {configname.ToUpper, domainid}
-            If domainid = "" Then domainid = CurrentSession.CurrentDomainID
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
             Return ormDataObject.CreateDataObject(Of XChangeConfiguration)(primarykey, checkUnique:=True)
         End Function
 
@@ -2359,6 +2402,7 @@ Namespace OnTrack.XChange
         <ormEntryMapping(EntryName:=constFNDynamicAddRevisions)> Private _DynamicAddRevisions As Boolean
         <ormEntryMapping(EntryName:=constFNDynamic)> Private _DynamiBehaviour As Boolean
         <ormEntryMapping(EntryName:=constFNOrderBy)> Private _OderByClause As String
+
         ''' <summary>
         ''' Relations
         ''' </summary>
@@ -2600,7 +2644,8 @@ Namespace OnTrack.XChange
         ''' 
         Private Function RunDynamic(Optional domainid As String = Nothing) As Boolean
             If Not IsAlive("RunDynamic") Then Return False
-            If domainid Is Nothing Then domainid = Me.DomainID
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = Me.DomainID
+
             If Not Me.DynamicBehaviour Then Return False
             If Me.Objects Is Nothing OrElse Me.Objects.Count = 0 Then
                 CoreMessageHandler(message:="For dynamic behavior the objects must be set", messagetype:=otCoreMessageType.ApplicationError, _
@@ -2628,7 +2673,7 @@ Namespace OnTrack.XChange
                 End If
                 Dim aStore As iormDataStore = GetTableStore(anobjectdefinition.Tablenames.First)
                 Dim cached = aStore.GetProperty(ormTableStore.ConstTPNCacheProperty)
-                Dim aCommand As ormSqlSelectCommand = aStore.CreateSqlSelectCommand(Me.ID & "_RunDynamic")
+                Dim aCommand As ormSqlSelectCommand = aStore.CreateSqlSelectCommand("_Outline_" & Me.ID & "_RunDynamic")
 
                 '** prepare the command if necessary
                 If Not aCommand.Prepared Then
@@ -2641,9 +2686,9 @@ Namespace OnTrack.XChange
                     '** where condition
                     aCommand.Where = "[" & Deliverable.ConstFNIsDeleted & "] = @isdeleted"
                     aCommand.AddParameter(New ormSqlCommandParameter(ID:="@isdeleted", columnname:=ConstFNIsDeleted))
-                    aCommand.Where = String.Format("AND ([{0}]=@domainID or [{0}]=@globaldomainid)", {ConstFNDomainID})
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@domainID", columnname:=ConstFNDomainID))
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@globaldomainid", columnname:=ConstFNDomainID))
+                    aCommand.Where &= String.Format(" AND ([{0}]=@domain or [{0}]=@globaldomainid)", {Deliverable.ConstFNDomain})
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@domain", notColumn:=True, datatype:=otDataType.Text))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@globaldomainid", notColumn:=True, datatype:=otDataType.Text))
 
                     aCommand.OrderBy = Me.OrderByClause
                     aCommand.Prepare()
@@ -2651,18 +2696,20 @@ Namespace OnTrack.XChange
 
                 ' set Parameter
                 aCommand.SetParameterValue("@isdeleted", False)
-                aCommand.SetParameterValue("@domainID", domainid)
+                aCommand.SetParameterValue("@domain", domainid)
                 aCommand.SetParameterValue("@globaldomainid", ConstGlobalDomain)
 
                 '** run the Command
                 Dim theRecords As List(Of ormRecord) = aCommand.RunSelect
                 Dim myordinal As Long = 10
                 _dynamicCollection.Clear()
-
+                Dim anUIDEntry As iormObjectEntry = CurrentSession.Objects.GetObject(objectid:=Deliverable.ConstObjectID).GetEntry(entryname:=Deliverable.constFNUid)
                 If theRecords.Count >= 0 Then
                     For Each aRecord As ormRecord In theRecords
-                        Dim anItem As XOutlineItem = XOutlineItem.Create(Me.ID, ordinal:=myordinal, uid:=aRecord.GetValue(1), runtimeonly:=True)
+                        Dim aLngValue As Long = CLng(aRecord.GetValue(1))
+                        Dim anItem As XOutlineItem = XOutlineItem.Create(Me.ID, ordinal:=myordinal, uid:=aLngValue, runtimeonly:=True)
                         If anItem IsNot Nothing Then
+                            anItem.keys.Add(New XOutlineItem.OutlineKey(otDataType.Long, ID:=anUIDEntry.XID, value:=aLngValue))
                             _dynamicCollection.Add(anItem)
                             myordinal += 10
                         End If
@@ -2763,6 +2810,8 @@ Namespace OnTrack.XChange
         Implements iormInfusable
         Implements iormPersistable
 
+
+        
 
         ''' <summary>
         ''' OutlineKey Class as subclass of outline item to make it flexible
@@ -2877,9 +2926,23 @@ Namespace OnTrack.XChange
         <ormEntryMapping(EntryName:=ConstFNIdent)> Private _level As Long = 0
         <ormEntryMapping(EntryName:=ConstFNisgroup)> Private _isGroup As Boolean
         <ormEntryMapping(EntryName:=ConstFNisText)> Private _isText As Boolean
-        <ormEntryMapping(EntryName:=ConstFNText)> Private _text As String = ""
-
+        <ormEntryMapping(EntryName:=ConstFNText)> Private _text As String
+        <ormEntryMapping(EntryName:=ConstFNUid)> Private _deliverableUID As Long?
 #Region "properties"
+
+        ''' <summary>
+        ''' Gets or sets the deliverable uid.
+        ''' </summary>
+        ''' <value>The deliverable uid.</value>
+        Public Property DeliverableUid() As Long?
+            Get
+                Return Me._deliverableUID
+            End Get
+            Set(value As Long?)
+                Me._deliverableUID = Value
+            End Set
+        End Property
+
         ''' <summary>
         ''' Gets or sets the text.
         ''' </summary>
@@ -2981,24 +3044,24 @@ Namespace OnTrack.XChange
                 End If
 
                 ' get the keys and values
-                Dim idstr As String = e.Record.GetValue(ConstFNIDs)
-                Dim ids As String()
-                If idstr <> "" AndAlso Not IsNull(idstr) Then
-                    ids = SplitMultbyChar(idstr, ConstDelimiter)
-                Else
-                    ids = {}
-                End If
-                Dim valuestr As String = e.Record.GetValue(ConstFNValues)
+                Dim ids As String() = e.Record.GetValue(ConstFNIDs)
+                'Dim ids As String()
+                'If idstr <> "" AndAlso Not IsNull(idstr) Then
+                '    ids = SplitMultbyChar(idstr, ConstDelimiter)
+                'Else
+                '    ids = {}
+                'End If
+                Dim valuestr As String() = e.Record.GetValue(ConstFNValues)
                 Dim values As String()
-                If valuestr <> "" AndAlso Not IsNull(valuestr) Then
-                    values = SplitMultbyChar(valuestr, ConstDelimiter)
+                If IsArrayInitialized(valuestr) Then
+                    values = valuestr
                 Else
                     values = {}
                 End If
-                Dim typestr As String = e.Record.GetValue(ConstFNTypes)
+                Dim typestr As String() = e.Record.GetValue(ConstFNTypes)
                 Dim types As String()
-                If typestr <> "" AndAlso Not IsNull(typestr) Then
-                    types = SplitMultbyChar(typestr, ConstDelimiter)
+                If IsArrayInitialized(typestr) Then
+                    types = typestr
                 Else
                     types = {}
                 End If

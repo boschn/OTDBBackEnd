@@ -392,6 +392,7 @@ Namespace OnTrack.Database
         ''' <remarks></remarks>
         Private _isInitialized As Boolean = False
         Private _isStarted As Boolean = False
+        Private _domainid As String
 
         Private WithEvents _session As Session
         Private _lockObject As New Object
@@ -418,8 +419,23 @@ Namespace OnTrack.Database
         ''' </summary>
         ''' <param name="session"></param>
         ''' <remarks></remarks>
-        Sub New(session As Session)
+        Sub New(session As Session, domainid As String)
             _session = session
+            _domainid = domainid
+        End Sub
+
+        ''' <summary>
+        ''' DomainHandler for DomainChanging
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Private Sub _session_OnDomainChanged(sender As Object, e As SessionEventArgs) Handles _session.OnDomainChanged
+            If e.Session.CurrentDomainID <> _domainid Then
+                Me.Halt()
+            Else
+                Me.Start()
+            End If
         End Sub
 
         ''' <summary>

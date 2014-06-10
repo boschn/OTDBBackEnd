@@ -525,7 +525,7 @@ Namespace OnTrack.Calendar
         ''' <param name="ID"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Retrieve(ByVal name As String, ByVal ID As Long, Optional domainID As String = "") As CalendarEntry
+        Public Overloads Shared Function Retrieve(ByVal name As String, ByVal ID As Long, Optional domainid As String = Nothing) As CalendarEntry
             Dim primarykey() As Object = {name, ID, domainID}
             Return Retrieve(Of CalendarEntry)(pkArray:=primarykey, domainID:=domainID)
         End Function
@@ -550,14 +550,14 @@ Namespace OnTrack.Calendar
         ''' <remarks></remarks>
         Public Shared Function AvailableDays(ByVal fromdate As Date, ByVal untildate As Date, _
                                              Optional ByVal name As String = "", _
-                                             Optional domainid As String = "") As Long
+                                             Optional domainid As String = Nothing) As Long
 
             '* default parameters
             If name = "" Then
                 name = CurrentSession.DefaultCalendarName
             End If
 
-            If domainid = "" Then domainid = CurrentSession.CurrentDomainID
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
 
             '** run sqlstatement
             Try
@@ -617,12 +617,12 @@ Namespace OnTrack.Calendar
         ''' <remarks></remarks>
         Public Shared Function NextAvailableDate(ByVal fromdate As Date, ByVal noDays As Integer, _
                                                  Optional ByVal name As String = "", _
-                                                 Optional domainID As String = "") As Date
+                                                 Optional domainid As String = Nothing) As Date
 
             If name = "" Then
                 name = CurrentSession.DefaultCalendarName
             End If
-            If domainID = "" Then domainID = CurrentSession.CurrentDomainID
+            If String.IsNullOrWhiteSpace(domainID) Then domainID = CurrentSession.CurrentDomainID
 
             '**
             Try
@@ -703,12 +703,12 @@ Namespace OnTrack.Calendar
         ''' <param name="Name">default calendar</param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Shared Function IsAvailableOn(ByVal refdate As Date, Optional ByVal name As String = "", Optional domainID As String = "") As Boolean
+        Public Shared Function IsAvailableOn(ByVal refdate As Date, Optional ByVal name As String = "", Optional domainid As String = Nothing) As Boolean
             Dim aCollection As New List(Of CalendarEntry)
             Dim anEntry As New CalendarEntry
 
             If name = "" Then name = CurrentSession.DefaultCalendarName
-            If domainID = "" Then domainID = CurrentSession.CurrentDomainID
+            If String.IsNullOrWhiteSpace(domainID) Then domainID = CurrentSession.CurrentDomainID
 
             aCollection = AllByDate(name:=name, refDate:=refdate, domainID:=domainID)
             If aCollection Is Nothing Or aCollection.Count = 0 Then
@@ -736,11 +736,11 @@ Namespace OnTrack.Calendar
         ''' <param name="domainID"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Shared Function HasDate(ByVal refDate As Date, Optional ByVal name As String = "", Optional domainID As String = "") As Boolean
+        Public Shared Function HasDate(ByVal refDate As Date, Optional ByVal name As String = "", Optional domainid As String = Nothing) As Boolean
             If name = "" Then
                 name = CurrentSession.DefaultCalendarName
             End If
-            If domainID = "" Then domainID = CurrentSession.CurrentDomainID
+            If String.IsNullOrWhiteSpace(domainID) Then domainID = CurrentSession.CurrentDomainID
 
 
             Try
@@ -817,7 +817,7 @@ Namespace OnTrack.Calendar
         ''' <param name="name"></param>
         ''' <returns>a collection of objects</returns>
         ''' <remarks></remarks>
-        Public Shared Function AllByDate(ByVal refDate As Date, Optional ByVal name As String = "", Optional domainID As String = "") As List(Of CalendarEntry)
+        Public Shared Function AllByDate(ByVal refDate As Date, Optional ByVal name As String = "", Optional domainid As String = Nothing) As List(Of CalendarEntry)
             Dim aCollection As New List(Of CalendarEntry)
             Dim aStore As iormDataStore
 
@@ -825,7 +825,7 @@ Namespace OnTrack.Calendar
             If name = "" Then
                 name = CurrentSession.DefaultCalendarName
             End If
-            If domainID = "" Then domainID = CurrentSession.CurrentDomainID
+            If String.IsNullOrWhiteSpace(domainID) Then domainID = CurrentSession.CurrentDomainID
 
 
             Try
@@ -907,14 +907,14 @@ Namespace OnTrack.Calendar
         ''' <param name="name">name of the calendar (optional)</param>
         ''' <returns>True if successfull</returns>
         ''' <remarks></remarks>
-        Public Shared Function GenerateDays(ByVal fromdate As Date, ByVal untildate As Date, Optional ByVal name As String = "", Optional domainID As String = "") As Boolean
+        Public Shared Function GenerateDays(ByVal fromdate As Date, ByVal untildate As Date, Optional ByVal name As String = "", Optional domainid As String = Nothing) As Boolean
             Dim aCollection As New List(Of CalendarEntry)
             Dim currDate As Date
             Dim anEntry As New CalendarEntry
 
             ' calendar name
             If name = "" Then name = CurrentSession.DefaultCalendarName
-            If domainID = "" Then domainID = CurrentSession.CurrentDomainID
+            If String.IsNullOrWhiteSpace(domainID) Then domainID = CurrentSession.CurrentDomainID
 
             ' start
             currDate = fromdate
@@ -974,12 +974,12 @@ Namespace OnTrack.Calendar
         ''' <param name="name">name of calendar</param>
         ''' <returns>True if successfull</returns>
         ''' <remarks></remarks>
-        Public Shared Function Create(Optional ByVal name As String = "", Optional entryid As Long = 0, Optional domainID As String = "") As CalendarEntry
+        Public Shared Function Create(Optional ByVal name As String = "", Optional entryid As Long = 0, Optional domainid As String = Nothing) As CalendarEntry
             Dim primarykey() As Object = {name, entryid, domainID}
             If name = "" Then
                 name = CurrentSession.DefaultCalendarName
             End If
-            If domainID = "" Then domainID = CurrentSession.CurrentDomainID
+            If String.IsNullOrWhiteSpace(domainID) Then domainID = CurrentSession.CurrentDomainID
 
             '** create the key
             If entryid = 0 Then

@@ -454,8 +454,8 @@ error_handler:
         ''' <param name="partid"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Create(ByVal partid As String, Optional domainid As String = "", Optional workspaceID As String = "") As Part
-            If domainid = "" Then domainid = CurrentSession.CurrentDomainID
+        Public Overloads Shared Function Create(ByVal partid As String, Optional domainid As String = Nothing, Optional workspaceID As String = "") As Part
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
             If workspaceID = "" Then workspaceID = CurrentSession.CurrentWorkspaceID
             Dim aRecord As New ormRecord
             With aRecord

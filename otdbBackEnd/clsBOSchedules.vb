@@ -478,8 +478,8 @@ Namespace OnTrack.Scheduling
         ''' <param name="id"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Retrieve(ByVal id As String, Optional domainID As String = "", Optional forcereload As Boolean = False) As MileStoneDefinition
-            If domainID = "" Then domainID = CurrentSession.CurrentDomainID
+        Public Overloads Shared Function Retrieve(ByVal id As String, Optional domainid As String = Nothing, Optional forcereload As Boolean = False) As MileStoneDefinition
+            If String.IsNullOrWhiteSpace(domainID) Then domainID = CurrentSession.CurrentDomainID
             Dim primarykey() As Object = {id.ToUpper, domainID}
             Return Retrieve(Of MileStoneDefinition)(pkArray:=primarykey, domainID:=domainID, forceReload:=forcereload)
         End Function
@@ -489,7 +489,7 @@ Namespace OnTrack.Scheduling
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Shared Function All(Optional domainID As String = "") As List(Of MileStoneDefinition)
+        Public Shared Function All(Optional domainid As String = Nothing) As List(Of MileStoneDefinition)
             Return ormDataObject.AllDataObject(Of MileStoneDefinition)(domainID:=domainID)
         End Function
 
@@ -499,8 +499,8 @@ Namespace OnTrack.Scheduling
         ''' <param name="ID"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Create(ByVal ID As String, Optional domainID As String = "") As MileStoneDefinition
-            If domainID = "" Then domainID = CurrentSession.CurrentDomainID
+        Public Overloads Shared Function Create(ByVal ID As String, Optional domainid As String = Nothing) As MileStoneDefinition
+            If String.IsNullOrWhiteSpace(domainID) Then domainID = CurrentSession.CurrentDomainID
             Dim pkarray() As Object = {ID.ToUpper, domainID}
             Return ormDataObject.CreateDataObject(Of MileStoneDefinition)(pkarray, checkUnique:=True, domainID:=domainID)
         End Function

@@ -136,7 +136,7 @@ Namespace OnTrack.Database
         ''' <param name="domainid"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Function validateUser(username As String, password As String, accessRequest As otAccessRight, Optional domainid As String = "") As Boolean
+        Function validateUser(username As String, password As String, accessRequest As otAccessRight, Optional domainid As String = Nothing) As Boolean
 
         ''' <summary>
         ''' returns or creates foreign keys for a columndefinition
@@ -928,7 +928,7 @@ Namespace OnTrack.Database
         '******** Connect : Connects to the Database and initialize Environment
         Function Connect(Optional ByVal FORCE As Boolean = False, _
         Optional ByVal access As otAccessRight = otAccessRight.[ReadOnly], _
-         Optional ByVal domainID As String = "", _
+         Optional ByVal domainid As String = Nothing, _
         Optional ByVal OTDBUsername As String = "", _
         Optional ByVal OTDBPassword As String = "", _
         Optional ByVal exclusive As Boolean = False, _
@@ -1034,12 +1034,12 @@ Namespace OnTrack.Database
         Function SetConnectionConfigParameters() As Boolean
 
         Function ValidateAccessRequest(accessRequest As otAccessRight, _
-                                       Optional domainID As String = "", _
+                                       Optional domainid As String = Nothing, _
                                         Optional ByRef [Objectnames] As List(Of String) = Nothing) As Boolean
         Function VerifyUserAccess(accessRequest As otAccessRight, _
         Optional ByRef username As String = "", _
         Optional ByRef password As String = "", _
-        Optional ByRef domainID As String = "", _
+        Optional ByRef domainid As String = Nothing, _
         Optional ByRef [Objectnames] As List(Of String) = Nothing, _
         Optional useLoginWindow As Boolean = True, Optional messagetext As String = Nothing) As Boolean
 
@@ -1060,8 +1060,8 @@ Namespace OnTrack.Database
 
         Function RaiseOnValidatedEvent(msglog As ObjectMessageLog) As otValidationResultType
 
-      
-       
+
+
         ''' <summary>
         ''' Event on Object Instance Level for Validation (before Validation)
         ''' </summary>
@@ -1244,7 +1244,7 @@ Namespace OnTrack.Database
         ''' <returns></returns>
         ''' <remarks></remarks>
 
-        Function Create(ByRef record As ormRecord, Optional domainID As String = Nothing, Optional checkUnique As Boolean = True, Optional runtimeOnly As Boolean = False) As Boolean
+        Function Create(ByRef record As ormRecord, Optional domainID As String = Nothing, Optional checkUnique As Boolean? = Nothing, Optional runtimeOnly? As Boolean = Nothing) As Boolean
 
         ReadOnly Property DatabaseDriver As iormDatabaseDriver
         ''' <summary>
@@ -1316,7 +1316,7 @@ Namespace OnTrack.Database
         ''' <param name="pkArray"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Function Inject(ByRef pkArray() As Object, Optional domainID As String = "", Optional dbdriver As iormDatabaseDriver = Nothing, Optional loadDeleted As Boolean = False) As Boolean
+        Function Inject(ByRef pkArray() As Object, Optional domainid As String = Nothing, Optional dbdriver As iormDatabaseDriver = Nothing, Optional loadDeleted As Boolean = False) As Boolean
         ''' <summary>
         ''' create a persistable dataobject
         ''' </summary>
@@ -1324,7 +1324,7 @@ Namespace OnTrack.Database
         ''' <param name="checkUnique"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Function Create(ByRef pkArray() As Object, Optional domainID As String = "", Optional checkUnique As Boolean = True, Optional runTimeonly As Boolean = False) As Boolean
+        Function Create(ByRef pkArray() As Object, Optional domainID As String = Nothing, Optional checkUnique As Boolean? = Nothing, Optional runTimeonly As Boolean? = Nothing) As Boolean
 
         ''' <summary>
         ''' deletes a persistable object in the datastore

@@ -169,6 +169,11 @@ Namespace OnTrack.Database
             Dim aDescription = ot.GetObjectClassDescriptionByID(id:=objectid)
             If aDescription IsNot Nothing Then aPrimaryTableid = aDescription.PrimaryTable
 
+            ''' bring it to length
+            If pkarray Is Nothing OrElse pkarray.Count = 0 OrElse aDescription.PrimaryKeyEntryNames.Count <> pkarray.Count Then
+                ReDim Preserve pkarray(aDescription.PrimaryKeyEntryNames.Count - 1)
+            End If
+
             ''' Substitute the DomainID
             '''
             SubstituteDomainIDinTablePrimaryKey(tablename:=aPrimaryTableid, pkarray:=pkarray, domainid:=domainid, runtimeOnly:=runtimeOnly)

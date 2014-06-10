@@ -418,12 +418,12 @@ Namespace OnTrack.Database
                     '** load the bootstrapping core
                     For Each name In ot.GetBootStrapObjectClassIDs
                         name = Trim(name.ToUpper) ' for some reasons better to trim
+                       
                         Dim anObject As ObjectDefinition = Me.GetObject(objectid:=name, domainid:=_DomainID)
 
                         'ObjectDefinition.Retrieve(objectname:=name, dbdriver:=aDBDriver, domainID:=_DomainID)
                         If anObject IsNot Nothing Then
-                            'Me.LoadIntoRepository(anObject)
-                            CoreMessageHandler(message:="Initialized OnTrack " & i & "/" & ot.GetBootStrapObjectClassIDs.Count & " Bootstrapping Object " & name, messagetype:=otCoreMessageType.ApplicationInfo, subname:="ObjectRepository.Initialize")
+                            CoreMessageHandler(message:="Initialized OnTrack " & i & "/" & ot.GetBootStrapObjectClassIDs.Count & " Bootstrapping Object " & name & " in " & _DomainID, messagetype:=otCoreMessageType.ApplicationInfo, subname:="ObjectRepository.Initialize")
 
                         Else
                             CoreMessageHandler(message:="could not load object '" & name & "'", messagetype:=otCoreMessageType.InternalError, _
@@ -436,11 +436,10 @@ Namespace OnTrack.Database
                     '** load all objects with entries and aliases
                     For Each name In theObjectnames
                         name = Trim(name.ToUpper) ' for some reasons bette to trim
-                        Dim anObject As ObjectDefinition = _
-                            ObjectDefinition.Retrieve(objectname:=name, dbdriver:=aDBDriver, domainID:=_DomainID)
+                        
+                        Dim anObject As ObjectDefinition =Me.GetObject(objectid:=name, domainid:=_DomainID)
                         If anObject IsNot Nothing Then
-                            Me.LoadIntoRepository(anObject)
-                            CoreMessageHandler(message:="Initialized " & i & "/" & theObjectnames.Count & " OnTrack Object " & name, messagetype:=otCoreMessageType.ApplicationInfo, subname:="ObjectRepository.Initialize")
+                            CoreMessageHandler(message:="Initialized " & i & "/" & theObjectnames.Count & " in " & _DomainID & " OnTrack Object " & name, messagetype:=otCoreMessageType.ApplicationInfo, subname:="ObjectRepository.Initialize")
 
                         Else
                             CoreMessageHandler(message:="could not load object '" & name & "'", messagetype:=otCoreMessageType.InternalError, _
@@ -724,6 +723,7 @@ Namespace OnTrack.Database
                 '** no runtime -> better ask the session
                 If Not runtimeOnly Then runtimeOnly = _Session.IsBootstrappingInstallationRequested
                 '** retrieve Object
+                
                 anObject = ObjectDefinition.Retrieve(objectname:=objectid, domainID:=domainid, runtimeOnly:=runtimeOnly)
                 '** no object in persistancy but creatable from class description
                 If anObject Is Nothing AndAlso ot.GetObjectClassDescriptionByID(id:=objectid) IsNot Nothing Then
@@ -3302,12 +3302,12 @@ Namespace OnTrack.Database
         ''' <param name="objectdefinition"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Shared Function ByObjectName(objectname As String, Optional DomainID As String = "") As List(Of ObjectPermission)
+        Public Shared Function ByObjectName(objectname As String, Optional domainid As String = Nothing) As List(Of ObjectPermission)
             Dim aCollection As New List(Of ObjectPermission)
             Dim aRecordCollection As List(Of ormRecord)
             Dim aStore As iormDataStore
             '** set the domain
-            If DomainID = "" Then DomainID = CurrentSession.CurrentDomainID
+            If String.IsNullOrWhiteSpace(DomainID) Then DomainID = CurrentSession.CurrentDomainID
 
             Try
                 aStore = GetTableStore(ConstTableID)
@@ -3379,7 +3379,7 @@ Namespace OnTrack.Database
         ''' <remarks></remarks>
 
         Public Shared Function Create(objectname As String, order As Long, _
-                                         Optional operationname As String = "", Optional entryname As String = "", Optional domainID As String = "", _
+                                         Optional operationname As String = "", Optional entryname As String = "", Optional domainid As String = Nothing, _
                                             Optional checkUnique As Boolean = True, Optional runtimeOnly As Boolean = False) As ObjectPermission
             Dim pkarray As Object() = {objectname.ToUpper, entryname.ToUpper, operationname.ToUpper, order, domainID.ToUpper}
             Return ormDataObject.CreateDataObject(Of ObjectPermission)(pkArray:=pkarray, domainID:=domainID, checkUnique:=checkUnique, runtimeOnly:=runtimeOnly)
@@ -3399,7 +3399,7 @@ Namespace OnTrack.Database
         ''' <remarks></remarks>
 
         Public Shared Function Retrieve(objectname As String, order As Long, _
-                                           Optional operationname As String = "", Optional entryname As String = "", Optional domainID As String = "", _
+                                           Optional operationname As String = "", Optional entryname As String = "", Optional domainid As String = Nothing, _
                                             Optional dbdriver As iormDatabaseDriver = Nothing, Optional runtimeOnly As Boolean = False) As ObjectPermission
             Dim pkarray As Object() = {objectname.ToUpper, entryname.ToUpper, operationname.ToUpper, order, domainID.ToUpper}
             Return ormDataObject.Retrieve(Of ObjectPermission)(pkArray:=pkarray, domainID:=domainID, dbdriver:=dbdriver, runtimeOnly:=runtimeOnly)
@@ -3453,10 +3453,10 @@ Namespace OnTrack.Database
         ''' <param name="user"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function CheckFor([user] As User, ByRef [exit] As Boolean, Optional domainid As String = "") As Boolean
+        Public Function CheckFor([user] As User, ByRef [exit] As Boolean, Optional domainid As String = Nothing) As Boolean
             If Not Me.IsAlive(subname:="CheckFor") Then Return False
             Dim result As Boolean
-            If domainid = "" Then domainid = CurrentSession.CurrentDomainID
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
 
             Try
 
@@ -4108,12 +4108,12 @@ Namespace OnTrack.Database
         ''' <param name="attribute"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function AddPermissionRule(attribute As ormObjectTransactionAttribute, Optional runtimeOnly As Boolean = False, Optional domainID As String = "") As Boolean
+        Public Function AddPermissionRule(attribute As ormObjectTransactionAttribute, Optional runtimeOnly As Boolean = False, Optional domainid As String = Nothing) As Boolean
             If Not IsAlive(subname:="AddPermissionRule") Then Return False
 
             '** bootstrap
             If Not runtimeOnly Then runtimeOnly = CurrentSession.IsBootstrappingInstallationRequested
-            If domainID = "" Then domainID = CurrentSession.CurrentDomainID
+            If String.IsNullOrWhiteSpace(domainID) Then domainID = CurrentSession.CurrentDomainID
 
             With attribute
 
@@ -4235,7 +4235,7 @@ Namespace OnTrack.Database
         ''' <param name="attribute"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function AddEntry(attribute As ormObjectEntryAttribute, Optional runtimeOnly As Boolean = False, Optional domainid As String = "") As Boolean
+        Public Function AddEntry(attribute As ormObjectEntryAttribute, Optional runtimeOnly As Boolean = False, Optional domainid As String = Nothing) As Boolean
             Dim anEntry As iormObjectEntry
             Dim bootstrap As Boolean = runtimeOnly
 
@@ -4245,7 +4245,7 @@ Namespace OnTrack.Database
                 Return False
             End If
 
-            If domainid = "" Then domainid = CurrentSession.CurrentDomainID
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
 
             If _objectentries.ContainsKey(key:=attribute.EntryName) Then
                 '**
@@ -4639,12 +4639,12 @@ Namespace OnTrack.Database
         ''' <param name="tablename">the tablename</param>
         ''' <returns>True if successfull</returns>
         ''' <remarks></remarks>
-        Public Shared Function AllActiveObjectNames(Optional ByRef dbdriver As iormDatabaseDriver = Nothing, Optional domainID As String = "") As List(Of String)
+        Public Shared Function AllActiveObjectNames(Optional ByRef dbdriver As iormDatabaseDriver = Nothing, Optional domainid As String = Nothing) As List(Of String)
 
             Dim aCollection As New List(Of String)
             Dim aRecordCollection As List(Of ormRecord)
             Dim aStore As iormDataStore
-            If domainID = "" Then domainID = CurrentSession.CurrentDomainID
+            If String.IsNullOrWhiteSpace(domainID) Then domainID = CurrentSession.CurrentDomainID
 
             Try
                 If dbdriver Is Nothing Then
@@ -4695,7 +4695,7 @@ Namespace OnTrack.Database
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overloads Shared Function Retrieve(ByVal objectname As String, _
-                                        Optional domainID As String = "", _
+                                        Optional domainid As String = Nothing, _
                                         Optional dbdriver As iormDatabaseDriver = Nothing, _
                                         Optional runtimeOnly As Boolean = False,
                                         Optional forceReload As Boolean = False) As ObjectDefinition
@@ -4834,7 +4834,7 @@ Namespace OnTrack.Database
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function Create(ByVal objectID As String, _
-                                Optional domainID As String = "",
+                                Optional domainid As String = Nothing,
                                 Optional runTimeOnly As Boolean = False, _
                                 Optional checkunique As Boolean = True, _
                                 Optional version As UShort = 1) As ObjectDefinition
@@ -6255,11 +6255,11 @@ Namespace OnTrack.Database
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Shared Function GetEntryReference(Optional domainid As String = "") As Dictionary(Of String, List(Of String))
+        Public Shared Function GetEntryReference(Optional domainid As String = Nothing) As Dictionary(Of String, List(Of String))
 
             Dim aStore As iormDataStore = CurrentDBDriver.GetTableStore(ConstTableID)
             Dim aDictionary As New Dictionary(Of String, List(Of String))
-            If domainid = "" Then domainid = CurrentSession.CurrentDomainID
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
 
             Try
                 Dim aCommand As ormSqlSelectCommand = aStore.CreateSqlSelectCommand(id:="GetXIDReference", addMe:=True, addAllFields:=False)
@@ -6325,11 +6325,11 @@ Namespace OnTrack.Database
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Shared Function GetAliasReference(Optional domainid As String = "") As Dictionary(Of String, List(Of String))
+        Public Shared Function GetAliasReference(Optional domainid As String = Nothing) As Dictionary(Of String, List(Of String))
 
             Dim aStore As iormDataStore = CurrentDBDriver.GetTableStore(ConstTableID)
             Dim aDictionary As New Dictionary(Of String, List(Of String))
-            If domainid = "" Then domainid = CurrentSession.CurrentDomainID
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
 
             Try
                 Dim aCommand As ormSqlSelectCommand = aStore.CreateSqlSelectCommand(id:="GetXIDReference", addMe:=True, addAllFields:=False)
@@ -6400,11 +6400,11 @@ Namespace OnTrack.Database
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Shared Function GetXIDReference(Optional domainid As String = "") As Dictionary(Of String, List(Of String))
+        Public Shared Function GetXIDReference(Optional domainid As String = Nothing) As Dictionary(Of String, List(Of String))
 
             Dim aStore As iormDataStore = CurrentDBDriver.GetTableStore(ConstTableID)
             Dim aDictionary As New Dictionary(Of String, List(Of String))
-            If domainid = "" Then domainid = CurrentSession.CurrentDomainID
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
 
             Try
                 Dim aCommand As ormSqlSelectCommand = aStore.CreateSqlSelectCommand(id:="GetXIDReference", addMe:=True, addAllFields:=False)
@@ -6828,11 +6828,11 @@ Namespace OnTrack.Database
         ''' <returns>True if successfull</returns>
         ''' <remarks></remarks>
         Public Shared Function Create(ByVal objectname As String, ByVal entryname As String, _
-                                            Optional ByVal domainID As String = "", _
+                                            Optional ByVal domainid As String = Nothing, _
                                             Optional ByVal runtimeOnly As Boolean = False, _
                                             Optional ByVal checkunique As Boolean = True) As ObjectCompoundEntry
             '** create with record to fill other values
-            If domainID = "" Then domainID = CurrentSession.CurrentDomainID
+            If String.IsNullOrWhiteSpace(domainID) Then domainID = CurrentSession.CurrentDomainID
             Dim arecord As New ormRecord
             With arecord
                 .SetValue(ConstFNObjectName, objectname.ToUpper)
@@ -6906,7 +6906,7 @@ Namespace OnTrack.Database
         ''' <param name="sender"></param>
         ''' <param name="e"></param>
         ''' <remarks></remarks>
-         Public Event PropertyChanged As System.ComponentModel.PropertyChangedEventHandler Implements System.ComponentModel.INotifyPropertyChanged.PropertyChanged
+        Public Event PropertyChanged As System.ComponentModel.PropertyChangedEventHandler Implements System.ComponentModel.INotifyPropertyChanged.PropertyChanged
 
 
         ''' <summary>
@@ -7371,7 +7371,7 @@ Namespace OnTrack.Database
                                       ByVal tablename As String, _
                                       ByVal columnname As String, _
                                       Optional ByVal ordinal As Long? = Nothing, _
-                                            Optional ByVal domainID As String = "", _
+                                            Optional ByVal domainid As String = Nothing, _
                                             Optional ByVal runtimeOnly As Boolean = False, _
                                             Optional ByVal checkunique As Boolean = True) As ObjectColumnEntry
             '** create with record to fill other values

@@ -367,7 +367,7 @@ Namespace OnTrack.Database
                        Optional record As ormRecord = Nothing, _
                        Optional describedByAttributes As Boolean = False, _
                         Optional relationID As List(Of String) = Nothing, _
-                        Optional domainID As String = "",
+                        Optional domainid as string = nothing,
                         Optional domainBehavior As Nullable(Of Boolean) = Nothing, _
                           Optional usecache As Nullable(Of Boolean) = Nothing, _
                         Optional pkarray As Object() = Nothing, _
@@ -572,7 +572,7 @@ Namespace OnTrack.Database
         Public Sub New([object] As ormDataObject, _
                         entryname As String,
                         Optional value As Object = Nothing,
-                        Optional domainID As String = "",
+                        Optional domainid as string = nothing,
                         Optional ByRef msglog As ObjectMessageLog = Nothing,
                         Optional timestamp? As DateTime = Nothing)
             MyBase.New(object:=[object], entryname:=entryname, value:=value, domainid:=domainID, msglog:=msglog, timestamp:=timestamp)
@@ -607,7 +607,7 @@ Namespace OnTrack.Database
         ''' </summary>
         ''' <remarks></remarks>
         Public Sub New([object] As ormDataObject, _
-                        Optional domainID As String = "",
+                        Optional domainid as string = nothing,
                         Optional ByRef msglog As ObjectMessageLog = Nothing,
                         Optional timestamp? As DateTime = Nothing)
 
@@ -652,7 +652,7 @@ Namespace OnTrack.Database
         Public Sub New([object] As ormDataObject, _
                         entryname As String,
                         Optional value As Object = Nothing,
-                        Optional domainID As String = "",
+                        Optional domainid as string = nothing,
                         Optional ByRef msglog As ObjectMessageLog = Nothing,
                         Optional timestamp? As DateTime = Nothing)
             _Object = [object]

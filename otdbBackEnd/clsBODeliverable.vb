@@ -583,7 +583,7 @@ Namespace OnTrack.Deliverables
         ''' <param name="workspaceID"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Create(ByVal uid As Long, Optional ByVal workspaceID As String = "", Optional ByVal domainID As String = "") As WorkspaceTarget
+        Public Overloads Shared Function Create(ByVal uid As Long, Optional ByVal workspaceID As String = "", Optional ByVal domainid As String = Nothing) As WorkspaceTarget
             ' if no workspaceID -> Default workspaceID
             If workspaceID = "" Then workspaceID = CurrentSession.CurrentWorkspaceID
             Dim pkarray() As Object = {workspaceID, uid}
@@ -2717,8 +2717,8 @@ Namespace OnTrack.Deliverables
         ''' <param name="workspaceID"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Shared Function Create(ByVal typeid As String, Optional ByVal domainID As String = "") As DeliverableType
-            If domainID = "" Then domainID = CurrentSession.CurrentDomainID
+        Public Shared Function Create(ByVal typeid As String, Optional ByVal domainid As String = Nothing) As DeliverableType
+            If String.IsNullOrWhiteSpace(domainID) Then domainID = CurrentSession.CurrentDomainID
             Dim primarykey() As Object = {typeid, domainID}
             Return CreateDataObject(Of DeliverableType)(pkArray:=primarykey, domainID:=domainID, checkUnique:=True)
         End Function
@@ -2730,8 +2730,8 @@ Namespace OnTrack.Deliverables
         ''' <param name="id"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Retrieve(ByVal typeid As String, Optional ByVal domainID As String = "", Optional forcereload As Boolean = False) As DeliverableType
-            If domainID = "" Then domainID = CurrentSession.CurrentDomainID
+        Public Overloads Shared Function Retrieve(ByVal typeid As String, Optional ByVal domainid As String = Nothing, Optional forcereload As Boolean = False) As DeliverableType
+            If String.IsNullOrWhiteSpace(domainID) Then domainID = CurrentSession.CurrentDomainID
             Dim pkarray() As Object = {typeid, domainID}
             Return Retrieve(Of DeliverableType)(pkArray:=pkarray, forceReload:=forcereload)
         End Function
@@ -2742,14 +2742,14 @@ Namespace OnTrack.Deliverables
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Shared Function All(Optional domainID As String = "") As List(Of DeliverableType)
+        Public Shared Function All(Optional domainid As String = Nothing) As List(Of DeliverableType)
             Dim aCollection As New List(Of DeliverableType)
             Dim aDomainDir As New Dictionary(Of String, DeliverableType)
             Dim aRecordCollection As List(Of ormRecord)
             Dim aStore As iormDataStore
 
             '** set the domain
-            If domainID = "" Then domainID = CurrentSession.CurrentDomainID
+            If String.IsNullOrWhiteSpace(domainID) Then domainID = CurrentSession.CurrentDomainID
 
             Try
                 aStore = GetTableStore(ConstTableID)
@@ -3713,13 +3713,13 @@ Namespace OnTrack.Deliverables
         ''' <param name="workspaceID">optional workspaceID</param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Private Shared Function GenerateNewUID(ByRef newuid As Long, Optional domainID As String = "") As Boolean
+        Private Shared Function GenerateNewUID(ByRef newuid As Long, Optional domainid As String = Nothing) As Boolean
             Dim aDomain As Domain
             Dim mymax As Long
 
 
             '** default domain
-            If domainID = "" Then domainID = CurrentSession.CurrentDomainID
+            If String.IsNullOrWhiteSpace(domainID) Then domainID = CurrentSession.CurrentDomainID
 
 
             Try
@@ -3797,13 +3797,13 @@ Namespace OnTrack.Deliverables
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Shared Function All(Optional justdeleted As Boolean = False, Optional domainID As String = "") As List(Of Deliverable)
+        Public Shared Function All(Optional justdeleted As Boolean = False, Optional domainid As String = Nothing) As List(Of Deliverable)
 
             Dim aCollection As New List(Of Deliverable)
             Dim aRecordCollection As List(Of ormRecord)
             Dim aStore As iormDataStore
             '** set the domain
-            If domainID = "" Then domainID = CurrentSession.CurrentDomainID
+            If String.IsNullOrWhiteSpace(domainID) Then domainID = CurrentSession.CurrentDomainID
 
             Try
                 aStore = GetTableStore(ConstTableID)
@@ -3853,13 +3853,13 @@ Namespace OnTrack.Deliverables
         ''' <param name="precode"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Shared Function AllByMatchcode(ByVal matchcode As String, Optional domainID As String = "") As List(Of Deliverable)
+        Public Shared Function AllByMatchcode(ByVal matchcode As String, Optional domainid As String = Nothing) As List(Of Deliverable)
             Dim aCollection As New List(Of Deliverable)
             Dim aRecordCollection As List(Of ormRecord)
             Dim aStore As iormDataStore
 
             '** set the domain
-            If domainID = "" Then domainID = CurrentSession.CurrentDomainID
+            If String.IsNullOrWhiteSpace(domainID) Then domainID = CurrentSession.CurrentDomainID
 
             '** build query
             Try
@@ -3937,12 +3937,12 @@ Namespace OnTrack.Deliverables
         ''' <param name="partid"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Shared Function AllByPnid(ByVal partid As String, Optional domainID As String = "") As List(Of Deliverable)
+        Public Shared Function AllByPnid(ByVal partid As String, Optional domainid As String = Nothing) As List(Of Deliverable)
             Dim aCollection As New List(Of Deliverable)
             Dim aRecordCollection As List(Of ormRecord)
             Dim aStore As iormDataStore
             '** set the domain
-            If domainID = "" Then domainID = CurrentSession.CurrentDomainID
+            If String.IsNullOrWhiteSpace(domainID) Then domainID = CurrentSession.CurrentDomainID
 
             Try
                 aStore = GetTableStore(ConstTableID)
@@ -4077,12 +4077,12 @@ Namespace OnTrack.Deliverables
         ''' <param name="silent"></param>
         ''' <returns>true if successfull</returns>
         ''' <remarks></remarks>
-        Public Function GetMatchcodes(ByRef list As IEnumerable, Optional domainID As String = "") As Boolean
+        Public Function GetMatchcodes(ByRef list As IEnumerable, Optional domainid As String = Nothing) As Boolean
             Dim aCollection As New Collection
             Dim aRecordCollection As List(Of ormRecord)
             Dim aStore As iormDataStore
 
-            If domainID = "" Then domainID = CurrentSession.CurrentDomainID
+            If String.IsNullOrWhiteSpace(domainID) Then domainID = CurrentSession.CurrentDomainID
 
             Try
                 aStore = GetTableStore(ConstTableID)
@@ -4276,7 +4276,7 @@ Namespace OnTrack.Deliverables
             ''' Get the Values from the Type
             ''' 
             Dim domainID As String = e.Record.GetValue(ConstFNDomain)
-            If domainID Is Nothing OrElse domainID = "" Then domainID = CurrentSession.CurrentDomainID
+            If domainID Is Nothing OrElse String.IsNullOrWhiteSpace(domainID) Then domainID = CurrentSession.CurrentDomainID
 
             aValue = e.Record.GetValue(constFNDeliverableTypeID)
             If Not String.IsNullOrWhiteSpace(aValue) Then
@@ -4319,12 +4319,12 @@ Namespace OnTrack.Deliverables
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function Create(Optional ByVal uid As Long = 0, _
-                                      Optional domainID As String = "", _
+                                      Optional domainid As String = Nothing, _
                                       Optional workspaceID As String = "", _
                                       Optional typeid As String = "") As Deliverable
             Dim aRecord As New ormRecord
             '* defaults
-            If domainID = "" Then domainID = CurrentSession.CurrentDomainID
+            If String.IsNullOrWhiteSpace(domainID) Then domainID = CurrentSession.CurrentDomainID
             If workspaceID = "" Then workspaceID = CurrentSession.CurrentWorkspaceID
             If typeid = "" Then typeid = CurrentSession.DefaultDeliverableTypeID
 

@@ -1720,12 +1720,24 @@ Namespace OnTrack.Database
         Public Sub New(ByVal id As String, ByRef databaseDriver As iormDatabaseDriver, ByRef session As Session, sequence As ComplexPropertyStore.Sequence)
             MyBase.New(id, databaseDriver, session, sequence)
         End Sub
-
-        Public Shadows Function RaiseOnConnected() Handles MyBase.OnConnection
-            RaiseEvent OnConnection(Me, New ormConnectionEventArgs(Me))
-        End Function
-        Public Shadows Function RaiseOnDisConnected() Handles MyBase.OnDisconnection
-            RaiseEvent OnDisconnection(Me, New ormConnectionEventArgs(Me))
+        ''' <summary>
+        ''' Propagate Connected Event
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Public Sub OLEDBConnection_OnConnected(sender As Object, e As ormConnectionEventArgs) Handles MyBase.OnConnection
+            RaiseEvent OnConnection(sender, e)
+        End Sub
+        ''' <summary>
+        ''' propagates the disconnected event
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Shadows Function OLEDBConnection_DisConnected(sender As Object, e As ormConnectionEventArgs) Handles MyBase.OnDisconnection
+            RaiseEvent OnDisconnection(sender, e)
         End Function
         ''' <summary>
         ''' gets the native connection

@@ -731,9 +731,9 @@ Namespace OnTrack.Xchange
         Public Function CreateMessage(Optional no As Long? = Nothing) As MQMessage
             Dim aMessage As MQMessage
             If no.HasValue Then
-                aMessage = _messages.AddCreate({no})
+                aMessage = _messages.AddCreate({no}, domainid:=Me.DomainID, runtimeOnly:=Me.RunTimeOnly)
             Else
-                aMessage = _messages.AddCreate()
+                aMessage = _messages.AddCreate(domainid:=Me.DomainID, runtimeOnly:=Me.RunTimeOnly)
             End If
             '** set values
             If aMessage IsNot Nothing Then
@@ -774,8 +774,8 @@ Namespace OnTrack.Xchange
         ''' <param name="id"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Shared Function Create(id As String) As MessageQueue
-            Return ormDataObject.CreateDataObject(Of MessageQueue)(pkArray:={id.ToUpper}, checkUnique:=True)
+        Public Shared Function Create(id As String, Optional runtimeOnly As Boolean = False) As MessageQueue
+            Return ormDataObject.CreateDataObject(Of MessageQueue)(pkArray:={id.ToUpper}, checkUnique:=True, runtimeOnly:=runtimeOnly)
         End Function
         ''' <summary>
         ''' retrieves a message queue object from store
@@ -1298,7 +1298,7 @@ Namespace OnTrack.Xchange
         ''' <remarks></remarks>
         Function CreateAddedSlot(ByVal idno As Long) As MQXSlot
             If Not Me.IsAlive("CreateSlot") Then Return Nothing
-            Dim aSlot As MQXSlot = _slots.AddCreate(keys:={idno})
+            Dim aSlot As MQXSlot = _slots.AddCreate(keys:={idno}, runtimeOnly:=Me.RunTimeOnly, domainid:=Me.DomainID)
             '** setdefaults
             If aSlot IsNot Nothing Then
                 aSlot.DomainID = Me.DomainID
@@ -1373,9 +1373,9 @@ Namespace OnTrack.Xchange
         ''' <param name=constFNRowno></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Shared Function Create(ByVal id As String, ByVal no As Long) As MQMessage
+        Public Shared Function Create(ByVal id As String, ByVal no As Long, Optional runtimeOnly As Boolean? = Nothing) As MQMessage
             Dim pkarry() As Object = {id.ToUpper, no}
-            Return ormDataObject.CreateDataObject(Of MQMessage)(pkArray:=pkarry)
+            Return ormDataObject.CreateDataObject(Of MQMessage)(pkArray:=pkarry, runtimeOnly:=runtimeOnly)
         End Function
 
         ''' <summary>

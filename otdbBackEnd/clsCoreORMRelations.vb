@@ -1295,7 +1295,7 @@ Namespace OnTrack.Database
                     theKeyvalues = Reflector.GetColumnEntryValues(dataobject:=_dataobject, entrynames:=keyentries)
                     Dim aDelegate As ObjectClassDescription.OperationCallerDelegate = aTargetObjectDescriptor.GetOperartionCallerDelegate(operationname:=anOperationAttribute.OperationName)
                     '** relate also in the runtime !
-                    Dim anObject As iormPersistable = aDelegate(Nothing, {theKeyvalues.ToArray, aTargetObjectDescriptor.Type, "", False, runtimeOnly})
+                    Dim anObject As iormPersistable = aDelegate(Nothing, {theKeyvalues.ToArray, aTargetObjectDescriptor.Type, Nothing, Nothing, runtimeOnly})
                     Return anObject
 
                 Else
@@ -1310,10 +1310,10 @@ Namespace OnTrack.Database
 
                     If createMethod IsNot Nothing Then
                         '** if creating then do also with the new data object in the runtime
-                        Dim anObject As iormPersistable = createMethod.Invoke(Nothing, {theKeyvalues.ToArray, "", True, runtimeOnly})
+                        Dim anObject As iormPersistable = createMethod.Invoke(Nothing, {theKeyvalues.ToArray, Nothing, Nothing, runtimeOnly})
                         Return anObject
                     Else
-                        CoreMessageHandler(message:="the RETRIEVE method was not found on this object class", messagetype:=otCoreMessageType.InternalError, _
+                        CoreMessageHandler(message:="the CREATE method was not found on this object class", messagetype:=otCoreMessageType.InternalError, _
                                             objectname:=aTargetType.Name, subname:="DataObjectRelationMgr.GetObjectByCreate")
                         Return Nothing
                     End If
@@ -1807,7 +1807,7 @@ Namespace OnTrack.Database
                     End If
                     Dim aDelegate As ObjectClassDescription.OperationCallerDelegate = aTargetObjectDescriptor.GetOperartionCallerDelegate(operationname:=anOperationAttribute.OperationName)
                     '** relate also in the runtime !
-                    Dim anObject As iormPersistable = aDelegate(Nothing, {theKeyvalues.ToArray, aTargetObjectDescriptor.Type, "", Nothing, False, runtimeOnly})
+                    Dim anObject As iormPersistable = aDelegate(Nothing, {theKeyvalues.ToArray, aTargetObjectDescriptor.Type, Nothing, Nothing, Nothing, runtimeOnly})
                     Return anObject
 
                 Else
@@ -1824,7 +1824,7 @@ Namespace OnTrack.Database
                     Dim retrieveMethod = ot.GetMethodInfo(aTargetType, ObjectClassDescription.ConstMTRetrieve)
                     If retrieveMethod IsNot Nothing Then
                         '** relate also in the runtime !
-                        Dim anObject As iormPersistable = retrieveMethod.Invoke(Nothing, {theKeyvalues.ToArray, "", Nothing, False, runtimeOnly})
+                        Dim anObject As iormPersistable = retrieveMethod.Invoke(Nothing, {theKeyvalues.ToArray, Nothing, Nothing, Nothing, runtimeOnly})
                         Return anObject
                     Else
                         CoreMessageHandler(message:="the RETRIEVE method was not found on this object class", messagetype:=otCoreMessageType.InternalError, _

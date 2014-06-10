@@ -456,7 +456,10 @@ Namespace OnTrack.Database
         ''' <param name="keys"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function AddCreate(Optional keys As Object() = Nothing) As T
+        Public Function AddCreate(Optional keys As Object() = Nothing, _
+                                  Optional domainid As String = Nothing, _
+                                  Optional checkUnique As Boolean? = True, _
+                                  Optional runtimeOnly As Boolean? = Nothing) As T
             Dim anItem As T = ot.CreateDataObjectInstance(GetType(T))
 
             '''
@@ -483,7 +486,7 @@ Namespace OnTrack.Database
 
             Dim arecord As New ormRecord
             If args.Dataobject.Feed(arecord) Then
-                anItem = ormDataObject.CreateDataObject(Of T)(arecord)
+                anItem = ormDataObject.CreateDataObject(Of T)(arecord, domainID:=domainid, checkUnique:=checkUnique, runtimeOnly:=runtimeOnly)
                 If anItem IsNot Nothing Then
                     Me.Add(anItem)
                     Return anItem

@@ -1293,7 +1293,7 @@ Namespace OnTrack
         ''' <returns>True if successfull</returns>
         ''' <remarks></remarks>
         Public Function RequireAccess(accessRequest As otAccessRight, _
-                                            Optional domainID As String = "", _
+                                            Optional domainID As String = Nothing, _
                                             Optional reLogin As Boolean = True) As Boolean
             Return CurrentSession.RequireAccessRight(accessRequest:=accessRequest, domainID:=domainID, reLogin:=reLogin)
         End Function
@@ -1305,7 +1305,7 @@ Namespace OnTrack
         ''' <returns>True if successfull</returns>
         ''' <remarks></remarks>
         Public Function Startup(accessRequest As otAccessRight, _
-                                            Optional domainID As String = "", _
+                                            Optional domainID As String = Nothing, _
                                             Optional messagetext As String = "") As Boolean
 
             '*** startup

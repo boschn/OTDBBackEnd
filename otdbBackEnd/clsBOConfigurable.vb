@@ -200,8 +200,8 @@ Namespace OnTrack.Configurables
         ''' <param name="domainid"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Retrieve(uid As Long, Optional domainid As String = "")
-            If domainid = "" Then domainid = CurrentSession.CurrentDomainID
+        Public Overloads Shared Function Retrieve(uid As Long, Optional domainid As String = Nothing)
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
             Return ormDataObject.Retrieve(Of Configuration)(pkArray:={uid, domainid.ToUpper}, domainID:=domainid)
         End Function
 
@@ -235,8 +235,8 @@ Namespace OnTrack.Configurables
         ''' <param name="domainid"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Create(id As String, Optional uid As Long = 0, Optional domainid As String = "")
-            If domainid = "" Then domainid = CurrentSession.CurrentDomainID
+        Public Overloads Shared Function Create(id As String, Optional uid As Long = 0, Optional domainid As String = Nothing)
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
             Dim aRecord As New ormRecord
             With aRecord
                 .SetValue(constFNConfigID, id)
@@ -455,8 +455,8 @@ Namespace OnTrack.Configurables
         ''' <param name="domainid"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Create(configid As Long, Optional id As Long = 0, Optional domainid As String = "") As ConfigItemSelector
-            If domainid = "" Then domainid = CurrentSession.CurrentDomainID
+        Public Overloads Shared Function Create(configid As Long, Optional id As Long = 0, Optional domainid As String = Nothing) As ConfigItemSelector
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
             Dim primarykey As Object() = {configid, id, domainid}
             Return ormDataObject.CreateDataObject(Of ConfigItemSelector)(pkArray:=primarykey, domainID:=domainid, checkUnique:=True)
         End Function
@@ -469,8 +469,8 @@ Namespace OnTrack.Configurables
         ''' <param name="domainid"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Retrieve(configid As Long, id As Long, Optional domainid As String = "") As ConfigItemSelector
-            If domainid = "" Then domainid = CurrentSession.CurrentDomainID
+        Public Overloads Shared Function Retrieve(configid As Long, id As Long, Optional domainid As String = Nothing) As ConfigItemSelector
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
             Dim primarykey As Object() = {configid, id, domainid}
             Return ormDataObject.Retrieve(Of ConfigItemSelector)(pkArray:=primarykey)
         End Function

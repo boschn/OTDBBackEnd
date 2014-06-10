@@ -1601,7 +1601,7 @@ Namespace OnTrack
             ''' <param name="domainID"></param>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public Function ValidateUser(ByVal username As String, ByVal password As String, ByVal accessRequest As otAccessRight, Optional domainid As String = "") As Boolean Implements iormDatabaseDriver.validateUser
+            Public Function ValidateUser(ByVal username As String, ByVal password As String, ByVal accessRequest As otAccessRight, Optional domainid As String = Nothing) As Boolean Implements iormDatabaseDriver.validateUser
                 Dim aValidation As UserValidation
                 aValidation.ValidEntry = False
                 aValidation = GetUserValidation(username:=username)
@@ -2182,7 +2182,7 @@ Namespace OnTrack
 
             Public MustOverride Function Connect(Optional ByVal force As Boolean = False, _
             Optional ByVal accessRequest As otAccessRight = otAccessRight.[ReadOnly], _
-            Optional ByVal domain As String = "", _
+            Optional ByVal domainid As String = Nothing, _
             Optional ByVal OTDBUsername As String = "", _
             Optional ByVal OTDBPassword As String = "", _
             Optional ByVal exclusive As Boolean = False, _
@@ -2230,7 +2230,7 @@ Namespace OnTrack
             ''' <remarks></remarks>
 
             Public Function ValidateAccessRequest(accessrequest As otAccessRight, _
-                                                  Optional domain As String = "", _
+                                                  Optional domainid As String = Nothing, _
                                                   Optional ByRef [Objectnames] As List(Of String) = Nothing) As Boolean Implements iormConnection.ValidateAccessRequest
 
                 '
@@ -2263,7 +2263,7 @@ Namespace OnTrack
             Public Function VerifyUserAccess(accessRequest As otAccessRight, _
                                                 Optional ByRef username As String = "", _
                                                 Optional ByRef password As String = "", _
-                                                Optional ByRef domainID As String = "", _
+                                                Optional ByRef domainid As String = Nothing, _
                                                 Optional ByRef [Objectnames] As List(Of String) = Nothing, _
                                                 Optional useLoginWindow As Boolean = True, Optional messagetext As String = Nothing) As Boolean Implements iormConnection.VerifyUserAccess
                 Dim userValidation As UserValidation
@@ -2273,7 +2273,7 @@ Namespace OnTrack
                 '**** no connection -> login
                 If Not Me.IsConnected Then
 
-                    If domainID = "" Then domainID = ConstGlobalDomain
+                    If String.IsNullOrWhiteSpace(domainID) Then domainID = ConstGlobalDomain
                     '*** OTDBUsername supplied
 
                     If useLoginWindow And accessRequest <> ConstDefaultAccessRight Then
@@ -2353,15 +2353,15 @@ Namespace OnTrack
                     '**** CONNECTION !
                 Else
                     '** stay in the current domain 
-                    If domainID = "" Then domainID = ot.CurrentSession.CurrentDomainID
+                    If String.IsNullOrWhiteSpace(domainID) Then domainID = ot.CurrentSession.CurrentDomainID
                     '** validate the current user with the request
-                    If Me.ValidateAccessRequest(accessrequest:=accessRequest, domain:=domainID) Then
+                    If Me.ValidateAccessRequest(accessrequest:=accessRequest, domainid:=domainid) Then
                         Return True
                         '* change the current user if anonymous
                     ElseIf useLoginWindow And ot.CurrentSession.OTdbUser.IsAnonymous Then
                         '** check if new OTDBUsername is valid
                         'LoginWindow
-                        Me.UILogin.Domain = domainID
+                        Me.UILogin.Domain = domainid
                         Me.UILogin.EnableDomain = False
                         Me.UILogin.PossibleDomains = New List(Of String)
                         Me.UILogin.enableAccess = True
@@ -2380,7 +2380,7 @@ Namespace OnTrack
                         '* check password -> relogin on connected -> EventHandler ?!
                         If userValidation.Password = password Then
                             Call CoreMessageHandler(subname:="ormConnection.verifyUserAccess", break:=False, _
-                                                    message:="User change verified successfully on domain '" & domainID & "'", _
+                                                    message:="User change verified successfully on domain '" & domainid & "'", _
                                arg1:=username, noOtdbAvailable:=True, messagetype:=otCoreMessageType.ApplicationInfo)
                             '* set the new access level
                             _AccessLevel = accessRequest
@@ -2409,7 +2409,7 @@ Namespace OnTrack
                     ElseIf useLoginWindow And Not CurrentSession.OTdbUser.IsAnonymous Then
                         '** check if new OTDBUsername is valid
                         'LoginWindow
-                        Me.UILogin.Domain = domainID
+                        Me.UILogin.Domain = domainid
                         Me.UILogin.EnableDomain = False
                         Me.UILogin.PossibleDomains = New List(Of String)
                         Me.UILogin.enableAccess = True

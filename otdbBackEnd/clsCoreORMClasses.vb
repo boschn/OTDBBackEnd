@@ -2659,6 +2659,7 @@ Namespace OnTrack
 
                 '** default
                 anOperationAttribute.ID = methodinfo.Name.ToUpper
+                anOperationAttribute.ClassDescription = Me
 
                 If Not anOperationAttribute.HasValueOperationName Then anOperationAttribute.OperationName = methodinfo.Name.ToUpper
                 anOperationAttribute.OperationName = anOperationAttribute.OperationName.ToUpper 'always to upper

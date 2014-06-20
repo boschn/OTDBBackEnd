@@ -319,15 +319,18 @@ Namespace OnTrack.UI
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function Load() As Boolean
+        Public Function Load(Optional refresh As Boolean = False) As Boolean
             If Not _isInitialized AndAlso Not Initialize() Then Return False
+            '** clear all rows
+            Me.Rows.Clear()
+            If refresh Then _queriedenumeration.Reset()
 
             Try
                 ''' fill all the object entries in the corresponding columns
                 ''' 
                 For i As Long = 0 To _queriedenumeration.Count - 1
                     Dim anObject As iormPersistable = _queriedenumeration.GetObject(i)
-                    Me.isloading = True
+                    Me.IsLoading = True
                     Dim aRow As DataRow = Me.NewRow
                     ''' set the reference to the row no in the queriedenumeration
                     ''' 
@@ -336,7 +339,7 @@ Namespace OnTrack.UI
                     ''' 
                     Dim j As Integer = 1
                     For Each aName In _queriedenumeration.ObjectEntryNames
-                        Dim aValue = anObject.getValue(aName)
+                        Dim aValue = anObject.GetValue(aName)
                         If aValue Is Nothing Then aValue = DBNull.Value
 
                         If (aValue.GetType.IsValueType OrElse aValue.GetType.Equals(GetType(String))) AndAlso Not aValue.GetType.IsArray Then
@@ -349,16 +352,16 @@ Namespace OnTrack.UI
                     Next
 
                     Me.Rows.Add(aRow)
-                    Me.isloading = False
+                    Me.IsLoading = False
                 Next
 
                 RaiseEvent OperationMessage(Me, New ormModelTable.EventArgs(message:="data loaded from database"))
-                Me.isloaded = True
+                Me.IsLoaded = True
                 Return True
 
             Catch ex As Exception
                 CoreMessageHandler(exception:=ex, subname:="ormModelTable.Load")
-                Me.isloading = False
+                Me.IsLoading = False
                 Return False
             End Try
 
@@ -459,6 +462,22 @@ Namespace OnTrack.UI
         End Sub
 
         ''' <summary>
+        ''' gets the iormpersistable index of the row by number
+        ''' </summary>
+        ''' <param name="index"></param>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property DataObject(rowno As UInteger) As iormPersistable
+            Get
+                Dim avalue As Object = Me.Rows(rowno).Item(Me.constQRYRowReference)
+                Dim i As ULong = Convert.ToUInt64(avalue)
+                Dim anObject As iormPersistable = _queriedenumeration.GetObject(i)
+                Return anObject
+            End Get
+        End Property
+
+        ''' <summary>
         ''' update an object from a row
         ''' </summary>
         ''' <param name="row"></param>
@@ -474,7 +493,7 @@ Namespace OnTrack.UI
                 Exit Function
             End If
             Dim i As ULong = Convert.ToUInt64(aValue)
-            Dim anObject As iormPersistable = _queriedenumeration.GetObject(i)
+            Dim anObject As iormPersistable = Me.DataObject(i)
             ''' set the values
             ''' 
             For Each aColumnname In _ChangedColumns.Keys
@@ -488,7 +507,14 @@ Namespace OnTrack.UI
                         changed = True
                         Try
                             Me.IsLoading = True
-                            row.Item(aColumnname) = anObject.GetValue(entryname:=aColumnname) '' maybe the object is slightly changed
+                            Dim areturnValue As Object = anObject.GetValue(entryname:=aColumnname) '' maybe the object is slightly changed
+                            If areturnValue Is Nothing Then areturnValue = DBNull.Value
+
+                            If (areturnValue.GetType.IsValueType OrElse areturnValue.GetType.Equals(GetType(String))) AndAlso Not areturnValue.GetType.IsArray Then
+                                row.Item(aColumnname) = CTypeDynamic(aValue, Me.Columns.Item(aColumnname).DataType)
+                            ElseIf Not DBNull.Value.Equals(areturnValue) Then
+                                row.Item(aColumnname) = Converter.Enumerable2otString(areturnValue)
+                            End If
                             Me.IsLoading = False
                         Catch ex As Exception
                             CoreMessageHandler(exception:=ex, subname:="ormModelTable.UpdateObject")

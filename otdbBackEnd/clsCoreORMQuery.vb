@@ -722,7 +722,7 @@ Namespace OnTrack.Database
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function Reset() As Boolean Implements iormQueriedEnumeration.Reset
-            If Not _run Then
+            If _run Then
                 _run = False
                 _records.Clear()
                 _runTimestamp = Nothing

@@ -117,6 +117,7 @@ Namespace OnTrack
         Public Const ConstPNBSchemaVersion = "dbschemaversion"
         Public Const ConstPNCalendarInitializedFrom = "calendarinitializedfrom"
         Public Const ConstPNCalendarInitializedto = "calendarinitializedto"
+
         ''' <summary>
         ''' The Schema Version - increase here to trigger recreation of the database schema
         ''' </summary>
@@ -198,8 +199,14 @@ Namespace OnTrack
        
         Public NullArray As Object = {}
 
-        '******* Ontrack Variables
+
+        ''' <summary>
+        ''' Variables
+        ''' </summary>
+        ''' <remarks></remarks>
         Private _ApplicationName As String = ""
+        Private _Version As String
+
         Private WithEvents _CurrentSession As Session
         Private _configfilelocations As List(Of String) = New List(Of String)
         Private _UsedConfigFileLocation As String = ""
@@ -215,8 +222,23 @@ Namespace OnTrack
         Private _ObjectClassStore As New ObjectClassRepository
         Private _bootstrapObjectIds As New List(Of String)
         Private _bootstrapclassnames As New List(Of String)
+
 #Region "Properties"
 
+
+        ''' <summary>
+        ''' Gets or sets the version.
+        ''' </summary>
+        ''' <value>The version.</value>
+        Public Property ApplicationVersion() As String
+            Get
+                If String.IsNullOrWhiteSpace(_Version) Then Return System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString()
+                Return _Version
+            End Get
+            Set(value As String)
+                _Version = Value
+            End Set
+        End Property
 
         ''' <summary>
         ''' Gets or sets the name of the application.
@@ -224,6 +246,20 @@ Namespace OnTrack
         ''' <value>The name of the application.</value>
         Public Property ApplicationName() As String
             Get
+                If String.IsNullOrWhiteSpace(_ApplicationName) Then
+                    ' Get all Title attributes on this assembly
+                    Dim attributes As Object() = System.Reflection.Assembly.GetExecutingAssembly().GetCustomAttributes(GetType(AssemblyTitleAttribute), False)
+                    ' If there is at least one Title attribute
+                    If attributes.Length > 0 Then
+                        ' Select the first one
+                        Dim titleAttribute As AssemblyTitleAttribute = CType(attributes(0), AssemblyTitleAttribute)
+                        ' If it is not an empty string, return it
+                        If titleAttribute.Title <> "" Then
+                            Return titleAttribute.Title
+                        End If
+                    End If
+                End If
+
                 Return _ApplicationName
             End Get
             Set(value As String)
@@ -605,9 +641,9 @@ Namespace OnTrack
                             configsetname = matchconfig.Groups("name").Value
                             driver = matchconfig.Groups("driver").Value
                             Select Case driver.tolower
-                                Case "primary", "0"
+                                Case "primary", "0", ComplexPropertyStore.Sequence.Primary.ToString.ToLower
                                     sequence = ComplexPropertyStore.Sequence.Primary
-                                Case "secondary", "1"
+                                Case "secondary", "1", ComplexPropertyStore.Sequence.Secondary.ToString.ToLower
                                     sequence = ComplexPropertyStore.Sequence.Secondary
                                 Case Else
                                     sequence = ComplexPropertyStore.Sequence.primary
@@ -668,7 +704,7 @@ Namespace OnTrack
                                 parameterName = ConstCPNDBType
                                 Select Case valueString.tolower
                                     '** SQL SERVER
-                                    Case ConstCPVDBTypeSqlServer
+                                    Case ConstCPVDBTypeSqlServer, otDBServerType.SQLServer.ToString.ToLower
                                         valueObject = otDBServerType.SQLServer
                                         '** set the default parameter
                                         If Not ot.HasConfigProperty(constCPNUseLogAgent, configsetname:=configsetname) Then
@@ -681,7 +717,7 @@ Namespace OnTrack
                                         End If
 
                                         '** ACCESS
-                                    Case ConstCPVDBTypeAccess
+                                    Case ConstCPVDBTypeAccess, otDBServerType.Access.ToString.ToLower
                                         valueObject = otDBServerType.Access
                                         '** set the default parameter
                                         If Not ot.HasConfigProperty(constCPNUseLogAgent, configsetname:=configsetname) Then
@@ -700,10 +736,10 @@ Namespace OnTrack
                                 parameterName = ConstCPNDriverName
                                 Select Case valueString.tolower
                                     '** OLEDB
-                                    Case ConstCPVDriverOleDB
+                                    Case ConstCPVDriverOleDB, otDbDriverType.ADONETOLEDB.ToString.ToLower
                                         valueObject = otDbDriverType.ADONETOLEDB
                                         '** SQL
-                                    Case ConstCPVDriverMSSQL
+                                    Case ConstCPVDriverMSSQL, otDbDriverType.ADONETSQL.ToString.ToLower
                                         valueObject = otDbDriverType.ADONETSQL
                                         '** set the default parameter
                                     Case Else
@@ -1444,14 +1480,17 @@ Namespace OnTrack
                                         Optional ByVal noOtdbAvailable As Boolean = False, _
                                         Optional ByVal messagetype As otCoreMessageType = otCoreMessageType.ApplicationError, _
                                         Optional ByRef msglog As ObjectMessageLog = Nothing, _
-                                        Optional ByVal username As String = "")
+                                        Optional ByVal username As String = "", _
+                                        Optional ByVal tagvalues As Object = Nothing, _
+                                        Optional ByVal domainid As String = "", _
+                                        Optional ByVal dataobject As iormPersistable = Nothing)
             '<CallerMemberName> Optional memberName As String = Nothing, _
             '   <CallerFilePath> Optional sourcefilePath As String = Nothing, _
             '  <CallerLineNumber()> Optional sourceLineNumber As Integer = 0)
             Dim exmessagetext As String = ""
             Dim routinestack As String = ""
             Dim aNewError As New SessionMessage
-
+            Dim tagvaluestring As String
             Try
 
 
@@ -1490,6 +1529,14 @@ Namespace OnTrack
 
                 End If
 
+                '*** dataobject default values
+                '***
+                If dataobject IsNot Nothing Then
+                    If String.IsNullOrWhiteSpace(objectname) Then objectname = dataobject.ObjectID
+                    If String.IsNullOrWhiteSpace(tablename) Then objectname = dataobject.primaryTableID
+                    If tagvalues Is Nothing Then tagvalues = dataobject.PrimaryKeyValues
+                    If String.IsNullOrWhiteSpace(domainid) AndAlso dataobject.ObjectHasDomainBehavior Then domainid = dataobject.DomainID
+                End If
 
                 '**** add to the Connection.errorlog
                 '****
@@ -1499,21 +1546,40 @@ Namespace OnTrack
                     If msglog IsNot Nothing Then .Message &= vbLf & msglog.MessageText
                     .Subname = subname
                     .Exception = exception
-                    .Tablename = tablename
+                    .messagetype = messagetype
+                    .StackTrace = routinestack
+
                     '.Arguments = arg1
                     If arg1 IsNot Nothing And Not IsArray(arg1) Then
                         .Arguments = arg1.ToString
                     Else
                         .Arguments = ""
                     End If
-                    .Exception = exception
-                    .messagetype = messagetype
-                    .StackTrace = routinestack
+
+
+                    '* object tag values
+                    If tagvalues IsNot Nothing Then
+                        If tagvalues.GetType.IsArray Then
+                            tagvaluestring = Converter.Array2otString(tagvalues)
+                        Else
+                            tagvaluestring = CStr(tagvalues)
+                        End If
+                    Else
+                        tagvaluestring = String.Empty
+                    End If
+
                     .Objectname = objectname
                     .ObjectEntry = entryname
+                    .Objecttag = tagvaluestring
+                    .Tablename = tablename
                     .Columnname = columnname
                     .Timestamp = Date.Now
-                    If Not _CurrentSession Is Nothing AndAlso username = "" Then 'use the internal variable not to startup a session
+                    If Not String.IsNullOrWhiteSpace(domainid) Then
+                        .Domainid = domainid
+                    ElseIf _CurrentSession IsNot Nothing AndAlso Not String.IsNullOrWhiteSpace(_CurrentSession.CurrentDomainID) Then
+                        .Domainid = _CurrentSession.CurrentDomainID
+                    End If
+                    If String.IsNullOrWhiteSpace(username) AndAlso _CurrentSession IsNot Nothing AndAlso _CurrentSession.IsRunning Then 'use the internal variable not to startup a session
                         .Username = _CurrentSession.Username
                     Else
                         .Username = username
@@ -1570,20 +1636,28 @@ Namespace OnTrack
                         Select Case messagetype
                             Case otCoreMessageType.ApplicationError
                                 .Title = "ERROR"
+                                .type = CoreMessageBox.MessageType.Error
                             Case otCoreMessageType.ApplicationInfo
                                 .Title = "INFO"
+                                .type = CoreMessageBox.MessageType.Info
                             Case otCoreMessageType.ApplicationWarning
                                 .Title = "WARNING"
+                                .type = CoreMessageBox.MessageType.Warning
                             Case otCoreMessageType.ApplicationException
                                 .Title = "EXCEPTION"
+                                .type = CoreMessageBox.MessageType.Error
                             Case otCoreMessageType.InternalInfo
                                 .Title = "INTERNAL INFO"
+                                .type = CoreMessageBox.MessageType.Info
                             Case otCoreMessageType.InternalError
                                 .Title = "INTERNAL ERROR"
+                                .type = CoreMessageBox.MessageType.Error
                             Case otCoreMessageType.InternalException
                                 .Title = exception.GetType.ToString & " INTERNAL EXCEPTION FROM " & exception.Source
+                                .type = CoreMessageBox.MessageType.Error
                             Case otCoreMessageType.InternalWarning
                                 .Title = "INTERNAL WARNING"
+                                .type = CoreMessageBox.MessageType.Warning
                         End Select
                         .Title &= " from " & subname
                         '* Message
@@ -1596,7 +1670,7 @@ Namespace OnTrack
                         If subname IsNot Nothing AndAlso subname <> "" Then .Message &= vbLf & "Routine: " & CStr(subname)
                         .Message &= vbLf & exmessagetext
 
-                        .type = CoreMessageBox.MessageType.Error
+
                         .buttons = CoreMessageBox.ButtonType.OK
                         .Show()
                     End With

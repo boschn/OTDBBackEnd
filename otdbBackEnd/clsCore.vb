@@ -1384,7 +1384,8 @@ Namespace OnTrack
                 End If
                 '** lazy initialize
                 If Not Me.IsInitialized AndAlso Not Me.Initialize() Then
-                    Call CoreMessageHandler(subname:="Session.Startup", message:="failed to initialize session", arg1:=Me.SessionID, messagetype:=otCoreMessageType.InternalError)
+                    Call CoreMessageHandler(subname:="Session.Startup", message:="failed to initialize session", _
+                                            arg1:=Me.SessionID, messagetype:=otCoreMessageType.InternalError)
                     Return False
                 End If
 
@@ -1619,7 +1620,8 @@ Namespace OnTrack
 
                 '** check on bootstrapping 
                 If newDomain Is Nothing And Not Me.IsBootstrappingInstallationRequested Then
-                    CoreMessageHandler(message:="domain does not exist - falling back to global domain", arg1:=newDomainID, subname:="Session.SetDomain", messagetype:=otCoreMessageType.ApplicationError)
+                    CoreMessageHandler(message:="domain does not exist - falling back to global domain", _
+                                       arg1:=newDomainID, subname:="Session.SetDomain", messagetype:=otCoreMessageType.ApplicationError)
                     newDomain = Domain.Retrieve(id:=ConstGlobalDomain, dbdriver:=Me._primaryDBDriver, runtimeOnly:=Me.IsBootstrappingInstallationRequested)
                     If newDomain Is Nothing Then
                         CoreMessageHandler(message:="global domain does not exist", arg1:=ConstGlobalDomain, subname:="Session.SetDomain", messagetype:=otCoreMessageType.InternalError)
@@ -1734,7 +1736,7 @@ Namespace OnTrack
                 ''' rause the domain changed event
                 RaiseEvent OnDomainChanged(Me, New SessionEventArgs(Me))
                 CoreMessageHandler(message:="Domain switched to '" & newDomainID & "' - " & newDomain.Description, _
-                                    subname:="Session.SwitchToDomain", messagetype:=otCoreMessageType.ApplicationInfo)
+                                    subname:="Session.SwitchToDomain", dataobject:=newDomain, messagetype:=otCoreMessageType.ApplicationInfo)
                 Me.IsDomainSwitching = False
                 Return True
 
@@ -1905,7 +1907,9 @@ Namespace OnTrack
             End If
             '*** Parameters
             '***
+            _ObjectCaches.Clear()
             _ObjectPermissionCache.Clear()
+            _DomainRepositories.Clear()
             _OTDBUser = Nothing
             IsRunning = False
             Call CoreMessageHandler(showmsgbox:=False, message:="Session ended ", arg1:=_SessionID, _
@@ -2185,6 +2189,9 @@ Namespace OnTrack
         <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, _
          useforeignkey:=otForeignKeyImplementation.None, isnullable:=True)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=255, isnullable:=True, _
+                        title:="tag", Description:="object tag values")> Public Const ConstFNObjectTag As String = "OBJECTTAG"
+
         ' fields
         <ormEntryMapping(EntryName:=ConstFNTag)> Private _tag As String = ""
         <ormEntryMapping(EntryName:=ConstFNID)> Private _id As String = ""
@@ -2200,6 +2207,8 @@ Namespace OnTrack
         <ormEntryMapping(EntryName:=ConstFNUsername)> Private _Username As String = ""
         <ormEntryMapping(EntryName:=ConstFNStack)> Private _StackTrace As String = ""
         <ormEntryMapping(EntryName:=ConstFNarg)> Private _Arguments As String = ""
+        <ormEntryMapping(EntryName:=ConstFNDomainID)> Private _domainid As String = ""
+        <ormEntryMapping(EntryName:=ConstFNObjectTag)> Private _objecttag As String = ""
 
         '** dynamic
         Private _processed As Boolean = False
@@ -2219,10 +2228,36 @@ Namespace OnTrack
 
 
         ''' <summary>
+        ''' Gets or sets the domainid.
+        ''' </summary>
+        ''' <value>The domainid.</value>
+        Public Overloads Property Domainid As String
+            Get
+                Return Me._domainid
+            End Get
+            Set(value As String)
+                Me._domainid = value
+            End Set
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the objecttag.
+        ''' </summary>
+        ''' <value>The objecttag.</value>
+        Public Property Objecttag As String
+            Get
+                Return Me._objecttag
+            End Get
+            Set(value As String)
+                Me._objecttag = value
+            End Set
+        End Property
+
+        ''' <summary>
         ''' Gets or sets the stack trace.
         ''' </summary>
         ''' <value>The stack trace.</value>
-        Public Property StackTrace() As String
+        Public Property StackTrace As String
             Get
                 Return Me._StackTrace
             End Get
@@ -2235,7 +2270,7 @@ Namespace OnTrack
         ''' Gets or sets the username.
         ''' </summary>
         ''' <value>The username.</value>
-        Public Property ID() As String
+        Public Property ID As String
             Get
                 Return Me._id
             End Get
@@ -2484,6 +2519,7 @@ Namespace OnTrack
                 .StackTrace = Me.StackTrace
                 If Me.Objectname IsNot Nothing Then .Objectname = Me.Objectname.Clone
                 If Me.ObjectEntry IsNot Nothing Then .ObjectEntry = Me.ObjectEntry.Clone
+                If Me.Objecttag IsNot Nothing Then .Objecttag = Me.Objecttag.Clone
             End With
 
             Return aClone
@@ -2644,10 +2680,6 @@ Namespace OnTrack
 
                     aClone.Tag = Me.Tag
                     aClone.Entryno = _maxEntry + 1
-
-                    If Not aClone.Exception Is Nothing And aClone.Message = "" Then
-                        aClone.Message = aClone.Exception.Message
-                    End If
 
                     _queue.Enqueue(aClone)
                     _log.Add(key:=aClone.Entryno, value:=aClone)

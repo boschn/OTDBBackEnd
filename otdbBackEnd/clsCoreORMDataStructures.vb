@@ -465,7 +465,7 @@ Namespace OnTrack.Database
             '''
             ''' raise event if no keys supplied
             If keys Is Nothing Then
-                Dim e As ormRelationNewableCollection(Of T).EventArgs = New ormRelationNewableCollection(Of T).EventArgs(_container)
+                Dim e As ormRelationNewableCollection(Of T).EventArgs = New ormRelationNewableCollection(Of T).EventArgs(anItem)
                 RaiseEvent RequestKeys(Me, e)
                 keys = e.Keys
 
@@ -2571,8 +2571,8 @@ Namespace OnTrack.Database
                 Else
                     i = ZeroBasedIndexOf(index)
                     If i < 0 Then
-                        CoreMessageHandler(message:="column name could not be found", arg1:=index, _
-                                            messagetype:=otCoreMessageType.InternalError, subname:="ormRecord.GetValue")
+                        'CoreMessageHandler(message:="column name could not be found", arg1:=index, _
+                        '                    messagetype:=otCoreMessageType.InternalWarning, subname:="ormRecord.GetValue")
                         notFound = True
                         Return Nothing  'wrong table
                     End If

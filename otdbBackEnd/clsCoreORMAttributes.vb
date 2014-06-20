@@ -3153,6 +3153,41 @@ Namespace OnTrack.Database
         Private _Tag As String
         Private _TransactionID As String
         Private _Properties As String()
+        Private _UIVisible As Boolean?
+        Private _ClassDescription As ObjectClassDescription
+
+
+        ''' <summary>
+        ''' Gets or sets the A class description.
+        ''' </summary>
+        ''' <value>The A class description.</value>
+        Public Property ClassDescription() As ObjectClassDescription
+            Get
+                Return Me._ClassDescription
+            End Get
+            Set(value As ObjectClassDescription)
+                Me._ClassDescription = Value
+            End Set
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the UI visible.
+        ''' </summary>
+        ''' <value>The UI visible.</value>
+        Public Property UIVisible() As Boolean
+            Get
+                If _UIVisible.HasValue Then Return Me._UIVisible
+                Return False
+            End Get
+            Set(value As Boolean)
+                Me._UIVisible = Value
+            End Set
+        End Property
+        Public ReadOnly Property HasValueUIVisible As Boolean
+            Get
+                Return _UIVisible.HasValue
+            End Get
+        End Property
 
         ''' <summary>
         ''' Gets or sets the Properties

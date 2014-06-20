@@ -23,10 +23,11 @@ Imports System.Diagnostics.Debug
 
 Imports OnTrack
 Imports OnTrack.Database
-Imports OnTrack.XChange
+Imports OnTrack.Xchange
 Imports OnTrack.Scheduling
 Imports OnTrack.Deliverables
 Imports OnTrack.Commons
+Imports System.ComponentModel
 
 Namespace OnTrack.ObjectProperties
     ''' <summary>
@@ -37,6 +38,576 @@ Namespace OnTrack.ObjectProperties
     Public Enum otLinkType
         One2One = 1
     End Enum
+    ''' <summary>
+    ''' class to define an current or alive set of properties 
+    ''' </summary>
+    ''' <remarks>
+    ''' 
+    ''' Design Principles:
+    ''' 
+    ''' 1. Property sets are stand-alone and must exist before a property can be created.
+    ''' 
+    ''' 2. Properties are added by creating themselves e.g. Property.Create(setid:= ...). It will be added automatically to the set
+    ''' 
+    ''' 3. On loading the set all the properties will be retrieved as well due to relation.
+    ''' 
+    ''' </remarks>
+    <ormObject(id:=ObjectPropertyCurrentSet.ConstObjectID, version:=1, adddomainbehavior:=True, adddeletefieldbehavior:=True, usecache:=True, _
+        modulename:=ConstModuleProperties, Title:="Property Set", description:="definition of a set of properties attachable to bussiness object")> _
+    Public Class ObjectPropertyCurrentSet
+        Inherits ormDataObject
+
+        ''' <summary>
+        ''' constants
+        ''' </summary>
+        ''' <remarks></remarks>
+        Public Const ConstObjectID As String = "PropertyCurrentSet"
+        Public Const ConstOpPublish As String = "Publish"
+        ''' <summary>
+        ''' Table Definition
+        ''' </summary>
+        ''' <remarks></remarks>
+        <ormSchemaTable(version:=1, usecache:=True)> Public Const constTableID = "TBLDEFOBJPROPERTYCURRSETS"
+
+        '** primary Keys
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=50, primaryKeyOrdinal:=1, _
+            properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty},
+            XID:="OPCS1", title:="Set ID", description:="ID of the property set")> Public Const ConstFNSetID = "SETID"
+
+        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=2, _
+            useforeignkey:=otForeignKeyImplementation.NativeDatabase, defaultvalue:=ConstGlobalDomain)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
+
+
+        ''' <summary>
+        ''' field members
+        ''' </summary>
+        ''' <remarks></remarks>
+
+        <ormObjectEntry(Datatype:=otDataType.Long, isnullable:=True, _
+        XID:="OPCS2", title:="Alive Updc", description:="update count of the alive property set properties")> Public Shadows Const constFNAliveUpdc = "ALIVEUPDC"
+
+        <ormObjectEntry(Datatype:=otDataType.Long, isnullable:=True, _
+            XID:="OPCS3", title:="Work Updc", description:="update count of the working property set properties")> Public Shadows Const constFNWorkUpdc = "WORKUPDC"
+
+        <ormObjectEntry(Datatype:=otDataType.List, isnullable:=True, _
+         XID:="OPCS5", title:="Business Objects", description:="applicable business objects for this set")> Public Const ConstFNObjects = "OBJECTS"
+
+        <ormObjectEntry(Datatype:=otDataType.Long, defaultvalue:=1, dbdefaultvalue:="1", _
+                        XID:="OPCS6", title:="Ordinal", Description:="ordinal of the set")> Public Const ConstFNordinal As String = "ORDINAL"
+
+        <ormObjectEntry(Datatype:=otDataType.Text, isnullable:=True, _
+        XID:="OPCS10", title:="Description", description:="description of the property set")> Public Const ConstFNDescription = "DESC"
+
+
+        ''' <summary>
+        ''' Mappings
+        ''' </summary>
+        ''' <remarks></remarks>
+
+        <ormEntryMapping(EntryName:=ConstFNSetID)> Private _id As String = ""
+        <ormEntryMapping(EntryName:=constFNAliveUpdc)> Private _aliveupdc As Long?
+        <ormEntryMapping(EntryName:=constFNWorkUpdc)> Private _Workupdc As Long?
+        <ormEntryMapping(EntryName:=ConstFNDescription)> Private _Description As String
+        <ormEntryMapping(EntryName:=ConstFNObjects)> Private _objectids As New List(Of String)
+        <ormEntryMapping(EntryName:=ConstFNordinal)> Private _ordinal As Long?
+        ''' <summary>
+        ''' Relations
+        ''' </summary>
+        ''' <remarks></remarks>
+        <ormRelation(linkobject:=GetType(ObjectPropertySet), cascadeOnCreate:=True, cascadeOnDelete:=True, cascadeOnUpdate:=False, _
+            fromEntries:={ConstFNSetID}, toEntries:={ObjectProperty.ConstFNSetID})> Public Const ConstRProperties = "RELSETS"
+
+        <ormEntryMapping(RelationName:=ConstRProperties, infuseMode:=otInfuseMode.OnInject Or otInfuseMode.OnDemand Or otInfuseMode.OnCreate, _
+            keyentries:={ObjectPropertySet.constFNUpdc})> Private WithEvents _setCollection As New ormRelationNewableCollection(Of ObjectPropertySet)(Me, {ObjectPropertySet.constFNUpdc})
+
+        ''' <summary>
+        '''  Work Set
+        ''' </summary>
+        ''' <remarks></remarks>
+        <ormRelation(linkobject:=GetType(ObjectPropertySet), cascadeOnCreate:=False, cascadeOnDelete:=True, cascadeOnUpdate:=True, _
+           toPrimaryKeys:={ConstFNSetID, constFNWorkUpdc})> Public Const ConstRWorkSet = "RELWORKSET"
+
+        <ormEntryMapping(RelationName:=ConstRWorkSet, infuseMode:=otInfuseMode.OnInject Or otInfuseMode.OnDemand _
+            )> Private WithEvents _workset As ObjectPropertySet
+
+        ''' <summary>
+        '''  Alive Set
+        ''' </summary>
+        ''' <remarks></remarks>
+        <ormRelation(linkobject:=GetType(ObjectPropertySet), cascadeOnCreate:=False, cascadeOnDelete:=True, cascadeOnUpdate:=True, _
+           toPrimaryKeys:={ConstFNSetID, constFNAliveUpdc})> Public Const ConstRAliveSet = "RELALIVESET"
+
+        <ormEntryMapping(RelationName:=ConstRAliveSet, infuseMode:=otInfuseMode.OnInject Or otInfuseMode.OnDemand _
+           )> Private WithEvents _aliveset As ObjectPropertySet
+
+
+        ''' <summary>
+        ''' Dynamic Members
+        ''' </summary>
+        ''' <remarks></remarks>
+
+
+
+#Region "Properties"
+
+        ''' <summary>
+        ''' Gets or sets the ordinal.
+        ''' </summary>
+        ''' <value>The ordinal.</value>
+        Public Property Ordinal() As Long?
+            Get
+                Return Me._ordinal
+            End Get
+            Set(value As Long?)
+                SetValue(ConstFNordinal, value)
+            End Set
+        End Property
+
+        '' <summary>
+        ''' Gets or sets the attached object ids where this object propert set fits.
+        ''' </summary>
+        ''' <value>The properties.</value>
+        Public Property AttachedObjectIDs() As List(Of String)
+            Get
+                Return Me._objectids
+            End Get
+            Set(value As List(Of String))
+                SetValue(ConstFNObjects, value)
+            End Set
+        End Property
+        ''' <summary>
+        ''' Gets or sets the description.
+        ''' </summary>
+        ''' <value>The description.</value>
+        Public Property Description() As String
+            Get
+                Return Me._Description
+            End Get
+            Set(value As String)
+                SetValue(ConstFNDescription, value)
+            End Set
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the alive property set.
+        ''' </summary>
+        ''' <value>The workset.</value>
+        Public Property AliveSet() As ObjectPropertySet
+            Get
+                Return Me._aliveset
+            End Get
+            Private Set(value As ObjectPropertySet)
+                Me._aliveset = value
+                Me.AliveUpdc = value.Updc
+            End Set
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the work property set.
+        ''' </summary>
+        ''' <value>The workset.</value>
+        Public Property Workset() As ObjectPropertySet
+            Get
+                If _workset Is Nothing Then
+                    Me.Workset = _setCollection.AddCreate(domainid:=Me.DomainID, runtimeOnly:=Me.RunTimeOnly)
+                End If
+                Return Me._workset
+            End Get
+            Private Set(value As ObjectPropertySet)
+                Me._workset = value
+                Me.Workupdc = _workset.Updc
+            End Set
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the workupdc.
+        ''' </summary>
+        ''' <value>The workupdc.</value>
+        Public Property Workupdc() As Long?
+            Get
+                If Not _Workupdc.HasValue Then
+                    Return Me.Workset.Updc
+                End If
+                Return Me._Workupdc
+            End Get
+            Private Set(value As Long?)
+                SetValue(constFNWorkUpdc, value)
+            End Set
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the alive updc of the set.
+        ''' </summary>
+        ''' <value>The updc.</value>
+        Public Property AliveUpdc() As Long?
+            Get
+                If Not _aliveupdc.HasValue Then
+                    If _aliveset Is Nothing AndAlso _workset IsNot Nothing Then
+                        Me.Publish()
+                    End If
+                End If
+
+                Return Me._aliveupdc
+            End Get
+            Private Set(value As Long?)
+                SetValue(constFNAliveUpdc, value)
+            End Set
+        End Property
+
+        ''' <summary>
+        ''' returns the ID of the set
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        ReadOnly Property ID()
+            Get
+                Return _id
+            End Get
+
+        End Property
+
+        ''' <summary>
+        ''' returns the collection of Property sets
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        ReadOnly Property Sets As ormRelationCollection(Of ObjectPropertySet)
+            Get
+                Return _setCollection
+            End Get
+        End Property
+
+#End Region
+
+        ''' <summary>
+        ''' retrieve  the current property set from store
+        ''' </summary>
+        ''' <param name="id"></param>
+        ''' <param name="domainid"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Overloads Shared Function Retrieve(id As String, Optional domainid As String = Nothing) As ObjectPropertyCurrentSet
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
+            Return ormDataObject.Retrieve(Of ObjectPropertyCurrentSet)(pkArray:={id.ToUpper, domainid.ToUpper}, domainID:=domainid)
+        End Function
+
+        ''' <summary>
+        ''' creates a persistable current property set
+        ''' </summary>
+        ''' <param name="id"></param>
+        ''' <param name="domainid"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Overloads Shared Function Create(id As String, Optional domainid As String = Nothing) As ObjectPropertyCurrentSet
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
+            Return ormDataObject.CreateDataObject(Of ObjectPropertyCurrentSet)(pkArray:={id.ToUpper, domainid.ToUpper}, domainID:=domainid, checkUnique:=True)
+        End Function
+
+        ''' <summary>
+        ''' Publish and persist the working PropertySet to the alive Set
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        ''' 
+        <ormObjectOperationMethod(Description:="Publish the working property set", title:="Publish", TransactionID:=ConstOpPublish, _
+            UIvisible:=True)> _
+        Public Function Publish(Optional ByRef msglog As ObjectMessageLog = Nothing, _
+                               Optional ByVal timestamp As Date? = Nothing) As Boolean
+            Dim IsPublishable As Boolean = True
+            Dim aValidationResult As otValidationResultType
+            Dim aWorkingSet = Me.Workset
+
+            If Not RunTimeOnly AndAlso _
+                   Not CurrentSession.ValidateAccessRights(accessrequest:=otAccessRight.ReadUpdateData, domainid:=DomainID, _
+                                                                objecttransactions:={Me.ObjectID & "." & ConstOPCreate}) Then
+                If Not CurrentSession.RequestUserAccess(accessRequest:=otAccessRight.ReadUpdateData, loginOnFailed:=True, _
+                                                         messagetext:="Please provide another user to authorize requested operation", _
+                                                        domainid:=DomainID, objecttransactions:={Me.ObjectID & "." & ConstOPCreate}) Then
+                    Call CoreMessageHandler(message:="data object operation cannot be executed - permission denied to user", _
+                                            objectname:=Me.ObjectID, arg1:=ConstOpPublish, _
+                                            messagetype:=otCoreMessageType.ApplicationError)
+                    Return False
+                End If
+            End If
+
+            '* init
+            If Not Me.IsAlive(subname:="Publish") Then Return False
+
+
+            ' TIMESTAMP
+            If timestamp Is Nothing Then timestamp = Date.Now
+
+
+            '** if any of the milestones is changed
+            '**
+            IsPublishable = True
+
+            '** condition
+            If aWorkingSet IsNot Nothing Then
+
+                '''
+                ''' Validate the Working Edition
+                ''' 
+                If msglog Is Nothing Then msglog = aWorkingSet.ObjectMessageLog
+                '* not implemented yet
+                'aValidationResult = aWorkingSet.Validate(msglog)
+                'If aValidationResult = otValidationResultType.FailedNoProceed Then
+                '    IsPublishable = False
+                'Else
+                '    IsPublishable = True
+                'End If
+
+                ''' do we need to have some transformation while an edition is alive and now comes up the next one ?
+                ''' should be included here
+                ''' 
+
+                ''' publish the new edition (working edition) since it is statisfying the validation and checking
+                ''' the working edition will become the alive edition
+                ''' and a copy of the working edition will be there as new working edition
+                ''' 
+                If IsPublishable Then
+                    If Me.AliveSet IsNot Nothing Then
+                        Me.AliveSet.ValidUntil = Date.Now
+                        Me.AliveSet.Persist(timestamp)
+                    End If
+
+                    '' cannot generate an new updc on a just created object 
+                    ''(getmax will not work on unpersisted objects)
+                    If Me.AliveSet.IsCreated Then
+                        _workset = aWorkingSet.Clone(_aliveset.Updc + 1)
+                    Else
+                        _workset = aWorkingSet.Clone()
+                    End If
+                    '** set new working edition
+                    ''' here take over the working edition to the alive edition
+                    aWorkingSet.ValidFrom = Date.Now
+                    Me.Workset = _workset
+                    Me.AliveSet = aWorkingSet
+                    ''' save the workspace schedule itself and the
+                    ''' related objects
+                    IsPublishable = MyBase.Persist(timestamp)
+
+                    ''' update the former sets here
+                    ''' 
+                    AliveSet.UpdateLots()
+
+                    ''' build the view here
+                    ''' 
+                    CreatePropertyValueView(set:=AliveSet)
+
+                    ''' create the compounds of the properties here
+                    ''' 
+                    For Each aProperty In Me.AliveSet.Properties
+                        aProperty.CreateCompoundStructure()
+                    Next
+                Else
+                    '''
+                    ''' no publish possible - not even a persist (will fail on the same conditions)
+                    ''' 
+                End If
+
+            ElseIf Me.IsChanged Or Me.IsCreated Then
+
+                '**** save without Milestone checking
+                IsPublishable = MyBase.Persist(timestamp:=timestamp)
+
+            Else
+                '** nothing changed
+                '***
+                Publish = False
+                Exit Function
+            End If
+
+            Return IsPublishable
+        End Function
+        '    SELECT      TBLOBJPROPERTYLINKS.FROMOBJECTID, TBLOBJPROPERTYLINKS.fromuid, tblobjpropertylinks.FROMUPDC ,
+        '		    TBLOBJPROPERTYLINKS.TOUID, TBLOBJPROPERTYLINKS.toupdc, LOT.PUID, LOT.UPDC, P1.VALUE as '0.0.2.0',P2.value AS '0.0.3.0' , P3.VALUE AS '0.1.0.0', P4.VALUE AS '0.1.3.0', 
+        '              P5.VALUE AS '0.1.6.0', P6.VALUE AS '0.2.0.0',  P7.VALUE AS '0.2.3.0', P8.VALUE AS '0.2.6.0', P9.VALUE AS '0.3.0.0',
+        '			   P10.VALUE AS '0.4.0.0',  P11.VALUE AS '0.5.0.0',  P12.VALUE AS '0.6.0.0',  P13.VALUE AS '1.0.0.0'
+        'FROM            ontrack.dbo.TBLOBJPROPERTYVALUELOTS AS LOT 
+        ' INNER JOIN               ontrack.dbo.TBLOBJPROPERTYVALUES AS P1 ON LOT.PUID = P1.PUID AND LOT.UPDC = P1.UPDC AND P1.PROPERTYID = '0.0.2.0'
+        ' INNER JOIN				ontrack.dbo.TBLOBJPROPERTYVALUES AS P2 ON LOT.PUID = P2.PUID AND LOT.UPDC = P2.UPDC AND P2.PROPERTYID = '0.0.3.0'
+        ' INNER JOIN				ontrack.dbo.TBLOBJPROPERTYVALUES AS P3 ON LOT.PUID = P3.PUID AND LOT.UPDC = P3.UPDC AND P3.PROPERTYID = '0.1.0.0'
+        'INNER JOIN				ontrack.dbo.TBLOBJPROPERTYVALUES AS P4 ON LOT.PUID = P4.PUID AND LOT.UPDC = P4.UPDC AND P4.PROPERTYID = '0.1.3.0'
+        'INNER JOIN				ontrack.dbo.TBLOBJPROPERTYVALUES AS P5 ON LOT.PUID = P5.PUID AND LOT.UPDC = P5.UPDC AND P5.PROPERTYID = '0.1.6.0'
+        'INNER JOIN				ontrack.dbo.TBLOBJPROPERTYVALUES AS P6 ON LOT.PUID = P6.PUID AND LOT.UPDC = P6.UPDC AND P6.PROPERTYID = '0.2.0.0'
+        'INNER JOIN				ontrack.dbo.TBLOBJPROPERTYVALUES AS P7 ON LOT.PUID = P7.PUID AND LOT.UPDC = P7.UPDC AND P7.PROPERTYID = '0.2.3.0'
+        'INNER JOIN				ontrack.dbo.TBLOBJPROPERTYVALUES AS P8 ON LOT.PUID = P8.PUID AND LOT.UPDC = P8.UPDC AND P8.PROPERTYID = '0.2.6.0'
+        'INNER JOIN				ontrack.dbo.TBLOBJPROPERTYVALUES AS P9 ON LOT.PUID = P9.PUID AND LOT.UPDC = P9.UPDC AND P9.PROPERTYID = '0.3.0.0'
+        'INNER JOIN				ontrack.dbo.TBLOBJPROPERTYVALUES AS P10 ON LOT.PUID = P10.PUID AND LOT.UPDC = P10.UPDC AND P10.PROPERTYID = '0.4.0.0'
+        'INNER JOIN				ontrack.dbo.TBLOBJPROPERTYVALUES AS P11 ON LOT.PUID = P11.PUID AND LOT.UPDC = P11.UPDC AND P11.PROPERTYID = '0.5.0.0'
+        'INNER JOIN				ontrack.dbo.TBLOBJPROPERTYVALUES AS P12 ON LOT.PUID = P12.PUID AND LOT.UPDC = P12.UPDC AND P12.PROPERTYID = '0.6.0.0'
+        'INNER JOIN				ontrack.dbo.TBLOBJPROPERTYVALUES AS P13 ON LOT.PUID = P13.PUID AND LOT.UPDC = P13.UPDC AND P13.PROPERTYID = '1.0.0.0'
+        'inner join	ontrack.dbo.TBLOBJPROPERTYLINKS on lot.puid = TBLOBJPROPERTYLINKS.touid 
+        ''' <summary>
+        ''' Create an SQLView for the PropertyValueLot
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function CreatePropertyValueView([set] As ObjectPropertySet) As Boolean
+            Dim aDBDriver As iormDatabaseDriver = ot.CurrentDBDriver
+            Dim viewnames As String = "VWPROPERTYVALUELOT_" & [set].ID & "_" & [set].DomainID & "_V" & [set].Updc
+            Dim sqlselectcmd As New Text.StringBuilder("SELECT ")
+            Try
+                '    SELECT      TBLOBJPROPERTYLINKS.FROMOBJECTID, TBLOBJPROPERTYLINKS.fromuid, tblobjpropertylinks.FROMUPDC ,
+                '		    TBLOBJPROPERTYLINKS.TOUID, TBLOBJPROPERTYLINKS.toupdc, LOT.PUID, LOT.UPDC,
+
+                ' objectPropertyLink
+                sqlselectcmd.AppendFormat(" {0}.[{1}]", ObjectPropertyLink.ConstTableID, ObjectPropertyLink.ConstFNFromObjectID)
+                sqlselectcmd.AppendFormat(",{0}.[{1}]", ObjectPropertyLink.ConstTableID, ObjectPropertyLink.ConstFNFromUid)
+                sqlselectcmd.AppendFormat(",{0}.[{1}]", ObjectPropertyLink.ConstTableID, ObjectPropertyLink.ConstFNFromUpdc)
+                sqlselectcmd.AppendFormat(",{0}.[{1}]", ObjectPropertyLink.ConstTableID, ObjectPropertyLink.ConstFNToUid)
+                sqlselectcmd.AppendFormat(",{0}.[{1}]", ObjectPropertyLink.ConstTableID, ObjectPropertyLink.ConstFNToUpdc)
+                ' ObjectPropertyValueLot
+                sqlselectcmd.AppendFormat(",LOT.[{0}]", ObjectPropertyValueLot.ConstFNSets)
+                sqlselectcmd.AppendFormat(",LOT.[{0}]", ObjectPropertyValueLot.ConstFNSetUPDCs)
+                sqlselectcmd.AppendFormat(",LOT.[{0}]", ObjectPropertyValueLot.ConstFNValidFrom)
+
+                Dim i As Integer = 1
+                ' P1.VALUE as '0.0.2.0', P2.value AS '0.0.3.0' , P3.VALUE AS '0.1.0.0', P4.VALUE AS '0.1.3.0', 
+                For Each aProperty In [set].Properties
+                    sqlselectcmd.AppendFormat(",P{0}.{1} as '{2}'", i, ObjectPropertyValue.ConstFNValue, aProperty.ID)
+                    i += 1
+                Next
+
+                '** updated
+                sqlselectcmd.AppendFormat(",LOT.[{0}]", ObjectPropertyValueLot.ConstFNUpdatedOn)
+                'FROM   ontrack.dbo.TBLOBJPROPERTYVALUELOTS AS LOT 
+                sqlselectcmd.AppendLine(" FROM  " & ObjectPropertyValueLot.constTableID & " AS LOT ")
+                'inner join	ontrack.dbo.TBLOBJPROPERTYLINKS on lot.puid = TBLOBJPROPERTYLINKS.touid 
+                sqlselectcmd.AppendFormat(" INNER JOIN {0} ON LOT.[{1}] = {0}.[{2}] AND lot.[{3}] = {0}.[{4}]", _
+                                          ObjectPropertyLink.ConstTableID, ObjectPropertyValueLot.constFNUID, ObjectPropertyLink.ConstFNToUid, _
+                                          ObjectPropertyValueLot.ConstFNUpdc, ObjectPropertyLink.ConstFNToUpdc)
+
+                i = 1
+                'INNER JOIN	ontrack.dbo.TBLOBJPROPERTYVALUES AS P13 ON LOT.PUID = P13.PUID AND LOT.UPDC = P13.UPDC AND P13.PROPERTYID = '1.0.0.0'
+
+                For Each aProperty In [set].Properties
+                    sqlselectcmd.AppendFormat(" LEFT OUTER JOIN {0} AS P{1} ON LOT.{2} = P{1}.{3} AND LOT.{4} = P{1}.{5} AND P{1}.{6} = '{7}'" _
+                                              , ObjectPropertyValue.constTableID, _
+                                              i, _
+                                              ObjectPropertyValueLot.constFNUID, _
+                                              ObjectPropertyValue.constFNUID, _
+                                              ObjectPropertyValueLot.ConstFNUpdc, _
+                                              ObjectPropertyValue.ConstFNUpdc, _
+                                              ObjectPropertyValue.ConstFNPropertyID, _
+                                              aProperty.ID)
+                    i += 1
+                Next
+
+                ''' create
+                ''' 
+                Return aDBDriver.GetView(createOrAlter:=True, name:=viewnames, sqlselect:=sqlselectcmd.ToString) Is Nothing
+
+            Catch ex As Exception
+                CoreMessageHandler("failed to build view on propertyset", arg1:=sqlselectcmd.ToString, exception:=ex, _
+                                    subname:="ObjectPropertyCurrentSet.CreatePropertyValueView")
+                Return False
+            End Try
+        End Function
+
+        ''' <summary>
+        ''' Handler for the OnAdded event
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+
+        Private Sub SetCollection_OnAdded(sender As Object, e As Database.ormRelationCollection(Of ObjectPropertySet).EventArgs) Handles _setCollection.OnAdded
+
+            '''  add some event handling
+            ''' 
+            AddHandler e.Dataobject.OnCreated, AddressOf Me.CurrentPropertySet_OnCreatedProperty
+            AddHandler e.Dataobject.OnDeleted, AddressOf Me.CurrentPropertySet_OnDeletedProperty
+            AddHandler e.Dataobject.OnPersisted, AddressOf Me.CurrentPropertySet_OnPersistedProperty
+        End Sub
+
+        ''' <summary>
+        ''' Event Handler for ObjectProperty OnPersisted Event
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Private Sub CurrentPropertySet_OnPersistedProperty(sender As Object, e As ormDataObjectEventArgs)
+            ' cascading on update in the creation process will also lead to save the initial current sets BUT
+            ' beware this might lead to an recursion loop if the save is comming from the CurrentSet (persisted)
+            'If TryCast(e.DataObject, ObjectPropertySet).PropertiesChanged Then
+            '   Me.Publish()
+            'End If
+        End Sub
+
+        ''' <summary>
+        ''' Event Handler for ObjectProperty OnCreated Event
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Private Sub CurrentPropertySet_OnCreatedProperty(sender As Object, e As ormDataObjectEventArgs)
+
+        End Sub
+        ''' <summary>
+        ''' Event Handler for ObjectProperty OnDeleted Event
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Private Sub CurrentPropertySet_OnDeletedProperty(sender As Object, e As ormDataObjectEventArgs)
+            Throw New NotImplementedException("Deleting of PropertySet not implemented")
+        End Sub
+
+        ''' <summary>
+        ''' Handler for OnCreated Event
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Private Sub ObjectPropertySet_OnCreated(sender As Object, e As ormDataObjectEventArgs) Handles Me.OnCreated
+
+            ''' check if there is an PropertySet - set the working set
+            ''' 
+            If _setCollection.Count = 0 Then
+                Dim aSet As ObjectPropertySet = ObjectPropertySet.Create(id:=Me.ID, domainid:=Me.DomainID)
+                If aSet Is Nothing Then aSet = ObjectPropertySet.Retrieve(id:=Me.ID, updc:=1, domainid:=Me.DomainID)
+                Me.Workset = aSet
+                _setCollection.Add(aSet)
+            Else
+                Me.Workset = _setCollection.First
+            End If
+            '** defaults will be set as the entries are changed here 
+
+        End Sub
+
+
+
+        ''' <summary>
+        ''' OnNew EventHandler of the PropertySet Key
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Private Sub SetCollection_OnRequestKeys(sender As Object, e As Database.ormRelationNewableCollection(Of ObjectPropertySet).EventArgs) Handles _setCollection.RequestKeys
+            e.Keys = {Me.ID, Nothing} 'nothing means create new Unique key
+            e.Cancel = False
+        End Sub
+
+        ''' <summary>
+        ''' OnEntryChanged Event to set the defaults for all the sets
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Private Sub ObjectPropertyCurrentSet_OnEntryChanged(sender As Object, e As ormDataObjectEntryEventArgs) Handles Me.OnEntryChanged
+            If e.ObjectEntryName = ConstFNDescription OrElse e.ObjectEntryName = ConstFNObjects OrElse e.ObjectEntryName = ConstFNordinal Then
+                For Each aPropertySet In Me.Sets
+                    If e.ObjectEntryName = ConstFNDescription Then aPropertySet.Description = Me.Description
+                    If e.ObjectEntryName = ConstFNordinal Then aPropertySet.Ordinal = Me.Ordinal
+                    If e.ObjectEntryName = ConstFNObjects Then aPropertySet.AttachedObjectIDs = Me.AttachedObjectIDs
+                Next
+            End If
+        End Sub
+    End Class
 
     ''' <summary>
     ''' class to define a set of properties attachable to other business objects
@@ -53,7 +624,7 @@ Namespace OnTrack.ObjectProperties
     ''' 
     ''' </remarks>
     <ormObject(id:=ObjectPropertySet.ConstObjectID, version:=1, adddomainbehavior:=True, adddeletefieldbehavior:=True, usecache:=True, _
-        modulename:=ConstModuleProperties, Title:="Property section", description:="definition of a section of properties attachable to bussiness object")> _
+        modulename:=ConstModuleProperties, Title:="Property Set", description:="definition of a set of properties attachable to bussiness object")> _
     Public Class ObjectPropertySet
         Inherits ormDataObject
 
@@ -70,20 +641,33 @@ Namespace OnTrack.ObjectProperties
             properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty},
             XID:="OPS1", title:="Set ID", description:="ID of the property set")> Public Const ConstFNSetID = "SETID"
 
-        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=2 _
+        <ormObjectEntry(Datatype:=otDataType.Long, dbdefaultvalue:="1", defaultvalue:=1, primarykeyordinal:=2, _
+         XID:="OPS2", title:="Update Count of Property Set", description:="update count of the property set properties")> Public Shadows Const constFNUpdc = "UPDC"
+
+        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=3 _
          , useforeignkey:=otForeignKeyImplementation.NativeDatabase, defaultvalue:=ConstGlobalDomain)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
         <ormObjectEntry(Datatype:=otDataType.Text, isnullable:=True, _
-          XID:="OPS3", title:="Description", description:="description of the property section")> Public Const ConstFNDescription = "DESC"
+          XID:="OPS3", title:="Description", description:="description of the property set")> Public Const ConstFNDescription = "DESC"
 
         <ormObjectEntry(Datatype:=otDataType.List, isnullable:=True, _
-          XID:="OPS4", title:="Properties", description:="properties of the object property section")> Public Const ConstFNProperties = "PROPERTIES"
+          XID:="OPS4", title:="Properties", description:="properties of the object property set")> Public Const ConstFNProperties = "PROPERTIES"
 
         <ormObjectEntry(Datatype:=otDataType.List, isnullable:=True, _
-         XID:="OPS5", title:="Business Objects", description:="applicable business objects for this section")> Public Const ConstFNObjects = "OBJECTS"
+         XID:="OPS5", title:="Business Objects", description:="applicable business objects for this set")> Public Const ConstFNObjects = "OBJECTS"
 
         <ormObjectEntry(Datatype:=otDataType.Long, defaultvalue:=1, dbdefaultvalue:="1", _
                         XID:="OPS6", title:="Ordinal", Description:="ordinal of the set")> Public Const ConstFNordinal As String = "ORDINAL"
+
+        <ormObjectEntry(Datatype:=otDataType.Timestamp, isnullable:=True, _
+          XID:="OPS11", title:="Valid from", description:="timestamp the set is valid from on")> Public Shadows Const ConstFNValidFrom = "VALIDFROM"
+
+        <ormObjectEntry(Datatype:=otDataType.Timestamp, isnullable:=True, _
+           XID:="OPS12", title:="Valid Until", description:="timestamp the set is valid until")> Public Shadows Const ConstFNValidTo = "VALIDTO"
+
+        <ormObjectEntry(Datatype:=otDataType.Timestamp, isnullable:=True, _
+           XID:="OPS13", title:="Last Property Change", description:="timestamp of the last property change")> Public Shadows Const constFNPropChanged = "PCHANGEDON"
+
 
         ''' <summary>
         ''' Mappings
@@ -91,32 +675,126 @@ Namespace OnTrack.ObjectProperties
         ''' <remarks></remarks>
 
         <ormEntryMapping(EntryName:=ConstFNSetID)> Private _id As String = ""
-        <ormEntryMapping(EntryName:=ConstFNDescription)> Private _description As String = ""
+        <ormEntryMapping(EntryName:=constFNUpdc)> Private _updc As Long = 1
+        <ormEntryMapping(EntryName:=ConstFNDescription)> Private _description As String
         <ormEntryMapping(EntryName:=ConstFNProperties)> Private _propertyids As New List(Of String)
         <ormEntryMapping(EntryName:=ConstFNObjects)> Private _objectids As New List(Of String)
-        <ormEntryMapping(EntryName:=ConstFNordinal)> Private _ordinal As Long = 1
+        <ormEntryMapping(EntryName:=ConstFNordinal)> Private _ordinal As Long?
+
+        <ormEntryMapping(EntryName:=constFNPropChanged)> Private _lastPropertyChangedOn As DateTime?
+        <ormEntryMapping(EntryName:=ConstFNValidFrom)> Private _validFrom As DateTime?
+        <ormEntryMapping(EntryName:=ConstFNValidTo)> Private _validTo As DateTime?
+
         ''' <summary>
         ''' Relations
         ''' </summary>
         ''' <remarks></remarks>
         <ormRelation(linkobject:=GetType(ObjectProperty), cascadeOnDelete:=True, cascadeOnUpdate:=True, _
-            fromEntries:={ConstFNSetID}, toEntries:={ObjectProperty.ConstFNSetID})> Public Const ConstRProperties = "PROPERTIES"
+            fromEntries:={ConstFNSetID, constFNUpdc}, toEntries:={ObjectProperty.ConstFNSetID, ObjectProperty.ConstFNSetUPDC})> Public Const ConstRProperties = "PROPERTIES"
 
         <ormEntryMapping(RelationName:=ConstRProperties, infuseMode:=otInfuseMode.OnInject Or otInfuseMode.OnDemand, _
             keyentries:={ObjectProperty.ConstFNPropertyID})> Private WithEvents _propertiesCollection As New ormRelationCollection(Of ObjectProperty)(Me, {ObjectProperty.ConstFNPropertyID})
 
+
+        ''' <summary>
+        ''' Dynamic Members
+        ''' </summary>
+        ''' <remarks></remarks>
+
+        Private _propertiesChanged As Boolean = False ' true if properties are added or deleted
+        Private _currentset As ObjectPropertyCurrentSet ' backlink
+
 #Region "Properties"
+
+        ''' <summary>
+        ''' Gets or sets the properties changed.
+        ''' </summary>
+        ''' <value>The properties changed.</value>
+        Public Property PropertiesChanged() As Boolean
+            Get
+                Return Me._propertiesChanged
+            End Get
+            Private Set(value As Boolean)
+                Me._propertiesChanged = value
+            End Set
+        End Property
+
+        ''' <summary>
+        ''' returns the PropertyCurrentSet of this PropertySet
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        ReadOnly Property PropertyCurrentSet As ObjectPropertyCurrentSet
+            Get
+                If Not Me.IsAlive("PropertyCurrentSet") Then Return Nothing
+
+                If _currentset Is Nothing Then
+                    _currentset = ObjectPropertyCurrentSet.Retrieve(id:=Me.ID, domainid:=Me.DomainID)
+                End If
+
+                Return _currentset
+            End Get
+        End Property
+        ''' <summary>
+        ''' Gets or sets the valid until timestamp.
+        ''' </summary>
+        ''' <value>The valid to.</value>
+        Public Property [ValidUntil]() As DateTime?
+            Get
+                Return Me._validTo
+            End Get
+            Set(value As DateTime?)
+                SetValue(ConstFNValidTo, value)
+            End Set
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the valid from timestamp.
+        ''' </summary>
+        ''' <value>The valid from.</value>
+        Public Property ValidFrom() As DateTime?
+            Get
+                Return Me._validFrom
+            End Get
+            Set(value As DateTime?)
+                SetValue(ConstFNValidFrom, value)
+            End Set
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the last property changed on.
+        ''' </summary>
+        ''' <value>The last property changed on.</value>
+        Public Property LastPropertyChangedOn() As DateTime?
+            Get
+                Return Me._lastPropertyChangedOn
+            End Get
+            Private Set(value As DateTime?)
+                SetValue(constFNPropChanged, value)
+            End Set
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the updc.
+        ''' </summary>
+        ''' <value>The updc.</value>
+        Public ReadOnly Property Updc() As Long
+            Get
+                Return Me._updc
+            End Get
+        End Property
 
         ''' <summary>
         ''' Gets or sets the ordinal.
         ''' </summary>
         ''' <value>The ordinal.</value>
-        Public Property Ordinal() As Long
+        Public Property Ordinal() As Long?
             Get
                 Return Me._ordinal
             End Get
-            Set(value As Long)
-                SetValue(ConstFNordinal, Value)
+            Set(value As Long?)
+                SetValue(ConstFNordinal, value)
             End Set
         End Property
 
@@ -184,27 +862,60 @@ Namespace OnTrack.ObjectProperties
 #End Region
 
         ''' <summary>
-        ''' retrieve  the property section from store
+        ''' Update and initialize the linked value lots of  former versions of the set to this one
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function UpdateLots(Optional timestamp As DateTime? = Nothing) As Boolean
+            '** get all lots which have this set
+            Dim result As Boolean = True
+            If Not timestamp.HasValue Then timestamp = DateTime.Now
+
+            For Each aLink In ObjectPropertyLink.AllBySet(setid:=Me.ID)
+                '** get the links to increase the valuelot version
+                result = result And aLink.UpdateValueLot2Set(setid:=Me.ID, setupdc:=Me.Updc, timestamp:=timestamp, domainid:=Me.DomainID)
+            Next
+
+            Return result
+        End Function
+        ''' <summary>
+        ''' clone the object and its members
+        ''' </summary>
+        ''' <param name="UID"></param>
+        ''' <param name="updc"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Overloads Function Clone(Optional ByVal updc As Long? = Nothing) As ObjectPropertySet
+            Dim pkArray() As Object = {Me.ID, updc}
+            Dim aClone = MyBase.Clone(Of ObjectPropertySet)(newpkarray:=pkArray, runtimeOnly:=Me.RunTimeOnly)
+            For Each aProperty As ObjectProperty In Me.Properties
+                aProperty.Clone(aClone.ID, aClone.Updc, aProperty.ID, aProperty.DomainID)
+                'aClone.Properties.Add(aPropertyClone) adds by event
+            Next
+            Return aClone
+        End Function
+        ''' <summary>
+        ''' retrieve  the property set from store
         ''' </summary>
         ''' <param name="id"></param>
         ''' <param name="domainid"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Retrieve(id As String, Optional domainid As String = Nothing) As ObjectPropertySet
+        Public Overloads Shared Function Retrieve(id As String, updc As Long, Optional domainid As String = Nothing) As ObjectPropertySet
             If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
-            Return ormDataObject.Retrieve(Of ObjectPropertySet)(pkArray:={id.ToUpper, domainid.ToUpper}, domainID:=domainid)
+            Return ormDataObject.Retrieve(Of ObjectPropertySet)(pkArray:={id.ToUpper, updc, domainid.ToUpper}, domainID:=domainid)
         End Function
 
         ''' <summary>
-        ''' creates a persistable property section
+        ''' creates a persistable property set
         ''' </summary>
         ''' <param name="id"></param>
         ''' <param name="domainid"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Create(id As String, Optional domainid As String = Nothing) As ObjectPropertySet
+        Public Overloads Shared Function Create(id As String, Optional updc As Long? = Nothing, Optional domainid As String = Nothing) As ObjectPropertySet
             If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
-            Return ormDataObject.CreateDataObject(Of ObjectPropertySet)(pkArray:={id.ToUpper, domainid.ToUpper}, domainID:=domainid, checkUnique:=True)
+            Return ormDataObject.CreateDataObject(Of ObjectPropertySet)(pkArray:={id.ToUpper, updc, domainid.ToUpper}, domainID:=domainid, checkUnique:=True)
         End Function
 
 
@@ -219,10 +930,179 @@ Namespace OnTrack.ObjectProperties
             If Not _propertyids.Contains(e.Dataobject.ID) Then
                 _propertyids.Add(e.Dataobject.ID)
             End If
+            '''  add some event handling
+            ''' 
+            AddHandler e.Dataobject.OnCreated, AddressOf Me.PropertySet_OnCreatedProperty
+            AddHandler e.Dataobject.OnDeleted, AddressOf Me.PropertySet_OnDeletedProperty
         End Sub
 
 
+        ''' <summary>
+        ''' Event Handler for ObjectProperty OnCreated Event
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Private Sub PropertySet_OnCreatedProperty(sender As Object, e As ormDataObjectEventArgs)
+            Me._propertiesChanged = True
+        End Sub
+        ''' <summary>
+        ''' Event Handler for ObjectProperty OnDeleted Event
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Private Sub PropertySet_OnDeletedProperty(sender As Object, e As ormDataObjectEventArgs)
+            Me.Properties.Remove(e.DataObject)
+            Me._propertiesChanged = True
+        End Sub
+
+        ''' <summary>
+        ''' OnCreated Handler
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Private Sub ObjectPropertySet_OnCreated(sender As Object, e As ormDataObjectEventArgs) Handles Me.OnCreated
+
+            ''' create also aCurrentSet if it doesnot exist
+            Dim aCurrentSet As ObjectPropertyCurrentSet = ObjectPropertyCurrentSet.Retrieve(id:=Me.ID, domainid:=Me.DomainID)
+            If aCurrentSet Is Nothing Then
+                aCurrentSet = ObjectPropertyCurrentSet.Create(id:=Me.ID, domainid:=Me.DomainID)
+                aCurrentSet.Sets.Add(Me)
+            End If
+        End Sub
+
+        ''' <summary>
+        ''' Handler for OnCreating Event
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Private Sub ObjectPropertySet_OnCreating(sender As Object, e As ormDataObjectEventArgs) Handles Me.OnCreating
+            Dim anUpdc As Long? = e.Record.GetValue(constFNUpdc)
+            Dim aSetid As String = e.Record.GetValue(ConstFNSetID)
+            '* new uid
+            If Not anUpdc.HasValue OrElse anUpdc = 0 Then
+                anUpdc = Nothing 'reset to norhing
+                Dim primarykey As Object() = {aSetid, anUpdc}
+                If e.DataObject.PrimaryTableStore.CreateUniquePkValue(pkArray:=primarykey) Then
+                    e.Record.SetValue(constFNUpdc, primarykey(1)) ' to be created
+                    e.Result = True
+                    e.Proceed = True
+                Else
+                    CoreMessageHandler(message:="primary keys could not be created ?!", subname:="ObjectPropertySet.ObjectPropertySet_OnCreating", _
+                                       messagetype:=otCoreMessageType.InternalError)
+                End If
+
+            End If
+        End Sub
+        ''' <summary>
+        ''' OnFed Handler for some updating
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Private Sub ObjectPropertySet_OnFed(sender As Object, e As ormDataObjectEventArgs) Handles Me.OnFed
+            If Me._propertiesChanged Then
+                Me.LastPropertyChangedOn = Date.Now
+                Me._propertiesChanged = False
+            End If
+        End Sub
     End Class
+
+    ''' <summary>
+    ''' class for ObjectProperty Extended properties (special settings for ObjectProperty)
+    ''' </summary>
+    ''' <remarks></remarks>
+    Public Class ObjectPropertyExtProperty
+        Inherits AbstractPropertyFunction(Of otObjectPropertyExtProperty)
+        Public Const CopyInitialValueFrom = "COPYINITIALVALUEFROM"
+
+        ''' <summary>
+        ''' constructor
+        ''' </summary>
+        ''' <param name="propertystring"></param>
+        ''' <remarks></remarks>
+        Public Sub New(propertystring As String)
+            MyBase.New(propertystring:=propertystring)
+        End Sub
+        ''' <summary>
+        ''' validates the property
+        ''' </summary>
+        ''' <param name="property"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Overloads Shared Function Validate([property] As ObjectPropertyExtProperty) As Boolean
+            Try
+                Select Case [property].Enum
+                    Case otObjectPropertyExtProperty.CopyInitialValueFrom
+                        '''
+                        ''' optional arguemnt of foreign key
+                        ''' 
+                        If [property].Arguments IsNot Nothing AndAlso [property].Arguments.Count > 1 Then
+                            CoreMessageHandler(message:="first argument is property id - more arguments specified as required ", arg1:=[property].ToString, _
+                                           subname:="ObjectPropertyExtProperty.Validate", messagetype:=otCoreMessageType.InternalError)
+                            Return False
+                        End If
+
+                    Case Else
+                        Return True
+                End Select
+
+                Return True
+            Catch ex As Exception
+                CoreMessageHandler(exception:=ex, subname:="ObjectPropertyExtProperty.Validate")
+                Return False
+            End Try
+
+        End Function
+
+        ''' <summary>
+        ''' Apply the Property function to a value
+        ''' </summary>
+        ''' <param name="in"></param>
+        ''' <param name="out"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function Apply(ByRef value As Object, valuelot As ObjectPropertyValueLot, Optional msglog As ObjectMessageLog = Nothing) As Boolean
+
+            Try
+                ''' check on empty arrays or list
+                ''' 
+                If _property = otObjectPropertyExtProperty.CopyInitialValueFrom Then
+                    Dim avalue As Object
+                    If valuelot.GetPropertyValue(id:=_arguments(0), value:=avalue) Then
+                        value = avalue
+                        Return True
+                    Else
+                        Return False
+                    End If
+                End If
+
+            Catch ex As Exception
+                CoreMessageHandler(exception:=ex, subname:="ObjectPropertyExtProperty.Apply")
+                Return True
+            End Try
+
+        End Function
+        ''' <summary>
+        ''' returns the enumeration value
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function ToEnum() As otObjectPropertyExtProperty
+            Return AbstractPropertyFunction(Of otObjectPropertyExtProperty).ToEnum(_property)
+        End Function
+    End Class
+    ''' <summary>
+    ''' Enumeration of the validation properties
+    ''' </summary>
+    ''' <remarks></remarks>
+    Public Enum otObjectPropertyExtProperty
+        <Description(ObjectPropertyExtProperty.CopyInitialValueFrom)> CopyInitialValueFrom
+
+    End Enum
 
     ''' <summary>
     ''' class to define a configuration entity as member of a configuration attachable to other business objects
@@ -265,15 +1145,20 @@ Namespace OnTrack.ObjectProperties
             lookupPropertyStrings:={LookupProperty.UseForeignKey & "(" & constFKSet & ")"}, _
             validationPropertyStrings:={ObjectValidationProperty.NotEmpty, ObjectValidationProperty.UseLookup})> Public Const ConstFNSetID = ObjectPropertySet.ConstFNSetID
 
-        <ormObjectEntry(Datatype:=otDataType.Text, size:=50, primaryKeyOrdinal:=2, _
-            properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty},
-            XID:="OPR2", title:="Name", description:="ID of the property")> Public Const ConstFNPropertyID = "PROPERTYID"
+        <ormObjectEntry(referenceObjectEntry:=ObjectPropertySet.ConstObjectID & "." & ObjectPropertySet.constFNUpdc, primaryKeyOrdinal:=2, _
+            XID:="OPR2")> Public Shadows Const ConstFNSetUPDC = "SETUPDC"
 
-        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=3 _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=50, primaryKeyOrdinal:=3, _
+            properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty},
+            XID:="OPR3", title:="Name", description:="ID of the property")> Public Const ConstFNPropertyID = "PROPERTYID"
+
+        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=4 _
          , useforeignkey:=otForeignKeyImplementation.None, defaultvalue:=ConstGlobalDomain)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
-        <ormSchemaForeignKey(entrynames:={ConstFNSetID, ConstFNDomainID}, _
-            foreignkeyreferences:={ObjectPropertySet.ConstObjectID & "." & ObjectPropertySet.ConstFNSetID, ObjectPropertySet.ConstObjectID & "." & ObjectPropertySet.ConstFNDomainID}, _
+        <ormSchemaForeignKey(entrynames:={ConstFNSetID, ConstFNSetUPDC, ConstFNDomainID}, _
+            foreignkeyreferences:={ObjectPropertySet.ConstObjectID & "." & ObjectPropertySet.ConstFNSetID, _
+                ObjectPropertySet.ConstObjectID & "." & ObjectPropertySet.constFNUpdc, _
+                ObjectPropertySet.ConstObjectID & "." & ObjectPropertySet.ConstFNDomainID}, _
             useforeignkey:=otForeignKeyImplementation.NativeDatabase)> Public Const constFKSet = "FK_ObjPropertySet"
 
         ''' <summary>
@@ -282,6 +1167,7 @@ Namespace OnTrack.ObjectProperties
         ''' <remarks></remarks>
         <ormObjectEntry(Datatype:=otDataType.List, isnullable:=True, _
           XID:="OPR4", title:="Extended Properties", description:="internal properties of the object property")> Public Shadows Const ConstFNExtProperties = "EXTPROPERTIES"
+
 
         ''' <summary>
         ''' Shadows with own XID
@@ -308,7 +1194,8 @@ Namespace OnTrack.ObjectProperties
 
         <ormEntryMapping(EntryName:=ConstFNSetID)> Private _setid As String = ""
         <ormEntryMapping(entryname:=ConstFNPropertyID)> Private _ID As String = ""
-        <ormEntryMapping(EntryName:=ConstFNExtProperties)> Private _extproperties As String()
+        <ormEntryMapping(EntryName:=ConstFNExtProperties)> Private _extpropertiesStrings As String()
+        <ormEntryMapping(EntryName:=ConstFNSetUPDC)> Private _setupdc As Long?
 
         ''' <summary>
         '''  further dynamic 
@@ -334,6 +1221,12 @@ Namespace OnTrack.ObjectProperties
         <ormObjectEntry(isactive:=False)> Public Const ConstFNCompoundValidator As String = "CVALIDATE"
 
         ''' <summary>
+        ''' Dynamic members
+        ''' </summary>
+        ''' <remarks></remarks>
+
+        Private _extendedProperties As New List(Of ObjectPropertyExtProperty)
+        ''' <summary>
         ''' constructor
         ''' </summary>
         ''' <remarks></remarks>
@@ -348,6 +1241,19 @@ Namespace OnTrack.ObjectProperties
 
 #Region "Properties"
         ''' <summary>
+        ''' Gets or sets the Updc of the set.
+        ''' </summary>
+        ''' <value>The setupdc.</value>
+        Public Property Setupdc() As Long?
+            Get
+                Return Me._setupdc
+            End Get
+            Set(value As Long?)
+                SetValue(ConstFNSetUPDC, value)
+            End Set
+        End Property
+
+        ''' <summary>
         ''' Gets the entity ID.
         ''' </summary>
         ''' <value>The entity.</value>
@@ -358,7 +1264,7 @@ Namespace OnTrack.ObjectProperties
         End Property
 
         ''' <summary>
-        ''' returns the ID of the section
+        ''' returns the ID of the set
         ''' </summary>
         ''' <value></value>
         ''' <returns></returns>
@@ -378,7 +1284,7 @@ Namespace OnTrack.ObjectProperties
             Get
 
                 If _set Is Nothing Then
-                    _set = ObjectPropertySet.Retrieve(id:=_setid, domainid:=Me.DomainID)
+                    _set = ObjectPropertySet.Retrieve(id:=_setid, updc:=Me.Setupdc.Value, domainid:=Me.DomainID)
                     If _set Is Nothing Then
                         CoreMessageHandler(message:="object property set does not exist", subname:="ObjectProperty.PropertySet", _
                                            messagetype:=otCoreMessageType.ApplicationError, _
@@ -395,18 +1301,51 @@ Namespace OnTrack.ObjectProperties
         ''' Gets or sets the properties of the object property definition.
         ''' </summary>
         ''' <value>The properties.</value>
-        Public Property ExtendedProperties() As String()
+        Public Property ExtendedPropertyStrings() As String()
             Get
-                Return Me._extproperties
+                Return Me._extpropertiesStrings
             End Get
             Set(value As String())
-                Me._extproperties = value
+                Me._extpropertiesStrings = value
             End Set
         End Property
 
+        ''' <summary>
+        ''' gets or sets the validation properties
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Property ExtendedProperties As List(Of ObjectPropertyExtProperty)
+            Get
+                Return _extendedProperties
+            End Get
+            Set(value As List(Of ObjectPropertyExtProperty))
+                Dim aPropertyString As New List(Of String)
+                For Each aP In value
+                    aPropertyString.Add(aP.ToString)
+                Next
+                If SetValue(entryname:=ConstFNExtProperties, value:=aPropertyString.ToArray) Then
+                    _extendedProperties = value
+                End If
+            End Set
+        End Property
 
+      
 #End Region
 
+        ''' <summary>
+        ''' clone the object 
+        ''' </summary>
+        ''' <param name="UID"></param>
+        ''' <param name="updc"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Overloads Function Clone(setid As String, setupdc As Long, ID As String, Optional domainid As String = Nothing) As ObjectProperty
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
+            Dim pkarray As Object() = {setid.ToUpper, setupdc, ID.ToUpper, domainid}
+            Return MyBase.Clone(Of ObjectProperty)(newpkarray:=pkarray, runtimeOnly:=Me.RunTimeOnly)
+        End Function
 
         ''' <summary>
         ''' Handles OnCreating 
@@ -420,7 +1359,7 @@ Namespace OnTrack.ObjectProperties
             If my IsNot Nothing Then
                 Dim setid As String = e.Record.GetValue(ConstFNSetID)
                 If setid Is Nothing Then
-                    CoreMessageHandler(message:="object propert set doesnot exist", subname:="ObjectProperty.OnCreating", _
+                    CoreMessageHandler(message:="object property set is not set in object property creating", subname:="ObjectProperty.OnCreating", _
                                        messagetype:=otCoreMessageType.ApplicationError, _
                                        arg1:=my.SetID)
                     e.AbortOperation = True
@@ -428,11 +1367,28 @@ Namespace OnTrack.ObjectProperties
                 End If
                 ''' even if it is early to retrieve the set and set it (since this might disposed since we have not run through checkuniqueness and cache)
                 ''' we need to check on the object here
-                _set = ObjectPropertySet.Retrieve(id:=setid, domainid:=Me.DomainID)
+
+                Dim setupdc As Long? = e.Record.GetValue(ConstFNSetUPDC)
+                Dim domainid As String = e.Record.GetValue(ConstFNDomainID)
+                If domainid Is Nothing Then domainid = Me.DomainID
+                If Not setupdc.HasValue Then
+                    Dim aCurrentSet As ObjectPropertyCurrentSet = ObjectPropertyCurrentSet.Retrieve(id:=setid, domainid:=domainid)
+                    If aCurrentSet IsNot Nothing Then
+                        setupdc = aCurrentSet.Workupdc
+                        e.Record.SetValue(ConstFNSetUPDC, setupdc)
+                    Else
+                        CoreMessageHandler(message:="object property current set does not exist in the database", subname:="ObjectProperty.OnCreated", _
+                                      messagetype:=otCoreMessageType.ApplicationError, _
+                                      arg1:=setid)
+                        e.AbortOperation = True
+                    End If
+                End If
+
+                _set = ObjectPropertySet.Retrieve(id:=setid, updc:=setupdc, domainid:=domainid)
                 If _set Is Nothing Then
-                    CoreMessageHandler(message:="object propert set doesnot exist", subname:="ObjectProperty.OnCreated", _
+                    CoreMessageHandler(message:="object property set doesn ot exist", subname:="ObjectProperty.OnCreated", _
                                        messagetype:=otCoreMessageType.ApplicationError, _
-                                       arg1:=my.SetID)
+                                       arg1:=setid)
                     e.AbortOperation = True
                     Return
                 End If
@@ -449,21 +1405,18 @@ Namespace OnTrack.ObjectProperties
             Dim my As ObjectProperty = TryCast(e.DataObject, ObjectProperty)
 
             If my IsNot Nothing Then
-                If _set Is Nothing Then
-                    _set = ObjectPropertySet.Retrieve(id:=SetID, domainid:=Me.DomainID)
-                    If _set Is Nothing Then
-                        CoreMessageHandler(message:="object propert set doesnot exist", subname:="ObjectProperty.OnCreated", _
-                                          messagetype:=otCoreMessageType.ApplicationError, _
-                                           arg1:=my.SetID)
-                        e.AbortOperation = True
-                        Return
-                    End If
+                If Me.PropertySet Is Nothing Then
+                    CoreMessageHandler(message:="object propert set doesnot exist", subname:="ObjectProperty.OnCreated", _
+                                      messagetype:=otCoreMessageType.ApplicationError, _
+                                       arg1:=my.SetID)
+                    e.AbortOperation = True
+                    Return
                 End If
             End If
 
         End Sub
         ''' <summary>
-        ''' Handles OnCreating and Relation to ConfigSection
+        ''' Handles OnCreating and Relation to Configset
         ''' </summary>
         ''' <param name="sender"></param>
         ''' <param name="e"></param>
@@ -475,9 +1428,32 @@ Namespace OnTrack.ObjectProperties
             ''' only on the create case we need to add to the properties otherwise
             ''' propertyset will load the property
             ''' or the property will stand alone
-            If my IsNot Nothing AndAlso e.Infusemode = otInfuseMode.OnCreate AndAlso _set IsNot Nothing Then
-                _set.Properties.Add(my)
+            If my IsNot Nothing AndAlso e.Infusemode = otInfuseMode.OnCreate Then
+                If Me.PropertySet Is Nothing Then
+                    CoreMessageHandler(message:="object propert set doesnot exist", subname:="ObjectProperty.OnCreated", _
+                                      messagetype:=otCoreMessageType.ApplicationError, _
+                                       arg1:=my.SetID)
+                    e.AbortOperation = True
+                    Return
+                Else
+                    Me.PropertySet.Properties.Add(my)
+                End If
             End If
+            ''** the property list in Object presentation
+
+            If _extpropertiesStrings IsNot Nothing Then
+                Dim aList As New List(Of ObjectPropertyExtProperty)
+                For Each propstring In _extpropertiesStrings
+                    Try
+                        Dim aProperty As ObjectPropertyExtProperty = New ObjectPropertyExtProperty(propstring)
+                        aList.Add(aProperty)
+                    Catch ex As Exception
+                        Call CoreMessageHandler(subname:="ObjetcProperty_OnInfused", exception:=ex)
+                    End Try
+                Next
+                _extendedProperties = aList ' assign
+            End If
+
         End Sub
         ''' <summary>
         ''' set the values of a compound from a property
@@ -499,7 +1475,7 @@ Namespace OnTrack.ObjectProperties
                 .InnerDatatype = Me.InnerDatatype
                 .Version = Me.Version
                 .Title = Me.Title
-                .propertystrings = .propertystrings
+                .PropertyStrings = .PropertyStrings
                 .Description = Me.Description
                 ' ordinal calculate an ordinal
                 .Ordinal = 1000 + (Me.PropertySet.Ordinal - 1) * 100 + Me.Ordinal
@@ -514,7 +1490,7 @@ Namespace OnTrack.ObjectProperties
                 .XID = Me.XID
                 If .XID Is Nothing Then .XID = Me.SetID & "." & Me.ID
                 .IsValidating = Me.IsValidating
-                .RenderPropertystrings = Me._renderPropertyStrings
+                .RenderPropertyStrings = Me._renderPropertyStrings
                 .RenderRegExpMatch = Me.RenderRegExpMatch
                 .RenderRegExpPattern = Me.RenderRegExpMatch
                 .IsRendering = Me.IsRendering
@@ -538,17 +1514,78 @@ Namespace OnTrack.ObjectProperties
         ''' <remarks></remarks>
         Private Sub ObjectProperty_OnCreateDefaultValuesNeeded(sender As Object, e As ormDataObjectEventArgs) Handles Me.OnCreateDefaultValuesNeeded
             If Not e.Record.HasIndex(ConstFNType) Then e.Record.SetValue(ConstFNType, otObjectEntryType.Compound.ToString)
+            If Not e.Record.HasIndex(ConstFNSetUPDC) Then
+                If _set Is Nothing Then
+                    Dim setid As String = e.Record.GetValue(ConstFNSetID)
+                    If setid Is Nothing Then
+                        CoreMessageHandler(message:="object propert set doesnot exist", subname:="ObjectProperty.OnCreateDefaultValuesNeeded", _
+                                           messagetype:=otCoreMessageType.ApplicationError, _
+                                           arg1:=setid)
+                        e.AbortOperation = True
+                        Return
+                    End If
+                    ''' even if it is early to retrieve the set and set it (since this might disposed since we have not run through checkuniqueness and cache)
+                    ''' we need to check on the object here
+                    Dim setupdc As Long? = e.Record.GetValue(ConstFNSetUPDC)
+                    If Not setupdc.HasValue Then
+                        Dim aCurrentSetid As ObjectPropertyCurrentSet = ObjectPropertyCurrentSet.Retrieve(id:=setid)
+                        If aCurrentSetid IsNot Nothing Then
+                            setupdc = aCurrentSetid.AliveUpdc
+                        Else
+                            CoreMessageHandler(message:="object propert current set does not exist", subname:="ObjectProperty.OnCreated", _
+                                          messagetype:=otCoreMessageType.ApplicationError, _
+                                          arg1:=setid)
+                            e.AbortOperation = True
+                        End If
+                    End If
+                    _set = ObjectPropertySet.Retrieve(id:=setid, updc:=setupdc, domainid:=Me.DomainID)
+                    If _set Is Nothing Then
+                        CoreMessageHandler(message:="object propert set doesnot exist", subname:="ObjectProperty.OnCreateDefaultValuesNeeded", _
+                                           messagetype:=otCoreMessageType.ApplicationError, _
+                                           arg1:=setid)
+                        e.AbortOperation = True
+                        Return
+                    End If
+                End If
+            End If
+            ''' finally set the updc of the set in the record
+            e.Record.SetValue(ConstFNSetUPDC, _set.Updc)
         End Sub
 
-       
         ''' <summary>
-        ''' OnPersisted Handler to add the Properties as Compounds to the ObjectIDs
+        ''' Delete the compound structure of this Property
         ''' </summary>
-        ''' <param name="sender"></param>
-        ''' <param name="e"></param>
+        ''' <returns></returns>
         ''' <remarks></remarks>
-        Private Sub ObjectProperty_OnPersisted(sender As Object, e As ormDataObjectEventArgs) Handles Me.OnPersisted
+        Public Function DeleteCompoundStructure() As Boolean
 
+            ''' attach the Properties as compounds
+            ''' 
+            For Each anObjectID In Me.PropertySet.AttachedObjectIDs
+                Dim anObjectDefinition As ObjectDefinition = CurrentSession.Objects.GetObject(objectid:=anObjectID)
+                If anObjectDefinition IsNot Nothing Then
+                    Dim apath As String()
+                    ReDim apath(_relationpath.GetUpperBound(0) + 1)
+                    apath(0) = anObjectID
+                    Array.ConstrainedCopy(_relationpath, 0, apath, 1, apath.Length - 1)
+                    ''' delete all the relational path compounds
+                    ''' 
+                    For i = apath.GetLowerBound(0) To apath.GetUpperBound(0) - 1
+                        Dim aCompound As ObjectCompoundEntry = ObjectCompoundEntry.Retrieve(apath(i), Me.ID, domainID:=Me.DomainID, runtimeOnly:=Me.RunTimeOnly)
+                        If aCompound IsNot Nothing Then aCompound.Delete()
+                    Next
+
+                End If
+            Next
+
+            Return True
+        End Function
+        ''' <summary>
+        ''' Create the Compound on each layer of the property
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function CreateCompoundStructure() As Boolean
             ''' attach the Properties as compounds
             ''' 
             Dim aSet = Me.PropertySet
@@ -556,10 +1593,12 @@ Namespace OnTrack.ObjectProperties
                 CoreMessageHandler(message:="object propert set doesnot exist", subname:="ObjectProperty.OnPersisted", _
                                    messagetype:=otCoreMessageType.ApplicationError, _
                                    arg1:=Me.SetID)
-                e.AbortOperation = True
-                Return
+                Return False
             End If
 
+            '''
+            ''' build the structure
+            ''' 
             For Each anObjectID In aSet.AttachedObjectIDs
                 Dim anObjectDefinition As ObjectDefinition = CurrentSession.Objects.GetObject(objectid:=anObjectID)
                 If anObjectDefinition IsNot Nothing Then
@@ -581,7 +1620,7 @@ Namespace OnTrack.ObjectProperties
                     For i = apath.GetLowerBound(0) To apath.GetUpperBound(0) - 1
                         Dim names As String() = Shuffle.NameSplitter(apath(i)) ' get the objectname from the canonical form
                         Dim aCompound As ObjectCompoundEntry = ObjectCompoundEntry.Create(objectname:=names(0), _
-                                                                                     entryname:=Me.ID, domainID:=Me.DomainID, _
+                                                                                     entryname:=Me.ID, domainid:=Me.DomainID, _
                                                                                      runtimeOnly:=Me.RunTimeOnly, checkunique:=True)
                         If aCompound Is Nothing Then aCompound = ObjectCompoundEntry.Retrieve(objectname:=names(0), _
                                                                                      entryname:=Me.ID, domainID:=Me.DomainID, runtimeOnly:=Me.RunTimeOnly)
@@ -609,12 +1648,28 @@ Namespace OnTrack.ObjectProperties
                         ''' 
 
                         aCompound.Persist()
-
                     Next
-
-
                 End If
             Next
+
+            Return True
+        End Function
+
+        ''' <summary>
+        ''' OnPersisted Handler to add the Properties as Compounds to the ObjectIDs
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Private Sub ObjectProperty_OnPersisted(sender As Object, e As ormDataObjectEventArgs) Handles Me.OnPersisted
+            Dim aSet = Me.PropertySet
+            If aSet Is Nothing Then
+                CoreMessageHandler(message:="object propert set doesnot exist", subname:="ObjectProperty.OnPersisted", _
+                                   messagetype:=otCoreMessageType.ApplicationError, _
+                                   arg1:=Me.SetID)
+                e.AbortOperation = True
+                Return
+            End If
         End Sub
         ''' <summary>
         ''' OnDeleted Handler to add the Properties as Compounds to the ObjectIDs
@@ -623,51 +1678,33 @@ Namespace OnTrack.ObjectProperties
         ''' <param name="e"></param>
         ''' <remarks></remarks>
         Private Sub ObjectProperty_OnDeleted(sender As Object, e As ormDataObjectEventArgs) Handles Me.OnDeleted
-
-            ''' attach the Properties as compounds
-            ''' 
-            For Each anObjectID In _set.AttachedObjectIDs
-                Dim anObjectDefinition As ObjectDefinition = CurrentSession.Objects.GetObject(objectid:=anObjectID)
-                If anObjectDefinition IsNot Nothing Then
-                    Dim apath As String()
-                    ReDim apath(_relationpath.GetUpperBound(0) + 1)
-                    apath(0) = anObjectID
-                    Array.ConstrainedCopy(_relationpath, 0, apath, 1, apath.Length)
-                    ''' create all the relational path
-                    ''' 
-                    For i = apath.GetUpperBound(0) To apath.GetUpperBound(0) - 1
-                        Dim aCompound As ObjectCompoundEntry = ObjectCompoundEntry.Retrieve(apath(i), Me.ID, domainID:=Me.DomainID, runtimeOnly:=Me.RunTimeOnly)
-                        If aCompound IsNot Nothing Then aCompound.Delete()
-                    Next
-
-                End If
-            Next
+            DeleteCompoundStructure()
         End Sub
         ''' <summary>
         ''' create a persistable ObjectProperty
         ''' </summary>
-        ''' <param name="Section"></param>
+        ''' <param name="set"></param>
         ''' <param name="Entity"></param>
         ''' <param name="domainid"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Create(setid As String, ID As String, Optional domainid As String = Nothing) As ObjectProperty
+        Public Overloads Shared Function Create(setid As String, setupdc As Long, ID As String, Optional domainid As String = Nothing) As ObjectProperty
             If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
-            Dim primarykey As Object() = {setid.ToUpper, ID.ToUpper, domainid}
+            Dim primarykey As Object() = {setid.ToUpper, setupdc, ID.ToUpper, domainid}
             Return ormDataObject.CreateDataObject(Of ObjectProperty)(pkArray:=primarykey, domainID:=domainid, checkUnique:=True)
         End Function
 
         ''' <summary>
         ''' create a persistable ObjectProperty
         ''' </summary>
-        ''' <param name="Section"></param>
+        ''' <param name="set"></param>
         ''' <param name="Entity"></param>
         ''' <param name="domainid"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Retrieve(setid As String, ID As String, Optional domainid As String = Nothing) As ObjectProperty
+        Public Overloads Shared Function Retrieve(setid As String, setupdc As Long, ID As String, Optional domainid As String = Nothing) As ObjectProperty
             If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
-            Dim primarykey As Object() = {setid.ToUpper, ID.ToUpper, domainid}
+            Dim primarykey As Object() = {setid.ToUpper, setupdc, ID.ToUpper, domainid}
             Return ormDataObject.Retrieve(Of ObjectProperty)(pkArray:=primarykey)
         End Function
 
@@ -683,6 +1720,8 @@ Namespace OnTrack.ObjectProperties
                 e.Result = True
             End If
         End Sub
+
+
     End Class
 
     '    SELECT      TBLOBJPROPERTYLINKS.FROMOBJECTID, TBLOBJPROPERTYLINKS.fromuid, tblobjpropertylinks.FROMUPDC ,
@@ -725,7 +1764,7 @@ Namespace OnTrack.ObjectProperties
         <ormSchemaIndex(columnname1:=ConstFNToUid, columnname2:=ConstFNFromObjectID, columnname3:=ConstFNFromUid)> Public Const ConstIndTag = "used"
 
         ''' <summary>
-        ''' Primary key of the CONFIG link object
+        ''' Primary key of the property link object
         ''' FROM an ObjectID, UID, UPDC (KEY)
         ''' TO   an OBJECTID, UID, UPDC
         ''' 
@@ -910,6 +1949,105 @@ Namespace OnTrack.ObjectProperties
 #End Region
 
         ''' <summary>
+        ''' return a list of all ValueLots having the setid
+        ''' </summary>
+        ''' <param name="setid"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Shared Function AllByValueLot(uid As Long, updc As Long) As IList(Of ObjectPropertyLink)
+            Dim aStore As iormDataStore = ot.GetTableStore(ConstTableID)
+            Dim aCollection As New List(Of ObjectPropertyLink)
+            Try
+                Dim aCommand As ormSqlSelectCommand = aStore.CreateSqlSelectCommand(id:="AllByValueLot", addAllFields:=True)
+                If Not aCommand.Prepared Then
+                    aCommand.Where = "[" & ConstFNIsDeleted & "] = @deleted AND [" & ConstFNToUid & "] = @touid AND [" & ConstFNToUpdc & "] = @toupdc "
+
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@deleted", ColumnName:=ConstFNIsDeleted, tablename:=ConstTableID))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@touid", columnname:=ConstFNToUid, tablename:=ConstTableID))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@toupdc", columnname:=ConstFNToUpdc, tablename:=ConstTableID))
+                    aCommand.Prepare()
+                End If
+                aCommand.SetParameterValue(ID:="@deleted", value:=False)
+                aCommand.SetParameterValue(ID:="@touid", value:=uid)
+                aCommand.SetParameterValue(ID:="@toupdc", value:=updc)
+
+                Dim aRecordCollection = aCommand.RunSelect
+
+                For Each aRecord As ormRecord In aRecordCollection
+                    Dim anewObject As New ObjectPropertyLink
+                    If InfuseDataObject(record:=aRecord, dataobject:=anewObject) Then
+                        aCollection.Add(item:=anewObject)
+                    End If
+                Next
+
+                Return aCollection
+
+
+            Catch ex As Exception
+                Call CoreMessageHandler(exception:=ex, subname:="ObjectPropertyLink.allbyLot")
+                Return aCollection
+
+            End Try
+        End Function
+        ''' <summary>
+        ''' return a list of all ValueLots having the setid
+        ''' </summary>
+        ''' <param name="setid"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Shared Function AllBySet(setid As String) As IList(Of ObjectPropertyLink)
+            Dim aStore As iormDataStore = ot.GetTableStore(ConstTableID)
+            Dim aCollection As New List(Of ObjectPropertyLink)
+            Try
+
+                For Each aLink In ObjectPropertyLink.AllDataObject(Of ObjectPropertyLink)()
+                    If aLink.PropertyValueLot IsNot Nothing AndAlso aLink.PropertyValueLot.PropertySetIDs.Contains(setid.ToUpper) Then
+                        aCollection.Add(aLink)
+                    End If
+                Next
+               
+                Return aCollection
+
+            Catch ex As Exception
+                Call CoreMessageHandler(exception:=ex, subname:="ObjectPropertyLink.AllBySet")
+                Return aCollection
+
+            End Try
+        End Function
+        ''' <summary>
+        ''' Update the link to the setid and setupdc
+        ''' </summary>
+        ''' <param name="setid"></param>
+        ''' <param name="setupdc"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function UpdateValueLot2Set(setid As String, setupdc As Long, _
+                                           Optional timestamp As DateTime? = Nothing, _
+                                           Optional domainid As String = Nothing) As Boolean
+            If Not IsAlive(subname:="UpdateSetUpdc") Then Return False
+            '**
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
+
+            '** clone
+            Dim aNewLot As ObjectPropertyValueLot = Me.PropertyValueLot.Clone(uid:=Me.ToUID)
+            If aNewLot.UpdateSet(setid:=setid, setupdc:=setupdc, domainid:=domainid) Then
+
+                Me.ToUID = aNewLot.UID
+                Me.ToUpdc = aNewLot.UPDC ' set new one
+                Me.PropertyValueLot.ValidUntil = Date.Now
+                _prevVersionLots.Add(_propertyValueLot)
+                aNewLot.Validfrom = Date.Now
+                aNewLot.ValidUntil = Nothing
+                _propertyValueLot = aNewLot
+                _propertyValueLot.DomainID = domainid
+                aNewLot.Persist(timestamp)
+                Me.Persist(timestamp)
+
+                Return True
+            End If
+            Return False
+        End Function
+        ''' <summary>
         ''' operation to set a PropertyValue - here we must change to next version (updc) of the 
         ''' </summary>
         ''' <param name="id">the property</param>
@@ -941,6 +2079,8 @@ Namespace OnTrack.ObjectProperties
                     Me.ToUpdc = aNewLot.UPDC ' set new one
                     Me.PropertyValueLot.ValidUntil = Date.Now
                     _prevVersionLots.Add(_propertyValueLot)
+                    aNewLot.Validfrom = Date.Now
+                    aNewLot.ValidUntil = Nothing
                     _propertyValueLot = aNewLot
                     _propertyValueLot.DomainID = domainid
                 End If
@@ -1103,11 +2243,14 @@ Namespace OnTrack.ObjectProperties
          lookupPropertyStrings:={LookupProperty.UseObjectEntry & "(" & ObjectPropertySet.ConstObjectID & "." & ObjectPropertySet.ConstFNSetID & ")"}, validationPropertyStrings:={ObjectValidationProperty.UseLookup}, _
          XID:="PLOT4", title:="Property Sets", description:="applicable property sets for this lot")> Public Const ConstFNSets = "SETS"
 
-        <ormObjectEntry(Datatype:=otDataType.Date, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.Timestamp, isnullable:=True, _
         XID:="PLOT11", title:="valid from", description:="property set is valid from ")> Public Const ConstFNValidFrom = "validfrom"
 
-        <ormObjectEntry(Datatype:=otDataType.Date, isnullable:=True, _
+        <ormObjectEntry(Datatype:=otDataType.Timestamp, isnullable:=True, _
        XID:="PLOT12", title:="valid until", description:="property set is valid until ")> Public Const ConstFNValiduntil = "validuntil"
+
+        <ormObjectEntry(Datatype:=otDataType.List, isnullable:=True, _
+        XID:="PLOT15", title:="PropertySet UpdateCounter", description:="property set updatecounter of last values ")> Public Const ConstFNSetUPDCs = "SETUPDCS"
 
 
         ''' <summary>
@@ -1121,9 +2264,10 @@ Namespace OnTrack.ObjectProperties
         <ormEntryMapping(EntryName:=ConstFNSets)> Private _setids As String() = {}
         <ormEntryMapping(EntryName:=ConstFNValidFrom)> Private _validfrom As DateTime?
         <ormEntryMapping(EntryName:=ConstFNValiduntil)> Private _validuntil As DateTime?
+        <ormEntryMapping(EntryName:=ConstFNSetUPDCs)> Private _setsupdc As String() = {}
 
         ''' <summary>
-        ''' Relations of compound
+        ''' Relations of values
         ''' </summary>
         ''' <remarks></remarks>
         <ormRelation(linkobject:=GetType(ObjectPropertyValue), cascadeOnDelete:=True, cascadeOnUpdate:=True, _
@@ -1146,8 +2290,22 @@ Namespace OnTrack.ObjectProperties
         ''' <remarks></remarks>
         ''' 
         Private _changedPropertyValues As New Dictionary(Of String, ObjectPropertyValue)
+        Private _propertysets As New List(Of ObjectPropertySet)
 
 #Region "Properties"
+
+        ''' <summary>
+        ''' Gets or sets the UPDC of the Sets as Array of Long.
+        ''' </summary>
+        ''' <value>The setsupdc.</value>
+        Public Property Setsupdc() As String()
+            Get
+                Return Me._setsupdc
+            End Get
+            Set(value As String())
+                SetValue(ConstFNSetUPDCs, value)
+            End Set
+        End Property
 
         ''' <summary>
         ''' Gets or sets the validto date.
@@ -1176,7 +2334,7 @@ Namespace OnTrack.ObjectProperties
         End Property
 
         '' <summary>
-        ''' Gets or sets the section id s.
+        ''' Gets or sets the set id s.
         ''' </summary>
         ''' <value>The properties.</value>
         Public Property PropertySetIDs() As String()
@@ -1225,7 +2383,7 @@ Namespace OnTrack.ObjectProperties
             End Get
         End Property
         ''' <summary>
-        ''' returns the Entities of this Section
+        ''' returns the Entities of this set
         ''' </summary>
         ''' <value></value>
         ''' <returns></returns>
@@ -1236,9 +2394,59 @@ Namespace OnTrack.ObjectProperties
             End Get
         End Property
 
+        ''' <summary>
+        ''' gets the property sets of this value lot
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        ReadOnly Property PropertySets As IList(Of ObjectPropertySet)
+            Get
+                Return _propertysets
+            End Get
+        End Property
 #End Region
 
+        ''' <summary>
+        ''' return a list of all ValueLots having the setid
+        ''' </summary>
+        ''' <param name="setid"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Shared Function AllBySet(setid As String) As IList(Of ObjectPropertyValueLot)
+            Dim aStore As iormDataStore = ot.GetTableStore(ObjectPropertyValueLot.constTableID)
+            Dim aCollection As New List(Of ObjectPropertyValueLot)
+            Try
+                Dim aCommand As ormSqlSelectCommand = aStore.CreateSqlSelectCommand(id:="AllBySet", addAllFields:=True)
+                If Not aCommand.Prepared Then
+                    aCommand.Where = "[" & ConstFNIsDeleted & "] = @deleted AND [" & ConstFNSets & "] like @sets"
+                   
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@deleted", ColumnName:=ConstFNIsDeleted, tablename:=constTableID))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@sets", notColumn:=True, datatype:=otDataType.Text))
+                    aCommand.Prepare()
+                End If
+                aCommand.SetParameterValue(ID:="@deleted", value:=False)
+                aCommand.SetParameterValue(ID:="@sets", value:="%" & ConstDelimiter & setid & ConstDelimiter & "%")
 
+                Dim aRecordCollection = aCommand.RunSelect
+
+                For Each aRecord As ormRecord In aRecordCollection
+                    Dim anewObject As New ObjectPropertyValueLot
+                    If InfuseDataObject(record:=aRecord, dataobject:=anewObject) Then
+                        aCollection.Add(item:=anewObject)
+                    End If
+                Next
+
+                Return aCollection
+
+
+            Catch ex As Exception
+
+                Call CoreMessageHandler(exception:=ex, subname:="ObjectPropertyValueLot.AllBySet")
+                Return aCollection
+
+            End Try
+        End Function
 
         ''' <summary>
         ''' operation to Access the Compound's Value
@@ -1251,6 +2459,7 @@ Namespace OnTrack.ObjectProperties
         Public Function GetPropertyValue(id As String, ByRef value As Object, Optional domainid As String = Nothing) As Boolean
             If Not IsAlive(subname:="GetPropertyValue") Then Return Nothing
             Dim propertyID As String = id.ToUpper
+            Dim aPropertySet As ObjectPropertySet
             If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
 
             ''' the id should be in a canonical form
@@ -1268,12 +2477,13 @@ Namespace OnTrack.ObjectProperties
                     Return False
 
 
-                ElseIf _setids.Count = 1 Then
+                ElseIf _setids.Count = 1 AndAlso Me.PropertySets.First.PropertyIDs.Contains(id.ToUpper) Then
                     ReDim names(1)
                     names(0) = _setids(0)
+                    aPropertySet = Me.PropertySets.First
                     names(1) = id.ToUpper
                 Else
-                    CoreMessageHandler(message:="property to be added doesnot exist in this set", messagetype:=otCoreMessageType.ApplicationError, _
+                    CoreMessageHandler(message:="property to be added does not exist in this set", messagetype:=otCoreMessageType.ApplicationError, _
                                       arg1:=id, objectname:=Me.ObjectID, subname:="ObjectPropertyValueLot.GetPropertyValue")
                     ''' not found not in
                     Return False
@@ -1281,62 +2491,52 @@ Namespace OnTrack.ObjectProperties
 
                 ''' extend the properties by this set
             ElseIf names.Count > 1 Then
-                If _setids.Contains(names(0)) Then
-                    ' fine nothing do to
-                Else
-                    '' check if the setid exists
-                    Dim aPropertySet = ObjectPropertySet.Retrieve(id:=names(0), domainid:=domainid)
-                    If aPropertySet Is Nothing Then
-                        '' maybe this was not part of the name ?! in another set as unique name ?
-                        If _setids.Count > 0 Then
-                            '' search it
-                            Dim aSet As ObjectPropertySet
-                            Dim found As Boolean = False
-                            For Each aSetname As String In _setids
-                                aSet = ObjectPropertySet.Retrieve(id:=aSetname, domainid:=domainid)
-                                If aSet IsNot Nothing Then
-                                    If aSet.PropertyIDs.Contains(id.ToUpper) Then
-                                        names(0) = aSetname.ToUpper
-                                        names(1) = id.ToUpper
-                                        found = True
-                                        Exit For
-                                    End If
-                                End If
-                            Next
-                            If Not found Then
-                                CoreMessageHandler(message:="property does not exist in any set of the lot", messagetype:=otCoreMessageType.ApplicationError, _
-                                               arg1:=id, objectname:=Me.ObjectID, subname:="ObjectPropertyValueLot.GetPropertyValue")
-                                Return False
-                            End If
-                        Else
-                            CoreMessageHandler(message:="property set '" & names(0) & "' to be added does not exist", messagetype:=otCoreMessageType.ApplicationError, _
-                                                arg1:=id, objectname:=Me.ObjectID, subname:="ObjectPropertyValueLot.GetPropertyValue")
-                            Return False
-                        End If
-                    Else
-                        If aPropertySet.PropertyIDs.Contains(names(1)) Then
-                            ''' add the set
-                            If Not Me.AddSet(names(0)) Then
-                                CoreMessageHandler(message:="property set '" & names(0) & "' could not be added to the property value lot", messagetype:=otCoreMessageType.ApplicationError, _
-                                                   arg1:=id, objectname:=Me.ObjectID, subname:="ObjectPropertyValueLot.GetPropertyValue")
-                                Return False
-                            End If
-                        Else
-                            ''' damm the property doesnot exist in this set ?!
-                            ''' 
+                ''' do we have the id
+                aPropertySet = Me.PropertySets.Where(Function(x) x.ID = names(0) And x.PropertyIDs.Contains(names(1))).FirstOrDefault
 
+                If aPropertySet Is Nothing Then
+                    ''' we have in the property sets a property with this as full name
+                    aPropertySet = Me.PropertySets.Where(Function(x) x.PropertyIDs.Contains(id.ToUpper)).FirstOrDefault
+
+                    If aPropertySet IsNot Nothing Then
+                        names(0) = aPropertySet.ID
+                        names(1) = id.ToUpper
+                    Else
+                        Dim aCurrentSet = ObjectPropertyCurrentSet.Retrieve(id:=names(0), domainid:=domainid)
+                        If aCurrentSet IsNot Nothing Then
+                            aPropertySet = ObjectPropertySet.Retrieve(id:=names(0), updc:=aCurrentSet.AliveUpdc, domainid:=domainid)
+                            If Not aPropertySet.PropertyIDs.Contains(names(1)) Then
+                                aPropertySet = Nothing ' reset not found -> now we could try to find it in different versions of the set or in different sets
+                                CoreMessageHandler(message:="property does not exist in any set of the lot and the set was also not found in store", messagetype:=otCoreMessageType.ApplicationError, _
+                                          arg1:=id, objectname:=Me.ObjectID, subname:="ObjectPropertyValueLot.GetPropertyValue")
+                                Return False
+                            End If
                         End If
                     End If
-
                 End If
-
-
             End If
 
+            ''' load the relation if needed
+            ''' 
             If Me.GetRelationStatus(ConstRValues) = DataObjectRelationMgr.RelationStatus.Unloaded Then InfuseRelation(ConstRValues)
 
-            If _valuesCollection.ContainsKey(key:={names(0), names(1)}) Then
-                value = _valuesCollection.Item(key:={names(0), names(1)}).GetValue(ObjectPropertyValue.ConstFNValue)
+            '''
+            ''' check if the set has the id - otherwise extend if we have no value
+            ''' 
+            If aPropertySet Is Nothing Then
+                CoreMessageHandler(message:="property to be retrieved does not exist in this set '" & names(0) & "'", messagetype:=otCoreMessageType.ApplicationError, _
+                                   arg1:=id, objectname:=Me.ObjectID, subname:="ObjectPropertyValueLot.GetPropertyValue")
+                ''' not found not in
+                Return False
+            ElseIf Not _valuesCollection.ContainsKey(key:={aPropertySet.ID, names(1)}) Then
+                ''' if we have no value but the property is in the set - we need to add it
+                Me.AddPropertyValue(setid:=names(0), propertyid:=names(1))
+            End If
+
+
+            ''' return the value
+            If _valuesCollection.ContainsKey(key:={aPropertySet.ID, names(1)}) Then
+                value = _valuesCollection.Item(key:={aPropertySet.ID, names(1)}).GetValue(ObjectPropertyValue.ConstFNValue)
                 Return True
             Else
                 value = Nothing
@@ -1356,78 +2556,88 @@ Namespace OnTrack.ObjectProperties
             parameterEntries:={ObjectCompoundEntry.ConstFNEntryName, ObjectCompoundEntry.ConstFNValues, Domain.ConstFNDomainID})> _
         Public Function SetPropertyValue(id As String, value As Object, Optional domainid As String = Nothing) As Boolean
             If Not IsAlive(subname:="SetPropertyValue") Then Return Nothing
-
+            Dim aPropertySet As ObjectPropertySet
             If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
 
             ''' the id should be in a canonical form
             ''' 
             Dim names = Shuffle.NameSplitter(id)
-
             ''' if we have a set then check 
             If names.Count = 1 Then
                 If _setids.Count = 0 Then
                     ''' we could look up if this is unqiue
                     ''' 
-                    CoreMessageHandler(message:="property to be added doesnot exist in this set", messagetype:=otCoreMessageType.ApplicationError, _
-                                     arg1:=id, objectname:=Me.ObjectID, subname:="ObjectPropertyValueLot.SetPropertyValue")
+
+                    CoreMessageHandler(message:="lot as no property set attached to it - value cannot be retrieved", messagetype:=otCoreMessageType.ApplicationError, _
+                                   arg1:=id, objectname:=Me.ObjectID, subname:="ObjectPropertyValueLot.GetPropertyValue")
                     Return False
-                ElseIf _setids.Count = 1 Then
+
+
+                ElseIf _setids.Count = 1 AndAlso Me.PropertySets.First.PropertyIDs.Contains(id.ToUpper) Then
                     ReDim names(1)
                     names(0) = _setids(0)
+                    aPropertySet = Me.PropertySets.FirstOrDefault
                     names(1) = id.ToUpper
                 Else
-                    CoreMessageHandler(message:="property to be added doesnot exist in this set", messagetype:=otCoreMessageType.ApplicationError, _
-                                      arg1:=id, objectname:=Me.ObjectID, subname:="ObjectPropertyValueLot.SetPropertyValue")
+                    CoreMessageHandler(message:="property to be added does not exist in this set", messagetype:=otCoreMessageType.ApplicationError, _
+                                      arg1:=id, objectname:=Me.ObjectID, subname:="ObjectPropertyValueLot.GetPropertyValue")
                     ''' not found not in
                     Return False
                 End If
 
                 ''' extend the properties by this set
-            ElseIf names.Count > 1 And Not _setids.Contains(names(0)) Then
-                Dim aPropertySet = ObjectPropertySet.Retrieve(id:=names(0), domainid:=domainid)
+            ElseIf names.Count > 1 Then
+                ''' do we have the id
+                aPropertySet = Me.PropertySets.Where(Function(x) x.ID = names(0) And x.PropertyIDs.Contains(names(1))).FirstOrDefault
+
                 If aPropertySet Is Nothing Then
-                    '' maybe this was not part of the name ?! in another set as unique name ?
-                    If _setids.Count > 0 Then
-                        '' search it
-                        Dim found As Boolean = False
-                        For Each aSetname As String In _setids
-                            Dim aSet As ObjectPropertySet = ObjectPropertySet.Retrieve(id:=aSetname, domainid:=domainid)
-                            If aSet IsNot Nothing Then
-                                If aSet.PropertyIDs.Contains(id.ToUpper) Then
-                                    names(0) = aSetname.ToUpper
-                                    names(1) = id.ToUpper
-                                    found = True
-                                    Exit For
-                                End If
-                            End If
-                        Next
-                        If Not found Then
-                            CoreMessageHandler(message:="property does not exist in any set of the lot", messagetype:=otCoreMessageType.ApplicationError, _
-                                           arg1:=id, objectname:=Me.ObjectID, subname:="ObjectPropertyValueLot.SetPropertyValue")
-                            Return False
-                        End If
+                    ''' we have in the property sets a property with this as full name
+                    aPropertySet = Me.PropertySets.Where(Function(x) x.PropertyIDs.Contains(id.ToUpper)).FirstOrDefault
+
+                    If aPropertySet IsNot Nothing Then
+                        names(0) = aPropertySet.ID
+                        names(1) = id.ToUpper
                     Else
-                        CoreMessageHandler(message:="property set '" & names(0) & "' to be added does not exist", messagetype:=otCoreMessageType.ApplicationError, _
-                                            arg1:=id, objectname:=Me.ObjectID, subname:="ObjectPropertyValueLot.SetPropertyValue")
-                        Return False
+                        Dim aCurrentSet = ObjectPropertyCurrentSet.Retrieve(id:=names(0), domainid:=domainid)
+                        If aCurrentSet IsNot Nothing Then
+                            aPropertySet = ObjectPropertySet.Retrieve(id:=names(0), updc:=aCurrentSet.AliveUpdc, domainid:=domainid)
+                            If Not aPropertySet.PropertyIDs.Contains(names(1)) Then
+                                aPropertySet = Nothing ' reset not found -> now we could try to find it in different versions of the set or in different sets
+                                CoreMessageHandler(message:="property does not exist in any set of the lot and the set was also not found in store", messagetype:=otCoreMessageType.ApplicationError, _
+                                          arg1:=id, objectname:=Me.ObjectID, subname:="ObjectPropertyValueLot.GetPropertyValue")
+                                Return False
+                            Else
+                                ''' add the set
+                                If Not Me.AddSet(names(0)) Then Return False
+                            End If
+                        End If
                     End If
-
-
                 End If
-
-                ''' add the set
-                If Not Me.AddSet(names(0)) Then Return False
             End If
 
 
             If Me.GetRelationStatus(ConstRValues) = DataObjectRelationMgr.RelationStatus.Unloaded Then InfuseRelation(ConstRValues)
 
+            '''
+            ''' check if the set has the id - otherwise extend if we have no value
+            ''' 
+            If aPropertySet Is Nothing Then
+                CoreMessageHandler(message:="property to be set does not exist in this set '" & names(0) & "'", messagetype:=otCoreMessageType.ApplicationError, _
+                                   arg1:=id, objectname:=Me.ObjectID, subname:="ObjectPropertyValueLot.GetPropertyValue")
+                ''' not found not in
+                Return False
+            ElseIf Not _valuesCollection.ContainsKey(key:={aPropertySet.ID, names(1)}) Then
+                ''' if we have no value but the property is in the set - we need to add it
+                Me.AddPropertyValue(setid:=names(0), propertyid:=names(1))
+            End If
+
+
             ''' 
             ''' set the value
-            If names.Count > 1 AndAlso _valuesCollection.ContainsKey(key:={names(0), names(1)}) Then
+            If names.Count > 1 AndAlso _valuesCollection.ContainsKey(key:={aPropertySet.ID, names(1)}) Then
                 ''' check if something is now different
                 ''' 
-                Dim aPropertyvalue As ObjectPropertyValue = _valuesCollection.Item(key:={names(0), names(1)})
+                Dim aPropertyvalue As ObjectPropertyValue = _valuesCollection.Item(key:={aPropertySet.ID, names(1)})
 
                 ''' on success
                 If aPropertyvalue.SetValue(ObjectPropertyValue.ConstFNValue, value) Then
@@ -1435,6 +2645,8 @@ Namespace OnTrack.ObjectProperties
                 End If
 
                 Return True
+
+
             Else
                 CoreMessageHandler(message:="property to be added doesnot exist in this set", messagetype:=otCoreMessageType.ApplicationError, _
                                       arg1:=id, objectname:=Me.ObjectID, subname:="ObjectPropertyValueLot.SetPropertyValue")
@@ -1445,6 +2657,83 @@ Namespace OnTrack.ObjectProperties
         End Function
 
         ''' <summary>
+        ''' Update the lot with the set
+        ''' </summary>
+        ''' <param name="setid"></param>
+        ''' <param name="setupdc"></param>
+        ''' <param name="domainid"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function UpdateSet(setid As String, Optional setupdc As Long? = Nothing, Optional domainid As String = Nothing) As Boolean
+            If Not IsAlive(subname:="UpdateSetUpdc") Then Return False
+            Dim result As Boolean = True
+            '**
+            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
+
+            setid = setid.ToUpper
+            '' if not attached
+            If Not Me.PropertySetIDs.Contains(setid) Then
+                Return False
+            End If
+
+            If Not setupdc.HasValue Then
+                Dim anCurrentSet As ObjectPropertyCurrentSet = ObjectPropertyCurrentSet.Retrieve(id:=setid, domainid:=domainid)
+                setupdc = anCurrentSet.AliveUpdc
+            End If
+
+            Dim aPropertySet = ObjectPropertySet.Retrieve(id:=setid, updc:=setupdc, domainid:=domainid)
+            If aPropertySet Is Nothing Then
+                CoreMessageHandler(message:="property set to be updated to does not exist", messagetype:=otCoreMessageType.ApplicationError, _
+                                    arg1:=setid, objectname:=Me.ObjectID, subname:="ObjectPropertyValueLot.UpdateSet")
+                Return False
+            End If
+
+            '' exchange
+            Dim aSet As ObjectPropertySet = Me.PropertySets.Where(Function(x) x.ID = aPropertySet.ID AndAlso x.Updc <> aPropertySet.Updc).FirstOrDefault
+            If aSet IsNot Nothing Then
+                Me.PropertySets.Remove(aSet)
+                Me.PropertySets.Add(aPropertySet)
+                '** exchange the updc
+                _setsupdc(Array.IndexOf(_setids, aSet.ID)) = aPropertySet.Updc.ToString
+                '' Check on deleted elements
+                For Each aProperty In aSet.Properties
+                    Dim stillProperty As ObjectProperty = aPropertySet.Properties.Where(Function(x) x.ID = aProperty.ID).FirstOrDefault
+                    If stillProperty Is Nothing Then
+                        Dim avalue As ObjectPropertyValue = Me.Values.Where(Function(x) x.SetID = aProperty.SetID AndAlso x.PropertyID = aProperty.ID).FirstOrDefault
+                        If avalue IsNot Nothing Then
+                            '' delete the property value
+                            avalue.Delete()
+                        End If
+                    End If
+
+                Next
+            End If
+
+            '''
+            ''' Add All or increase the reference the values
+            For Each aProperty In aPropertySet.Properties
+                Dim avalue As ObjectPropertyValue = Me.Values.Where(Function(x) x.SetID = aProperty.SetID AndAlso x.PropertyID = aProperty.ID).FirstOrDefault
+
+                ''' update the existing value
+                If avalue IsNot Nothing AndAlso avalue.Setupdc <> aProperty.Setupdc Then
+                    ' simply set the setupdc (other changes are not reflected)
+                    avalue.Setupdc = setupdc
+                    result = result And True
+                ElseIf avalue Is Nothing Then
+                    ''' Addd the propertyvalue
+                    result = result And Me.AddPropertyValue(setid:=setid, setupdc:=setupdc, propertyid:=aProperty.ID)
+                End If
+
+            Next
+
+            ''' set the vcalid from
+            If Not Me.Validfrom.HasValue Then Me.Validfrom = Date.Now
+
+            Return result
+        End Function
+
+
+        ''' <summary>
         ''' Add a PropertySet to this lot and creates / retrieves all the values with default values
         ''' 
         ''' </summary>
@@ -1452,13 +2741,19 @@ Namespace OnTrack.ObjectProperties
         ''' <param name="value"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function AddSet(id As String, Optional domainid As String = Nothing) As Boolean
+        Public Function AddSet(setid As String, _
+                               Optional updc As Long? = Nothing, _
+                               Optional domainid As String = Nothing) As Boolean
             If Not IsAlive(subname:="AddSet") Then Return Nothing
-            id = id.ToUpper
-            Dim aPropertySet = ObjectPropertySet.Retrieve(id:=id, domainid:=domainid)
+            setid = setid.ToUpper
+            If Not updc.HasValue Then
+                Dim anCurrentSet As ObjectPropertyCurrentSet = ObjectPropertyCurrentSet.Retrieve(id:=setid, domainid:=domainid)
+                updc = anCurrentSet.AliveUpdc
+            End If
+            Dim aPropertySet = ObjectPropertySet.Retrieve(id:=setid, updc:=updc, domainid:=domainid)
             If aPropertySet Is Nothing Then
                 CoreMessageHandler(message:="property set to be added doesnot exist", messagetype:=otCoreMessageType.ApplicationError, _
-                                    arg1:=id, objectname:=Me.ObjectID, subname:="ObjectPropertyValueLot.AddSet")
+                                    arg1:=setid, objectname:=Me.ObjectID, subname:="ObjectPropertyValueLot.AddSet")
                 Return False
             End If
 
@@ -1472,10 +2767,8 @@ Namespace OnTrack.ObjectProperties
             '''
             ''' Add All the values
             For Each aProperty In aPropertySet.Properties
-                If Not Me.Values.ContainsKey({id, aProperty.ID}) Then
-                    Dim aPropertyValue = ObjectPropertyValue.Create(Me.UID, updc:=Me.UPDC, setid:=id, propertyid:=aProperty.ID)
-                    If aPropertyValue Is Nothing Then aPropertyValue = ObjectPropertyValue.Retrieve(Me.UID, updc:=Me.UPDC, setid:=id, propertyid:=aProperty.ID)
-                    Me.Values.Add(aPropertyValue)
+                If Not Me.Values.ContainsKey({setid, aPropertySet.Updc, aProperty.ID}) Then
+                    Me.AddPropertyValue(setid:=setid, setupdc:=updc, propertyid:=aProperty.ID)
                 End If
             Next
 
@@ -1485,6 +2778,57 @@ Namespace OnTrack.ObjectProperties
             Return True
         End Function
 
+        
+        ''' <summary>
+        ''' Add APropertyValue to the Lot
+        ''' </summary>
+        ''' <param name="setid"></param>
+        ''' <param name="propertyid"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Private Function AddPropertyValue(setid As String, propertyid As String, _
+                                          Optional setupdc As Long? = Nothing, _
+                                          Optional addSet As Boolean = True, _
+                                          Optional value As Object = Nothing) As Boolean
+
+            If Not setupdc.HasValue Then
+                Dim anCurrentSet As ObjectPropertyCurrentSet = ObjectPropertyCurrentSet.Retrieve(id:=setid, domainid:=DomainID)
+                setupdc = anCurrentSet.AliveUpdc
+            End If
+
+            If (Me.PropertySetIDs.Contains(setid) And addSet) OrElse Not addSet Then
+                Dim aPropertyValue = ObjectPropertyValue.Create(Me.UID, updc:=Me.UPDC, setid:=setid, propertyid:=propertyid)
+                ''' apply the Extended Property CopyInitialValueFrom
+                If aPropertyValue IsNot Nothing Then
+                    Dim aPropertySet = Me.PropertySets.Where(Function(x) x.ID = setid.ToUpper).FirstOrDefault
+                    If aPropertySet IsNot Nothing Then
+                        Dim aProperty = aPropertySet.Properties.Item(propertyid)
+                        If aProperty IsNot Nothing AndAlso aProperty.ExtendedProperties.Count > 0 Then
+                            Dim aValue As Object
+                            Dim anExtProp As ObjectPropertyExtProperty = aProperty.ExtendedProperties.Where(Function(x) x.Enum = otObjectPropertyExtProperty.CopyInitialValueFrom).FirstOrDefault
+                            If anExtProp IsNot Nothing Then
+                                If anExtProp.Apply(aValue, Me) Then
+                                    value = aValue
+                                End If
+                            End If
+                        End If
+                    End If
+                Else
+                    aPropertyValue = ObjectPropertyValue.Retrieve(Me.UID, updc:=Me.UPDC, setid:=setid, propertyid:=propertyid)
+                End If
+
+                ' set the value
+                If value IsNot Nothing Then aPropertyValue.ValueString = CStr(value)
+
+                '**
+                If aPropertyValue IsNot Nothing Then Me.Values.Add(aPropertyValue) ' set is added by the Add Event on the relationalcollection
+                Return True
+            End If
+
+                CoreMessageHandler("set '" & setid & "' is not attached to this property value lot", arg1:=Converter.Array2StringList(Me.PrimaryKeyValues), _
+                                   objectname:=Me.ObjectID, messagetype:=otCoreMessageType.InternalError, subname:="AddPropertyValue")
+                Return False
+        End Function
         ''' <summary>
         ''' retrieve  the configuration from store
         ''' </summary>
@@ -1546,7 +2890,7 @@ Namespace OnTrack.ObjectProperties
         ''' <param name="sender"></param>
         ''' <param name="e"></param>
         ''' <remarks></remarks>
-        Private Sub valuesCollection_OnAdded(sender As Object, e As Database.ormRelationCollection(Of ObjectPropertyValue).EventArgs) Handles _valuesCollection.OnAdded
+        Private Sub ValuesCollection_OnAdded(sender As Object, e As Database.ormRelationCollection(Of ObjectPropertyValue).EventArgs) Handles _valuesCollection.OnAdded
             '''
             ''' add the id
             ''' 
@@ -1558,12 +2902,54 @@ Namespace OnTrack.ObjectProperties
             End If
             If Not _setids.Contains(aPropertyValue.SetID) Then
                 ReDim Preserve _setids(_setids.GetUpperBound(0) + 1)
+                ReDim Preserve _setsupdc(_setsupdc.GetUpperBound(0) + 1)
                 _setids(_setids.GetUpperBound(0)) = aPropertyValue.SetID
+                _setsupdc(_setsupdc.GetUpperBound(0)) = aPropertyValue.Setupdc
+                _propertysets.Add(aPropertyValue.PropertySet)
             End If
             ' register PropertyChange
             AddHandler aPropertyValue.PropertyChanged, AddressOf Me.ObjectPropertyValueLot_PropertyValueChanged
         End Sub
+        ''' <summary>
+        ''' Handler for added PropertyValues
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Private Sub ValuesCollection_OnRemoved(sender As Object, e As Database.ormRelationCollection(Of ObjectPropertyValue).EventArgs) Handles _valuesCollection.OnRemoved
+            '''
+            ''' add the id
+            ''' 
+            Dim aPropertyValue As ObjectPropertyValue = e.Dataobject
+            If aPropertyValue Is Nothing Then
+                CoreMessageHandler(message:="something different than ObjectPropertyValue added to valuescollection", subname:="_ValuesCollection_OnAdded", _
+                                   arg1:=e.Dataobject.ObjectID, objectname:=Me.ObjectID, messagetype:=otCoreMessageType.InternalError)
+                Return
+            End If
 
+           
+            If _valuesCollection.ToList.Where(Function(x) x.SetID = aPropertyValue.SetID).FirstOrDefault Is Nothing Then
+                Dim newids As String()
+                Dim newsupdc As String()
+                ReDim Preserve newids(_setids.GetUpperBound(0) - 1)
+                ReDim Preserve newsupdc(_setsupdc.GetUpperBound(0) - 1)
+                Dim j As Integer
+                For i = 0 To _setids.GetUpperBound(0)
+                    If _setids(i) <> aPropertyValue.SetID Then
+                        newids(j) = _setids(i)
+                        newsupdc(j) = _setsupdc(i)
+                        j += 1
+                    End If
+                Next
+                '* set
+                _setids = newids
+                _setsupdc = newsupdc
+                _propertysets.Remove(aPropertyValue.PropertySet)
+            End If
+
+            ' register PropertyChange
+            RemoveHandler aPropertyValue.PropertyChanged, AddressOf Me.ObjectPropertyValueLot_PropertyValueChanged
+        End Sub
         ''' <summary>
         ''' Handler for ValueChange of PropertyValue
         ''' </summary>
@@ -1599,7 +2985,7 @@ Namespace OnTrack.ObjectProperties
         ''' <remarks></remarks>
         Public Sub ObjectPropertyValueLot_OnCloned(sender As Object, e As ormDataObjectCloneEventArgs) Handles Me.OnCloned
             If Not e.AbortOperation Then
-                Dim aNewObject As ObjectPropertyValueLot = TryCast(e.newobject, ObjectPropertyValueLot)
+                Dim aNewObject As ObjectPropertyValueLot = TryCast(e.NewObject, ObjectPropertyValueLot)
                 ' now clone the Members (Milestones)
                 For Each aPropertyValue In _valuesCollection
                     aNewObject.Values.Add(aPropertyValue.Clone(uid:=aNewObject.UID, updc:=aNewObject.UPDC, setid:=aPropertyValue.SetID, propertyid:=aPropertyValue.PropertyID))
@@ -1607,39 +2993,86 @@ Namespace OnTrack.ObjectProperties
             End If
 
         End Sub
+
         ''' <summary>
-        ''' clones an object
+        ''' Event Handler for OnRelationLoad. Check if all Properties of the set are included - if not (added or deleted) than add or drop values
         ''' </summary>
-        ''' <param name="pkarray"></param>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+
+        Private Sub ObjectPropertyValueLot_OnRelationLoad(sender As Object, e As ormDataObjectEventArgs) Handles Me.OnRelationLoad
+
+            If e.RelationIDs.Contains(ConstRValues) And e.Infusemode = otInfuseMode.OnInject Then
+
+                ''' check if we have all Properties of the sets also in the values - if not add it 
+                ''' 
+
+                For Each aPropertySetName As String In Me.PropertySetIDs
+                    Dim anupdc As Long = CLng(Me.Setsupdc(Array.IndexOf(Me.PropertySetIDs, aPropertySetName)))
+                    Dim aPropertyset As ObjectPropertySet = ObjectPropertySet.Retrieve(aPropertySetName, anupdc)
+                    For Each aProperty As ObjectProperty In aPropertyset.Properties
+                        If Not Me.Values.ContainsKey(aProperty.ID) Then
+                            Me.AddPropertyValue(setid:=aPropertySetName, propertyid:=aProperty.ID)
+                        End If
+                    Next
+                Next
+
+                ''' counter check do we have a value which is not in a set (or deleted)
+                ''' 
+                For Each aPropertyValue In Me.Values
+                    Dim aPropertyset As ObjectPropertySet = ObjectPropertySet.Retrieve(aPropertyValue.SetID, aPropertyValue.Setupdc)
+                    If Not aPropertyset.Properties.ContainsKey(aPropertyValue.PropertyID) Then
+                        aPropertyValue.Delete() 'delete it
+                    End If
+                Next
+            End If
+        End Sub
+
+
+        ''' <summary>
+        ''' load the PropertySets into dynamic internal structure
+        ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        'Public Function Clone(pkarray() As Object, Optional runtimeOnly As Boolean? = Nothing) As ObjectPropertyValueLot Implements iormCloneable(Of ObjectPropertyValueLot).Clone
+        Private Function LoadPropertySets() As Boolean
+            Dim i As Integer
+            For Each aSetname In Me.PropertySetIDs
+                If _setsupdc IsNot Nothing AndAlso _setsupdc.GetUpperBound(0) <= i Then
+                    If IsNumeric(_setsupdc(i)) Then
+                        Dim foundSet = _propertysets.Where(Function(x) x.ID = aSetname).FirstOrDefault()
+                        If foundSet Is Nothing Then
+                            Dim anUpdc = CLng(_setsupdc(i))
+                            Dim aSet As ObjectPropertySet = ObjectPropertySet.Retrieve(id:=aSetname, updc:=anUpdc)
+                            If aSet IsNot Nothing Then
+                                _propertysets.Add(aSet)
+                            End If
+                        End If
+
+                        i += 1
+                    Else
+                        CoreMessageHandler("updc for property set is not stored", arg1:=_setsupdc, _
+                                       objectname:=Me.ObjectID, entryname:=ConstFNSetUPDCs)
+                    End If
+
+                Else
+                    CoreMessageHandler("updc for property set is not stored", arg1:=Converter.Array2StringList(Me.PrimaryKeyValues), _
+                                       objectname:=Me.ObjectID, entryname:=ConstFNSetUPDCs)
+                End If
+            Next
+            Return True
+        End Function
+        ''' <summary>
+        ''' Handler for the OnInfused Event 
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Private Sub ObjectPropertyValueLot_OnInfused(sender As Object, e As ormDataObjectEventArgs) Handles Me.OnColumnsInfused
+            LoadPropertySets()
+        End Sub
 
 
-        '    If Not IsAlive(subname:="Clone") Then Return Nothing
-
-        '    Try
-
-        '        '*** now we copy the object
-        '        Dim aNewObject As ObjectPropertyValueLot = MyBase.Clone(Of ObjectPropertyValueLot)(pkarray)
-        '        Dim anUid As Long = pkarray(0)
-        '        Dim anUpdc As Long = pkarray(1)
-        '        If Not aNewObject Is Nothing Then
-        '            ' now clone the Members (Milestones)
-        '            For Each aPropertyValue In _valuesCollection
-        '                aNewObject.Values.Add(aPropertyValue.Clone(uid:=anUid, updc:=anUpdc, setid:=aPropertyValue.SetID, propertyid:=aPropertyValue.PropertyID))
-        '            Next
-
-        '            Return aNewObject
-        '        End If
-
-        '        Return Nothing
-
-        '    Catch ex As Exception
-        '        Call CoreMessageHandler(subname:="ObjectPropertyValueLot.Clone", exception:=ex)
-        '        Return Nothing
-        '    End Try
-        'End Function
     End Class
 
 
@@ -1655,6 +3088,7 @@ Namespace OnTrack.ObjectProperties
     ''' 2. Values should be never retrieved alone - go over the lot instead.
     ''' 
     ''' </remarks>
+
     <ormObject(id:=ObjectPropertyValue.ConstObjectID, version:=1, adddomainbehavior:=False, adddeletefieldbehavior:=True, usecache:=True, _
         modulename:=ConstModuleProperties, Title:="Property Value", description:="values of object properties attached to bussiness object")> _
     Public Class ObjectPropertyValue
@@ -1688,6 +3122,10 @@ Namespace OnTrack.ObjectProperties
         <ormObjectEntry(ReferenceObjectEntry:=ObjectProperty.ConstObjectID & "." & ObjectProperty.ConstFNPropertyID, primaryKeyordinal:=4, _
             XID:="PV4")> _
         Public Const ConstFNPropertyID = ObjectProperty.ConstFNPropertyID
+
+        <ormObjectEntry(ReferenceObjectEntry:=ObjectProperty.ConstObjectID & "." & ObjectProperty.ConstFNUPDC, _
+            XID:="PV5", title:="PropertySet UpdateCounter", description:="property set updatecounters ")> Public Const ConstFNSetUPDC = "SETUPDC"
+
 
 
         ''' <summary>
@@ -1724,20 +3162,55 @@ Namespace OnTrack.ObjectProperties
         <ormEntryMapping(EntryName:=ConstFNPropertyID)> Private _propertyID As String = ""
         <ormEntryMapping(EntryName:=ConstFNValue)> Private _value As String = ""
         <ormEntryMapping(EntryName:=ConstFNDatatype)> Private _datatype As otDataType
+        <ormEntryMapping(EntryName:=ConstFNSetUPDC)> Private _setupdc As Long
         ''' <summary>
         ''' Relations
         ''' </summary>
         ''' <remarks></remarks>
         <ormRelation(linkobject:=GetType(ObjectProperty), cascadeOnDelete:=False, cascadeOnUpdate:=False, _
-            fromEntries:={ConstFNSetID, ConstFNPropertyID}, toEntries:={ObjectProperty.ConstFNSetID, ObjectProperty.ConstFNPropertyID})> Public Const ConstRProperty = "ObjectProperty"
+                     toprimarykeys:={ConstFNSetID, ConstFNSetUPDC, ConstFNPropertyID})> Public Const ConstRProperty = "RELObjectProperty"
 
-        <ormEntryMapping(RelationName:=ConstRProperty, infuseMode:=otInfuseMode.OnInject Or otInfuseMode.OnDemand, _
-            keyentries:={ObjectProperty.ConstFNPropertyID})> Private WithEvents _propertyDefinition As ObjectProperty
+        <ormEntryMapping(RelationName:=ConstRProperty, infuseMode:=otInfuseMode.OnInject Or otInfuseMode.OnDemand)> Private WithEvents _propertyDefinition As ObjectProperty
+
+        ''' <summary>
+        ''' dynamic member
+        ''' </summary>
+        ''' <remarks></remarks>
+
 
 
 #Region "Properties"
 
+        ''' <summary>
+        ''' returns the PropertySet this PropertyValue Belongs to
+        ''' </summary>
+        ''' <param name="domainid"></param>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        ReadOnly Property PropertySet(Optional domainid As String = Nothing) As ObjectPropertySet
+            Get
+                If Me.Property IsNot Nothing Then
+                    Return Me.Property.PropertySet
+                Else
+                    Return Nothing
+                End If
 
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the setupdc.
+        ''' </summary>
+        ''' <value>The setupdc.</value>
+        Public Property Setupdc() As Long?
+            Get
+                Return Me._setupdc
+            End Get
+            Set(value As Long?)
+                SetValue(ConstFNSetUPDC, value)
+            End Set
+        End Property
 
         ''' <summary>
         ''' Gets or sets the datatype of the property.
@@ -1794,7 +3267,7 @@ Namespace OnTrack.ObjectProperties
             End Get
         End Property
         '' <summary>
-        ''' Gets or sets the section id.
+        ''' Gets or sets the set id.
         ''' </summary>
         ''' <value>The properties.</value>
         Public ReadOnly Property SetID() As String
@@ -1816,6 +3289,7 @@ Namespace OnTrack.ObjectProperties
             End Set
         End Property
 
+        
 #End Region
 
 
@@ -1840,9 +3314,20 @@ Namespace OnTrack.ObjectProperties
         ''' <param name="domainid"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Create(uid As Long, updc As Long, setid As String, propertyid As String, Optional domainid As String = Nothing) As ObjectPropertyValue
+        Public Overloads Shared Function Create(uid As Long, updc As Long, setid As String, propertyid As String, _
+                                                Optional setupdc As Long? = Nothing,
+                                                Optional domainid As String = Nothing) As ObjectPropertyValue
             If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
-            Return ormDataObject.CreateDataObject(Of ObjectPropertyValue)(pkArray:={uid, updc, setid, propertyid, domainid}, domainID:=domainid, checkUnique:=True)
+            Dim arecord As New ormRecord
+            With arecord
+                .SetValue(constFNUID, uid)
+                .SetValue(ConstFNUpdc, updc)
+                .SetValue(ConstFNSetID, setid)
+                .SetValue(ConstFNPropertyID, propertyid)
+                .SetValue(ConstFNDomainID, domainid)
+                If setupdc.HasValue Then .SetValue(ConstFNSetUPDC, setupdc.Value)
+            End With
+            Return ormDataObject.CreateDataObject(Of ObjectPropertyValue)(arecord, domainID:=domainid, checkUnique:=True)
         End Function
 
         ''' <summary>
@@ -1856,18 +3341,33 @@ Namespace OnTrack.ObjectProperties
             ''' 
             Dim setid As String = e.Record.GetValue(ConstFNSetID)
             Dim propertyid As String = e.Record.GetValue(ConstFNPropertyID)
+            Dim domainid As String = e.Record.GetValue(ConstFNDomainID)
+            Dim setupdc As Long? = e.Record.GetValue(ConstFNSetUPDC)
 
             If setid IsNot Nothing AndAlso propertyid IsNot Nothing Then
+                If Not setupdc.HasValue Then
+                    Dim aCurrentSet As ObjectPropertyCurrentSet = ObjectPropertyCurrentSet.Retrieve(id:=setid, domainid:=domainid)
+                    If aCurrentSet Is Nothing Then
+                        CoreMessageHandler(message:="property set does not exist", arg1:=setid, messagetype:=otCoreMessageType.ApplicationError, objectname:=ConstObjectID, _
+                                      subname:="ObjectPropertyValue.OnCreating")
+                        e.AbortOperation = True
+                    Else
+                        setupdc = aCurrentSet.AliveUpdc
+                        e.Record.SetValue(ConstFNSetUPDC, setupdc.Value)
+                    End If
+
+                End If
                 ''' to early to set the link but has to be checked anyway
-                _propertyDefinition = ObjectProperty.Retrieve(setid:=setid, ID:=propertyid)
+                _propertyDefinition = ObjectProperty.Retrieve(setid:=setid, setupdc:=setupdc, ID:=propertyid)
                 If _propertyDefinition Is Nothing Then
-                    CoreMessageHandler(message:="property doesnot exist", arg1:=setid & "." & propertyid, messagetype:=otCoreMessageType.ApplicationError, objectname:=ConstObjectID, _
+                    CoreMessageHandler(message:="property does not exist", arg1:=setid & "." & propertyid, messagetype:=otCoreMessageType.ApplicationError, objectname:=ConstObjectID, _
                                        subname:="ObjectPropertyValue.OnCreating")
                     e.AbortOperation = True
                 Else
                     ''' set this too
                     _datatype = _propertyDefinition.Datatype
                     _value = _propertyDefinition.DefaultValue
+                    _setupdc = _propertyDefinition.Setupdc
                 End If
             End If
         End Sub
@@ -1880,7 +3380,7 @@ Namespace OnTrack.ObjectProperties
         ''' <returns>the new cloned object or nothing</returns>
         Public Function Clone(uid As Long, updc As Long, setid As String, propertyid As String, Optional domainid As String = Nothing) As ObjectPropertyValue
             If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
-            Return Clone(pkArray:={uid, updc, setid, propertyid, domainid})
+            Return Clone(pkarray:={uid, updc, setid, propertyid, domainid})
         End Function
         ''' <summary>
         ''' clone the object with the new primary key

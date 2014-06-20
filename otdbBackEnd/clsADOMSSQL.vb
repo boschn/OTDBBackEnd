@@ -697,16 +697,14 @@ Namespace OnTrack.Database
             Throw New NotImplementedException()
         End Function
         ''' <summary>
-        ''' True if table ID exists in data store
+        ''' returns true if the datastore has the view by viewname
         ''' </summary>
-        ''' <param name="tablename"></param>
+        ''' <param name="name"></param>
+        ''' <param name="connection"></param>
         ''' <param name="nativeConnection"></param>
-        ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overrides Function HasTable(tableID As String, _
-                                           Optional ByRef connection As iormConnection = Nothing, _
-                                           Optional nativeConnection As Object = Nothing) As Boolean
-
+        ''' <returns></returns>
+        Public Overrides Function HasView(name As String, Optional ByRef connection As iormConnection = Nothing, Optional nativeConnection As Object = Nothing) As Boolean Implements iormDatabaseDriver.HasView
             Dim myconnection As mssqlConnection
             Dim smoconnection As ServerConnection
             Dim database As Microsoft.SqlServer.Management.Smo.Database
@@ -714,7 +712,7 @@ Namespace OnTrack.Database
             Dim path As String
 
             '* if already loaded
-            If _TableDirectory.ContainsKey(key:=tableID) Then Return True
+            If _TableDirectory.ContainsKey(key:=name) Then Return True
 
             If connection Is Nothing Then
                 myconnection = _primaryConnection
@@ -723,11 +721,11 @@ Namespace OnTrack.Database
             End If
             ' ** important ! Access to native Internal Connection opens up the internal connection and also the SMO Driver
             ' **
-                If nativeConnection Is Nothing And myconnection IsNot Nothing Then
-                    myNativeConnection = TryCast(myconnection.NativeInternalConnection, SqlConnection)
-                Else
-                    myNativeConnection = TryCast(nativeConnection, SqlConnection)
-                End If
+            If nativeConnection Is Nothing And myconnection IsNot Nothing Then
+                myNativeConnection = TryCast(myconnection.NativeInternalConnection, SqlConnection)
+            Else
+                myNativeConnection = TryCast(nativeConnection, SqlConnection)
+            End If
 
             '** return if no connection (and no exception)
 
@@ -755,13 +753,13 @@ Namespace OnTrack.Database
                     database = myconnection.Database
 
                     If smoconnection Is Nothing OrElse database Is Nothing Then
-                        Call CoreMessageHandler(message:="SMO is not initialized", tablename:=tableID, _
+                        Call CoreMessageHandler(message:="SMO is not initialized", tablename:=name, _
                                               subname:="mssqlDBDriver.hasTable", messagetype:=otCoreMessageType.InternalError)
                         Return Nothing
                     End If
 
-                    database.Tables.Refresh()
-                    Dim existsOnServer As Boolean = database.Tables.Contains(name:=tableID)
+                    database.Views.Refresh()
+                    Dim existsOnServer As Boolean = database.Views.Contains(name:=name)
                     Return existsOnServer
                 End SyncLock
 
@@ -783,11 +781,236 @@ Namespace OnTrack.Database
                     Loop
                 End If
 
-                Call CoreMessageHandler(message:=sb.ToString, exception:=ex, tablename:=tableID, _
+                Call CoreMessageHandler(message:=sb.ToString, exception:=ex, tablename:=name, _
+                                      subname:="mssqlDBDriver.HasView", messagetype:=otCoreMessageType.InternalError)
+                Return False
+            Catch ex As Exception
+                Call CoreMessageHandler(message:="Exception", exception:=ex, tablename:=name, _
+                                      subname:="mssqlDBDriver.HasView", messagetype:=otCoreMessageType.InternalError)
+                Return False
+            End Try
+
+        End Function
+
+
+        ''' <summary>
+        ''' returns or creates a view in the data store
+        ''' </summary>
+        ''' <param name="name"></param>
+        ''' <param name="sqlselect"></param>
+        ''' <param name="createOrAlter"></param>
+        ''' <param name="connection"></param>
+        ''' <remarks></remarks>
+        ''' <returns></returns>
+        Public Overrides Function GetView(name As String, sqlselect As String, _
+                                          Optional createOrAlter As Boolean = False, _
+                                          Optional ByRef connection As iormConnection = Nothing) As Object Implements iormDatabaseDriver.GetView
+            Dim aView As Microsoft.SqlServer.Management.Smo.View
+            Dim smoconnection As ServerConnection
+            Dim database As Microsoft.SqlServer.Management.Smo.Database
+            Dim localCreated As Boolean = False
+            Dim myconnection As mssqlConnection
+
+            If connection Is Nothing Then
+                myconnection = _primaryConnection
+            Else
+                myconnection = connection
+            End If
+            ' ** important ! Access to native Internal Connection opens up the internal connection and also the SMO Driver
+            ' **
+            If myconnection Is Nothing Or myconnection.NativeInternalConnection Is Nothing Then
+                Call CoreMessageHandler(message:="internal connection connection is nothing - no table can be retrieved", subname:="mssqlDBDriver.GetView", _
+                                            messagetype:=otCoreMessageType.InternalError, tablename:=name)
+                Return Nothing
+            End If
+
+            '*** check on rights
+            If createOrAlter And Not CurrentSession.IsBootstrappingInstallationRequested Then
+                If Not myconnection.VerifyUserAccess(accessRequest:=otAccessRight.AlterSchema, useLoginWindow:=True) Then
+                    Call CoreMessageHandler(showmsgbox:=True, subname:="mssqlDBDriver.GetView", tablename:=name, _
+                                          message:="No right to alter schema of database", messagetype:=otCoreMessageType.ApplicationError)
+                    Return Nothing
+                End If
+            End If
+
+
+
+            Try
+                SyncLock _internallock
+
+                    smoconnection = myconnection.SMOConnection
+                    database = myconnection.Database()
+
+                    If smoconnection Is Nothing OrElse database Is Nothing Then
+                        Call CoreMessageHandler(message:="SMO is not initialized", tablename:=name, _
+                                              subname:="mssqlDBDriver.GetView", messagetype:=otCoreMessageType.InternalError)
+                        Return Nothing
+                    End If
+
+                    database.Views.Refresh()
+                    Dim existsOnServer As Boolean = database.Views.Contains(name:=name)
+
+                    '*** No CreateAlter -> return the Object
+                    '*** CreatorAlter but the Object exists and was localCreated (means no object transmitted for change)
+                    '*** return the refreshed
+
+                    If Not createOrAlter AndAlso existsOnServer Then
+                        If Not aView Is Nothing Then aView.Refresh()
+                        Return aView
+
+                        '** doesnot Exist 
+                    ElseIf (Not createOrAlter AndAlso Not existsOnServer) Then
+                        Call CoreMessageHandler(subname:="mssqlDBDriver.GetView", message:="View does not exist", messagetype:=otCoreMessageType.InternalWarning, _
+                                               break:=False, tablename:=name, arg1:=name)
+                        Return Nothing
+                    End If
+
+                    '** create the View
+                    '**
+                    If createOrAlter Then
+                        ''' drop the view
+                        If existsOnServer Then
+                            database.Views.Item(name:=name).Drop()
+                        End If
+                        '                        View myview = new View(myNewDatabase, "My_SMO_View");
+                        'myview.TextHeader = "CREATE VIEW [My_SMO_View] AS";
+                        'myview.TextBody = "SELECT ID, NAME FROM MyFirstSMOTable"; 
+                        'myview.Create();
+                        aView = New Microsoft.SqlServer.Management.Smo.View(database, name.ToUpper)
+                        aView.TextMode = True
+                        aView.TextHeader = "CREATE VIEW [" & name.ToUpper & "] AS "
+                        aView.TextBody = sqlselect
+                        aView.Create()
+                        Return aView
+                    Else
+                        Call CoreMessageHandler(subname:="mssqlDBDriver.GetView", tablename:=name, _
+                                              message:="View was not found in database", messagetype:=otCoreMessageType.ApplicationWarning)
+                        Return Nothing
+                    End If
+                End SyncLock
+
+                Return aView
+
+            Catch smoex As SmoException
+
+                Dim sb As New StringBuilder
+                sb.AppendLine("This is an SMO Exception")
+                'Display the SMO exception message.
+                sb.AppendLine(smoex.Message)
+                'Display the sequence of non-SMO exceptions that caused the SMO exception.
+                Dim ex As Exception
+                ex = smoex.InnerException
+                If ex Is Nothing Then
+                Else
+                    Do While ex.InnerException IsNot (Nothing)
+                        sb.AppendLine(ex.InnerException.Message)
+                        ex = ex.InnerException
+                    Loop
+                End If
+
+                Call CoreMessageHandler(message:=sb.ToString, exception:=ex, tablename:=name, _
+                                      subname:="mssqlDBDriver.getView", messagetype:=otCoreMessageType.InternalError)
+                Return Nothing
+            Catch ex As Exception
+                Call CoreMessageHandler(message:="Exception", exception:=ex, tablename:=name, _
+                                      subname:="mssqlDBDriver.getView", messagetype:=otCoreMessageType.InternalError)
+                Return Nothing
+            End Try
+
+        End Function
+
+        ''' <summary>
+        ''' True if table ID exists in data store
+        ''' </summary>
+        ''' <param name="tablename"></param>
+        ''' <param name="nativeConnection"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Overrides Function HasTable(name As String, _
+                                           Optional ByRef connection As iormConnection = Nothing, _
+                                           Optional nativeConnection As Object = Nothing) As Boolean
+
+            Dim myconnection As mssqlConnection
+            Dim smoconnection As ServerConnection
+            Dim database As Microsoft.SqlServer.Management.Smo.Database
+            Dim myNativeConnection As SqlConnection
+            Dim path As String
+
+            '* if already loaded
+            If _TableDirectory.ContainsKey(key:=name) Then Return True
+
+            If connection Is Nothing Then
+                myconnection = _primaryConnection
+            Else
+                myconnection = connection
+            End If
+            ' ** important ! Access to native Internal Connection opens up the internal connection and also the SMO Driver
+            ' **
+            If nativeConnection Is Nothing And myconnection IsNot Nothing Then
+                myNativeConnection = TryCast(myconnection.NativeInternalConnection, SqlConnection)
+            Else
+                myNativeConnection = TryCast(nativeConnection, SqlConnection)
+            End If
+
+            '** return if no connection (and no exception)
+
+            If myNativeConnection Is Nothing Then
+                CoreMessageHandler(message:="no connection established", subname:="mssqldbdriver.hastable", messagetype:=otCoreMessageType.InternalError)
+                Return False
+            End If
+
+            '*** check on rights - avoid recursion if we are looking for the User Table
+            '** makes no sense since we are checkin before installation if we need to install
+            'If Not CurrentSession.IsBootstrappingInstallation AndAlso tableID <> User.ConstTableID Then
+            '    If Not _currentUserValidation.ValidEntry AndAlso Not _currentUserValidation.HasReadRights Then
+            '        If Not myconnection.VerifyUserAccess(accessRequest:=otAccessRight.[ReadOnly], loginOnFailed:=True) Then
+            '            Call CoreMessageHandler(showmsgbox:=True, subname:="mssqlDBDriver.HasTable", tablename:=tableID, _
+            '                                  message:="No right to read schema of database", messagetype:=otCoreMessageType.ApplicationError)
+            '            Return False
+            '        End If
+            '    End If
+            'End If
+
+
+            Try
+                SyncLock _internallock
+                    smoconnection = myconnection.SMOConnection ' will be setup during internal connection
+                    database = myconnection.Database
+
+                    If smoconnection Is Nothing OrElse database Is Nothing Then
+                        Call CoreMessageHandler(message:="SMO is not initialized", tablename:=name, _
+                                              subname:="mssqlDBDriver.hasTable", messagetype:=otCoreMessageType.InternalError)
+                        Return Nothing
+                    End If
+
+                    database.Tables.Refresh()
+                    Dim existsOnServer As Boolean = database.Tables.Contains(name:=name)
+                    Return existsOnServer
+                End SyncLock
+
+
+            Catch smoex As SmoException
+
+                Dim sb As New StringBuilder
+                sb.AppendLine("This is an SMO Exception")
+                'Display the SMO exception message.
+                sb.AppendLine(smoex.Message)
+                'Display the sequence of non-SMO exceptions that caused the SMO exception.
+                Dim ex As Exception
+                ex = smoex.InnerException
+                If ex Is Nothing Then
+                Else
+                    Do While ex.InnerException IsNot (Nothing)
+                        sb.AppendLine(ex.InnerException.Message)
+                        ex = ex.InnerException
+                    Loop
+                End If
+
+                Call CoreMessageHandler(message:=sb.ToString, exception:=ex, tablename:=name, _
                                       subname:="mssqlDBDriver.hasTable", messagetype:=otCoreMessageType.InternalError)
                 Return False
             Catch ex As Exception
-                Call CoreMessageHandler(message:="Exception", exception:=ex, tablename:=tableID, _
+                Call CoreMessageHandler(message:="Exception", exception:=ex, tablename:=name, _
                                       subname:="mssqlDBDriver.hasTable", messagetype:=otCoreMessageType.InternalError)
                 Return False
             End Try
@@ -927,7 +1150,7 @@ Namespace OnTrack.Database
 
         End Function
 
-       
+
         ''' <summary>
         ''' Gets the index.
         ''' </summary>
@@ -1152,19 +1375,19 @@ Namespace OnTrack.Database
                     End If
 
 
-                        ' check on keys & indexes
-                        For Each aColumnname As String In indexdefinition.Columnnames
-                            Dim indexColumn As IndexedColumn = New IndexedColumn(anIndex, aColumnname)
-                            anIndex.IndexedColumns.Add(indexColumn)
-                        Next
+                    ' check on keys & indexes
+                    For Each aColumnname As String In indexdefinition.Columnnames
+                        Dim indexColumn As IndexedColumn = New IndexedColumn(anIndex, aColumnname)
+                        anIndex.IndexedColumns.Add(indexColumn)
+                    Next
 
-                        ' attach the Index
-                        If Not anIndex Is Nothing Then
-                            anIndex.Create()
-                            Return anIndex
-                        Else
-                            Return Nothing
-                        End If
+                    ' attach the Index
+                    If Not anIndex Is Nothing Then
+                        anIndex.Create()
+                        Return anIndex
+                    Else
+                        Return Nothing
+                    End If
 
                 End SyncLock
 
@@ -1736,7 +1959,7 @@ Namespace OnTrack.Database
                         Return Nothing
                     Else
 
-                        
+
 
                         '**
                         '** create normal database column
@@ -2016,7 +2239,7 @@ Namespace OnTrack.Database
                                 fkerror = True
                             End If
 
-                            
+
 
                             '** do bookeeping for new foreign keys for this table
                             '**
@@ -2080,7 +2303,7 @@ Namespace OnTrack.Database
                                 If aTable.ForeignKeys.Contains(aForeignKeyName & "_" & i) Then
                                     aTable.ForeignKeys.Item(aForeignKeyName & "_" & i).Drop()
                                 End If
-                               
+
                                 '** rebuild
                                 aforeignkey = New ForeignKey(aTable, aForeignKeyName & "_" & i)
                                 'Add columns as the foreign key column.
@@ -2517,7 +2740,7 @@ Namespace OnTrack.Database
         ''' <param name="connection"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function CreateSMOConnection(connection As IDbConnection) As ServerConnection
+        Protected Function CreateSMOConnection(connection As IDbConnection) As ServerConnection
             Dim aSMOConnection As ServerConnection
             aSMOConnection = New Microsoft.SqlServer.Management.Common.ServerConnection()
             aSMOConnection.ServerInstance = DirectCast(connection, SqlConnection).DataSource
@@ -2570,8 +2793,7 @@ Namespace OnTrack.Database
         ''' <param name="arguments"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function OnInternalConnection(sender As Object, arguments As InternalConnectionEventArgs) As Boolean _
-            Handles MyBase.OnInternalConnected
+        Public Sub OnInternalConnection(sender As Object, arguments As InternalConnectionEventArgs) Handles MyBase.OnInternalConnected
             If _SMOConnection Is Nothing Then
                 _SMOConnection = CreateSMOConnection(_nativeinternalConnection)
             End If
@@ -2579,7 +2801,7 @@ Namespace OnTrack.Database
                 Call CoreMessageHandler(message:="SMO Object for Database " & Me.DBName & " is not existing for server " & _Server.Name, break:=False, _
                                            messagetype:=otCoreMessageType.InternalError, noOtdbAvailable:=True, subname:="mssqlConnection.OnInternalConnection")
             End If
-        End Function
+        End Sub
         ''' <summary>
         ''' Raise the OnConnected Event
         ''' </summary>

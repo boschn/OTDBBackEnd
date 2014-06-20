@@ -1362,9 +1362,9 @@ Namespace OnTrack.Database
                     Dim aBucket = theobjects.Item(key:=searchkeys)
                     Dim aDataObject = TryCast(aBucket.Object, ormDataObject)
                     If aDataObject IsNot Nothing AndAlso aDataObject.Guid <> e.DataObject.Guid Then
-                        CoreMessageHandler(message:="Warning ! infused object already in cache", subname:="ormObjectCacheManager.OnInfusedDataObject", _
-                                           messagetype:=otCoreMessageType.InternalWarning, _
-                                          objectname:=aDataObject.ObjectID, arg1:=e.Pkarray)
+                        'CoreMessageHandler(message:="Warning ! infused object already in cache", subname:="ormObjectCacheManager.OnInfusedDataObject", _
+                        '                   messagetype:=otCoreMessageType.InternalWarning, _
+                        '                  objectname:=aDataObject.ObjectID, arg1:=e.Pkarray)
                         e.DataObject = aDataObject
                         e.Result = True
                         e.AbortOperation = True

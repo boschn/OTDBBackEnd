@@ -5347,7 +5347,7 @@ Namespace OnTrack.Scheduling
         ''' <param name="doFeedRecord"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function Persist(Optional timestamp As Date = ot.constNullDate, Optional doFeedRecord As Boolean = True) As Boolean Implements iormPersistable.Persist
+        Public Function Persist(Optional timestamp As DateTime? = Nothing, Optional doFeedRecord As Boolean = True) As Boolean Implements iormPersistable.Persist
             If Me.ScheduleDefinition.Autopublish Then
                 Return Publish(timestamp:=timestamp)
             Else

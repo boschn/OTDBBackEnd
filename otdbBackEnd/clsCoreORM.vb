@@ -1496,6 +1496,29 @@ Namespace OnTrack
                              Optional ByRef nativeTableObject As Object = Nothing) As Object Implements iormDatabaseDriver.GetTable
 
             ''' <summary>
+            ''' returns true if the datastore has the view by viewname
+            ''' </summary>
+            ''' <param name="name"></param>
+            ''' <param name="connection"></param>
+            ''' <param name="nativeConnection"></param>
+            ''' <remarks></remarks>
+            ''' <returns></returns>
+            Public MustOverride Function HasView(name As String, Optional ByRef connection As iormConnection = Nothing, Optional nativeConnection As Object = Nothing) As Boolean Implements iormDatabaseDriver.HasView
+            
+
+            ''' <summary>
+            ''' returns or creates a Table in the data store
+            ''' </summary>
+            ''' <param name="name"></param>
+            ''' <param name="sqlselect"></param>
+            ''' <param name="createOrAlter"></param>
+            ''' <param name="connection"></param>
+            ''' <remarks></remarks>
+            ''' <returns></returns>
+            Public MustOverride Function GetView(name As String, sqlselect As String, Optional createOrAlter As Boolean = False, Optional ByRef connection As iormConnection = Nothing) As Object Implements iormDatabaseDriver.GetView
+
+
+            ''' <summary>
             ''' Gets the index.
             ''' </summary>
             ''' <param name="nativeTABLE">The native TABLE.</param>
@@ -1601,7 +1624,7 @@ Namespace OnTrack
             ''' <param name="domainID"></param>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public Function ValidateUser(ByVal username As String, ByVal password As String, ByVal accessRequest As otAccessRight, Optional domainid As String = Nothing) As Boolean Implements iormDatabaseDriver.validateUser
+            Public Function ValidateUser(ByVal username As String, ByVal password As String, ByVal accessRequest As otAccessRight, Optional domainid As String = Nothing) As Boolean Implements iormDatabaseDriver.ValidateUser
                 Dim aValidation As UserValidation
                 aValidation.ValidEntry = False
                 aValidation = GetUserValidation(username:=username)

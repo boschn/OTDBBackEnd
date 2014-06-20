@@ -1432,6 +1432,10 @@ Namespace OnTrack.Database
                                                 .value = anError.Objectname
                                             Case SessionMessage.ConstFNObjectentry
                                                 .value = anError.ObjectEntry
+                                            Case SessionMessage.ConstFNObjectTag
+                                                .value = anError.Objecttag
+                                            Case SessionMessage.ConstFNDomainID
+                                                .value = anError.Domainid
                                             Case Else
                                                 .value = DBNull.Value
                                         End Select

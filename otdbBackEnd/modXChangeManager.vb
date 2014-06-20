@@ -154,11 +154,11 @@ Namespace OnTrack.XChange
                     For j = 0 To aCSVReader.FieldCount - 1
                         If aCSVReader(j) IsNot Nothing Then
                             Dim aValue = aCSVReader(j)
-                            If Trim(aValue.ToString) = "#NULL#" Then aValue = Nothing
+                            If Trim(aValue.ToString) = "$NULL$" Then aValue = Nothing
                             result = result And aXEnvelope.AddSlotByXID(xid:=headerids(j), isHostValue:=True, value:=aValue)
 
                             If result = False Then
-                                CoreMessageHandler(message:="xchange envelope could not be fully set row #" & aCSVReader.CurrentRecordIndex & " in ordinal " & j, messagetype:=otCoreMessageType.ApplicationError, _
+                                CoreMessageHandler(message:="xchange envelope could not be fully set in row #" & aCSVReader.CurrentRecordIndex & "  for header id (xid) " & headerids(j), messagetype:=otCoreMessageType.ApplicationError, _
                                                subname:="CSVXChangeManager.FeedInCSV")
                             End If
                         End If

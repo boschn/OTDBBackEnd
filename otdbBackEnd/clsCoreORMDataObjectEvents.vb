@@ -48,6 +48,7 @@ Namespace OnTrack.Database
         Public Shared Event ClassOnInfused(sender As Object, e As ormDataObjectEventArgs)
         Public Event OnInfusing(sender As Object, e As ormDataObjectEventArgs) Implements iormInfusable.OnInfusing
         Public Event OnInfused(sender As Object, e As ormDataObjectEventArgs) Implements iormInfusable.OnInfused
+        Public Event OnColumnsInfused(sender As Object, e As ormDataObjectEventArgs) Implements iormInfusable.OnColumnsInfused
 
         Public Shared Event ClassOnColumnMappingInfusing(sender As Object, e As ormDataObjectEventArgs)
         Public Shared Event ClassOnColumnMappingInfused(sender As Object, e As ormDataObjectEventArgs)

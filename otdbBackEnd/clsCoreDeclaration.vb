@@ -136,7 +136,7 @@ Namespace OnTrack.Database
         ''' <param name="domainid"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Function validateUser(username As String, password As String, accessRequest As otAccessRight, Optional domainid As String = Nothing) As Boolean
+        Function ValidateUser(username As String, password As String, accessRequest As otAccessRight, Optional domainid As String = Nothing) As Boolean
 
         ''' <summary>
         ''' returns or creates foreign keys for a columndefinition
@@ -218,7 +218,8 @@ Namespace OnTrack.Database
         ''' <param name="nativeConnection"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Function HasTable(ByVal tableID As String, Optional ByRef connection As iormConnection = Nothing, Optional nativeConnection As Object = Nothing) As Boolean
+        Function HasTable(ByVal name As String, Optional ByRef connection As iormConnection = Nothing, Optional nativeConnection As Object = Nothing) As Boolean
+
 
         ''' <summary>
         ''' returns True if data store has the table by definition
@@ -248,10 +249,33 @@ Namespace OnTrack.Database
         ''' <param name="tableNativeObject"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Function GetTable(ByVal tablename As String, _
+        Function GetTable(ByVal name As String, _
                 Optional ByVal createOrAlter As Boolean = False, _
                 Optional ByRef connection As iormConnection = Nothing, _
                 Optional ByRef tableNativeObject As Object = Nothing) As Object
+
+        ''' <summary>
+        ''' returns true if the datastore has the view by viewname
+        ''' </summary>
+        ''' <param name="tablename"></param>
+        ''' <param name="nativeConnection"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Function HasView(ByVal name As String, Optional ByRef connection As iormConnection = Nothing, Optional nativeConnection As Object = Nothing) As Boolean
+
+        ''' <summary>
+        ''' returns or creates a Table in the data store
+        ''' </summary>
+        ''' <param name="tablename"></param>
+        ''' <param name="createOrAlter"></param>
+        ''' <param name="addToSchemaDir"></param>
+        ''' <param name="nativeConnection"></param>
+        ''' <param name="tableNativeObject"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Function GetView(ByVal name As String, sqlselect As String, _
+                Optional ByVal createOrAlter As Boolean = False, _
+                Optional ByRef connection As iormConnection = Nothing) As Object
 
         ''' <summary>
         ''' returns true if the data store has the columnname in the table
@@ -1131,7 +1155,7 @@ Namespace OnTrack.Database
 
         Function Reset() As Boolean
 
-        Function getRecord(no As ULong) As ormRecord
+        Function GetRecord(no As ULong) As ormRecord
 
         Function GetObject(no As ULong) As iormPersistable
 
@@ -1337,7 +1361,7 @@ Namespace OnTrack.Database
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Function Delete(Optional timestamp As DateTime = ConstNullDate) As Boolean
+        Function Delete(Optional timestamp As DateTime? = Nothing) As Boolean
 
         ''' <summary>
         ''' Perists the object in the datastore
@@ -1346,7 +1370,7 @@ Namespace OnTrack.Database
         ''' <param name="doFeedRecord"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Function Persist(Optional timestamp As Date = ConstNullDate, Optional doFeedRecord As Boolean = True) As Boolean
+        Function Persist(Optional timestamp As DateTime? = Nothing, Optional doFeedRecord As Boolean = True) As Boolean
         'Function CreateSchema(Optional silent As Boolean = True) As Boolean
         ''' <summary>
         ''' returns the version by attribute of the persistance objects
@@ -1365,6 +1389,8 @@ Namespace OnTrack.Database
     ''' <remarks></remarks>
 
     Public Interface iormInfusable
+
+        Event OnColumnsInfused(sender As Object, e As ormDataObjectEventArgs)
 
         Function Normalizevalue(entryname As String, ByRef value As Object) As Boolean
 

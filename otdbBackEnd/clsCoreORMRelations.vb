@@ -1471,6 +1471,7 @@ Namespace OnTrack.Database
             Dim fromTablename As String = _dataobject.ObjectClassDescription.Tables.First
             Dim toTablename = aTargetObjectDescriptor.Tables.First ' First Tablename if multiple
 
+           
 
             '** get the keys althoug determining if TOEntries are by Primarykey is a bit obsolete
             If Not arelationAttribute.HasValueFromEntries OrElse Not arelationAttribute.HasValueToEntries Then
@@ -1590,8 +1591,8 @@ Namespace OnTrack.Database
                 '** sort out the domains
                 If domainBehavior And domainID <> ConstGlobalDomain Then
                     For Each aRecord In aDomainRecordCollection.Values
-                        Dim atargetobject = ot.CreateDataObjectInstance(aTargetType)
-                        If ormDataObject.InfuseDataObject(record:=aRecord, dataobject:=TryCast(atargetobject, iormInfusable), _
+                        Dim atargetobject As iormInfusable = TryCast(ot.CreateDataObjectInstance(aTargetType), iormInfusable)
+                        If ormDataObject.InfuseDataObject(record:=aRecord, dataobject:=atargetobject, _
                                                           mode:=otInfuseMode.OnInject Or otInfuseMode.OnDefault) Then
                             theObjectList.Add(DirectCast(atargetobject, iormPersistable))
                         End If

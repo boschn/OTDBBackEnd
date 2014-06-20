@@ -60,7 +60,9 @@ Namespace OnTrack.Database
         ''' <param name="runtimeOnly"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Shared Function SubstituteDomainIDinTablePrimaryKey(tablename As String, ByRef pkarray As Object(), domainid As String, Optional runtimeOnly As Boolean = False) As Boolean
+        Public Shared Function SubstituteDomainIDinTablePrimaryKey(tablename As String, ByRef pkarray As Object(), domainid As String, _
+                                                                    Optional substitueOnlyNothingDomain As Boolean = True, _
+                                                                    Optional runtimeOnly As Boolean = False) As Boolean
             Dim domindex As Integer = -1
 
             ''' beware of startup and installation
@@ -91,7 +93,8 @@ Namespace OnTrack.Database
                         ' set only if nothing is set
                         If pkarray(domindex - 1) Is Nothing OrElse String.IsNullOrWhiteSpace(pkarray(domindex - 1)) Then
                             pkarray(domindex - 1) = UCase(domainid) ' set the domainid
-                        ElseIf pkarray(domindex - 1) <> UCase(domainid) Then
+                            ' replace all values if flag is set 
+                        ElseIf Not substitueOnlyNothingDomain AndAlso pkarray(domindex - 1) <> UCase(domainid) Then
                             pkarray(domindex - 1) = UCase(domainid)
                         End If
                     Else
@@ -163,7 +166,9 @@ Namespace OnTrack.Database
         ''' <param name="runtimeOnly"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Shared Function ChecknFixPimaryKey(objectid As String, ByRef pkarray As Object(), domainid As String, Optional runtimeOnly As Boolean = False) As Boolean
+        Public Shared Function ChecknFixPimaryKey(objectid As String, ByRef pkarray As Object(), domainid As String, _
+                                                  Optional substitueOnlyNothingDomain As Boolean = True, _
+                                                  Optional runtimeOnly As Boolean = False) As Boolean
             Dim aPrimaryTableid As String
 
             Dim aDescription = ot.GetObjectClassDescriptionByID(id:=objectid)
@@ -176,7 +181,7 @@ Namespace OnTrack.Database
 
             ''' Substitute the DomainID
             '''
-            SubstituteDomainIDinTablePrimaryKey(tablename:=aPrimaryTableid, pkarray:=pkarray, domainid:=domainid, runtimeOnly:=runtimeOnly)
+            SubstituteDomainIDinTablePrimaryKey(tablename:=aPrimaryTableid, pkarray:=pkarray, substitueOnlyNothingDomain:=substitueOnlyNothingDomain, domainid:=domainid, runtimeOnly:=runtimeOnly)
 
             ''' convert the primary key fields
             ''' 
@@ -890,167 +895,197 @@ Namespace OnTrack.Database
                         field.SetValue(dataobject, value)
                     End If
                 ElseIf targettype.IsArray Then
-                    Dim anArray As String()
+                    Dim aStringArray As String()
                     If value IsNot Nothing AndAlso value.GetType.IsArray Then
-                        anArray = value
+                        aStringArray = value
                     Else
-                        anArray = OnTrack.Database.Converter.otString2Array(value)
+                        aStringArray = OnTrack.Database.Converter.otString2Array(value)
                     End If
 
-                    If aSetter IsNot Nothing Then
-                        aSetter(dataobject, anArray)
+                    If targettype.GetElementType Is GetType(Long) Then
+                        Dim aLongArray As Long()
+                        Dim i As Integer
+                        ReDim aLongArray(aStringArray.Length - 1)
+                        For Each aValue In aStringArray
+                            aLongArray(i) = CLng(aValue)
+                            i += 1
+                        Next
+                        If aSetter IsNot Nothing Then
+                            aSetter(dataobject, aLongArray)
+                        Else
+                            field.SetValue(dataobject, aLongArray)
+                        End If
+                    ElseIf targettype.GetElementType Is GetType(String) Then
+                        '' no need to transfer
+                        If aSetter IsNot Nothing Then
+                            aSetter(dataobject, aStringArray)
+                        Else
+                            field.SetValue(dataobject, aStringArray)
+                        End If
+
                     Else
-                        field.SetValue(dataobject, anArray)
+                        Dim anArray As Object = Array.CreateInstance(targettype.GetElementType, aStringArray.Length)
+                        Dim i As Integer
+                        For Each aValue In aStringArray
+                            anArray(i) = CTypeDynamic(aValue, targettype.GetElementType)
+                            i += 1
+                        Next
+                        If aSetter IsNot Nothing Then
+                            aSetter(dataobject, anArray)
+                        Else
+                            field.SetValue(dataobject, anArray)
+                        End If
                     End If
+
                     '''
                     ''' setter for all types of list interfaces
                     ''' 
                 ElseIf targettype.GetInterfaces.Contains(GetType(IList)) Then
-                    Dim anArray As String()
-                    Dim aList As Object
-                    If value.GetType.IsArray Then
-                        anArray = value
-                        If anArray.Count = 0 Then
+                        Dim anArray As String()
+                        Dim aList As Object
+                        If value.GetType.IsArray Then
+                            anArray = value
+                            If anArray.Count = 0 Then
+                                aList = Reflector.CreateInstanceOfIlist(targettype.GetGenericArguments.First)
+                            Else
+                                aList = anArray.ToList
+                            End If
+                        ElseIf value.GetType.GetInterfaces.Contains(GetType(IList)) Then
+                            ''' make sure that the inner type of the list 
+                            ''' are casted as well before we pass it
+                            Dim innertype As System.Type = value.GetType.GetGenericArguments.First
                             aList = Reflector.CreateInstanceOfIlist(targettype.GetGenericArguments.First)
+                            For i = 0 To DirectCast(value, IList).Count - 1
+                                '' try to cast
+                                Dim item As Object = CTypeDynamic(DirectCast(value, IList).Item(i), innertype)
+                                TryCast(aList, IList).Add(item)
+                            Next
+
+                        ElseIf value.GetType.Equals(GetType(String)) Then
+                            anArray = OnTrack.Database.Converter.otString2Array(value)
+                            If anArray.Count = 0 Then
+                                aList = New List(Of String) 'HACK ! this should be of generic type of the field
+                            Else
+                                aList = anArray.ToList
+                            End If
+
                         Else
-                            aList = anArray.ToList
-                        End If
-                    ElseIf value.GetType.GetInterfaces.Contains(GetType(IList)) Then
-                        ''' make sure that the inner type of the list 
-                        ''' are casted as well before we pass it
-                        Dim innertype As System.Type = value.GetType.GetGenericArguments.First
-                        aList = Reflector.CreateInstanceOfIlist(targettype.GetGenericArguments.First)
-                        For i = 0 To DirectCast(value, IList).Count - 1
-                            '' try to cast
-                            Dim item As Object = CTypeDynamic(DirectCast(value, IList).Item(i), innertype)
-                            TryCast(aList, IList).Add(item)
-                        Next
+                            CoreMessageHandler(message:="Type is not convertable to ILIST", subname:="Reflector.SetFieldValue", messagetype:=otCoreMessageType.InternalError, _
+                                               entryname:=field.Name, tablename:=dataobject.primaryTableID, _
+                                               arg1:=field.Name)
 
-                    ElseIf value.GetType.Equals(GetType(String)) Then
-                        anArray = OnTrack.Database.Converter.otString2Array(value)
-                        If anArray.Count = 0 Then
-                            aList = New List(Of String) 'HACK ! this should be of generic type of the field
+                        End If
+
+                        ''' set the value
+                        ''' 
+                        If aSetter IsNot Nothing Then
+                            aSetter(dataobject, aList)
                         Else
-                            aList = anArray.ToList
+                            field.SetValue(dataobject, aList)
                         End If
-
-                    Else
-                        CoreMessageHandler(message:="Type is not convertable to ILIST", subname:="Reflector.SetFieldValue", messagetype:=otCoreMessageType.InternalError, _
-                                           entryname:=field.Name, tablename:=dataobject.primaryTableID, _
-                                           arg1:=field.Name)
-
-                    End If
-
-                    ''' set the value
-                    ''' 
-                    If aSetter IsNot Nothing Then
-                        aSetter(dataobject, aList)
-                    Else
-                        field.SetValue(dataobject, aList)
-                    End If
 
                 ElseIf value Is Nothing OrElse targettype.Equals(value.GetType) Then
-                    If aSetter IsNot Nothing Then
-                        aSetter(dataobject, value)
-                    Else
-                        field.SetValue(dataobject, value)
-                    End If
+                        If aSetter IsNot Nothing Then
+                            aSetter(dataobject, value)
+                        Else
+                            field.SetValue(dataobject, value)
+                        End If
 
                 ElseIf targettype.IsEnum Then
-                    Dim anewValue As Object
-                    If value.GetType.Equals(GetType(String)) Then
-                        '* transform
-                        anewValue = CTypeDynamic([Enum].Parse(field.FieldType, value, ignoreCase:=True), field.FieldType)
-                    Else
-                        anewValue = CTypeDynamic(value, field.FieldType)
-                    End If
+                        Dim anewValue As Object
+                        If value.GetType.Equals(GetType(String)) Then
+                            '* transform
+                            anewValue = CTypeDynamic([Enum].Parse(field.FieldType, value, ignoreCase:=True), field.FieldType)
+                        Else
+                            anewValue = CTypeDynamic(value, field.FieldType)
+                        End If
 
-                    If aSetter IsNot Nothing Then
-                        aSetter(dataobject, anewValue)
-                    Else
-                        field.SetValue(dataobject, anewValue)
-                    End If
+                        If aSetter IsNot Nothing Then
+                            aSetter(dataobject, anewValue)
+                        Else
+                            field.SetValue(dataobject, anewValue)
+                        End If
                 ElseIf converter.CanConvertFrom(value.GetType) Then
-                    Dim anewvalue As Object = converter.ConvertFrom(value)
-                    If aSetter IsNot Nothing Then
-                        aSetter(dataobject, anewvalue)
-                    Else
-                        field.SetValue(dataobject, anewvalue)
-                    End If
+                        Dim anewvalue As Object = converter.ConvertFrom(value)
+                        If aSetter IsNot Nothing Then
+                            aSetter(dataobject, anewvalue)
+                        Else
+                            field.SetValue(dataobject, anewvalue)
+                        End If
                 ElseIf targettype.Equals(GetType(Long)) AndAlso IsNumeric(value) Then
-                    If aSetter IsNot Nothing Then
-                        aSetter(dataobject, CLng(value))
-                    Else
-                        field.SetValue(dataobject, CLng(value))
-                    End If
+                        If aSetter IsNot Nothing Then
+                            aSetter(dataobject, CLng(value))
+                        Else
+                            field.SetValue(dataobject, CLng(value))
+                        End If
                 ElseIf targettype.Equals(GetType(Boolean)) Then
-                    If aSetter IsNot Nothing Then
-                        aSetter(dataobject, CBool(value))
-                    Else
-                        field.SetValue(dataobject, CBool(value))
-                    End If
+                        If aSetter IsNot Nothing Then
+                            aSetter(dataobject, CBool(value))
+                        Else
+                            field.SetValue(dataobject, CBool(value))
+                        End If
 
                 ElseIf targettype.Equals(GetType(String)) Then
-                    If aSetter IsNot Nothing Then
-                        aSetter(dataobject, CStr(value))
-                    Else
+                        If aSetter IsNot Nothing Then
+                            aSetter(dataobject, CStr(value))
+                        Else
+                            field.SetValue(dataobject, CStr(value))
+                        End If
                         field.SetValue(dataobject, CStr(value))
-                    End If
-                    field.SetValue(dataobject, CStr(value))
                 ElseIf targettype.Equals(GetType(Integer)) AndAlso IsNumeric(value) Then
-                    If aSetter IsNot Nothing Then
-                        aSetter(dataobject, CInt(value))
-                    Else
-                        field.SetValue(dataobject, CInt(value))
-                    End If
+                        If aSetter IsNot Nothing Then
+                            aSetter(dataobject, CInt(value))
+                        Else
+                            field.SetValue(dataobject, CInt(value))
+                        End If
 
                 ElseIf targettype.Equals(GetType(UInteger)) AndAlso IsNumeric(value) _
                     AndAlso value >= UInteger.MinValue AndAlso value <= UInteger.MaxValue Then
-                    If aSetter IsNot Nothing Then
-                        aSetter(dataobject, CUInt(value))
-                    Else
-                        field.SetValue(dataobject, CUInt(value))
-                    End If
+                        If aSetter IsNot Nothing Then
+                            aSetter(dataobject, CUInt(value))
+                        Else
+                            field.SetValue(dataobject, CUInt(value))
+                        End If
                 ElseIf targettype.Equals(GetType(UShort)) And IsNumeric(value) _
                     AndAlso value >= UShort.MinValue AndAlso value <= UShort.MaxValue Then
-                    If aSetter IsNot Nothing Then
-                        aSetter(dataobject, CUShort(value))
-                    Else
-                        field.SetValue(dataobject, CUShort(value))
-                    End If
+                        If aSetter IsNot Nothing Then
+                            aSetter(dataobject, CUShort(value))
+                        Else
+                            field.SetValue(dataobject, CUShort(value))
+                        End If
                 ElseIf targettype.Equals(GetType(ULong)) And IsNumeric(value) _
                      AndAlso value >= ULong.MinValue AndAlso value <= ULong.MaxValue Then
-                    If aSetter IsNot Nothing Then
-                        aSetter(dataobject, CULng(value))
-                    Else
-                        field.SetValue(dataobject, CULng(value))
-                    End If
+                        If aSetter IsNot Nothing Then
+                            aSetter(dataobject, CULng(value))
+                        Else
+                            field.SetValue(dataobject, CULng(value))
+                        End If
 
                 ElseIf targettype.Equals(GetType(Double)) And IsNumeric(value) _
                     AndAlso value >= Double.MinValue AndAlso value <= Double.MaxValue Then
-                    If aSetter IsNot Nothing Then
-                        aSetter(dataobject, CDbl(value))
-                    Else
-                        field.SetValue(dataobject, CDbl(value))
-                    End If
+                        If aSetter IsNot Nothing Then
+                            aSetter(dataobject, CDbl(value))
+                        Else
+                            field.SetValue(dataobject, CDbl(value))
+                        End If
                 ElseIf targettype.Equals(GetType(Decimal)) And IsNumeric(value) _
                   AndAlso value >= Decimal.MinValue AndAlso value <= Decimal.MaxValue Then
-                    If aSetter IsNot Nothing Then
-                        aSetter(dataobject, CDec(value))
-                    Else
-                        field.SetValue(dataobject, CDec(value))
-                    End If
+                        If aSetter IsNot Nothing Then
+                            aSetter(dataobject, CDec(value))
+                        Else
+                            field.SetValue(dataobject, CDec(value))
+                        End If
                 ElseIf targettype.Equals(GetType(Object)) Then
-                    If aSetter IsNot Nothing Then
-                        aSetter(dataobject, value)
-                    Else
-                        field.SetValue(dataobject, value)
-                    End If
+                        If aSetter IsNot Nothing Then
+                            aSetter(dataobject, value)
+                        Else
+                            field.SetValue(dataobject, value)
+                        End If
                 Else
-                    Call CoreMessageHandler(subname:="ormDataObject.infuse", message:="cannot convert record value type to field type", _
-                                           entryname:=field.Name, tablename:=dataobject.primaryTableID, _
-                                           arg1:=field.Name, messagetype:=otCoreMessageType.InternalError)
-                    Return False
+                        Call CoreMessageHandler(subname:="ormDataObject.infuse", message:="cannot convert record value type to field type", _
+                                               entryname:=field.Name, tablename:=dataobject.primaryTableID, _
+                                               arg1:=field.Name, messagetype:=otCoreMessageType.InternalError)
+                        Return False
                 End If
                 'End SyncLock
 

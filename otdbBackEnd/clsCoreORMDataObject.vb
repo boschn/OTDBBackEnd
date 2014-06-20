@@ -1519,14 +1519,13 @@ Namespace OnTrack.Database
         ''' <param name="timestamp"></param>
         ''' <returns>True if successfull</returns>
         ''' <remarks></remarks>
-        Public Overridable Function Persist(Optional timestamp As Date = ot.constNullDate, Optional doFeedRecord As Boolean = True) As Boolean Implements iormPersistable.Persist
+        Public Overridable Function Persist(Optional timestamp As DateTime? = Nothing, Optional doFeedRecord As Boolean = True) As Boolean Implements iormPersistable.Persist
 
             '* init
             If Not Me.IsInitialized AndAlso Not Me.Initialize() Then Return False
             '** must be alive from data store
-            If Not IsAlive(subname:="Persist") Then
-                Return False
-            End If
+            If Not IsAlive(subname:="Persist") Then Return False
+            If Not timestamp.HasValue OrElse timestamp = constNullDate Then timestamp = DateTime.Now
 
             '''
             ''' object on runtime -> no save
@@ -1556,8 +1555,6 @@ Namespace OnTrack.Database
                 End If
             End If
             '**
-            If timestamp = constNullDate Then timestamp = DateTime.Now
-
             Try
                 '* if object was deleted an its now repersisted
                 Dim isdeleted As Boolean = _IsDeleted
@@ -2175,8 +2172,9 @@ Namespace OnTrack.Database
                                                            usecache:=Me.UseCache, runtimeonly:=runtimeOnly)
             RaiseEvent OnCreating(Me, ourEventArgs)
             If ourEventArgs.AbortOperation Then
-                Return ourEventArgs.Result
-            Else
+                If ourEventArgs.Result Then record = ourEventArgs.Record
+                Return ourEventArgs.Proceed
+            ElseIf ourEventArgs.Result Then
                 record = ourEventArgs.Record
             End If
 
@@ -2418,7 +2416,7 @@ Namespace OnTrack.Database
                 If anObject Is Nothing AndAlso hasDomainBehavior AndAlso domainID <> ConstGlobalDomain Then
                     '* on domain behavior ? -> reload from  the global domain
                     Dim domainPKArray As Object() = pkArray.Clone
-                    Shuffle.ChecknFixPimaryKey(aObjectID, pkarray:=pkArray, domainid:=ConstGlobalDomain, runtimeOnly:=runtimeOnly)
+                    Shuffle.ChecknFixPimaryKey(aObjectID, pkarray:=pkArray, domainid:=ConstGlobalDomain, substitueOnlyNothingDomain:=False, runtimeOnly:=runtimeOnly)
                     anObject = ormDataObject.Retrieve(pkArray:=pkArray, type:=type, domainID:=ConstGlobalDomain, dbdriver:=dbdriver)
                     ''' add it to cache
                     If anObject IsNot Nothing Then
@@ -2647,17 +2645,19 @@ Namespace OnTrack.Database
         ''' </summary>
         ''' <returns>True if successfull</returns>
         ''' <remarks></remarks>
-        Public Overridable Function Delete(Optional timestamp As DateTime = constNullDate) As Boolean Implements iormPersistable.Delete
+        Public Overridable Function Delete(Optional timestamp As DateTime? = Nothing) As Boolean Implements iormPersistable.Delete
 
             '** initialize -> no error if not alive
             If Not Me.IsAlive(throwError:=False) Then Return False
+            If Not timestamp.HasValue OrElse timestamp = constNullDate Then timestamp = DateTime.Now
+
             '** check on the operation right for this object
             If Not RunTimeOnly AndAlso Not CurrentSession.ValidateAccessRights(accessrequest:=otAccessRight.ReadUpdateData, _
                                                                                domainid:=DomainID, _
                                                                                 objecttransactions:={Me.ObjectID & "." & ConstOPDelete}) Then
 
                 If Not CurrentSession.RequestUserAccess(accessRequest:=otAccessRight.ReadOnly, username:=CurrentSession.Username, _
-                                                        domainID:=DomainID, loginOnFailed:=True, _
+                                                        domainid:=DomainID, loginOnFailed:=True, _
                                                          messagetext:="Please provide another user to authorize requested operation", _
                                                          objecttransactions:={Me.ObjectID & "." & ConstOPDelete}) Then
                     Call CoreMessageHandler(message:="data object cannot be deleted - permission denied to user", _
@@ -3070,7 +3070,14 @@ Namespace OnTrack.Database
 
                 '*** INFUSE THE COLUMN MAPPED MEMBERS
                 Dim aResult As Boolean = InfuseColumnMapping(mode:=mode)
-                
+
+                '*** Fire OnColumnsInfused
+                ourEventArgs = New ormDataObjectEventArgs(Me, record:=record, pkarray:=pkArray, infusemode:=mode, runtimeOnly:=Me.RunTimeOnly, usecache:=Me.UseCache)
+                RaiseEvent OnColumnsInfused(Me, ourEventArgs)
+                If ourEventArgs.AbortOperation Then
+                    Return ourEventArgs.Proceed
+                End If
+
                 '*** INFUSE THE RELATION MAPPED MEMBERS
                 aResult = aResult And InfuseRelationMapped(mode:=mode)
                

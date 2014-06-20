@@ -417,7 +417,9 @@ Namespace OnTrack.Deliverables
         ''' <param name="doFeedRecord"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function Persist(Optional timestamp As Date = ot.constNullDate, Optional doFeedRecord As Boolean = True) As Boolean Implements iormPersistable.Persist
+        Public Function Persist(Optional timestamp As DateTime? = Nothing, Optional doFeedRecord As Boolean = True) As Boolean Implements iormPersistable.Persist
+            If Not Me.IsAlive("Persist") Then Return False
+            If Not timestamp.HasValue OrElse timestamp = constNullDate Then timestamp = DateTime.Now
             Dim myDeliverable As Deliverable = Me.Deliverable
             Dim autopublish As Boolean = CurrentSession.AutoPublishTarget
             If myDeliverable IsNot Nothing Then

@@ -10,7 +10,9 @@ REM ***********
 REM *********** Change Log:
 REM ***********
 REM *********** (C) by Boris Schneider 2013
-REM ***********************************************************************************************************************************************
+REM ***********************************************************************************************************************************************''' <summary>
+
+  
 Option Explicit On
 
 Imports System.Collections
@@ -1680,7 +1682,158 @@ Namespace OnTrack.Database
             End Try
 
         End Function
+        ''' returns or creates a Table in the data store
+        ''' </summary>
+        ''' <param name="name"></param>
+        ''' <param name="sqlselect"></param>
+        ''' <param name="createOrAlter"></param>
+        ''' <param name="connection"></param>
+        ''' <remarks></remarks>
+        ''' <returns></returns>
+        Public Overrides Function GetView(name As String, sqlselect As String, Optional createOrAlter As Boolean = False, Optional ByRef connection As iormConnection = Nothing) As Object
 
+            Dim myConnection As oledbConnection
+            Dim theViews As DataTable
+
+            Dim aStatement As String = ""
+
+            If connection Is Nothing Then
+                myConnection = _primaryConnection
+            Else
+                myConnection = connection
+            End If
+
+            If myConnection Is Nothing Then
+                Call CoreMessageHandler(subname:="oleDBDriver.GetView", tablename:=name, message:="No current Connection to the Database", _
+                                      messagetype:=otCoreMessageType.ApplicationError)
+                Return Nothing
+            End If
+            '*** check on rights
+            If createOrAlter And Not CurrentSession.IsBootstrappingInstallationRequested Then
+                If Not myConnection.VerifyUserAccess(accessRequest:=otAccessRight.AlterSchema, useLoginWindow:=True) Then
+                    Call CoreMessageHandler(showmsgbox:=True, subname:="oleDBDriver.GetView", tablename:=name, _
+                                          message:="No right to alter schema of database", messagetype:=otCoreMessageType.ApplicationError)
+                    Return Nothing
+                End If
+            End If
+
+
+            Try
+                Dim restrictionsTable() As String = {Nothing, Nothing, name}
+                theViews = DirectCast(myConnection.NativeInternalConnection, System.Data.OleDb.OleDbConnection).GetSchema("VIEWS", restrictionsTable)
+
+
+                '** create the table
+                '**
+                If theViews.Rows.Count > 0 Then
+
+                    If createOrAlter Then
+                        aStatement = "DROP VIEW [" & name & "]"
+                        Me.RunSqlStatement(aStatement, _
+                                           nativeConnection:=DirectCast(myConnection.NativeInternalConnection, System.Data.OleDb.OleDbConnection))
+
+                    Else
+                        Return theViews
+                    End If
+                   
+
+                End If
+
+                If theViews.Rows.Count = 0 And createOrAlter Then
+
+                    aStatement = "CREATE VIEW [" & name & "] AS " & sqlselect
+                    Me.RunSqlStatement(aStatement, _
+                                       nativeConnection:=DirectCast(myConnection.NativeInternalConnection, System.Data.OleDb.OleDbConnection))
+
+                    theViews = DirectCast(myConnection.NativeInternalConnection, System.Data.OleDb.OleDbConnection).GetSchema("COLUMNS", restrictionsTable)
+
+                    Return theViews
+
+                
+                End If
+
+            Catch ex As OleDb.OleDbException
+                Call CoreMessageHandler(message:="Exception", exception:=ex, tablename:=name, _
+                                      subname:="oleDBDriver.GetView", messagetype:=otCoreMessageType.InternalError)
+                Return Nothing
+
+            Catch ex As Exception
+                Call CoreMessageHandler(message:="Exception", exception:=ex, tablename:=name, _
+                                      subname:="oleDBDriver.GetView", messagetype:=otCoreMessageType.InternalError)
+                Return Nothing
+            End Try
+
+        End Function
+        ''' <summary>
+        ''' returns true if the datastore has the view by viewname
+        ''' </summary>
+        ''' <param name="name"></param>
+        ''' <param name="connection"></param>
+        ''' <param name="nativeConnection"></param>
+        ''' <remarks></remarks>
+        ''' <returns></returns>
+        Public Overrides Function HasView(name As String, Optional ByRef connection As iormConnection = Nothing, Optional nativeConnection As Object = Nothing) As Boolean
+            Dim myConnection As OnTrack.Database.oledbConnection
+            Dim aTable As DataTable
+            Dim myNativeConnection As OleDb.OleDbConnection
+
+            If connection Is Nothing Then
+                myConnection = _primaryConnection
+            Else
+                myConnection = connection
+            End If
+
+            If nativeConnection Is Nothing Then
+                myNativeConnection = TryCast(myConnection.NativeInternalConnection, OleDb.OleDbConnection)
+            Else
+                myNativeConnection = TryCast(nativeConnection, OleDb.OleDbConnection)
+            End If
+
+            If myConnection Is Nothing OrElse myConnection.NativeInternalConnection Is Nothing Then
+                Call CoreMessageHandler(subname:="oleDBDriver.HasView", message:="No current Connection to the Database", _
+                                      messagetype:=otCoreMessageType.ApplicationError)
+                Return Nothing
+            End If
+            If myNativeConnection Is Nothing Then
+                Call CoreMessageHandler(subname:="oleDBDriver.HasView", message:="No current internal Connection to the Database", _
+                                      messagetype:=otCoreMessageType.ApplicationError)
+                Return Nothing
+            End If
+            '*** check on rights we cannot check on the User Table -> recursion
+            '* do not check -> makes no sense since we are checking the database status before we are installing
+            'If Not CurrentSession.IsBootstrappingInstallation AndAlso name <> User.Constname Then
+            '    If Not _currentUserValidation.ValidEntry AndAlso Not _currentUserValidation.HasReadRights Then
+            '        If Not myConnection.VerifyUserAccess(accessRequest:=otAccessRight.[ReadOnly], loginOnFailed:=True) Then
+            '            Call CoreMessageHandler(showmsgbox:=True, subname:="oleDBDriver.HasView", _
+            '                                  message:="No right to read schema of database", messagetype:=otCoreMessageType.ApplicationError)
+            '            Return Nothing
+            '        End If
+            '    End If
+            'End If
+
+
+            Try
+                Dim restrictionsTable() As String = {Nothing, Nothing, name}
+                aTable = myNativeConnection.GetSchema("VIEWS", restrictionsTable)
+
+                If aTable.Rows.Count = 0 Then
+                    Return False
+                Else
+                    Return True
+                End If
+
+            Catch ex As OleDb.OleDbException
+                Call CoreMessageHandler(message:="Exception", exception:=ex, tablename:=name, _
+                                      subname:="oleDBDriver.HasView", messagetype:=otCoreMessageType.InternalError)
+                Return Nothing
+
+            Catch ex As Exception
+                Call CoreMessageHandler(message:="Exception", exception:=ex, tablename:=name, _
+                                      subname:="oleDBDriver.HasView", messagetype:=otCoreMessageType.InternalError)
+                Return Nothing
+            End Try
+
+        End Function
         ''' <summary>
         ''' EventHandler for onConnect
         ''' </summary>

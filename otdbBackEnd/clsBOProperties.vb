@@ -375,7 +375,7 @@ Namespace OnTrack.ObjectProperties
 
                     '' cannot generate an new updc on a just created object 
                     ''(getmax will not work on unpersisted objects)
-                    If Me.AliveSet.IsCreated Then
+                    If Me.AliveSet IsNot Nothing AndAlso Me.AliveSet.IsCreated Then
                         _workset = aWorkingSet.Clone(_aliveset.Updc + 1)
                     Else
                         _workset = aWorkingSet.Clone()
@@ -464,6 +464,7 @@ Namespace OnTrack.ObjectProperties
                 sqlselectcmd.AppendFormat(",LOT.[{0}]", ObjectPropertyValueLot.ConstFNSets)
                 sqlselectcmd.AppendFormat(",LOT.[{0}]", ObjectPropertyValueLot.ConstFNSetUPDCs)
                 sqlselectcmd.AppendFormat(",LOT.[{0}]", ObjectPropertyValueLot.ConstFNValidFrom)
+                sqlselectcmd.AppendFormat(",LOT.[{0}]", ObjectPropertyValueLot.ConstFNValiduntil)
 
                 Dim i As Integer = 1
                 ' P1.VALUE as '0.0.2.0', P2.value AS '0.0.3.0' , P3.VALUE AS '0.1.0.0', P4.VALUE AS '0.1.3.0', 
@@ -502,7 +503,7 @@ Namespace OnTrack.ObjectProperties
                 Return aDBDriver.GetView(createOrAlter:=True, name:=viewnames, sqlselect:=sqlselectcmd.ToString) Is Nothing
 
             Catch ex As Exception
-                CoreMessageHandler("failed to build view on propertyset", arg1:=sqlselectcmd.ToString, exception:=ex, _
+                CoreMessageHandler("failed to build view on property set", arg1:=sqlselectcmd.ToString, exception:=ex, _
                                     subname:="ObjectPropertyCurrentSet.CreatePropertyValueView")
                 Return False
             End Try
@@ -2796,7 +2797,13 @@ Namespace OnTrack.ObjectProperties
                 setupdc = anCurrentSet.AliveUpdc
             End If
 
-            If (Me.PropertySetIDs.Contains(setid) And addSet) OrElse Not addSet Then
+            '** add the set -> recursion loop due to setting default values
+            'If (Not Me.PropertySetIDs.Contains(setid) And addSet) Then
+            '    Me.AddSet(setid, updc:=setupdc)
+            'End If
+
+            ''' add the value
+            If Me.PropertySetIDs.Contains(setid) OrElse addSet Then
                 Dim aPropertyValue = ObjectPropertyValue.Create(Me.UID, updc:=Me.UPDC, setid:=setid, propertyid:=propertyid)
                 ''' apply the Extended Property CopyInitialValueFrom
                 If aPropertyValue IsNot Nothing Then

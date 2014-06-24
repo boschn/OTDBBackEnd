@@ -495,7 +495,7 @@ Namespace OnTrack.Database
                 RaiseEvent RequestBootstrapInstall(Me, New SessionBootstrapEventArgs(install:=False, modules:=modules, AskBefore:=False))
                 '***
                 '*** create the database
-                Call createDatabase.Run(modules) ' startups also a session and login
+                Call Installation.CreateDatabase(modules) ' startups also a session and login
                 '** sets the total schema version parameter
                 _isInstalling = False
                 Return True
@@ -846,8 +846,15 @@ Namespace OnTrack.Database
 
                 If aDataReader.Read Then
                     Try
-                        _currentUserValidation.Password = aDataReader(User.ConstFNPassword)
-                        _currentUserValidation.Username = aDataReader(User.ConstFNUsername)
+                        Dim aValue As Object
+                        _currentUserValidation.Password = Nothing
+                        aValue = aDataReader(User.ConstFNPassword)
+                        If Not IsDBNull(aValue) Then _currentUserValidation.Password = CStr(aValue)
+
+                        _currentUserValidation.Username = Nothing
+                        aValue = aDataReader(User.ConstFNUsername)
+                        If Not IsDBNull(aValue) Then _currentUserValidation.Username = CStr(aValue)
+
                         _currentUserValidation.IsAnonymous = aDataReader(User.ConstFNIsAnonymous)
                         _currentUserValidation.HasAlterSchemaRights = aDataReader(User.ConstFNAlterSchema)
                         _currentUserValidation.HasReadRights = aDataReader(User.ConstFNReadData)

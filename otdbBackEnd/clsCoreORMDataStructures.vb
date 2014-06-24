@@ -2223,6 +2223,8 @@ Namespace OnTrack.Database
                 CoreMessageHandler(message:="unbound record cannot be persisted", messagetype:=otCoreMessageType.InternalError, subname:="ormRecord.Persist")
                 Return False
             End If
+
+            Return False
         End Function
 
         ''' <summary>

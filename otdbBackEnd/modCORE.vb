@@ -1533,7 +1533,7 @@ Namespace OnTrack
                 '***
                 If dataobject IsNot Nothing Then
                     If String.IsNullOrWhiteSpace(objectname) Then objectname = dataobject.ObjectID
-                    If String.IsNullOrWhiteSpace(tablename) Then objectname = dataobject.primaryTableID
+                    If String.IsNullOrWhiteSpace(tablename) Then tablename = dataobject.primaryTableID
                     If tagvalues Is Nothing Then tagvalues = dataobject.PrimaryKeyValues
                     If String.IsNullOrWhiteSpace(domainid) AndAlso dataobject.ObjectHasDomainBehavior Then domainid = dataobject.DomainID
                 End If
@@ -1618,6 +1618,7 @@ Namespace OnTrack
                 System.Diagnostics.Debug.WriteLine("> OnTrack Session Message:" & message)
                 If msglog IsNot Nothing Then System.Diagnostics.Debug.WriteLine(">> Object Message Log :" & msglog.MessageText)
                 If arg1 IsNot Nothing Then System.Diagnostics.Debug.WriteLine("> Arguments:" & arg1.ToString)
+                If tagvaluestring IsNot Nothing Then System.Diagnostics.Debug.WriteLine("> Object Tag:" & tagvaluestring)
                 If tablename IsNot Nothing AndAlso tablename <> "" Then System.Diagnostics.Debug.WriteLine("> Tablename: " & tablename)
                 If columnname IsNot Nothing AndAlso columnname <> "" Then System.Diagnostics.Debug.WriteLine("> Columnname: " & columnname)
                 If objectname IsNot Nothing AndAlso objectname <> "" Then System.Diagnostics.Debug.WriteLine("> Objectname: " & objectname)

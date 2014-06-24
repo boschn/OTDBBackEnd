@@ -2313,7 +2313,7 @@ Namespace OnTrack.XChange
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function GetObjectEntries(Optional objectname As String = Nothing) As IEnumerable(Of XChangeObjectEntry)
-            If Not IsAlive(subname:="GetObjectEntries") Then Return New List(Of IXChangeConfigEntry)
+            If Not IsAlive(subname:="GetObjectEntries") Then Return New List(Of XChangeObjectEntry)
 
             If Not String.IsNullOrWhiteSpace(objectname) Then
                 Return GetEntriesByObjectName(objectname)

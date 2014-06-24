@@ -381,31 +381,29 @@ Namespace OnTrack.Deliverables
                             _workingtarget = aWorkingTarget.Clone()
                         End If
                         '* should be cloned but to make sure
-                        _workingtarget.DomainID = aWorkingTarget.DomainID
-
+                        Me.WorkingTarget.DomainID = aWorkingTarget.DomainID
+                        '** link
                         Me.WorkingTargetUPDC = _workingtarget.UPDC
                     End If
 
                     ''' save the workspace schedule itself and the
                     ''' related objects
-                    isProcessable = MyBase.Persist(timestamp)
-
+                    Return MyBase.Persist(timestamp)
 
                 Else
-                    isProcessable = False
-                    Debug.Assert(False)
+                    Throw New NotImplementedException("WorkspaceTarget.Publish not processable")
 
                 End If
-            ElseIf Me.IsChanged Or Me.IsCreated Then
+            ElseIf Me.IsAlive("Publish") Then
                 '**** save without Milestone checking
-                isProcessable = MyBase.Persist(timestamp:=timestamp)
+                Return MyBase.Persist(timestamp:=timestamp)
             Else
                 '** nothing changed
                 '***
                 Return False
             End If
 
-            Return isProcessable
+            Return True
         End Function
 
 
@@ -2162,7 +2160,7 @@ Namespace OnTrack.Deliverables
                     If aLink IsNot Nothing Then
                         aDeliverable = Deliverable.Retrieve(uid:=aLink.FromUID)
                         If aDeliverable IsNot Nothing Then
-                            aTarget = aDeliverable.GetTarget(aScheduleEdition.WorkspaceID)
+                            aTarget = aDeliverable.GetWorkingTarget(aScheduleEdition.WorkspaceID)
                             If aTarget IsNot Nothing Then
                                 aTrack = Track.Retrieve(deliverableUID:=aTarget.UID, targetUPDC:=aTarget.UPDC, scheduleUID:=aScheduleEdition.Uid, scheduleUPDC:=aScheduleEdition.Updc)
                                 If aTrack Is Nothing Then
@@ -2200,10 +2198,7 @@ Namespace OnTrack.Deliverables
 
             Try
                 With Me
-                    If Me.DeliverableUID = 2 Then
-                        Debug.Write("")
-
-                    End If
+                   
                     ''' target
                     ''' 
                     .TargetRevision = Me.Target.Revision
@@ -2292,7 +2287,7 @@ Namespace OnTrack.Deliverables
 
                 ''' get the target
                 ''' 
-                aTarget = deliverable.GetTarget(workspaceID:=anWorkspace.ID)
+                aTarget = deliverable.GetWorkingTarget(workspaceID:=anWorkspace.ID)
 
                 ''' get the schedule edition
                 '''
@@ -3055,6 +3050,9 @@ Namespace OnTrack.Deliverables
         ''' </summary>
         ''' <remarks></remarks>
         Public Const constOPGetPropertyValueLot = "GetPropertyValueLot"
+        Public Const constOPGetWorkScheduleLFCLStatus = "GETWORKScheduleLFCLStatus"
+        Public Const constOPGetWorkScheduleProcStatus = "GETWORKScheduleProcStatus"
+        Public Const constOPGetWorkCurrentGAP = "GETWORKCurrentGap"
 
         ''' <summary>
         ''' dynamic runtime members
@@ -3456,23 +3454,118 @@ Namespace OnTrack.Deliverables
 
 #End Region
 
+        ''' <summary>
+        ''' returns the Status LFCL Item of the current alive schedule (nothing if no schedule is attached)
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        <ormObjectOperationMethod(Description:="retrieves the LFCL Status of the current Schedule", operationname:=constOPGetWorkScheduleLFCLStatus, _
+             parameterEntries:={ObjectCompoundEntry.ConstFNValues})> _
+        Public Function GetWorkScheduleLFCLStatusCode(ByRef statusitemcode As String) As Boolean
+            If Not Me.IsAlive(subname:="GetWorkScheduleLFCLStatus") Then Return Nothing
+            Dim aSchedule As ScheduleEdition = Me.GetWorkScheduleEdition
 
+            If aSchedule IsNot Nothing Then
+                If aSchedule.LifeCycleStatus Is Nothing Then aSchedule.CheckScheduleStatus()
+                If aSchedule.LifeCycleStatus IsNot Nothing Then
+                    statusitemcode = aSchedule.LifeCycleStatus.Code
+                End If
+            Else
+                aSchedule = Me.GetAliveScheduleEdition
+                If aSchedule IsNot Nothing Then
+                    If aSchedule.LifeCycleStatus IsNot Nothing Then
+                        statusitemcode = aSchedule.LifeCycleStatus.Code
+                        Return True
+                    End If
+                End If
+            End If
+            Return True
+
+        End Function
+
+        ''' <summary>
+        ''' returns the Status LFCL Item of the current alive schedule (nothing if no schedule is attached)
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        <ormObjectOperationMethod(Description:="retrieves the process Status of the current Schedule", operationname:=constOPGetWorkScheduleProcStatus, _
+             parameterEntries:={ObjectCompoundEntry.ConstFNValues})> _
+        Public Function GetWorkScheduleProcessStatus(ByRef statusitemcode As String) As Boolean
+            If Not Me.IsAlive(subname:="GetWorkScheduleProcessStatus") Then Return Nothing
+            Dim aSchedule As ScheduleEdition = Me.GetWorkScheduleEdition
+
+            If aSchedule IsNot Nothing Then
+                If aSchedule.ProcessStatus Is Nothing Then aSchedule.CheckScheduleStatus()
+                If aSchedule.ProcessStatus IsNot Nothing Then
+                    statusitemcode = aSchedule.ProcessStatus.Code
+                End If
+            Else
+                aSchedule = Me.GetAliveScheduleEdition
+                If aSchedule IsNot Nothing AndAlso aSchedule.ProcessStatus IsNot Nothing Then
+                    statusitemcode = aSchedule.ProcessStatus.Code
+                End If
+            End If
+
+            Return True
+        End Function
+
+        ''' <summary>
+        ''' returns the Status LFCL Item of the current alive schedule (nothing if no schedule is attached)
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        <ormObjectOperationMethod(Description:="retrieves the current fc gap for the current schedule and current target", operationname:=constOPGetWorkCurrentGAP, _
+             parameterEntries:={ObjectCompoundEntry.ConstFNValues})> _
+        Public Function GetWorkCurrentGap(ByRef gap As Long?, Optional workspaceid As String = Nothing) As Boolean
+            If Not Me.IsAlive(subname:="GetWorkCurrentGap") Then Return Nothing
+            Dim aSchedule As ScheduleEdition = Me.GetWorkScheduleEdition
+            Dim aTarget As Deliverables.Target = Me.GetWorkingTarget(workspaceID:=workspaceid)
+            If String.IsNullOrWhiteSpace(workspaceid) Then workspaceid = CurrentSession.CurrentWorkspaceID
+            Dim atrack As Deliverables.Track
+            If aTarget Is Nothing Then
+                gap = Nothing
+                Return True
+            End If
+
+            If aSchedule IsNot Nothing Then
+                atrack = Me.GetTrack(workspaceID:=workspaceid, scheduleUID:=aSchedule.Uid, scheduleUPDC:=aSchedule.Updc, targetUPDC:=aTarget.UPDC)
+                If atrack IsNot Nothing Then
+                    atrack.CheckOnGap()
+                    gap = atrack.GAPToTarget
+                    Return True
+                End If
+            Else
+                aSchedule = Me.GetAliveScheduleEdition
+                If aSchedule IsNot Nothing Then
+                    atrack = Me.GetTrack(workspaceID:=workspaceid, scheduleUID:=aSchedule.Uid, scheduleUPDC:=aSchedule.Updc, targetUPDC:=aTarget.UPDC)
+                    If atrack IsNot Nothing Then
+                        atrack.CheckOnGap()
+                        gap = atrack.GAPToTarget
+                        Return True
+                    End If
+                End If
+            End If
+
+            Return True
+        End Function
         ''' <summary>
         ''' returns the PropertyLink object in relation
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        <ormObjectOperationMethod(Description:="retrieves a property link object", operationname:=constOPGetPropertyValueLot)> _
-        Public Function GetProperties() As ObjectProperties.ObjectPropertyValueLot
+        <ormObjectOperationMethod(Description:="retrieves a property link object", operationname:=constOPGetPropertyValueLot, _
+            parameterEntries:={ObjectCompoundEntry.ConstFNValues})> _
+        Public Function GetProperties(ByRef propertyvaluelot As ObjectPropertyValueLot) As Boolean
             If Not Me.IsAlive(subname:="GetPropertyValueLot") Then Return Nothing
 
             '''
             ''' get the link
             If Me.PropertyLink IsNot Nothing Then
-                Return Me.PropertyLink.PropertyValueLot
+                propertyvaluelot = Me.PropertyLink.PropertyValueLot
+                Return True
             End If
 
-            Return Nothing
+            Return True
         End Function
 
         ''' <summary>
@@ -3565,19 +3658,25 @@ Namespace OnTrack.Deliverables
                 Dim aScheduleLink As ScheduleLink = Scheduling.ScheduleLink.RetrieveDeliverableLinkFrom(deliverableUID:=Me.Uid)
                 If aScheduleLink Is Nothing Then
                     Dim aSchedule As WorkspaceSchedule = WorkspaceSchedule.Create(scheduletypeid:=myself.DeliverableType.DefaultScheduleType, domainid:=Me.DomainID, workspaceID:=aWorkspaceID)
-                    aScheduleLink = Scheduling.ScheduleLink.Create(fromObjectID:=Me.ObjectID, fromuid:=Me.Uid, toScheduleUid:=aSchedule.UID)
-                    ''' back to the ScheduleLink
-                    If aScheduleLink IsNot Nothing Then
-                        ' we have what we need
-                        e.RelationObjects.Add(aScheduleLink)
-                        e.Finished = True
+                    If aSchedule IsNot Nothing Then
+                        aScheduleLink = Scheduling.ScheduleLink.Create(fromObjectID:=Me.ObjectID, fromuid:=Me.Uid, toScheduleUid:=aSchedule.UID)
+                        ''' back to the ScheduleLink
+                        If aScheduleLink IsNot Nothing Then
+                            ' we have what we need
+                            e.RelationObjects.Add(aScheduleLink)
+                            e.Finished = True
+                        End If
+                    Else
+                        CoreMessageHandler("workspace schedule could not be created", subname:="Deliverable.OnRelationCreateNeeded", _
+                                            dataobject:=Me, messagetype:=otCoreMessageType.InternalError)
                     End If
+                   
                 Else
                     '' try to retrieve if there is already a link for some reasons
                     Dim aSchedule As WorkspaceSchedule = WorkspaceSchedule.Retrieve(UID:=aScheduleLink.ToUid, workspaceID:=aWorkspaceID)
                     '' create
                     If aSchedule Is Nothing Then
-                        aSchedule = WorkspaceSchedule.Create(scheduletypeid:=aScheduletype, DomainID:=Me.DomainID, workspaceID:=aWorkspaceID)
+                        aSchedule = WorkspaceSchedule.Create(scheduletypeid:=aScheduletype, domainid:=Me.DomainID, workspaceID:=aWorkspaceID)
                     End If
                     ''' back to the ScheduleLink
                     If aSchedule IsNot Nothing Then
@@ -3588,68 +3687,68 @@ Namespace OnTrack.Deliverables
                 End If
 
 
-                ''' Workspace Targets
-                ''' 
-            ElseIf e.RelationID = ConstRWorkspaceTarget Then
-                Dim myself As Deliverable = TryCast(e.DataObject, Deliverable)
-                ''' create the full path
-                Dim needsTarget As Boolean?
-                Dim defaultTargetOUT As String
-                If myself.DeliverableType IsNot Nothing Then
-                    needsTarget = myself.DeliverableType.MustHaveTarget
-                    defaultTargetOUT = myself.DeliverableType.DefaultTargetOU
-                End If
+                    ''' Workspace Targets
+                    ''' 
+                ElseIf e.RelationID = ConstRWorkspaceTarget Then
+                    Dim myself As Deliverable = TryCast(e.DataObject, Deliverable)
+                    ''' create the full path
+                    Dim needsTarget As Boolean?
+                    Dim defaultTargetOUT As String
+                    If myself.DeliverableType IsNot Nothing Then
+                        needsTarget = myself.DeliverableType.MustHaveTarget
+                        defaultTargetOUT = myself.DeliverableType.DefaultTargetOU
+                    End If
 
-                ''' always gives the current workspace
-                Dim aWorkspaceTarget As WorkspaceTarget = Deliverables.WorkspaceTarget.Create(uid:=Me.Uid, domainID:=Me.DomainID)
-                If aWorkspaceTarget Is Nothing Then aWorkspaceTarget = Deliverables.WorkspaceTarget.Retrieve(uid:=Me.Uid)
-                If aWorkspaceTarget IsNot Nothing AndAlso myself.DeliverableType IsNot Nothing Then
-                    If aWorkspaceTarget.Target IsNot Nothing Then
-                        aWorkspaceTarget.Target.ResponsibleOU = defaultTargetOUT
-                        If needsTarget = False Then
-                            aWorkspaceTarget.Target.NotargetByItention = True
-                            aWorkspaceTarget.Target.Target = Nothing
+                    ''' always gives the current workspace
+                    Dim aWorkspaceTarget As WorkspaceTarget = Deliverables.WorkspaceTarget.Create(uid:=Me.Uid, domainid:=Me.DomainID)
+                    If aWorkspaceTarget Is Nothing Then aWorkspaceTarget = Deliverables.WorkspaceTarget.Retrieve(uid:=Me.Uid)
+                    If aWorkspaceTarget IsNot Nothing AndAlso myself.DeliverableType IsNot Nothing Then
+                        If aWorkspaceTarget.Target IsNot Nothing Then
+                            aWorkspaceTarget.Target.ResponsibleOU = defaultTargetOUT
+                            If needsTarget = False Then
+                                aWorkspaceTarget.Target.NotargetByItention = True
+                                aWorkspaceTarget.Target.Target = Nothing
+                            End If
+
+                        End If
+                        ' done in the workspace target create relation handler event
+                        'Dim aTarget As Target = Target.Create(uid:=Me.Uid)
+                        'If aTarget IsNot Nothing Then
+                        'aWorkspaceTarget.UPDC = aTarget.UPDC
+                        '    If Not needsTarget Then aTarget.NotargetByItention = True
+                        '    aTarget.ResponsibleOU = defaultTargetOUT
+                        'End If
+                        e.RelationObjects.Add(aWorkspaceTarget)
+                        e.Finished = True
+                    End If
+
+                ElseIf e.RelationID = ConstRTrack Then
+                    Throw New NotImplementedException
+
+                    If Me.GetRelationStatus(ConstRScheduleLink) = DataObjectRelationMgr.RelationStatus.Unloaded Then InfuseRelation(ConstRScheduleLink)
+                    If Me.GetRelationStatus(ConstRWorkspaceTarget) = DataObjectRelationMgr.RelationStatus.Unloaded Then InfuseRelation(ConstRWorkspaceTarget)
+
+                    Dim aSchedule = Me.GetWorkspaceSchedule()
+                    Dim aScheduleUPDC As Long?
+                    If aSchedule IsNot Nothing Then
+                        If aSchedule.AliveEditionUpdc.HasValue Then
+                            aScheduleUPDC = aSchedule.AliveEditionUpdc
+                        ElseIf aSchedule.WorkingEditionUpdc.HasValue Then
+                            aScheduleUPDC = aSchedule.WorkingEditionUpdc
                         End If
 
+                        Dim aTarget = Me.GetWorkingTarget()
+
+                        If aScheduleUPDC.HasValue AndAlso aTarget IsNot Nothing Then
+                            Dim aTrack As Track = Track.Create(deliverableUID:=Me.Uid, scheduleUID:=aSchedule.UID, scheduleUPDC:=aSchedule.WorkingEditionUpdc, targetUPDC:=aTarget.UPDC, domainid:=Me.DomainID)
+                            Dim aCollection = Deliverables.Track.AllByDeliverable(deliverableUID:=Me.Uid)
+                            e.RelationObjects.AddRange(aCollection)
+                        End If
+
+                        e.Finished = True
                     End If
-                    ' done in the workspace target create relation handler event
-                    'Dim aTarget As Target = Target.Create(uid:=Me.Uid)
-                    'If aTarget IsNot Nothing Then
-                    'aWorkspaceTarget.UPDC = aTarget.UPDC
-                    '    If Not needsTarget Then aTarget.NotargetByItention = True
-                    '    aTarget.ResponsibleOU = defaultTargetOUT
-                    'End If
-                    e.RelationObjects.Add(aWorkspaceTarget)
-                    e.Finished = True
+
                 End If
-
-            ElseIf e.RelationID = ConstRTrack Then
-                Throw New NotImplementedException
-
-                If Me.GetRelationStatus(ConstRScheduleLink) = DataObjectRelationMgr.RelationStatus.Unloaded Then InfuseRelation(ConstRScheduleLink)
-                If Me.GetRelationStatus(ConstRWorkspaceTarget) = DataObjectRelationMgr.RelationStatus.Unloaded Then InfuseRelation(ConstRWorkspaceTarget)
-
-                Dim aSchedule = Me.GetWorkspaceSchedule()
-                Dim aScheduleUPDC As Long?
-                If aSchedule IsNot Nothing Then
-                    If aSchedule.AliveEditionUpdc.HasValue Then
-                        aScheduleUPDC = aSchedule.AliveEditionUpdc
-                    ElseIf aSchedule.WorkingEditionUpdc.HasValue Then
-                        aScheduleUPDC = aSchedule.WorkingEditionUpdc
-                    End If
-
-                    Dim aTarget = Me.GetTarget()
-
-                    If aScheduleUPDC.HasValue AndAlso aTarget IsNot Nothing Then
-                        Dim aTrack As Track = Track.Create(deliverableUID:=Me.Uid, scheduleUID:=aSchedule.UID, scheduleUPDC:=aSchedule.WorkingEditionUpdc, targetUPDC:=aTarget.UPDC, DomainID:=Me.DomainID)
-                        Dim aCollection = Deliverables.Track.AllByDeliverable(deliverableUID:=Me.Uid)
-                        e.RelationObjects.AddRange(aCollection)
-                    End If
-
-                    e.Finished = True
-                End If
-
-            End If
 
 
         End Sub
@@ -4039,34 +4138,43 @@ Namespace OnTrack.Deliverables
         End Function
 #End Region
 
+        ''' <summary>
+        ''' return the current Track
+        ''' </summary>
+        ''' <param name="workspaceID"></param>
+        ''' <param name="scheduleUID"></param>
+        ''' <param name="scheduleUPDC"></param>
+        ''' <param name="targetUPDC"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function GetTrack(Optional ByRef workspaceID As String = Nothing, _
+                                Optional ByRef scheduleUID As Long = 0, _
+                                Optional ByRef scheduleUPDC As Long = 0, _
+                                Optional ByRef targetUPDC As Long = 0) As Track
 
-        '**** getthe Track
-        '****
-        Public Function GetTrack(Optional workspaceID As String = "", _
-        Optional scheduleUID As Long = 0, _
-        Optional scheduleUPDC As Long = 0, _
-        Optional targetUPDC As Long = 0) As Track
-            Dim aTrackDef As New Track
             Dim aCurrSCHEDULE As New WorkspaceSchedule
             Dim aCurrTarget As New WorkspaceTarget
+            If String.IsNullOrWhiteSpace(workspaceID) Then workspaceID = CurrentSession.CurrentWorkspaceID
 
-            If IsLoaded Or IsCreated Then
-                If scheduleUPDC = 0 Then
-                    ' get
-                    aCurrSCHEDULE = Me.GetWorkspaceSchedule(workspaceID:=workspaceID)
-                    scheduleUPDC = aCurrSCHEDULE.AliveEditionUpdc
+            If Not Me.IsAlive("GetTrack") Then Return Nothing
+
+            If scheduleUPDC = 0 Then
+                ' get
+                aCurrSCHEDULE = Me.GetWorkspaceSchedule(workspaceID:=workspaceID)
+                scheduleUPDC = aCurrSCHEDULE.AliveEditionUpdc
+            End If
+
+            If targetUPDC = 0 Then
+                aCurrTarget = Me.GetWorkspaceTarget(workspaceID)
+                If aCurrTarget Is Nothing Then
+                    targetUPDC = 0
+                Else
+                    targetUPDC = aCurrTarget.UPDC
                 End If
-                If targetUPDC = 0 Then
-                    aCurrTarget = Me.GetWorkspaceTarget(workspaceID)
-                    If aCurrTarget Is Nothing Then
-                        targetUPDC = 0
-                    Else
-                        targetUPDC = aCurrTarget.UPDC
-                    End If
-                End If
-                If scheduleUPDC > 0 Then
-                    Return Track.Retrieve(Me.Uid, scheduleUID:=Me.Uid, scheduleUPDC:=scheduleUPDC, targetUPDC:=targetUPDC)
-                End If
+            End If
+
+            If scheduleUPDC > 0 Then
+                Return Track.Retrieve(deliverableUID:=Me.Uid, scheduleUID:=scheduleUID, scheduleUPDC:=scheduleUPDC, targetUPDC:=targetUPDC)
             End If
 
             Return Nothing
@@ -4131,7 +4239,7 @@ Namespace OnTrack.Deliverables
         ''' <remarks></remarks>
         Public Function GetWorkspaceTarget(Optional ByVal workspaceID As String = Nothing) As WorkspaceTarget
             If Not IsAlive(subname:="GetCurrTarget") Then Return Nothing
-            If workspaceID IsNot Nothing Then workspaceID = CurrentSession.CurrentWorkspaceID
+            If String.IsNullOrWhiteSpace(workspaceID) Then workspaceID = CurrentSession.CurrentWorkspaceID
             If workspaceID <> CurrentSession.CurrentWorkspaceID Then
                 _workspaceTarget = WorkspaceTarget.Retrieve(uid:=Me.Uid, workspaceID:=workspaceID)
             Else
@@ -4210,7 +4318,7 @@ Namespace OnTrack.Deliverables
         ''' <param name="workspaceID">optional workspaceID id</param>
         ''' <returns>the data object or nothing</returns>
         ''' <remarks></remarks>
-        Public Function GetTarget(Optional ByVal workspaceID As String = Nothing) As Target
+        Public Function GetWorkingTarget(Optional ByVal workspaceID As String = Nothing) As Target
             If Not IsAlive(subname:="GetTarget") Then Return Nothing
             Dim aWorkspaceTarget As WorkspaceTarget = Me.GetWorkspaceTarget(workspaceID:=workspaceID)
             If aWorkspaceTarget IsNot Nothing Then Return aWorkspaceTarget.WorkingTarget
@@ -4370,10 +4478,12 @@ Namespace OnTrack.Deliverables
             For Each anObjectID In CurrentSession.DeliverableOnCloningCloneAlso
                 If anObjectID.ToUpper = ObjectProperties.ObjectPropertyValueLot.ConstObjectID.ToUpper Then
                     If Me.PropertyLink IsNot Nothing Then
-                        Dim aPropertyValueLot As ObjectPropertyValueLot = aDeliverableClone.GetProperties
-                        For Each aValue In Me.GetProperties.Values
-                            aPropertyValueLot.SetPropertyValue(id:=aValue.PropertyID, value:=aValue.ValueString, domainid:=Me.DomainID)
-                        Next
+                        Dim aPropertyValueLot As ObjectPropertyValueLot
+                        If aDeliverableClone.GetProperties(aPropertyValueLot) Then
+                            For Each aValue In aPropertyValueLot.Values
+                                aPropertyValueLot.SetPropertyValue(id:=aValue.PropertyID, value:=aValue.ValueString, domainid:=Me.DomainID)
+                            Next
+                        End If
                     End If
 
                 Else
@@ -4461,8 +4571,11 @@ Namespace OnTrack.Deliverables
                         End If
                     End If
                 Next
+                'prepare
+                aCommand.Prepare()
             End If
-            aCommand.Prepare()
+
+            '** query values
             Dim values As New List(Of String)
             For Each anEntryname In _UniqueEntries
                 If Not Me.ObjectDefinition.HasEntry(anEntryname) Then

@@ -68,7 +68,7 @@ Namespace OnTrack.Database
             ''' beware of startup and installation
             ''' here the Substitute doesnot work and doesnot make any sense
             ''' 
-            If Not runtimeOnly AndAlso Not CurrentSession.IsBootstrappingInstallationRequested AndAlso Not CurrentSession.IsStartingUp Then
+            If Not runtimeOnly AndAlso Not CurrentSession.IsBootstrappingInstallationRequested AndAlso Not CurrentSession.IsStartingUp AndAlso Not CurrentSession.IsDomainSwitching Then
                 Dim aTabledefinition As TableDefinition = CurrentSession.Objects.GetTable(tablename:=tablename, runtimeOnly:=runtimeOnly)
                 If aTabledefinition Is Nothing Then
                     CoreMessageHandler(message:="table definition could not be retrieved", subname:="Shuffle.SubstituteDomainIDinPKArray", _

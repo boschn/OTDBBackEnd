@@ -401,16 +401,16 @@ Namespace OnTrack.Scheduling
         End Sub
 
         ''' <summary>
-        ''' OnPersisted Handler to add the Properties as Compounds to the ObjectIDs
+        ''' Creates the Compound Structure for the Milestone Definition
         ''' </summary>
-        ''' <param name="sender"></param>
-        ''' <param name="e"></param>
+        ''' <returns></returns>
         ''' <remarks></remarks>
-        Private Sub MileStoneDefinitoin_OnPersisted(sender As Object, e As ormDataObjectEventArgs) Handles Me.OnPersisted
+        Public Function CreateCompoundStructure() As Boolean
+            Dim result As Boolean = True
 
             ''' attach the Properties as compounds
             ''' 
-            If AttachedObjectids Is Nothing Then Return
+            If AttachedObjectids Is Nothing Then Return False
 
             For Each anObjectID In Me.AttachedObjectids
                 Dim anObjectDefinition As ObjectDefinition = CurrentSession.Objects.GetObject(objectid:=anObjectID)
@@ -432,7 +432,7 @@ Namespace OnTrack.Scheduling
                     For i = apath.GetLowerBound(0) To apath.GetUpperBound(0) - 1
                         Dim names As String() = apath(i).ToUpper.Split("."c) ' get the objectname from the canonical form
                         Dim aCompound As ObjectCompoundEntry = ObjectCompoundEntry.Create(objectname:=names(0), _
-                                                                                     entryname:=Me.ID, domainID:=Me.DomainID, _
+                                                                                     entryname:=Me.ID, domainid:=Me.DomainID, _
                                                                                      runtimeOnly:=Me.RunTimeOnly, checkunique:=True)
                         If aCompound Is Nothing Then aCompound = ObjectCompoundEntry.Retrieve(objectname:=names(0), entryname:=Me.ID, runtimeOnly:=Me.RunTimeOnly)
 
@@ -464,13 +464,24 @@ Namespace OnTrack.Scheduling
                         ''' set it to the linking objects 
                         '''  
 
-                        aCompound.Persist()
+                        result = result And aCompound.Persist()
 
                     Next
 
 
                 End If
             Next
+
+            Return result
+        End Function
+        ''' <summary>
+        ''' OnPersisted Handler to add the Properties as Compounds to the ObjectIDs
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Private Sub MileStoneDefinitoin_OnPersisted(sender As Object, e As ormDataObjectEventArgs) Handles Me.OnPersisted
+            Call Me.CreateCompoundStructure()
         End Sub
         ''' <summary>
         ''' Retrieve
@@ -1247,7 +1258,7 @@ Namespace OnTrack.Scheduling
 
         <ormObjectEntry(Datatype:=otDataType.Text, size:=50, isnullable:=True, _
             title:="process status", Description:="process status of the schedule", _
-            XID:="SC8", aliases:={"S1"})> Public Const ConstFNpstatus = "pstatus"
+            XID:="SC8")> Public Const ConstFNpstatus = "pstatus"
 
         <ormObjectEntry(Datatype:=otDataType.Timestamp, isnullable:=True, _
             title:="check timestamp", Description:="timestamp of check status of the schedule", _
@@ -3235,9 +3246,9 @@ Namespace OnTrack.Scheduling
 
             ''' clear log
             ''' 
-            For Each message In msglog
+            For Each message In msglog.ToList
                 If message.StatusItems(statustype:=ConstStatusType_ScheduleLifecycle).Count > 0 Then
-                    message.Delete()
+                    message.Delete() ' remove old messages from list and delete
                 End If
             Next
 
@@ -3350,12 +3361,11 @@ Namespace OnTrack.Scheduling
 
             ''' clear log
             ''' 
-            For Each message In msglog
+            For Each message In msglog.ToList 'make list to avoid operation error while removing
                 If message.StatusItems(statustype:=ConstStatusType_ScheduleProcess).Count > 0 Then
-                    message.Delete()
+                    message.Delete() ' remove old messages from list and delete
                 End If
             Next
-
             Dim aScheduleDefinition As ScheduleDefinition = Me.ScheduleDefinition
             If aScheduleDefinition Is Nothing Then
                 msglog.Add(2101, Nothing, Nothing, Nothing, Nothing, Me, Me.Uid, Me.Updc)
@@ -3435,21 +3445,28 @@ Namespace OnTrack.Scheduling
             ''' Check Lifecycle
             ''' 
             result = Me.CheckScheduleLifeCycle(msglog:=msglog)
-            status = msglog.GetHighesStatusItem(statustype:=ConstStatusType_ScheduleLifecycle)
+            status = msglog.GetHighestMessageHighestStatusItem(statustype:=ConstStatusType_ScheduleLifecycle)
             Me.LifeCycleStatus = status
-            If status IsNot Nothing AndAlso (status.Aborting OrElse result = otValidationResultType.FailedNoProceed) Then
-                Return otValidationResultType.FailedNoProceed
-            End If
+            If result = otValidationResultType.FailedNoProceed Then Return result
+            ' do not take the abort from status -> strange external controlled condition because this is also used 
+            ' for persisting validation !!
+
+            'If status IsNot Nothing AndAlso (status.Aborting OrElse result = otValidationResultType.FailedNoProceed) Then
+            '    Return otValidationResultType.FailedNoProceed
+            'End If
 
             '''
             ''' Check the Process Status
             ''' 
             result = Me.CheckScheduleProcessStatus(msglog:=msglog)
-            status = msglog.GetHighesStatusItem(statustype:=ConstStatusType_ScheduleProcess)
+            status = msglog.GetHighestMessageHighestStatusItem(statustype:=ConstStatusType_ScheduleProcess)
             Me.ProcessStatus = status
-            If status IsNot Nothing AndAlso (status.Aborting OrElse result = otValidationResultType.FailedNoProceed) Then
-                Return otValidationResultType.FailedNoProceed
-            End If
+            ' do not take the abort from status -> strange external controlled condition because this is also used 
+            ' for persisting validation !!
+
+            'If status IsNot Nothing AndAlso (status.Aborting OrElse result = otValidationResultType.FailedNoProceed) Then
+            '    Return otValidationResultType.FailedNoProceed
+            'End If
 
             Return result
         End Function
@@ -5316,26 +5333,26 @@ Namespace OnTrack.Scheduling
 
                     ''' save the workspace schedule itself and the
                     ''' related objects
-                    IsPublishable = MyBase.Persist(timestamp)
+                    Return MyBase.Persist(timestamp)
                 Else
                     '''
-                    ''' no publish possible - not even a persist (will fail on the same conditions)
+                    ''' no publish possible but persist
                     ''' 
+                    Return MyBase.Persist(timestamp:=timestamp)
                 End If
 
-            ElseIf Me.IsChanged Or Me.IsCreated Then
+            ElseIf Me.IsAlive("Publish") Then
 
                 '**** save without Milestone checking
-                IsPublishable = MyBase.Persist(timestamp:=timestamp)
+                Return MyBase.Persist(timestamp:=timestamp)
 
             Else
                 '** nothing changed
                 '***
-                Publish = False
-                Exit Function
+                Return False
             End If
 
-            Publish = IsPublishable
+            Return False
         End Function
 
 
@@ -5567,7 +5584,7 @@ error_handler:
             Dim aRecord As New ormRecord
             With aRecord
                 .SetValue(ConstFNUID, UID)
-                .SetValue(ConstFNWorkspaceID, workspaceID)
+                If Not String.IsNullOrWhiteSpace(workspaceID) Then .SetValue(ConstFNWorkspaceID, workspaceID)
                 .SetValue(ConstFNTypeid, scheduletypeid)
                 .SetValue(ConstFNDomainID, domainid)
             End With

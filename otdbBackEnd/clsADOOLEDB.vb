@@ -361,7 +361,7 @@ Namespace OnTrack.Database
                 OrElse sourcetype = OleDbType.LongVarWChar OrElse sourcetype = OleDbType.VarChar OrElse sourcetype = OleDbType.VarWChar _
                 OrElse sourcetype = OleDbType.WChar Then
                     abostrophNecessary = True
-                    If defaultvalue Is Nothing Then defaultvalue = Convert.ToString("")
+                    If defaultvalue Is Nothing Then defaultvalue = String.Empty
 
                     If isnullable AndAlso (invalue Is Nothing OrElse DBNull.Value.Equals(invalue) OrElse _
                                           String.IsNullOrWhiteSpace(invalue)) Then

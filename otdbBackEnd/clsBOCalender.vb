@@ -500,7 +500,7 @@ Namespace OnTrack.Calendar
         ''' <param name="sender"></param>
         ''' <param name="e"></param>
         ''' <remarks></remarks>
-        Public Sub OnRecordFed(sender As Object, e As ormDataObjectEventArgs) Handles MyBase.ClassOnFed
+        Public Sub OnRecordFed(sender As Object, e As ormDataObjectEventArgs) Handles Me.OnFed
             Try
                 If e.Record.HasIndex(constFNYear) Then e.Record.SetValue(constFNYear, Me.Year)
                 If e.Record.HasIndex(constFNmonth) Then e.Record.SetValue(constFNmonth, Me.Month)
@@ -985,7 +985,7 @@ Namespace OnTrack.Calendar
             If entryid = 0 Then
                 Dim pkarray() As Object = {name, Nothing, Nothing}
                 If Not ot.GetTableStore(ConstTableid).CreateUniquePkValue(pkarray) Then
-                    Call CoreMessageHandler(message:="unique key couldnot be created", subname:="CalendarEntry.Create", arg1:=name, _
+                    Call CoreMessageHandler(message:="unique key could not be created", subname:="CalendarEntry.Create", arg1:=name, _
                                                 tablename:=ConstTableid, messagetype:=otCoreMessageType.InternalError)
                     Return Nothing
                 End If

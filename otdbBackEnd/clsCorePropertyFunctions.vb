@@ -69,25 +69,31 @@ Namespace OnTrack.Database
         Public Sub New(propertystring As String)
             Dim aName As String
             Dim arguments As String()
-            '** extract arguments
-            If propertystring.Contains("(") Then
-                aName = propertystring.Substring(0, propertystring.IndexOf("("c)).ToUpper 'length
-                Dim i = propertystring.LastIndexOf(")"c)
-                If i > 0 Then
-                    arguments = propertystring.Substring(propertystring.IndexOf("("c) + 1, i - 1 - propertystring.IndexOf("("c)).Split(","c)
-                Else
-                    arguments = propertystring.Substring(propertystring.IndexOf("("c) + 1).Split(","c)
-                End If
+            Try
+                '** extract arguments
+                If propertystring.Contains("(") Then
+                    aName = propertystring.Substring(0, propertystring.IndexOf("("c)).ToUpper 'length
+                    Dim i = propertystring.LastIndexOf(")"c)
+                    If i > 0 Then
+                        arguments = propertystring.Substring(propertystring.IndexOf("("c) + 1, i - 1 - propertystring.IndexOf("("c)).Split(","c)
+                    Else
+                        arguments = propertystring.Substring(propertystring.IndexOf("("c) + 1).Split(","c)
+                    End If
 
-                Dim aList As New List(Of String)
-                For Each arg In arguments
-                    aList.Add(arg.ToUpper.Trim)
-                Next
-                _arguments = aList.ToArray
-            Else
-                aName = propertystring
-            End If
-            _property = ToEnum(aName)
+                    Dim aList As New List(Of String)
+                    For Each arg In arguments
+                        aList.Add(arg.ToUpper.Trim)
+                    Next
+                    _arguments = aList.ToArray
+                Else
+                    aName = propertystring
+                End If
+                _property = ToEnum(aName)
+                Return
+            Catch ex As Exception
+                CoreMessageHandler(exception:=ex, subname:="AbstractPropertyFunction", arg1:=GetType(T).FullName & ":" & propertystring)
+            End Try
+           
         End Sub
         ''' <summary>
         ''' set the enumeration

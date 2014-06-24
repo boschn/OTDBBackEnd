@@ -1034,7 +1034,7 @@ Namespace OnTrack
         ''' <remarks></remarks>
         Public Function RequestUserAccess(accessRequest As otAccessRight, _
                                             Optional ByRef username As String = "", _
-                                            Optional ByRef password As String = "", _
+                                            Optional ByRef password As String = Nothing, _
                                             Optional ByRef domainid As String = Nothing, _
                                             Optional ByRef [objecttransactions] As String() = Nothing, _
                                             Optional loginOnDisConnected As Boolean = False, _
@@ -1059,22 +1059,30 @@ Namespace OnTrack
 
             ElseIf Not Me.IsRunning Then
 
-                If String.IsNullOrWhiteSpace(domainID) Then domainID = ConstGlobalDomain
+
                 '*** OTDBUsername supplied
 
                 If loginOnDisConnected And accessRequest <> ConstDefaultAccessRight Then
                     If Me.OTdbUser IsNot Nothing AndAlso Me.OTdbUser.IsAnonymous Then
                         Me.UILogin.EnableUsername = True
-                        Me.UILogin.Username = ""
-                        Me.UILogin.Password = ""
+                        Me.UILogin.Username = String.Empty
+                        Me.UILogin.Password = String.Empty
                     End If
                     'LoginWindow
                     Me.UILogin.Configset = ot.CurrentConfigSetName
                     Me.UILogin.PossibleConfigSets = ot.ConfigSetNamesToSelect
                     Me.UILogin.EnableChangeConfigSet = True
-                    If messagetext <> "" Then Me.UILogin.Messagetext = messagetext
-                    Me.UILogin.Domain = domainID
-                    Me.UILogin.EnableDomain = False
+                    If Not String.IsNullOrWhiteSpace(messagetext) Then Me.UILogin.Messagetext = messagetext
+                    If String.IsNullOrWhiteSpace(domainid) Then
+                        domainid = ConstGlobalDomain
+                        Me.UILogin.Domain = domainid
+                        Me.UILogin.EnableDomain = True
+                    Else
+                        '** enable domainchange
+                        Me.UILogin.Domain = domainid
+                        Me.UILogin.EnableDomain = False
+                    End If
+                   
                     'Me.UILogin.Session = Me
 
                     Me.UILogin.Accessright = accessRequest
@@ -1102,13 +1110,15 @@ Namespace OnTrack
                     End If
 
                     ' just check the provided username
-                ElseIf username <> "" Then
+                ElseIf Not String.IsNullOrWhiteSpace(username) Then
+                    If Not String.IsNullOrWhiteSpace(domainid) Then domainid = ConstGlobalDomain
                     userValidation = _primaryDBDriver.GetUserValidation(username)
                     If userValidation.ValidEntry AndAlso password = "" Then
                         password = userValidation.Password
                     End If
-                    '* no username but default accessrequest then look for the anonymous user
+                '* no username but default accessrequest then look for the anonymous user
                 ElseIf accessRequest = ConstDefaultAccessRight Then
+                    If String.IsNullOrWhiteSpace(domainid) Then domainid = ConstGlobalDomain
                     userValidation = _primaryDBDriver.GetUserValidation(username:="", selectAnonymous:=True)
                     If userValidation.ValidEntry Then
                         username = userValidation.Username
@@ -1128,7 +1138,8 @@ Namespace OnTrack
                 Else
                     '**** Check Password
                     '****
-                    If _primaryDBDriver.validateUser(accessRequest:=accessRequest, username:=username, password:=password, domainid:=domainID) Then
+                    If String.IsNullOrWhiteSpace(domainid) Then domainid = ConstGlobalDomain
+                    If _primaryDBDriver.ValidateUser(accessRequest:=accessRequest, username:=username, password:=password, domainid:=domainid) Then
                         Call CoreMessageHandler(subname:="Session.verifyUserAccess", break:=False, message:="User verified successfully", _
                                                 arg1:=username, noOtdbAvailable:=True, messagetype:=otCoreMessageType.ApplicationInfo)
                     Else
@@ -1140,23 +1151,32 @@ Namespace OnTrack
                 End If
 
                 '****
-                '**** CONNECTION !
+                '**** CONNECTION on CONNECTED !
             Else
                 '** stay in the current domain 
-                If String.IsNullOrWhiteSpace(domainID) Then domainID = ot.CurrentSession.CurrentDomainID
+                If String.IsNullOrWhiteSpace(domainid) Then domainid = ot.CurrentSession.CurrentDomainID
 
                 '** validate the current user with the request if it is failing then
                 '** do check again
-                If Me.ValidateAccessRights(accessrequest:=accessRequest, domainid:=domainID, objecttransactions:=[objecttransactions]) Then
+                If Me.ValidateAccessRights(accessrequest:=accessRequest, domainid:=domainid, objecttransactions:=[objecttransactions]) Then
                     Return True
                     '* change the current user if anonymous
                     '*
                 ElseIf loginOnFailed And OTdbUser.IsAnonymous Then
                     '** check if new OTDBUsername is valid
                     'LoginWindow
-                    Me.UILogin.Domain = domainID
-                    Me.UILogin.EnableDomain = False
-                    Me.UILogin.PossibleDomains = New List(Of String)
+                    ' enable domain
+                    If Not String.IsNullOrWhiteSpace(domainid) Then
+                        Me.UILogin.Domain = domainid
+                        Me.UILogin.EnableDomain = False
+                    Else
+                        '** enable domain change
+                        domainid = ConstGlobalDomain
+                        Me.UILogin.Domain = domainid
+                        Me.UILogin.PossibleDomains = Domain.All.Select(Function(x) x.ID).ToList
+                        Me.UILogin.EnableDomain = True
+                    End If
+
                     Me.UILogin.enableAccess = True
                     Me.UILogin.PossibleRights = AccessRightProperty.GetHigherAccessRequests(accessRequest)
                     Me.UILogin.Configset = ot.CurrentConfigSetName
@@ -1168,8 +1188,8 @@ Namespace OnTrack
                         Me.UILogin.Messagetext = "<html><strong>Welcome !</strong><br />Please change to a valid user and password for the needed access right.</html>"
                     End If
                     Me.UILogin.EnableUsername = True
-                    Me.UILogin.Username = ""
-                    Me.UILogin.Password = ""
+                    Me.UILogin.Username = String.Empty
+                    Me.UILogin.Password = Nothing
                     'Me.UILogin.Session = Me
 
                     Me.UILogin.Show()
@@ -1189,9 +1209,9 @@ Namespace OnTrack
 
                     '* check validation -> relogin on connected -> EventHandler ?!
                     '* or abortion of the login window
-                    If _primaryDBDriver.validateUser(accessRequest:=accessRequest, username:=username, password:=password, domainid:=domainID) Then
+                    If _primaryDBDriver.ValidateUser(accessRequest:=accessRequest, username:=username, password:=password, domainid:=domainid) Then
                         Call CoreMessageHandler(subname:="Session.verifyUserAccess", break:=False, _
-                                                message:="User change verified successfully on domain '" & domainID & "'", _
+                                                message:="User change verified successfully on domain '" & domainid & "'", _
                                                 arg1:=username, noOtdbAvailable:=True, messagetype:=otCoreMessageType.ApplicationInfo)
                         If Me.CurrentDomainID <> Me.UILogin.Domain Then
                             SwitchToDomain(Me.UILogin.Domain)
@@ -1229,7 +1249,7 @@ Namespace OnTrack
                 ElseIf loginOnFailed And Not Me.OTdbUser.IsAnonymous Then
                     '** check if new OTDBUsername is valid
                     'LoginWindow
-                    Me.UILogin.Domain = domainID
+                    Me.UILogin.Domain = domainid
                     Me.UILogin.EnableDomain = False
                     Me.UILogin.PossibleDomains = New List(Of String)
                     Me.UILogin.enableAccess = True
@@ -1265,7 +1285,7 @@ Namespace OnTrack
                     End If
                     userValidation = _primaryDBDriver.GetUserValidation(username)
                     '* check password
-                    If _primaryDBDriver.validateUser(accessRequest:=accessRequest, username:=username, password:=password, domainid:=domainID) Then
+                    If _primaryDBDriver.ValidateUser(accessRequest:=accessRequest, username:=username, password:=password, domainid:=domainid) Then
                         '** not again
                         'Call CoreMessageHandler(subname:="Session.verifyUserAccess", break:=False, message:="User change verified successfully", _
                         '                        arg1:=username, noOtdbAvailable:=True, messagetype:=otCoreMessageType.ApplicationInfo)
@@ -1281,7 +1301,7 @@ Namespace OnTrack
                     End If
 
                     '*** just check the provided username
-                ElseIf username <> "" And password <> "" Then
+                ElseIf Not String.IsNullOrWhiteSpace(username) AndAlso Not String.IsNullOrWhiteSpace(password) Then
                     userValidation = _primaryDBDriver.GetUserValidation(username)
                 End If
             End If
@@ -3203,7 +3223,7 @@ Namespace OnTrack
                 If aList.Count = 0 Then Return Nothing
                 Dim highestStatusWeight As Integer = aList.Max(Function(x)
                                                                    Try
-                                                                       Dim s As IList(Of StatusItem) = x.HighestStatusItems
+                                                                       Dim s As IList(Of StatusItem) = x.HighestStatusItems(statustype:=statustype)
                                                                        If s IsNot Nothing AndAlso s.Count > 0 Then Return s.First(Function(t) t.Weight.HasValue).Weight
                                                                        Return -1
                                                                    Catch ex As Exception
@@ -3244,10 +3264,52 @@ Namespace OnTrack
 
             Return Nothing
         End Function
+        ''' <summary>
+        ''' Returns the Highest StatusItem - returns nothing if the statusItem is not there
+        ''' </summary>
+        ''' <param name="statustype"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+
+        Public Function GetHighestMessageHighestStatusItem(Optional ByVal statustype As String = Nothing) As StatusItem
+            Dim aList As IList(Of ObjectMessage)
+            If statustype IsNot Nothing Then
+                If _MessagesPerStatusType.ContainsKey(statustype.ToUpper) Then
+                    aList = _MessagesPerStatusType.Item(key:=statustype.ToUpper)
+                Else
+                    aList = Me.ToList
+                End If
+                If aList.Count = 0 Then Return Nothing
+                Dim highestWeight As Integer = aList.Max(Function(x) x.Weight)
+                Dim aMessage = aList.Where(Function(x) x.Weight = highestWeight).FirstOrDefault
+
+                If aMessage IsNot Nothing Then
+                    Return aMessage.HighestStatusItems(statustype:=statustype).FirstOrDefault
+                End If
+            Else
+               Dim highestWeight As Integer = aList.Max(Function(x) x.Weight)
+                Dim aMessage = aList.Where(Function(x) x.Weight = highestWeight).FirstOrDefault
+
+                If aMessage IsNot Nothing Then
+                    Return aMessage.HighestStatusItems().FirstOrDefault
+                End If
+
+            End If
+
+            Return Nothing
+        End Function
 
 
+        ''' <summary>
+        ''' OnRemoved Handler
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
 
-
+        Private Sub ObjectMessageLog_OnRemoved(sender As Object, e As Database.ormRelationCollection(Of ObjectMessage).EventArgs) Handles Me.OnRemoved
+            '  e.Dataobject.Delete() -> delete Event will remove too and removing doesnot mean deleting !
+        End Sub
     End Class
 
 
@@ -3861,6 +3923,16 @@ Namespace OnTrack
         ''' <remarks></remarks>
         Private Sub ObjectMessage_OnInfused(sender As Object, e As ormDataObjectEventArgs) Handles Me.OnInfused
             Me.Message = FormatMessage(DirectCast(e.DataObject, ObjectMessage)._message)
+        End Sub
+
+        ''' <summary>
+        ''' On deleted Handler
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Private Sub ObjectMessage_OnRelationRetrieveNeeded(sender As Object, e As ormDataObjectRelationEventArgs) Handles Me.OnRelationRetrieveNeeded
+
         End Sub
     End Class
 End Namespace

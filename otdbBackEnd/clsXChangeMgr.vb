@@ -2815,7 +2815,8 @@ Namespace OnTrack.XChange
                                 If aSlot IsNot Nothing AndAlso Not aSlot.IsEmpty Then
                                     '* get Value from Slot
                                     aValue = aSlot.DBValue
-                                    If Not IsDBNull(aValue) AndAlso dataobject.ObjectDefinition.HasEntry(anXEntry.ObjectEntryname) Then
+                                    If Not IsDBNull(aValue) AndAlso dataobject.ObjectDefinition.HasEntry(anXEntry.ObjectEntryname) _
+                                        AndAlso Not dataobject.ObjectDefinition.GetEntry(anXEntry.ObjectEntryname).IsReadonly Then
                                         If Not dataobject.EqualsValue(entryname:=anXEntry.ObjectEntryname, value:=aValue) Then
                                             persistflag = persistflag Or dataobject.SetValue(entryname:=anXEntry.ObjectEntryname, value:=aValue)
                                         End If
@@ -2830,6 +2831,26 @@ Namespace OnTrack.XChange
                         Me.trackMessageLog = msglog
                         '** run persist
                         Dim result As Boolean = dataobject.Persist()
+                        If result Then
+                            ''' re-read the read-only (well hack .. should be the computed entries
+                            For Each anObjectEntry In dataobject.ObjectDefinition.GetEntries()
+                                If Me.HasConfigObjectEntryname(entryname:=anObjectEntry.Entryname, objectname:=xobject.Objectname) Then
+                                    If anObjectEntry.IsReadonly Then
+                                        '* get the value and add it -> will be replaced as well !
+                                        aValue = dataobject.GetValue(anObjectEntry.Entryname)
+                                        If Not Me.AddSlotByObjectEntryName(entryname:=anObjectEntry.Entryname, _
+                                                                    objectname:=xobject.Objectname, _
+                                                                    value:=aValue, _
+                                                                    isHostValue:=False,
+                                                                    overwriteValue:=True, _
+                                                                    extendXConfig:=True) Then
+
+                                        End If
+                                    End If
+
+                                End If
+                            Next
+                        End If
                         '1092;@;XCHANGE;object of type '%2%' with primary key '%3%' in xchange configuration '%1%' updated;;10;Info;false;|G1|;|XCHANGEENVELOPE|
                         If result Then msglog.Add(1092, Nothing, Nothing, Nothing, Nothing, Me, _
                                   Me.Xchangeconfig.Configname, xobject.Objectname, Converter.Array2StringList(dataobject.PrimaryKeyValues))
@@ -2852,12 +2873,22 @@ Namespace OnTrack.XChange
                     '***
                     '*** just read and return
                 Case otXChangeCommandType.Read
-                    '1094;@;XCHANGE;xchange command '%4' run for object of type '%2%' with primary key '%3%';;10;Info;false;|G1|;|XCHANGEENVELOPE|
-                    msglog.Add(1094, Nothing, Nothing, Nothing, Nothing, Me, _
-                              Me.Xchangeconfig.Configname, xobject.Objectname, Converter.Array2StringList(dataobject.PrimaryKeyValues), xobject.XChangeCmd.ToString)
+                    If dataobject IsNot Nothing Then
+                        '1094;@;XCHANGE;xchange command '%4' run for object of type '%2%' with primary key '%3%';;10;Info;false;|G1|;|XCHANGEENVELOPE|
+                        msglog.Add(1094, Nothing, Nothing, Nothing, Nothing, Me, _
+                                  Me.Xchangeconfig.Configname, xobject.Objectname, Converter.Array2StringList(dataobject.PrimaryKeyValues), xobject.XChangeCmd.ToString)
 
-                    '** just return successfull
-                    Return True
+                        '** just return successfull
+                        Return True
+                    Else
+                        '1007;@;XCHANGE;object of type '%2%' with primary key '%3%' from xchange configuration '%1%'  doesnot exists in the database - operation '%4%' aborted;;90;Error;false;|G2|;|XCHANGEENVELOPE|
+                        msglog.Add(1007, Nothing, Nothing, Nothing, Nothing, Me, _
+                                  Me.Xchangeconfig.Configname, xobject.Objectname, Converter.Array2StringList(dataobject.PrimaryKeyValues), xobject.XChangeCmd.ToString)
+
+                        '** just return successfull
+                        Return False
+
+                    End If
 
                     '**** no command ?!
                 Case Else
@@ -2993,7 +3024,8 @@ Namespace OnTrack.XChange
             If anObject IsNot Nothing Then
                 Return Me.RunDefaultXChange(anObject, xobject:=xobject, msglog:=msglog)
             Else
-                CoreMessageHandler(message:="OnTrack DataObject could not be retrieved nor created: " & xobject.Objectname, subname:="Xenvelope.RunDefaultXChange", arg1:=xobject.XChangeCmd, messagetype:=otCoreMessageType.InternalError)
+                CoreMessageHandler(message:="OnTrack DataObject could not be retrieved nor created: " & xobject.Objectname, _
+                                   subname:="Xenvelope.RunDefaultXChange", arg1:=Converter.Array2StringList(pkarry), messagetype:=otCoreMessageType.InternalError)
 
                 Return False
             End If

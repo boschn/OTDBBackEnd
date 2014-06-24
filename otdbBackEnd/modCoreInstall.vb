@@ -17,7 +17,7 @@ Imports OnTrack.Commons
 
 Namespace OnTrack.Database
 
-    Public Module createDatabase
+    Public Module Installation
         ''' <summary>
         ''' creates or updates all schematas for scheduling objects
         ''' </summary>
@@ -25,7 +25,7 @@ Namespace OnTrack.Database
         Public Sub Scheduling()
 
             'If Not ot.CurrentSession.RequireAccessRight(otAccessRight.AlterSchema) Then
-            '    Call ot.CoreMessageHandler(message:="Access right couldnot be set to AlterSchema", subname:="modCreateDB.createDatabase_Schedule", _
+            '    Call ot.CoreMessageHandler(message:="Access right couldnot be set to AlterSchema", subname:="Installation.createDatabase_Schedule", _
             '                                 messagetype:=otCoreMessageType.ApplicationInfo, break:=False)
             '    Exit Sub
             'End If
@@ -46,10 +46,10 @@ Namespace OnTrack.Database
 
             'Dim aSchedule As New Schedule
             'If Not Schedule.CreateSchema() Then
-            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_Schedule", _
+            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="Installation.createDatabase_Schedule", _
             '                                 message:="Schema Schedle couldn't be created")
             'Else
-            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_Schedule", message:="Schedule is up-to-date", _
+            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="Installation.createDatabase_Schedule", message:="Schedule is up-to-date", _
             '                                 messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aSchedule.primaryTableID)
 
             'End If
@@ -57,7 +57,7 @@ Namespace OnTrack.Database
             'If Not CurrentTarget.CreateSchema() Then
             '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="createDatabase", message:="currTarget couldn't be created")
             'Else
-            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_Schedule", message:="Current Target is up-to-date", _
+            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="Installation.createDatabase_Schedule", message:="Current Target is up-to-date", _
             '                                 messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aCurrTarget.primaryTableID)
 
 
@@ -69,7 +69,7 @@ Namespace OnTrack.Database
             '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="createDatabase", _
             '                                 message:="Schema aMQF couldn't be created")
             'Else
-            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_Schedule", message:="Schedule Milestone is up-to-date", _
+            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="Installation.createDatabase_Schedule", message:="Schedule Milestone is up-to-date", _
             '                                 messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aMilestone.primaryTableID)
 
 
@@ -81,7 +81,7 @@ Namespace OnTrack.Database
             '                                 message:="Schema " & aScheduleDef.primaryTableID & " couldn't be created")
             'Else
 
-            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_Schedule", message:="Schedule Defintion is up-to-date", _
+            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="Installation.createDatabase_Schedule", message:="Schedule Defintion is up-to-date", _
             '                                 messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aScheduleDef.primaryTableID)
 
 
@@ -121,7 +121,7 @@ Namespace OnTrack.Database
             '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="createDatabase", _
             '                                 message:="Schema " & aScheduleDefM.primaryTableID & " couldn't be created")
             'Else
-            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_Schedule", message:="Schedule Milestone Defintion is up-to-date", _
+            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="Installation.createDatabase_Schedule", message:="Schedule Milestone Defintion is up-to-date", _
             '                                 messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aScheduleDefM.primaryTableID)
 
             '    '****
@@ -312,7 +312,7 @@ Namespace OnTrack.Database
             '        .Description = "pdm first approval"
             '        .Persist()
             '    End With
-            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_Schedule", message:="Schedule Defintion for 'FULL' is updated", _
+            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="Installation.createDatabase_Schedule", message:="Schedule Defintion for 'FULL' is updated", _
             '                                 messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aScheduleDef.primaryTableID)
 
             '    '****
@@ -567,7 +567,7 @@ Namespace OnTrack.Database
             '        .Persist()
             '    End With
 
-            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_Schedule", message:="Schedule Defintion for 'PDM' is up-to-date", _
+            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="Installation.createDatabase_Schedule", message:="Schedule Defintion for 'PDM' is up-to-date", _
             '                                 messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aScheduleDef.primaryTableID)
 
             '    aScheduleDefM = New ScheduleMilestoneDefinition
@@ -584,7 +584,7 @@ Namespace OnTrack.Database
             'End If
 
 
-            'Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_Schedule", message:="Schedule Defintion for 'NONE' is up-to-date", _
+            'Call ot.CoreMessageHandler(showmsgbox:=False, subname:="Installation.createDatabase_Schedule", message:="Schedule Defintion for 'NONE' is up-to-date", _
             '                             messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aScheduleDef.primaryTableID)
 
             'Dim aScheduleTaskDef As New clsOTDBDefScheduleTask
@@ -592,7 +592,7 @@ Namespace OnTrack.Database
             '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="createDatabase", _
             '                                 message:="Schema " & aScheduleTaskDef.primaryTableID & " couldn't be created")
             'Else
-            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_Schedule", message:="Schedule Task Defintion is up-to-date", _
+            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="Installation.createDatabase_Schedule", message:="Schedule Task Defintion is up-to-date", _
             '                                 messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aScheduleTaskDef.primaryTableID)
 
             '    aScheduleTaskDef = New clsOTDBDefScheduleTask
@@ -663,7 +663,7 @@ Namespace OnTrack.Database
             '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="createDatabase", _
             '                                 message:="Schema " & aMilestone.primaryTableID & " couldn't be created")
             'Else
-            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_Schedule", message:="Milestone Definition is up-to-date", _
+            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="Installation.createDatabase_Schedule", message:="Milestone Definition is up-to-date", _
             '                                 messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aDefMilestone.primaryTableID)
 
             '    aDefMilestone = New MileStoneDefinition
@@ -864,7 +864,7 @@ Namespace OnTrack.Database
             '        .Persist()
 
             '    End With
-            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_Schedule", message:="Milestone sample definition created", _
+            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="Installation.createDatabase_Schedule", message:="Milestone sample definition created", _
             '                                 messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aScheduleDef.primaryTableID)
 
             'End If
@@ -875,7 +875,7 @@ Namespace OnTrack.Database
             '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="createDatabase", message:="partsdependeny couldn't be created")
             'Else
 
-            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_Schedule", message:="Dependency Check Object is up-to-date", _
+            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="Installation.createDatabase_Schedule", message:="Dependency Check Object is up-to-date", _
             '                                 messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aDependCheck.PrimaryTableID)
 
             'End If
@@ -883,7 +883,7 @@ Namespace OnTrack.Database
             'If Not aDepend.CreateSchema() Then
             '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="createDatabase", message:="dependency object couldn't be created")
             'Else
-            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_Schedule", message:="dependency object is up-to-date", _
+            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="Installation.createDatabase_Schedule", message:="dependency object is up-to-date", _
             '                                 messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aDepend.PrimaryTableID)
 
             'End If
@@ -892,7 +892,7 @@ Namespace OnTrack.Database
             'If Not aCluster.createSchema() Then
             '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="createDatabase", message:="cluster couldn't be created")
             'Else
-            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_Schedule", message:="dependency cluster is up-to-date", _
+            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="Installation.createDatabase_Schedule", message:="dependency cluster is up-to-date", _
             '                                 messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aCluster.PrimaryTableID)
 
             'End If
@@ -966,7 +966,7 @@ Namespace OnTrack.Database
         ''' Creates or updates all the Database Schema for all objects or a subset
         ''' </summary>
         ''' <remarks></remarks>
-        Public Sub Run(Optional modules As IEnumerable(Of String) = Nothing, Optional force As Boolean = False)
+        Public Sub CreateDatabase(Optional modules As IEnumerable(Of String) = Nothing, Optional force As Boolean = False)
 
             Dim aNativeConnection = CurrentDBDriver.CurrentConnection.NativeConnection
             Dim repersistnecessary As Boolean = False
@@ -982,16 +982,16 @@ Namespace OnTrack.Database
             Dim schemaversion = CurrentDBDriver.GetDBParameter(parametername:=ConstPNBSchemaVersion, silent:=True)
             If schemaversion Is Nothing OrElse Not IsNumeric(schemaversion) Then
                 Call CoreMessageHandler(message:="No schema version for database available - assuming first time installation", messagetype:=otCoreMessageType.InternalInfo, _
-                                               subname:="createDatabase.RUN")
+                                               subname:="Installation.createDatabase")
             ElseIf Convert.ToUInt64(schemaversion) < ot.SchemaVersion Then
                 Call CoreMessageHandler(message:="Schema version for database available - assuming upgrade installation", messagetype:=otCoreMessageType.InternalInfo, _
-                                               subname:="createDatabase.RUN", arg1:=schemaversion)
+                                               subname:="Installation.createDatabase", arg1:=schemaversion)
             ElseIf Convert.ToUInt64(schemaversion) > ot.SchemaVersion Then
                 Call CoreMessageHandler(message:="Schema version for database available but higher ( " & schemaversion & " ) - downgrading ?!", messagetype:=otCoreMessageType.InternalInfo, _
-                                               subname:="createDatabase.RUN", arg1:=ot.SchemaVersion)
+                                               subname:="Installation.createDatabase", arg1:=ot.SchemaVersion)
             Else
                 Call CoreMessageHandler(message:="Schema version for database available - assuming repair installation", messagetype:=otCoreMessageType.InternalInfo, _
-                                               subname:="createDatabase.RUN", arg1:=schemaversion)
+                                               subname:="Installation.createDatabase", arg1:=schemaversion)
             End If
 
             '** create the bootstrapping 
@@ -1008,7 +1008,7 @@ Namespace OnTrack.Database
                         addflag = True
                     ElseIf Convert.ToUInt64(value) > description.GetSchemaTableAttribute(tablename).Version Then
                         CoreMessageHandler(message:="WARNING ! Version of Bootstrapping Table in database is higher ( " & value & ") than in class description ( " & description.GetSchemaTableAttribute(tablename).Version & "). Downgrading ?!", messagetype:=otCoreMessageType.InternalWarning, _
-                                            subname:="createDatabase.RUN", tablename:=tablename, objectname:=description.ID, arg1:=description.GetSchemaTableAttribute(tablename).Version)
+                                            subname:="Installation.createDatabase", tablename:=tablename, objectname:=description.ID, arg1:=description.GetSchemaTableAttribute(tablename).Version)
                     ElseIf force OrElse Convert.ToUInt64(value) < description.GetSchemaTableAttribute(tablename).Version Then
                         addflag = True
                     End If
@@ -1034,11 +1034,11 @@ Namespace OnTrack.Database
                 If result Then
                     Call CoreMessageHandler(message:="Administrator account created ", _
                                             messagetype:=otCoreMessageType.InternalInfo, _
-                                            subname:="createDatabase.RUN", break:=False, noOtdbAvailable:=True)
+                                            subname:="Installation.createDatabase", break:=False, noOtdbAvailable:=True)
 
                 Else
                     Call CoreMessageHandler(message:="Administrator Account could not be created - Please see your system administrator.", messagetype:=otCoreMessageType.InternalInfo, _
-                                                subname:="modCreateDB.createDatabase_CoreData", _
+                                                subname:="Installation.createDatabase_CoreData", _
                                                 break:=False, showmsgbox:=True, noOtdbAvailable:=True)
                     Return
                 End If
@@ -1047,7 +1047,7 @@ Namespace OnTrack.Database
             '*** create global domain
             If CurrentDBDriver.CreateGlobalDomain(nativeConnection:=aNativeConnection) Then
                 Call CoreMessageHandler(message:="global domain created", arg1:=ConstGlobalDomain, messagetype:=otCoreMessageType.InternalInfo, _
-                                                subname:="createDatabase.RUN")
+                                                subname:="Installation.createDatabase")
             End If
 
             '*** set objects to load
@@ -1073,7 +1073,7 @@ Namespace OnTrack.Database
                             addflag = True
                         ElseIf Convert.ToUInt64(value) > description.GetSchemaTableAttribute(tablename).Version Then
                             CoreMessageHandler(message:="WARNING ! Version of Table in database is higher ( " & value & ") than in class description ( " & description.GetSchemaTableAttribute(tablename).Version & "). Downgrading ?!", messagetype:=otCoreMessageType.InternalWarning, _
-                                                subname:="createDatabase.RUN", tablename:=tablename, objectname:=description.ID, arg1:=description.GetSchemaTableAttribute(tablename).Version)
+                                                subname:="Installation.createDatabase", tablename:=tablename, objectname:=description.ID, arg1:=description.GetSchemaTableAttribute(tablename).Version)
                         ElseIf force OrElse Convert.ToUInt64(value) < description.GetSchemaTableAttribute(tablename).Version Then
                             addflag = True
                         End If
@@ -1109,7 +1109,7 @@ Namespace OnTrack.Database
                                 addflag = True
                             ElseIf Convert.ToUInt64(value) > description.GetSchemaTableAttribute(tablename).Version Then
                                 CoreMessageHandler(message:="WARNING ! Version of Table in database is higher ( " & value & ") than in class description ( " & description.GetSchemaTableAttribute(tablename).Version & "). Downgrading ?!", messagetype:=otCoreMessageType.InternalWarning, _
-                                                    subname:="createDatabase.RUN", tablename:=tablename, objectname:=description.ID, arg1:=description.GetSchemaTableAttribute(tablename).Version)
+                                                    subname:="Installation.createDatabase", tablename:=tablename, objectname:=description.ID, arg1:=description.GetSchemaTableAttribute(tablename).Version)
                             ElseIf force OrElse Convert.ToUInt64(value) < description.GetSchemaTableAttribute(tablename).Version Then
                                 addflag = True
                             End If
@@ -1136,12 +1136,12 @@ Namespace OnTrack.Database
 
             For Each aTable In CurrentSession.Objects.TableDefinitions
                 If aTable.AlterSchemaForeignRelations() Then
-                    Call ot.CoreMessageHandler(subname:="modCreateDB.createDatabase_RUN", _
+                    Call ot.CoreMessageHandler(subname:="Installation.createDatabase", _
                                                       message:="foreign keys created for table " & aTable.Name, _
                                                       tablename:=aTable.Name, _
                                                       messagetype:=otCoreMessageType.ApplicationInfo)
                 Else
-                    Call ot.CoreMessageHandler(subname:="modCreateDB.createDatabase_RUN", _
+                    Call ot.CoreMessageHandler(subname:="Installation.createDatabase", _
                                                      message:="Error while creating foreign keys for table " & aTable.Name, _
                                                      tablename:=aTable.Name, _
                                                      messagetype:=otCoreMessageType.InternalError)
@@ -1153,7 +1153,7 @@ Namespace OnTrack.Database
             '*** request end of bootstrap
             '***
             If Not CurrentSession.RequestEndofBootstrap() Then
-                Call ot.CoreMessageHandler(showmsgbox:=True, subname:="modCreateDB.createDatabase_RUN", _
+                Call ot.CoreMessageHandler(showmsgbox:=True, subname:="Installation.createDatabase", _
                                                        message:="failed to create tables for object repository - abort the installation", _
                                                        messagetype:=otCoreMessageType.InternalError)
                 Return
@@ -1166,7 +1166,7 @@ Namespace OnTrack.Database
 
             '** if not global domain shutdown
             If (sessionrunning AndAlso ot.CurrentSession.CurrentDomainID <> ConstGlobalDomain) Then
-                Call ot.CoreMessageHandler(showmsgbox:=True, subname:="modCreateDB.createDatabase_RUN", _
+                Call ot.CoreMessageHandler(showmsgbox:=True, subname:="Installation.createDatabase", _
                                                        message:="shutting down current session since it is not in the global domain", _
                                                        messagetype:=otCoreMessageType.InternalInfo)
                 CurrentSession.ShutDown(force:=True)
@@ -1184,12 +1184,12 @@ Namespace OnTrack.Database
             '*** Initialize Data
             If sessionrunning OrElse sessionstarted Then
                 If Not InitialCoreData() Then
-                    Call ot.CoreMessageHandler(showmsgbox:=True, subname:="modCreateDB.createDatabase_RUN", _
+                    Call ot.CoreMessageHandler(showmsgbox:=True, subname:="Installation.createDatabase", _
                                                           message:="failed to write initial core data - core might not be working correctly", _
                                                           messagetype:=otCoreMessageType.InternalError)
                     Return
                 Else
-                    ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_RUN", _
+                    ot.CoreMessageHandler(showmsgbox:=False, subname:="Installation.createDatabase", _
                                                           message:="core objects with data instanced and persisted", _
                                                           messagetype:=otCoreMessageType.InternalInfo)
                 End If
@@ -1207,15 +1207,15 @@ Namespace OnTrack.Database
                     OrElse (IsDate(valueFrom) AndAlso CDate(valueFrom) <> fromDate) OrElse (IsDate(valueTo) AndAlso CDate(valueTo) <> ToDate) Then
                     ''' initialize if date is not there
                     If Not InitializeCalendar(fromDate:=fromDate, toDate:=ToDate) Then
-                        Call ot.CoreMessageHandler(showmsgbox:=True, subname:="modCreateDB.createDatabase_RUN", _
+                        Call ot.CoreMessageHandler(showmsgbox:=True, subname:="Installation.createDatabase", _
                                                                   message:="failed to write initial calendar data - calendar might not be working correctly", _
                                                                   messagetype:=otCoreMessageType.InternalError)
                     Else
-                        ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_RUN", _
+                        ot.CoreMessageHandler(showmsgbox:=False, subname:="Installation.createDatabase", _
                                                              message:="calendar from " & fromDate & " until " & ToDate & " instanced and persisted", _
                                                              messagetype:=otCoreMessageType.InternalInfo)
-                        CurrentDBDriver.SetDBParameter(ConstPNCalendarInitializedFrom, Format(fromDate, "yyyy-mm-dd"))
-                        CurrentDBDriver.SetDBParameter(ConstPNCalendarInitializedto, Format(ToDate, "yyyy-mm-dd"))
+                        CurrentDBDriver.SetDBParameter(ConstPNCalendarInitializedFrom, Format(fromDate, "yyyy-MM-dd"))
+                        CurrentDBDriver.SetDBParameter(ConstPNCalendarInitializedto, Format(ToDate, "yyyy-MM-dd"))
                     End If
                 End If
 
@@ -1231,14 +1231,14 @@ Namespace OnTrack.Database
                 End If
 
                 If IO.Directory.Exists(searchpath) Then
-                    ot.CoreMessageHandler(message:="importing initial data ...", arg1:=searchpath, subname:="createDatabase.Run", messagetype:=otCoreMessageType.InternalInfo)
+                    ot.CoreMessageHandler(message:="importing initial data ...", arg1:=searchpath, subname:="Installation.createDatabase", messagetype:=otCoreMessageType.InternalInfo)
                     FeedInInitialData(searchpath)
                 Else
                     Dim uri As System.Uri
                     uri = New System.Uri(System.Reflection.Assembly.GetExecutingAssembly().CodeBase)
                     searchpath = System.IO.Path.GetDirectoryName(uri.LocalPath) & "\Resources\" & valueInitialPath
                     If IO.Directory.Exists(searchpath) Then
-                        ot.CoreMessageHandler(message:="importing initial data ...", arg1:=searchpath, subname:="createDatabase.Run", messagetype:=otCoreMessageType.InternalInfo)
+                        ot.CoreMessageHandler(message:="importing initial data ...", arg1:=searchpath, subname:="Installation.createDatabase", messagetype:=otCoreMessageType.InternalInfo)
                         FeedInInitialData(searchpath)
                     End If
 
@@ -1252,16 +1252,52 @@ Namespace OnTrack.Database
                 CurrentSession.ShutDown(force:=True)
             End If
             If sessionaborted Then
-                Call ot.CoreMessageHandler(showmsgbox:=True, subname:="modCreateDB.createDatabase_RUN", _
+                Call ot.CoreMessageHandler(showmsgbox:=True, subname:="Installation.createDatabase", _
                                                              message:="The session which triggered the install routines was aborted during setup. Please reconnect again !", _
                                                              messagetype:=otCoreMessageType.InternalInfo)
             End If
         End Sub
 
+        ''' <summary>
+        ''' Drop Database
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function DropDatabase() As Boolean
+            If CurrentSession.RequestUserAccess(otAccessRight.AlterSchema, messagetext:="for dropping the database please provide a administration id") Then
+                With New UI.CoreMessageBox
+                    '* Message Heaxder
+                    .Title = "CAUTION - PLEASE CONFIRM CRITICAL OPERATION"
+                    .type = UI.CoreMessageBox.MessageType.Warning
+                   
+                    '* Message
+                    .Message = "Please confirm that you really want to drop the database and therefore ALL DATA WILL BE LOST !" & vbLf & _
+                        " Make sure you have a database backup at hand."
+                    .buttons = UI.CoreMessageBox.ButtonType.YesNo
+                    .Show()
+                    If .result <> UI.CoreMessageBox.ResultType.Yes OrElse .result <> UI.CoreMessageBox.ResultType.Ok Then
+                        Return False
+                    End If
+                End With
+
+                Dim aDropSqlStatement As String = OnTrack.Database.Constants.DropAllTables
+                If CurrentDBDriver.RunSqlStatement(aDropSqlStatement) Then
+                    CurrentSession.ShutDown(force:=True)
+                    Return True
+                End If
+            End If
+
+        End Function
+
+        ''' <summary>
+        ''' Initialize Test Data
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
         Public Function InitializeTestData() As Boolean
 
             If Not ot.CurrentSession.RequireAccessRight(otAccessRight.AlterSchema) Then
-                Call ot.CoreMessageHandler(message:="Access right could not be set to AlterSchema", subname:="modCreateDB.InitializeTestData", _
+                Call ot.CoreMessageHandler(message:="Access right could not be set to AlterSchema", subname:="Installation.InitializeTestData", _
                                              messagetype:=otCoreMessageType.ApplicationInfo, break:=False)
                 Return False
             End If
@@ -1283,8 +1319,8 @@ Namespace OnTrack.Database
             '    aproperty.Persist()
             'End If
 
-           
-           
+
+
 
             'Dim aMilestoneDef As MileStoneDefinition = MileStoneDefinition.Create(ID:="BP9")
             'If aMilestoneDef Is Nothing Then aMilestoneDef = MileStoneDefinition.Retrieve(id:="Bp9")
@@ -1370,30 +1406,30 @@ Namespace OnTrack.Database
             '        aCompound.Persist()
             '    End If
 
-                ''' 
-                ''' WorkspaceTarget -> done now via compoundentry.csv
-                ''' 
-                'aCompound = ObjectCompoundEntry.Create(objectname:=WorkspaceTarget.ConstObjectID, entryname:=aTargetEntry.XID)
-                'If aCompound Is Nothing Then aCompound = ObjectCompoundEntry.Retrieve(objectname:=WorkspaceTarget.ConstObjectID, entryname:=aTargetEntry.XID)
-                'If aCompound IsNot Nothing Then
-                '    aCompound.CompoundRelationPath = {WorkspaceTarget.ConstObjectID & "." & WorkspaceTarget.ConstRWorkTarget, _
-                '                                      Target.ConstObjectID}
-                '    aCompound.Datatype = aTargetEntry.Datatype
-                '    ' ordinal calculate an ordinal
-                '    aCompound.Ordinal = 200000 + aTargetEntry.Ordinal
-                '    aCompound.Title = aTargetEntry.Title
-                '    aCompound.Description = aTargetEntry.Description
-                '    aCompound.XID = aTargetEntry.XID
+            ''' 
+            ''' WorkspaceTarget -> done now via compoundentry.csv
+            ''' 
+            'aCompound = ObjectCompoundEntry.Create(objectname:=WorkspaceTarget.ConstObjectID, entryname:=aTargetEntry.XID)
+            'If aCompound Is Nothing Then aCompound = ObjectCompoundEntry.Retrieve(objectname:=WorkspaceTarget.ConstObjectID, entryname:=aTargetEntry.XID)
+            'If aCompound IsNot Nothing Then
+            '    aCompound.CompoundRelationPath = {WorkspaceTarget.ConstObjectID & "." & WorkspaceTarget.ConstRWorkTarget, _
+            '                                      Target.ConstObjectID}
+            '    aCompound.Datatype = aTargetEntry.Datatype
+            '    ' ordinal calculate an ordinal
+            '    aCompound.Ordinal = 200000 + aTargetEntry.Ordinal
+            '    aCompound.Title = aTargetEntry.Title
+            '    aCompound.Description = aTargetEntry.Description
+            '    aCompound.XID = aTargetEntry.XID
 
-                '    ''' special compound settings
-                '    aCompound.CompoundObjectID = aTargetEntry.ConstObjectID
-                '    aCompound.CompoundValueEntryName = Nothing
-                '    aCompound.CompoundIDEntryname = Target.constFNTarget
-                '    aCompound.CompoundGetterMethodName = WorkspaceTarget.ConstOPGetTarget
-                '    aCompound.CompoundSetterMethodName = WorkspaceTarget.ConstOPSetTarget
+            '    ''' special compound settings
+            '    aCompound.CompoundObjectID = aTargetEntry.ConstObjectID
+            '    aCompound.CompoundValueEntryName = Nothing
+            '    aCompound.CompoundIDEntryname = Target.constFNTarget
+            '    aCompound.CompoundGetterMethodName = WorkspaceTarget.ConstOPGetTarget
+            '    aCompound.CompoundSetterMethodName = WorkspaceTarget.ConstOPSetTarget
 
-                '    aCompound.Persist()
-                'End If
+            '    aCompound.Persist()
+            'End If
             'End If
 
             Return True
@@ -1404,11 +1440,11 @@ Namespace OnTrack.Database
         ''' <remarks></remarks>
         Public Function InitializeCalendar(fromDate As Date, toDate As Date) As Boolean
 
-            ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_RUN", _
+            ot.CoreMessageHandler(showmsgbox:=False, subname:="Installation.createDatabase", _
                                                      message:="creating calendar from " & fromDate & " until " & toDate & " - please stand by ...", _
                                                      messagetype:=otCoreMessageType.ApplicationInfo)
             ''' generate the days
-            CalendarEntry.GenerateDays(fromdate:=fromdate, untildate:=toDate, name:=ot.CurrentSession.DefaultCalendarName)
+            CalendarEntry.GenerateDays(fromdate:=fromDate, untildate:=toDate, name:=ot.CurrentSession.DefaultCalendarName)
 
             Dim acalentry As CalendarEntry
             acalentry = CalendarEntry.Create()
@@ -1604,7 +1640,7 @@ Namespace OnTrack.Database
                 End With
             End If
 
-            Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", tablename:=acalentry.PrimaryTableID, _
+            Call ot.CoreMessageHandler(showmsgbox:=False, subname:="Installation.createDatabase_CoreData", tablename:=acalentry.PrimaryTableID, _
                                          message:="Calendar until 31.12.2016 created", messagetype:=otCoreMessageType.ApplicationInfo)
 
             Return True
@@ -1680,7 +1716,7 @@ Namespace OnTrack.Database
                 aWorkspace.MaxTargetUPDC = 999
                 aWorkspace.Persist()
 
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.InitialCoreData", _
+                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="Installation.InitialCoreData", _
                                              message:="base workspaceID @ created", messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aWorkspace.PrimaryTableID)
             End If
             '*** workspaceID
@@ -1697,7 +1733,7 @@ Namespace OnTrack.Database
             '    aWorkspace.Min_target_updc = 1000
             '    aWorkspace.Max_target_updc = 1099
             '    aWorkspace.Persist()
-            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.InitialCoreData", _
+            '    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="Installation.InitialCoreData", _
             '                                 message:="workspaceID PSIM01 created", messagetype:=otCoreMessageType.ApplicationInfo, tablename:=aWorkspace.TableID)
 
             'End If
@@ -1711,7 +1747,7 @@ Namespace OnTrack.Database
                 aGroup.HasUpdateRights = True
                 aGroup.HasNoRights = False
                 If aGroup.Persist() Then
-                    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.InitialCoreData", objectname:=Group.ConstObjectID, _
+                    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="Installation.InitialCoreData", objectname:=Group.ConstObjectID, _
                                                 message:="Group Admin created", messagetype:=otCoreMessageType.ApplicationInfo)
                 End If
 
@@ -1725,7 +1761,7 @@ Namespace OnTrack.Database
                 aGroup.HasUpdateRights = False
                 aGroup.HasNoRights = False
                 If aGroup.Persist() Then
-                    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.InitialCoreData", objectname:=Group.ConstObjectID, _
+                    Call ot.CoreMessageHandler(showmsgbox:=False, subname:="Installation.InitialCoreData", objectname:=Group.ConstObjectID, _
                                                 message:="Group Readers created", messagetype:=otCoreMessageType.ApplicationInfo)
                 End If
 
@@ -1746,7 +1782,7 @@ Namespace OnTrack.Database
                 anUser.HasUpdateRights = True
                 anUser.IsAnonymous = False
                 anUser.Persist()
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", tablename:=anUser.PrimaryTableID, _
+                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="Installation.createDatabase_CoreData", tablename:=anUser.PrimaryTableID, _
                                              message:="User Admin created", messagetype:=otCoreMessageType.ApplicationInfo)
             End If
             anUser = User.Create(username:="boschnei")
@@ -1770,15 +1806,15 @@ Namespace OnTrack.Database
                 anUser.GroupNames = {"readers"}
                 anUser.DefaultWorkspaceID = "@"
                 anUser.DefaultDomainID = ConstGlobalDomain
-                anUser.Password = ""
+                anUser.Password = Nothing
                 anUser.HasAlterSchemaRights = False
                 anUser.HasNoRights = False
                 anUser.HasReadRights = True
                 anUser.HasUpdateRights = False
                 anUser.IsAnonymous = True
-                anUser.PersonName = ""
+                anUser.PersonName = Nothing
                 anUser.Persist()
-                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="modCreateDB.createDatabase_CoreData", tablename:=anUser.PrimaryTableID, _
+                Call ot.CoreMessageHandler(showmsgbox:=False, subname:="Installation.createDatabase_CoreData", tablename:=anUser.PrimaryTableID, _
                                              message:="User anonymous for read created", messagetype:=otCoreMessageType.ApplicationInfo)
             End If
 

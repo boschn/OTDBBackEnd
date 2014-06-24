@@ -540,6 +540,9 @@ Namespace OnTrack.Database
         ''' <remarks></remarks>
         Private Function ValidateCompoundValue(entryname As String, value As Object, Optional msglog As ObjectMessageLog = Nothing) As otValidationResultType
             Try
+
+
+
                 Dim anObjectEntry = Me.ObjectDefinition.GetEntry(entryname)
                 If Not anObjectEntry.IsCompound Then
                     CoreMessageHandler(message:="Object entry is a not a compound - use Validate", arg1:=entryname, _
@@ -615,6 +618,10 @@ Namespace OnTrack.Database
 
                     Dim result As otValidationResultType = ObjectValidator.Validate(newvalue:=value, objectentrydefinition:=anObjectEntry, msglog:=msglog)
 
+                    ''' return here if not alive (pre-create validate)
+                    If Not Me.IsAlive("ValidateCompoundValue", throwError:=False) Then
+                        Return result
+                    End If
                     '''
                     '''2.  get the relation path and resolve to object
                     ''' 
@@ -628,8 +635,10 @@ Namespace OnTrack.Database
                         aRelationname = names(0)
                     End If
 
+                    ''' return also if the relationname is the ObjectID -> means last item
+                    If aRelationname = Me.ObjectID Then Return result
 
-                    ''' request a relation load
+                    ''' request a relation load -> only if alive
                     ''' 
                     If _relationMgr.Status(aRelationname) = DataObjectRelationMgr.RelationStatus.Unloaded Then
                         Me.InfuseRelation(aRelationname)
@@ -658,8 +667,11 @@ Namespace OnTrack.Database
 
                     ''' get the reference data object selected by compoundID - and also load it
                     ''' 
-                    Dim theReferenceObjects = _relationMgr.GetObjectsFromContainer(relationname:=aRelationname, entryname:=searchentryname, value:=searchvalue, _
-                                                                                   loadRelationIfNotloaded:=True)
+                    Dim theReferenceObjects As New List(Of iormPersistable)
+
+
+                    theReferenceObjects = _relationMgr.GetObjectsFromContainer(relationname:=aRelationname, entryname:=searchentryname, value:=searchvalue, _
+                                                                                                       loadRelationIfNotloaded:=True)
 
                     ''' request the value from there
                     ''' 
@@ -690,8 +702,6 @@ Namespace OnTrack.Database
 
 
                 End If
-
-
 
 
             Catch ex As Exception

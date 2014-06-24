@@ -444,7 +444,7 @@ Namespace OnTrack.Database
         ''' <value>The session ID.</value>
 
         Private Sub OnSessionStart(sender As Object, e As SessionEventArgs) Handles _session.OnStarted
-            Me.Start()
+            If e.Session.CurrentDomainID = _domainid Then Me.Start()
         End Sub
 
         ''' <summary>

@@ -406,10 +406,13 @@ Namespace OnTrack.Database
                     Dim returnValueIndex As Integer
                     Dim returnValue As Object ' dummy
                     ReDim theParameters(aMethodInfo.GetParameters.Count - 1)
+                  
                     ''' set the parameters for the delegate
                     For i = 0 To theParameters.GetUpperBound(0)
                         Dim j As Integer = aMethodInfo.GetParameters(i).Position
-                        If j >= 0 AndAlso j <= theParameters.GetUpperBound(0) Then
+                        If j >= theParameterEntries.GetLowerBound(0) AndAlso j <= theParameterEntries.GetUpperBound(0) _
+                            AndAlso theParameterEntries(j) IsNot Nothing Then
+
                             Select Case theParameterEntries(j)
                                 Case ObjectCompoundEntry.ConstFNEntryName
                                     theParameters(j) = entryname
@@ -509,7 +512,7 @@ Namespace OnTrack.Database
 
 
             Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="ormDataObject.GetCompoundValue")
+                CoreMessageHandler(exception:=ex, subname:="ormDataObject.GetCompoundValue", objectname:=Me.ObjectID, arg1:=Me.PrimaryKeyValues, entryname:=entryname, tablename:=Me.PrimaryTableID)
                 Return Nothing
             End Try
         End Function
@@ -649,7 +652,12 @@ Namespace OnTrack.Database
                     CoreMessageHandler(message:="Object entry is a not a compound - use SetValue", arg1:=entryname, _
                          objectname:=Me.ObjectID, entryname:=entryname, _
                           messagetype:=otCoreMessageType.InternalError, subname:="ormDataObject.SetCompoundValue")
-                    Return Nothing
+                    Return False
+                ElseIf anObjectEntry.IsReadonly Then
+                    CoreMessageHandler(message:="Object entry is read-Only - set Value is forbidden", arg1:=entryname, _
+                         objectname:=Me.ObjectID, entryname:=entryname, _
+                          messagetype:=otCoreMessageType.InternalError, subname:="ormDataObject.SetCompoundValue")
+                    Return False
                 End If
 
                 '''
@@ -1600,13 +1608,19 @@ Namespace OnTrack.Database
                 '''
                 ''' persist the data object through the record
                 ''' 
-                Persist = Me.Record.Persist(timestamp)
-
-                '''
-                ''' cascade the operation through the related members
-                ''' 
-                Persist = Persist And Me.CascadeRelations(cascadeUpdate:=True, timestamp:=timestamp, uniquenesswaschecked:=_UniquenessInStoreWasChecked)
-
+                If Not Me.Record.Persist(timestamp) Then
+                    CoreMessageHandler("data object could not persist", dataobject:=Me, subname:="ormDataObject.Persist", messagetype:=otCoreMessageType.InternalError)
+                    Persist = False
+                Else
+                    '''
+                    ''' cascade the operation through the related members
+                    ''' 
+                    If Not Me.CascadeRelations(cascadeUpdate:=True, timestamp:=timestamp, uniquenesswaschecked:=_UniquenessInStoreWasChecked) Then
+                        Persist = False
+                    Else
+                        Persist = True
+                    End If
+                End If
                 ''' persist the object messages
                 ''' 
                 If _ObjectMessageLog IsNot Nothing AndAlso _ObjectMessageLog.Count > 0 Then
@@ -1630,11 +1644,14 @@ Namespace OnTrack.Database
 
 
                 '** fire event
+                ourEventArgs = New ormDataObjectEventArgs(Me, record:=Me.Record, pkarray:=Me.PrimaryKeyValues, _
+                                                               timestamp:=timestamp, usecache:=Me.UseCache, domainID:=DomainID, _
+                                                               domainBehavior:=Me.ObjectHasDomainBehavior, runtimeOnly:=Me.RunTimeOnly)
                 RaiseEvent OnPersisted(Me, ourEventArgs)
-                Persist = ourEventArgs.Proceed
+                Persist = ourEventArgs.Proceed And Persist
 
                 RaiseEvent ClassOnPersisted(Me, ourEventArgs)
-                Persist = ourEventArgs.Proceed And ourEventArgs.Proceed
+                Persist = ourEventArgs.Proceed And Persist
 
                 Return Persist
 

@@ -53,7 +53,7 @@ Namespace OnTrack.Scheduling
         ''' </summary>
         ''' <remarks></remarks>
         Public Sub New()
-            Call MyBase.New("")
+
         End Sub
 
 #Region "Poperties"

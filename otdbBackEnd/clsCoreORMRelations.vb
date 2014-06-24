@@ -1211,7 +1211,15 @@ Namespace OnTrack.Database
                                 ''' listen to the messages
                                 AddHandler TryCast(anObject, iormLoggable).ObjectMessageLog.OnObjectMessageAdded, AddressOf Me.DataObject_OnObjectMessageAdded
                                 ''' here persist
-                                result = result And anObject.Persist(timestamp:=timestamp)
+                               
+                                If Not anObject.Persist(timestamp:=timestamp) Then
+                                    CoreMessageHandler("object could not persist", dataobject:=anObject, messagetype:=otCoreMessageType.InternalError, _
+                                                       subname:="DataObjectRelationMgr.CascadeRelation")
+                                    result = result And False
+                                Else
+                                    result = result And True
+                                End If
+
                                 ''' stop listing to the messages
                                 RemoveHandler TryCast(anObject, iormLoggable).ObjectMessageLog.OnObjectMessageAdded, AddressOf Me.DataObject_OnObjectMessageAdded
 
@@ -1221,6 +1229,7 @@ Namespace OnTrack.Database
                                 If Not uniquenesswaschecked Then
                                     Me.DeleteRelatedObjects(relationname, timestamp:=timestamp)
                                 End If
+
                             End If
                             ''' Cascade Delete
                             If cascadeDelete AndAlso cascadeDelete = aRelationAttribute.CascadeOnDelete Then

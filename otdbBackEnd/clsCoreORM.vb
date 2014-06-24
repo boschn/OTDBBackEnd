@@ -129,10 +129,8 @@ Namespace OnTrack
             ''' <remarks></remarks>
             Public Overridable ReadOnly Property SqlText As String Implements iormSqlCommand.SqlText
                 Get
-                    If Me._SqlText <> "" Or Me.BuildTextRequired Then
-                        If Me.BuildTextRequired Then
-                            Call BuildSqlText()
-                        End If
+                    If Not String.IsNullOrWhiteSpace(_SqlText) OrElse Me.BuildTextRequired Then
+                        If Me.BuildTextRequired Then Call BuildSqlText()
                         Return _SqlText
                     Else
                         Return _SqlStatement
@@ -920,23 +918,7 @@ Namespace OnTrack
                     Me.BuildTextRequired = True
                 End Set
             End Property
-            ''' <summary>
-            ''' returns the build SQL Statement
-            ''' </summary>
-            ''' <value></value>
-            ''' <returns></returns>
-            ''' <remarks></remarks>
-            Public Overrides ReadOnly Property SqlText As String Implements iormSqlCommand.SqlText
-                Get
-                    If Me.BuildTextRequired Then
-                        BuildSqlText()
-                        Return _SqlText
-                    Else
-                        Return _SqlStatement
-                    End If
-
-                End Get
-            End Property
+            
             ''' <summary>
             ''' Add Table with fields to the Resultfields
             ''' </summary>
@@ -1632,7 +1614,9 @@ Namespace OnTrack
                 If Not aValidation.ValidEntry Then
                     Return False
                 Else
-                    If aValidation.Password <> password Then
+                    ''' if validation has nothing then continiue with any password
+                    ''' fail if provided password is nothing
+                    If aValidation.Password IsNot Nothing AndAlso (password Is Nothing OrElse aValidation.Password <> password) Then
                         Return False
                     End If
 

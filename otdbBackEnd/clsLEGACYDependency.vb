@@ -509,7 +509,7 @@ Namespace OnTrack.Scheduling
             Call ExchangeDependMemberTypeIdList(TYPEID, dependFromList)
 
             'me.iscreated = True
-            Me.IsDeleted = True
+            _IsDeleted = True
             Me.Unload()
 
         End Function
@@ -531,7 +531,7 @@ Namespace OnTrack.Scheduling
             ' reset it
 
             'me.iscreated = True
-            Me.IsDeleted = True
+            _IsDeleted = True
             Me.Unload()
 
         End Function

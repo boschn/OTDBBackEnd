@@ -1320,6 +1320,16 @@ Namespace OnTrack.Database
         ''' <remarks></remarks>
         ReadOnly Property IsInitialized As Boolean
         ''' <summary>
+        ''' returns true if the object is deleted
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        ReadOnly Property IsDeleted As Boolean
+
+
+
+        ''' <summary>
         ''' returns the Object ID of the persistable
         ''' </summary>
         ''' <value></value>

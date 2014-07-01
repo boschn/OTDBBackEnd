@@ -1011,6 +1011,9 @@ Namespace OnTrack.XChange
     ''' CLASS XConfig defines how data can be exchanged with the XChange Manager
     ''' </summary>
     ''' <remarks></remarks>
+    ''' 
+    <ormChangeLogEntry(application:=ot.ConstApplicationBackend, module:=ot.ConstModuleXChange, version:=1, release:=1, patch:=1, changeimplno:=2, _
+        description:="resetting the entries")> _
     <ormObject(ID:=XChangeConfiguration.constObjectID, version:=1, usecache:=True, adddomainbehavior:=True, adddeletefieldbehavior:=True, _
         modulename:=ConstModuleXChange, description:="defines how data can be exchanged with the XChange Manager")> _
     Public Class XChangeConfiguration
@@ -1054,7 +1057,7 @@ Namespace OnTrack.XChange
         <ormObjectEntry(Datatype:=otDataType.Bool, defaultvalue:=False,
              Title:="IsDynamic", Description:="the XChange Config accepts dynamic addition of XChangeIDs")> Public Const constFNDynamic = "isdynamic"
 
-        <ormObjectEntry(referenceObjectEntry:=XOutline.constobjectid & "." & XOutline.constFNID, isnullable:=True, _
+        <ormObjectEntry(referenceObjectEntry:=XOutline.ConstObjectID & "." & XOutline.ConstFNID, isnullable:=True, _
                Title:="Outline ID", Description:="ID to the associated Outline")> Public Const constFNOutline = "outline"
 
         ''' <summary>
@@ -1965,14 +1968,29 @@ Namespace OnTrack.XChange
             _ObjectEntryCollection.Add(anEntry)
             Return True
         End Function
+
+        ''' <summary>
+        ''' reset all entry definitions
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function ClearEntries() As Boolean
+            Return Reset(justentries:=True)
+        End Function
         ''' <summary>
         ''' resets the object
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Private Function Reset() As Boolean
-            _ObjectCollection.Clear()
-            _objectsByOrderDirectory.Clear()
+        Private Function Reset(Optional justentries As Boolean = False) As Boolean
+            ''' if not just the entries
+            If Not justentries Then
+                _ObjectCollection.Clear()
+                _ObjectDictionary.Clear()
+                _objectsByOrderDirectory.Clear()
+            End If
+
+            '*** reset the entries
             _entriesXIDDirectory.Clear()
             _entriesByObjectnameDirectory.Clear()
             _entriesXIDList.Clear()
@@ -2365,7 +2383,9 @@ Namespace OnTrack.XChange
     ''' describes a XChange Outline data structure
     ''' </summary>
     ''' <remarks></remarks>
-    <ormObject(ID:=XOutline.constobjectid, version:=1, usecache:=True, adddeletefieldbehavior:=True, adddomainbehavior:=True, _
+    <ormChangeLogEntry(Application:=ConstApplicationBackend, Module:=ConstModuleXChange, Version:=1, Release:=1, patch:=3, changeimplno:=1, _
+         description:="Bug Fix in outline generation. Outline items will be created or retrieved on rundynamic.")> _
+    <ormObject(ID:=XOutline.ConstObjectID, version:=1, usecache:=True, adddeletefieldbehavior:=True, adddomainbehavior:=True, _
         modulename:=ConstModuleXChange, description:="describes a XChange Outline data structure")> _
     Public Class XOutline
         Inherits ormDataObject
@@ -2394,7 +2414,7 @@ Namespace OnTrack.XChange
         <ormObjectEntry(XID:="OTL2", Datatype:=otDataType.Text, isnullable:=True, _
                 description:="description of the outline", Title:="description")> Public Const constFNdesc = "DESC"
 
-        
+
         <ormObjectEntry(Datatype:=otDataType.List, isnullable:=True, _
                         XID:="OTL5", title:="Business Objects", description:="applicable business objects for this outline")> Public Const ConstFNObjects = "OBJECTS"
 
@@ -2410,7 +2430,7 @@ Namespace OnTrack.XChange
         ''' Column Mappings
         ''' </summary>
         ''' <remarks></remarks>
-        <ormEntryMapping(EntryName:=constFNID)> Private _id As String = ""
+        <ormEntryMapping(EntryName:=ConstFNID)> Private _id As String = ""
         <ormEntryMapping(EntryName:=constFNdesc)> Private _desc As String
         <ormEntryMapping(EntryName:=ConstFNObjects)> Private _Objects As String()
         <ormEntryMapping(EntryName:=constFNDynamicAddRevisions)> Private _DynamicAddRevisions As Boolean
@@ -2542,7 +2562,7 @@ Namespace OnTrack.XChange
         End Property
 #End Region
 
-        
+
 
         ''' <summary>
         ''' Add an Item
@@ -2552,7 +2572,7 @@ Namespace OnTrack.XChange
         ''' <remarks></remarks>
         Public Function AddItem(item As XOutlineItem) As Boolean
             If Not Me.IsAlive("AddItem") Then Return False
-            
+
 
             ' remove and overwrite
             If _itemCollection.ContainsKey(key:=item.ordinal) Then
@@ -2565,7 +2585,7 @@ Namespace OnTrack.XChange
             Return True
 
         End Function
-        
+
 
         ''' <summary>
         ''' ordinals of the components
@@ -2645,7 +2665,7 @@ Namespace OnTrack.XChange
             Next
 
             Call CoreMessageHandler(message:="outline cleaned from revisions", subname:="clsOTDBXoutline.cleanuprevision",
-                                         arg1:=Me.id, messagetype:=otCoreMessageType.ApplicationInfo)
+                                         arg1:=Me.ID, messagetype:=otCoreMessageType.ApplicationInfo)
             Return True
 
         End Function
@@ -2721,7 +2741,8 @@ Namespace OnTrack.XChange
                 If theRecords.Count >= 0 Then
                     For Each aRecord As ormRecord In theRecords
                         Dim aLngValue As Long = CLng(aRecord.GetValue(1))
-                        Dim anItem As XOutlineItem = XOutlineItem.Create(Me.ID, ordinal:=myordinal, uid:=aLngValue, runtimeonly:=True)
+                        Dim anItem As XOutlineItem = XOutlineItem.Retrieve(Me.ID, ordinal:=myordinal) 'maybe the item is in cache
+                        If anItem Is Nothing Then anItem = XOutlineItem.Create(Me.ID, ordinal:=myordinal, uid:=aLngValue)
                         If anItem IsNot Nothing Then
                             anItem.keys.Add(New XOutlineItem.OutlineKey(otDataType.Long, ID:=anUIDEntry.XID, value:=aLngValue))
                             _dynamicCollection.Add(anItem)

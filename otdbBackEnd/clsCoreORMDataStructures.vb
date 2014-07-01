@@ -490,6 +490,13 @@ Namespace OnTrack.Database
                 If anItem IsNot Nothing Then
                     Me.Add(anItem)
                     Return anItem
+                Else
+                    anItem = CTypeDynamic(Of T)(ormDataObject.Retrieve(pkArray:=keys, type:=GetType(T), domainID:=domainid, runtimeOnly:=runtimeOnly))
+                    If anItem.isdeleted Then
+                        CoreMessageHandler("adding create a deleted dataobject - use undelete instead", dataobject:=anItem, _
+                                            subname:="ormRelationNewableCollection.AddCreate", messagetype:=otCoreMessageType.ApplicationError)
+                        anItem = Nothing
+                    End If
                 End If
             End If
             Return Nothing

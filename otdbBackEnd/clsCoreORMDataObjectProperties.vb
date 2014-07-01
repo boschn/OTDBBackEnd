@@ -300,16 +300,11 @@ Namespace OnTrack.Database
         ''' Gets or sets the isDeleted.
         ''' </summary>
         ''' <value>The isDeleted.</value>
-        Public Property IsDeleted() As Boolean
+        Public ReadOnly Property IsDeleted() As Boolean Implements iormPersistable.IsDeleted
             Get
                 Return Me._IsDeleted
             End Get
-            Protected Friend Set(value As Boolean)
-                Me._IsDeleted = value
-                If value = False Then
-                    _deletedOn = Nothing
-                End If
-            End Set
+
         End Property
 
         ''' <summary>

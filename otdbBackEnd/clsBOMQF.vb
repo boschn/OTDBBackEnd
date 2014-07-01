@@ -832,7 +832,28 @@ Namespace OnTrack.Xchange
 
             Return Process
         End Function
+        ''' <summary>
+        ''' process -> write the MQF to the Database through the XChangeManager
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function Clear(Optional ByRef workerthread As ComponentModel.BackgroundWorker = Nothing) As Boolean
+            Dim progress As Long
+            Dim maximum As Long = Me.Messages.Count
+         
+            ' step through the RowEntries
+            For Each aMessage As MQMessage In Me.Messages
+                aMessage.clear()
 
+                    If workerthread IsNot Nothing Then
+                        progress += 1
+                        workerthread.ReportProgress((progress / maximum) * 100, "processing ...")
+                    End If
+
+            Next
+
+            Return True
+        End Function
 
         ''' <summary>
         ''' precheck -> check the MQF
@@ -950,7 +971,7 @@ Namespace OnTrack.Xchange
         ''' Table
         ''' </summary>
         ''' <remarks></remarks>
-        <ormSchemaTable(version:=2, adddeletefieldbehavior:=True)> Const ConstTableID = "TBLMQMESSAGES"
+        <ormSchemaTable(version:=3, adddeletefieldbehavior:=True)> Const ConstTableID = "TBLMQMESSAGES"
 
         ''' <summary>
         ''' Primary Keys
@@ -970,6 +991,9 @@ Namespace OnTrack.Xchange
         <ormObjectEntry(Datatype:=otDataType.Text, size:=50, isnullable:=True, _
             properties:={ObjectEntryProperty.Keyword}, _
             title:="Action", description:="Transaction to be carried out with the slots")> Public Const ConstFNAction = "ACTION"
+
+        <ormObjectEntry(Datatype:=otDataType.Bool, defaultvalue:=False, dbdefaultvalue:="0", _
+                   title:="Prechecked", description:="is message prechecked with success")> Public Const ConstFNPrechecked = "PRECHECKED"
 
         <ormObjectEntry(Datatype:=otDataType.Bool, defaultvalue:=False, dbdefaultvalue:="0", _
                     title:="Processed", description:="is message processed with success")> Public Const ConstFNProcessed = "PROCESSED"
@@ -1004,6 +1028,7 @@ Namespace OnTrack.Xchange
 
         <ormEntryMapping(entryname:=ConstFNAction)> Private _action As String
 
+        <ormEntryMapping(entryname:=ConstFNPrechecked)> Private _prechecked As Boolean
         <ormEntryMapping(entryname:=ConstFNProcessed)> Private _processed As Boolean
         <ormEntryMapping(entryname:=ConstFNProcessable)> Private _processable As Boolean? = True 'init value
         <ormEntryMapping(entryname:=ConstFNPROCSTAMP)> Private _processedOn As DateTime?
@@ -1136,6 +1161,20 @@ Namespace OnTrack.Xchange
             End Get
             Set(value As Boolean?)
                 SetValue(ConstFNProcessable, value)
+            End Set
+        End Property
+        ''' <summary>
+        ''' returns true if processed
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Property Prechecked() As Boolean
+            Get
+                Return _prechecked
+            End Get
+            Set(value As Boolean)
+                SetValue(ConstFNPrechecked, value)
             End Set
         End Property
         ''' <summary>
@@ -1367,6 +1406,32 @@ Namespace OnTrack.Xchange
         End Function
 
         ''' <summary>
+        ''' Clear and reset the message if possible
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function Clear() As Boolean
+            If Not Me.IsAlive("Clear") Then Return False
+
+            ''' if not saved
+            If Not Me.Processed Then
+                '* delete the slots
+                For Each aSlot In Me.Slots.ToList 'slots are changed
+                    aSlot.Delete()
+                Next
+                '* reset the values
+                Me.PrecheckedOn = Nothing
+                Me.Processable = False
+                Me.ProcessedOn = Nothing
+
+                Return True
+            Else
+                CoreMessageHandler("a message with idno '" & Me.IDNO & "' is already processed and cannot be reseted", dataobject:=Me, _
+                                    subname:="MQMessage.clear", messagetype:=otCoreMessageType.ApplicationError)
+                Return False
+            End If
+        End Function
+        ''' <summary>
         ''' Create Persistable Object
         ''' </summary>
         ''' <param name="TAG"></param>
@@ -1445,6 +1510,8 @@ Namespace OnTrack.Xchange
                 Me.Statuscode = Nothing
                 Me.Statusitem = Nothing
                 ''' reset processing status
+                Me.Prechecked = False
+                Me.PrecheckedOn = Nothing
                 Me.Processed = False
                 Me.ProcessedOn = Nothing
 
@@ -1467,6 +1534,7 @@ Namespace OnTrack.Xchange
                         '''
                         ''' Do Nothing by intention
                         ''' 
+                        Me.Prechecked = True
                         result = True
 
                     Case ot.ConstMQFOpChange
@@ -1483,7 +1551,7 @@ Namespace OnTrack.Xchange
                         '''
                         ''' run the XChange through the envelope
                         ''' 
-                        Me.Processed = Me.RunXChange(justprecheck:=True, workerthread:=workerthread)
+                        Me.Prechecked = Me.RunXChange(justprecheck:=True, workerthread:=workerthread)
                         Me.Statusitem = Me.ObjectMessageLog.GetHighesStatusItem(ConstStatusType_XEnvelope)
                         If Me.Statusitem.Aborting Then
                             result = False
@@ -1504,7 +1572,7 @@ Namespace OnTrack.Xchange
                         '''
                         ''' run the XChange through the envelope
                         ''' 
-                        Me.Processed = Me.RunXChange(justprecheck:=True, workerthread:=workerthread)
+                        Me.Prechecked = Me.RunXChange(justprecheck:=True, workerthread:=workerthread)
                         Me.Statusitem = Me.ObjectMessageLog.GetHighesStatusItem(ConstStatusType_XEnvelope)
                         If Me.Statusitem.Aborting Then
                             result = False
@@ -1524,7 +1592,7 @@ Namespace OnTrack.Xchange
                         '''
                         ''' run the XChange through the envelope
                         ''' 
-                        Me.Processed = Me.RunXChange(justprecheck:=True, workerthread:=workerthread)
+                        Me.Prechecked = Me.RunXChange(justprecheck:=True, workerthread:=workerthread)
                         Me.Statusitem = Me.ObjectMessageLog.GetHighesStatusItem(ConstStatusType_XEnvelope)
                         If Me.Statusitem.Aborting Then
                             result = False
@@ -1553,7 +1621,7 @@ Namespace OnTrack.Xchange
 
                         ''' run the XChange through the envelope
                         ''' 
-                        Me.Processed = Me.RunXChange(justprecheck:=True, workerthread:=workerthread)
+                        Me.Prechecked = Me.RunXChange(justprecheck:=True, workerthread:=workerthread)
 
                         Me.Statusitem = Me.ObjectMessageLog.GetHighesStatusItem(ConstStatusType_XEnvelope)
                         If Me.Statusitem.Aborting Then
@@ -1611,7 +1679,7 @@ Namespace OnTrack.Xchange
             If Not Me.IsAlive("Process") Then Return False
 
             ''' preprocess needed first
-            If Me.PrecheckedOn Is Nothing Then
+            If Not Me.Prechecked Then
                 Me.ObjectMessageLog.Add(1291, Nothing, Me.ContextIdentifier, Me.TupleIdentifier, Me.EntityIdentifier, Me)
                 Return False
                 ''' needs to be successfull
@@ -1651,7 +1719,7 @@ Namespace OnTrack.Xchange
                     '''
                     ''' Do Nothing by intention
                     ''' 
-                    Me.PrecheckedOn = Date.Now
+                    Me.ProcessedOn = Date.Now
                     Me.Processable = True
                     Me.ObjectMessageLog.Add(1290, Nothing, Me.ContextIdentifier, Me.TupleIdentifier, Me.EntityIdentifier, Me.MessageQueue.ID, ot.ConstMQFOpNoop)
                     RaiseEvent OnProcessed(Me, New MQMessage.EventArgs(MQMessage:=Me, result:=result))
@@ -2703,6 +2771,17 @@ Namespace OnTrack.Xchange
                 CoreMessageHandler(exception:=ex, subname:="MQXSlot_OnDefaultValuesNeeded")
             End Try
 
+        End Sub
+
+        ''' <summary>
+        ''' on Deleted Handler
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Private Sub MQXSlot_OnDeleted(sender As Object, e As ormDataObjectEventArgs) Handles Me.OnDeleted
+            '* remove me from the slots of the message
+            Me.Message.Slots.Remove(Me)
         End Sub
 
         ''' <summary>

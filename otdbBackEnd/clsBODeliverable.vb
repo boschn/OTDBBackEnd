@@ -3802,8 +3802,9 @@ Namespace OnTrack.Deliverables
                 Next aSchedule
 
                 'delete the  object itself
-                Me.IsDeleted = Me.Record.Delete()
+                _IsDeleted = Me.Record.Delete()
                 If Me.IsDeleted Then
+                    Me.DeletedOn = Nothing
                     Me.Unload()
                 End If
                 Purge = Me.IsDeleted

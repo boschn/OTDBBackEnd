@@ -173,7 +173,7 @@ Namespace OnTrack.Parts
             s_cmids.Add(key:=0, value:=anEntry)
 
             'me.iscreated = True
-            Me.IsDeleted = True
+            _IsDeleted = True
             Me.Unload()
 
         End Function

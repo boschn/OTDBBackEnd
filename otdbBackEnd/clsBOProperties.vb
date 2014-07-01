@@ -313,7 +313,8 @@ Namespace OnTrack.ObjectProperties
         ''' 
         <ormObjectOperationMethod(Description:="Publish the working property set", title:="Publish", TransactionID:=ConstOpPublish, _
             UIvisible:=True)> _
-        Public Function Publish(Optional ByRef msglog As ObjectMessageLog = Nothing, _
+        Public Function Publish(Optional workerthread As BackgroundWorker = Nothing, _
+                                Optional ByRef msglog As ObjectMessageLog = Nothing, _
                                Optional ByVal timestamp As Date? = Nothing) As Boolean
             Dim IsPublishable As Boolean = True
             Dim aValidationResult As otValidationResultType
@@ -391,7 +392,7 @@ Namespace OnTrack.ObjectProperties
 
                     ''' update the former sets here
                     ''' 
-                    AliveSet.UpdateLots()
+                    AliveSet.UpdateLots(workerthread:=workerthread)
 
                     ''' build the view here
                     ''' 
@@ -867,14 +868,21 @@ Namespace OnTrack.ObjectProperties
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function UpdateLots(Optional timestamp As DateTime? = Nothing) As Boolean
+        Public Function UpdateLots(Optional workerthread As BackgroundWorker = Nothing, _
+                                   Optional timestamp As DateTime? = Nothing) As Boolean
             '** get all lots which have this set
             Dim result As Boolean = True
             If Not timestamp.HasValue Then timestamp = DateTime.Now
+            Dim aList As List(Of ObjectPropertyLink) = ObjectPropertyLink.AllBySet(setid:=Me.ID)
+            Dim i As Long
+            Dim max As Long = aList.Count
 
-            For Each aLink In ObjectPropertyLink.AllBySet(setid:=Me.ID)
+            For Each aLink In aList
                 '** get the links to increase the valuelot version
                 result = result And aLink.UpdateValueLot2Set(setid:=Me.ID, setupdc:=Me.Updc, timestamp:=timestamp, domainid:=Me.DomainID)
+                If workerthread IsNot Nothing Then
+                    workerthread.ReportProgress(i / max, "updating value lots")
+                End If
             Next
 
             Return result

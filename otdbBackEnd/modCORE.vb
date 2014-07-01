@@ -34,6 +34,14 @@ Namespace OnTrack
 
     Public Module ot
 
+        ''' <summary>
+        ''' Version with Changelog
+        ''' </summary>
+        ''' <remarks></remarks>
+        <ormChangeLogEntry(Application:=ConstApplicationBackend, Module:=ConstModuleCommons, Version:=1, Release:=0, patch:=3, changeimplno:=1, _
+            description:="Introducing ChangeLogEntries as Business Objects")> _
+        Public Const ConstVersionCoreBackend As String = "1.0.3"
+
         ' max size
         Public Const ConstDBDriverMaxTextSize = 255
         Public Const constDBDriverMaxMemoSize = 16000
@@ -122,7 +130,10 @@ Namespace OnTrack
         ''' The Schema Version - increase here to trigger recreation of the database schema
         ''' </summary>
         ''' <remarks></remarks>
-        Public Const ConstOTDBSchemaVersion = 10
+        ''' 
+        <ormChangeLogEntry(application:=ConstApplicationBackend, module:=ConstPNBSchemaVersion, version:=11, release:=0, patch:=0, changeimplno:=1, _
+            description:="ChangeLog Entry added")> _
+        Public Const ConstOTDBSchemaVersion = 11
 
         '** config parameters
         ''' <summary>
@@ -179,6 +190,12 @@ Namespace OnTrack
         Public Const constXCHCreateordinal = 990000000000
 
         ''' <summary>
+        ''' Application names
+        ''' </summary>
+        ''' <remarks></remarks>
+        Public Const ConstApplicationBackend = "otBackend"
+
+        ''' <summary>
         ''' Name of the different OnTrack Modules
         ''' </summary>
         ''' <remarks></remarks>
@@ -223,20 +240,35 @@ Namespace OnTrack
         Private _bootstrapObjectIds As New List(Of String)
         Private _bootstrapclassnames As New List(Of String)
 
+        ''' <summary>
+        ''' global OnTrack ChangeLog
+        ''' </summary>
+        ''' <remarks></remarks>
+        Private _changelog As New OnTrackChangeLog
+
 #Region "Properties"
-
-
+        ''' <summary>
+        ''' returns the Changelog
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property OnTrackChangeLog As OnTrackChangeLog
+            Get
+                Return _changelog
+            End Get
+        End Property
         ''' <summary>
         ''' Gets or sets the version.
         ''' </summary>
         ''' <value>The version.</value>
-        Public Property ApplicationVersion() As String
+        Public Property AssemblyVersion() As String
             Get
                 If String.IsNullOrWhiteSpace(_Version) Then Return System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString()
                 Return _Version
             End Get
             Set(value As String)
-                _Version = Value
+                _Version = value
             End Set
         End Property
 
@@ -372,19 +404,19 @@ Namespace OnTrack
         ReadOnly Property DBConnectionString As String
             Get
 
-                If CurrentConnection(AutoConnect:=False) Is Nothing Then
+                If CurrentConnection(autoConnect:=False) Is Nothing Then
                     Return ""
                 Else
-                    Return CurrentConnection(AutoConnect:=False).Connectionstring
+                    Return CurrentConnection(autoConnect:=False).Connectionstring
                 End If
             End Get
         End Property
         ReadOnly Property LoginWindow As CoreLoginForm
             Get
-                If CurrentConnection(AutoConnect:=False) Is Nothing Then
+                If CurrentConnection(autoConnect:=False) Is Nothing Then
                     Return Nothing
                 Else
-                    Return CurrentConnection(AutoConnect:=False).UILogin
+                    Return CurrentConnection(autoConnect:=False).UILogin
                 End If
             End Get
         End Property
@@ -436,10 +468,10 @@ Namespace OnTrack
                 End If
 
                 '* connect ?!
-                If AutoConnect = True Then
+                If autoConnect = True Then
                     If CurrentSession.StartUp(AccessRequest:=accessRequest, OTDBUsername:=username, OTDBPassword:=password) Then
                         Return CurrentSession.CurrentDBDriver.CurrentConnection
-                    ElseIf AutoConnect = False Then
+                    ElseIf autoConnect = False Then
                         Return CurrentSession.CurrentDBDriver.CurrentConnection
                     Else
                         Return Nothing
@@ -640,19 +672,19 @@ Namespace OnTrack
                             Dim matchconfig As Match = Regex.Match(valueString, "(?<name>.*)\s*\:\s*(?<driver>.*)")
                             configsetname = matchconfig.Groups("name").Value
                             driver = matchconfig.Groups("driver").Value
-                            Select Case driver.tolower
+                            Select Case driver.ToLower
                                 Case "primary", "0", ComplexPropertyStore.Sequence.Primary.ToString.ToLower
                                     sequence = ComplexPropertyStore.Sequence.Primary
                                 Case "secondary", "1", ComplexPropertyStore.Sequence.Secondary.ToString.ToLower
                                     sequence = ComplexPropertyStore.Sequence.Secondary
                                 Case Else
-                                    sequence = ComplexPropertyStore.Sequence.primary
+                                    sequence = ComplexPropertyStore.Sequence.Primary
                                     CoreMessageHandler(message:="driver sequence not recognized - primary assumed", arg1:=driver, subname:="ReadConfigFile", messagetype:=otCoreMessageType.InternalError)
                             End Select
 
                         Else
                             configsetname = valueString
-                            sequence = ComplexPropertyStore.Sequence.primary
+                            sequence = ComplexPropertyStore.Sequence.Primary
                         End If
                         identifier = ""
                         '* parameter
@@ -662,7 +694,7 @@ Namespace OnTrack
                         valueString = Trim(match.Groups("value").Value)
                         parameterName = ""
                         '** select
-                        Select Case identifier.tolower
+                        Select Case identifier.ToLower
                             Case "use", "current", ConstCPNUseConfigSetName
                                 'ot.CurrentConfigSetName = valueString this doesnot work since the Config set might not be loaded 
                                 parameterName = ConstCPNUseConfigSetName
@@ -674,7 +706,7 @@ Namespace OnTrack
                                 parameterName = ConstCPNDBName
                             Case "logagent", constCPNUseLogAgent
                                 parameterName = constCPNUseLogAgent
-                                Select Case valueString.tolower
+                                Select Case valueString.ToLower
                                     Case "true", "1"
                                         valueObject = True
                                     Case "false", "0"
@@ -702,7 +734,7 @@ Namespace OnTrack
                                 parameterName = ConstCPNDBConnection
                             Case "database", ConstCPNDBType
                                 parameterName = ConstCPNDBType
-                                Select Case valueString.tolower
+                                Select Case valueString.ToLower
                                     '** SQL SERVER
                                     Case ConstCPVDBTypeSqlServer, otDBServerType.SQLServer.ToString.ToLower
                                         valueObject = otDBServerType.SQLServer
@@ -734,7 +766,7 @@ Namespace OnTrack
                                 End Select
                             Case "drivername", ConstCPNDriverName
                                 parameterName = ConstCPNDriverName
-                                Select Case valueString.tolower
+                                Select Case valueString.ToLower
                                     '** OLEDB
                                     Case ConstCPVDriverOleDB, otDbDriverType.ADONETOLEDB.ToString.ToLower
                                         valueObject = otDbDriverType.ADONETOLEDB
@@ -834,7 +866,7 @@ Namespace OnTrack
         Optional sequence As ComplexPropertyStore.Sequence = ComplexPropertyStore.Sequence.Primary) As Object
             Return _configurations.GetProperty(name:=name, weight:=weight, setname:=configsetname, sequence:=sequence)
         End Function
-       
+
 
         ''' <summary>
         ''' returns true if the config-set name exists 
@@ -1046,7 +1078,7 @@ Namespace OnTrack
                 Return Nothing
             End If
         End Function
-       
+
         ''' <summary>
         ''' returns a method hook for a class
         ''' </summary>
@@ -1168,7 +1200,7 @@ Namespace OnTrack
                 Return Nothing
             End If
         End Function
-       
+
         ''' <summary>
         ''' Initialize the OTDB Envirormenent
         ''' </summary>
@@ -1193,7 +1225,6 @@ Namespace OnTrack
                         Call CoreMessageHandler(showmsgbox:=False, message:=_ObjectClassStore.Count & " object class descriptions collected and setup", _
                                              noOtdbAvailable:=True, messagetype:=otCoreMessageType.InternalInfo, _
                                             subname:="Initialize")
-
                     End If
 
                     '***** Request a Session -> now we have a session log
@@ -1223,8 +1254,16 @@ Namespace OnTrack
                                             noOtdbAvailable:=True, messagetype:=otCoreMessageType.InternalInfo, _
                                             subname:="Initialize")
 
-
+                    ''' set intiialized
                     IsInitialized = True
+
+                    ''' refresh change log after initialized since changelog is a ormrelationCollection
+                    ''' 
+                    If _changelog.Refresh(type:=GetType(ormChangeLogEntry)) Then
+                        Call CoreMessageHandler(showmsgbox:=False, message:=_ObjectClassStore.Count & " object class descriptions collected and setup", _
+                                            noOtdbAvailable:=True, messagetype:=otCoreMessageType.InternalInfo, _
+                                           subname:="Initialize")
+                    End If
                 End If
 
                 Return IsInitialized
@@ -1333,7 +1372,7 @@ Namespace OnTrack
                                             Optional reLogin As Boolean = True) As Boolean
             Return CurrentSession.RequireAccessRight(accessRequest:=accessRequest, domainID:=domainID, reLogin:=reLogin)
         End Function
-       
+
         ''' <summary>
         ''' requires access to the OnTrack Database  - starts a session if not running otherwise just validates
         ''' </summary>
@@ -1396,7 +1435,7 @@ Namespace OnTrack
                 Case otDataType.Bool
                     Return False
                 Case otDataType.Date
-                    Return ConstNullDate
+                    Return constNullDate
                 Case otDataType.List
                     ''' To do implement inner Type
                     ''' or accept Object()
@@ -1413,7 +1452,7 @@ Namespace OnTrack
                 Case otDataType.Time
                     Return ConstNullTime
                 Case otDataType.Timestamp
-                    Return ConstNullDate
+                    Return constNullDate
                 Case Else
                     CoreMessageHandler(message:="datatype must be implemented", messagetype:=otCoreMessageType.InternalError, subname:="DefaultValue")
                     Return Nothing

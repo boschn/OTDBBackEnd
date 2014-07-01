@@ -1212,9 +1212,13 @@ Namespace OnTrack.Database
                                 AddHandler TryCast(anObject, iormLoggable).ObjectMessageLog.OnObjectMessageAdded, AddressOf Me.DataObject_OnObjectMessageAdded
                                 ''' here persist
                                
-                                If Not anObject.Persist(timestamp:=timestamp) Then
+                                If Not anObject.RuntimeOnly AndAlso Not anObject.Persist(timestamp:=timestamp) Then
                                     CoreMessageHandler("object could not persist", dataobject:=anObject, messagetype:=otCoreMessageType.InternalError, _
                                                        subname:="DataObjectRelationMgr.CascadeRelation")
+                                    result = result And False
+                                ElseIf anObject.RuntimeOnly Then
+                                    CoreMessageHandler("object on RuntimeOnly could not persist", dataobject:=anObject, messagetype:=otCoreMessageType.InternalWarning, _
+                                                      subname:="DataObjectRelationMgr.CascadeRelation")
                                     result = result And False
                                 Else
                                     result = result And True
@@ -1511,8 +1515,8 @@ Namespace OnTrack.Database
                                          subname:="DataObjectRelationMgr.GetRelatedObjects", messagetype:=otCoreMessageType.InternalWarning)
                     Return theObjectList
 
-                    '** avoid loops during startup
-                ElseIf CurrentSession.IsStartingUp AndAlso ot.GetBootStrapObjectClassIDs.Contains(aTargetObjectDescriptor.ID) Then
+                    '** avoid loops during startup and domain switching
+                ElseIf (CurrentSession.IsStartingUp OrElse CurrentSession.IsDomainSwitching) AndAlso ot.GetBootStrapObjectClassIDs.Contains(aTargetObjectDescriptor.ID) Then
                     Dim anObjectClassdDescription = ot.GetObjectClassDescriptionByID(id:=aTargetObjectDescriptor.ID)
                     domainBehavior = anObjectClassdDescription.ObjectAttribute.AddDomainBehavior
                     deletebehavior = anObjectClassdDescription.ObjectAttribute.AddDeleteFieldBehavior

@@ -371,11 +371,10 @@ Namespace OnTrack.Database
 
             '*** create
             If Not Me.HasTable(ConstParameterTableName) Then
-                Me.RunSqlStatement(String.Format("create table {0} " & _
-                                  "( [{1}] nvarchar(255) not null, [{2}] nvarchar(255) null, [{3}] DATETIME  null,	[{4}] nvarchar(255) null ," & _
-                                  "CONSTRAINT [{0}_primaryKey] PRIMARY KEY NONCLUSTERED ([{1}] Asc ) " & _
-                                  "WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY] " & _
-                                  ") ON [PRIMARY] ;", ConstParameterTableName, ConstFNID, ConstFNValue, ConstFNChangedOn, constFNDescription), _
+                Me.RunSqlStatement(String.Format("CREATE TABLE {0} " & _
+                                  "( [{1}] nvarchar(255) not null, [{2}] nvarchar(255) null, [{3}] datetime  null,	[{4}] nvarchar(255) null " & _
+                                  " CONSTRAINT [{0}_primaryKey] PRIMARY KEY ([{1}] Asc ))", _
+                                  ConstParameterTableName, ConstFNID, ConstFNValue, ConstFNChangedOn, constFNDescription), _
                                   nativeConnection:=nativeConnection)
                 'Me.RunSQLCommand("create unique index primaryKey on " & ConstParameterTableName & "(ID);", nativeConnection:=nativeConnection)
             End If

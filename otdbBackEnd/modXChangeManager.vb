@@ -25,6 +25,7 @@ Imports OnTrack.Database
 
 '' CSV Parser Library
 Imports lumenworks.framework.io
+Imports LumenWorks.Framework.IO.Csv
 
 Namespace OnTrack.XChange
 
@@ -54,7 +55,7 @@ Namespace OnTrack.XChange
                 ot.CoreMessageHandler(message:="operation aborted due to missing ReadUpdate Rights", subname:="XChangeCSV.FeedinCSV", messagetype:=otCoreMessageType.ApplicationError)
                 Return False
             End If
-            Dim aCSVReader As LumenWorks.Framework.IO.Csv.CsvReader
+            Dim aCSVReader As CsvReader
             Try
                 ''' get the path
                 ''' 
@@ -330,7 +331,7 @@ Namespace OnTrack.XChange
         ''' <param name="e"></param>
         ''' <remarks></remarks>
         Public Sub CSVParseErrorHandler(sender As Csv.CsvReader, e As Csv.ParseErrorEventArgs)
-            e.Action = Csv.ParseErrorAction.AdvanceToNextLine
+            e.Action = ParseErrorAction.AdvanceToNextLine
 
             ot.CoreMessageHandler(message:="error while reading csv file - skipping line. error: " & e.Error.Message & vbLf & " in line " & sender.CurrentRecordIndex, arg1:=sender.GetCurrentRawData, subname:="XCHangeCSV.VSCParseErrorHanlder", _
                                    messagetype:=otCoreMessageType.ApplicationError)

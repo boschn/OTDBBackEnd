@@ -2133,7 +2133,7 @@ Namespace OnTrack.Database
                                 _isnullable(index) = _TableStores(I).TableSchema.GetNullable(j)
                                 '' get old index 
                                 Dim oldindex As Integer = Array.FindIndex(_entrynames, Function(x) x IsNot Nothing AndAlso (x.ToUpper = aFieldname OrElse x.ToUpper = aCanonicalName))
-                                If oldindex >= 0 Then
+                                If oldindex >= _Values.GetLowerBound(0) And oldindex <= _Values.GetUpperBound(0) Then
                                     newValues(index) = _Values(oldindex)
                                     newOrigValues(index) = _Values(oldindex)
                                 Else

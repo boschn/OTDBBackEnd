@@ -1142,7 +1142,7 @@ Namespace OnTrack.Commons
 
         '*** Primary Keys
         <ormObjectEntry(Datatype:=otDataType.Text, size:=50, primarykeyordinal:=1, _
-            properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty},
+            properties:={ObjectEntryProperty.Trim}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty},
           XID:="U1", title:="username", description:="name of the OnTrack user")> Public Const ConstFNUsername = "username"
 
         '*** Fields
@@ -1158,10 +1158,10 @@ Namespace OnTrack.Commons
         <ormObjectEntry(Datatype:=otDataType.Bool, defaultvalue:=False, _
             XID:="U6", title:="is anonymous", description:="is user an anonymous user")> Public Const ConstFNIsAnonymous = "isanon"
 
-        <ormObjectEntry(referenceobjectentry:=Workspace.ConstObjectID & "." & Workspace.ConstFNID, isnullable:=True, _
+        <ormObjectEntry(referenceobjectentry:=Workspace.ConstObjectID & "." & Workspace.ConstFNID, defaultvalue:=ConstGlobalDomain, isnullable:=True, _
             XID:="U10", title:="Default Workspace", description:="default workspace of the OnTrack user")> Public Const ConstFNDefaultWorkspace = "defws"
 
-        <ormObjectEntry(referenceobjectentry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, isnullable:=True, _
+        <ormObjectEntry(referenceobjectentry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, defaultvalue:=ConstGlobalDomain, isnullable:=True, _
             XID:="U10", title:="Default Domain", description:="default domain of the OnTrack user")> Public Const ConstFNDefaultDomainID = "defdomain"
 
         <ormObjectEntry(Datatype:=otDataType.Bool, defaultvalue:=False, _
@@ -3906,7 +3906,7 @@ Namespace OnTrack.Commons
         '** ObjectID
         Public Const ConstObjectiD = "OTChangeLogEntry"
         '** Table
-        <ormSchemaTable(version:=2, useCache:=True)> Public Const ConstTableID As String = "TBLCHANGELOGENTRIES"
+        <ormSchemaTable(version:=3, useCache:=True)> Public Const ConstTableID As String = "TBLCHANGELOGENTRIES"
 
         '** keys
         <ormObjectEntry(Datatype:=otDataType.Text, size:=50, primarykeyordinal:=1, defaultvalue:="OTBACKEND", _
@@ -3916,15 +3916,16 @@ Namespace OnTrack.Commons
             XID:="CLE2", title:="Module", description:="Name of the OnTrack application module")> Public Const ConstFNModule = "MODULE"
 
         <ormObjectEntry(Datatype:=otDataType.Long, primarykeyordinal:=3, defaultvalue:=1, _
-           XID:="CLE3", title:="Release", description:="Number of the application release")> Public Const ConstFNRelease = "RELEASE"
+            XID:="CLE3", title:="Version", description:="Version number of the OnTrack application release")> Public Const ConstFNVersion = "VERSION"
 
         <ormObjectEntry(Datatype:=otDataType.Long, primarykeyordinal:=4, defaultvalue:=1, _
-           XID:="CLE4", title:="Version", description:="Version number of the OnTrack application release")> Public Const ConstFNVersion = "VERSION"
+           XID:="CLE4", title:="Release", description:="Number of the application release")> Public Const ConstFNRelease = "RELEASE"
 
         <ormObjectEntry(Datatype:=otDataType.Long, primarykeyordinal:=5, defaultvalue:=0, _
             XID:="CLE5", title:="Patch", description:="Patch number of the OnTrack application version")> Public Const ConstFNPatch = "PATCH"
 
-
+        <ormObjectEntry(Datatype:=otDataType.Long, primarykeyordinal:=6, defaultvalue:=1, _
+            XID:="CLE6", title:="Implementation No", description:="implementation number of the OnTrack application change")> Public Const ConstFNImplNo = "NO"
 
         ''' <summary>
         ''' Column Members
@@ -3949,13 +3950,44 @@ Namespace OnTrack.Commons
         <ormEntryMapping(EntryName:=ConstFNRelease)> Private _Release As Long
         <ormEntryMapping(EntryName:=ConstFNVersion)> Private _Version As Long
         <ormEntryMapping(EntryName:=ConstFNPatch)> Private _Patch As Long
+        <ormEntryMapping(EntryName:=ConstFNImplno)> Private _ChangeImplementationNo As Long
 
         <ormEntryMapping(EntryName:=ConstFNCRID)> Private _changerequestID As String
         <ormEntryMapping(EntryName:=constFNDescription)> Private _description As String
         <ormEntryMapping(EntryName:=ConstFNReleaseDate)> Private _releasedate As Date?
 
+        ''' <summary>
+        '''  constructor
+        ''' </summary>
+        ''' <remarks></remarks>
+        Public Sub New()
+            MyBase.New()
+        End Sub
+        Public Sub New(application As String, [module] As String, version As Long, release As Long, patch As Long, changeimplno As Long, description As String)
+            MyBase.New()
+            _Application = application
+            _Module = [module]
+            _Version = version
+            _Release = release
+            _Patch = patch
+            _ChangeImplementationNo = changeimplno
+            _description = description
+        End Sub
 
 #Region "Properties"
+        ''' <summary>
+        ''' Gets or sets the change implementation no.
+        ''' </summary>
+        ''' <value>The change implementation no.</value>
+        Public Property ChangeImplementationNo() As Long
+            Get
+                Return Me._ChangeImplementationNo
+            End Get
+            Set(value As Long)
+                SetValue(ConstFNImplNo, value)
+            End Set
+        End Property
+
         ''' <summary>
         ''' Gets or sets the releasedate.
         ''' </summary>
@@ -3991,7 +4023,7 @@ Namespace OnTrack.Commons
                 Return Me._Patch
             End Get
             Set(value As Long)
-                SetValue(ConstFNPatch, Value)
+                SetValue(ConstFNPatch, value)
             End Set
         End Property
 
@@ -4054,8 +4086,19 @@ Namespace OnTrack.Commons
                 Description = _description
             End Get
             Set(value As String)
-                SetValue(constFNDescription, value)
+                SetValue(ConstFNDescription, value)
             End Set
+        End Property
+        ''' <summary>
+        ''' returns the Versioning String
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property Versioning() As String
+            Get
+                Return New OnTrackChangeLog.Versioning(Me.Version, Me.Release, Me.Patch).ToString
+            End Get
         End Property
 #End Region
 
@@ -4065,11 +4108,11 @@ Namespace OnTrack.Commons
         ''' <param name="id"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Retrieve(ByVal application As String, ByVal [module] As String, version As Long, release As Long, patch As Long _
+        Public Overloads Shared Function Retrieve(ByVal application As String, ByVal [module] As String, version As Long, release As Long, patch As Long, changeimplno As Long _
                                                   ) As OnTrackChangeLogEntry
-            Return Retrieve(Of OnTrackChangeLogEntry)(pkArray:={UCase(application), UCase([module]), release, version, patch})
+            Return Retrieve(Of OnTrackChangeLogEntry)(pkArray:={UCase(application), UCase([module]), release, version, patch, changeimplno})
         End Function
-        
+
 
         ''' <summary>
         ''' returns a collection of all objects
@@ -4087,12 +4130,42 @@ Namespace OnTrack.Commons
         ''' <param name="domainID"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Create(ByVal application As String, ByVal [module] As String, version As Long, release As Long, patch As Long? _
-                                                  ) As OnTrackChangeLogEntry
+        Public Shared Function Create(ByVal application As String, ByVal [module] As String, version As Long, release As Long, patch As Long?, changeimplno As Long, _
+                                                  Optional runtimeOnly As Boolean = True) As OnTrackChangeLogEntry
             If Not patch.HasValue Then patch = 0
-            Dim primarykey() As Object = {UCase(application), UCase([module]), release, version, patch}
+            Dim primarykey() As Object = {UCase(application), UCase([module]), version, release, patch, changeimplno}
             ' set the primaryKey
-            Return ormDataObject.CreateDataObject(Of OnTrackChangeLogEntry)(primarykey, checkUnique:=True)
+            Return ormDataObject.CreateDataObject(Of OnTrackChangeLogEntry)(primarykey, checkUnique:=True, runtimeOnly:=runtimeOnly)
+        End Function
+
+        ''' <summary>
+        ''' creates a persistable object
+        ''' </summary>
+        ''' <param name="id"></param>
+        ''' <param name="domainID"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function Create(Optional ByVal application As String = Nothing, _
+                               Optional ByVal [module] As String = Nothing,
+                               Optional version As Long? = Nothing, _
+                               Optional release As Long? = Nothing,
+                                         Optional patch As Long? = Nothing, _
+                                         Optional changeimplno As Long? = Nothing, _
+                                                  Optional runtimeOnly As Boolean = True) As Boolean
+            If Not patch.HasValue Then patch = 0
+            Dim aRecord As New ormRecord
+            Me.Feed(aRecord)
+            With aRecord
+                If application IsNot Nothing Then .SetValue(ConstFNApplication, application.ToUpper)
+                If [module] IsNot Nothing Then .SetValue(ConstFNModule, [module].ToUpper)
+                If version.HasValue Then .SetValue(ConstFNVersion, version)
+                If release.HasValue Then .SetValue(ConstFNRelease, release)
+                If patch.HasValue Then .SetValue(ConstFNPatch, patch)
+                If changeimplno.HasValue Then .SetValue(ConstFNImplNo, changeimplno)
+            End With
+
+            ' set the primaryKey
+            Return MyBase.Create(aRecord, checkUnique:=True, runtimeOnly:=runtimeOnly)
         End Function
 
     End Class

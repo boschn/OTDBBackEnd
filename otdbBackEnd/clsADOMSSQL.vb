@@ -88,45 +88,45 @@ Namespace OnTrack.Database
                 ' Create the commands.
                 '**** INSERT
                 .InsertCommand = New SqlCommand( _
-                "INSERT INTO " & _parametersTableName & " (ID, [Value], changedOn, description) " & _
-                "VALUES (@ID , @Value , @changedOn , @description)")
-                ' Create the parameters.
-                .InsertCommand.Parameters.Add( _
-                "@ID", SqlDbType.Char, 50, "ID")
-                .InsertCommand.Parameters.Add( _
-                "@Value", SqlDbType.VarChar, 250, "Value")
-                .InsertCommand.Parameters.Add( _
-                "@changedOn", SqlDbType.VarChar, 50, "changedOn")
-                .InsertCommand.Parameters.Add( _
-                "@description", SqlDbType.VarChar, 250, "description")
+                                String.Format("INSERT INTO  {0} ([{1}], [{2}] , [{3}] , [{4}])  VALUES (@ID , @Value , @changedOn , @description) ", _
+                                              _parametersTableName, ConstFNID, ConstFNValue, ConstFNChangedOn, constFNDescription))
+                '' Create the parameters.
+                .InsertCommand.Parameters.Add("@ID", SqlDbType.Char, 50, ConstFNID)
+                .InsertCommand.Parameters.Add("@Value", SqlDbType.VarChar, 250, ConstFNValue)
+                .InsertCommand.CommandType = CommandType.Text
+                ' handling of the timestamp
+                '.InsertCommand.Parameters.Add("@changedOn", SqlDbType.VarChar, 250, ConstFNChangedOn)
+                .InsertCommand.Parameters.Add(parameterName:="@changedOn", sqlDbType:=SqlDbType.DateTime).SourceColumn = ConstFNChangedOn
+                .InsertCommand.Parameters(parameterName:="@changedOn").IsNullable = True
+
+                .InsertCommand.Parameters.Add("@description", SqlDbType.VarChar, 250, constFNDescription)
                 .InsertCommand.Connection = DirectCast(_primaryConnection.NativeInternalConnection, SqlConnection)
                 .InsertCommand.Prepare()
 
 
                 '**** UPDATE
                 .UpdateCommand = New SqlCommand( _
-                "UPDATE " & _parametersTableName & " SET [Value] = @value , changedOn = @changedOn , description = @description  " & _
-                "WHERE ID = @ID")
-                ' Create the parameters.
-                .UpdateCommand.Parameters.Add( _
-                "@Value", SqlDbType.VarChar, 250, "Value")
-                .UpdateCommand.Parameters.Add( _
-                "@changedOn", SqlDbType.VarChar, 50, "changedOn")
-                .UpdateCommand.Parameters.Add( _
-                "@description", SqlDbType.VarChar, 250, "description")
-                .UpdateCommand.Parameters.Add( _
-                "@ID", SqlDbType.Char, 50, "ID").SourceVersion = _
-                    DataRowVersion.Original
+                String.Format("UPDATE {0} SET [{1}] = @value , [{2}] = @changedOn , [{3}] = @description WHERE [{4}] = @ID", _
+                              _parametersTableName, ConstFNValue, ConstFNChangedOn, constFNDescription, ConstFNID))
+                '' Create the parameters.
+                .UpdateCommand.Parameters.Add("@value", SqlDbType.VarChar, 250, ConstFNValue)
+                ' strange enough sqldbdate is not working on some sqlservers
+                ' handling of the timestamp
+                .UpdateCommand.Parameters.Add(parameterName:="@changedOn", sqlDbType:=SqlDbType.DateTime).SourceColumn = ConstFNChangedOn
+                '.UpdateCommand.Parameters.Add("@changedOn", SqlDbType.VarChar, 250, ConstFNChangedOn)
+                .UpdateCommand.Parameters(parameterName:="@changedOn").IsNullable = True
+
+                .UpdateCommand.Parameters.Add("@description", SqlDbType.VarChar, 250, constFNDescription)
+                .UpdateCommand.Parameters.Add("@ID", SqlDbType.Char, 50, ConstFNID).SourceVersion = DataRowVersion.Original
+
                 .UpdateCommand.Connection = DirectCast(_primaryConnection.NativeInternalConnection, SqlConnection)
                 .UpdateCommand.Prepare()
 
 
                 '***** DELETE
-                .DeleteCommand = New SqlCommand( _
-                "DELETE FROM " & _parametersTableName & " WHERE ID = @ID")
+                .DeleteCommand = New SqlCommand(String.Format("DELETE FROM {0} where [{1}] = @id", _parametersTableName, ConstFNID))
                 .DeleteCommand.Parameters.Add( _
-                "@ID", SqlDbType.Char, 50, "ID").SourceVersion = _
-                    DataRowVersion.Original
+                "@ID", SqlDbType.Char, 50, ConstFNID).SourceVersion = DataRowVersion.Original
                 .DeleteCommand.Connection = DirectCast(_primaryConnection.NativeInternalConnection, SqlConnection)
                 .DeleteCommand.Prepare()
 
@@ -181,17 +181,19 @@ Namespace OnTrack.Database
                     If Me.HasTable(_parametersTableName) Then
                         ' the command
                         Dim aDBCommand = New SqlCommand()
-                        aDBCommand.CommandText = "select ID, [Value], changedOn, description from " & _parametersTableName
+                        aDBCommand.CommandText = String.Format("select [{0}],[{1}],[{2}],[{3}] from {4} ", _
+                                                               ConstFNID, ConstFNValue, ConstFNChangedOn, constFNDescription, _parametersTableName)
                         aDBCommand.Connection = DirectCast(_primaryConnection.NativeInternalConnection, SqlConnection)
                         ' fill with adapter
                         _ParametersTableAdapter = New SqlDataAdapter()
                         _ParametersTableAdapter.SelectCommand = aDBCommand
                         _ParametersTableAdapter.MissingSchemaAction = MissingSchemaAction.AddWithKey
+                       
                         SyncLock DirectCast(_primaryConnection.NativeInternalConnection, SqlConnection)
                             _ParametersTableAdapter.FillSchema(_OnTrackDataSet, SchemaType.Source)
                             _ParametersTableAdapter.Fill(_OnTrackDataSet, _parametersTableName)
                         End SyncLock
-                       
+
                         ' build Commands
                         Call BuildParameterAdapter()
                         ' set the Table
@@ -2463,7 +2465,7 @@ Namespace OnTrack.Database
         ''' <param name="UpdateOnly">The update only.</param>
         ''' <param name="silent">The silent.</param>
         ''' <returns></returns>
-        Public Overrides Function SetDBParameter(parametername As String, Value As Object, Optional ByRef nativeConnection As Object = Nothing, _
+        Public Overrides Function SetDBParameter(parametername As String, [value] As Object, Optional ByRef nativeConnection As Object = Nothing, _
         Optional updateOnly As Boolean = False, Optional silent As Boolean = False) As Boolean
 
 
@@ -2532,8 +2534,9 @@ Namespace OnTrack.Database
                         ' value
                         'dataRows(0).BeginEdit()
                         dataRows(0)(ConstFNID) = parametername
-                        dataRows(0)(ConstFNValue) = Value.ToString
-                        dataRows(0)(ConstFNChangedOn) = DateTime.Now()
+                        dataRows(0)(ConstFNValue) = [value].ToString
+                        dataRows(0)(ConstFNChangedOn) = DateTime.Now
+                        dataRows(0)(constFNDescription) = ""
                         'dataRows(0).EndEdit()
 
                         '* add to table

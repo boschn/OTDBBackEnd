@@ -1900,28 +1900,56 @@ Namespace OnTrack.Xchange
 
 
                 '''
-                ''' run the xchange
+                ''' run the xchange in either precheck (runPrecheck ) or XChange
                 ''' 
                 Dim result As Boolean
                 If justprecheck Then
                     result = Me.Xenvelope.RunXPreCheck(msglog)
-                Else
-                    result = Me.Xenvelope.RunXChange(msglog)
-                End If
-
-                ''' 
-                ''' extend the Outline
-                '''
-                If result And aConfig.Outline IsNot Nothing Then
-                    If aConfig.Outline.DynamicBehaviour = False Then
-                        Throw New NotImplementedException("Outline Update notimplemented")
+                    '** check status
+                    Dim aStatusitem = msglog.GetHighesStatusItem(ConstStatusType_XEnvelope)
+                    If aStatusitem IsNot Nothing AndAlso aStatusitem.Aborting Then
+                        result = False
                     End If
-                End If
+                Else
+                    ''' run XChange
+                    ''' 
+                    result = Me.Xenvelope.RunXChange(msglog)
 
-                If result Then
-                    '521;@;MQF;a new deliverable with uid %1% created;;01;Info;false;|G1|G1|;|XCHANGEENVELOPE|MQMESSAGE|
-                    msglog.Add(521, Nothing, Nothing, Nothing, Nothing, Me, _
-                               aDeliverable.Uid)
+                    ''' dependend on the result
+                    ''' 
+                    If result Then
+                        ''' additional save needed ?! - (if noslot is filled or different)
+                        ''' 
+                        If (aDeliverable.IsCreated OrElse aDeliverable.IsChanged) Then
+                            If aDeliverable.Persist() Then
+                                '521;@;MQF;a new deliverable with uid %1% created;;01;Info;false;|G1|G1|;|XCHANGEENVELOPE|MQMESSAGE|
+                                msglog.Add(521, Nothing, Nothing, Nothing, Nothing, Me, _
+                                           aDeliverable.Uid)
+                            Else
+                                '523;@;MQF;a new deliverable with uid %1% could not be persisted;;1;Error;true;|R1|;|MQMESSAGE|
+                                msglog.Add(523, Nothing, Nothing, Nothing, Nothing, Me, _
+                                           aDeliverable.Uid)
+                                result = False
+                            End If
+                        Else
+                            '521;@;MQF;a new deliverable with uid %1% created;;01;Info;false;|G1|G1|;|XCHANGEENVELOPE|MQMESSAGE|
+                            msglog.Add(521, Nothing, Nothing, Nothing, Nothing, Me, _
+                                       aDeliverable.Uid)
+                        End If
+                        ''' 
+                        ''' extend the Outline
+                        '''
+                        If result AndAlso aConfig.Outline IsNot Nothing Then
+                            If aConfig.Outline.DynamicBehaviour = False Then
+                                Throw New NotImplementedException("Outline Update notimplemented")
+                            End If
+                        End If
+
+                    ElseIf aDeliverable.IsCreated Then
+                        ''' object might be still in cache
+                        ''' 
+                        aDeliverable.Delete()
+                    End If
                 End If
 
                 ''' return
@@ -2024,7 +2052,7 @@ Namespace OnTrack.Xchange
                     aDeliverable = anExistingDeliverable.AddRevisionClone()
                     If aDeliverable Is Nothing Then
                         '582;@;MQF;object of type %2% (from object with key: %3%) could not be cloned for message in row %Tupleidentifier% with operation %1% - operation failed;;95;Error;false;|R1|R1|;|XCHANGEENVELOPE|MQMESSAGE|
-                        msglog.Add(581, Nothing, Nothing, Nothing, Nothing, Me, _
+                        msglog.Add(582, Nothing, Nothing, Nothing, Nothing, Me, _
                                     ConstMQFOpAddRevision, Deliverable.ConstObjectID, anExistingUID.ToString)
                         Return False
                     End If
@@ -2050,28 +2078,56 @@ Namespace OnTrack.Xchange
                 Dim result As Boolean
                 If justprecheck Then
                     result = Me.Xenvelope.RunXPreCheck(msglog)
-                Else
-                    result = Me.Xenvelope.RunXChange(msglog)
-                End If
 
-                ''' 
-                ''' extend the Outline
-                '''
-                If result And aConfig.Outline IsNot Nothing Then
-                    If aConfig.Outline.DynamicBehaviour = False Then
-                        Throw New NotImplementedException("Outline Update not implemented")
+                    '** check status
+                    Dim aStatusitem = msglog.GetHighesStatusItem(ConstStatusType_XEnvelope)
+                    If aStatusitem IsNot Nothing AndAlso aStatusitem.Aborting Then
+                        result = False
                     End If
-                End If
 
+                Else
+                    ''' run xchange
+                    ''' 
+                    result = Me.Xenvelope.RunXChange(msglog)
 
-                ''' additional save needed ?! - (if noslot is filled or different)
-                ''' 
-                If aDeliverable.IsCreated OrElse aDeliverable.IsChanged Then result = aDeliverable.Persist()
+                    ''' dependend on the result
+                    ''' 
+                    If result Then
+                        ''' additional save needed ?! - (if noslot is filled or different)
+                        ''' 
+                        If (aDeliverable.IsCreated OrElse aDeliverable.IsChanged) Then
+                            If aDeliverable.Persist Then
+                                '522;@;MQF;a new deliverable revision with uid %1% for uid %2% and id '%3%', revision '%4%' , change reference '%5%' created;;01;Info;false;|G1|G1|;|XCHANGEENVELOPE|MQMESSAGE|
+                                msglog.Add(522, Nothing, Nothing, Nothing, Nothing, Me, _
+                                           aDeliverable.Uid, anExistingDeliverable.Uid, aDeliverable.DeliverableID, aDeliverable.Revision, aDeliverable.ChangeReferenceID)
 
-                If result Then
-                    '522;@;MQF;a new deliverable revision with uid %1% for uid %2% and id '%3%', revision '%4%' , change reference '%5%' created;;01;Info;false;|G1|G1|;|XCHANGEENVELOPE|MQMESSAGE|
-                    msglog.Add(522, Nothing, Nothing, Nothing, Nothing, Me, _
-                               aDeliverable.Uid, anExistingDeliverable.Uid, aDeliverable.DeliverableID, aDeliverable.Revision, aDeliverable.ChangeReferenceID)
+                            Else
+                                '523;@;MQF;a new deliverable with uid %1% could not be persisted;;1;Error;true;|R1|;|MQMESSAGE|
+                                msglog.Add(523, Nothing, Nothing, Nothing, Nothing, Me, _
+                                           aDeliverable.Uid)
+                                result = False
+                            End If
+                        Else
+                            '522;@;MQF;a new deliverable revision with uid %1% for uid %2% and id '%3%', revision '%4%' , change reference '%5%' created;;01;Info;false;|G1|G1|;|XCHANGEENVELOPE|MQMESSAGE|
+                            msglog.Add(522, Nothing, Nothing, Nothing, Nothing, Me, _
+                                       aDeliverable.Uid, anExistingDeliverable.Uid, aDeliverable.DeliverableID, aDeliverable.Revision, aDeliverable.ChangeReferenceID)
+
+                        End If
+
+                        ''' 
+                        ''' extend the Outline
+                        '''
+                        If result AndAlso aConfig.Outline IsNot Nothing Then
+                            If aConfig.Outline.DynamicBehaviour = False Then
+                                Throw New NotImplementedException("Outline Update not implemented")
+                            End If
+                        End If
+
+                    ElseIf aDeliverable.IsCreated Then
+                        ''' object might be still in cache
+                        ''' 
+                        aDeliverable.Delete()
+                    End If
                 End If
 
                 ''' return

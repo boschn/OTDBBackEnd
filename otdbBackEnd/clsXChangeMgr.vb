@@ -1328,8 +1328,9 @@ Namespace OnTrack.XChange
                     Else
                         ' ERROR
                         If msglog IsNot Nothing Then
+                            '1201;@;VALIDATOR;object entry validation for '%1%.%2% (XID %5%) failed. Value'%4%' couldnot be converted to data type '%3%';Provide a correct value;90;Error;false;|R1|;|XCHANGEENVELOPE|
                             msglog.Add(1201, CurrentSession.CurrentDomainID, Nothing, Nothing, Nothing, Nothing, _
-                                       "", "", datatype, hostvalue.ToString, "")
+                                       "", "", datatype.ToString, hostvalue.ToString, "")
                         End If
                         CoreMessageHandler(message:="value is not convertible to numeric or long", arg1:=hostvalue,
                                            subname:="Xslot.DefaultConvert2DBValue", messagetype:=otCoreMessageType.ApplicationError)
@@ -1352,8 +1353,9 @@ Namespace OnTrack.XChange
                         ' ERROR
                         ' ERROR
                         If msglog IsNot Nothing Then
+                            '1201;@;VALIDATOR;object entry validation for '%1%.%2% (XID %5%) failed. Value'%4%' couldnot be converted to data type '%3%';Provide a correct value;90;Error;false;|R1|;|XCHANGEENVELOPE|
                             msglog.Add(1201, CurrentSession.CurrentDomainID, Nothing, Nothing, Nothing, Nothing, _
-                                       "", "", datatype, hostvalue.ToString, "")
+                                       "", "", datatype.ToString, hostvalue.ToString, "")
                         End If
                         CoreMessageHandler(message:="value is not convertible to string", subname:="Xslot.DefaultConvert2DBValue",
                                             messagetype:=otCoreMessageType.ApplicationError)
@@ -1388,8 +1390,9 @@ Namespace OnTrack.XChange
                         Return True
                     Else
                         If msglog IsNot Nothing Then
+                            '1201;@;VALIDATOR;object entry validation for '%1%.%2% (XID %5%) failed. Value'%4%' couldnot be converted to data type '%3%';Provide a correct value;90;Error;false;|R1|;|XCHANGEENVELOPE|
                             msglog.Add(1201, CurrentSession.CurrentDomainID, Nothing, Nothing, Nothing, Nothing, _
-                                       "", "", datatype, hostvalue.ToString, "")
+                                       "", "", datatype.ToString, hostvalue.ToString, "")
                         End If
                         Call CoreMessageHandler(subname:="XSlot.convert2DBValue",
                                               message:="OTDB data '" & hostvalue & "' is not convertible to Date",
@@ -1429,8 +1432,9 @@ Namespace OnTrack.XChange
                         Return True
                     Else
                         If msglog IsNot Nothing Then
+                            ' 1201;@;VALIDATOR;object entry validation for '%1%.%2% (XID %5%) failed. Value'%4%' couldnot be converted to data type '%3%';Provide a correct value;90;Error;false;|R1|;|XCHANGEENVELOPE|
                             msglog.Add(1201, CurrentSession.CurrentDomainID, Nothing, Nothing, Nothing, Nothing, _
-                                       "", "", datatype, hostvalue.ToString, "")
+                                       "", "", datatype.ToString, hostvalue.ToString, "")
                         End If
                         Call CoreMessageHandler(subname:="XSlot.convert2DBValue",
                                             message:="OTDB data '" & hostvalue & "' is not convertible to boolean",

@@ -333,8 +333,11 @@ Namespace OnTrack.Database
             If args.ValidationResult = otValidationResultType.FailedNoProceed Then Return args.ValidationResult
 
             ''' STEP 1a raise the event for all compound object relations if loaded
-            args.ValidationResult = Me.RaiseValidatingCompound(msglog:=msglog)
-            If args.ValidationResult = otValidationResultType.FailedNoProceed Then Return args.ValidationResult
+            ''' 
+            If Not CurrentSession.IsInstallationRunning AndAlso Not CurrentSession.IsBootstrappingInstallationRequested Then
+                args.ValidationResult = Me.RaiseValidatingCompound(msglog:=msglog)
+                If args.ValidationResult = otValidationResultType.FailedNoProceed Then Return args.ValidationResult
+            End If
 
             ''' 
             ''' Validate all the Entries against current value
@@ -352,8 +355,12 @@ Namespace OnTrack.Database
             ''' 
 
             ''' STEP 3a raise the event for all compound object relations if loaded
-            args.ValidationResult = Me.RaiseValidatedCompound(msglog:=msglog)
-            If args.ValidationResult = otValidationResultType.FailedNoProceed Then Return args.ValidationResult
+            ''' 
+            If Not CurrentSession.IsInstallationRunning AndAlso Not CurrentSession.IsBootstrappingInstallationRequested Then
+                args.ValidationResult = Me.RaiseValidatedCompound(msglog:=msglog)
+                If args.ValidationResult = otValidationResultType.FailedNoProceed Then Return args.ValidationResult
+            End If
+
 
             ''' raise the validated event on this object
             ''' 
@@ -371,6 +378,11 @@ Namespace OnTrack.Database
         ''' <remarks></remarks>
         Private Function RaiseValidatingCompound(Optional msglog As ObjectMessageLog = Nothing) As otValidationResultType
             Try
+                '** do not allow during installation
+                If CurrentSession.IsBootstrappingInstallationRequested OrElse CurrentSession.IsInstallationRunning Then
+                    Return otValidationResultType.Succeeded
+                End If
+
                 Dim aRelationlist As New List(Of String)
                 If msglog Is Nothing Then msglog = Me.ObjectMessageLog
                 '''

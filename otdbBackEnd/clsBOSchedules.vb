@@ -92,7 +92,7 @@ Namespace OnTrack.Scheduling
 
         <ormObjectEntry(referenceobjectentry:=ConstObjectID & "." & ConstFNID, isnullable:=True, _
              lookuppropertystrings:={LookupProperty.UseAttributeReference}, validationPropertyStrings:={ObjectValidationProperty.UseLookup}, _
-             XID:="bpd7", title:="Reference", description:="set if milestone is a reference")> Public Const ConstFNRefID = "refid"
+             XID:="bpd7", title:="Reference", description:="set if milestone is a reference")> Public Const ConstFNRefMS = "refms"
 
         <ormObjectEntry(Datatype:=otDataType.Long, defaultvalue:=0, dbdefaultvalue:="0", _
                         XID:="bpd8", title:="Ordinal", Description:="ordinal of the object entry")> Public Const ConstFNordinal As String = "ordinal"
@@ -110,7 +110,7 @@ Namespace OnTrack.Scheduling
         <ormEntryMapping(EntryName:=ConstFNDescription)> Private _description As String
         <ormEntryMapping(EntryName:=ConstFNType)> Private _typeid As otMilestoneType
         <ormEntryMapping(EntryName:=ConstFNDatatype)> Private _datatype As otDataType
-        <ormEntryMapping(EntryName:=ConstFNRefID)> Private _refid As String
+        <ormEntryMapping(EntryName:=ConstFNRefMS)> Private _refid As String
         <ormEntryMapping(EntryName:=ConstFNIsForecast)> Private _isForecast As Boolean
         <ormEntryMapping(EntryName:=ConstFNStatusType)> Private _statustypeid As String
         <ormEntryMapping(EntryName:=ConstFNordinal)> Private _ordinal As Long
@@ -321,7 +321,7 @@ Namespace OnTrack.Scheduling
                 Return _refid
             End Get
             Set(value As String)
-                SetValue(ConstFNRefID, value)
+                SetValue(ConstFNRefMS, value)
             End Set
         End Property
 

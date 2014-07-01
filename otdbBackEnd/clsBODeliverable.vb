@@ -376,7 +376,7 @@ Namespace OnTrack.Deliverables
                         Me.WorkingTargetUPDC = Nothing
                         '' cannot generate an new updc on a created edition (getmax will not work on unpersisted objects)
                         If _alivetarget.IsCreated Then
-                            _workingtarget = aWorkingTarget.Clone(_alivetarget.UID, _alivetarget.UPDC + 1)
+                            _workingtarget = aWorkingTarget.Clone(uid:=_alivetarget.UID, updc:=_alivetarget.UPDC + 1)
                         Else
                             _workingtarget = aWorkingTarget.Clone()
                         End If
@@ -386,6 +386,10 @@ Namespace OnTrack.Deliverables
                         Me.WorkingTargetUPDC = _workingtarget.UPDC
                     End If
 
+
+                    If aWorkingTarget.UID <> Me.Deliverable.Uid Then
+                        Debug.WriteLine("")
+                    End If
                     ''' save the workspace schedule itself and the
                     ''' related objects
                     Return MyBase.Persist(timestamp)
@@ -3699,8 +3703,11 @@ Namespace OnTrack.Deliverables
                         defaultTargetOUT = myself.DeliverableType.DefaultTargetOU
                     End If
 
-                    ''' always gives the current workspace
-                    Dim aWorkspaceTarget As WorkspaceTarget = Deliverables.WorkspaceTarget.Create(uid:=Me.Uid, domainid:=Me.DomainID)
+                ''' always gives the current workspace
+                ''' 
+               
+                Dim aWorkspaceTarget As WorkspaceTarget = Deliverables.WorkspaceTarget.Create(uid:=Me.Uid, domainid:=Me.DomainID)
+
                     If aWorkspaceTarget Is Nothing Then aWorkspaceTarget = Deliverables.WorkspaceTarget.Retrieve(uid:=Me.Uid)
                     If aWorkspaceTarget IsNot Nothing AndAlso myself.DeliverableType IsNot Nothing Then
                         If aWorkspaceTarget.Target IsNot Nothing Then
@@ -4413,8 +4420,8 @@ Namespace OnTrack.Deliverables
             Dim uid As Long? = e.Record.GetValue(constFNUid)
             Dim aNewUid As Long
             ' get NEW UID
-            If uid.HasValue OrElse uid = 0 Then
-                If Not Me.GenerateNewUID(aNewUid, domainID:=domainid) Then
+            If Not uid.HasValue OrElse uid = 0 Then
+                If Not Me.GenerateNewUID(aNewUid, domainid:=domainid) Then
                     Call CoreMessageHandler(message:="could not generate new UID", subname:="Deliverable.OnCreating", _
                                             arg1:=uid, messagetype:=otCoreMessageType.InternalError)
                 End If

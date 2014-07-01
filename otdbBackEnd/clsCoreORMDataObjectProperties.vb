@@ -83,10 +83,8 @@ Namespace OnTrack.Database
         ''' <remarks></remarks>
         Public ReadOnly Property ObjectDefinition As ObjectDefinition Implements iormPersistable.ObjectDefinition
             Get
-
                 If _objectdefinition Is Nothing Then
-                    _RunTimeOnly = CurrentSession.IsBootstrappingInstallationRequested
-                    _objectdefinition = CurrentSession.Objects.GetObject(objectid:=Me.ObjectID, runtimeOnly:=_RunTimeOnly)
+                    _objectdefinition = CurrentSession.Objects.GetObject(objectid:=Me.ObjectID)
                 End If
 
                 Return _objectdefinition

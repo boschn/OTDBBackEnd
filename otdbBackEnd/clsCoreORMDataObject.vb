@@ -1538,7 +1538,11 @@ Namespace OnTrack.Database
             '''
             ''' object on runtime -> no save
             ''' 
-            If Me.RunTimeOnly Then Return False
+            If Me.RunTimeOnly Then
+                CoreMessageHandler(message:="object on runtime could not be persisted", messagetype:=otCoreMessageType.InternalWarning, _
+                                 subname:="ormDataObject.Persist", dataobject:=Me)
+                Return False
+            End If
 
             '''
             ''' record must be alive

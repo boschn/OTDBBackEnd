@@ -3313,6 +3313,392 @@ Namespace OnTrack
     End Class
 
 
+    ''' <summary>
+    ''' OntrackChangeLog for Changes in the OnTrack Modules and Classes 
+    ''' </summary>
+    ''' <remarks>
+    ''' 
+    ''' The OntrackChangeLog is not an Data Object on its own. it is derived from the RelationCollection and
+    ''' embedded as relation Member in a data object class
+    ''' </remarks>
+    Public Class OnTrackChangeLog
+        Inherits ormRelationCollection(Of OnTrackChangeLogEntry)
+
+        ''' <summary>
+        ''' Version presentation class
+        ''' </summary>
+        ''' <remarks></remarks>
+        Public Class Versioning
+            Implements IComparable
+            Implements IHashCodeProvider
+
+
+            Private _version As Long
+            Private _release As Long
+            Private _patch As Long
+
+            ''' <summary>
+            ''' constructor
+            ''' </summary>
+            ''' <param name="version"></param>
+            ''' <param name="release"></param>
+            ''' <param name="patch"></param>
+            ''' <remarks></remarks>
+            Public Sub New(version As Long, release As Long, patch As Long)
+                _version = version
+                _release = release
+                _patch = patch
+            End Sub
+            ''' <summary>
+            ''' Gets or sets the version.
+            ''' </summary>
+            ''' <value>The version.</value>
+            Public Property Version() As Long
+                Get
+                    Return Me._version
+                End Get
+                Set(value As Long)
+                    Me._version = value
+                End Set
+            End Property
+            ''' <summary>
+            ''' Gets or sets the release.
+            ''' </summary>
+            ''' <value>The release.</value>
+            Public Property Release() As Long
+                Get
+                    Return Me._release
+                End Get
+                Set(value As Long)
+                    Me._release = value
+                End Set
+            End Property
+            ''' <summary>
+            ''' Gets or sets the patch.
+            ''' </summary>
+            ''' <value>The patch.</value>
+            Public Property Patch() As Long
+                Get
+                    Return Me._patch
+                End Get
+                Set(value As Long)
+                    Me._patch = value
+                End Set
+            End Property
+
+            ''' <summary>
+            ''' Comparer
+            ''' </summary>
+            ''' <param name="obj"></param>
+            ''' <returns></returns>
+            ''' <remarks></remarks>
+            Public Function CompareTo(obj As Object) As Integer Implements IComparable.CompareTo
+                Dim aVersion As Versioning = TryCast(obj, Versioning)
+                If aVersion Is Nothing Then Return -1
+
+                If aVersion.Version = Me.Version AndAlso aVersion.Release = Me.Release AndAlso aVersion.Patch = Me.Patch Then
+                    Return 0
+                ElseIf aVersion.Version >= Me.Version AndAlso aVersion.Release >= Me.Release AndAlso aVersion.Patch >= Me.Patch Then
+                    Return 1
+                Else
+                    Return 0
+                End If
+            End Function
+
+            ''' <summary>
+            ''' returns hashcode
+            ''' </summary>
+            ''' <returns></returns>
+            ''' <remarks></remarks>
+            Public Function GetHascode() As Integer
+                Return Me.GetHashCode(Me)
+            End Function
+            ''' <summary>
+            ''' returns hashcode
+            ''' </summary>
+            ''' <param name="obj"></param>
+            ''' <returns></returns>
+            ''' <remarks></remarks>
+            Public Function GetHashCode(o As Object) As Integer Implements IHashCodeProvider.GetHashCode
+                Dim aVersion As Versioning = TryCast(o, Versioning)
+                If aVersion Is Nothing Then Return o.GetHashCode
+                Return aVersion.Version Xor aVersion.Release Xor aVersion.Patch
+            End Function
+
+            ''' <summary>
+            ''' Returns the Versioning String
+            ''' </summary>
+            ''' <returns></returns>
+            ''' <remarks></remarks>
+            Public Function ToString() As String
+                Return String.Format("V{0}.R{1}.P{2}", Me.Version, Me.Release, Me.Patch)
+            End Function
+
+        End Class
+
+        Private _ApplicationVersion As New Dictionary(Of String, Versioning)
+
+        ''' <summary>
+        ''' constructor
+        ''' </summary>
+        ''' <param name="container"></param>
+        ''' <remarks></remarks>
+
+        Public Sub New()
+            MyBase.New(container:=Nothing, keyentrynames:={OnTrackChangeLogEntry.ConstFNApplication, OnTrackChangeLogEntry.ConstFNModule, _
+                                                           OnTrackChangeLogEntry.ConstFNVersion, OnTrackChangeLogEntry.ConstFNRelease, _
+                                                           OnTrackChangeLogEntry.ConstFNPatch, OnTrackChangeLogEntry.ConstFNImplNo})
+
+        End Sub
+
+#Region "Properties"
+        ''' <summary>
+        ''' Returns the Maximal Version or with optional application the version of the application (or nothing)
+        ''' </summary>
+        ''' <param name="application"></param>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property Version(Optional application = Nothing) As String
+            Get
+                If application Is Nothing Then
+                    Dim maxVersion As Versioning = New Versioning(0, 0, 0)
+                    For Each aVersion In _ApplicationVersion.Values
+                        If aVersion.CompareTo(maxVersion) > 1 Then maxVersion = aVersion
+                    Next
+                    Return maxVersion.ToString
+                Else
+                    If _ApplicationVersion.ContainsKey(key:=application.toupper) Then Return _ApplicationVersion.Item(key:=application.toupper).ToString
+                    Return Nothing
+                End If
+            End Get
+        End Property
+
+
+#End Region
+
+        ''' <summary>
+        ''' Initialize the Changelog by searching the assembly
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function Refresh(Optional type As System.Type = Nothing) As Boolean
+            Dim thisAsm As Assembly
+            If type Is Nothing Then
+                thisAsm = Assembly.GetExecutingAssembly
+            Else
+                thisAsm = Assembly.GetAssembly(type:=type)
+            End If
+
+            ''' 
+            ''' Look into the Modules
+            ''' 
+            For Each aModule As [Module] In thisAsm.GetModules.ToList
+                For Each anAttribute As System.Attribute In aModule.GetCustomAttributes(False)
+                    ''' ChangeLog Attribute
+                    ''' 
+                    If anAttribute.GetType().Equals(GetType(ormChangeLogEntry)) Then
+                        Dim aChangeLogAttribute = DirectCast(anAttribute, ormChangeLogEntry)
+                        Me.Add(aChangeLogAttribute)
+                    End If
+                Next
+
+                ''' look into fields
+                ''' 
+                For Each aField As FieldInfo In aModule.GetFields
+                    For Each anAttribute As System.Attribute In aField.GetCustomAttributes(False)
+                        ''' ChangeLog Attribute
+                        ''' 
+                        If anAttribute.GetType().Equals(GetType(ormChangeLogEntry)) Then
+                            Dim aChangeLogAttribute = DirectCast(anAttribute, ormChangeLogEntry)
+                            Me.Add(aChangeLogAttribute)
+                        End If
+                    Next
+                Next
+
+                ''' look into subs
+                ''' 
+                For Each aMethod As MethodInfo In aModule.GetMethods
+                    For Each anAttribute As System.Attribute In aMethod.GetCustomAttributes(False)
+                        ''' ChangeLog Attribute
+                        ''' 
+                        If anAttribute.GetType().Equals(GetType(ormChangeLogEntry)) Then
+                            Dim aChangeLogAttribute = DirectCast(anAttribute, ormChangeLogEntry)
+                            Me.Add(aChangeLogAttribute)
+                        End If
+                    Next
+                Next
+            Next
+
+            ''' 
+            ''' Look into the Types and Classes
+            ''' 
+            For Each aClass As Type In thisAsm.GetTypes.Where(Function(t) t.IsClass).ToList
+                For Each anAttribute As System.Attribute In aClass.GetCustomAttributes(False)
+                    ''' ChangeLog Attribute
+                    ''' 
+                    If anAttribute.GetType().Equals(GetType(ormChangeLogEntry)) Then
+                        Dim aChangeLogAttribute = DirectCast(anAttribute, ormChangeLogEntry)
+                        Me.Add(aChangeLogAttribute)
+                    End If
+                Next
+
+                ''' look into fields
+                ''' 
+                For Each aField As FieldInfo In aClass.GetFields
+                    For Each anAttribute As System.Attribute In aField.GetCustomAttributes(False)
+                        ''' ChangeLog Attribute
+                        ''' 
+                        If anAttribute.GetType().Equals(GetType(ormChangeLogEntry)) Then
+                            Dim aChangeLogAttribute = DirectCast(anAttribute, ormChangeLogEntry)
+                            Me.Add(aChangeLogAttribute)
+                        End If
+                    Next
+                Next
+
+                ''' look into subs
+                ''' 
+                For Each aMethod As MethodInfo In aClass.GetMethods
+                    For Each anAttribute As System.Attribute In aMethod.GetCustomAttributes(False)
+                        ''' ChangeLog Attribute
+                        ''' 
+                        If anAttribute.GetType().Equals(GetType(ormChangeLogEntry)) Then
+                            Dim aChangeLogAttribute = DirectCast(anAttribute, ormChangeLogEntry)
+                            Me.Add(aChangeLogAttribute)
+                        End If
+                    Next
+                Next
+            Next
+
+            Return True
+        End Function
+        ''' <summary>
+        ''' Clear the OnTrackChangeLog from all Entries
+        ''' </summary>
+        ''' <remarks></remarks>
+        Public Overloads Sub Clear()
+            '** delete Entries
+            For Each changeEntry In Me
+                changeEntry.Delete()
+            Next
+            MyBase.Clear()
+
+        End Sub
+
+        ''' <summary>
+        ''' Add an ChangeLogEntry
+        ''' </summary>
+        ''' <param name="entry"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function Add(entry As OnTrackChangeLogEntry) As Boolean
+            '''
+            '''
+            If Me.ContainsKey(key:={entry.Application, entry.Module, entry.Version, entry.Release, entry.Patch, entry.ChangeImplementationNo}) Then
+                CoreMessageHandler(message:="change log entry already in change log", arg1:=Converter.Array2StringList({entry.Application, entry.Module, entry.Version, entry.Release, entry.Patch, entry.ChangeImplementationNo}), _
+                                   messagetype:=otCoreMessageType.InternalWarning, subname:="OnTrackChangeLog.Add")
+            End If
+
+            ''' add the max version to the Application Version
+            ''' 
+            If _ApplicationVersion.ContainsKey(key:=entry.Application.ToUpper) Then
+                Dim aVersion As Versioning = _ApplicationVersion.Item(key:=entry.Application.ToUpper)
+                Dim newVersion As Versioning = New Versioning(entry.Version, entry.Release, entry.Patch)
+                If aVersion.CompareTo(newVersion) > 1 Then
+                    _ApplicationVersion.Remove(key:=entry.Application.ToUpper)
+                    _ApplicationVersion.Add(key:=entry.Application.ToUpper, value:=newVersion)
+                End If
+            Else
+                _ApplicationVersion.Add(key:=entry.Application.ToUpper, value:=New Versioning(entry.Version, entry.Release, entry.Patch))
+            End If
+
+            ''' add the entry to list
+            MyBase.Add(entry)
+        End Function
+        ''' <summary>
+        ''' Add ormAttribute ormChangeLogEntry
+        ''' </summary>
+        ''' <param name="attribute"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function Add(attribute As ormChangeLogEntry) As Boolean
+            Dim anEntry As OnTrackChangeLogEntry
+            If ot.IsInitialized AndAlso CurrentSession.IsRunning Then
+                anEntry = OnTrackChangeLogEntry.Create(application:=attribute.Application, [module]:=attribute.Module, _
+                                                                                 version:=attribute.Version, release:=attribute.Release, patch:=attribute.Patch, changeimplno:=attribute.Changeimplno)
+
+                If anEntry IsNot Nothing Then
+                    With anEntry
+                        .Description = attribute.Description
+                        .ChangerequestID = attribute.ChangeID
+                        .Releasedate = attribute.Releasedate
+                    End With
+                    Return Me.Add(anEntry)
+                Else
+                    CoreMessageHandler(message:="could not create change log entry - already in change log ?!", arg1:=Converter.Array2StringList({attribute.Application, attribute.Module, attribute.Version, attribute.Release, attribute.Patch, attribute.Changeimplno}), _
+                                                      messagetype:=otCoreMessageType.InternalWarning, subname:="OnTrackChangeLog.AddAttribute")
+                End If
+            Else
+                anEntry = New OnTrackChangeLogEntry(application:=attribute.Application, [module]:=attribute.Module, _
+                                                    version:=attribute.Version, release:=attribute.Release, _
+                                                    patch:=attribute.Patch, changeimplno:=attribute.Changeimplno, description:=attribute.Description _
+                                                    )
+                Return Me.Add(anEntry)
+            End If
+           
+           
+
+            Return False
+        End Function
+
+        ''' <summary>
+        ''' retrieves the log and loads all messages for the container object
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Shared Function Retrieve() As iormRelationalCollection(Of OnTrackChangeLogEntry)
+            '''
+            ''' check if the new Property value is different then old one
+            ''' 
+            '** build query
+            Dim newCollection As ormRelationCollection(Of OnTrackChangeLogEntry) = New ormRelationCollection(Of OnTrackChangeLogEntry) _
+                                                                           (Nothing, keyentrynames:={OnTrackChangeLogEntry.ConstFNApplication, _
+                                                                                                     OnTrackChangeLogEntry.ConstFNModule, _
+                                                                                                       OnTrackChangeLogEntry.ConstFNVersion, OnTrackChangeLogEntry.ConstFNRelease, _
+                                                                                                       OnTrackChangeLogEntry.ConstFNPatch, OnTrackChangeLogEntry.ConstFNImplNo})
+
+            Try
+                Dim aStore As iormDataStore = ot.GetTableStore(OnTrackChangeLogEntry.ConstTableID) '_container.PrimaryTableStore is the class itself
+                Dim aCommand As ormSqlSelectCommand = aStore.CreateSqlSelectCommand(id:="RetrieveChangeLogEntry", addAllFields:=True)
+                If Not aCommand.Prepared Then
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@deleted", ColumnName:=ObjectMessage.ConstFNIsDeleted, tablename:=ObjectMessage.ConstTableID))
+                    aCommand.Prepare()
+                End If
+                aCommand.SetParameterValue(ID:="@deleted", value:=False)
+
+                Dim aRecordCollection = aCommand.RunSelect
+
+                For Each aRecord As ormRecord In aRecordCollection
+                    Dim anEntry As New OnTrackChangeLogEntry
+                    If anEntry.InfuseDataObject(record:=aRecord, dataobject:=anEntry) Then
+                        newCollection.Add(item:=anEntry)
+                    End If
+                Next
+
+                Return newCollection
+
+
+            Catch ex As Exception
+
+                Call CoreMessageHandler(exception:=ex, subname:="OnTrackChangeLog.Retrieve")
+                Return newCollection
+
+            End Try
+        End Function
+
+    End Class
+
+
 
     ''' <summary>
     ''' Message Entries of a Object Log 
@@ -3412,7 +3798,7 @@ Namespace OnTrack
         <ormEntryMapping(EntryName:=ConstFNTimeStamp)> Private _Timestamp As DateTime?
         <ormEntryMapping(EntryName:=ConstFNUsername)> Private _username As String
         <ormEntryMapping(EntryName:=ConstFNSessionTAG)> Private _sessionid As String
-        <ormEntryMapping(EntryName:=ConstFNWorkspaceID)> Private _workspaceID As String
+        <ormEntryMapping(EntryName:=ConstFNWORKSPACEID)> Private _workspaceID As String
         <ormEntryMapping(EntryName:=ConstFNSessionMSGNo)> Private _sessionmsgno As Long
 
         <ormEntryMapping(EntryName:=ConstFNObjectname)> Private _objectname As String
@@ -3449,7 +3835,7 @@ Namespace OnTrack
                 Return Me._persistflag
             End Get
             Set(value As Boolean)
-                Me._persistflag = Value
+                Me._persistflag = value
             End Set
         End Property
 
@@ -3567,7 +3953,7 @@ Namespace OnTrack
                 Return Me._sessionid
             End Get
             Set(value As String)
-                SetValue(ConstFNSessionTAG, Value)
+                SetValue(ConstFNSessionTAG, value)
             End Set
         End Property
 
@@ -3593,7 +3979,7 @@ Namespace OnTrack
                 Return Me._Weight
             End Get
             Set(value As Double?)
-                Me._Weight = Value
+                Me._Weight = value
             End Set
         End Property
 
@@ -3606,7 +3992,7 @@ Namespace OnTrack
                 Return Me._Area
             End Get
             Set(value As String)
-                SetValue(ConstFNArea, Value)
+                SetValue(ConstFNArea, value)
             End Set
         End Property
 
@@ -3619,7 +4005,7 @@ Namespace OnTrack
                 Return Me._Parameters
             End Get
             Set(value As String())
-                SetValue(ConstFNParameters, Value)
+                SetValue(ConstFNParameters, value)
             End Set
         End Property
 
@@ -3936,3 +4322,4 @@ Namespace OnTrack
         End Sub
     End Class
 End Namespace
+

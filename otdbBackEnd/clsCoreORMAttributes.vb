@@ -28,6 +28,155 @@ Imports OnTrack.UI
 Imports System.Reflection
 
 Namespace OnTrack.Database
+
+
+    ''' <summary>
+    ''' ChangeLogEntryAttribute implements a ChangeLogEntry for a Class
+    ''' </summary>
+    ''' <remarks></remarks>
+
+    <AttributeUsage(AttributeTargets.Class Or AttributeTargets.Field, AllowMultiple:=True, Inherited:=False)> _
+    Public Class ormChangeLogEntry
+        Inherits Attribute
+
+        Private _application As String
+        Private _module As String
+        Private _version As Long?
+        Private _release As Long?
+        Private _patch As Long?
+
+        Private _changeimplno As Long?
+        Private _releasedate As DateTime?
+        Private _changeID As String
+        Private _description As String
+
+
+        ''' <summary>
+        ''' Gets or sets the changeimplno.
+        ''' </summary>
+        ''' <value>The changeimplno.</value>
+        Public Property Changeimplno() As Long
+            Get
+                If Not _changeimplno.HasValue Then _changeimplno = 1
+
+                Return Me._changeimplno
+            End Get
+            Set(value As Long)
+                Me._changeimplno = Value
+            End Set
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the description.
+        ''' </summary>
+        ''' <value>The description.</value>
+        Public Property Description() As String
+            Get
+                Return Me._description
+            End Get
+            Set(value As String)
+                Me._description = value
+            End Set
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the change ID.
+        ''' </summary>
+        ''' <value>The change ID.</value>
+        Public Property ChangeID() As String
+            Get
+                Return Me._changeID
+            End Get
+            Set(value As String)
+                Me._changeID = value
+            End Set
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the releasedate.
+        ''' </summary>
+        ''' <value>The releasedate.</value>
+        Public Property Releasedate() As DateTime
+            Get
+                If Not _releasedate.HasValue Then _releasedate = DateTime.Now
+                Return _releasedate
+            End Get
+            Set(value As DateTime)
+                Me._releasedate = value
+            End Set
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the patch.
+        ''' </summary>
+        ''' <value>The patch.</value>
+        Public Property Patch() As Long
+            Get
+                If Not _patch.HasValue Then _patch = 0
+                Return Me._patch
+            End Get
+            Set(value As Long)
+                Me._patch = value
+            End Set
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the release.
+        ''' </summary>
+        ''' <value>The release.</value>
+        Public Property Release() As Long
+            Get
+                If Not _release.HasValue Then _release = 1
+                Return Me._release
+            End Get
+            Set(value As Long)
+                Me._release = value
+            End Set
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the version.
+        ''' </summary>
+        ''' <value>The version.</value>
+        Public Property Version() As Long
+            Get
+                If Not _version.HasValue Then _version = 1
+                Return Me._version
+            End Get
+            Set(value As Long)
+                Me._version = value
+            End Set
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the module.
+        ''' </summary>
+        ''' <value>The module.</value>
+        Public Property [Module]() As String
+            Get
+                Return Me._module
+            End Get
+            Set(value As String)
+                Me._module = value
+            End Set
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the application.
+        ''' </summary>
+        ''' <value>The application.</value>
+        Public Property Application() As String
+            Get
+                Return Me._application
+            End Get
+            Set(value As String)
+                Me._application = value
+            End Set
+        End Property
+
+    End Class
+
+
     ''' <summary>
     ''' OTDBDataObject Attribute links a class variable to a datastore table and field
     ''' </summary>
@@ -55,7 +204,7 @@ Namespace OnTrack.Database
                 Return Me._enabled
             End Get
             Set(value As Boolean)
-                Me._enabled = Value
+                Me._enabled = value
             End Set
         End Property
 
@@ -68,7 +217,7 @@ Namespace OnTrack.Database
                 Return Me._InfuseMode
             End Get
             Set(value As otInfuseMode)
-                Me._InfuseMode = Value
+                Me._InfuseMode = value
             End Set
         End Property
         Public ReadOnly Property HasValueInfuseMode As Boolean
@@ -182,7 +331,7 @@ Namespace OnTrack.Database
             End Get
         End Property
     End Class
-  
+
     ''' <summary>
     ''' Mapping a instance field member to a fieldname of a schema description
     ''' </summary>
@@ -273,8 +422,8 @@ Namespace OnTrack.Database
             Get
                 Return Me._enabled
             End Get
-            Set
-                Me._enabled = Value
+            Set(value As Boolean)
+                Me._enabled = value
             End Set
         End Property
 
@@ -697,7 +846,7 @@ Namespace OnTrack.Database
                 Return Me._CreateObjectIfNotRetrieved
             End Get
             Set(value As Boolean)
-                Me._CreateObjectIfNotRetrieved = Value
+                Me._CreateObjectIfNotRetrieved = value
             End Set
         End Property
         Public ReadOnly Property HasValueCreateObjectIfNotRetrieved As Boolean
@@ -714,7 +863,7 @@ Namespace OnTrack.Database
                 Return Me._enabled
             End Get
             Set(value As Boolean)
-                Me._enabled = Value
+                Me._enabled = value
             End Set
         End Property
 
@@ -871,7 +1020,7 @@ Namespace OnTrack.Database
                 Return _RetrieveOperationID IsNot Nothing AndAlso _RetrieveOperationID <> ""
             End Get
         End Property
-        
+
         ''' <summary>
         ''' Gets or sets the operation ID to call instead to create an relation object if needed.
         ''' </summary>
@@ -970,8 +1119,8 @@ Namespace OnTrack.Database
             Get
                 Return Me._enabled
             End Get
-            Set
-                Me._enabled = Value
+            Set(value As Boolean)
+                Me._enabled = value
             End Set
         End Property
 
@@ -1207,8 +1356,8 @@ Namespace OnTrack.Database
             Get
                 Return Me._enabled
             End Get
-            Set
-                Me._enabled = Value
+            Set(value As Boolean)
+                Me._enabled = value
             End Set
         End Property
 
@@ -1620,8 +1769,8 @@ Namespace OnTrack.Database
             Get
                 Return Me._enabled
             End Get
-            Set
-                Me._enabled = Value
+            Set(value As Boolean)
+                Me._enabled = value
             End Set
         End Property
 
@@ -1645,7 +1794,7 @@ Namespace OnTrack.Database
                 Return _Entrynames IsNot Nothing AndAlso _Entrynames.Count > 0
             End Get
         End Property
-       
+
         ''' <summary>
         ''' Gets or sets the description.
         ''' </summary>
@@ -1681,7 +1830,7 @@ Namespace OnTrack.Database
                 Return _ID IsNot Nothing
             End Get
         End Property
-       
+
         ''' <summary>
         ''' Gets or sets the table ID.
         ''' </summary>
@@ -1796,7 +1945,7 @@ Namespace OnTrack.Database
                 Return _ForeignKeyProperties IsNot Nothing AndAlso _ForeignKeyProperties.Count > 0
             End Get
         End Property
-        
+
         ''' <summary>
         ''' gets or sets the version counter
         ''' </summary>
@@ -1860,7 +2009,7 @@ Namespace OnTrack.Database
         Private _RenderProperties As RenderProperty()
         Private _RenderRegExpMatch As String
         Private _RenderRegExpPattern As String
-       
+
 
         ''' <summary>
         ''' Gets or sets the type of the entry.
@@ -1871,7 +2020,7 @@ Namespace OnTrack.Database
                 Return Me._EntryType
             End Get
             Set(value As otObjectEntryType)
-                Me._EntryType = Value
+                Me._EntryType = value
             End Set
         End Property
         Public ReadOnly Property HasValueEntryType As Boolean
@@ -1888,7 +2037,7 @@ Namespace OnTrack.Database
                 Return Me._lookupCondition
             End Get
             Set(value As String)
-                Me._lookupCondition = Value
+                Me._lookupCondition = value
             End Set
         End Property
         Public ReadOnly Property HasValueLookupCondition As Boolean Implements iormObjectEntry.HasLookupCondition
@@ -1905,7 +2054,7 @@ Namespace OnTrack.Database
                 Return Me._RenderRegExpPattern
             End Get
             Set(value As String)
-                Me._RenderRegExpPattern = Value
+                Me._RenderRegExpPattern = value
             End Set
         End Property
         Public ReadOnly Property HasValueRenderRegExpPattern As Boolean Implements iormObjectEntry.HasRenderRegExpression
@@ -1922,7 +2071,7 @@ Namespace OnTrack.Database
                 Return Me._RenderRegExpMatch
             End Get
             Set(value As String)
-                Me._RenderRegExpMatch = Value
+                Me._RenderRegExpMatch = value
             End Set
         End Property
         Public ReadOnly Property HasValueRenderRegExpMatch As Boolean 'Implements iormObjectEntry.HasRenderRegMatch
@@ -2068,7 +2217,7 @@ Namespace OnTrack.Database
                 Return Me._validateRegExp
             End Get
             Set(value As String)
-                Me._validateRegExp = Value
+                Me._validateRegExp = value
             End Set
         End Property
         Public ReadOnly Property HasValueValidateRegExp As Boolean Implements iormObjectEntry.HasValidateRegExpression
@@ -2565,7 +2714,7 @@ Namespace OnTrack.Database
                 Throw New InvalidOperationException()
             End Set
         End Property
-       
+
         ''' <summary>
         ''' Gets or sets the size.
         ''' </summary>
@@ -2608,7 +2757,7 @@ Namespace OnTrack.Database
                 MyBase.IsNullable = value
             End Set
         End Property
-       
+
         ''' <summary>
         ''' Gets or sets the inner datatype.
         ''' </summary>
@@ -2637,7 +2786,7 @@ Namespace OnTrack.Database
                 MyBase.InnerDataType = value
             End Set
         End Property
-        
+
         ''' <summary>
         ''' Abstracts the entry definition_ set by attribute.
         ''' </summary>
@@ -3166,7 +3315,7 @@ Namespace OnTrack.Database
                 Return Me._ClassDescription
             End Get
             Set(value As ObjectClassDescription)
-                Me._ClassDescription = Value
+                Me._ClassDescription = value
             End Set
         End Property
 
@@ -3180,7 +3329,7 @@ Namespace OnTrack.Database
                 Return False
             End Get
             Set(value As Boolean)
-                Me._UIVisible = Value
+                Me._UIVisible = value
             End Set
         End Property
         Public ReadOnly Property HasValueUIVisible As Boolean
@@ -3214,8 +3363,8 @@ Namespace OnTrack.Database
             Get
                 Return Me._Tag
             End Get
-            Set
-                Me._Tag = Value
+            Set(value As String)
+                Me._Tag = value
             End Set
         End Property
         Public ReadOnly Property HasValueTag As Boolean
@@ -3248,8 +3397,8 @@ Namespace OnTrack.Database
             Get
                 Return Me._MethodInfo
             End Get
-            Set
-                Me._MethodInfo = Value
+            Set(value As MethodInfo)
+                Me._MethodInfo = value
             End Set
         End Property
         Public ReadOnly Property HasValueMethodInfo As Boolean
@@ -3387,8 +3536,8 @@ Namespace OnTrack.Database
             Get
                 Return Me._enabled
             End Get
-            Set
-                Me._enabled = Value
+            Set(value As Boolean)
+                Me._enabled = value
             End Set
         End Property
 
@@ -3409,7 +3558,7 @@ Namespace OnTrack.Database
                 Return _where IsNot Nothing AndAlso Not String.IsNullOrWhiteSpace(_where)
             End Get
         End Property
-       
+
 
         ''' <summary>
         ''' Gets or sets the object Properties

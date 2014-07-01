@@ -992,15 +992,21 @@ Namespace OnTrack.Database
                 Else
                     aBucket = theobjects.Item(key:=searchkeys)
                 End If
-                aBucket.LastAccessStamp = DateTime.Now
-                aBucket.IsDeleted = True
+                '' is the data object is loaded and delete per flag still keep it
+                If aBucket.Object.IsLoaded AndAlso aBucket.Object.ObjectHasDeletePerFlagBehavior Then
+                    aBucket.LastAccessStamp = DateTime.Now
+                    aBucket.IsDeleted = True
+                Else
+                    ''' remove it
+                    theobjects.TryRemove(key:=searchkeys, value:=aBucket)
+                End If
 
                 e.AbortOperation = False
                 e.Result = False
                 Exit Sub
 
             End If
-            '*** do really nothing we not on start
+                '*** do really nothing we not on start
         End Sub
 
         ''' <summary>

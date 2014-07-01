@@ -1147,8 +1147,13 @@ Namespace OnTrack.Database
                                                      messagetype:=otCoreMessageType.InternalError)
                 End If
             Next
+
             '*** set the current schema version
             CurrentDBDriver.SetDBParameter(parametername:=ConstPNBSchemaVersion, value:=ot.SchemaVersion, silent:=True)
+            Dim aSchemaChange As OnTrackChangeLogEntry = New OnTrackChangeLogEntry(application:=ConstApplicationBackend, [module]:=ConstPNBSchemaVersion, _
+                                                                                   version:=ot.SchemaVersion, release:=0, patch:=0, changeimplno:=0, description:="installed schema")
+
+            ot.OnTrackChangeLog.Add(aSchemaChange)
 
             '*** request end of bootstrap
             '***
@@ -1183,6 +1188,22 @@ Namespace OnTrack.Database
             '***
             '*** Initialize Data
             If sessionrunning OrElse sessionstarted Then
+
+                ''' Change Log Data
+                ''' 
+                If Not SaveChangeLog() Then
+                    Call ot.CoreMessageHandler(showmsgbox:=True, subname:="Installation.createDatabase", _
+                                                          message:="failed to write change log data", _
+                                                          messagetype:=otCoreMessageType.InternalError)
+                    Return
+                Else
+                    ot.CoreMessageHandler(showmsgbox:=False, subname:="Installation.createDatabase", _
+                                                          message:="change log data persisted", _
+                                                          messagetype:=otCoreMessageType.InternalInfo)
+                End If
+
+                ''' Core Data
+                ''' 
                 If Not InitialCoreData() Then
                     Call ot.CoreMessageHandler(showmsgbox:=True, subname:="Installation.createDatabase", _
                                                           message:="failed to write initial core data - core might not be working correctly", _
@@ -1642,6 +1663,25 @@ Namespace OnTrack.Database
 
             Call ot.CoreMessageHandler(showmsgbox:=False, subname:="Installation.createDatabase_CoreData", tablename:=acalentry.PrimaryTableID, _
                                          message:="Calendar until 31.12.2016 created", messagetype:=otCoreMessageType.ApplicationInfo)
+
+            Return True
+        End Function
+        ''' <summary>
+        ''' save the ontrack change log to the database
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function SaveChangeLog() As Boolean
+
+            ''' save all change log entries to the database
+            ''' 
+            For Each anEntry In ot.OnTrackChangeLog
+                If Not anEntry.IsAlive(throwError:=False) Then
+                    anEntry.Create() 'bring to alive
+                End If
+                If anEntry.RunTimeOnly Then anEntry.SwitchRuntimeOff() ' switch runtime off to make persistable
+                anEntry.Persist()
+            Next
 
             Return True
         End Function

@@ -2014,7 +2014,7 @@ Namespace OnTrack.ObjectProperties
                         aCollection.Add(aLink)
                     End If
                 Next
-               
+
                 Return aCollection
 
             Catch ex As Exception
@@ -2429,7 +2429,7 @@ Namespace OnTrack.ObjectProperties
                 Dim aCommand As ormSqlSelectCommand = aStore.CreateSqlSelectCommand(id:="AllBySet", addAllFields:=True)
                 If Not aCommand.Prepared Then
                     aCommand.Where = "[" & ConstFNIsDeleted & "] = @deleted AND [" & ConstFNSets & "] like @sets"
-                   
+
                     aCommand.AddParameter(New ormSqlCommandParameter(ID:="@deleted", ColumnName:=ConstFNIsDeleted, tablename:=constTableID))
                     aCommand.AddParameter(New ormSqlCommandParameter(ID:="@sets", notColumn:=True, datatype:=otDataType.Text))
                     aCommand.Prepare()
@@ -2787,7 +2787,7 @@ Namespace OnTrack.ObjectProperties
             Return True
         End Function
 
-        
+
         ''' <summary>
         ''' Add APropertyValue to the Lot
         ''' </summary>
@@ -2840,9 +2840,9 @@ Namespace OnTrack.ObjectProperties
                 Return True
             End If
 
-                CoreMessageHandler("set '" & setid & "' is not attached to this property value lot", arg1:=Converter.Array2StringList(Me.PrimaryKeyValues), _
-                                   objectname:=Me.ObjectID, messagetype:=otCoreMessageType.InternalError, subname:="AddPropertyValue")
-                Return False
+            CoreMessageHandler("set '" & setid & "' is not attached to this property value lot", arg1:=Converter.Array2StringList(Me.PrimaryKeyValues), _
+                               objectname:=Me.ObjectID, messagetype:=otCoreMessageType.InternalError, subname:="AddPropertyValue")
+            Return False
         End Function
         ''' <summary>
         ''' retrieve  the configuration from store
@@ -2942,7 +2942,7 @@ Namespace OnTrack.ObjectProperties
                 Return
             End If
 
-           
+
             If _valuesCollection.ToList.Where(Function(x) x.SetID = aPropertyValue.SetID).FirstOrDefault Is Nothing Then
                 Dim newids As String()
                 Dim newsupdc As String()

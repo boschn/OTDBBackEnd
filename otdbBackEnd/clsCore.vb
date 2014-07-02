@@ -3287,7 +3287,7 @@ Namespace OnTrack
                     Return aMessage.HighestStatusItems(statustype:=statustype).FirstOrDefault
                 End If
             Else
-               Dim highestWeight As Integer = aList.Max(Function(x) x.Weight)
+                Dim highestWeight As Integer = aList.Max(Function(x) x.Weight)
                 Dim aMessage = aList.Where(Function(x) x.Weight = highestWeight).FirstOrDefault
 
                 If aMessage IsNot Nothing Then
@@ -3645,8 +3645,8 @@ Namespace OnTrack
                                                     )
                 Return Me.Add(anEntry)
             End If
-           
-           
+
+
 
             Return False
         End Function

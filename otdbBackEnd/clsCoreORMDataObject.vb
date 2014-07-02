@@ -756,7 +756,7 @@ Namespace OnTrack.Database
                     ''' have we reached the last hop ?
                     ''' 
 
-                 
+
                     Dim searchvalue As Object = Nothing ' by intension (all are selected if nothing)
                     Dim searchvalueentryname As String
                     Dim searchentryname As String
@@ -1048,7 +1048,7 @@ Namespace OnTrack.Database
                 CoreMessageHandler(message:="Warning ! Could not normalize value", arg1:=value, objectname:=Me.ObjectID, _
                                     entryname:=entryname, subname:="ormDataObject.SetValue")
             End If
-            
+
             '''
             ''' PHASE II: DO VALIDATION
             ''' 
@@ -1248,7 +1248,7 @@ Namespace OnTrack.Database
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function IsAlive(Optional subname As String = "", Optional throwError As Boolean = True) As Boolean Implements iormPersistable.isAlive
+        Public Function IsAlive(Optional subname As String = "", Optional throwError As Boolean = True) As Boolean Implements iormPersistable.IsAlive
             If Not Me.IsLoaded And Not Me.IsCreated Then
                 DetermineLiveStatus()
                 '** check again
@@ -2241,7 +2241,7 @@ Namespace OnTrack.Database
             ''' infuse what we have in the record
             ''' 
             Dim aDataobject = Me
-           
+
             If Not InfuseDataObject(record:=record, dataobject:=aDataobject, mode:=otInfuseMode.OnCreate) Then
                 CoreMessageHandler(message:="InfuseDataobject failed", messagetype:=otCoreMessageType.InternalError, subname:="ormDataObject.Create")
                 If aDataobject.Guid <> Me.Guid Then
@@ -2249,7 +2249,7 @@ Namespace OnTrack.Database
                         subname:="ormDataObject.Create")
                 End If
             End If
-           
+
             '** set status
             _domainID = domainID
             _isCreated = True
@@ -2351,7 +2351,7 @@ Namespace OnTrack.Database
             If Not runtimeOnly.HasValue Then runtimeOnly = False
             If Not forceReload.HasValue Then forceReload = False
             Dim anObject As iormPersistable = ot.CreateDataObjectInstance(type)
-           
+
 
             '** is a session running ?!
             If Not runtimeOnly AndAlso Not CurrentSession.IsRunning AndAlso Not CurrentSession.IsStartingUp Then
@@ -2381,7 +2381,7 @@ Namespace OnTrack.Database
             '** use Cache ?!
             useCache = anObject.useCache
             Dim hasDomainBehavior As Boolean = anObject.ObjectHasDomainBehavior
-           Dim aObjectID As String = anObject.ObjectID
+            Dim aObjectID As String = anObject.ObjectID
 
             ''' fix primary key
             ''' 
@@ -2751,7 +2751,7 @@ Namespace OnTrack.Database
             '*** infuse each mapped column to member
             '*** if it is in the record
             Try
-               
+
 
                 For Each aColumnName In Me.ObjectClassDescription.MappedColumnNames
                     Dim aFieldList As List(Of FieldInfo) = Me.ObjectClassDescription.GetMappedColumnFieldInfos(columnname:=aColumnName)
@@ -2783,7 +2783,7 @@ Namespace OnTrack.Database
                                     Else
                                         Dim anEntry As iormObjectEntry = Me.ObjectDefinition.GetEntry(entryname:=objectentryname)
 
-                                          ''' only if not nullable we use a default value
+                                        ''' only if not nullable we use a default value
                                         If anEntry IsNot Nothing Then
                                             aValue = Me.ObjectEntryDefaultValue(anEntry.Entryname)
                                             isNull = False 'reset for the value setting

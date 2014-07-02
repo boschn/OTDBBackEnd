@@ -81,7 +81,7 @@ Namespace OnTrack.UI
                 Get
                     Return Me._row
                 End Get
-                Set
+                Set(value As DataRow)
                     Me._row = Value
                 End Set
             End Property

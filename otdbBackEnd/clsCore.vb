@@ -3853,7 +3853,7 @@ Namespace OnTrack
                     If apersistable IsNot Nothing Then
                         Me.Objectname = apersistable.ObjectID
                         Dim aList As New List(Of String)
-                        For Each aValue As Object In apersistable.PrimaryKeyValues
+                        For Each aValue As Object In apersistable.ObjectPrimaryKeyValues
                             aList.Add(CStr(aValue))
                         Next
                         Me.LoggableKeyValues = aList.ToArray

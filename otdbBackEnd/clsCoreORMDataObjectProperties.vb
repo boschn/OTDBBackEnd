@@ -293,7 +293,7 @@ Namespace OnTrack.Database
         Public ReadOnly Property ObjectTag() As String
             Get
 
-                Return ConstDelimiter & Me.ObjectID.ToUpper & Converter.Array2otString(Me.PrimaryKeyValues)
+                Return ConstDelimiter & Me.ObjectID.ToUpper & Converter.Array2otString(Me.ObjectPrimaryKeyValues)
             End Get
         End Property
         ''' <summary>
@@ -487,7 +487,7 @@ Namespace OnTrack.Database
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public ReadOnly Property PrimaryKeyEntrynames As String()
+        Public ReadOnly Property ObjectPrimaryKeyEntrynames As String()
             Get
                 If (_primarykeynames Is Nothing OrElse _primarykeynames.Length = 0) Then
                     Dim aDescription = ot.GetObjectClassDescriptionByID(id:=Me.ObjectID)
@@ -503,17 +503,17 @@ Namespace OnTrack.Database
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public ReadOnly Property PrimaryKeyValues As Object() Implements iormPersistable.PrimaryKeyValues
+        Public ReadOnly Property ObjectPrimaryKeyValues As Object() Implements iormPersistable.ObjectPrimaryKeyValues
             Get
 
                 If (_primaryKeyValues Is Nothing OrElse _primaryKeyValues.Length = 0) Then
 
-                    If Me.PrimaryKeyEntrynames IsNot Nothing AndAlso PrimaryKeyEntrynames.Length > 0 Then
-                        ReDim _primaryKeyValues(Me.PrimaryKeyEntrynames.Length - 1)
+                    If Me.ObjectPrimaryKeyEntrynames IsNot Nothing AndAlso ObjectPrimaryKeyEntrynames.Length > 0 Then
+                        ReDim _primaryKeyValues(Me.ObjectPrimaryKeyEntrynames.Length - 1)
 
-                        For i = 0 To Me.PrimaryKeyEntrynames.Length - 1
-                            If Me.PrimaryKeyEntrynames(i) IsNot Nothing Then
-                                _primaryKeyValues(i) = Me.GetValue(Me.PrimaryKeyEntrynames(i))
+                        For i = 0 To Me.ObjectPrimaryKeyEntrynames.Length - 1
+                            If Me.ObjectPrimaryKeyEntrynames(i) IsNot Nothing Then
+                                _primaryKeyValues(i) = Me.GetValue(Me.ObjectPrimaryKeyEntrynames(i))
                             End If
                         Next
                     End If

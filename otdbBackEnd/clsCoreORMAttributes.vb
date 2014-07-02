@@ -35,7 +35,8 @@ Namespace OnTrack.Database
     ''' </summary>
     ''' <remarks></remarks>
 
-    <AttributeUsage(AttributeTargets.Class Or AttributeTargets.Field, AllowMultiple:=True, Inherited:=False)> _
+    <AttributeUsage(AttributeTargets.Class Or AttributeTargets.Field Or AttributeTargets.Module Or AttributeTargets.Method, _
+        AllowMultiple:=True, Inherited:=False)> _
     Public Class ormChangeLogEntry
         Inherits Attribute
 
@@ -62,7 +63,7 @@ Namespace OnTrack.Database
                 Return Me._changeimplno
             End Get
             Set(value As Long)
-                Me._changeimplno = Value
+                Me._changeimplno = value
             End Set
         End Property
 
@@ -2585,6 +2586,10 @@ Namespace OnTrack.Database
         '    End Get
         'End Property
 
+        Public Function GetObjectDefinition() As ObjectDefinition Implements iormObjectEntry.GetObjectDefinition
+            Throw New InvalidOperationException("not applicable for attributes")
+            Return Nothing
+        End Function
         ''' <summary>
         ''' Gets or sets the relation.
         ''' </summary>

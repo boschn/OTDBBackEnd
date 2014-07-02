@@ -1232,7 +1232,7 @@ Namespace OnTrack.Database
         Event OnCreating(sender As Object, e As ormDataObjectEventArgs)
         Event OnCreated(sender As Object, e As ormDataObjectEventArgs)
 
-        ReadOnly Property PrimaryKeyValues As Object()
+        ReadOnly Property ObjectPrimaryKeyValues As Object()
 
         ReadOnly Property useCache As Boolean
 
@@ -1738,6 +1738,8 @@ Namespace OnTrack.Database
         ''' <param name="e"></param>
         ''' <remarks></remarks>
         Sub OnswitchRuntimeOff(sender As Object, e As ormDataObjectEventArgs)
+
+        Function GetObjectDefinition() As ObjectDefinition
 
 
     End Interface

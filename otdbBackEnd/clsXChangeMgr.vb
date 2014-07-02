@@ -2800,7 +2800,7 @@ Namespace OnTrack.XChange
                     Dim result As Boolean = dataobject.Delete()
                     '1094;@;XCHANGE;xchange command '%4' run for object of type '%2%' with primary key '%3%';;10;Info;false;|G1|;|XCHANGEENVELOPE|
                     If result Then msglog.Add(1094, Nothing, Nothing, Nothing, Nothing, Me, _
-                              Me.Xchangeconfig.Configname, xobject.Objectname, Converter.Array2StringList(dataobject.PrimaryKeyValues), xobject.XChangeCmd.ToString)
+                              Me.Xchangeconfig.Configname, xobject.Objectname, Converter.Array2StringList(dataobject.ObjectPrimaryKeyValues), xobject.XChangeCmd.ToString)
                     RemoveHandler DirectCast(dataobject, iormLoggable).ObjectMessageLog.OnObjectMessageAdded, AddressOf XEnvelope_OnObjectMessageAdded
                     Me.trackMessageLog = Nothing
                     Return result
@@ -2857,14 +2857,14 @@ Namespace OnTrack.XChange
                         End If
                         '1092;@;XCHANGE;object of type '%2%' with primary key '%3%' in xchange configuration '%1%' updated;;10;Info;false;|G1|;|XCHANGEENVELOPE|
                         If result Then msglog.Add(1092, Nothing, Nothing, Nothing, Nothing, Me, _
-                                  Me.Xchangeconfig.Configname, xobject.Objectname, Converter.Array2StringList(dataobject.PrimaryKeyValues))
+                                  Me.Xchangeconfig.Configname, xobject.Objectname, Converter.Array2StringList(dataobject.ObjectPrimaryKeyValues))
                         RemoveHandler DirectCast(dataobject, iormLoggable).ObjectMessageLog.OnObjectMessageAdded, AddressOf XEnvelope_OnObjectMessageAdded
                         Me.trackMessageLog = Nothing
                         Return result
                     Else
                         '1093;@;XCHANGE;object of type '%2%' with primary key '%3%' in xchange configuration '%1%' has no changes - not updated;;10;Info;false;|G2|;|XCHANGEENVELOPE|
                         msglog.Add(1093, Nothing, Nothing, Nothing, Nothing, Me, _
-                                   Me.Xchangeconfig.Configname, xobject.Objectname, Converter.Array2StringList(dataobject.PrimaryKeyValues))
+                                   Me.Xchangeconfig.Configname, xobject.Objectname, Converter.Array2StringList(dataobject.ObjectPrimaryKeyValues))
                         Return True ' even if not persisted the operation is successfull
                     End If
 
@@ -2880,14 +2880,14 @@ Namespace OnTrack.XChange
                     If dataobject IsNot Nothing Then
                         '1094;@;XCHANGE;xchange command '%4' run for object of type '%2%' with primary key '%3%';;10;Info;false;|G1|;|XCHANGEENVELOPE|
                         msglog.Add(1094, Nothing, Nothing, Nothing, Nothing, Me, _
-                                  Me.Xchangeconfig.Configname, xobject.Objectname, Converter.Array2StringList(dataobject.PrimaryKeyValues), xobject.XChangeCmd.ToString)
+                                  Me.Xchangeconfig.Configname, xobject.Objectname, Converter.Array2StringList(dataobject.ObjectPrimaryKeyValues), xobject.XChangeCmd.ToString)
 
                         '** just return successfull
                         Return True
                     Else
                         '1007;@;XCHANGE;object of type '%2%' with primary key '%3%' from xchange configuration '%1%'  doesnot exists in the database - operation '%4%' aborted;;90;Error;false;|G2|;|XCHANGEENVELOPE|
                         msglog.Add(1007, Nothing, Nothing, Nothing, Nothing, Me, _
-                                  Me.Xchangeconfig.Configname, xobject.Objectname, Converter.Array2StringList(dataobject.PrimaryKeyValues), xobject.XChangeCmd.ToString)
+                                  Me.Xchangeconfig.Configname, xobject.Objectname, Converter.Array2StringList(dataobject.ObjectPrimaryKeyValues), xobject.XChangeCmd.ToString)
 
                         '** just return successfull
                         Return False

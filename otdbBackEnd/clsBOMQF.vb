@@ -843,12 +843,12 @@ Namespace OnTrack.Xchange
          
             ' step through the RowEntries
             For Each aMessage As MQMessage In Me.Messages
-                aMessage.clear()
+                aMessage.Clear()
 
-                    If workerthread IsNot Nothing Then
-                        progress += 1
-                        workerthread.ReportProgress((progress / maximum) * 100, "processing ...")
-                    End If
+                If workerthread IsNot Nothing Then
+                    progress += 1
+                    workerthread.ReportProgress((progress / maximum) * 100, "processing ...")
+                End If
 
             Next
 
@@ -971,7 +971,10 @@ Namespace OnTrack.Xchange
         ''' Table
         ''' </summary>
         ''' <remarks></remarks>
-        <ormSchemaTable(version:=3, adddeletefieldbehavior:=True)> Const ConstTableID = "TBLMQMESSAGES"
+        ''' 
+        <ormChangeLogEntry(application:=ot.ConstApplicationBackend, module:=ot.ConstPNBSchemaVersion, version:=11, release:=0, patch:=0, _
+            description:="added column prechecked")> _
+        <ormSchemaTable(version:=3, adddeletefieldbehavior:=True)> Public Const ConstTableID = "TBLMQMESSAGES"
 
         ''' <summary>
         ''' Primary Keys
@@ -1420,10 +1423,13 @@ Namespace OnTrack.Xchange
                     aSlot.Delete()
                 Next
                 '* reset the values
+                Me.Prechecked = False
                 Me.PrecheckedOn = Nothing
                 Me.Processable = False
                 Me.ProcessedOn = Nothing
-
+                Me.Processed = False
+                Me.Statuscode = Nothing
+                Me.Statusitem = Nothing
                 Return True
             Else
                 CoreMessageHandler("a message with idno '" & Me.IDNO & "' is already processed and cannot be reseted", dataobject:=Me, _
@@ -1720,6 +1726,7 @@ Namespace OnTrack.Xchange
                     ''' Do Nothing by intention
                     ''' 
                     Me.ProcessedOn = Date.Now
+                    Me.Processed = True
                     Me.Processable = True
                     Me.ObjectMessageLog.Add(1290, Nothing, Me.ContextIdentifier, Me.TupleIdentifier, Me.EntityIdentifier, Me.MessageQueue.ID, ot.ConstMQFOpNoop)
                     RaiseEvent OnProcessed(Me, New MQMessage.EventArgs(MQMessage:=Me, result:=result))
@@ -1729,12 +1736,10 @@ Namespace OnTrack.Xchange
                     ''' run the XChange through the envelope
                     ''' 
                     Me.ProcessedOn = Date.Now
-                    Me.Processed = Me.RunXChange(justprecheck:=False, msglog:=Me.ObjectMessageLog, workerthread:=workerthread)
+                    result = Me.RunXChange(justprecheck:=False, msglog:=Me.ObjectMessageLog, workerthread:=workerthread)
                     Me.Statusitem = Me.ObjectMessageLog.GetHighesStatusItem(ConstStatusType_XEnvelope)
                     If Me.Statusitem IsNot Nothing AndAlso Me.Statusitem.Aborting Then
                         result = False
-                    Else
-                        result = Me.Processed
                     End If
                     Me.Processed = result
                     RaiseEvent OnProcessed(Me, New MQMessage.EventArgs(MQMessage:=Me, result:=result))
@@ -1750,12 +1755,10 @@ Namespace OnTrack.Xchange
                     ''' run the XChange through the envelope
                     ''' 
                     Me.ProcessedOn = Date.Now
-                    Me.Processed = Me.RunOpAddRevision(justprecheck:=False, msglog:=Me.ObjectMessageLog, workerthread:=workerthread)
+                    result = Me.RunOpAddRevision(justprecheck:=False, msglog:=Me.ObjectMessageLog, workerthread:=workerthread)
                     Me.Statusitem = Me.ObjectMessageLog.GetHighesStatusItem(ConstStatusType_XEnvelope)
                     If Me.Statusitem IsNot Nothing AndAlso Me.Statusitem.Aborting Then
                         result = False
-                    Else
-                        result = Me.Processed
                     End If
                     Me.Processed = result
                     RaiseEvent OnProcessed(Me, New MQMessage.EventArgs(MQMessage:=Me, result:=result))
@@ -1774,8 +1777,6 @@ Namespace OnTrack.Xchange
                     Me.Statusitem = Me.ObjectMessageLog.GetHighesStatusItem(ConstStatusType_XEnvelope)
                     If Me.Statusitem IsNot Nothing AndAlso Me.Statusitem.Aborting Then
                         result = False
-                    Else
-                        result = Me.Processed
                     End If
                     Me.Processed = result
 
@@ -2781,7 +2782,7 @@ Namespace OnTrack.Xchange
         ''' <remarks></remarks>
         Private Sub MQXSlot_OnDeleted(sender As Object, e As ormDataObjectEventArgs) Handles Me.OnDeleted
             '* remove me from the slots of the message
-            Me.Message.Slots.Remove(Me)
+            If Me.Message IsNot Nothing Then Me.Message.Slots.Remove(Me)
         End Sub
 
         ''' <summary>

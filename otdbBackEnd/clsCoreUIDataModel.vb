@@ -37,12 +37,31 @@ Namespace OnTrack.UI
             Private _object As iormPersistable
             Private _exception As Exception
             Private _message As String
-            Public Sub New(Optional row As DataRow = Nothing, Optional [object] As iormPersistable = Nothing, Optional exception As Exception = Nothing, Optional message As String = Nothing)
+            Private _msglog As ObjectMessageLog
+            Public Sub New(Optional row As DataRow = Nothing, _
+                           Optional [object] As iormPersistable = Nothing, _
+                           Optional exception As Exception = Nothing, _
+                           Optional message As String = Nothing, _
+                           Optional msglog As ObjectMessageLog = Nothing)
                 _row = row
                 _object = [object]
                 _exception = exception
                 _message = message
+                _msglog = msglog
             End Sub
+            ''' <summary>
+            ''' Gets or sets the msglog.
+            ''' </summary>
+            ''' <value>The msglog.</value>
+            Public Property Msglog() As ObjectMessageLog
+                Get
+                    Return Me._msglog
+                End Get
+                Set
+                    Me._msglog = Value
+                End Set
+            End Property
+
             ''' <summary>
             ''' Gets the message.
             ''' </summary>
@@ -99,6 +118,7 @@ Namespace OnTrack.UI
         Private _isloading As Boolean = False
         Private _ChangedColumns As New Dictionary(Of String, Object)
 
+        Private _trackmessagelog As New ObjectMessageLog()
         ''' <summary>
         ''' public constants
         ''' </summary>
@@ -130,7 +150,25 @@ Namespace OnTrack.UI
 
 #Region "Property"
 
+        ''' <summary>
+        ''' sets an interim Messagelog to track 
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Private Property trackMessageLog As ObjectMessageLog
+            Get
+                Return _trackmessagelog
+            End Get
+            Set(value As ObjectMessageLog)
+                If value IsNot Nothing Then
+                    _trackmessagelog = value
+                Else
+                    _trackmessagelog = Nothing
+                End If
 
+            End Set
+        End Property
         ''' <summary>
         ''' Gets the id.
         ''' </summary>
@@ -249,6 +287,7 @@ Namespace OnTrack.UI
 
                             ''' valuetypes or string
                             ''' 
+                           
                             If aFieldinfo.FieldType.IsValueType OrElse aFieldinfo.FieldType.Equals(GetType(String)) Then
                                 ''' nullable type
                                 If Nullable.GetUnderlyingType(aFieldinfo.FieldType) IsNot Nothing Then
@@ -258,7 +297,14 @@ Namespace OnTrack.UI
                                     .DataType = aFieldinfo.FieldType
                                     .AllowDBNull = anObjectEntry.IsNullable
                                 End If
-                                If anObjectEntry.DefaultValue IsNot Nothing Then .DefaultValue = CTypeDynamic(anObjectEntry.DefaultValue, .DataType)
+                                If anObjectEntry.DefaultValue IsNot Nothing Then
+                                    .DefaultValue = CTypeDynamic(anObjectEntry.DefaultValue, .DataType)
+                                End If
+                                ''' HACK! set the enum default to 0 instead of dbnull because dbnull causes
+                                ''' an index problem somewehere
+                                If .DataType.IsEnum AndAlso .AllowDBNull AndAlso IsDBNull(.DefaultValue) Then
+                                    .DefaultValue = CTypeDynamic(0, .DataType)
+                                End If
 
                                 ''' nor valuetype or object put it to string
                                 ''' 
@@ -394,21 +440,7 @@ Namespace OnTrack.UI
             End If
         End Sub
 
-        ''' <summary>
-        ''' Event handler for the RowChanged Event
-        ''' </summary>
-        ''' <param name="sender"></param>
-        ''' <param name="e"></param>
-        ''' <remarks></remarks>
-        Public Sub OnChanging(sender As Object, e As DataRowChangeEventArgs) Handles Me.RowChanging
-            If Not Me.isloading Then
-                If e.Action = DataRowAction.Change Or e.Action = DataRowAction.Add Then
-                    ''' nothing yet
-                End If
-            End If
-
-
-        End Sub
+      
         ''' <summary>
         ''' Event handler for the RowChanged Event
         ''' </summary>
@@ -426,6 +458,8 @@ Namespace OnTrack.UI
                     If e.Action = DataRowAction.Add Then
                         If AddNewObject(e.Row) Then
                             RaiseEvent OperationMessage(Me, New ormModelTable.EventArgs(message:="object added and stored to database"))
+                        Else
+                            If String.IsNullOrWhiteSpace(e.Row.RowError) Then e.Row.RowError = "unable to add"
                         End If
                         Exit Sub
 
@@ -435,6 +469,8 @@ Namespace OnTrack.UI
 
                         If UpdateObject(e.Row) Then
                             RaiseEvent OperationMessage(Me, New ormModelTable.EventArgs(message:="object updated in database"))
+                        Else
+                            If String.IsNullOrWhiteSpace(e.Row.RowError) Then e.Row.RowError = "unable to change"
                         End If
                         Exit Sub
                     End If
@@ -470,13 +506,44 @@ Namespace OnTrack.UI
         ''' <remarks></remarks>
         Public ReadOnly Property DataObject(rowno As UInteger) As iormPersistable
             Get
-                Dim avalue As Object = Me.Rows(rowno).Item(Me.constQRYRowReference)
-                Dim i As ULong = Convert.ToUInt64(avalue)
-                Dim anObject As iormPersistable = _queriedenumeration.GetObject(i)
-                Return anObject
+                If rowno < Me.Rows.Count Then
+                    Dim arow As DataRow = Me.Rows(rowno)
+                    If arow.RowState <> DataRowState.Detached Then
+                        Dim avalue As Object = Me.Rows(rowno).Item(Me.constQRYRowReference)
+                        If avalue IsNot Nothing AndAlso Not IsDBNull(avalue) AndAlso IsNumeric(avalue) AndAlso avalue >= 0 Then
+                            Dim i As ULong = Convert.ToUInt64(avalue)
+                            Dim anObject As iormPersistable = _queriedenumeration.GetObject(i)
+                            Return anObject
+                        End If
+                    End If
+                End If
+
+                Return Nothing
             End Get
         End Property
 
+
+        ''' <summary>
+        ''' Event Handler for ObjectMessageLogs propagate
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Public Sub OnObjectMessageAdded(sender As Object, e As ObjectMessageLog.EventArgs)
+
+            Dim msglog As ObjectMessageLog
+
+            If Me.trackMessageLog IsNot Nothing Then
+                msglog = Me.trackMessageLog
+            End If
+
+            '** if concerning ?!
+            If e.Message.StatusItems(statustype:=ConstStatusType_ObjectValidation).Count > 0 OrElse _
+               e.Message.StatusItems(statustype:=ConstStatusType_ObjectEntryValidation).Count > 0 Then
+                '** add it
+                msglog.Add(e.Message)
+            End If
+        End Sub
         ''' <summary>
         ''' update an object from a row
         ''' </summary>
@@ -494,29 +561,46 @@ Namespace OnTrack.UI
             End If
             Dim i As ULong = Convert.ToUInt64(aValue)
             Dim anObject As iormPersistable = Me.DataObject(i)
+            If anObject Is Nothing Then
+                row.RowError = "update failed"
+                RaiseEvent ObjectUpdateFailed(Me, New OnTrack.UI.ormModelTable.EventArgs(row:=row, message:="Update failed"))
+                Return False
+            Else
+                row.ClearErrors()
+            End If
             ''' set the values
             ''' 
             For Each aColumnname In _ChangedColumns.Keys
                 aValue = row.Item(aColumnname)
                 If _queriedenumeration.GetObjectDefinition.HasEntry(aColumnname) Then
-                    result = result And anObject.SetValue(entryname:=aColumnname, value:=aValue)
+
+                    '** add own handler to catch messages
+                    AddHandler DirectCast(anObject, iormLoggable).ObjectMessageLog.OnObjectMessageAdded, AddressOf OnObjectMessageAdded
+                    ''' set
+                    result = anObject.SetValue(entryname:=aColumnname, value:=aValue)
+
+                    '** add own handler to catch messages
+                    RemoveHandler DirectCast(anObject, iormLoggable).ObjectMessageLog.OnObjectMessageAdded, AddressOf OnObjectMessageAdded
+
                     If Not result Then
-                        RaiseEvent ObjectUpdateFailed(Me, New ormModelTable.EventArgs(row:=row, object:=anObject))
+                        row.SetColumnError(aColumnname, Me.trackMessageLog.MessageText)
+                        RaiseEvent ObjectUpdateFailed(Me, New ormModelTable.EventArgs(row:=row, object:=anObject, msglog:=Me.trackMessageLog))
                         Return False
                     Else
                         changed = True
                         Try
                             Me.IsLoading = True
                             Dim areturnValue As Object = anObject.GetValue(entryname:=aColumnname) '' maybe the object is slightly changed
-                            If areturnValue Is Nothing Then areturnValue = DBNull.Value
-
-                            If (areturnValue.GetType.IsValueType OrElse areturnValue.GetType.Equals(GetType(String))) AndAlso Not areturnValue.GetType.IsArray Then
+                            If aValue Is Nothing Then
+                                row.Item(aColumnname) = DBNull.Value
+                            ElseIf (areturnValue.GetType.IsValueType OrElse areturnValue.GetType.Equals(GetType(String))) AndAlso Not areturnValue.GetType.IsArray Then
                                 row.Item(aColumnname) = CTypeDynamic(aValue, Me.Columns.Item(aColumnname).DataType)
                             ElseIf Not DBNull.Value.Equals(areturnValue) Then
                                 row.Item(aColumnname) = Converter.Enumerable2otString(areturnValue)
                             End If
                             Me.IsLoading = False
                         Catch ex As Exception
+                            row.SetColumnError(aColumnname, ex.Message)
                             CoreMessageHandler(exception:=ex, subname:="ormModelTable.UpdateObject")
                             Me.IsLoading = False
                         End Try
@@ -562,49 +646,78 @@ Namespace OnTrack.UI
                         Next
                         ''' create object and set all the data we have
                         Dim anObject As iormPersistable = ormDataObject.CreateDataObject(pkArray:=pkarray, type:=Type.GetType(anObjectdefinition.Classname))
+                        If anObject Is Nothing Then anObject = ormDataObject.Retrieve(pkArray:=pkarray, type:=Type.GetType(anObjectdefinition.Classname))
+                        If anObject Is Nothing Then
+                            RaiseEvent ObjectCreateFailed(Me, New ormModelTable.EventArgs(message:="Object could not be created with keys '" & Converter.Array2StringList(pkarray) & "'"))
+                            row.RowError = "Object could not be created with keys '" & Converter.Array2StringList(pkarray) & "'"
+                            Return False
+                        End If
+
+                        row.ClearErrors()
+                        Me.trackMessageLog.Clear()
+
+                        ''' set values
                         For Each aColumn As DataColumn In row.Table.Columns
                             If Not pknames.Contains(aColumn.ColumnName) AndAlso anObjectdefinition.HasEntry(aColumn.ColumnName) Then
                                 Dim aValue As Object = row.Item(aColumn.ColumnName)
-                                Dim aDefaultValue = anObject.GetValue(aColumn.ColumnName)
+                                If aValue IsNot Nothing AndAlso Not DBNull.Value.Equals(aValue) Then aValue = anObject.GetValue(aColumn.ColumnName)
+                                'If aValue IsNot Nothing AndAlso Not DBNull.Value.Equals(aValue) Then aValue = anObject.getdefaultValue(aColumn.ColumnName)
+
                                 ''' set initial values
                                 If aValue IsNot Nothing AndAlso Not DBNull.Value.Equals(aValue) Then
-                                    If Not anObject.SetValue(aColumn.ColumnName, aValue) Then
-                                        RaiseEvent ObjectCreateFailed(Me, New ormModelTable.EventArgs(row:=row, [object]:=anObject))
+                                    '** add own handler to catch messages
+                                    AddHandler DirectCast(anObject, iormLoggable).ObjectMessageLog.OnObjectMessageAdded, AddressOf OnObjectMessageAdded
+                                    ''' set
+                                    Dim result = anObject.SetValue(entryname:=aColumn.ColumnName, value:=aValue)
+
+                                    '** add own handler to catch messages
+                                    RemoveHandler DirectCast(anObject, iormLoggable).ObjectMessageLog.OnObjectMessageAdded, AddressOf OnObjectMessageAdded
+
+                                    If Not result Then
+                                        row.SetColumnError(aColumn.ColumnName, Me.trackMessageLog.MessageText)
+                                        RaiseEvent ObjectCreateFailed(Me, New ormModelTable.EventArgs(row:=row, [object]:=anObject, msglog:=Me.trackMessageLog))
                                         Me.IsLoading = False
                                         Exit Function
                                     Else
                                         Try
                                             Me.IsLoading = True
-                                            row.Item(aColumn.ColumnName) = anObject.GetValue(entryname:=aColumn.ColumnName) '' maybe the object is slightly changed
+                                            aValue = anObject.GetValue(entryname:=aColumn.ColumnName)
+                                            If aValue Is Nothing Then
+                                                row.Item(aColumn.ColumnName) = DBNull.Value
+                                            ElseIf (aValue.GetType.IsValueType OrElse aValue.GetType.Equals(GetType(String))) AndAlso Not aValue.GetType.IsArray Then
+                                                row.Item(aColumn.ColumnName) = CTypeDynamic(aValue, Me.Columns.Item(aColumn.ColumnName).DataType)
+                                            ElseIf Not DBNull.Value.Equals(aValue) Then
+                                                row.Item(aColumn.ColumnName) = Converter.Enumerable2otString(aValue)
+                                            End If
+
                                             Me.IsLoading = False
+
                                         Catch ex As Exception
+                                            row.SetColumnError(aColumn.ColumnName, ex.Message)
                                             CoreMessageHandler(exception:=ex, subname:="ormModelTable.UpdateObject")
                                             Me.IsLoading = False
                                         End Try
                                     End If
-                                ElseIf aDefaultValue IsNot Nothing Then
-                                    Try
-                                        Me.IsLoading = True
-                                        row.Item(aColumn.ColumnName) = aDefaultValue
-                                        Me.IsLoading = False
-                                    Catch ex As Exception
-                                        CoreMessageHandler(exception:=ex, subname:="ormModelTable.UpdateObject")
-                                        Me.IsLoading = False
-                                    End Try
+                                
                                 End If
                             End If
                         Next
+
+
                         Dim i As ULong
                         If _queriedenumeration.AddObject(anObject, i) Then
                             row.Item(Me.constQRYRowReference) = i
                         End If
                         Me.IsLoading = False
+
                         If Not anObject.Persist() Then
+                            row.RowError = "persist failed"
                             RaiseEvent ObjectCreateFailed(Me, New ormModelTable.EventArgs(row:=row, [object]:=anObject))
                             Me.IsLoading = False
                             Exit Function
                         End If
 
+                        Return True
                     Catch ex As Exception
                         RaiseEvent ObjectCreateFailed(Me, New ormModelTable.EventArgs(row:=row, exception:=ex))
                         Me.IsLoading = False
@@ -613,14 +726,7 @@ Namespace OnTrack.UI
                 End If
             End If
         End Function
-        ''' <summary>
-        ''' Event handler for the TableNewRow Event (provides empty row)
-        ''' </summary>
-        ''' <param name="sender"></param>
-        ''' <param name="e"></param>
-        ''' <remarks></remarks>
-        Public Sub OnNewRowAdded(sender As Object, e As DataTableNewRowEventArgs) Handles Me.TableNewRow
-        End Sub
+      
 
     End Class
 End Namespace

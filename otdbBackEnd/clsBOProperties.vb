@@ -2840,7 +2840,7 @@ Namespace OnTrack.ObjectProperties
                 Return True
             End If
 
-            CoreMessageHandler("set '" & setid & "' is not attached to this property value lot", arg1:=Converter.Array2StringList(Me.PrimaryKeyValues), _
+            CoreMessageHandler("set '" & setid & "' is not attached to this property value lot", arg1:=Converter.Array2StringList(Me.ObjectPrimaryKeyValues), _
                                objectname:=Me.ObjectID, messagetype:=otCoreMessageType.InternalError, subname:="AddPropertyValue")
             Return False
         End Function
@@ -3025,19 +3025,25 @@ Namespace OnTrack.ObjectProperties
 
                 For Each aPropertySetName As String In Me.PropertySetIDs
                     Dim anupdc As Long = CLng(Me.Setsupdc(Array.IndexOf(Me.PropertySetIDs, aPropertySetName)))
-                    Dim aPropertyset As ObjectPropertySet = ObjectPropertySet.Retrieve(aPropertySetName, anupdc)
-                    For Each aProperty As ObjectProperty In aPropertyset.Properties
-                        If Not Me.Values.ContainsKey(aProperty.ID) Then
-                            Me.AddPropertyValue(setid:=aPropertySetName, propertyid:=aProperty.ID)
-                        End If
-                    Next
+                    Dim aPropertyset As ObjectPropertySet = ObjectPropertySet.Retrieve(aPropertySetName, anupdc, domainid:=Me.DomainID)
+                    If aPropertyset Is Nothing Then
+                        CoreMessageHandler("property set could not be retrieved", dataobject:=Me, arg1:=aPropertySetName, domainid:=Me.DomainID, _
+                                           subname:="ObjectPropertyValueLot.OnRelationLoad", messagetype:=otCoreMessageType.InternalWarning)
+                    Else
+                        For Each aProperty As ObjectProperty In aPropertyset.Properties
+                            If Not Me.Values.ContainsKey(aProperty.ID) Then
+                                Me.AddPropertyValue(setid:=aPropertySetName, propertyid:=aProperty.ID)
+                            End If
+                        Next
+                    End If
+                   
                 Next
 
                 ''' counter check do we have a value which is not in a set (or deleted)
                 ''' 
                 For Each aPropertyValue In Me.Values
-                    Dim aPropertyset As ObjectPropertySet = ObjectPropertySet.Retrieve(aPropertyValue.SetID, aPropertyValue.Setupdc)
-                    If Not aPropertyset.Properties.ContainsKey(aPropertyValue.PropertyID) Then
+                    Dim aPropertyset As ObjectPropertySet = ObjectPropertySet.Retrieve(aPropertyValue.SetID, aPropertyValue.Setupdc, domainid:=Me.DomainID)
+                    If aPropertyset IsNot Nothing AndAlso Not aPropertyset.Properties.ContainsKey(aPropertyValue.PropertyID) Then
                         aPropertyValue.Delete() 'delete it
                     End If
                 Next
@@ -3071,7 +3077,7 @@ Namespace OnTrack.ObjectProperties
                     End If
 
                 Else
-                    CoreMessageHandler("updc for property set is not stored", arg1:=Converter.Array2StringList(Me.PrimaryKeyValues), _
+                    CoreMessageHandler("updc for property set is not stored", arg1:=Converter.Array2StringList(Me.ObjectPrimaryKeyValues), _
                                        objectname:=Me.ObjectID, entryname:=ConstFNSetUPDCs)
                 End If
             Next

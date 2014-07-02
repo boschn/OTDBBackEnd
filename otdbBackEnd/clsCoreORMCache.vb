@@ -1264,7 +1264,7 @@ Namespace OnTrack.Database
                     Dim aDataObject As iormPersistable = TryCast(aBucket.Object, ormDataObject)
                     If aDataObject IsNot Nothing AndAlso aDataObject.GUID <> e.DataObject.Guid Then
                         CoreMessageHandler(message:="Dataobject was retrieved which was already in cache but under another guid", subname:="ormObjectCacheManager.OnRetrievedDataObject", objectname:=e.DataObject.ObjectID, _
-                                           messagetype:=otCoreMessageType.InternalWarning, arg1:=Converter.Array2otString(e.DataObject.PrimaryKeyValues))
+                                           messagetype:=otCoreMessageType.InternalWarning, arg1:=Converter.Array2otString(e.DataObject.ObjectPrimaryKeyValues))
                         e.Result = False ' do nothing in the case
                         e.AbortOperation = False
                     Else

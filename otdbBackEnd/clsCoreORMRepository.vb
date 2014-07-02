@@ -5283,9 +5283,9 @@ Namespace OnTrack.Database
         <ormEntryMapping(EntryName:=ConstFNIsNullable)> Protected _isnullable As Boolean
         <ormEntryMapping(EntryName:=ConstFNDefaultValue)> Protected _defaultvalue As Object
         <ormEntryMapping(EntryName:=ConstFNEntryName)> Protected _entryname As String = ""
-        <ormEntryMapping(EntryName:=ConstFNRelation)> Protected _Relation As String()
+        <ormEntryMapping(EntryName:=ConstFNRelation)> Protected _Relation As String() = {}
         <ormEntryMapping(EntryName:=ConstFNProperties)> Protected _propertystrings() As String
-        <ormEntryMapping(EntryName:=ConstFNalias)> Protected _aliases As String()
+        <ormEntryMapping(EntryName:=ConstFNalias)> Protected _aliases As String() = {}
         <ormEntryMapping(EntryName:=ConstFNTitle)> Protected _title As String
         <ormEntryMapping(EntryName:=ConstFNUPDC)> Protected _version As Long = 0
         <ormEntryMapping(EntryName:=ConstFNDescription)> Protected _Description As String
@@ -5323,7 +5323,7 @@ Namespace OnTrack.Database
         Private _runTimeOnly As Boolean = False 'dynmaic
         Private _validateProperties As New List(Of ObjectValidationProperty)
         Private _lookupProperties As New List(Of LookupProperty)
-        'Protected _objectDefintion As ObjectDefinition leads to loops if loaded on infused
+        Protected _myobjectDefintion As ObjectDefinition 'leads to loops if loaded on infused
 
         ''' <summary>
         ''' constructor
@@ -5958,7 +5958,6 @@ Namespace OnTrack.Database
         ''' <remarks></remarks>
         Public Property Aliases() As String() Implements iormObjectEntry.Aliases
             Get
-                If _aliases Is Nothing Then Return {}
                 Return _aliases
             End Get
             Set(value As String())
@@ -6061,6 +6060,17 @@ Namespace OnTrack.Database
         Public Function IncVersion() As Long
             _version = _version + 1
             IncVersion = _version
+        End Function
+        ''' <summary>
+        ''' returns the ObjectDefintion of this Entry
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function GetObjectDefinition() As ObjectDefinition Implements iormObjectEntry.GetObjectDefinition
+            If _myobjectDefintion Is Nothing Then
+                _myobjectDefintion = CurrentSession.Objects.GetObject(objectid:=Me.Objectname)
+            End If
+            Return _myobjectDefintion
         End Function
         ''' <summary>
         ''' set the properties of an ObjectEntryDefinition by a SchemaColumnAttribute

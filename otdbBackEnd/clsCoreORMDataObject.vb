@@ -512,7 +512,7 @@ Namespace OnTrack.Database
 
 
             Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="ormDataObject.GetCompoundValue", objectname:=Me.ObjectID, arg1:=Me.PrimaryKeyValues, entryname:=entryname, tablename:=Me.PrimaryTableID)
+                CoreMessageHandler(exception:=ex, subname:="ormDataObject.GetCompoundValue", objectname:=Me.ObjectID, arg1:=Me.ObjectPrimaryKeyValues, entryname:=entryname, tablename:=Me.PrimaryTableID)
                 Return Nothing
             End Try
         End Function
@@ -1573,7 +1573,7 @@ Namespace OnTrack.Database
                 _IsDeleted = False
 
                 '** fire event
-                Dim ourEventArgs As New ormDataObjectEventArgs(Me, record:=Me.Record, pkarray:=Me.PrimaryKeyValues, _
+                Dim ourEventArgs As New ormDataObjectEventArgs(Me, record:=Me.Record, pkarray:=Me.ObjectPrimaryKeyValues, _
                                                                timestamp:=timestamp, usecache:=Me.UseCache, domainID:=DomainID, _
                                                                domainBehavior:=Me.ObjectHasDomainBehavior, runtimeOnly:=Me.RunTimeOnly)
                 RaiseEvent ClassOnPersisting(Me, ourEventArgs)
@@ -1598,7 +1598,7 @@ Namespace OnTrack.Database
                     ''' Failed ?!
                     ''' 
                     CoreMessageHandler(message:="persist operation rejected due to failing validation", messagetype:=otCoreMessageType.ApplicationWarning, _
-                                        subname:="ormDataObject.Persist", arg1:=Converter.Array2StringList(Me.PrimaryKeyValues), objectname:=Me.ObjectID, _
+                                        subname:="ormDataObject.Persist", arg1:=Converter.Array2StringList(Me.ObjectPrimaryKeyValues), objectname:=Me.ObjectID, _
                                         msglog:=Me.ObjectMessageLog)
 
                     ''' return
@@ -1648,7 +1648,7 @@ Namespace OnTrack.Database
 
 
                 '** fire event
-                ourEventArgs = New ormDataObjectEventArgs(Me, record:=Me.Record, pkarray:=Me.PrimaryKeyValues, _
+                ourEventArgs = New ormDataObjectEventArgs(Me, record:=Me.Record, pkarray:=Me.ObjectPrimaryKeyValues, _
                                                                timestamp:=timestamp, usecache:=Me.UseCache, domainID:=DomainID, _
                                                                domainBehavior:=Me.ObjectHasDomainBehavior, runtimeOnly:=Me.RunTimeOnly)
                 RaiseEvent OnPersisted(Me, ourEventArgs)
@@ -2622,7 +2622,7 @@ Namespace OnTrack.Database
             End If
 
             '* fire event
-            Dim ourEventArgs As New ormDataObjectEventArgs(Me, record:=Me.Record, pkarray:=Me.PrimaryKeyValues, runtimeOnly:=Me.RunTimeOnly)
+            Dim ourEventArgs As New ormDataObjectEventArgs(Me, record:=Me.Record, pkarray:=Me.ObjectPrimaryKeyValues, runtimeOnly:=Me.RunTimeOnly)
             RaiseEvent OnUnDeleting(Me, ourEventArgs)
             If ourEventArgs.AbortOperation Then
                 Return ourEventArgs.Result
@@ -2689,7 +2689,7 @@ Namespace OnTrack.Database
             End If
 
             '** Fire Event
-            Dim ourEventArgs As New ormDataObjectEventArgs(Me, record:=Me.Record, pkarray:=Me.PrimaryKeyValues, _
+            Dim ourEventArgs As New ormDataObjectEventArgs(Me, record:=Me.Record, pkarray:=Me.ObjectPrimaryKeyValues, _
                                                            usecache:=Me.UseCache, runtimeOnly:=Me.RunTimeOnly, timestamp:=timestamp)
             RaiseEvent ClassOnDeleting(Me, ourEventArgs)
             RaiseEvent OnDeleting(Me, ourEventArgs)
@@ -2727,7 +2727,7 @@ Namespace OnTrack.Database
                 Return _IsDeleted
             Else
                 CoreMessageHandler("object could not delete  cascaded objected", subname:="ormDataObject.Delete", objectname:=Me.ObjectID, _
-                                   arg1:=Converter.Array2StringList(Me.PrimaryKeyValues))
+                                   arg1:=Converter.Array2StringList(Me.ObjectPrimaryKeyValues))
                 Return False
             End If
 
@@ -2952,7 +2952,7 @@ Namespace OnTrack.Database
             If record Is Nothing Then record = Me.Record
 
             '** Fire Class Event
-            Dim ourEventArgs As New ormDataObjectEventArgs(Me, record:=record, pkarray:=Me.PrimaryKeyValues, usecache:=Me.UseCache)
+            Dim ourEventArgs As New ormDataObjectEventArgs(Me, record:=record, pkarray:=Me.ObjectPrimaryKeyValues, usecache:=Me.UseCache)
             RaiseEvent ClassOnFeeding(Nothing, ourEventArgs)
             If ourEventArgs.AbortOperation Then
                 Return ourEventArgs.Result

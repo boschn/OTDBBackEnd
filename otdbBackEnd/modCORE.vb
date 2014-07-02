@@ -1573,7 +1573,7 @@ Namespace OnTrack
                 If dataobject IsNot Nothing Then
                     If String.IsNullOrWhiteSpace(objectname) Then objectname = dataobject.ObjectID
                     If String.IsNullOrWhiteSpace(tablename) Then tablename = dataobject.primaryTableID
-                    If tagvalues Is Nothing Then tagvalues = dataobject.PrimaryKeyValues
+                    If tagvalues Is Nothing Then tagvalues = dataobject.ObjectPrimaryKeyValues
                     If String.IsNullOrWhiteSpace(domainid) AndAlso dataobject.ObjectHasDomainBehavior Then domainid = dataobject.DomainID
                 End If
 

@@ -2033,7 +2033,7 @@ Namespace OnTrack.Database
         ''' <param name="runtimeOnly"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Private Function CheckUniqueness(pkarray As Object(), record As ormRecord, Optional runtimeOnly As Boolean = False) As Boolean
+        Protected Function CheckUniqueness(pkarray As Object(), record As ormRecord, Optional runtimeOnly As Boolean = False) As Boolean
 
             '*** Check on Not Runtime
             If Not runtimeOnly OrElse Me.UseCache Then

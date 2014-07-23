@@ -1662,7 +1662,7 @@ Namespace OnTrack.Scheduling
                 Return _lifecylcestatus
             End Get
             Set(value As StatusItem)
-              
+
                 If value IsNot Nothing AndAlso value.TypeID = ConstStatusType_ScheduleLifecycle Then
                     Me.LifeCycleStatusCode = value.Code
                     _lifecylcestatus = value
@@ -3713,7 +3713,7 @@ Namespace OnTrack.Scheduling
             End Try
         End Function
 
-      
+
     End Class
 
     ''' <summary>
@@ -3903,7 +3903,7 @@ Namespace OnTrack.Scheduling
                     _schedulemilestonedefinition = _
                         Scheduling.ScheduleMilestoneDefinition.Retrieve(Me.ScheduleEdition.Typeid, ID:=Me.ID, domainID:=Me.DomainID)
                 End If
-              Return Me._schedulemilestonedefinition
+                Return Me._schedulemilestonedefinition
             End Get
 
         End Property

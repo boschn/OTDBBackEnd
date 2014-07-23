@@ -2202,7 +2202,7 @@ Namespace OnTrack.Deliverables
 
             Try
                 With Me
-                   
+
                     ''' target
                     ''' 
                     .TargetRevision = Me.Target.Revision
@@ -3674,7 +3674,7 @@ Namespace OnTrack.Deliverables
                         CoreMessageHandler("workspace schedule could not be created", subname:="Deliverable.OnRelationCreateNeeded", _
                                             dataobject:=Me, messagetype:=otCoreMessageType.InternalError)
                     End If
-                   
+
                 Else
                     '' try to retrieve if there is already a link for some reasons
                     Dim aSchedule As WorkspaceSchedule = WorkspaceSchedule.Retrieve(UID:=aScheduleLink.ToUid, workspaceID:=aWorkspaceID)
@@ -3691,71 +3691,71 @@ Namespace OnTrack.Deliverables
                 End If
 
 
-                    ''' Workspace Targets
-                    ''' 
-                ElseIf e.RelationID = ConstRWorkspaceTarget Then
-                    Dim myself As Deliverable = TryCast(e.DataObject, Deliverable)
-                    ''' create the full path
-                    Dim needsTarget As Boolean?
-                    Dim defaultTargetOUT As String
-                    If myself.DeliverableType IsNot Nothing Then
-                        needsTarget = myself.DeliverableType.MustHaveTarget
-                        defaultTargetOUT = myself.DeliverableType.DefaultTargetOU
-                    End If
+                ''' Workspace Targets
+                ''' 
+            ElseIf e.RelationID = ConstRWorkspaceTarget Then
+                Dim myself As Deliverable = TryCast(e.DataObject, Deliverable)
+                ''' create the full path
+                Dim needsTarget As Boolean?
+                Dim defaultTargetOUT As String
+                If myself.DeliverableType IsNot Nothing Then
+                    needsTarget = myself.DeliverableType.MustHaveTarget
+                    defaultTargetOUT = myself.DeliverableType.DefaultTargetOU
+                End If
 
                 ''' always gives the current workspace
                 ''' 
-               
+
                 Dim aWorkspaceTarget As WorkspaceTarget = Deliverables.WorkspaceTarget.Create(uid:=Me.Uid, domainid:=Me.DomainID)
 
-                    If aWorkspaceTarget Is Nothing Then aWorkspaceTarget = Deliverables.WorkspaceTarget.Retrieve(uid:=Me.Uid)
-                    If aWorkspaceTarget IsNot Nothing AndAlso myself.DeliverableType IsNot Nothing Then
-                        If aWorkspaceTarget.Target IsNot Nothing Then
-                            aWorkspaceTarget.Target.ResponsibleOU = defaultTargetOUT
-                            If needsTarget = False Then
-                                aWorkspaceTarget.Target.NotargetByItention = True
-                                aWorkspaceTarget.Target.Target = Nothing
-                            End If
-
+                If aWorkspaceTarget Is Nothing Then aWorkspaceTarget = Deliverables.WorkspaceTarget.Retrieve(uid:=Me.Uid)
+                If aWorkspaceTarget IsNot Nothing AndAlso myself.DeliverableType IsNot Nothing Then
+                    If aWorkspaceTarget.Target IsNot Nothing Then
+                        aWorkspaceTarget.Target.ResponsibleOU = defaultTargetOUT
+                        If needsTarget = False Then
+                            aWorkspaceTarget.Target.NotargetByItention = True
+                            aWorkspaceTarget.Target.Target = Nothing
                         End If
-                        ' done in the workspace target create relation handler event
-                        'Dim aTarget As Target = Target.Create(uid:=Me.Uid)
-                        'If aTarget IsNot Nothing Then
-                        'aWorkspaceTarget.UPDC = aTarget.UPDC
-                        '    If Not needsTarget Then aTarget.NotargetByItention = True
-                        '    aTarget.ResponsibleOU = defaultTargetOUT
-                        'End If
-                        e.RelationObjects.Add(aWorkspaceTarget)
-                        e.Finished = True
+
                     End If
-
-                ElseIf e.RelationID = ConstRTrack Then
-                    Throw New NotImplementedException
-
-                    If Me.GetRelationStatus(ConstRScheduleLink) = DataObjectRelationMgr.RelationStatus.Unloaded Then InfuseRelation(ConstRScheduleLink)
-                    If Me.GetRelationStatus(ConstRWorkspaceTarget) = DataObjectRelationMgr.RelationStatus.Unloaded Then InfuseRelation(ConstRWorkspaceTarget)
-
-                    Dim aSchedule = Me.GetWorkspaceSchedule()
-                    Dim aScheduleUPDC As Long?
-                    If aSchedule IsNot Nothing Then
-                        If aSchedule.AliveEditionUpdc.HasValue Then
-                            aScheduleUPDC = aSchedule.AliveEditionUpdc
-                        ElseIf aSchedule.WorkingEditionUpdc.HasValue Then
-                            aScheduleUPDC = aSchedule.WorkingEditionUpdc
-                        End If
-
-                        Dim aTarget = Me.GetWorkingTarget()
-
-                        If aScheduleUPDC.HasValue AndAlso aTarget IsNot Nothing Then
-                            Dim aTrack As Track = Track.Create(deliverableUID:=Me.Uid, scheduleUID:=aSchedule.UID, scheduleUPDC:=aSchedule.WorkingEditionUpdc, targetUPDC:=aTarget.UPDC, domainid:=Me.DomainID)
-                            Dim aCollection = Deliverables.Track.AllByDeliverable(deliverableUID:=Me.Uid)
-                            e.RelationObjects.AddRange(aCollection)
-                        End If
-
-                        e.Finished = True
-                    End If
-
+                    ' done in the workspace target create relation handler event
+                    'Dim aTarget As Target = Target.Create(uid:=Me.Uid)
+                    'If aTarget IsNot Nothing Then
+                    'aWorkspaceTarget.UPDC = aTarget.UPDC
+                    '    If Not needsTarget Then aTarget.NotargetByItention = True
+                    '    aTarget.ResponsibleOU = defaultTargetOUT
+                    'End If
+                    e.RelationObjects.Add(aWorkspaceTarget)
+                    e.Finished = True
                 End If
+
+            ElseIf e.RelationID = ConstRTrack Then
+                Throw New NotImplementedException
+
+                If Me.GetRelationStatus(ConstRScheduleLink) = DataObjectRelationMgr.RelationStatus.Unloaded Then InfuseRelation(ConstRScheduleLink)
+                If Me.GetRelationStatus(ConstRWorkspaceTarget) = DataObjectRelationMgr.RelationStatus.Unloaded Then InfuseRelation(ConstRWorkspaceTarget)
+
+                Dim aSchedule = Me.GetWorkspaceSchedule()
+                Dim aScheduleUPDC As Long?
+                If aSchedule IsNot Nothing Then
+                    If aSchedule.AliveEditionUpdc.HasValue Then
+                        aScheduleUPDC = aSchedule.AliveEditionUpdc
+                    ElseIf aSchedule.WorkingEditionUpdc.HasValue Then
+                        aScheduleUPDC = aSchedule.WorkingEditionUpdc
+                    End If
+
+                    Dim aTarget = Me.GetWorkingTarget()
+
+                    If aScheduleUPDC.HasValue AndAlso aTarget IsNot Nothing Then
+                        Dim aTrack As Track = Track.Create(deliverableUID:=Me.Uid, scheduleUID:=aSchedule.UID, scheduleUPDC:=aSchedule.WorkingEditionUpdc, targetUPDC:=aTarget.UPDC, domainid:=Me.DomainID)
+                        Dim aCollection = Deliverables.Track.AllByDeliverable(deliverableUID:=Me.Uid)
+                        e.RelationObjects.AddRange(aCollection)
+                    End If
+
+                    e.Finished = True
+                End If
+
+            End If
 
 
         End Sub

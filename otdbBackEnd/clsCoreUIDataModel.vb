@@ -698,7 +698,7 @@ Namespace OnTrack.UI
                                             Me.IsLoading = False
                                         End Try
                                     End If
-                                
+
                                 End If
                             End If
                         Next

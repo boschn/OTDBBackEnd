@@ -3866,8 +3866,8 @@ Namespace OnTrack.Commons
         Public Overloads Shared Function Retrieve(ByVal id As String, Optional domainid As String = Nothing, Optional forcereload As Boolean = False) As Site
             Return Retrieve(Of Site)(pkArray:={UCase(id), domainid}, domainID:=domainid, forceReload:=forcereload)
         End Function
-       
-       
+
+
         ''' <summary>
         ''' returns a collection of all objects
         ''' </summary>

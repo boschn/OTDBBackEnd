@@ -2025,7 +2025,7 @@ Namespace OnTrack.Database
                          title:="Properties", description:="properties of the index")> Public Const ConstFNProperties = "properties"
 
         <ormObjectEntry(Datatype:=otDataType.Text, size:=100, defaultvalue:="", properties:={ObjectEntryProperty.Keyword}, _
-                         title:="Database Id", description:="id of the index in the database")> Public Const ConstFNDatabaseID = "dbid"
+                         title:="Database Id", description:="id of the index in the database")> Public Const ConstFNNativeIndexName = "dbid"
 
         <ormObjectEntry(defaultvalue:=False, dbdefaultvalue:="0", Datatype:=otDataType.Bool, _
                                   title:="IsUnique", Description:="set if the index is unique")> Public Const ConstFNIsUnique As String = "ISUNIQUE"
@@ -2042,7 +2042,7 @@ Namespace OnTrack.Database
         <ormEntryMapping(entryname:=ConstFNIsUnique)> Private _isUnique As Boolean = False
         <ormEntryMapping(entryname:=ConstFNUPDC)> Private _Version As Long = 0
         <ormEntryMapping(entryname:=ConstFNProperties)> Private _properties As String() = {}
-        <ormEntryMapping(entryname:=ConstFNDatabaseID)> Private _dbid As String = ""
+        <ormEntryMapping(entryname:=ConstFNNativeIndexName)> Private _nativeIndexname As String = ""
         ''' <summary>
         ''' Constructor
         ''' </summary>
@@ -2118,15 +2118,15 @@ Namespace OnTrack.Database
             End Set
         End Property
         ''' <summary>
-        ''' Gets or sets the description.
+        ''' Gets or sets the native name.
         ''' </summary>
         ''' <value>The description.</value>
-        Public Property DatabaseID() As String
+        Public Property NativeIndexname() As String
             Get
-                Return Me._dbid
+                Return Me._nativeIndexname
             End Get
             Set(value As String)
-                SetValue(entryname:=ConstFNDatabaseID, value:=value)
+                SetValue(entryname:=ConstFNNativeIndexName, value:=value)
             End Set
 
         End Property
@@ -2223,7 +2223,7 @@ Namespace OnTrack.Database
         ''' </summary>
         ''' <remarks></remarks>
         Public Sub OnPersisting() Handles MyBase.OnPersisting
-            If DatabaseID = "" Then Me.DatabaseID = Me.Name
+            If nativeIndexname = "" Then Me.nativeIndexname = Me.Name
         End Sub
     End Class
 
@@ -4963,10 +4963,10 @@ Namespace OnTrack.Database
                                                                 objecttransactions:={anObjectID & "." & ConstOPInject}) Then
                 '** request authorizartion
                 If Not CurrentSession.RequestUserAccess(accessRequest:=otAccessRight.ReadOnly, domainid:=domainid, _
-                                                                            username:=CurrentSession.Username, _
+                                                                            username:=CurrentSession.CurrentUsername, _
                                                                             objecttransactions:={anObjectID & "." & ConstOPInject}) Then
                     Call CoreMessageHandler(message:="data object cannot be retrieved - permission denied to user", _
-                                            objectname:=anObjectID, arg1:=ConstOPInject, username:=CurrentSession.Username, _
+                                            objectname:=anObjectID, arg1:=ConstOPInject, username:=CurrentSession.CurrentUsername, _
                                             subname:="ObjectDefinition.GetQuery", messagetype:=otCoreMessageType.ApplicationError)
                     Return Nothing
                 End If

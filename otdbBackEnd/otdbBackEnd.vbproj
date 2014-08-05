@@ -105,6 +105,7 @@
     <Compile Include="clsADOMSSQL.vb" />
     <Compile Include="clsADONET.vb" />
     <Compile Include="clsADOOLEDB.vb" />
+    <Compile Include="clsBOLinks.vb" />
     <Compile Include="clsBOProperties.vb" />
     <Compile Include="clsCoreORMDataObjectEvents.vb" />
     <Compile Include="clsCoreORMDataObjectProperties.vb" />

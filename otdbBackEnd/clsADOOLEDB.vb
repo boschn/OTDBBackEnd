@@ -11,8 +11,6 @@ REM *********** Change Log:
 REM ***********
 REM *********** (C) by Boris Schneider 2013
 REM ***********************************************************************************************************************************************''' <summary>
-
-  
 Option Explicit On
 
 Imports System.Collections
@@ -85,45 +83,36 @@ Namespace OnTrack.Database
                 ' Create the commands.
                 '**** INSERT
                 .InsertCommand = New OleDbCommand( _
-                "INSERT INTO " & _parametersTableName & " (ID, [Value], changedOn, description) " & _
-                "VALUES (?, ?, ?, ?)")
+                    String.Format("INSERT INTO  [{0}] ([{1}], [{2}] , [{3}] , [{4}], [{5}])  VALUES (?,?,?,?,?) ", _
+                    GetNativeTablename(_parametersTableName), ConstFNSetupID, ConstFNID, ConstFNValue, ConstFNChangedOn, constFNDescription))
                 ' Create the parameters.
-                .InsertCommand.Parameters.Add( _
-                "@ID", OleDbType.Char, 50, "ID")
-                .InsertCommand.Parameters.Add( _
-                "@Value", OleDbType.VarChar, 250, "Value")
-                .InsertCommand.Parameters.Add( _
-                "@changedOn", OleDbType.VarChar, 50, "changedOn")
-                .InsertCommand.Parameters.Add( _
-                "@description", OleDbType.VarChar, 250, "description")
+                .InsertCommand.Parameters.Add("@SETUPID", OleDbType.Char, 50, ConstFNSetupID)
+                .InsertCommand.Parameters.Add("@ID", OleDbType.Char, 50, ConstFNID)
+                .InsertCommand.Parameters.Add("@Value", OleDbType.VarChar, 250, ConstFNValue)
+                .InsertCommand.Parameters.Add("@changedOn", OleDbType.VarChar, 50, ConstFNChangedOn)
+                .InsertCommand.Parameters.Add("@description", OleDbType.VarChar, 250, constFNDescription)
                 .InsertCommand.Connection = DirectCast(_primaryConnection.NativeInternalConnection, System.Data.OleDb.OleDbConnection)
                 .InsertCommand.Prepare()
 
 
                 '**** UPDATE
                 .UpdateCommand = New OleDbCommand( _
-                "UPDATE " & _parametersTableName & " SET [Value] = ? , changedOn = ? , description =?  " & _
-                "WHERE ID = ?")
+                    String.Format("UPDATE [{0}] SET [{1}] = ? , [{2}] = ? , [{3}] = ? WHERE [{4}] = ? AND [{5}] = ?", _
+                              GetNativeTablename(_parametersTableName), ConstFNValue, ConstFNChangedOn, constFNDescription, ConstFNID, ConstFNSetupID))
                 ' Create the parameters.
-                .UpdateCommand.Parameters.Add( _
-                "@Value", OleDbType.VarChar, 250, "Value")
-                .UpdateCommand.Parameters.Add( _
-                "@changedOn", OleDbType.VarChar, 50, "changedOn")
-                .UpdateCommand.Parameters.Add( _
-                "@description", OleDbType.VarChar, 250, "description")
-                .UpdateCommand.Parameters.Add( _
-                "@ID", OleDbType.Char, 50, "ID").SourceVersion = _
-                    DataRowVersion.Original
+                .UpdateCommand.Parameters.Add("@Value", OleDbType.VarChar, 250, ConstFNValue)
+                .UpdateCommand.Parameters.Add("@changedOn", OleDbType.VarChar, 50, ConstFNChangedOn)
+                .UpdateCommand.Parameters.Add("@description", OleDbType.VarChar, 250, constFNDescription)
+                .UpdateCommand.Parameters.Add("@ID", OleDbType.Char, 50, ConstFNID).SourceVersion = DataRowVersion.Original
+                .UpdateCommand.Parameters.Add("@setupID", OleDbType.Char, 50, ConstFNSetupID).SourceVersion = DataRowVersion.Original
                 .UpdateCommand.Connection = DirectCast(_primaryConnection.NativeInternalConnection, System.Data.OleDb.OleDbConnection)
                 .UpdateCommand.Prepare()
 
 
                 '***** DELETE
-                .DeleteCommand = New OleDbCommand( _
-                "DELETE FROM " & _parametersTableName & " WHERE ID = ?")
-                .DeleteCommand.Parameters.Add( _
-                "@ID", OleDbType.Char, 50, "ID").SourceVersion = _
-                    DataRowVersion.Original
+                .DeleteCommand = New OleDbCommand(String.Format("DELETE FROM [{0}] where [{1}] = @id AND [{2}] = @SETUPID", GetNativeTablename(_parametersTableName), ConstFNID, ConstFNSetupID))
+                .DeleteCommand.Parameters.Add("@ID", OleDbType.Char, 50, "ID").SourceVersion = DataRowVersion.Original
+                .DeleteCommand.Parameters.Add("@setupID", OleDbType.Char, 50, ConstFNSetupID).SourceVersion = DataRowVersion.Original
                 .DeleteCommand.Connection = DirectCast(_primaryConnection.NativeInternalConnection, System.Data.OleDb.OleDbConnection)
                 .DeleteCommand.Prepare()
 
@@ -181,7 +170,9 @@ Namespace OnTrack.Database
                     If Me.HasTable(_parametersTableName) Then
                         ' the command
                         Dim aDBCommand = New OleDbCommand()
-                        aDBCommand.CommandText = "select ID, [Value], changedOn, description from " & _parametersTableName
+                        aDBCommand.CommandText = String.Format("select [{0}],[{1}],[{2}],[{3}],[{4}] from [{5}] ", _
+                                                             ConstFNSetupID, ConstFNID, ConstFNValue, ConstFNChangedOn, constFNDescription, GetNativeTablename(_parametersTableName))
+
                         aDBCommand.Connection = DirectCast(_primaryConnection.NativeInternalConnection, System.Data.OleDb.OleDbConnection)
                         ' fill with adapter
                         _ParametersTableAdapter = New OleDbDataAdapter()
@@ -755,6 +746,7 @@ Namespace OnTrack.Database
             Dim myConnection As oledbConnection
             Dim aTable As DataTable
             Dim aStatement As String = ""
+            Dim nativeTablename As String = GetNativeTablename(tableid)
 
             If connection Is Nothing Then
                 myConnection = _primaryConnection
@@ -778,7 +770,7 @@ Namespace OnTrack.Database
 
 
             Try
-                Dim restrictionsTable() As String = {Nothing, Nothing, tableid}
+                Dim restrictionsTable() As String = {Nothing, Nothing, nativeTablename}
                 aTable = DirectCast(myConnection.NativeInternalConnection, System.Data.OleDb.OleDbConnection).GetSchema("COLUMNS", restrictionsTable)
 
 
@@ -786,7 +778,7 @@ Namespace OnTrack.Database
                 '**
                 If aTable.Rows.Count = 0 And createOrAlter Then
 
-                    aStatement = "CREATE TABLE " & tableid & " ( tttemp  bit )"
+                    aStatement = "CREATE TABLE " & nativeTablename & " ( tttemp  bit )"
                     Me.RunSqlStatement(aStatement, _
                                        nativeConnection:=DirectCast(myConnection.NativeInternalConnection, System.Data.OleDb.OleDbConnection))
 
@@ -805,7 +797,7 @@ Namespace OnTrack.Database
 
 
                     If columnsList.Count > 0 Then
-                        Me.RunSqlStatement(sqlcmdstr:="ALTER TABLE [" & tableid & "] DROP [tttemp]")
+                        Me.RunSqlStatement(sqlcmdstr:="ALTER TABLE [" & nativeTablename & "] DROP [tttemp]")
                     End If
                     Return aTable
                 Else
@@ -827,13 +819,24 @@ Namespace OnTrack.Database
 
         End Function
 
+        ''' <summary>
+        ''' returns a native index object or creates / alters it
+        ''' </summary>
+        ''' <param name="nativeTable"></param>
+        ''' <param name="indexdefinition"></param>
+        ''' <param name="forceCreation"></param>
+        ''' <param name="createOrAlter"></param>
+        ''' <param name="connection"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
         Public Overrides Function GetIndex(ByRef nativeTable As Object, ByRef indexdefinition As IndexDefinition, _
                                          Optional ByVal forceCreation As Boolean = False, _
                                          Optional ByVal createOrAlter As Boolean = False, _
                                           Optional ByRef connection As iormConnection = Nothing) As Object Implements iormDatabaseDriver.GetIndex
             Dim aTable As DataTable = TryCast(nativeTable, DataTable)
             Dim myconnection As oledbConnection
-            Dim atableid As String = ""
+            Dim nativeTablename As String = ""
+            Dim nativeIndexname As String
 
             '** no object ?!
             If aTable Is Nothing Then
@@ -862,7 +865,7 @@ Namespace OnTrack.Database
 
 
 
-            Dim newindexname As String = indexdefinition.Name.Clone
+            Dim newindexname As String = indexdefinition.NativeIndexname
             Dim aStatement As String = ""
             Dim anIndexTable As DataTable
             Dim existingIndex As Boolean = False
@@ -885,13 +888,13 @@ Namespace OnTrack.Database
 
                 If tableidList.Count = 0 Then
                     Call CoreMessageHandler(message:="atableid couldn't be retrieved from nativetable object", subname:="oleDBDriver.getIndex", _
-                                                 tablename:=atableid, arg1:=indexdefinition.Name, messagetype:=otCoreMessageType.InternalError)
+                                                 tablename:=nativeTablename, arg1:=indexdefinition.Name, messagetype:=otCoreMessageType.InternalError)
                     Return Nothing
                 Else
-                    atableid = tableidList(0).TableName
+                    nativeTablename = tableidList(0).TableName
                 End If
                 '** read indixes
-                Dim restrictionsIndex() As String = {Nothing, Nothing, Nothing, Nothing, atableid}
+                Dim restrictionsIndex() As String = {Nothing, Nothing, Nothing, Nothing, nativeTablename}
                 anIndexTable = DirectCast(myconnection.NativeInternalConnection, System.Data.OleDb.OleDbConnection).GetSchema("INDEXES", restrictionsIndex)
 
                 Dim columnsIndexList = From indexRow In anIndexTable.AsEnumerable _
@@ -900,17 +903,17 @@ Namespace OnTrack.Database
                                         Columnordinal = indexRow.Field(Of Int64)("ORDINAL_POSITION"), _
                                         ColumnName = indexRow.Field(Of String)("COLUMN_NAME"), _
                                         IndexisPrimaryKey = indexRow.Field(Of Boolean)("PRIMARY_KEY") _
-                                        Where [ColumnName] <> "" And TableName <> "" And Columnordinal > 0 And (theIndexName = newindexname Or theIndexName = atableid & "_" & newindexname) _
+                                        Where [ColumnName] <> "" And TableName <> "" And Columnordinal > 0 And (theIndexName = newindexname Or theIndexName = nativeTablename & "_" & newindexname) _
                                         Order By TableName, newindexname, Columnordinal, ColumnName
 
                 Dim primaryIndexList = From indexRow In anIndexTable.AsEnumerable _
-                Select TableName = indexRow.Field(Of String)("TABLE_NAME"), _
-                theIndexName = indexRow.Field(Of String)("INDEX_NAME"), _
-                Columnordinal = indexRow.Field(Of Int64)("ORDINAL_POSITION"), _
-                ColumnName = indexRow.Field(Of String)("COLUMN_NAME"), _
-                IndexisPrimaryKey = indexRow.Field(Of Boolean)("PRIMARY_KEY") _
-                Where [ColumnName] <> "" And TableName <> "" And Columnordinal > 0 And IndexisPrimaryKey = True _
-                Order By TableName, newindexname, Columnordinal, ColumnName
+                                        Select TableName = indexRow.Field(Of String)("TABLE_NAME"), _
+                                        theIndexName = indexRow.Field(Of String)("INDEX_NAME"), _
+                                        Columnordinal = indexRow.Field(Of Int64)("ORDINAL_POSITION"), _
+                                        ColumnName = indexRow.Field(Of String)("COLUMN_NAME"), _
+                                        IndexisPrimaryKey = indexRow.Field(Of Boolean)("PRIMARY_KEY") _
+                                        Where [ColumnName] <> "" And TableName <> "" And Columnordinal > 0 And IndexisPrimaryKey = True _
+                                        Order By TableName, newindexname, Columnordinal, ColumnName
 
                 If primaryIndexList.Count > 0 Then
                     existingprimaryName = primaryIndexList(0).theIndexName
@@ -965,16 +968,22 @@ Namespace OnTrack.Database
                 '** drop existing
 
                 If (isprimaryKey Or indexdefinition.IsPrimary) And existingprimaryName <> "" Then
-                    aStatement = " ALTER TABLE " & atableid & " DROP CONSTRAINT [" & existingprimaryName & "]"
+                    aStatement = " ALTER TABLE " & nativeTablename & " DROP CONSTRAINT [" & existingprimaryName & "]"
                     Me.RunSqlStatement(aStatement)
                 ElseIf existingIndex Then
                     aStatement = " DROP INDEX " & existingIndex
                     Me.RunSqlStatement(aStatement)
                 End If
 
+                ''' buiöd
+                If String.IsNullOrWhiteSpace(newindexname) Then
+                    newindexname = nativeTablename & "_" & GetNativeIndexname(indexdefinition.Name)
+                    indexdefinition.NativeIndexname = newindexname
+                End If
+
                 '*** build new
                 If indexdefinition.IsPrimary Then
-                    aStatement = " ALTER TABLE [" & atableid & "] ADD CONSTRAINT [" & atableid & "_" & indexdefinition.Name & "] PRIMARY KEY ("
+                    aStatement = " ALTER TABLE [" & nativeTablename & "] ADD CONSTRAINT [" & indexdefinition.NativeIndexname & "] PRIMARY KEY ("
                     Dim comma As Boolean = False
                     For Each name As String In indexdefinition.Columnnames
                         If comma Then aStatement &= ","
@@ -986,7 +995,7 @@ Namespace OnTrack.Database
                 Else
                     Dim UniqueStr As String = ""
                     If indexdefinition.IsUnique Then UniqueStr = "UNIQUE"
-                    aStatement = " CREATE " & UniqueStr & " INDEX [" & atableid & "_" & indexdefinition.Name & "] ON [" & atableid & "] ("
+                    aStatement = " CREATE " & UniqueStr & " INDEX [" & indexdefinition.NativeIndexname & "] ON [" & nativeTablename & "] ("
                     Dim comma As Boolean = False
                     For Each name As String In indexdefinition.Columnnames
                         If comma Then aStatement &= ","
@@ -1006,26 +1015,26 @@ Namespace OnTrack.Database
                                              Columnordinal = indexRow.Field(Of Int64)("ORDINAL_POSITION"), _
                                              ColumnName = indexRow.Field(Of String)("COLUMN_NAME"), _
                                             IndexisPrimaryKey = indexRow.Field(Of Boolean)("PRIMARY_KEY") _
-                                            Where [ColumnName] <> "" And TableName <> "" And Columnordinal > 0 And (theIndexName = newindexname Or theIndexName = atableid & "_" & newindexname) _
+                                            Where [ColumnName] <> "" And TableName <> "" And Columnordinal > 0 And (theIndexName = newindexname) _
                                             Order By TableName, newindexname, Columnordinal, ColumnName
 
                 If columnsResultIndexList.Count > 0 Then
                     Return columnsResultIndexList
                 Else
                     Call CoreMessageHandler(message:="creation of index failed", arg1:=indexdefinition.Name, _
-                                                 subname:="oleDBDriver.getIndex", tablename:=atableid, _
+                                                 subname:="oleDBDriver.getIndex", tablename:=nativeTablename, _
                                                  messagetype:=otCoreMessageType.InternalError)
                     Return Nothing
                 End If
 
             Catch ex As OleDb.OleDbException
-                Call CoreMessageHandler(showmsgbox:=True, subname:="oleDBDriver.GetIndex", arg1:=aStatement, tablename:=atableid, _
+                Call CoreMessageHandler(showmsgbox:=True, subname:="oleDBDriver.GetIndex", arg1:=aStatement, tablename:=nativeTablename, _
                                            message:="Exception", exception:=ex, messagetype:=otCoreMessageType.InternalError)
                 myconnection.IsNativeInternalLocked = False
                 Return Nothing
 
             Catch ex As Exception
-                Call CoreMessageHandler(showmsgbox:=True, subname:="oleDBDriver.GetIndex", arg1:=indexdefinition.Name, tablename:=atableid, _
+                Call CoreMessageHandler(showmsgbox:=True, subname:="oleDBDriver.GetIndex", arg1:=indexdefinition.Name, tablename:=nativeTablename, _
                                            message:="Exception", exception:=ex, messagetype:=otCoreMessageType.InternalError)
                 myconnection.IsNativeInternalLocked = False
                 Return Nothing
@@ -1044,6 +1053,7 @@ Namespace OnTrack.Database
             Dim myConnection As oledbConnection
             Dim aTable As DataTable
             Dim tableid As String = columndefinition.Tablename
+            Dim nativetablename As String = GetNativeTablename(tableid)
             Dim columnname As String = columndefinition.Name
 
             If connection Is Nothing Then
@@ -1059,7 +1069,7 @@ Namespace OnTrack.Database
                 Return Nothing
             End If
             Try
-                Dim restrictionsTable() As String = {Nothing, Nothing, tableid}
+                Dim restrictionsTable() As String = {Nothing, Nothing, nativetablename}
                 aTable = DirectCast(myConnection.NativeInternalConnection, System.Data.OleDb.OleDbConnection).GetSchema("COLUMNS", restrictionsTable)
 
 
@@ -1133,6 +1143,7 @@ Namespace OnTrack.Database
             Dim myConnection As oledbConnection
             Dim aTable As DataTable
             Dim tableid As String = columnattribute.Tablename
+            Dim nativetablename As String = GetNativeTablename(tableid)
             Dim columnname As String = columnattribute.ColumnName
 
             If connection Is Nothing Then
@@ -1148,7 +1159,7 @@ Namespace OnTrack.Database
                 Return Nothing
             End If
             Try
-                Dim restrictionsTable() As String = {Nothing, Nothing, tableid}
+                Dim restrictionsTable() As String = {Nothing, Nothing, nativetablename}
                 aTable = DirectCast(myConnection.NativeInternalConnection, System.Data.OleDb.OleDbConnection).GetSchema("COLUMNS", restrictionsTable)
 
 
@@ -1223,6 +1234,7 @@ Namespace OnTrack.Database
         Public Overrides Function HasColumn(tableid As String, columnname As String, Optional ByRef connection As iormConnection = Nothing) As Boolean
             Dim myConnection As oledbConnection
             Dim aTable As DataTable
+            Dim nativetablename As String = GetNativeTablename(tableid)
 
             If connection Is Nothing Then
                 myConnection = _primaryConnection
@@ -1238,7 +1250,7 @@ Namespace OnTrack.Database
             'End If
 
             Try
-                Dim restrictionsTable() As String = {Nothing, Nothing, tableid}
+                Dim restrictionsTable() As String = {Nothing, Nothing, nativetablename}
                 aTable = DirectCast(myConnection.NativeInternalConnection, System.Data.OleDb.OleDbConnection).GetSchema("COLUMNS", restrictionsTable)
 
                 '** select
@@ -1279,7 +1291,7 @@ Namespace OnTrack.Database
                                             Optional ByRef connection As iormConnection = Nothing) As Object Implements iormDatabaseDriver.GetColumn
 
             Dim aTable As DataTable = TryCast(nativeTable, DataTable)
-            Dim atableid As String = ""
+            Dim nativeTablename As String = ""
             Dim myConnection As oledbConnection
             Dim aStatement As String = ""
 
@@ -1341,13 +1353,13 @@ Namespace OnTrack.Database
 
                     If tableidList.Count = 0 Then
                         Call CoreMessageHandler(message:="atableid couldn't be retrieved from nativetable object", subname:="oleDBDriver.getColumn", _
-                                                     tablename:=atableid, entryname:=columndefinition.Name, messagetype:=otCoreMessageType.InternalError)
+                                                     tablename:=nativeTablename, entryname:=columndefinition.Name, messagetype:=otCoreMessageType.InternalError)
                         Return Nothing
                     Else
-                        atableid = tableidList(0).TableName
+                        nativeTablename = tableidList(0).TableName
                     End If
 
-                    aStatement = "ALTER TABLE " & atableid
+                    aStatement = "ALTER TABLE " & nativeTablename
                     If columnsList.Count = 0 Then
                         aStatement &= " ADD COLUMN "
                     ElseIf Me.DatabaseType = otDBServerType.Access Then
@@ -1396,7 +1408,7 @@ Namespace OnTrack.Database
                         Case otDataType.Time
                             aStatement &= " TIME "
                         Case Else
-                            Call CoreMessageHandler(message:="Datatype is not implemented", tablename:=atableid, entryname:=columndefinition.Name, _
+                            Call CoreMessageHandler(message:="Datatype is not implemented", tablename:=nativeTablename, entryname:=columndefinition.Name, _
                                                          subname:="oleDBDriver.getColumn", arg1:=columndefinition.Datatype.ToString, _
                                                          messagetype:=otCoreMessageType.InternalError)
                             Return Nothing
@@ -1418,14 +1430,14 @@ Namespace OnTrack.Database
 
                     '** add uniqueness
                     If columndefinition.IsUnique Then
-                        aStatement = "ALTER TABLE " & atableid & " ADD CONSTRAINT " & "C_" & atableid & "_" & columndefinition.Name & " UNIQUE (" & columndefinition.Name & ")"
+                        aStatement = "ALTER TABLE [" & nativeTablename & "] ADD CONSTRAINT " & "C_" & nativeTablename & "_" & columndefinition.Name & " UNIQUE (" & columndefinition.Name & ")"
                         '** Run it
                         Me.RunSqlStatement(aStatement, _
                                            nativeConnection:=DirectCast(myConnection.NativeInternalConnection, System.Data.OleDb.OleDbConnection))
                     End If
 
                     '** get the result
-                    Dim restrictionsTable() As String = {Nothing, Nothing, atableid}
+                    Dim restrictionsTable() As String = {Nothing, Nothing, nativeTablename}
                     aTable = DirectCast(myConnection.NativeInternalConnection, System.Data.OleDb.OleDbConnection).GetSchema("COLUMNS", restrictionsTable)
                     '** select
                     Dim columnsResultList = From columnRow In aTable.AsEnumerable _
@@ -1444,7 +1456,7 @@ Namespace OnTrack.Database
                         Return columnsResultList
                     Else
                         Call CoreMessageHandler(message:="Add Column failed", subname:="oleDBDriver", _
-                                                    tablename:=atableid, entryname:=columndefinition.Name, _
+                                                    tablename:=nativeTablename, entryname:=columndefinition.Name, _
                                                     messagetype:=otCoreMessageType.InternalError)
                         Return Nothing
                     End If
@@ -1453,11 +1465,11 @@ Namespace OnTrack.Database
                 End If
 
             Catch ex As OleDb.OleDbException
-                Call CoreMessageHandler(message:="Exception", exception:=ex, arg1:=aStatement, tablename:=atableid, entryname:=columndefinition.Name, _
+                Call CoreMessageHandler(message:="Exception", exception:=ex, arg1:=aStatement, tablename:=nativeTablename, entryname:=columndefinition.Name, _
                                      subname:="oleDBDriver.getColumn", messagetype:=otCoreMessageType.InternalError)
                 Return Nothing
             Catch ex As Exception
-                Call CoreMessageHandler(message:="Exception", exception:=ex, tablename:=atableid, entryname:=columndefinition.Name, _
+                Call CoreMessageHandler(message:="Exception", exception:=ex, tablename:=nativeTablename, entryname:=columndefinition.Name, _
                                       subname:="oleDBDriver.getColumn", messagetype:=otCoreMessageType.InternalError)
                 Return Nothing
             End Try
@@ -1477,7 +1489,9 @@ Namespace OnTrack.Database
                                                 value As Object, _
                                                 Optional ByRef nativeConnection As Object = Nothing, _
                                                 Optional updateOnly As Boolean = False, _
-                                                Optional silent As Boolean = False) As Boolean
+                                                Optional silent As Boolean = False, _
+                                                Optional SetupID As String = Nothing, _
+                                                Optional description As String = "") As Boolean
 
             Dim dataRows() As DataRow
             Dim insertFlag As Boolean = False
@@ -1500,9 +1514,10 @@ Namespace OnTrack.Database
             End If
 
             '** init driver
-            If Not Me.IsInitialized Then
-                Me.Initialize()
-            End If
+            If Not Me.IsInitialized Then Me.Initialize()
+
+            If SetupID Is Nothing Then SetupID = Me.Session.CurrentSetupID
+
             Try
                 '** on Bootstrapping in the cache
                 '** but bootstrapping mode is not sufficnt
@@ -1515,7 +1530,8 @@ Namespace OnTrack.Database
 
                 Else
                     '** diretc in the table
-                    dataRows = _ParametersTable.Select("[" & ConstFNID & "]='" & parametername & "'")
+                    Dim aSelectStr As String = String.Format("[{0}]='{1}' AND [{2}]='{3}'", ConstFNSetupID, SetupID, ConstFNID, parametername)
+                    dataRows = _ParametersTable.Select(aSelectStr)
 
                     ' not found
                     If dataRows.GetLength(0) = 0 Then
@@ -1524,7 +1540,7 @@ Namespace OnTrack.Database
                             Exit Function
                         ElseIf updateOnly And Not silent Then
                             Call CoreMessageHandler(showmsgbox:=True, _
-                                                  message:="The Parameter '" & parametername & "' was not found in the Table " & ConstParameterTableName, subname:="oleDBDriver.setdbparameter", messagetype:=otCoreMessageType.ApplicationError)
+                                                  message:="The Parameter '" & parametername & "' was not found in the Table " & ConstDBParameterTableName, subname:="oleDBDriver.setdbparameter", messagetype:=otCoreMessageType.ApplicationError)
                             Return False
                         ElseIf Not updateOnly Then
                             ReDim dataRows(0)
@@ -1537,9 +1553,11 @@ Namespace OnTrack.Database
 
                     ' value
                     'dataRows(0).BeginEdit()
+                    dataRows(0)(ConstFNSetupID) = SetupID
                     dataRows(0)(ConstFNID) = parametername
                     dataRows(0)(ConstFNValue) = CStr(value)
                     dataRows(0)(ConstFNChangedOn) = Date.Now().ToString
+                    dataRows(0)(constFNDescription) = description
                     'dataRows(0).EndEdit()
 
                     '* add to table
@@ -1575,9 +1593,10 @@ Namespace OnTrack.Database
         ''' <param name="nativeConnection">The native connection.</param>
         ''' <param name="silent">The silent.</param>
         ''' <returns></returns>
-        Public Overrides Function GetDBParameter(parameterename As String, _
+        Public Overrides Function GetDBParameter(parametername As String, _
                                                 Optional ByRef nativeConnection As Object = Nothing, _
-                                                Optional silent As Boolean = False) As Object
+                                                Optional silent As Boolean = False, _
+                                                Optional SetupID As String = Nothing) As Object
 
             Dim dataRows() As DataRow
 
@@ -1597,29 +1616,28 @@ Namespace OnTrack.Database
 
             Try
                 '** init driver
-                If Not Me.IsInitialized Then
-                    Me.Initialize()
-                End If
+                If Not Me.IsInitialized Then Me.Initialize()
+                If SetupID Is Nothing Then SetupID = Me.Session.CurrentSetupID
 
                 '** on Bootstrapping out of the cache
                 '** but bootstrapping mode is not sufficnt
                 If _BootStrapParameterCache IsNot Nothing AndAlso _ParametersTable Is Nothing Then
-                    If _BootStrapParameterCache.ContainsKey(key:=parameterename) Then
-                        Return _BootStrapParameterCache.Item(key:=parameterename)
+                    If _BootStrapParameterCache.ContainsKey(key:=parametername) Then
+                        Return _BootStrapParameterCache.Item(key:=parametername)
                     Else
                         Return Nothing
                     End If
                 Else
                     '** select row
-                    dataRows = _ParametersTable.Select("[" & ConstFNID & "]='" & parameterename & "'")
-
+                    Dim aSelectStr As String = String.Format("[{0}]='{1}' AND [{2}]='{3}'", ConstFNSetupID, SetupID, ConstFNID, parametername)
+                    dataRows = _ParametersTable.Select(aSelectStr)
                     ' not found
                     If dataRows.GetLength(0) = 0 Then
                         If silent Then
                             Return Nothing
                         ElseIf Not silent Then
                             Call CoreMessageHandler(showmsgbox:=True, _
-                                                  message:="The Parameter '" & parameterename & "' was not found in the OTDB Table " & ConstParameterTableName, subname:="oleDBDriver.setdbparameter", messagetype:=otCoreMessageType.ApplicationError)
+                                                  message:="The Parameter '" & parametername & "' was not found in the OTDB Table " & ConstDBParameterTableName, subname:="oleDBDriver.setdbparameter", messagetype:=otCoreMessageType.ApplicationError)
                             Return Nothing
 
                         End If
@@ -1632,8 +1650,8 @@ Namespace OnTrack.Database
 
                 ' Handle the error
             Catch ex As Exception
-                Call CoreMessageHandler(showmsgbox:=silent, subname:="oleDBDriver.getDBParameter", tablename:=ConstParameterTableName, _
-                                      exception:=ex, entryname:=parameterename)
+                Call CoreMessageHandler(showmsgbox:=silent, subname:="oleDBDriver.getDBParameter", tablename:=ConstDBParameterTableName, _
+                                      exception:=ex, entryname:=parametername)
                 Return Nothing
             End Try
 
@@ -1690,11 +1708,11 @@ Namespace OnTrack.Database
         ''' <param name="connection"></param>
         ''' <remarks></remarks>
         ''' <returns></returns>
-        Public Overrides Function GetView(name As String, sqlselect As String, Optional createOrAlter As Boolean = False, Optional ByRef connection As iormConnection = Nothing) As Object
+        Public Overrides Function GetView(viewid As String, sqlselect As String, Optional createOrAlter As Boolean = False, Optional ByRef connection As iormConnection = Nothing) As Object
 
             Dim myConnection As oledbConnection
             Dim theViews As DataTable
-
+            Dim nativeViewname As String = GetNativeViewname(viewid)
             Dim aStatement As String = ""
 
             If connection Is Nothing Then
@@ -1704,14 +1722,14 @@ Namespace OnTrack.Database
             End If
 
             If myConnection Is Nothing Then
-                Call CoreMessageHandler(subname:="oleDBDriver.GetView", tablename:=name, message:="No current Connection to the Database", _
+                Call CoreMessageHandler(subname:="oleDBDriver.GetView", arg1:=nativeViewname, message:="No current Connection to the Database", _
                                       messagetype:=otCoreMessageType.ApplicationError)
                 Return Nothing
             End If
             '*** check on rights
             If createOrAlter And Not CurrentSession.IsBootstrappingInstallationRequested Then
                 If Not myConnection.VerifyUserAccess(accessRequest:=otAccessRight.AlterSchema, useLoginWindow:=True) Then
-                    Call CoreMessageHandler(showmsgbox:=True, subname:="oleDBDriver.GetView", tablename:=name, _
+                    Call CoreMessageHandler(showmsgbox:=True, subname:="oleDBDriver.GetView", arg1:=nativeViewname, _
                                           message:="No right to alter schema of database", messagetype:=otCoreMessageType.ApplicationError)
                     Return Nothing
                 End If
@@ -1719,7 +1737,7 @@ Namespace OnTrack.Database
 
 
             Try
-                Dim restrictionsTable() As String = {Nothing, Nothing, name}
+                Dim restrictionsTable() As String = {Nothing, Nothing, nativeViewname}
                 theViews = DirectCast(myConnection.NativeInternalConnection, System.Data.OleDb.OleDbConnection).GetSchema("VIEWS", restrictionsTable)
 
 
@@ -1728,20 +1746,20 @@ Namespace OnTrack.Database
                 If theViews.Rows.Count > 0 Then
 
                     If createOrAlter Then
-                        aStatement = "DROP VIEW [" & name & "]"
+                        aStatement = "DROP VIEW [" & nativeViewname & "]"
                         Me.RunSqlStatement(aStatement, _
                                            nativeConnection:=DirectCast(myConnection.NativeInternalConnection, System.Data.OleDb.OleDbConnection))
 
                     Else
                         Return theViews
                     End If
-                   
+
 
                 End If
 
                 If theViews.Rows.Count = 0 And createOrAlter Then
 
-                    aStatement = "CREATE VIEW [" & name & "] AS " & sqlselect
+                    aStatement = "CREATE VIEW [" & nativeViewname & "] AS " & sqlselect
                     Me.RunSqlStatement(aStatement, _
                                        nativeConnection:=DirectCast(myConnection.NativeInternalConnection, System.Data.OleDb.OleDbConnection))
 
@@ -1749,16 +1767,16 @@ Namespace OnTrack.Database
 
                     Return theViews
 
-                
+
                 End If
 
             Catch ex As OleDb.OleDbException
-                Call CoreMessageHandler(message:="Exception", exception:=ex, tablename:=name, _
+                Call CoreMessageHandler(message:="Exception", exception:=ex, arg1:=nativeViewname, _
                                       subname:="oleDBDriver.GetView", messagetype:=otCoreMessageType.InternalError)
                 Return Nothing
 
             Catch ex As Exception
-                Call CoreMessageHandler(message:="Exception", exception:=ex, tablename:=name, _
+                Call CoreMessageHandler(message:="Exception", exception:=ex, arg1:=nativeViewname, _
                                       subname:="oleDBDriver.GetView", messagetype:=otCoreMessageType.InternalError)
                 Return Nothing
             End Try
@@ -1772,10 +1790,11 @@ Namespace OnTrack.Database
         ''' <param name="nativeConnection"></param>
         ''' <remarks></remarks>
         ''' <returns></returns>
-        Public Overrides Function HasView(name As String, Optional ByRef connection As iormConnection = Nothing, Optional nativeConnection As Object = Nothing) As Boolean
+        Public Overrides Function HasView(viewid As String, Optional ByRef connection As iormConnection = Nothing, Optional nativeConnection As Object = Nothing) As Boolean
             Dim myConnection As OnTrack.Database.oledbConnection
             Dim aTable As DataTable
             Dim myNativeConnection As OleDb.OleDbConnection
+            Dim nativeViewname As String = GetNativeViewname(viewid)
 
             If connection Is Nothing Then
                 myConnection = _primaryConnection
@@ -1813,7 +1832,7 @@ Namespace OnTrack.Database
 
 
             Try
-                Dim restrictionsTable() As String = {Nothing, Nothing, name}
+                Dim restrictionsTable() As String = {Nothing, Nothing, nativeViewname}
                 aTable = myNativeConnection.GetSchema("VIEWS", restrictionsTable)
 
                 If aTable.Rows.Count = 0 Then
@@ -1823,12 +1842,12 @@ Namespace OnTrack.Database
                 End If
 
             Catch ex As OleDb.OleDbException
-                Call CoreMessageHandler(message:="Exception", exception:=ex, tablename:=name, _
+                Call CoreMessageHandler(message:="Exception", exception:=ex, arg1:=nativeViewname, _
                                       subname:="oleDBDriver.HasView", messagetype:=otCoreMessageType.InternalError)
                 Return Nothing
 
             Catch ex As Exception
-                Call CoreMessageHandler(message:="Exception", exception:=ex, tablename:=name, _
+                Call CoreMessageHandler(message:="Exception", exception:=ex, arg1:=nativeViewname, _
                                       subname:="oleDBDriver.HasView", messagetype:=otCoreMessageType.InternalError)
                 Return Nothing
             End Try
@@ -1945,15 +1964,14 @@ Namespace OnTrack.Database
         Implements iotDataSchema
 
 
-        '***** internal variables
-        '*****
-        'Protected Friend Shadows _Connection As clsOLEDBConnection
-
-        Public Sub New(ByRef connection As oledbConnection, ByVal tableID As String)
+        ''' Initializes a new instance of the <see cref="oledbTableSchema" /> class.
+        ''' </summary>
+        ''' <param name="connection">The connection.</param>
+        ''' <param name="tableID">The table ID.</param>
+        Public Sub New(ByRef connection As iormConnection, tableID As String)
             MyBase.New(connection, tableID)
 
         End Sub
-
 
         Protected Friend Overrides Function createNativeDBParameter() As IDbDataParameter
             Return New OleDbParameter()
@@ -2415,7 +2433,7 @@ Namespace OnTrack.Database
                                 selectstr &= ","
                             End If
                         Next
-                        selectstr &= " FROM " & Me.TableID
+                        selectstr &= " FROM [" & Me.NativeTablename & "]"
                         _cacheAdapter.SelectCommand = New OleDbCommand(selectstr)
                         _cacheAdapter.SelectCommand.CommandType = CommandType.Text
                         _cacheAdapter.SelectCommand.Connection = DirectCast(Me.Connection.NativeConnection, System.Data.OleDb.OleDbConnection)
@@ -2514,4 +2532,7 @@ Namespace OnTrack.Database
 
         End Function
     End Class
-End Namespace
+End Namespace''' <summary>
+
+  
+  

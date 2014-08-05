@@ -827,7 +827,7 @@ Namespace OnTrack.Xchange
                     End If
                 End If
             Next
-            Me.ProcessedByUsername = CurrentSession.Username
+            Me.ProcessedByUsername = CurrentSession.CurrentUsername
             Me.Processdate = DateTime.Now
 
             Return Process

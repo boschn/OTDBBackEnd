@@ -43,7 +43,7 @@ Namespace OnTrack.Database
 
         Protected _ParametersTableAdapter As System.Data.IDbDataAdapter
         Protected _ParametersTable As DataTable = Nothing 'initialize must assign this - important to determine if parameters will be written to cache or to table
-        Protected _parametersTableName As String = ConstParameterTableName
+        Protected _parametersTableName As String = ConstDBParameterTableName
 
         Protected _IsInitialized As Boolean = False
         Protected _ErrorLogPersistCommand As IDbCommand = Nothing
@@ -56,7 +56,7 @@ Namespace OnTrack.Database
         Shadows Event RequestBootstrapInstall(sender As Object, e As SessionBootstrapEventArgs) Implements iormDatabaseDriver.RequestBootstrapInstall
 
         '** Field names of parameter table
-        Public Const ConstParameterTableName As String = "TBLDBPARAMETERS"
+        Public Const ConstFNSetupID = "SETUP"
         Public Const ConstFNID = "ID"
         Public Const ConstFNValue = "VALUE"
         Public Const ConstFNChangedOn = "CHANGEDON"
@@ -184,7 +184,7 @@ Namespace OnTrack.Database
             Dim result As Boolean = True
             If Not tabledefinition.IsAlive(subname:="adonetDBDriver.hastable") Then Return False
             '** check if we have the table ?!
-            If Not Me.HasTable(tablename:=tabledefinition.Name, connection:=connection, nativeConnection:=nativeConnection) Then
+            If Not Me.HasTable(tableid:=tabledefinition.Name, connection:=connection, nativeConnection:=nativeConnection) Then
                 CoreMessageHandler(message:="table schema does not exist in database", tablename:=tabledefinition.Name, _
                                     subname:="adonetDBDriver.verifytableSchema", messagetype:=otCoreMessageType.InternalError)
                 Return False
@@ -212,7 +212,7 @@ Namespace OnTrack.Database
             Dim result As Boolean = True
 
             '** check if we have the table ?!
-            If Not Me.HasTable(tablename:=tableattribute.TableName, connection:=connection, nativeConnection:=nativeConnection) Then
+            If Not Me.HasTable(tableid:=tableattribute.TableName, connection:=connection, nativeConnection:=nativeConnection) Then
                 CoreMessageHandler(message:="table schema does not exist in database", tablename:=tableattribute.TableName, _
                                     subname:="adonetDBDriver.verifytableSchema", messagetype:=otCoreMessageType.InternalError)
                 Return False
@@ -235,7 +235,7 @@ Namespace OnTrack.Database
         ''' <param name="nativeConnection"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overrides Function HasTable(tablename As String, Optional ByRef connection As iormConnection = Nothing, Optional nativeConnection As Object = Nothing) As Boolean
+        Public Overrides Function HasTable(tableid As String, Optional ByRef connection As iormConnection = Nothing, Optional nativeConnection As Object = Nothing) As Boolean
             Throw New NotImplementedException()
         End Function
 
@@ -247,7 +247,7 @@ Namespace OnTrack.Database
         ''' <param name="addToSchemaDir">The add to schema dir.</param>
         ''' <param name="NativeConnection">The native connection.</param>
         ''' <returns></returns>
-        Public Overrides Function GetTable(tablename As String, _
+        Public Overrides Function GetTable(tableid As String, _
                                            Optional createOrAlter As Boolean = False, _
                                            Optional ByRef connection As iormConnection = Nothing, _
                                             Optional ByRef nativeTableObject As Object = Nothing) As Object
@@ -352,6 +352,7 @@ Namespace OnTrack.Database
         ''' <remarks></remarks>
         Public Overrides Function CreateDBParameterTable(Optional ByRef nativeConnection As Object = Nothing) As Boolean Implements iormDatabaseDriver.CreateDBParameterTable
             Dim anativeConnection As IDbConnection
+            Dim aTablename As String = ConstDBParameterTableName 'this table has no prefix
 
             '*** get the native Connection 
             If nativeConnection Is Nothing Then
@@ -370,11 +371,11 @@ Namespace OnTrack.Database
             End If
 
             '*** create
-            If Not Me.HasTable(ConstParameterTableName) Then
+            If Not Me.HasTable(aTablename) Then
                 Me.RunSqlStatement(String.Format("CREATE TABLE {0} " & _
-                                  "( [{1}] nvarchar(255) not null, [{2}] nvarchar(255) null, [{3}] datetime  null,	[{4}] nvarchar(255) null " & _
-                                  " CONSTRAINT [{0}_primaryKey] PRIMARY KEY ([{1}] Asc ))", _
-                                  ConstParameterTableName, ConstFNID, ConstFNValue, ConstFNChangedOn, constFNDescription), _
+                                  "( [{1}] nvarchar(255) not null,[{2}] nvarchar(255) not null, [{3}] nvarchar(255) null, [{4}] datetime  null,	[{5}] nvarchar(255) null " & _
+                                  " CONSTRAINT [{0}_primaryKey] PRIMARY KEY ([{1}], [{2}] ))", _
+                                  aTablename, ConstFNSetupID, ConstFNID, ConstFNValue, ConstFNChangedOn, constFNDescription), _
                                   nativeConnection:=nativeConnection)
                 'Me.RunSQLCommand("create unique index primaryKey on " & ConstParameterTableName & "(ID);", nativeConnection:=nativeConnection)
             End If
@@ -514,7 +515,7 @@ Namespace OnTrack.Database
             Dim hasParameterTable As Boolean = False
             Dim aValue As String = ""
 
-            If Not Me.HasTable(tablename:=_parametersTableName, connection:=Me.CurrentConnection) Then
+            If Not Me.HasTable(tableid:=_parametersTableName, connection:=Me.CurrentConnection) Then
                 result = result And False
                 CoreMessageHandler(message:="Database table " & _parametersTableName & " missing in database ", noOtdbAvailable:=True, _
                                    messagetype:=otCoreMessageType.InternalError, arg1:=Me._primaryConnection.Connectionstring, tablename:=_parametersTableName)
@@ -689,8 +690,8 @@ Namespace OnTrack.Database
                 If Me.HasTable(Domain.ConstTableID) Then
                     Dim cmdstr As String
 
-                    cmdstr = "SELECT {0} FROM {1} WHERE {0} = '{2}' "
-                    cmdstr = String.Format(cmdstr, Domain.ConstFNDomainID, Domain.ConstTableID, ConstGlobalDomain)
+                    cmdstr = "SELECT {0} FROM [{1}] WHERE {0} = '{2}' "
+                    cmdstr = String.Format(cmdstr, Domain.ConstFNDomainID, Me.GetNativeTablename(Domain.ConstTableID), ConstGlobalDomain)
 
                     Dim aCommand As IDbCommand = Me.CreateNativeDBCommand(cmdstr, anativeConnection)
                     Dim aDataReader As IDataReader = aCommand.ExecuteReader
@@ -745,15 +746,15 @@ Namespace OnTrack.Database
                 If Me.HasTable(User.ConstTableID) Then
                     Dim cmdstr As String
                     If Me.Type = otDbDriverType.ADONETSQL Then
-                        cmdstr = "SELECT {0}, {1}, {2}, {3} , {4}, {5}, {6} FROM {7} WHERE {2} = 1 "
+                        cmdstr = "SELECT {0}, {1}, {2}, {3} , {4}, {5}, {6} FROM [{7}] WHERE {2} = 1 "
                     ElseIf Me.Type = otDbDriverType.ADONETOLEDB Then
-                        cmdstr = "SELECT {0}, {1}, {2}, {3} , {4}, {5}, {6} FROM {7} WHERE {2} <> 0 "
+                        cmdstr = "SELECT {0}, {1}, {2}, {3} , {4}, {5}, {6} FROM [{7}] WHERE {2} <> 0 "
                     Else
                         CoreMessageHandler(message:="unknown database driver type - implementation missing", subname:="adonetDBDriver.HasAdminUserValidation", messagetype:=otCoreMessageType.InternalError)
                         Return False
                     End If
                     cmdstr = String.Format(cmdstr, User.ConstFNPassword, User.ConstFNUsername, User.ConstFNAlterSchema, User.ConstFNIsAnonymous, User.ConstFNReadData, User.ConstFNUpdateData, User.ConstFNNoAccess, _
-                                                         User.ConstTableID)
+                                                         GetNativeTablename(User.ConstTableID))
 
                     Dim aCommand As IDbCommand = Me.CreateNativeDBCommand(cmdstr, anativeConnection)
                     Dim aDataReader As IDataReader = aCommand.ExecuteReader
@@ -826,12 +827,12 @@ Namespace OnTrack.Database
                 End If
 
                 If Not selectAnonymous Then
-                    cmdstr = "select * from " & User.ConstTableID & " where " & User.ConstFNUsername & " ='" & username & "'"
+                    cmdstr = "select * from [" & GetNativeTablename(User.ConstTableID) & "] where " & User.ConstFNUsername & " ='" & username & "'"
                 Else
                     If Me.Type = otDbDriverType.ADONETSQL Then
-                        cmdstr = "select * from " & User.ConstTableID & " where  " & User.ConstFNIsAnonymous & " <>0 order by " & User.ConstFNUsername & " desc"
+                        cmdstr = "select * from [" & GetNativeTablename(User.ConstTableID) & "] where  " & User.ConstFNIsAnonymous & " <>0 order by " & User.ConstFNUsername & " desc"
                     ElseIf Me.Type = otDbDriverType.ADONETOLEDB Then
-                        cmdstr = "select * from " & User.ConstTableID & " where  " & User.ConstFNIsAnonymous & " <> false order by " & User.ConstFNUsername & " desc"
+                        cmdstr = "select * from [" & GetNativeTablename(User.ConstTableID) & "] where  " & User.ConstFNIsAnonymous & " <> false order by " & User.ConstFNUsername & " desc"
                     Else
                         Call CoreMessageHandler(message:="DriverType is not implemented", subname:="adonetDBDriver.GetUserValidation", messagetype:=otCoreMessageType.InternalError)
                         Return Nothing
@@ -1401,7 +1402,7 @@ Namespace OnTrack.Database
                                         '** set the value of parameter
                                         Select Case fieldname
                                             Case SessionMessage.ConstFNTag
-                                                If anError.Tag = "" Then
+                                                If String.IsNullOrWhiteSpace(anError.Tag) Then
                                                     .value = CurrentSession.Errorlog.Tag
                                                 Else
                                                     .Value = anError.Tag
@@ -1892,6 +1893,8 @@ Namespace OnTrack.Database
         Inherits ormTableSchema
         Implements iotDataSchema
 
+       
+
         '** own ColumnDescription
         '**
         Class adoNetColumnDescription
@@ -2111,24 +2114,24 @@ Namespace OnTrack.Database
 
         '***** internal variables
         '*****
-        Protected _Connection As iormConnection
+
         Protected _ColumnsTable As DataTable
         Protected _IndexTable As DataTable
         Protected _Columns() As adoNetColumnDescription
-
-
 
         '**** CommandStore
         Protected _CommandStore As New Dictionary(Of CommandKey, IDbCommand)
 
 
-
-        Public Sub New(ByRef connection As iormConnection, ByVal tableID As String)
-            MyBase.New()
-            'ReDim Preserve _ADOXColumns(0)
-            _Connection = connection
-            Me.TableID = tableID
+        ''' <summary>
+        ''' Initializes a new instance of the <see cref="adonetTableSchema" /> class.
+        ''' </summary>
+        ''' <param name="connection">The connection.</param>
+        ''' <param name="tableID">The table ID.</param>
+        Public Sub New(ByRef connection As iormConnection, tableID As String)
+            MyBase.New(connection, tableID)
         End Sub
+      
         Protected Overrides Sub Finalize()
             _CommandStore = Nothing
             _Connection = Nothing
@@ -2148,18 +2151,7 @@ Namespace OnTrack.Database
             _Columns = Nothing
 
         End Sub
-        ''' <summary>
-        ''' Gets or sets the table ID.
-        ''' </summary>
-        ''' <value>The table ID.</value>
-        Public Overrides Property TableID() As String
-            Get
-                Return _TableID
-            End Get
-            Set(ByVal newTableID As String)
-                _TableID = newTableID
-            End Set
-        End Property
+       
         ''' <summary>
         ''' returns a Default Value for a fieldname
         ''' </summary>
@@ -2348,14 +2340,14 @@ Namespace OnTrack.Database
                         End If
                         commandstr = "SELECT "
                         For i = 0 To _Fieldnames.GetUpperBound(0)
-                            commandstr &= String.Format("{0}.[{1}]", _TableID, _Fieldnames(i))
+                            commandstr &= String.Format("[{0}].[{1}]", Me.NativeTablename, _Fieldnames(i))
                             If i <> _Fieldnames.GetUpperBound(0) Then
                                 commandstr &= " , "
                             Else
                                 commandstr &= " "
                             End If
                         Next
-                        commandstr &= "FROM " & _TableID
+                        commandstr &= "FROM [" & Me.NativeTablename & "]"
                         '**
                         '** where
                         commandstr &= " WHERE "
@@ -2363,7 +2355,7 @@ Namespace OnTrack.Database
                             If i > _Fieldnames.GetLowerBound(0) Then
                                 commandstr &= " AND "
                             End If
-                            commandstr &= String.Format("{0}.[{1}] = @{1}", _TableID, theIndexColumns(i))
+                            commandstr &= String.Format("[{0}].[{1}] = @{1}", Me.NativeTablename, theIndexColumns(i))
 
                         Next
 
@@ -2386,7 +2378,7 @@ Namespace OnTrack.Database
                         '*********
                     Case adonetTableSchema.CommandType.InsertType
 
-                        commandstr = "INSERT INTO " & _TableID & "( "
+                        commandstr = "INSERT INTO [" & Me.NativeTablename & "] ( "
                         For i = 0 To _Fieldnames.GetUpperBound(0)
                             commandstr &= "[" & _Fieldnames(i) & "]"
                             If i <> _Fieldnames.GetUpperBound(0) Then
@@ -2436,7 +2428,7 @@ Namespace OnTrack.Database
                             aColumnCollection = _indexDictionary.Item(key:=indexname)
                             theIndexColumns = aColumnCollection.ToArray
                         End If
-                        commandstr = "UPDATE " & _TableID
+                        commandstr = "UPDATE [" & Me.NativeTablename & "]"
                         commandstr &= " SET "
                         Dim first As Boolean = True
                         For i = 0 To _Fieldnames.GetUpperBound(0)
@@ -2457,7 +2449,7 @@ Namespace OnTrack.Database
                             If i > _Fieldnames.GetLowerBound(0) Then
                                 commandstr &= " AND "
                             End If
-                            commandstr &= String.Format("{0}.[{1}] = @{1}", _TableID, theIndexColumns(i))
+                            commandstr &= String.Format("[{0}].[{1}] = @{1}", Me.NativeTablename, theIndexColumns(i))
                         Next
 
                         '** Add the Parameters
@@ -2499,7 +2491,7 @@ Namespace OnTrack.Database
                             aColumnCollection = _indexDictionary.Item(key:=indexname)
                             theIndexColumns = aColumnCollection.ToArray
                         End If
-                        commandstr = "DELETE FROM " & _TableID
+                        commandstr = "DELETE FROM [" & Me.NativeTablename & "]"
 
                         '**
                         '** where
@@ -2508,7 +2500,7 @@ Namespace OnTrack.Database
                             If i > _Fieldnames.GetLowerBound(0) Then
                                 commandstr &= " AND "
                             End If
-                            commandstr &= String.Format("{0}.[{1}] = @{1}", _TableID, theIndexColumns(i))
+                            commandstr &= String.Format("[{0}].[{1}] = @{1}", Me.NativeTablename, theIndexColumns(i))
                         Next
 
                         '** Add the Parameters
@@ -3307,18 +3299,18 @@ Namespace OnTrack.Database
                 fieldstr = ""
                 For Each field As String In Me.TableSchema.Fieldnames
                     If i = 0 Then
-                        fieldstr = Me.TableID & ".[" & field & "]"
+                        fieldstr = "[" & Me.NativeTablename & "].[" & field & "]"
                         i += 1
                     Else
-                        fieldstr &= " , " & Me.TableID & ".[" & field & "]"
+                        fieldstr &= " , [" & Me.NativeTablename & "].[" & field & "]"
                     End If
                 Next
 
                 ' Select
                 If innerjoin = "" Then
-                    cmdstr = String.Format("SELECT * FROM {0} WHERE {1}", Me.TableID, wherestr)
+                    cmdstr = String.Format("SELECT * FROM [{0}] WHERE {1}", Me.NativeTablename, wherestr)
                 Else
-                    cmdstr = "SELECT " & fieldstr & " FROM " & Me.TableID & " " & innerjoin & " WHERE " & wherestr
+                    cmdstr = "SELECT " & fieldstr & " FROM [" & Me.NativeTablename & "] " & innerjoin & " WHERE " & wherestr
                 End If
 
                 If orderby <> "" Then

@@ -119,6 +119,14 @@ Namespace OnTrack.Database
     ''' <remarks></remarks>
     Public Interface iormDatabaseDriver
 
+        Function GetNativeForeignKeyName(foreignkeyid As String) As String
+
+        Function GetNativeIndexName(indexid As String) As String
+
+        Function GetNativeViewName(viewid As String) As String
+
+        Function GetNativeTableName(tableid As String) As String
+
         Function CreateSqlCommand(id As String) As iormSqlCommand
 
         Function CreateSqlSelectCommand(id As String) As iormSqlCommand
@@ -342,7 +350,7 @@ Namespace OnTrack.Database
         ''' <returns></returns>
         ''' <remarks></remarks>
         Function SetDBParameter(ByVal parametername As String, ByVal value As Object, Optional ByRef nativeConnection As Object = Nothing, _
-        Optional ByVal updateOnly As Boolean = False, Optional ByVal silent As Boolean = False) As Boolean
+        Optional ByVal updateOnly As Boolean = False, Optional ByVal silent As Boolean = False, Optional SetupID As String = Nothing, Optional description As String = "") As Boolean
 
         ''' <summary>
         ''' returns a DB parameter value
@@ -352,7 +360,7 @@ Namespace OnTrack.Database
         ''' <param name="silent"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Function GetDBParameter(parametername As String, Optional ByRef nativeConnection As Object = Nothing, Optional silent As Boolean = False) As Object
+        Function GetDBParameter(parametername As String, Optional ByRef nativeConnection As Object = Nothing, Optional silent As Boolean = False, Optional SetupID As String = Nothing) As Object
 
         ''' <summary>
         ''' gets a user validation structure from the DB
@@ -481,6 +489,9 @@ Namespace OnTrack.Database
     ''' <remarks></remarks>
 
     Public Interface iormDataStore
+
+        ReadOnly Property NativeTablename As String
+
         ''' <summary>
         ''' get the records by a sqlcommand
         ''' </summary>
@@ -775,6 +786,8 @@ Namespace OnTrack.Database
     ''' </summary>
     ''' <remarks></remarks>
     Public Interface iotDataSchema
+
+        ReadOnly Property nativeTablename As String
 
         Function GetNullable(index As Object) As Boolean
 

@@ -11,8 +11,5 @@
     <Setting Name="InitializeCalendarTo" Type="System.String" Scope="Application">
       <Value Profile="(Default)">31.12.2016</Value>
     </Setting>
-    <Setting Name="InitialCoreDirectory" Type="System.String" Scope="Application">
-      <Value Profile="(Default)">CoreInitialData</Value>
-    </Setting>
   </Settings>
 </SettingsFile>

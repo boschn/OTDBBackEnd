@@ -1405,11 +1405,11 @@ Namespace OnTrack.Database
                                                                 objecttransactions:={Me.ObjectID & "." & ConstOPInject}) Then
                 If Not CurrentSession.RequestUserAccess(accessRequest:=otAccessRight.ReadOnly, _
                                                         domainID:=domainID, _
-                                                        username:=CurrentSession.Username, _
+                                                        username:=CurrentSession.CurrentUsername, _
                                                          messagetext:="Please provide another user to authorize requested operation", _
                                                         objecttransactions:={Me.ObjectID & "." & ConstOPInject}) Then
                     Call CoreMessageHandler(message:="data object cannot be injected - permission denied to user", _
-                                            objectname:=Me.ObjectID, arg1:=ConstOPInject, username:=CurrentSession.Username, _
+                                            objectname:=Me.ObjectID, arg1:=ConstOPInject, username:=CurrentSession.CurrentUsername, _
                                             subname:="ormDataObject.Inject", messagetype:=otCoreMessageType.ApplicationError)
                     Return False
                 End If
@@ -1558,10 +1558,10 @@ Namespace OnTrack.Database
                 '** authorize
                 If Not CurrentSession.RequestUserAccess(accessRequest:=otAccessRight.ReadUpdateData, _
                                                     messagetext:="Please provide another user to authorize requested operation", _
-                                                    username:=CurrentSession.Username, loginOnFailed:=True, _
+                                                    username:=CurrentSession.CurrentUsername, loginOnFailed:=True, _
                                                     objecttransactions:={Me.ObjectID & "." & ConstOPPersist}) Then
                     Call CoreMessageHandler(message:="data object cannot be persisted - permission denied to user", _
-                                            objectname:=Me.ObjectID, arg1:=ConstOPPersist, username:=CurrentSession.Username, _
+                                            objectname:=Me.ObjectID, arg1:=ConstOPPersist, username:=CurrentSession.CurrentUsername, _
                                             subname:="ormDataObject.Persist", messagetype:=otCoreMessageType.ApplicationError)
                     Return False
                 End If
@@ -2367,10 +2367,10 @@ Namespace OnTrack.Database
                                                                 objecttransactions:={anObject.ObjectID & "." & ConstOPInject}) Then
                 '** request authorizartion
                 If Not CurrentSession.RequestUserAccess(accessRequest:=otAccessRight.ReadOnly, domainID:=domainID, _
-                                                                            username:=CurrentSession.Username, _
+                                                                            username:=CurrentSession.CurrentUsername, _
                                                                             objecttransactions:={anObject.ObjectID & "." & ConstOPInject}) Then
                     Call CoreMessageHandler(message:="data object cannot be retrieved - permission denied to user", _
-                                            objectname:=anObject.ObjectID, arg1:=ConstOPInject, username:=CurrentSession.Username, _
+                                            objectname:=anObject.ObjectID, arg1:=ConstOPInject, username:=CurrentSession.CurrentUsername, _
                                             subname:="ormDataObject.Retrieve", messagetype:=otCoreMessageType.ApplicationError)
                     Return Nothing
                 End If
@@ -2677,12 +2677,12 @@ Namespace OnTrack.Database
                                                                                domainid:=DomainID, _
                                                                                 objecttransactions:={Me.ObjectID & "." & ConstOPDelete}) Then
 
-                If Not CurrentSession.RequestUserAccess(accessRequest:=otAccessRight.ReadOnly, username:=CurrentSession.Username, _
+                If Not CurrentSession.RequestUserAccess(accessRequest:=otAccessRight.ReadOnly, username:=CurrentSession.CurrentUsername, _
                                                         domainid:=DomainID, loginOnFailed:=True, _
                                                          messagetext:="Please provide another user to authorize requested operation", _
                                                          objecttransactions:={Me.ObjectID & "." & ConstOPDelete}) Then
                     Call CoreMessageHandler(message:="data object cannot be deleted - permission denied to user", _
-                                            objectname:=Me.ObjectID, arg1:=ConstOPDelete, username:=CurrentSession.Username, _
+                                            objectname:=Me.ObjectID, arg1:=ConstOPDelete, username:=CurrentSession.CurrentUsername, _
                                             subname:="ormDataObject.Delete", messagetype:=otCoreMessageType.ApplicationError)
                     Return False
                 End If

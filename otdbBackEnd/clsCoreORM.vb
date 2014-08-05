@@ -748,7 +748,7 @@ Namespace OnTrack
                 ''' <remarks></remarks>
                 Public Sub New(command As ormSqlSelectCommand, tableid As String, fieldname As String)
                     _myCommand = command
-                    Me.Tablename = tableid
+                    Me.[TableID] = tableid
                     _name = fieldname
                 End Sub
                 ''' <summary>
@@ -790,14 +790,29 @@ Namespace OnTrack
                         End If
                     End Set
                 End Property
+
+                ''' <summary>
+                ''' returns the nativetablename if a tablestore is set
+                ''' </summary>
+                ''' <value></value>
+                ''' <returns></returns>
+                ''' <remarks></remarks>
+                Public ReadOnly Property [NativeTablename] As String
+                    Get
+                        If _tablestore IsNot Nothing Then
+                            Return _tablestore.NativeTablename
+                        End If
+                        Return String.Empty
+                    End Get
+                End Property
                 ''' <summary>
                 ''' Gets or sets the Tablestore / Tablename.
                 ''' </summary>
                 ''' <value>The name.</value>
-                Public Property [Tablename]() As String
+                Public Property [TableID]() As String
                     Get
                         If _tablestore Is Nothing Then
-                            Return ""
+                            Return String.Empty
                         Else
                             Return _tablestore.TableID
                         End If
@@ -833,7 +848,7 @@ Namespace OnTrack
                 ''' is a reference type and <paramref name="obj" /> is null. </exception>
                 ''' <returns>A hash code for the specified object.</returns>
                 Public Function GetHashCode(obj As Object) As Integer Implements IHashCodeProvider.GetHashCode
-                    Return (Me.Tablename & _name).GetHashCode
+                    Return (Me.[TableID] & _name).GetHashCode
                 End Function
 
             End Class
@@ -984,10 +999,10 @@ Namespace OnTrack
                 Dim first As Boolean = True
 
                 '** fill tables first 
-                For Each atablename In _tablestores.Keys
+                For Each atableid In _tablestores.Keys
                     'Dim aTablename = kvp.Key
-                    If Not aTableList.Contains(atablename) Then
-                        aTableList.Add(atablename)
+                    If Not aTableList.Contains(atableid) Then
+                        aTableList.Add(atableid)
                     End If
                 Next
 
@@ -996,16 +1011,16 @@ Namespace OnTrack
                     first = True
                     '*
                     For Each aResultField In _fields.Values
-                        Dim aTablename = aResultField.Tablename
-                        If Not aTableList.Contains(aTablename) Then
-                            aTableList.Add(aTablename)
-                        End If
-                        Dim aFieldname = aResultField.Name
+                        Dim aTablename = aResultField.[TableID]
+                        If Not String.IsNullOrWhiteSpace(aTablename) Then
+                            If Not aTableList.Contains(aTablename) Then aTableList.Add(aTablename)
 
-                        If Not first Then
-                            Me._SqlText &= ","
+                            If Not first Then Me._SqlText &= ","
+                            Me._SqlText &= "[" & aResultField.NativeTablename & "].[" & aResultField.Name & "] "
+                        Else
+                            Me._SqlText &= "[" & aResultField.Name & "] "
                         End If
-                        Me._SqlText &= aTablename & ".[" & aFieldname & "] "
+
                         first = False
                     Next
 
@@ -1025,14 +1040,14 @@ Namespace OnTrack
                 '*** build the tables
                 first = True
                 Me._SqlText &= " FROM "
-                For Each aTablename In aTableList
+                For Each aTableID In aTableList
 
                     '** if innerjoin has the tablename
-                    If Not _innerjoin.ToUpper.Contains(aTablename) Then
+                    If Not _innerjoin.ToUpper.Contains(aTableID) Then
                         If Not first Then
                             Me._SqlText &= ","
                         End If
-                        Me._SqlText &= aTablename
+                        Me._SqlText &= "[" & Me.DatabaseDriver.GetNativeTableName(aTableID) & "]"
                         first = False
                     End If
                 Next
@@ -1140,6 +1155,14 @@ Namespace OnTrack
             Protected _CommandStore As New Dictionary(Of String, iormSqlCommand) ' store of the SqlCommands to handle
 
             Protected _lockObject As New Object 'Lock object instead of me
+
+            ''' <summary>
+            ''' Const
+            ''' </summary>
+            ''' <remarks></remarks>
+            Public Const ConstDBParameterTableName As String = "TBLOTDBPARAMETERS"
+            Public Const ConstOLDParameterTableName As String = "TBLDBPARAMETERS" 'Legacy Parameter Table w/o Application ID
+
             '* the events
             Public Event RequestBootstrapInstall(sender As Object, e As SessionBootstrapEventArgs) Implements iormDatabaseDriver.RequestBootstrapInstall
 #Region "Properties"
@@ -1333,7 +1356,21 @@ Namespace OnTrack
                 Return True
             End Function
 
+            ''' <summary>
+            ''' installs the ONTrack Database Schema
+            ''' </summary>
+            ''' <param name="askBefore"></param>
+            ''' <param name="modules"></param>
+            ''' <returns></returns>
+            ''' <remarks></remarks>
             Public MustOverride Function InstallOnTrackDatabase(askBefore As Boolean, modules As String()) As Boolean Implements iormDatabaseDriver.InstallOnTrackDatabase
+
+            ''' <summary>
+            ''' returns true if an OnTrack Admin User is available in the database
+            ''' </summary>
+            ''' <param name="nativeConnection"></param>
+            ''' <returns></returns>
+            ''' <remarks></remarks>
             Public MustOverride Function HasAdminUserValidation(Optional ByRef nativeConnection As Object = Nothing) As Boolean Implements iormDatabaseDriver.HasAdminUserValidation
 
             ''' <summary>
@@ -1444,7 +1481,7 @@ Namespace OnTrack
             ''' <param name="connection"></param>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public MustOverride Function HasTable(tablename As String, Optional ByRef connection As iormConnection = Nothing, Optional nativeConnection As Object = Nothing) As Boolean Implements iormDatabaseDriver.HasTable
+            Public MustOverride Function HasTable(tableid As String, Optional ByRef connection As iormConnection = Nothing, Optional nativeConnection As Object = Nothing) As Boolean Implements iormDatabaseDriver.HasTable
 
             ''' <summary>
             ''' returns True if data store has the table by definition
@@ -1467,12 +1504,12 @@ Namespace OnTrack
             ''' <summary>
             ''' Gets the table.
             ''' </summary>
-            ''' <param name="tablename">The tablename.</param>
+            ''' <param name="tableid">The ot tableid.</param>
             ''' <param name="createOrAlter">The create on missing.</param>
             ''' <param name="addToSchemaDir">The add to schema dir.</param>
             ''' <param name="connection">The native connection.</param>
             ''' <returns></returns>
-            Public MustOverride Function GetTable(tablename As String, _
+            Public MustOverride Function GetTable(tableid As String, _
                             Optional createOrAlter As Boolean = False, _
                             Optional ByRef connection As iormConnection = Nothing, _
                              Optional ByRef nativeTableObject As Object = Nothing) As Object Implements iormDatabaseDriver.GetTable
@@ -1485,11 +1522,11 @@ Namespace OnTrack
             ''' <param name="nativeConnection"></param>
             ''' <remarks></remarks>
             ''' <returns></returns>
-            Public MustOverride Function HasView(name As String, Optional ByRef connection As iormConnection = Nothing, Optional nativeConnection As Object = Nothing) As Boolean Implements iormDatabaseDriver.HasView
+            Public MustOverride Function HasView(viewid As String, Optional ByRef connection As iormConnection = Nothing, Optional nativeConnection As Object = Nothing) As Boolean Implements iormDatabaseDriver.HasView
             
 
             ''' <summary>
-            ''' returns or creates a Table in the data store
+            ''' returns or creates a View in the data store
             ''' </summary>
             ''' <param name="name"></param>
             ''' <param name="sqlselect"></param>
@@ -1497,7 +1534,7 @@ Namespace OnTrack
             ''' <param name="connection"></param>
             ''' <remarks></remarks>
             ''' <returns></returns>
-            Public MustOverride Function GetView(name As String, sqlselect As String, Optional createOrAlter As Boolean = False, Optional ByRef connection As iormConnection = Nothing) As Object Implements iormDatabaseDriver.GetView
+            Public MustOverride Function GetView(viewid As String, sqlselect As String, Optional createOrAlter As Boolean = False, Optional ByRef connection As iormConnection = Nothing) As Object Implements iormDatabaseDriver.GetView
 
 
             ''' <summary>
@@ -1584,7 +1621,11 @@ Namespace OnTrack
             ''' <param name="silent">The silent.</param>
             ''' <returns></returns>
             Public MustOverride Function SetDBParameter(parametername As String, Value As Object, _
-                                                        Optional ByRef nativeConnection As Object = Nothing, Optional UpdateOnly As Boolean = False, Optional silent As Boolean = False) As Boolean Implements iormDatabaseDriver.SetDBParameter
+                                                        Optional ByRef nativeConnection As Object = Nothing, _
+                                                        Optional UpdateOnly As Boolean = False, _
+                                                        Optional silent As Boolean = False, _
+                                                        Optional setupID As String = Nothing, _
+                                                        Optional description As String = "") As Boolean Implements iormDatabaseDriver.SetDBParameter
 
             ''' <summary>
             ''' Gets the DB parameter.
@@ -1593,7 +1634,10 @@ Namespace OnTrack
             ''' <param name="connection">The native connection.</param>
             ''' <param name="silent">The silent.</param>
             ''' <returns></returns>
-            Public MustOverride Function GetDBParameter(parametername As String, Optional ByRef nativeConnection As Object = Nothing, Optional silent As Boolean = False) As Object Implements iormDatabaseDriver.GetDBParameter
+            Public MustOverride Function GetDBParameter(parametername As String, _
+                                                        Optional ByRef nativeConnection As Object = Nothing, _
+                                                        Optional silent As Boolean = False, _
+                                                        Optional setupID As String = Nothing) As Object Implements iormDatabaseDriver.GetDBParameter
 
 
 
@@ -1642,7 +1686,7 @@ Namespace OnTrack
 
             End Function
             ''' <summary>
-            ''' Gets the def user.
+            ''' Gets the ontrack user validation object.
             ''' </summary>
             ''' <param name="Username">The username.</param>
             ''' <param name="connection">The native connection.</param>
@@ -1788,7 +1832,69 @@ Namespace OnTrack
             ''' <remarks></remarks>
             Public MustOverride Function CreateNativeDBCommand(cmd As String, aNativeConnection As System.Data.IDbConnection) As System.Data.IDbCommand Implements iormDatabaseDriver.CreateNativeDBCommand
 
+            ''' <summary>
+            ''' returns the native tablename in the native database
+            ''' </summary>
+            ''' <param name="tableid"></param>
+            ''' <returns></returns>
+            ''' <remarks></remarks>
+            Public Overridable Function GetNativeTablename(tableid As String) As String Implements iormDatabaseDriver.GetNativeTableName
+                If String.IsNullOrWhiteSpace(Me.Session.CurrentSetupID) OrElse tableid = ConstDBParameterTablename Then
+                    ' create the native name as simple copy of the tableid
+                    Return tableid
+                Else
+                    ' create the tablename out of the SetupID "_" tableid
+                    Return Me.Session.CurrentSetupID & "_" & tableid
+                End If
+            End Function
 
+            ''' <summary>
+            ''' returns the native tablename in the native database
+            ''' </summary>
+            ''' <param name="tableid"></param>
+            ''' <returns></returns>
+            ''' <remarks></remarks>
+            Public Overridable Function GetNativeIndexname(indexid As String) As String Implements iormDatabaseDriver.GetNativeIndexName
+                If String.IsNullOrWhiteSpace(Me.Session.CurrentSetupID) Then
+                    ' create the native name as simple copy of the indexid
+                    Return indexid
+                Else
+                    ' create the indexname out of the SetupID "_" indexid
+                    Return Me.Session.CurrentSetupID & "_" & indexid
+                End If
+            End Function
+
+            ''' <summary>
+            ''' returns the native view name in the native database
+            ''' </summary>
+            ''' <param name="tableid"></param>
+            ''' <returns></returns>
+            ''' <remarks></remarks>
+            Public Overridable Function GetNativeViewname(viewid As String) As String Implements iormDatabaseDriver.GetNativeViewName
+                If String.IsNullOrWhiteSpace(Me.Session.CurrentSetupID) Then
+                    ' create the native name as simple copy of the viewid
+                    Return viewid
+                Else
+                    ' create the viewname out of the SetupID "_" viewid
+                    Return Me.Session.CurrentSetupID & "_" & viewid
+                End If
+            End Function
+
+            ''' <summary>
+            ''' returns the native foreign key name in the native database
+            ''' </summary>
+            ''' <param name="tableid"></param>
+            ''' <returns></returns>
+            ''' <remarks></remarks>
+            Public Overridable Function GetNativeForeignkeyName(foreignkeyid As String) As String Implements iormDatabaseDriver.GetNativeForeignKeyName
+                If String.IsNullOrWhiteSpace(Me.Session.CurrentSetupID) Then
+                    ' create the native name as simple copy of the viewid
+                    Return foreignkeyid
+                Else
+                    ' create the foreignkey name out of the SetupID "_" foreignkeyid
+                    Return Me.Session.CurrentSetupID & "_" & foreignkeyid
+                End If
+            End Function
         End Class
 
 
@@ -2873,16 +2979,31 @@ Namespace OnTrack
                 End If
             End Function
 
+            ''' <summary>
+            ''' returns the native Tablename of this store from the schema
+            ''' </summary>
+            ''' <value></value>
+            ''' <returns></returns>
+            ''' <remarks></remarks>
+            Public ReadOnly Property NativeTablename As String Implements iormDataStore.NativeTablename
+                Get
+                    '**
+                    If Not Me.TableSchema.IsInitialized Then
+                        Return Nothing
+                    End If
+                    Return _TableSchema.nativeTablename
+                End Get
+            End Property
 
             ''' <summary>
             ''' Gets or sets the table ID.
             ''' </summary>
             ''' <value>The table ID.</value>
-            Public Property TableID() As String Implements iormDataStore.TableID
+            Public Property TableID As String Implements iormDataStore.TableID
                 Get
                     Return Me._TableID
                 End Get
-                Set(value As String)
+                Protected Set(value As String)
                     Me._TableID = value.ToUpper
                 End Set
             End Property
@@ -3243,7 +3364,9 @@ Namespace OnTrack
         Public MustInherit Class ormTableSchema
             Implements iotDataSchema
 
+            Protected _Connection As iormConnection
             Protected _TableID As String
+            Protected _nativeTablename As String ' the tablename of the table in the database
 
             Protected _fieldsDictionary As Dictionary(Of String, Long)    ' crossreference to the Arrays
             Protected _indexDictionary As Dictionary(Of String, ArrayList)    ' crossreference of the Index
@@ -3258,18 +3381,20 @@ Namespace OnTrack
             Protected _lockObject As New Object ' Lock Object
 
             ''' <summary>
-            ''' constructor
+            ''' constuctor
             ''' </summary>
+            ''' <param name="connection"></param>
+            ''' <param name="tableID"></param>
             ''' <remarks></remarks>
-            Public Sub New()
-
+            Public Sub New(ByRef connection As iormConnection, ByVal tableID As String)
                 _NoPrimaryKeys = 0
                 ReDim Preserve _Fieldnames(0)
                 ReDim Preserve _Primarykeys(0 To 0)
 
                 _fieldsDictionary = New Dictionary(Of String, Long)
                 _indexDictionary = New Dictionary(Of String, ArrayList)
-
+                _Connection = connection
+                _TableID = tableID
             End Sub
             ''' <summary>
             ''' Assigns the native DB parameter.
@@ -3300,15 +3425,44 @@ Namespace OnTrack
                 _Fieldnames = nullArray
                 _fieldsDictionary.Clear()
                 _indexDictionary.Clear()
-                _PrimaryKeyIndexName = ""
+                _PrimaryKeyIndexName = String.Empty
                 _Primarykeys = nullArray
                 _NoPrimaryKeys = 0
-                _TableID = ""
+                _TableID = String.Empty
+                _nativeTablename = String.Empty
                 _DomainIDPrimaryKeyOrdinal = -1
             End Sub
 
-            MustOverride Property TableID As String Implements iotDataSchema.TableID
-            Public MustOverride Function Refresh(Optional reloadForce As Boolean = False) As Boolean Implements iotDataSchema.Refresh
+            ''' <summary>
+            ''' returns the tableid of the table
+            ''' </summary>
+            ''' <value></value>
+            ''' <returns></returns>
+            ''' <remarks></remarks>
+
+            Public Property TableID() As String Implements iotDataSchema.TableID
+                Get
+                    Return _TableID
+                End Get
+                Protected Set(ByVal newTableID As String)
+                    _TableID = newTableID
+                End Set
+            End Property
+            ''' <summary>
+            ''' returns the native tablename of this table in the database
+            ''' </summary>
+            ''' <value></value>
+            ''' <returns></returns>
+            ''' <remarks></remarks>
+            Public ReadOnly Property NativeTablename As String Implements iotDataSchema.nativeTablename
+                Get
+                    If _nativeTablename Is Nothing Then
+                        _nativeTablename = _Connection.DatabaseDriver.GetNativeTableName(_TableID)
+                    End If
+                    Return _nativeTablename
+                End Get
+            End Property
+
             ''' <summary>
             ''' Names of the Indices of the table
             ''' </summary>
@@ -3321,6 +3475,13 @@ Namespace OnTrack
                 End Get
 
             End Property
+            ''' <summary>
+            ''' refresh the table schema
+            ''' </summary>
+            ''' <param name="reloadForce"></param>
+            ''' <returns></returns>
+            ''' <remarks></remarks>
+            Public MustOverride Function Refresh(Optional reloadForce As Boolean = False) As Boolean Implements iotDataSchema.Refresh
             ''' <summary>
             ''' returns the primary Key ordinal (1..n) for the domain ID or less zero if not in primary key
             ''' </summary>

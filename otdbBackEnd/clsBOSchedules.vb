@@ -3664,8 +3664,8 @@ Namespace OnTrack.Scheduling
 
                 '** prepare the command if necessary
                 If Not aCommand.Prepared Then
-                    aCommand.select = "max(updc)"
-                    aCommand.Where = "uid=@uid and wspace=@wspace"
+                    aCommand.select = "max(" & ConstFNUpdc & ")"
+                    aCommand.Where = ConstFNUid & "=@uid and " & ConstFNWorkspaceID & "=@wspace"
                     aCommand.AddParameter(New ormSqlCommandParameter(ID:="@uid", ColumnName:=ConstFNUid, tablename:=ConstTableID))
                     aCommand.AddParameter(New ormSqlCommandParameter(id:="@wspace", ColumnName:=ConstFNWorkspaceID, tablename:=ConstTableID))
                     aCommand.Prepare()
@@ -5455,10 +5455,15 @@ Namespace OnTrack.Scheduling
 
         End Sub
 
-        '****** allByUID: "static" function to return a collection of curSchedules by key
-        '******
-        Public Function allByUID(UID As Long) As Collection
-            Dim aCollection As New Collection
+      
+        ''' <summary>
+        ''' returns a list of workspaceschedule of a given uid
+        ''' </summary>
+        ''' <param name="UID"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Shared Function AllByUID(UID As Long) As List(Of WorkspaceSchedule)
+            Dim aCollection As New List(Of WorkspaceSchedule)
             Dim aRECORDCollection As List(Of ormRecord)
             Dim aTable As iormDataStore
             Dim Key(0) As Object
@@ -5467,30 +5472,23 @@ Namespace OnTrack.Scheduling
 
             Key(0) = UID
 
-            On Error GoTo error_handler
+            Try
+                aTable = GetTableStore(ConstTableID)
+                aRECORDCollection = aTable.GetRecordsBySql(wherestr:="[" & ConstFNUID & "] = " & CStr(UID))
 
-            aTable = GetTableStore(ConstTableID)
-            aRECORDCollection = aTable.GetRecordsBySql(wherestr:=" uid = " & CStr(UID))
+                    For Each aRECORD In aRECORDCollection
+                        Dim aNewcurSchedule As New WorkspaceSchedule
+                        If InfuseDataObject(record:=aRECORD, dataobject:=aNewcurSchedule) Then
+                            aCollection.Add(Item:=aNewcurSchedule)
+                        End If
+                    Next
+                    Return aCollection
 
-            If aRECORDCollection Is Nothing Then
-                Me.Unload()
-                allByUID = Nothing
-                Exit Function
-            Else
-                For Each aRECORD In aRECORDCollection
-                    Dim aNewcurSchedule As New WorkspaceSchedule
-                    If InfuseDataObject(record:=aRECORD, dataobject:=aNewcurSchedule) Then
-                        aCollection.Add(Item:=aNewcurSchedule)
-                    End If
-                Next
-                allByUID = aCollection
-                Exit Function
-            End If
+            Catch ex As Exception
+                CoreMessageHandler(exception:=ex, subname:="WorkspaceSchedule.AllbyUID")
+            End Try
 
-error_handler:
 
-            allByUID = Nothing
-            Exit Function
         End Function
 
 

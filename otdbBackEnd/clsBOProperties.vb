@@ -456,11 +456,11 @@ Namespace OnTrack.ObjectProperties
                 '		    TBLOBJPROPERTYLINKS.TOUID, TBLOBJPROPERTYLINKS.toupdc, LOT.PUID, LOT.UPDC,
 
                 ' objectPropertyLink
-                sqlselectcmd.AppendFormat(" {0}.[{1}]", ObjectPropertyLink.ConstTableID, ObjectPropertyLink.ConstFNFromObjectID)
-                sqlselectcmd.AppendFormat(",{0}.[{1}]", ObjectPropertyLink.ConstTableID, ObjectPropertyLink.ConstFNFromUid)
-                sqlselectcmd.AppendFormat(",{0}.[{1}]", ObjectPropertyLink.ConstTableID, ObjectPropertyLink.ConstFNFromUpdc)
-                sqlselectcmd.AppendFormat(",{0}.[{1}]", ObjectPropertyLink.ConstTableID, ObjectPropertyLink.ConstFNToUid)
-                sqlselectcmd.AppendFormat(",{0}.[{1}]", ObjectPropertyLink.ConstTableID, ObjectPropertyLink.ConstFNToUpdc)
+                sqlselectcmd.AppendFormat(" [{0}].[{1}]", ot.CurrentSession.CurrentDBDriver.GetNativeTableName(ObjectPropertyLink.ConstTableID), ObjectPropertyLink.ConstFNFromObjectID)
+                sqlselectcmd.AppendFormat(",[{0}].[{1}]", ot.CurrentSession.CurrentDBDriver.GetNativeTableName(ObjectPropertyLink.ConstTableID), ObjectPropertyLink.ConstFNFromUid)
+                sqlselectcmd.AppendFormat(",[{0}].[{1}]", ot.CurrentSession.CurrentDBDriver.GetNativeTableName(ObjectPropertyLink.ConstTableID), ObjectPropertyLink.ConstFNFromUpdc)
+                sqlselectcmd.AppendFormat(",[{0}].[{1}]", ot.CurrentSession.CurrentDBDriver.GetNativeTableName(ObjectPropertyLink.ConstTableID), ObjectPropertyLink.ConstFNToUid)
+                sqlselectcmd.AppendFormat(",[{0}].[{1}]", ot.CurrentSession.CurrentDBDriver.GetNativeTableName(ObjectPropertyLink.ConstTableID), ObjectPropertyLink.ConstFNToUpdc)
                 ' ObjectPropertyValueLot
                 sqlselectcmd.AppendFormat(",LOT.[{0}]", ObjectPropertyValueLot.ConstFNSets)
                 sqlselectcmd.AppendFormat(",LOT.[{0}]", ObjectPropertyValueLot.ConstFNSetUPDCs)
@@ -477,18 +477,18 @@ Namespace OnTrack.ObjectProperties
                 '** updated
                 sqlselectcmd.AppendFormat(",LOT.[{0}]", ObjectPropertyValueLot.ConstFNUpdatedOn)
                 'FROM   ontrack.dbo.TBLOBJPROPERTYVALUELOTS AS LOT 
-                sqlselectcmd.AppendLine(" FROM  " & ObjectPropertyValueLot.constTableID & " AS LOT ")
+                sqlselectcmd.AppendLine(" FROM  [" & ot.CurrentSession.CurrentDBDriver.GetNativeTableName(ObjectPropertyValueLot.constTableID) & "] AS LOT ")
                 'inner join	ontrack.dbo.TBLOBJPROPERTYLINKS on lot.puid = TBLOBJPROPERTYLINKS.touid 
-                sqlselectcmd.AppendFormat(" INNER JOIN {0} ON LOT.[{1}] = {0}.[{2}] AND lot.[{3}] = {0}.[{4}]", _
-                                          ObjectPropertyLink.ConstTableID, ObjectPropertyValueLot.constFNUID, ObjectPropertyLink.ConstFNToUid, _
+                sqlselectcmd.AppendFormat(" INNER JOIN [{0}] ON LOT.[{1}] = {0}.[{2}] AND lot.[{3}] = {0}.[{4}]", _
+                                          ot.CurrentSession.CurrentDBDriver.GetNativeTableName(ObjectPropertyLink.ConstTableID), ObjectPropertyValueLot.constFNUID, ObjectPropertyLink.ConstFNToUid, _
                                           ObjectPropertyValueLot.ConstFNUpdc, ObjectPropertyLink.ConstFNToUpdc)
 
                 i = 1
                 'INNER JOIN	ontrack.dbo.TBLOBJPROPERTYVALUES AS P13 ON LOT.PUID = P13.PUID AND LOT.UPDC = P13.UPDC AND P13.PROPERTYID = '1.0.0.0'
 
                 For Each aProperty In [set].Properties
-                    sqlselectcmd.AppendFormat(" LEFT OUTER JOIN {0} AS P{1} ON LOT.{2} = P{1}.{3} AND LOT.{4} = P{1}.{5} AND P{1}.{6} = '{7}'" _
-                                              , ObjectPropertyValue.constTableID, _
+                    sqlselectcmd.AppendFormat(" LEFT OUTER JOIN [{0}] AS P{1} ON LOT.{2} = P{1}.{3} AND LOT.{4} = P{1}.{5} AND P{1}.{6} = '{7}'" _
+                                              , ot.CurrentSession.CurrentDBDriver.GetNativeTableName(ObjectPropertyValue.constTableID), _
                                               i, _
                                               ObjectPropertyValueLot.constFNUID, _
                                               ObjectPropertyValue.constFNUID, _

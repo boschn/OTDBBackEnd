@@ -1445,7 +1445,7 @@ Namespace OnTrack.Commons
         ''' <remarks></remarks>
         Public Shared Function GetInsertInitalUserSQLString(username As String, person As String, password As String, desc As String, group As String, defaultworkspace As String) As String
 
-            Dim aSqlString As String = String.Format("INSERT INTO {0} ", ConstTableID)
+            Dim aSqlString As String = String.Format("INSERT INTO [{0}] ", CurrentSession.CurrentDBDriver.GetNativeTableName(ConstTableID))
             'aSqlString &= "( [username], person, [password], [desc],  defws, isanon, alterschema, readdata, updatedata, noright, UpdatedOn, CreatedOn)"
             aSqlString &= String.Format("( [{0}], [{1}], [{2}], [{3}],  [{4}], [{5}], [{6}], [{7}], {8}, [{9}], [{10}], [{11}], [{12}])", _
                                          ConstFNUsername, ConstFNPerson, ConstFNPassword, ConstFNDescription, ConstFNDefaultWorkspace, ConstFNDefaultDomainID, _
@@ -1465,7 +1465,7 @@ Namespace OnTrack.Commons
         ''' <remarks></remarks>
         Public Shared Function GetCreateSqlString() As String
 
-            Dim aSqlString As String = String.Format("CREATE TABLE {0} ", ConstTableID)
+            Dim aSqlString As String = String.Format("CREATE TABLE [{0}] ", CurrentSession.CurrentDBDriver.GetNativeTableName(ConstTableID))
             aSqlString &= String.Format("( [{0}] nvarchar(50) not null, [{1}] nvarchar(50)  null, [{2}] nvarchar(50)  null, ", _
                                         ConstFNUsername, ConstFNPassword, ConstFNPerson)
             aSqlString &= String.Format("[{0}] nvarchar(max)  null default , [{1}] nvarchar(max)  null default, [{2}] bit not null default 0, [{3}] bit not null default 0, [{4}] bit not null default 0, [{5}] bit not null default 0, ", _
@@ -3438,7 +3438,7 @@ Namespace OnTrack.Commons
         ''' <remarks></remarks>
         Public Shared Function GetInsertGlobalDomainSQLString(domainid As String, description As String, mindeliverableuid As Long, maxdeliverableuid As Long) As String
 
-            Dim aSqlString As String = String.Format("INSERT INTO {0} ", ConstTableID)
+            Dim aSqlString As String = String.Format("INSERT INTO [{0}] ", CurrentSession.CurrentDBDriver.GetNativeTableName(ConstTableID))
             aSqlString &= String.Format("( [{0}], [{1}], [{2}], [{3}],  [{4}], [{5}], [{6}])", _
                                          ConstFNDomainID, ConstFNDescription, ConstFNIsGlobal, ConstFNMinDeliverableUID, ConstFNMaxDeliverableUID, _
                                          ConstFNCreatedOn, ConstFNUpdatedOn)

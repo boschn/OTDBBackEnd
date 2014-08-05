@@ -67,10 +67,10 @@ Namespace OnTrack.Database
                                                                 objecttransactions:={anObject.ObjectID & "." & ConstOPInject}) Then
                 '** request authorizartion
                 If Not CurrentSession.RequestUserAccess(accessRequest:=otAccessRight.ReadOnly, domainID:=domainID, _
-                                                                            username:=CurrentSession.Username, _
+                                                                            username:=CurrentSession.CurrentUsername, _
                                                                             objecttransactions:={anObject.ObjectID & "." & ConstOPInject}) Then
                     Call CoreMessageHandler(message:="data object cannot be retrieved - permission denied to user", _
-                                            objectname:=anObject.ObjectID, arg1:=ConstOPInject, username:=CurrentSession.Username, _
+                                            objectname:=anObject.ObjectID, arg1:=ConstOPInject, username:=CurrentSession.CurrentUsername, _
                                             subname:="ormDataObject.Retrieve", messagetype:=otCoreMessageType.ApplicationError)
                     Return Nothing
                 End If

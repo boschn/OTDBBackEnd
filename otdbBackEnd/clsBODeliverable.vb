@@ -25,10 +25,8 @@ Imports OnTrack.ObjectProperties
 
 Namespace OnTrack.Deliverables
 
-
-   
     ''' <summary>
-    ''' Current target object points to the current clsOTDBDeliverableTarget 
+    ''' Current target object points to the current Target 
     ''' </summary>
     ''' <remarks></remarks>
     <ormObject(id:=WorkspaceTarget.ConstObjectID, description:="linking object to the current target per workspace", _
@@ -2758,7 +2756,7 @@ Namespace OnTrack.Deliverables
                 If Not aCommand.Prepared Then
                     aCommand.Where = "[" & ConstFNIsDeleted & "] = @deleted "
                     aCommand.Where &= " AND ([" & ConstFNDomainID & "] = @domainID OR [" & ConstFNDomainID & "] = @globalID)"
-                    aCommand.OrderBy = "[" & ConstTableID & "." & constFNTypeID & "] asc"
+                    aCommand.OrderBy = "[" & CurrentSession.CurrentDBDriver.GetNativeTableName(ConstTableID) & "].[" & constFNTypeID & "] asc"
                     aCommand.AddParameter(New ormSqlCommandParameter(ID:="@deleted", ColumnName:=ConstFNIsDeleted, tablename:=ConstTableID))
                     aCommand.AddParameter(New ormSqlCommandParameter(ID:="@domainID", ColumnName:=ConstFNDomainID, tablename:=ConstTableID))
                     aCommand.AddParameter(New ormSqlCommandParameter(ID:="@globalID", ColumnName:=ConstFNDomainID, tablename:=ConstTableID))
@@ -2946,11 +2944,9 @@ Namespace OnTrack.Deliverables
         <ormEntryMapping(EntryName:=constFNFormat)> Private _format As String
         <ormEntryMapping(EntryName:=constFNCategory)> Private _category As String
         <ormEntryMapping(EntryName:=constFNDescription)> Private _description As String
-        'Private s_customerID As String = "" outdated movved to targets
         <ormEntryMapping(EntryName:=constFNRespOU)> Private _respOUID As String
         <ormEntryMapping(EntryName:=constFNMatchCode)> Private _matchcode As String
         <ormEntryMapping(EntryName:=ConstFNDomain)> Private _domainID As String
-        'Private s_assycode As String = "" obsolete
         <ormEntryMapping(EntryName:=constFNPartID)> Private _partID As String
         <ormEntryMapping(EntryName:=constFNChangeRef)> Private _changerefID As String
         <ormEntryMapping(EntryName:=constFNDeliverableTypeID)> Private _typeid As String
@@ -3766,7 +3762,6 @@ Namespace OnTrack.Deliverables
         ''' <remarks></remarks>
         Public Function Purge() As Boolean
 
-            Dim otdbCol As Collection
             Dim aDelivTrack As New Track
             Dim aCurSchedule As New WorkspaceSchedule
             Dim aSchedule As New ScheduleEdition
@@ -3776,26 +3771,17 @@ Namespace OnTrack.Deliverables
             If IsLoaded Then
                 ' delete other reference records
                 'delete the tbldeliverabletracks
-                otdbCol = aDocTarget.AllByUid(Me.Uid)
-                If Not otdbCol Is Nothing Then
-                    For Each aDocTarget In otdbCol
-                        Call aDocTarget.Delete()
-                    Next aDocTarget
-                End If
+                For Each aDocTarget In aDocTarget.AllByUid(Me.Uid)
+                    Call aDocTarget.Delete()
+                Next aDocTarget
                 'delete the curschedule
-                otdbCol = aCurSchedule.allByUID(Me.Uid)
-                If Not otdbCol Is Nothing Then
-                    For Each aCurSchedule In otdbCol
-                        Call aCurSchedule.Delete()
-                    Next aCurSchedule
-                End If
+                For Each aCurSchedule In aCurSchedule.AllByUID(Me.Uid)
+                    Call aCurSchedule.Delete()
+                Next aCurSchedule
                 'delete the DocTarget
-                otdbCol = aDelivTrack.AllByDeliverable(Me.Uid)
-                If Not otdbCol Is Nothing Then
-                    For Each aDelivTrack In otdbCol
-                        Call aDelivTrack.Delete()
-                    Next aDelivTrack
-                End If
+                For Each aDelivTrack In aDelivTrack.AllByDeliverable(Me.Uid)
+                    Call aDelivTrack.Delete()
+                Next aDelivTrack
                 'delete the Schedule
                 For Each aSchedule In aSchedule.AllByUID(Me.Uid)
                     Call aSchedule.Delete()
@@ -3920,7 +3906,7 @@ Namespace OnTrack.Deliverables
                 If Not aCommand.Prepared Then
                     aCommand.Where = ConstFNIsDeleted & " = @deleted "
                     aCommand.Where &= " AND ([" & ConstFNDomainID & "] = @domainID OR [" & ConstFNDomainID & "] = @globalID)"
-                    aCommand.OrderBy = "[" & ConstTableID & "." & constFNUid & "] asc"
+                    aCommand.OrderBy = "[" & CurrentSession.CurrentDBDriver.GetNativeTableName(ConstTableID) & "].[" & constFNUid & "] asc"
                     aCommand.AddParameter(New ormSqlCommandParameter(ID:="@deleted", ColumnName:=ConstFNIsDeleted, tablename:=ConstTableID))
                     aCommand.AddParameter(New ormSqlCommandParameter(ID:="@domainID", ColumnName:=ConstFNDomainID, tablename:=ConstTableID))
                     aCommand.AddParameter(New ormSqlCommandParameter(ID:="@globalID", ColumnName:=ConstFNDomainID, tablename:=ConstTableID))
@@ -4112,7 +4098,8 @@ Namespace OnTrack.Deliverables
                 If Not aCommand.Prepared Then
                     aCommand.select = "[" & constFNUid & "], [" & constFNRevision & "],[" & constFNfuid & "]"
                     aCommand.Where = "[" & ConstFNIsDeleted & "] = @deleted and ([" & constFNUid & "] = @uid or [" & constFNfuid & "]=@uid)"
-                    aCommand.OrderBy = "[" & ConstTableID & "." & constFNUid & "], [" & ConstTableID & "." & constFNRevision & "] asc"
+                    aCommand.OrderBy = "[" & CurrentSession.CurrentDBDriver.GetNativeTableName(ConstTableID) & "].[" & constFNUid & "], [" _
+                        & CurrentSession.CurrentDBDriver.GetNativeTableName(ConstTableID) & "].[" & constFNRevision & "] asc"
                     aCommand.AddParameter(New ormSqlCommandParameter(ID:="@deleted", ColumnName:=ConstFNIsDeleted, tablename:=ConstTableID))
                     aCommand.AddParameter(New ormSqlCommandParameter(ID:="@uid", columnname:="uid", tablename:=ConstTableID))
                     aCommand.Prepare()
@@ -4209,7 +4196,7 @@ Namespace OnTrack.Deliverables
                     aCommand.select = " DISTINCT [" & constFNMatchCode & "]"
                     aCommand.Where = ConstFNIsDeleted & " = @deleted"
                     aCommand.Where &= " AND ([" & ConstFNDomainID & "] = @domainID OR [" & ConstFNDomainID & "] = @globalID)"
-                    aCommand.OrderBy = "[" & ConstTableID & "." & constFNMatchCode & "] asc"
+                    aCommand.OrderBy = "[" & CurrentSession.CurrentDBDriver.GetNativeTableName(ConstTableID) & "].[" & constFNMatchCode & "] asc"
                     aCommand.AddParameter(New ormSqlCommandParameter(ID:="@deleted", ColumnName:=ConstFNIsDeleted, tablename:=ConstTableID))
                     aCommand.AddParameter(New ormSqlCommandParameter(ID:="@domainID", ColumnName:=ConstFNDomainID, tablename:=ConstTableID))
                     aCommand.AddParameter(New ormSqlCommandParameter(ID:="@globalID", ColumnName:=ConstFNDomainID, tablename:=ConstTableID))

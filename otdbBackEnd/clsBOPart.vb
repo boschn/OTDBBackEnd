@@ -376,66 +376,7 @@ Namespace OnTrack.Parts
 
         End Function
 
-        '****** all: "static" function to return a collection of parts by key
-        '******
-        Public Function AllByPrecodeAndOU(ByVal precode As String, _
-                                          Optional ByVal department As String = "", _
-                                          Optional ByVal site As String = "", _
-                                          Optional ByVal workpackage As String = "") As Collection
-            Dim aCollection As New Collection
-            Dim aRecordCollection As List(Of ormRecord)
-            Dim aTable As iormDataStore
-            Dim Key() As Object
-            Dim aRecord As ormRecord
-            Dim wherestr As String
-            Dim innerjoin As String
-            Dim textstr As String
-
-            ' set the primaryKey
-            ReDim Key(0)
-            Key(0) = DeliverableUID
-
-            On Error GoTo error_handler
-
-            aTable = GetTableStore(ConstTableID)
-            ' get rid of the '.'
-            'precode = RemoveChar(precode, ".")
-            textstr = Mid(precode, 1, 1) & Mid(precode, 3, 3)
-
-            wherestr = "mid(" & ConstTableID & ".pnid,1,4) ='" & textstr & "' "
-            ' select
-            If department <> "" Then
-                wherestr = wherestr & " and " & ConstTableID & ".dept ='" & department & "' "
-            End If
-            If site <> "" Then
-                wherestr = wherestr & " and " & ConstTableID & ".site ='" & site & "' "
-            End If
-            If workpackage <> "" Then
-                wherestr = wherestr & " and " & ConstTableID & ".wkpk ='" & workpackage & "' "
-            End If
-
-            aRecordCollection = aTable.GetRecordsBySql(wherestr:=wherestr)
-
-            If aRecordCollection Is Nothing Then
-                Me.Unload()
-                AllByPrecodeAndOU = Nothing
-                Exit Function
-            Else
-                For Each aRecord In aRecordCollection
-                    Dim aNewPart As New Part
-                    If InfuseDataObject(record:=aRecord, dataobject:=aNewPart) Then
-                        aCollection.Add(Item:=aNewPart)
-                    End If
-                Next aRecord
-                AllByPrecodeAndOU = aCollection
-                Exit Function
-            End If
-
-error_handler:
-
-            AllByPrecodeAndOU = Nothing
-            Exit Function
-        End Function
+       
 
 
         ''' <summary>

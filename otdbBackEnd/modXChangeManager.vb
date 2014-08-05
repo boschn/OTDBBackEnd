@@ -46,7 +46,7 @@ Namespace OnTrack.XChange
                                   Optional commentChar As Char = "#"c) As Boolean
 
             CoreMessageHandler(message:="looking next to csv file '" & IO.Path.GetFileName(path) & "' ", _
-                                              arg1:=path, username:=CurrentSession.Username, _
+                                              arg1:=path, username:=CurrentSession.CurrentUsername, _
                                               subname:="CreateDatabase.FeedInitialData", messagetype:=otCoreMessageType.InternalInfo)
 
             ''' request rights and start session if necessary

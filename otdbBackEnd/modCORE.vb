@@ -126,14 +126,17 @@ Namespace OnTrack
         Public Const ConstPNCalendarInitializedFrom = "calendarinitializedfrom"
         Public Const ConstPNCalendarInitializedto = "calendarinitializedto"
 
+
         ''' <summary>
         ''' The Schema Version - increase here to trigger recreation of the database schema
         ''' </summary>
         ''' <remarks></remarks>
         ''' 
+        <ormChangeLogEntry(application:=ConstApplicationBackend, module:=ConstPNBSchemaVersion, version:=12, release:=0, patch:=0, changeimplno:=1, _
+            description:="Introduced the db installation concept for using multiple installations in one ")> _
         <ormChangeLogEntry(application:=ConstApplicationBackend, module:=ConstPNBSchemaVersion, version:=11, release:=0, patch:=0, changeimplno:=1, _
             description:="ChangeLog Entry added")> _
-        Public Const ConstOTDBSchemaVersion = 11
+        Public Const ConstOTDBSchemaVersion = 12
 
         '** config parameters
         ''' <summary>
@@ -161,6 +164,8 @@ Namespace OnTrack
         Public Const ConstCPNDescription = "otdb_parameter_configset_description"
         Public Const constCPNUseLogAgent = "otdb_parameter_uselogagent"
         Public Const constCPNDefaultDomainid = "otdb_parameter_default_domainid"
+        Public Const ConstCPNSetupID = "otdb_parameter_setupid" ' Installation prefix to use 
+        Public Const ConstCPNSetupDescription = "otdb_parameter_setup_description"
         ''' <summary>
         ''' config Property value
         ''' </summary>
@@ -177,6 +182,24 @@ Namespace OnTrack
         ''' <remarks></remarks>
         Public Const ConstGlobalDomain = "@"
 
+        ''' <summary>
+        ''' Default Setup ID
+        ''' </summary>
+        ''' <remarks></remarks>
+        Public Const ConstDefaultSetupID = ""
+
+        ''' <summary>
+        ''' Default CalendarName
+        ''' </summary>
+        ''' <remarks></remarks>
+        Public Const ConstDefaultCalendarName = "default"
+
+        ''' <summary>
+        ''' Installation Paths for Data
+        ''' </summary>
+        ''' <remarks></remarks>
+        Public Const ConstInitialDataFolder = "InitialData"
+        Public Const ConstInitialDataDefaultFolder = "InitialData\Default"
 
         '** MQF operation codes
         Public Const ConstMQFOpDelete = "DELETE"
@@ -221,12 +244,12 @@ Namespace OnTrack
         ''' Variables
         ''' </summary>
         ''' <remarks></remarks>
-        Private _ApplicationName As String = ""
+        Private _ApplicationName As String = String.Empty
         Private _Version As String
 
         Private WithEvents _CurrentSession As Session
         Private _configfilelocations As List(Of String) = New List(Of String)
-        Private _UsedConfigFileLocation As String = ""
+        Private _UsedConfigFileLocation As String = String.Empty
         ' initialized Flag
         Private _OTDBIsInitialized As Boolean = False
 
@@ -370,7 +393,17 @@ Namespace OnTrack
             End Get
 
         End Property
-
+        ''' <summary>
+        ''' returns the Current Database Setup ID (for tables, views and other data)
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property CurrentSetupID As String
+            Get
+                Return CurrentSession.CurrentSetupID
+            End Get
+        End Property
         ''' <summary>
         ''' Gets the primary DB env.
         ''' </summary>
@@ -695,6 +728,10 @@ Namespace OnTrack
                         parameterName = ""
                         '** select
                         Select Case identifier.ToLower
+                            Case "setupid", ConstCPNSetupID
+                                parameterName = ConstCPNSetupID
+                            Case "setupd", ConstCPNSetupDescription
+                                parameterName = ConstCPNSetupDescription
                             Case "use", "current", ConstCPNUseConfigSetName
                                 'ot.CurrentConfigSetName = valueString this doesnot work since the Config set might not be loaded 
                                 parameterName = ConstCPNUseConfigSetName
@@ -778,12 +815,12 @@ Namespace OnTrack
                                         valueObject = 0
                                 End Select
 
-                            Case ""
-                                parameterName = ""
+                            Case String.Empty
+                                parameterName = String.Empty
                             Case Else
                                 CoreMessageHandler(message:="the config file parameter was not recognized", arg1:=identifier, messagetype:=otCoreMessageType.ApplicationError, _
                                                    subname:="ot.GetConfigFromFile")
-                                parameterName = ""
+                                parameterName = String.Empty
                         End Select
 
                         '** set the value to the found parametername
@@ -793,13 +830,13 @@ Namespace OnTrack
                         Else
                             weight = 15
                         End If
-                        If parameterName <> "" AndAlso valueObject Is Nothing Then
+                        If Not String.IsNullOrWhiteSpace(parameterName) AndAlso valueObject Is Nothing Then
                             SetConfigProperty(name:=parameterName, weight:=weight, value:=valueString, configsetname:=configsetname, sequence:=sequence)
-                        ElseIf parameterName <> "" AndAlso valueObject IsNot Nothing Then
+                        ElseIf Not String.IsNullOrWhiteSpace(parameterName) AndAlso valueObject IsNot Nothing Then
                             SetConfigProperty(name:=parameterName, weight:=weight, value:=valueObject, configsetname:=configsetname, sequence:=sequence)
                         End If
 
-                        valueString = ""
+                        valueString = String.Empty
                         valueObject = Nothing
                     End If
 
@@ -883,7 +920,8 @@ Namespace OnTrack
         ''' <param name="name">name of property</param>
         ''' <returns>return true</returns>
         ''' <remarks></remarks>
-        Public Function HasConfigProperty(ByVal name As String, Optional configsetname As String = "", Optional sequence As ComplexPropertyStore.Sequence = ComplexPropertyStore.Sequence.Primary) As Boolean
+        Public Function HasConfigProperty(ByVal name As String, Optional configsetname As String = Nothing, Optional sequence As ComplexPropertyStore.Sequence = ComplexPropertyStore.Sequence.Primary) As Boolean
+            If configsetname Is Nothing Then configsetname = CurrentConfigSetName
             Return _configurations.HasProperty(name:=name, setname:=configsetname, sequence:=sequence)
         End Function
         ''' <summary>
@@ -1238,7 +1276,7 @@ Namespace OnTrack
                     If ipproperties.DomainName <> "" Then strHostName &= "." & ipproperties.DomainName
                     strIPAddress = System.Net.Dns.GetHostByName(strHostName).AddressList(0).ToString()
 
-                    Dim message As String = My.Application.Info.AssemblyName & " started in version " & My.Application.Info.Version.ToString _
+                    Dim message As String = My.Application.Info.AssemblyName & " based on schema version " & ot.SchemaVersion & " started in version " & ot.AssemblyVersion.ToString _
                     & " loaded from " & My.Application.Info.DirectoryPath & " on system " & My.Computer.Name
                     If My.Computer.Network.IsAvailable Then
                         message &= String.Format(" ({0}, {1}) ", strHostName, strIPAddress)
@@ -1444,11 +1482,11 @@ Namespace OnTrack
                 Case otDataType.Long
                     Return 0
                 Case otDataType.Memo
-                    Return ""
+                    Return String.Empty
                 Case otDataType.Numeric
                     Return 0
                 Case otDataType.Text
-                    Return ""
+                    Return String.Empty
                 Case otDataType.Time
                     Return ConstNullTime
                 Case otDataType.Timestamp
@@ -1619,7 +1657,7 @@ Namespace OnTrack
                         .Domainid = _CurrentSession.CurrentDomainID
                     End If
                     If String.IsNullOrWhiteSpace(username) AndAlso _CurrentSession IsNot Nothing AndAlso _CurrentSession.IsRunning Then 'use the internal variable not to startup a session
-                        .Username = _CurrentSession.Username
+                        .Username = _CurrentSession.CurrentUsername
                     Else
                         .Username = username
                     End If

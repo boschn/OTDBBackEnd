@@ -44,7 +44,7 @@ Namespace OnTrack
         '******  PARAMETERS
         Private _DependencySynchroMinOverlap As Integer  '= 7
         Private _DefaultWorkspace As String    '= ""
-        Private _DefaultCalendarName As String    '= ""
+        Private _DefaultCalendarName As String = ConstDefaultCalendarName 'needed for Installation Calendar Setup
         Private _TodayLatency As Integer
         Private _DefaultScheduleTypeID As String = ""
         Private _DefaultDeliverableTypeID As String = ""
@@ -67,13 +67,14 @@ Namespace OnTrack
 
         '*** SESSION
         Private _OTDBUser As Commons.User
-        Private _Username As String = ""
+        Private _Username As String = String.Empty
         Private _errorLog As SessionMessageLog
         Private _logagent As SessionAgent
-        Private _UseConfigSetName As String = ""
+        Private _UseConfigSetName As String = String.Empty
         Private _CurrentDomainID As String = ConstGlobalDomain
         Private _loadDomainReqeusted As Boolean = False
-        Private _CurrentWorkspaceID As String = ""
+        Private _CurrentWorkspaceID As String = String.Empty
+        Private _setupID As String = String.Empty
 
         ' initialized Flag
         Private _IsInitialized As Boolean = False
@@ -126,11 +127,11 @@ Namespace OnTrack
             ElseIf ApplicationName <> "" Then
                 id = ApplicationName
             Else
-                id = My.Application.Info.Title & "." & My.Application.Info.AssemblyName & "." & My.Application.Info.Version.ToString
+                id = My.Application.Info.AssemblyName
             End If
             '* session
             _SessionID = ConstDelimiter & Date.Now.ToString("s") & ConstDelimiter & My.Computer.Name & ConstDelimiter _
-            & My.User.Name & ConstDelimiter & id & ConstDelimiter
+            & Environment.UserName & ConstDelimiter & id & ConstDelimiter & My.Application.Info.Version.ToString & ConstDelimiter
             '* init
             _errorLog = New SessionMessageLog(_SessionID)
             _logagent = New SessionAgent(Me)
@@ -156,7 +157,22 @@ Namespace OnTrack
         End Sub
 
 #Region "Properties"
+        ''' <summary>
+        ''' returns the Current Database Setup ID (for tables, views and other data)
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property CurrentSetupID As String
+            Get
+                If IsConnected OrElse IsStartingUp OrElse IsInstallationRunning Then
+                    Return _setupID
+                Else
+                    Return String.Empty
+                End If
 
+            End Get
+        End Property
 
         ''' <summary>
         ''' Gets or sets an array of entry names of the deliverable object which should be reseted on cloning
@@ -340,7 +356,7 @@ Namespace OnTrack
         ''' Gets the user name.
         ''' </summary>
         ''' <value>The user name.</value>
-        Public ReadOnly Property Username() As String
+        Public ReadOnly Property CurrentUsername() As String
             Get
                 Return Me._Username
             End Get
@@ -707,6 +723,9 @@ Namespace OnTrack
                 End If
                 '** set a specific - trigger change event
                 _configurations.CurrentSet = useConfigsetName
+                '** set the initial Setup ID
+                _setupID = ot.GetConfigProperty(ConstCPNSetupID)
+
                 '** here we should have a database driver and a connection by event handling
                 '** and reading the properties if not something is wrong
                 If _primaryDBDriver Is Nothing OrElse _primaryConnection Is Nothing Then
@@ -1082,7 +1101,7 @@ Namespace OnTrack
                         Me.UILogin.Domain = domainid
                         Me.UILogin.EnableDomain = False
                     End If
-                   
+
                     'Me.UILogin.Session = Me
 
                     Me.UILogin.Accessright = accessRequest
@@ -1116,7 +1135,7 @@ Namespace OnTrack
                     If userValidation.ValidEntry AndAlso password = "" Then
                         password = userValidation.Password
                     End If
-                '* no username but default accessrequest then look for the anonymous user
+                    '* no username but default accessrequest then look for the anonymous user
                 ElseIf accessRequest = ConstDefaultAccessRight Then
                     If String.IsNullOrWhiteSpace(domainid) Then domainid = ConstGlobalDomain
                     userValidation = _primaryDBDriver.GetUserValidation(username:="", selectAnonymous:=True)
@@ -1399,9 +1418,22 @@ Namespace OnTrack
                 '** set statup
                 Me.IsStartingUp = True
 
-                If useconfigsetname <> "" AndAlso ot.HasConfigSetName(useconfigsetname, ComplexPropertyStore.Sequence.Primary) Then
+                ' set the config setname
+                If Not String.IsNullOrWhiteSpace(useconfigsetname) AndAlso ot.HasConfigSetName(useconfigsetname, ComplexPropertyStore.Sequence.Primary) Then
                     _UseConfigSetName = useconfigsetname
                 End If
+                ' set the application ID from the current config set
+                If ot.HasConfigProperty(ConstCPNSetupID, configsetname:=ot.CurrentConfigSetName) Then
+                    _setupID = ot.GetConfigProperty(ConstCPNSetupID)
+                End If
+
+                If String.IsNullOrWhiteSpace(_setupID) Then
+                    _setupID = ConstDefaultSetupID
+                End If
+
+                Call CoreMessageHandler(subname:="Session.Startup", message:="setup id for the session set to '" & _setupID & "'", _
+                                           arg1:=_SessionID, messagetype:=otCoreMessageType.InternalInfo)
+
                 '** lazy initialize
                 If Not Me.IsInitialized AndAlso Not Me.Initialize() Then
                     Call CoreMessageHandler(subname:="Session.Startup", message:="failed to initialize session", _
@@ -1444,7 +1476,7 @@ Namespace OnTrack
                 End If
 
                 '*** get the Schema Version
-                aValue = _primaryDBDriver.GetDBParameter(ConstPNBSchemaVersion, silent:=True)
+                aValue = _primaryDBDriver.GetDBParameter(ConstPNBSchemaVersion, SetupID:=_setupID, silent:=True)
                 If aValue Is Nothing OrElse Not IsNumeric(aValue) Then
                     result = _primaryDBDriver.VerifyOnTrackDatabase(install:=installIfNecessary, modules:=ot.InstalledModules, verifySchema:=False)
                 ElseIf ot.SchemaVersion < Convert.ToUInt64(aValue) Then
@@ -1460,7 +1492,7 @@ Namespace OnTrack
                     result = _primaryDBDriver.VerifyOnTrackDatabase(install:=installIfNecessary, modules:=ot.InstalledModules, verifySchema:=False)
                 Else
                     '** check also the bootstrap version
-                    aValue = _primaryDBDriver.GetDBParameter(ConstPNBootStrapSchemaChecksum, silent:=True)
+                    aValue = _primaryDBDriver.GetDBParameter(ConstPNBootStrapSchemaChecksum, SetupID:=_setupID, silent:=True)
                     If aValue Is Nothing OrElse Not IsNumeric(aValue) OrElse ot.GetBootStrapSchemaChecksum <> Convert.ToUInt64(aValue) Then
                         result = _primaryDBDriver.VerifyOnTrackDatabase(install:=installIfNecessary, modules:=ot.InstalledModules, verifySchema:=False)
                     Else
@@ -1493,8 +1525,13 @@ Namespace OnTrack
                 End If
 
                 '** request access
-                If RequestUserAccess(accessRequest:=AccessRequest, username:=OTDBUsername, _
-                                    password:=OTDBPassword, domainID:=domainID, loginOnDisConnected:=True, loginOnFailed:=True, messagetext:=messagetext.Clone) Then
+                If RequestUserAccess(accessRequest:=AccessRequest, _
+                                     username:=OTDBUsername, _
+                                    password:=OTDBPassword, _
+                                    domainid:=domainID, _
+                                    loginOnDisConnected:=True, _
+                                    loginOnFailed:=True, _
+                                    messagetext:=messagetext.Clone) Then
                     '** the starting up aborted
                     If Not Me.IsStartingUp Then
                         CoreMessageHandler(message:="Startup of Session was aborted", _
@@ -1510,7 +1547,7 @@ Namespace OnTrack
                     '''
                     If Not _primaryConnection.Connect(FORCE:=True, _
                                                       access:=AccessRequest, _
-                                                      domainID:=domainID, _
+                                                      domainid:=domainID, _
                                                       OTDBUsername:=OTDBUsername, _
                                                       OTDBPassword:=OTDBPassword, _
                                                       doLogin:=True) Then
@@ -1868,6 +1905,8 @@ Namespace OnTrack
                         Me.IsStartingUp = False
                         Return False
                     End If
+                    '*** Initialize the Repository
+                    Me.Objects.Initialize(force:=False)
                     '*** set started
                     Me.IsStartingUp = False
                     IsRunning = True
@@ -3125,7 +3164,7 @@ Namespace OnTrack
 
             If aMessage IsNot Nothing Then
                 If aMessageDefinition IsNot Nothing Then aMessage.IsPersisted = aMessageDefinition.IsPersisted
-                aMessage.Username = CurrentSession.Username
+                aMessage.Username = CurrentSession.CurrentUsername
                 aMessage.Sessionid = CurrentSession.SessionID
                 '* try to get the sender
                 If sender Is Nothing Then sender = _container
@@ -4232,7 +4271,7 @@ Namespace OnTrack
 
             ''' defaults
             If Not e.Record.HasIndex(ConstFNSessionTAG) OrElse e.Record.GetValue(ConstFNSessionTAG) Is Nothing Then e.Record.SetValue(ConstFNSessionTAG, CurrentSession.SessionID)
-            If Not e.Record.HasIndex(ConstFNUsername) OrElse e.Record.GetValue(ConstFNUsername) Is Nothing Then e.Record.SetValue(ConstFNUsername, CurrentSession.Username)
+            If Not e.Record.HasIndex(ConstFNUsername) OrElse e.Record.GetValue(ConstFNUsername) Is Nothing Then e.Record.SetValue(ConstFNUsername, CurrentSession.CurrentUsername)
             If Not e.Record.HasIndex(ConstFNDomainID) OrElse e.Record.GetValue(ConstFNDomainID) Is Nothing Then e.Record.SetValue(ConstFNDomainID, CurrentSession.CurrentDomainID)
             If Not e.Record.HasIndex(ConstFNWORKSPACEID) OrElse e.Record.GetValue(ConstFNWORKSPACEID) Is Nothing Then e.Record.SetValue(ConstFNWORKSPACEID, CurrentSession.CurrentWorkspaceID)
             If Not e.Record.HasIndex(ConstFNTimeStamp) OrElse e.Record.GetValue(ConstFNTimeStamp) Is Nothing Then e.Record.SetValue(ConstFNTimeStamp, Date.Now)

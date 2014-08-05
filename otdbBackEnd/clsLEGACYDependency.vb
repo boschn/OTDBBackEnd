@@ -3711,7 +3711,7 @@ errorhandle:
         Public Function getSizeMax(ByRef size As Long, ByRef max As Long) As Boolean
             Dim otdbcn As ADODB.Connection
             Dim rst As ADODB.Recordset
-            Dim tablename As String
+            Dim tableid As String
             Dim cmdstr As String
             Dim mysize As Long, mymax As Long
 
@@ -3721,7 +3721,7 @@ errorhandle:
             Dim aDependMember As New clsOTDBDependMember
 
 
-            If me.isloaded And Not Me.IsCreated Then
+            If Me.IsLoaded And Not Me.IsCreated Then
                 getSizeMax = False
                 Exit Function
             End If
@@ -3739,13 +3739,13 @@ errorhandle:
 
             ' get
             If Me.isDynamic Then
-                tablename = aDependCheck.primaryTableID
+                tableid = aDependCheck.PrimaryTableID
             Else
-                tablename = aDependMember.primaryTableID
+                tableid = aDependMember.PrimaryTableID
             End If
             ''' TODO
             ''' 
-            cmdstr = "SELECT count(*), max(clusterlevel) from " & tablename & " where clusterid='" & Me.clusterid & "' and typeid='" & Me.typeid & "'"
+            cmdstr = "SELECT count(*), max(clusterlevel) from " & aDependCheck.DatabaseDriver.GetNativeTableName(tableid) & " where clusterid='" & Me.clusterid & "' and typeid='" & Me.typeid & "'"
 
             rst.Open(cmdstr, otdbcn, ADODB.CursorTypeEnum.adOpenStatic, ADODB.LockTypeEnum.adLockOptimistic)
             If Not rst.EOF Then

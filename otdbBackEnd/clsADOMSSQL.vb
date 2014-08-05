@@ -88,9 +88,10 @@ Namespace OnTrack.Database
                 ' Create the commands.
                 '**** INSERT
                 .InsertCommand = New SqlCommand( _
-                                String.Format("INSERT INTO  {0} ([{1}], [{2}] , [{3}] , [{4}])  VALUES (@ID , @Value , @changedOn , @description) ", _
-                                              _parametersTableName, ConstFNID, ConstFNValue, ConstFNChangedOn, constFNDescription))
+                                String.Format("INSERT INTO  [{0}] ([{1}], [{2}] , [{3}] , [{4}], [{5}])  VALUES (@SetupID, @ID , @Value , @changedOn , @description) ", _
+                                              GetNativeTablename(_parametersTableName), ConstFNSetupID, ConstFNID, ConstFNValue, ConstFNChangedOn, constFNDescription))
                 '' Create the parameters.
+                .InsertCommand.Parameters.Add("@SetupID", SqlDbType.Char, 50, ConstFNSetupID)
                 .InsertCommand.Parameters.Add("@ID", SqlDbType.Char, 50, ConstFNID)
                 .InsertCommand.Parameters.Add("@Value", SqlDbType.VarChar, 250, ConstFNValue)
                 .InsertCommand.CommandType = CommandType.Text
@@ -106,8 +107,8 @@ Namespace OnTrack.Database
 
                 '**** UPDATE
                 .UpdateCommand = New SqlCommand( _
-                String.Format("UPDATE {0} SET [{1}] = @value , [{2}] = @changedOn , [{3}] = @description WHERE [{4}] = @ID", _
-                              _parametersTableName, ConstFNValue, ConstFNChangedOn, constFNDescription, ConstFNID))
+                String.Format("UPDATE [{0}] SET [{1}] = @value , [{2}] = @changedOn , [{3}] = @description WHERE [{4}] = @ID AND [{5}] = @SETUPID", _
+                              GetNativeTablename(_parametersTableName), ConstFNValue, ConstFNChangedOn, constFNDescription, ConstFNID, ConstFNSetupID))
                 '' Create the parameters.
                 .UpdateCommand.Parameters.Add("@value", SqlDbType.VarChar, 250, ConstFNValue)
                 ' strange enough sqldbdate is not working on some sqlservers
@@ -118,15 +119,16 @@ Namespace OnTrack.Database
 
                 .UpdateCommand.Parameters.Add("@description", SqlDbType.VarChar, 250, constFNDescription)
                 .UpdateCommand.Parameters.Add("@ID", SqlDbType.Char, 50, ConstFNID).SourceVersion = DataRowVersion.Original
+                .UpdateCommand.Parameters.Add("@SETUPID", SqlDbType.Char, 50, ConstFNSetupID).SourceVersion = DataRowVersion.Original
 
                 .UpdateCommand.Connection = DirectCast(_primaryConnection.NativeInternalConnection, SqlConnection)
                 .UpdateCommand.Prepare()
 
 
                 '***** DELETE
-                .DeleteCommand = New SqlCommand(String.Format("DELETE FROM {0} where [{1}] = @id", _parametersTableName, ConstFNID))
-                .DeleteCommand.Parameters.Add( _
-                "@ID", SqlDbType.Char, 50, ConstFNID).SourceVersion = DataRowVersion.Original
+                .DeleteCommand = New SqlCommand(String.Format("DELETE FROM [{0}] where [{1}] = @id AND [{2}] = @SETUPID", GetNativeTablename(_parametersTableName), ConstFNID, ConstFNSetupID))
+                .DeleteCommand.Parameters.Add("@ID", SqlDbType.Char, 50, ConstFNID).SourceVersion = DataRowVersion.Original
+                .DeleteCommand.Parameters.Add("@SETUPID", SqlDbType.Char, 50, ConstFNSetupID).SourceVersion = DataRowVersion.Original
                 .DeleteCommand.Connection = DirectCast(_primaryConnection.NativeInternalConnection, SqlConnection)
                 .DeleteCommand.Prepare()
 
@@ -181,8 +183,8 @@ Namespace OnTrack.Database
                     If Me.HasTable(_parametersTableName) Then
                         ' the command
                         Dim aDBCommand = New SqlCommand()
-                        aDBCommand.CommandText = String.Format("select [{0}],[{1}],[{2}],[{3}] from {4} ", _
-                                                               ConstFNID, ConstFNValue, ConstFNChangedOn, constFNDescription, _parametersTableName)
+                        aDBCommand.CommandText = String.Format("select [{0}],[{1}],[{2}],[{3}],[{4}] from [{5}] ", _
+                                                                ConstFNSetupID, ConstFNID, ConstFNValue, ConstFNChangedOn, constFNDescription, GetNativeTablename(_parametersTableName))
                         aDBCommand.Connection = DirectCast(_primaryConnection.NativeInternalConnection, SqlConnection)
                         ' fill with adapter
                         _ParametersTableAdapter = New SqlDataAdapter()
@@ -706,15 +708,15 @@ Namespace OnTrack.Database
         ''' <param name="nativeConnection"></param>
         ''' <remarks></remarks>
         ''' <returns></returns>
-        Public Overrides Function HasView(name As String, Optional ByRef connection As iormConnection = Nothing, Optional nativeConnection As Object = Nothing) As Boolean Implements iormDatabaseDriver.HasView
+        Public Overrides Function HasView(viewid As String, Optional ByRef connection As iormConnection = Nothing, Optional nativeConnection As Object = Nothing) As Boolean Implements iormDatabaseDriver.HasView
             Dim myconnection As mssqlConnection
             Dim smoconnection As ServerConnection
             Dim database As Microsoft.SqlServer.Management.Smo.Database
             Dim myNativeConnection As SqlConnection
-            Dim path As String
+            Dim nativeViewName As String = GetNativeViewname(viewid)
 
             '* if already loaded
-            If _TableDirectory.ContainsKey(key:=name) Then Return True
+            If _TableDirectory.ContainsKey(key:=nativeViewName) Then Return True
 
             If connection Is Nothing Then
                 myconnection = _primaryConnection
@@ -755,13 +757,13 @@ Namespace OnTrack.Database
                     database = myconnection.Database
 
                     If smoconnection Is Nothing OrElse database Is Nothing Then
-                        Call CoreMessageHandler(message:="SMO is not initialized", tablename:=name, _
+                        Call CoreMessageHandler(message:="SMO is not initialized", arg1:=nativeViewName, _
                                               subname:="mssqlDBDriver.hasTable", messagetype:=otCoreMessageType.InternalError)
                         Return Nothing
                     End If
 
                     database.Views.Refresh()
-                    Dim existsOnServer As Boolean = database.Views.Contains(name:=name)
+                    Dim existsOnServer As Boolean = database.Views.Contains(name:=nativeViewName)
                     Return existsOnServer
                 End SyncLock
 
@@ -783,11 +785,11 @@ Namespace OnTrack.Database
                     Loop
                 End If
 
-                Call CoreMessageHandler(message:=sb.ToString, exception:=ex, tablename:=name, _
+                Call CoreMessageHandler(message:=sb.ToString, exception:=ex, arg1:=nativeViewName, _
                                       subname:="mssqlDBDriver.HasView", messagetype:=otCoreMessageType.InternalError)
                 Return False
             Catch ex As Exception
-                Call CoreMessageHandler(message:="Exception", exception:=ex, tablename:=name, _
+                Call CoreMessageHandler(message:="Exception", exception:=ex, arg1:=nativeViewName, _
                                       subname:="mssqlDBDriver.HasView", messagetype:=otCoreMessageType.InternalError)
                 Return False
             End Try
@@ -804,7 +806,7 @@ Namespace OnTrack.Database
         ''' <param name="connection"></param>
         ''' <remarks></remarks>
         ''' <returns></returns>
-        Public Overrides Function GetView(name As String, sqlselect As String, _
+        Public Overrides Function GetView(viewid As String, sqlselect As String, _
                                           Optional createOrAlter As Boolean = False, _
                                           Optional ByRef connection As iormConnection = Nothing) As Object Implements iormDatabaseDriver.GetView
             Dim aView As Microsoft.SqlServer.Management.Smo.View
@@ -812,6 +814,7 @@ Namespace OnTrack.Database
             Dim database As Microsoft.SqlServer.Management.Smo.Database
             Dim localCreated As Boolean = False
             Dim myconnection As mssqlConnection
+            Dim nativeViewName As String = GetNativeViewname(viewid)
 
             If connection Is Nothing Then
                 myconnection = _primaryConnection
@@ -822,14 +825,14 @@ Namespace OnTrack.Database
             ' **
             If myconnection Is Nothing Or myconnection.NativeInternalConnection Is Nothing Then
                 Call CoreMessageHandler(message:="internal connection connection is nothing - no table can be retrieved", subname:="mssqlDBDriver.GetView", _
-                                            messagetype:=otCoreMessageType.InternalError, tablename:=name)
+                                            messagetype:=otCoreMessageType.InternalError, arg1:=nativeViewName)
                 Return Nothing
             End If
 
             '*** check on rights
             If createOrAlter And Not CurrentSession.IsBootstrappingInstallationRequested Then
                 If Not myconnection.VerifyUserAccess(accessRequest:=otAccessRight.AlterSchema, useLoginWindow:=True) Then
-                    Call CoreMessageHandler(showmsgbox:=True, subname:="mssqlDBDriver.GetView", tablename:=name, _
+                    Call CoreMessageHandler(showmsgbox:=True, subname:="mssqlDBDriver.GetView", arg1:=nativeViewName, _
                                           message:="No right to alter schema of database", messagetype:=otCoreMessageType.ApplicationError)
                     Return Nothing
                 End If
@@ -844,13 +847,13 @@ Namespace OnTrack.Database
                     database = myconnection.Database()
 
                     If smoconnection Is Nothing OrElse database Is Nothing Then
-                        Call CoreMessageHandler(message:="SMO is not initialized", tablename:=name, _
+                        Call CoreMessageHandler(message:="SMO is not initialized", arg1:=nativeViewName, _
                                               subname:="mssqlDBDriver.GetView", messagetype:=otCoreMessageType.InternalError)
                         Return Nothing
                     End If
 
                     database.Views.Refresh()
-                    Dim existsOnServer As Boolean = database.Views.Contains(name:=name)
+                    Dim existsOnServer As Boolean = database.Views.Contains(name:=nativeViewName)
 
                     '*** No CreateAlter -> return the Object
                     '*** CreatorAlter but the Object exists and was localCreated (means no object transmitted for change)
@@ -863,7 +866,7 @@ Namespace OnTrack.Database
                         '** doesnot Exist 
                     ElseIf (Not createOrAlter AndAlso Not existsOnServer) Then
                         Call CoreMessageHandler(subname:="mssqlDBDriver.GetView", message:="View does not exist", messagetype:=otCoreMessageType.InternalWarning, _
-                                               break:=False, tablename:=name, arg1:=name)
+                                               break:=False, arg1:=nativeViewName)
                         Return Nothing
                     End If
 
@@ -872,20 +875,20 @@ Namespace OnTrack.Database
                     If createOrAlter Then
                         ''' drop the view
                         If existsOnServer Then
-                            database.Views.Item(name:=name).Drop()
+                            database.Views.Item(name:=nativeViewName).Drop()
                         End If
                         '                        View myview = new View(myNewDatabase, "My_SMO_View");
                         'myview.TextHeader = "CREATE VIEW [My_SMO_View] AS";
                         'myview.TextBody = "SELECT ID, NAME FROM MyFirstSMOTable"; 
                         'myview.Create();
-                        aView = New Microsoft.SqlServer.Management.Smo.View(database, name.ToUpper)
+                        aView = New Microsoft.SqlServer.Management.Smo.View(database, nativeViewName.ToUpper)
                         aView.TextMode = True
-                        aView.TextHeader = "CREATE VIEW [" & name.ToUpper & "] AS "
+                        aView.TextHeader = "CREATE VIEW [" & nativeViewName.ToUpper & "] AS "
                         aView.TextBody = sqlselect
                         aView.Create()
                         Return aView
                     Else
-                        Call CoreMessageHandler(subname:="mssqlDBDriver.GetView", tablename:=name, _
+                        Call CoreMessageHandler(subname:="mssqlDBDriver.GetView", arg1:=nativeViewName, _
                                               message:="View was not found in database", messagetype:=otCoreMessageType.ApplicationWarning)
                         Return Nothing
                     End If
@@ -910,11 +913,11 @@ Namespace OnTrack.Database
                     Loop
                 End If
 
-                Call CoreMessageHandler(message:=sb.ToString, exception:=ex, tablename:=name, _
+                Call CoreMessageHandler(message:=sb.ToString, exception:=ex, arg1:=nativeViewName, _
                                       subname:="mssqlDBDriver.getView", messagetype:=otCoreMessageType.InternalError)
                 Return Nothing
             Catch ex As Exception
-                Call CoreMessageHandler(message:="Exception", exception:=ex, tablename:=name, _
+                Call CoreMessageHandler(message:="Exception", exception:=ex, arg1:=nativeViewName, _
                                       subname:="mssqlDBDriver.getView", messagetype:=otCoreMessageType.InternalError)
                 Return Nothing
             End Try
@@ -928,7 +931,7 @@ Namespace OnTrack.Database
         ''' <param name="nativeConnection"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overrides Function HasTable(name As String, _
+        Public Overrides Function HasTable(tableid As String, _
                                            Optional ByRef connection As iormConnection = Nothing, _
                                            Optional nativeConnection As Object = Nothing) As Boolean
 
@@ -937,9 +940,11 @@ Namespace OnTrack.Database
             Dim database As Microsoft.SqlServer.Management.Smo.Database
             Dim myNativeConnection As SqlConnection
             Dim path As String
+            Dim nativeTablename As String = GetNativeTablename(tableid)
+
 
             '* if already loaded
-            If _TableDirectory.ContainsKey(key:=name) Then Return True
+            If _TableDirectory.ContainsKey(key:=nativeTablename) Then Return True
 
             If connection Is Nothing Then
                 myconnection = _primaryConnection
@@ -980,13 +985,13 @@ Namespace OnTrack.Database
                     database = myconnection.Database
 
                     If smoconnection Is Nothing OrElse database Is Nothing Then
-                        Call CoreMessageHandler(message:="SMO is not initialized", tablename:=name, _
+                        Call CoreMessageHandler(message:="SMO is not initialized", tablename:=tableid, _
                                               subname:="mssqlDBDriver.hasTable", messagetype:=otCoreMessageType.InternalError)
                         Return Nothing
                     End If
 
                     database.Tables.Refresh()
-                    Dim existsOnServer As Boolean = database.Tables.Contains(name:=name)
+                    Dim existsOnServer As Boolean = database.Tables.Contains(name:=nativeTablename)
                     Return existsOnServer
                 End SyncLock
 
@@ -1008,11 +1013,11 @@ Namespace OnTrack.Database
                     Loop
                 End If
 
-                Call CoreMessageHandler(message:=sb.ToString, exception:=ex, tablename:=name, _
+                Call CoreMessageHandler(message:=sb.ToString, exception:=ex, tablename:=tableid, _
                                       subname:="mssqlDBDriver.hasTable", messagetype:=otCoreMessageType.InternalError)
                 Return False
             Catch ex As Exception
-                Call CoreMessageHandler(message:="Exception", exception:=ex, tablename:=name, _
+                Call CoreMessageHandler(message:="Exception", exception:=ex, tablename:=tableid, _
                                       subname:="mssqlDBDriver.hasTable", messagetype:=otCoreMessageType.InternalError)
                 Return False
             End Try
@@ -1037,6 +1042,7 @@ Namespace OnTrack.Database
             Dim database As Microsoft.SqlServer.Management.Smo.Database
             Dim localCreated As Boolean = False
             Dim myconnection As mssqlConnection
+            Dim nativeTablename As String = GetNativeTablename(tableID)
 
             If connection Is Nothing Then
                 myconnection = _primaryConnection
@@ -1047,14 +1053,14 @@ Namespace OnTrack.Database
             ' **
             If myconnection Is Nothing Or myconnection.NativeInternalConnection Is Nothing Then
                 Call CoreMessageHandler(message:="internal connection connection is nothing - no table can be retrieved", subname:="mssqlDBDriver.GetTable", _
-                                            messagetype:=otCoreMessageType.InternalError, tablename:=tableID)
+                                            messagetype:=otCoreMessageType.InternalError, tablename:=tableID, arg1:=nativeTablename)
                 Return Nothing
             End If
 
             '*** check on rights
             If createOrAlter And Not CurrentSession.IsBootstrappingInstallationRequested Then
                 If Not myconnection.VerifyUserAccess(accessRequest:=otAccessRight.AlterSchema, useLoginWindow:=True) Then
-                    Call CoreMessageHandler(showmsgbox:=True, subname:="mssqlDBDriver.GetTable", tablename:=tableID, _
+                    Call CoreMessageHandler(showmsgbox:=True, subname:="mssqlDBDriver.GetTable", tablename:=tableID, arg1:=nativeTablename, _
                                           message:="No right to alter schema of database", messagetype:=otCoreMessageType.ApplicationError)
                     Return Nothing
                 End If
@@ -1074,17 +1080,17 @@ Namespace OnTrack.Database
                     End If
 
                     database.Tables.Refresh()
-                    Dim existsOnServer As Boolean = database.Tables.Contains(name:=tableID)
+                    Dim existsOnServer As Boolean = database.Tables.Contains(name:=nativeTablename)
 
                     '*** Exists and nothing supplied -> get it
                     If existsOnServer And (nativeTableObject Is Nothing OrElse nativeTableObject.GetType <> GetType(Table)) Then
-                        aTable = database.Tables(tableID)
+                        aTable = database.Tables(nativeTablename)
                         aTable.Refresh()
                         Return aTable
 
                         '*** Doesnot Exist, create and nothing supplied -> createLocal Object
                     ElseIf Not existsOnServer And createOrAlter And (nativeTableObject Is Nothing OrElse nativeTableObject.GetType <> GetType(Table)) Then
-                        aTable = New Table(database, name:=tableID)
+                        aTable = New Table(database, name:=nativeTablename)
                         localCreated = True
                     Else
                         aTable = nativeTableObject
@@ -1101,22 +1107,22 @@ Namespace OnTrack.Database
                         '** doesnot Exist 
                     ElseIf (Not createOrAlter And Not existsOnServer) Then
                         Call CoreMessageHandler(subname:="mssqlDBDriver.gettable", message:="Table does not exist", messagetype:=otCoreMessageType.InternalWarning, _
-                                               break:=False, tablename:=tableID, arg1:=tableID)
+                                               break:=False, tablename:=tableID, arg1:=nativeTablename)
                         Return Nothing
                     End If
 
                     '** create the table
                     '**
                     If createOrAlter Then
-                        If Not localCreated And Not myconnection.Database.Tables.Contains(name:=tableID) Then
+                        If Not localCreated And Not myconnection.Database.Tables.Contains(name:=nativeTablename) Then
                             aTable.Create()
-                        ElseIf myconnection.Database.Tables.Contains(name:=tableID) Then
+                        ElseIf myconnection.Database.Tables.Contains(name:=nativeTablename) Then
                             aTable.Alter()
                         End If
 
                         Return aTable
                     Else
-                        Call CoreMessageHandler(subname:="mssqlDBDriver.getTable", tablename:=tableID, _
+                        Call CoreMessageHandler(subname:="mssqlDBDriver.getTable", tablename:=nativeTablename, _
                                               message:="Table was not found in database", messagetype:=otCoreMessageType.ApplicationWarning)
                         Return Nothing
                     End If
@@ -1178,6 +1184,7 @@ Namespace OnTrack.Database
             Dim existPrimaryName As String = ""
             Dim anIndex As Index
             Dim i As UShort = 0
+            Dim nativeIndexname As String = GetNativeIndexname(indexdefinition.Tablename & "_" & indexdefinition.Name)
 
             If connection Is Nothing Then
                 myconnection = _primaryConnection
@@ -1216,14 +1223,17 @@ Namespace OnTrack.Database
 
                     ' save the primary name
                     For Each index As Index In aTable.Indexes
-                        If LCase(index.Name) = LCase(indexdefinition.Name) Or LCase(index.Name) = LCase(aTable.Name & "_" & indexdefinition.Name) Then
+                        If LCase(index.Name) = LCase(nativeIndexname) OrElse _
+                            index.Name.ToLower = indexdefinition.NativeIndexname.ToLower OrElse _
+                            LCase(index.Name) = LCase(aTable.Name & "_" & nativeIndexname) Then
+
                             existingIndex = True
                             anIndex = index
                         End If
                         If index.IndexKeyType = IndexKeyType.DriPrimaryKey Then
                             existPrimaryName = index.Name
                             If indexdefinition.Name = "" Then
-                                indexdefinition.DatabaseID = index.Name
+                                indexdefinition.NativeIndexname = nativeIndexname
                                 existingIndex = True
                                 anIndex = index
                             End If
@@ -1231,14 +1241,17 @@ Namespace OnTrack.Database
                     Next
 
                     '** check on changes
-                    If (aTable.Indexes.Contains(name:=LCase(indexdefinition.Name)) OrElse _
-                        aTable.Indexes.Contains(name:=LCase(aTable.Name & "_" & indexdefinition.Name))) _
+                    If (aTable.Indexes.Contains(name:=LCase(nativeIndexname)) OrElse _
+                        aTable.Indexes.Contains(name:=indexdefinition.NativeIndexname) OrElse _
+                        aTable.Indexes.Contains(name:=LCase(aTable.Name & "_" & nativeIndexname))) _
                         And Not forceCreation Then
 
-                        If aTable.Indexes.Contains(name:=LCase(indexdefinition.Name)) Then
-                            anIndex = aTable.Indexes(name:=LCase(indexdefinition.Name))
+                        If aTable.Indexes.Contains(name:=LCase(nativeIndexname)) Then
+                            anIndex = aTable.Indexes(name:=LCase(nativeIndexname))
+                        ElseIf aTable.Indexes.Contains(name:=indexdefinition.NativeIndexname) Then
+                            anIndex = aTable.Indexes(name:=indexdefinition.NativeIndexname)
                         Else
-                            anIndex = aTable.Indexes(name:=LCase(aTable.Name & "_" & indexdefinition.Name))
+                            anIndex = aTable.Indexes(name:=LCase(aTable.Name & "_" & nativeIndexname))
                         End If
                         ' check all Members
                         If Not forceCreation And existingIndex Then
@@ -1285,37 +1298,35 @@ Namespace OnTrack.Database
                     myconnection.IsNativeInternalLocked = True
 
                     ' if we have another Primary
-                    If indexdefinition.IsPrimary And LCase(indexdefinition.Name) <> LCase(existPrimaryName) And existPrimaryName <> "" Then
+                    If indexdefinition.IsPrimary And LCase(nativeIndexname) <> LCase(existPrimaryName) And existPrimaryName <> "" Then
                         'indexdefinition.Name is found and not the same ?!
                         Call CoreMessageHandler(message:="indexdefinition.Name of table " & aTable.Name & " is " & anIndex.Name & " and not " & indexdefinition.Name & " - getOTDBIndex aborted", _
-                                              messagetype:=otCoreMessageType.InternalError, subname:="mssqlDBDriver.getIndex", arg1:=indexdefinition.Name, tablename:=aTable.Name)
+                                              messagetype:=otCoreMessageType.InternalError, subname:="mssqlDBDriver.getIndex", arg1:=indexdefinition.Name, tablename:=indexdefinition.Tablename)
                         Return Nothing
                         ' create primary key
-                    ElseIf indexdefinition.IsPrimary And existPrimaryName = "" Then
+                    ElseIf indexdefinition.IsPrimary And String.IsNullOrWhiteSpace(existPrimaryName) Then
                         'create primary
-                        If indexdefinition.DatabaseID = "" Then
-                            indexdefinition.DatabaseID = LCase(aTable.Name & "_primarykey")
-                        Else
-                            indexdefinition.DatabaseID = LCase(aTable.Name & "_" & indexdefinition.Name)
+                        If String.IsNullOrWhiteSpace(indexdefinition.NativeIndexname) Then
+                            indexdefinition.NativeIndexname = nativeIndexname
                         End If
-                        anIndex = New Index(parent:=aTable, name:=indexdefinition.DatabaseID)
+
+                        anIndex = New Index(parent:=aTable, name:=indexdefinition.NativeIndexname)
                         anIndex.IndexKeyType = IndexKeyType.DriPrimaryKey
                         anIndex.IndexType = IndexType.NonClusteredIndex
                         anIndex.IgnoreDuplicateKeys = False
                         anIndex.IsUnique = True
 
                         '** extend indexdefinition.isprimary
-                    ElseIf indexdefinition.IsPrimary And LCase(indexdefinition.Name) = LCase(existPrimaryName) Then
+                    ElseIf indexdefinition.IsPrimary And LCase(nativeIndexname) = LCase(existPrimaryName) Then
                         '* DROP !
                         anIndex.Drop()
 
                         '* create
-                        If indexdefinition.DatabaseID = "" Then
-                            indexdefinition.DatabaseID = LCase(aTable.Name & "_primarykey")
-                        Else
-                            indexdefinition.DatabaseID = LCase(aTable.Name & "_" & indexdefinition.Name)
+                        If String.IsNullOrWhiteSpace(indexdefinition.NativeIndexname) Then
+                            indexdefinition.NativeIndexname = nativeIndexname
                         End If
-                        anIndex = New Index(parent:=aTable, name:=indexdefinition.DatabaseID)
+
+                        anIndex = New Index(parent:=aTable, name:=indexdefinition.NativeIndexname)
                         anIndex.IndexKeyType = IndexKeyType.DriPrimaryKey
                         anIndex.IndexType = IndexType.NonClusteredIndex
                         anIndex.IgnoreDuplicateKeys = False
@@ -1325,13 +1336,11 @@ Namespace OnTrack.Database
                         '** extend Index -> Drop
                     ElseIf Not indexdefinition.IsPrimary And existingIndex Then
                         anIndex.Drop()
-                        If indexdefinition.DatabaseID = "" Then
-                            indexdefinition.DatabaseID = LCase(aTable.Name & "_IND")
-                        Else
-                            indexdefinition.DatabaseID = LCase(aTable.Name & "_" & indexdefinition.DatabaseID)
+                        If String.IsNullOrWhiteSpace(indexdefinition.NativeIndexname) Then
+                            indexdefinition.NativeIndexname = nativeIndexname
                         End If
-                        anIndex = New Index(parent:=aTable, name:=indexdefinition.Name)
-                        anIndex.Name = indexdefinition.Name
+
+                        anIndex = New Index(parent:=aTable, name:=indexdefinition.NativeIndexname)
                         anIndex.IndexKeyType = IndexKeyType.None
                         anIndex.IgnoreDuplicateKeys = Not indexdefinition.IsUnique
                         anIndex.IsUnique = indexdefinition.IsUnique
@@ -1351,13 +1360,11 @@ Namespace OnTrack.Database
                         End If
                         '** create new
                     ElseIf Not indexdefinition.IsPrimary And Not existingIndex Then
-                        If indexdefinition.DatabaseID = "" Then
-                            indexdefinition.DatabaseID = LCase(aTable.Name & "_IND")
-                        Else
-                            indexdefinition.DatabaseID = LCase(aTable.Name & "_" & indexdefinition.DatabaseID)
+                        If String.IsNullOrWhiteSpace(indexdefinition.NativeIndexname) Then
+                            indexdefinition.NativeIndexname = nativeIndexname
                         End If
-                        anIndex = New Index(parent:=aTable, name:=indexdefinition.Name)
-                        anIndex.Name = indexdefinition.Name
+
+                        anIndex = New Index(parent:=aTable, name:=indexdefinition.NativeIndexname)
                         anIndex.IndexKeyType = IndexKeyType.None
                         anIndex.IgnoreDuplicateKeys = Not indexdefinition.IsUnique
                         anIndex.IsUnique = indexdefinition.IsUnique
@@ -1437,6 +1444,7 @@ Namespace OnTrack.Database
             Dim smoconnection As ServerConnection
             Dim database As Microsoft.SqlServer.Management.Smo.Database
             Dim myconnection As mssqlConnection
+            Dim nativeTablename As String = GetNativeTablename(tableID)
 
             If connection Is Nothing Then
                 myconnection = _primaryConnection
@@ -1472,7 +1480,7 @@ Namespace OnTrack.Database
                     database = myconnection.Database
 
                     If smoconnection Is Nothing OrElse database Is Nothing Then
-                        Call CoreMessageHandler(message:="SMO is not initialized", tablename:=tableID, _
+                        Call CoreMessageHandler(message:="SMO is not initialized", tablename:=tableID, arg1:=nativeTablename, _
                                               subname:="mssqlDBDriver.hasTable", messagetype:=otCoreMessageType.InternalError)
                         Return Nothing
                     Else
@@ -1480,11 +1488,11 @@ Namespace OnTrack.Database
                     End If
 
                     database.Tables.Refresh()
-                    Dim existsOnServer As Boolean = database.Tables.Contains(name:=tableID)
+                    Dim existsOnServer As Boolean = database.Tables.Contains(name:=nativeTablename)
                     If Not existsOnServer Then
                         Return False
                     End If
-                    aTable = database.Tables.Item(tableID)
+                    aTable = database.Tables.Item(nativeTablename)
 
 
                     '**
@@ -1516,14 +1524,14 @@ Namespace OnTrack.Database
                     Loop
                 End If
 
-                Call CoreMessageHandler(message:=sb.ToString, exception:=ex, entryname:=columnname, tablename:=tableID, _
+                Call CoreMessageHandler(message:=sb.ToString, exception:=ex, entryname:=columnname, arg1:=nativeTablename, tablename:=tableID, _
                                       subname:="mssqlDBDriver.hasColumn", messagetype:=otCoreMessageType.InternalError)
                 ' rturn and do not change !
                 myconnection.IsNativeInternalLocked = False
                 Return Nothing
 
             Catch ex As Exception
-                Call CoreMessageHandler(showmsgbox:=True, subname:="mssqlDBDriver.hasColumn", entryname:=columnname, tablename:=tableID, _
+                Call CoreMessageHandler(showmsgbox:=True, subname:="mssqlDBDriver.hasColumn", entryname:=columnname, arg1:=nativeTablename, tablename:=tableID, _
                                            message:="Exception", exception:=ex, messagetype:=otCoreMessageType.InternalError)
                 ' rturn and do not change !
                 myconnection.IsNativeInternalLocked = False
@@ -1545,6 +1553,7 @@ Namespace OnTrack.Database
             Dim myconnection As mssqlConnection
             Dim tableid As String = columndefinition.Tablename
             Dim columnname As String = columndefinition.Name
+            Dim nativetablename As String = GetNativeTablename(tableid)
 
             If connection Is Nothing Then
                 myconnection = _primaryConnection
@@ -1556,7 +1565,7 @@ Namespace OnTrack.Database
             ' **
             If myconnection Is Nothing Or myconnection.NativeInternalConnection Is Nothing Then
                 Call CoreMessageHandler(message:="internal connection connection is nothing - no table can be retrieved", subname:="mssqlDBDriver.HasColumn", _
-                                            messagetype:=otCoreMessageType.InternalError, tablename:=tableid, arg1:=columnname)
+                                            messagetype:=otCoreMessageType.InternalError, tablename:=tableid, arg1:=nativetablename & "." & columnname)
                 Return Nothing
             End If
 
@@ -1578,7 +1587,7 @@ Namespace OnTrack.Database
                     database = myconnection.Database
 
                     If smoconnection Is Nothing OrElse database Is Nothing Then
-                        Call CoreMessageHandler(message:="SMO is not initialized", tablename:=tableid, _
+                        Call CoreMessageHandler(message:="SMO is not initialized", tablename:=tableid, arg1:=nativetablename, _
                                               subname:="mssqlDBDriver.hasTable", messagetype:=otCoreMessageType.InternalError)
                         Return Nothing
                     Else
@@ -1586,11 +1595,11 @@ Namespace OnTrack.Database
                     End If
 
                     database.Tables.Refresh()
-                    Dim existsOnServer As Boolean = database.Tables.Contains(name:=tableid)
+                    Dim existsOnServer As Boolean = database.Tables.Contains(name:=nativetablename)
                     If Not existsOnServer Then
                         Return False
                     End If
-                    aTable = database.Tables.Item(tableid)
+                    aTable = database.Tables.Item(nativetablename)
 
 
                     '**
@@ -1724,6 +1733,7 @@ Namespace OnTrack.Database
             Dim database As Microsoft.SqlServer.Management.Smo.Database
             Dim myconnection As mssqlConnection
             Dim tableid As String = columnattribute.Tablename
+            Dim nativeTablename As String = GetNativeTablename(tableid)
             Dim columnname As String = columnattribute.ColumnName
 
             If connection Is Nothing Then
@@ -1758,7 +1768,7 @@ Namespace OnTrack.Database
                     database = myconnection.Database
 
                     If smoconnection Is Nothing OrElse database Is Nothing Then
-                        Call CoreMessageHandler(message:="SMO is not initialized", tablename:=tableid, _
+                        Call CoreMessageHandler(message:="SMO is not initialized", tablename:=tableid, arg1:=nativeTablename, _
                                               subname:="mssqlDBDriver.verifyColumnSchema", messagetype:=otCoreMessageType.InternalError)
                         Return Nothing
                     Else
@@ -1766,11 +1776,11 @@ Namespace OnTrack.Database
                     End If
 
                     database.Tables.Refresh()
-                    Dim existsOnServer As Boolean = database.Tables.Contains(name:=tableid)
+                    Dim existsOnServer As Boolean = database.Tables.Contains(name:=nativeTablename)
                     If Not existsOnServer Then
                         Return False
                     End If
-                    aTable = database.Tables.Item(tableid)
+                    aTable = database.Tables.Item(nativeTablename)
 
 
                     '**
@@ -2018,31 +2028,37 @@ Namespace OnTrack.Database
                         ' default value
                         If columndefinition.DefaultValue IsNot Nothing Then
                             If newColumn.DefaultConstraint IsNot Nothing Then newColumn.DefaultConstraint.Drop()
+                            '** create a constraint name - setup specific
+                            Dim aConstraintName As String
+                            If String.IsNullOrWhiteSpace(ot.CurrentSetupID) Then
+                                aConstraintName = "DEFAULT_" & nativeTable.name & "_" & columndefinition.Name
+                            Else
+                                aConstraintName = ot.CurrentSetupID & "_" & "DEFAULT_" & nativeTable.name & "_" & columndefinition.Name
+                            End If
 
+                            '** set the constraint
                             If columndefinition.Datatype = otDataType.Time Then
-                                newColumn.AddDefaultConstraint("DEFAULT_" & nativeTable.name & "_" & columndefinition.Name).Text = _
+                                newColumn.AddDefaultConstraint(aConstraintName).Text = _
                                     "'" & CDate(columndefinition.DefaultValue).ToString("HH:mm:ss") & "'"
                             ElseIf columndefinition.Datatype = otDataType.Date Then
-                                newColumn.AddDefaultConstraint("DEFAULT_" & nativeTable.name & "_" & columndefinition.Name).Text = _
+                                newColumn.AddDefaultConstraint(aConstraintName).Text = _
                                 "'" & CDate(columndefinition.DefaultValue).ToString("yyyy-MM-dd") & "T00:00:00Z'"
                             ElseIf columndefinition.Datatype = otDataType.Timestamp Then
-                                newColumn.AddDefaultConstraint("DEFAULT_" & nativeTable.name & "_" & columndefinition.Name).Text = _
+                                newColumn.AddDefaultConstraint(aConstraintName).Text = _
                                     "'" & (Convert.ToDateTime(columndefinition.DefaultValue).ToString("yyyy-MM-ddTHH:mm:ssZ")) & "'"
                             ElseIf columndefinition.Datatype = otDataType.Bool Then
                                 If columndefinition.DefaultValue Then
-                                    newColumn.AddDefaultConstraint("DEFAULT_" & nativeTable.name & "_" & columndefinition.Name).Text = "1"
+                                    newColumn.AddDefaultConstraint(aConstraintName).Text = "1"
                                 Else
-                                    newColumn.AddDefaultConstraint("DEFAULT_" & nativeTable.name & "_" & columndefinition.Name).Text = "0"
+                                    newColumn.AddDefaultConstraint(aConstraintName).Text = "0"
                                 End If
                             ElseIf columndefinition.Datatype = otDataType.Text OrElse columndefinition.Datatype = otDataType.List Then
-                                newColumn.AddDefaultConstraint("DEFAULT_" & nativeTable.name & "_" & columndefinition.Name).Text = "'" & columndefinition.DefaultValueString & "'"
+                                newColumn.AddDefaultConstraint(aConstraintName).Text = "'" & columndefinition.DefaultValueString & "'"
                             ElseIf columndefinition.Datatype = otDataType.Long OrElse columndefinition.Datatype = otDataType.Numeric Then
-                                newColumn.AddDefaultConstraint("DEFAULT_" & nativeTable.name & "_" & columndefinition.Name).Text = columndefinition.DefaultValue.ToString
+                                newColumn.AddDefaultConstraint(aConstraintName).Text = columndefinition.DefaultValue.ToString
                             ElseIf columndefinition.DefaultValueString <> "" Then
-                                newColumn.AddDefaultConstraint("DEFAULT_" & nativeTable.name & "_" & columndefinition.Name).Text = columndefinition.DefaultValueString
+                                newColumn.AddDefaultConstraint(aConstraintName).Text = columndefinition.DefaultValueString
                             End If
-
-
 
                         End If
 
@@ -2200,6 +2216,8 @@ Namespace OnTrack.Database
                             Next
                         End If
                         Return resultkeys
+
+
                         '**
                         '** create foreign key
                         '**
@@ -2208,7 +2226,7 @@ Namespace OnTrack.Database
                         Dim theFKColumnnames As String()
                         Dim theFKTablenames As String()
                         Dim fkproperties As List(Of ForeignKeyProperty)
-                        Dim aForeignKeyName As String = foreignkeydefinition.Id
+                        Dim aForeignKeyName As String = getNativeForeignKeyName(foreignkeydefinition.Id)
                         Dim fkerror As Boolean = False
 
                         If foreignkeydefinition Is Nothing OrElse foreignkeydefinition.ForeignKeyReferences Is Nothing _
@@ -2465,8 +2483,12 @@ Namespace OnTrack.Database
         ''' <param name="UpdateOnly">The update only.</param>
         ''' <param name="silent">The silent.</param>
         ''' <returns></returns>
-        Public Overrides Function SetDBParameter(parametername As String, [value] As Object, Optional ByRef nativeConnection As Object = Nothing, _
-        Optional updateOnly As Boolean = False, Optional silent As Boolean = False) As Boolean
+        Public Overrides Function SetDBParameter(parametername As String, [value] As Object, _
+                                                 Optional ByRef nativeConnection As Object = Nothing, _
+                                                Optional updateOnly As Boolean = False, _
+                                                Optional silent As Boolean = False, _
+                                                Optional SetupID As String = Nothing, _
+                                                Optional description As String = "") As Boolean
 
 
             Dim dataRows() As DataRow
@@ -2497,6 +2519,8 @@ Namespace OnTrack.Database
                 Return False
             End If
 
+            If SetupID Is Nothing Then SetupID = Me.Session.CurrentSetupID
+
             Try
                 '** on Bootstrapping in the cache
                 '** but bootstrapping mode is not sufficnt
@@ -2504,14 +2528,16 @@ Namespace OnTrack.Database
                     If _BootStrapParameterCache.ContainsKey(key:=parametername) Then
                         _BootStrapParameterCache.Remove(key:=parametername)
                     End If
-                    _BootStrapParameterCache.Add(key:=parametername, value:=Value)
+                    _BootStrapParameterCache.Add(key:=parametername, value:=value)
                     Return True
 
                 Else
 
                     '*** to the table
                     SyncLock _parameterlock
-                        dataRows = _ParametersTable.Select("[" & ConstFNID & "]='" & parametername & "'")
+                        Dim aSelectStr As String = String.Format("[{0}]='{1}' AND [{2}]='{3}'", _
+                                                                 ConstFNSetupID, SetupID, ConstFNID, parametername)
+                        dataRows = _ParametersTable.Select(aSelectStr)
 
                         ' not found
                         If dataRows.GetLength(0) = 0 Then
@@ -2520,7 +2546,7 @@ Namespace OnTrack.Database
                                 Exit Function
                             ElseIf updateOnly And Not silent Then
                                 Call CoreMessageHandler(showmsgbox:=True, _
-                                                      message:="The Parameter '" & parametername & "' was not found in the OTDB Table " & ConstParameterTableName, subname:="mssqlDBDriver.setdbparameter", messagetype:=otCoreMessageType.ApplicationError)
+                                                      message:="The Parameter '" & parametername & "' was not found in the OTDB Table " & ConstDBParameterTableName, subname:="mssqlDBDriver.setdbparameter", messagetype:=otCoreMessageType.ApplicationError)
                                 Return False
                             ElseIf Not updateOnly Then
                                 ReDim dataRows(0)
@@ -2533,10 +2559,11 @@ Namespace OnTrack.Database
 
                         ' value
                         'dataRows(0).BeginEdit()
+                        dataRows(0)(ConstFNSetupID) = SetupID
                         dataRows(0)(ConstFNID) = parametername
                         dataRows(0)(ConstFNValue) = [value].ToString
                         dataRows(0)(ConstFNChangedOn) = DateTime.Now
-                        dataRows(0)(constFNDescription) = ""
+                        dataRows(0)(constFNDescription) = description
                         'dataRows(0).EndEdit()
 
                         '* add to table
@@ -2575,7 +2602,10 @@ Namespace OnTrack.Database
         ''' <param name="nativeConnection">The native connection.</param>
         ''' <param name="silent">The silent.</param>
         ''' <returns></returns>
-        Public Overrides Function GetDBParameter(parametername As String, Optional ByRef nativeConnection As Object = Nothing, Optional silent As Boolean = False) As Object
+        Public Overrides Function GetDBParameter(parametername As String, _
+                                                 Optional ByRef nativeConnection As Object = Nothing, _
+                                                 Optional silent As Boolean = False, _
+                                                 Optional SetupID As String = Nothing) As Object
             Dim dataRows() As DataRow
 
             '*** get the native Connection 
@@ -2596,11 +2626,11 @@ Namespace OnTrack.Database
             Try
                 '** init driver
                 If Not Me.IsInitialized AndAlso Not Initialize() Then
-                    Call CoreMessageHandler(subname:="mssqlDBDriver.getDBParameter", tablename:=ConstParameterTableName, _
+                    Call CoreMessageHandler(subname:="mssqlDBDriver.getDBParameter", tablename:=ConstDBParameterTableName, _
                                        message:="couldnot initialize database driver", arg1:=Me.ID, entryname:=parametername)
                     Return Nothing
                 End If
-
+                If SetupID Is Nothing Then SetupID = Me.Session.CurrentSetupID
                 '** on Bootstrapping out of the cache
                 '** but bootstrapping mode is not sufficnt
                 If _BootStrapParameterCache IsNot Nothing AndAlso _ParametersTable Is Nothing Then
@@ -2613,7 +2643,8 @@ Namespace OnTrack.Database
                     SyncLock _parameterlock
                         '** out of the table
                         '** select row
-                        dataRows = _ParametersTable.Select("[" & ConstFNID & "]='" & parametername & "'")
+                        Dim aSelectStr As String = String.Format("[{0}]='{1}' AND [{2}]='{3}'", ConstFNSetupID, SetupID, ConstFNID, parametername)
+                        dataRows = _ParametersTable.Select(aSelectStr)
 
                         ' not found
                         If dataRows.GetLength(0) = 0 Then
@@ -2621,7 +2652,7 @@ Namespace OnTrack.Database
                                 Return Nothing
                             ElseIf Not silent Then
                                 Call CoreMessageHandler(showmsgbox:=True, _
-                                                      message:="The Parameter '" & parametername & "' was not found in the OTDB Table " & ConstParameterTableName, subname:="mssqlDBDriver.setdbparameter", messagetype:=otCoreMessageType.ApplicationError)
+                                                      message:="The Parameter '" & parametername & "' was not found in the OTDB Table " & ConstDBParameterTableName, subname:="mssqlDBDriver.setdbparameter", messagetype:=otCoreMessageType.ApplicationError)
                                 Return Nothing
 
                             End If
@@ -2634,7 +2665,7 @@ Namespace OnTrack.Database
                 End If
                 ' Handle the error
             Catch ex As Exception
-                Call CoreMessageHandler(showmsgbox:=silent, subname:="mssqlDBDriver.getDBParameter", tablename:=ConstParameterTableName, _
+                Call CoreMessageHandler(showmsgbox:=silent, subname:="mssqlDBDriver.getDBParameter", tablename:=ConstDBParameterTableName, _
                                       exception:=ex, entryname:=parametername)
                 Return Nothing
             End Try
@@ -2863,14 +2894,18 @@ Namespace OnTrack.Database
         Implements iotDataSchema
 
 
-        '***** internal variables
-        '*****
-
-
-        Public Sub New(ByRef connection As mssqlConnection, ByVal tableID As String)
+        ''' <summary>
+        ''' Initializes a new instance of the <see cref="mssqlTableSchema" /> class.
+        ''' </summary>
+        ''' <param name="connection">The connection.</param>
+        ''' <param name="tableID">The table ID.</param>
+        Public Sub New(ByRef connection As iormConnection, tableID As String)
             MyBase.New(connection, tableID)
 
         End Sub
+
+        '***** internal variables
+        '*****
 
 
         Protected Friend Overrides Function CreateNativeDBParameter() As IDbDataParameter
@@ -3008,18 +3043,17 @@ Namespace OnTrack.Database
 
             Refresh = True
 
-            Diagnostics.Debug.WriteLine("refreshing " & Me.TableID)
+            Diagnostics.Debug.WriteLine("refreshing " & Me.TableID & "->" & Me.NativeTablename)
 
             Try
 
                 SyncLock DirectCast(myConnection, adonetConnection).NativeInternalConnection
 
                     myConnection.IsNativeInternalLocked = True
-                    Dim aTable As Table = New Table(myConnection.Database, name:=TableID)
+                    Dim aTable As Table = New Table(myConnection.Database, name:=NativeTablename)
                     If aTable Is Nothing Then
-                        Call CoreMessageHandler(subname:="mssqlTableSchema.refresh", _
-                                         message:="Table couldnot be loaded from SMO", _
-                                         tablename:=TableID, messagetype:=otCoreMessageType.InternalError)
+                        Call CoreMessageHandler(subname:="mssqlTableSchema.refresh", message:="Table could not be loaded from SMO", _
+                                         tablename:=TableID, arg1:=Me.NativeTablename, messagetype:=otCoreMessageType.InternalError)
                         myConnection.IsNativeInternalLocked = False
                         _IsInitialized = False
                         Return False
@@ -3032,8 +3066,7 @@ Namespace OnTrack.Database
                     aTable.Refresh()
                     myConnection.IsNativeInternalLocked = False
                     If False Then
-                        Call CoreMessageHandler(subname:="mssqlTableSchema.refresh", _
-                                         message:="Table couldnot initialized from SMO", _
+                        Call CoreMessageHandler(subname:="mssqlTableSchema.refresh", message:="Table couldnot initialized from SMO", _
                                          tablename:=TableID, messagetype:=otCoreMessageType.InternalError)
                         _IsInitialized = False
                         Return False
@@ -3366,7 +3399,7 @@ Namespace OnTrack.Database
                                 selectstr &= ","
                             End If
                         Next
-                        selectstr &= " FROM " & Me.TableID
+                        selectstr &= " FROM [" & Me.NativeTablename & "] "
                         _cacheAdapter.SelectCommand = New SqlCommand(selectstr)
                         _cacheAdapter.SelectCommand.CommandType = CommandType.Text
                         SyncLock anativeConnection

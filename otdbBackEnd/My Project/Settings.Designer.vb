@@ -80,15 +80,6 @@ Namespace My
                 Return CType(Me("InitializeCalendarTo"),String)
             End Get
         End Property
-        
-        <Global.System.Configuration.ApplicationScopedSettingAttribute(),  _
-         Global.System.Diagnostics.DebuggerNonUserCodeAttribute(),  _
-         Global.System.Configuration.DefaultSettingValueAttribute("CoreInitialData")>  _
-        Public ReadOnly Property InitialCoreDirectory() As String
-            Get
-                Return CType(Me("InitialCoreDirectory"),String)
-            End Get
-        End Property
     End Class
 End Namespace
 

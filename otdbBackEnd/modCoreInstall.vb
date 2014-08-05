@@ -1219,15 +1219,17 @@ Namespace OnTrack.Database
                 ''' 
                 Dim fromDate As Date = CDate(My.MySettings.Default.InitializeCalendarFrom)
                 Dim ToDate As Date = CDate(My.MySettings.Default.InitializeCalendarTo)
-                Dim valueFrom As Object = CurrentDBDriver.GetDBParameter(ConstPNCalendarInitializedFrom, silent:=True)
-                Dim valueTo As Object = CurrentDBDriver.GetDBParameter(ConstPNCalendarInitializedto, silent:=True)
+                '***
+                Dim valueFrom As Object = CurrentDBDriver.GetDBParameter(ConstPNCalendarInitializedFrom, SetupID:=ot.CurrentSetupID, silent:=True)
+                Dim valueTo As Object = CurrentDBDriver.GetDBParameter(ConstPNCalendarInitializedto, SetupID:=ot.CurrentSetupID, silent:=True)
 
                 ''' check if already initialized
                 ''' 
                 If valueFrom Is Nothing OrElse valueTo Is Nothing _
                     OrElse (IsDate(valueFrom) AndAlso CDate(valueFrom) <> fromDate) OrElse (IsDate(valueTo) AndAlso CDate(valueTo) <> ToDate) Then
                     ''' initialize if date is not there
-                    If Not InitializeCalendar(fromDate:=fromDate, toDate:=ToDate) Then
+                    ''' 
+                    If Not InitializeCalendar(calendarname:=CurrentSession.DefaultCalendarName, fromDate:=fromDate, toDate:=ToDate) Then
                         Call ot.CoreMessageHandler(showmsgbox:=True, subname:="Installation.createDatabase", _
                                                                   message:="failed to write initial calendar data - calendar might not be working correctly", _
                                                                   messagetype:=otCoreMessageType.InternalError)
@@ -1235,15 +1237,15 @@ Namespace OnTrack.Database
                         ot.CoreMessageHandler(showmsgbox:=False, subname:="Installation.createDatabase", _
                                                              message:="calendar from " & fromDate & " until " & ToDate & " instanced and persisted", _
                                                              messagetype:=otCoreMessageType.InternalInfo)
-                        CurrentDBDriver.SetDBParameter(ConstPNCalendarInitializedFrom, Format(fromDate, "yyyy-MM-dd"))
-                        CurrentDBDriver.SetDBParameter(ConstPNCalendarInitializedto, Format(ToDate, "yyyy-MM-dd"))
+                        CurrentDBDriver.SetDBParameter(ConstPNCalendarInitializedFrom, SetupID:=ot.CurrentSetupID, value:=Format(fromDate, "yyyy-MM-dd"))
+                        CurrentDBDriver.SetDBParameter(ConstPNCalendarInitializedto, SetupID:=ot.CurrentSetupID, value:=Format(ToDate, "yyyy-MM-dd"))
                     End If
                 End If
 
 
                 ''' import the initial data
                 ''' 
-                Dim valueInitialPath As String = My.MySettings.Default.InitialCoreDirectory
+                Dim valueInitialPath As String = ConstInitialDataDefaultFolder
                 Dim searchpath As String = ""
                 If valueInitialPath <> "" AndAlso Not IO.Directory.Exists(valueInitialPath) Then
                     searchpath = My.Application.Info.DirectoryPath & "\Resources\" & valueInitialPath
@@ -1459,13 +1461,13 @@ Namespace OnTrack.Database
         ''' Initialize the Calendar
         ''' </summary>
         ''' <remarks></remarks>
-        Public Function InitializeCalendar(fromDate As Date, toDate As Date) As Boolean
+        Public Function InitializeCalendar(calendarname As String, fromDate As Date, toDate As Date) As Boolean
 
             ot.CoreMessageHandler(showmsgbox:=False, subname:="Installation.createDatabase", _
                                                      message:="creating calendar from " & fromDate & " until " & toDate & " - please stand by ...", _
                                                      messagetype:=otCoreMessageType.ApplicationInfo)
             ''' generate the days
-            CalendarEntry.GenerateDays(fromdate:=fromDate, untildate:=toDate, name:=ot.CurrentSession.DefaultCalendarName)
+            CalendarEntry.GenerateDays(fromdate:=fromDate, untildate:=toDate, name:=calendarname)
 
             Dim acalentry As CalendarEntry
             acalentry = CalendarEntry.Create()
@@ -1661,7 +1663,7 @@ Namespace OnTrack.Database
                 End With
             End If
 
-            Call ot.CoreMessageHandler(showmsgbox:=False, subname:="Installation.createDatabase_CoreData", tablename:=acalentry.PrimaryTableID, _
+            Call ot.CoreMessageHandler(showmsgbox:=False, subname:="Installation.createDatabase_CoreData", tablename:=CalendarEntry.ConstTableid, _
                                          message:="Calendar until 31.12.2016 created", messagetype:=otCoreMessageType.ApplicationInfo)
 
             Return True
@@ -1697,7 +1699,7 @@ Namespace OnTrack.Database
             Else
 
                 CoreMessageHandler(message:="checking directory '" & path & "'", _
-                                                  arg1:=path, username:=CurrentSession.Username, _
+                                                  arg1:=path, username:=CurrentSession.CurrentUsername, _
                                                   subname:="CreateDatabase.FeedInitialData", messagetype:=otCoreMessageType.InternalInfo)
             End If
 
@@ -1711,7 +1713,7 @@ Namespace OnTrack.Database
                     If IO.Path.GetExtension(anEntry).ToUpper = ".CSV" Then
                         If CSVXChangeManager.FeedInCSV(anEntry) Then
                             CoreMessageHandler(message:="csv file '" & IO.Path.GetFileName(anEntry) & "' imported", _
-                                               arg1:=path, username:=CurrentSession.Username, _
+                                               arg1:=path, username:=CurrentSession.CurrentUsername, _
                                                subname:="CreateDatabase.FeedInitialData", messagetype:=otCoreMessageType.InternalInfo)
                         End If
                     End If

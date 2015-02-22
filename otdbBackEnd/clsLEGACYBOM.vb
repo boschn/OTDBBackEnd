@@ -165,9 +165,9 @@ Namespace OnTrack.Parts
 
             ' reset it
             s_cmids = New Dictionary(Of Long, clsOTDBBOMMember)
-            If Not anEntry.create(AssyID:=Me.PARTID, posno:=0, cmid:="", qty:=0) Then
+            If Not anEntry.create(AssyID:=Me.PARTID, posno:=0, cmid:=String.empty, qty:=0) Then
                 Call anEntry.Inject(AssyID:=Me.PARTID, posno:=0)
-                anEntry.cmid = ""
+                anEntry.cmid = String.empty
                 anEntry.qty = 0
             End If
             s_cmids.Add(key:=0, value:=anEntry)
@@ -471,8 +471,8 @@ error_handler:
             '            Dim aTableEntry As New ObjectEntryDefinition
 
 
-            '            aFieldDesc.ID = ""
-            '            aFieldDesc.Parameter = ""
+            '            aFieldDesc.ID = String.empty
+            '            aFieldDesc.Parameter = String.empty
             '            aFieldDesc.Relation = New String() {}
             '            aFieldDesc.Aliases = New String() {}
             '            aFieldDesc.Tablename = ourTableName
@@ -494,8 +494,8 @@ error_handler:
             '                '****
             '                aFieldDesc.Datatype = otFieldDataType.Text
             '                aFieldDesc.Title = "Assembly part-id"
-            '                aFieldDesc.ID = ""
-            '                aFieldDesc.Parameter = ""
+            '                aFieldDesc.ID = String.empty
+            '                aFieldDesc.Parameter = String.empty
             '                aFieldDesc.ColumnName = "assyid"
             '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
             '                PrimaryColumnNames.Add(aFieldDesc.ColumnName)
@@ -596,7 +596,7 @@ errorhandle:
         '**** create : create a new Object with primary keys
         '****
         Public Function create(ByVal AssyID As String, ByVal posno As Long, _
-        Optional ByVal cmid As String = "", Optional qty As Double = 0) As Boolean
+        Optional ByVal cmid As String = String.empty, Optional qty As Double = 0) As Boolean
             Dim aTable As iormDataStore
             Dim pkarry(2) As Object
             Dim aRecord As ormRecord

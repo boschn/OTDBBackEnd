@@ -36,26 +36,26 @@ Namespace OnTrack.Parts
     <ormObject(id:=Part.ConstObjectID, description:="part and assembly definition with reference link to deliverables", _
         modulename:=ConstModuleParts, Version:=1, AdddeleteFieldBehavior:=True)> _
     Public Class Part
-        Inherits ormDataObject
+        Inherits ormBusinessObject
         Implements iormInfusable
-        Implements iormPersistable
+        Implements iormRelationalPersistable
 
         Public Const ConstObjectID = "Part"
 
         '*** SCHEMA TABLE
-        <ormSchemaTable(Version:=2)> Public Const ConstTableID As String = "tblParts"
+        <ormTableAttribute(Version:=2)> Public Const ConstPrimaryTableID As String = "tblParts"
 
         '*** Primary key
-        <ormObjectEntry(Datatype:=otDataType.Text, size:=100, primarykeyOrdinal:=1, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=100, PrimaryEntryOrdinal:=1, _
             XID:="pt1", Aliases:={"C10"}, title:="PartID", description:="unique ID of the part")> Public Const ConstFNPartID = "pnid"
 
         '** Indices
-        <ormSchemaIndex(columnname1:=ConstFNIsDeleted, columnname2:=ConstFNPartID)> Public Const ConstIndexDeleted = "indDeleted"
-        <ormSchemaIndex(columnname1:=constFNMatchCode, columnname2:=ConstFNPartID, columnname3:=ConstFNIsDeleted)> Public Const ConstIndexMatchcode = "indmatchcode"
-        <ormSchemaIndex(columnname1:=constFNCategory, columnname2:=ConstFNPartID, columnname3:=ConstFNIsDeleted)> Public Const ConstIndexcategory = "indcategory"
-        <ormSchemaIndex(columnname1:=constFNFunction, columnname2:=ConstFNPartID, columnname3:=ConstFNIsDeleted)> Public Const ConstIndexFunction = "indFunction"
-        <ormSchemaIndex(columnname1:=constFNTypeID, columnname2:=ConstFNPartID, columnname3:=ConstFNIsDeleted)> Public Const ConstIndexType = "indType"
-        <ormSchemaIndex(columnName1:=ConstFNDomainID, columnname2:=ConstFNPartID, columnname3:=ConstFNIsDeleted)> Public Const constIndexDomain = "indDomains"
+        <ormIndex(columnname1:=ConstFNIsDeleted, columnname2:=ConstFNPartID)> Public Const ConstIndexDeleted = "indDeleted"
+        <ormIndex(columnname1:=constFNMatchCode, columnname2:=ConstFNPartID, columnname3:=ConstFNIsDeleted)> Public Const ConstIndexMatchcode = "indmatchcode"
+        <ormIndex(columnname1:=constFNCategory, columnname2:=ConstFNPartID, columnname3:=ConstFNIsDeleted)> Public Const ConstIndexcategory = "indcategory"
+        <ormIndex(columnname1:=constFNFunction, columnname2:=ConstFNPartID, columnname3:=ConstFNIsDeleted)> Public Const ConstIndexFunction = "indFunction"
+        <ormIndex(columnname1:=constFNTypeID, columnname2:=ConstFNPartID, columnname3:=ConstFNIsDeleted)> Public Const ConstIndexType = "indType"
+        <ormIndex(columnName1:=ConstFNDomainID, columnname2:=ConstFNPartID, columnname3:=ConstFNIsDeleted)> Public Const constIndexDomain = "indDomains"
 
         '*** Fields
         <ormObjectEntry(Datatype:=otDataType.Text, size:=150, isnullable:=True, _
@@ -67,8 +67,8 @@ Namespace OnTrack.Parts
         <ormObjectEntry(referenceobjectentry:=Commons.Workspace.ConstObjectID & "." & Commons.Workspace.ConstFNID, _
            Description:="workspaceID ID of the part")> Public Const ConstFNWorkspace = Commons.Workspace.ConstFNID
 
-        <ormObjectEntry(referenceobjectentry:=Deliverables.Deliverable.ConstObjectID & "." & Deliverables.Deliverable.constFNUid, isnullable:=True, _
-           XID:="DLV1", aliases:={"UID"}, Description:="deliverable UID of the part")> Public Const ConstFNDeliverableUID = Deliverables.Deliverable.constFNUid
+        <ormObjectEntry(referenceobjectentry:=Deliverables.Deliverable.ConstObjectID & "." & Deliverables.Deliverable.ConstFNDLVUID, isnullable:=True, _
+           XID:="DLV1", aliases:={"UID"}, Description:="deliverable UID of the part")> Public Const ConstFNDeliverableUID = Deliverables.Deliverable.ConstFNDLVUID
 
         <ormObjectEntry(referenceobjectentry:=OrgUnit.ConstObjectID & "." & OrgUnit.ConstFNID, isnullable:=True, _
             XID:="pt4", Title:="Responsible", description:="responsible person for the deliverable", XID:="DLV16")> Public Const constFNResponsiblePerson = "resp"
@@ -113,21 +113,21 @@ Namespace OnTrack.Parts
         Public Const ConstFNDomainID = Domain.ConstFNDomainID  '' const not overidable
 
         '*** Mappings
-        <ormEntryMapping(EntryName:=ConstFNDescription)> Private _description As String
-        <ormEntryMapping(EntryName:=ConstFNDeliverableUID)> Private _deliverableUID As Long
-        <ormEntryMapping(EntryName:=ConstFNPartID)> Private _partID As String    ' unique key
-        <ormEntryMapping(EntryName:=constFNFunction)> Private _Function As String
-        <ormEntryMapping(EntryName:=constFNTypeID)> Private _typeid As String
-        <ormEntryMapping(EntryName:=ConstFNWorkspace)> Private _workspaceID As String
-        <ormEntryMapping(EntryName:=constFNRespOU)> Private _respOU As String
-        <ormEntryMapping(EntryName:=ConstFNWorkpackage)> Private _workpackage As String
-        <ormEntryMapping(EntryName:=constFNResponsiblePerson)> Private _responsible As String
-        <ormEntryMapping(EntryName:=constFNChangeRef)> Private _changerefID As String
-        <ormEntryMapping(EntryName:=constFNComment)> Private _comment As String
-        <ormEntryMapping(EntryName:=constFNBlockingItemReference)> Private _blockingitemID As String
-        <ormEntryMapping(EntryName:=constFNCategory)> Private _categoryID As String
-        <ormEntryMapping(EntryName:=constFNMatchCode)> Private _matchcode As String
-        <ormEntryMapping(EntryName:=ConstFNDomain)> Private _domainid As String
+        <ormObjectEntryMapping(EntryName:=ConstFNDescription)> Private _description As String
+        <ormObjectEntryMapping(EntryName:=ConstFNDeliverableUID)> Private _deliverableUID As Long
+        <ormObjectEntryMapping(EntryName:=ConstFNPartID)> Private _partID As String    ' unique key
+        <ormObjectEntryMapping(EntryName:=constFNFunction)> Private _Function As String
+        <ormObjectEntryMapping(EntryName:=constFNTypeID)> Private _typeid As String
+        <ormObjectEntryMapping(EntryName:=ConstFNWorkspace)> Private _workspaceID As String
+        <ormObjectEntryMapping(EntryName:=constFNRespOU)> Private _respOU As String
+        <ormObjectEntryMapping(EntryName:=ConstFNWorkpackage)> Private _workpackage As String
+        <ormObjectEntryMapping(EntryName:=constFNResponsiblePerson)> Private _responsible As String
+        <ormObjectEntryMapping(EntryName:=constFNChangeRef)> Private _changerefID As String
+        <ormObjectEntryMapping(EntryName:=constFNComment)> Private _comment As String
+        <ormObjectEntryMapping(EntryName:=constFNBlockingItemReference)> Private _blockingitemID As String
+        <ormObjectEntryMapping(EntryName:=constFNCategory)> Private _categoryID As String
+        <ormObjectEntryMapping(EntryName:=constFNMatchCode)> Private _matchcode As String
+        <ormObjectEntryMapping(EntryName:=ConstFNDomain)> Private _domainid As String
         ' dynamic
         Private s_interfaceCollection As New Collection
 
@@ -360,7 +360,7 @@ Namespace OnTrack.Parts
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function All(Optional isDeleted As Boolean = False) As List(Of Part)
-            Return ormDataObject.AllDataObject(Of Part)(deleted:=isDeleted)
+            Return ormBusinessObject.AllDataObject(Of Part)(deleted:=isDeleted)
         End Function
 
         ''' <summary>
@@ -371,8 +371,8 @@ Namespace OnTrack.Parts
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function AllByDeliverable(ByVal deliverableUID As Long, Optional ByVal isDeleted As Boolean = False) As List(Of Part)
-            Return ormDataObject.AllDataObject(Of Part)(deleted:=isDeleted, where:="[" & ConstFNDeliverableUID & "] = @dlvuid", _
-                                              parameters:={New ormSqlCommandParameter(ID:="@dlvuid", ColumnName:=ConstFNDeliverableUID, value:=deliverableUID, tablename:=ConstTableID)}.ToList)
+            Return ormBusinessObject.AllDataObject(Of Part)(deleted:=isDeleted, where:="[" & ConstFNDeliverableUID & "] = @dlvuid", _
+                                              parameters:={New ormSqlCommandParameter(ID:="@dlvuid", ColumnName:=ConstFNDeliverableUID, value:=deliverableUID, tableid:=ConstPrimaryTableID)}.ToList)
 
         End Function
 
@@ -387,7 +387,7 @@ Namespace OnTrack.Parts
         ''' <remarks></remarks>
         Public Overloads Shared Function Retrieve(pnid As String) As Part
             Dim primarykey() As Object = {pnid}
-            Return ormDataObject.Retrieve(Of Part)(primarykey)
+            Return ormBusinessObject.RetrieveDataObject(Of Part)(primarykey)
         End Function
         ''' <summary>
         ''' Create an Object in the datastore
@@ -395,37 +395,37 @@ Namespace OnTrack.Parts
         ''' <param name="partid"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Create(ByVal partid As String, Optional domainid As String = Nothing, Optional workspaceID As String = "") As Part
-            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
-            If workspaceID = "" Then workspaceID = CurrentSession.CurrentWorkspaceID
+        Public Overloads Shared Function Create(ByVal partid As String, Optional domainid As String = Nothing, Optional workspaceID As String = Nothing) As Part
+            If String.IsnullorEmpty(domainID) Then domainid = CurrentSession.CurrentDomainID
+            If String.IsnullorEmpty(workspaceID) Then workspaceID = CurrentSession.CurrentWorkspaceID
             Dim aRecord As New ormRecord
             With aRecord
                 .SetValue(ConstFNDomain, domainid)
                 .SetValue(ConstFNWorkspace, workspaceID)
                 .SetValue(ConstFNPartID, partid)
             End With
-            Return ormDataObject.CreateDataObject(Of Part)(aRecord, domainID:=domainid, checkUnique:=True)
+            Return ormBusinessObject.CreateDataObject(Of Part)(aRecord, domainID:=domainid, checkUnique:=True)
 
         End Function
 
         '****** add2InterfaceCollection adds an Interface to the InterfaceCollection of this part
         '******
-        Private Function add2InterfaceCollection(ByRef anInterface As IFM.clsOTDBInterface) As Boolean
-            Dim aLookupInterface As IFM.clsOTDBInterface
+        'Private Function add2InterfaceCollection(ByRef anInterface As IFM.clsOTDBInterface) As Boolean
+        '    Dim aLookupInterface As IFM.clsOTDBInterface
 
-            ' check if we have that interface
-            For Each aLookupInterface In s_interfaceCollection
-                If anInterface.UID = aLookupInterface.UID Then
-                    add2InterfaceCollection = False
-                    Exit Function
-                End If
-            Next aLookupInterface
+        '    ' check if we have that interface
+        '    For Each aLookupInterface In s_interfaceCollection
+        '        If anInterface.UID = aLookupInterface.UID Then
+        '            add2InterfaceCollection = False
+        '            Exit Function
+        '        End If
+        '    Next aLookupInterface
 
-            ' add it
-            s_interfaceCollection.Add(anInterface)
-            add2InterfaceCollection = True
+        '    ' add it
+        '    s_interfaceCollection.Add(anInterface)
+        '    add2InterfaceCollection = True
 
-        End Function
+        'End Function
         '****** getDocument return the Document
         '******
         Public Function GetDeliverable() As Deliverable
@@ -476,214 +476,214 @@ Namespace OnTrack.Parts
             End If
 
 error_handler:
-            GetAssycode = ""
+            GetAssycode = String.empty
             Exit Function
         End Function
 
         '****** getinterfacingParts returns the Parts to this part has interfaces with
         '******
-        Public Function getInterfacingParts(Optional Sender As Boolean = True, Optional Receiver As Boolean = True) As Collection
-            Dim aColInterfaces As New Collection
-            Dim anInterface As IFM.clsOTDBInterface
-            Dim aCartypes As clsLEGACYCartypes
-            Dim ourAssyCode As String
-            Dim otherAssycode As String
-            Dim otherPartCollection As Collection
-            Dim otherPart As Part
-            Dim InterfacingParts As New Collection
-            Dim aDir As New Dictionary(Of String, Object)
-            Dim flag As Boolean
+        'Public Function getInterfacingParts(Optional Sender As Boolean = True, Optional Receiver As Boolean = True) As Collection
+        '    Dim aColInterfaces As New Collection
+        '    Dim anInterface As IFM.clsOTDBInterface
+        '    Dim aCartypes As clsLEGACYCartypes
+        '    Dim ourAssyCode As String
+        '    Dim otherAssycode As String
+        '    Dim otherPartCollection As Collection
+        '    Dim otherPart As Part
+        '    Dim InterfacingParts As New Collection
+        '    Dim aDir As New Dictionary(Of String, Object)
+        '    Dim flag As Boolean
 
-            ''' rework
-            Throw New NotImplementedException()
+        '    ''' rework
+        '    Throw New NotImplementedException()
 
 
-            If Me.IsLoaded Then
+        '    If Me.IsLoaded Then
 
-                ourAssyCode = Me.GetAssycode()
-                'get the interfaces
-                aColInterfaces = Me.GetInterfaces()
-                If aColInterfaces Is Nothing Then
-                    getInterfacingParts = Nothing
-                    Exit Function
-                End If
-                aCartypes = Me.LEGACY_GetCartypes
-                ' go through all interfaces and get the parts
-                For Each anInterface In aColInterfaces
-                    flag = True    ' to cointue
-                    If anInterface.assy1 <> ourAssyCode Then
-                        otherAssycode = anInterface.assy1
-                        ' exit if we donot need senders
-                        If anInterface.getAssyisSender(1) <> Sender Then
-                            flag = False
-                        End If
-                    Else
-                        otherAssycode = anInterface.assy2
-                        ' exit if we donot need receivers
-                        If anInterface.getAssyisSender(2) <> Sender Then
-                            flag = False
-                        End If
+        '        ourAssyCode = Me.GetAssycode()
+        '        'get the interfaces
+        '        aColInterfaces = Me.GetInterfaces()
+        '        If aColInterfaces Is Nothing Then
+        '            getInterfacingParts = Nothing
+        '            Exit Function
+        '        End If
+        '        aCartypes = Me.LEGACY_GetCartypes
+        '        ' go through all interfaces and get the parts
+        '        For Each anInterface In aColInterfaces
+        '            flag = True    ' to cointue
+        '            If anInterface.assy1 <> ourAssyCode Then
+        '                otherAssycode = anInterface.assy1
+        '                ' exit if we donot need senders
+        '                If anInterface.getAssyisSender(1) <> Sender Then
+        '                    flag = False
+        '                End If
+        '            Else
+        '                otherAssycode = anInterface.assy2
+        '                ' exit if we donot need receivers
+        '                If anInterface.getAssyisSender(2) <> Sender Then
+        '                    flag = False
+        '                End If
 
-                    End If
-                    ' get interface corresponding parts
-                    If anInterface.status <> LCase("na") And flag Then
-                        ' TODO: REIMPLEMENT
-                        ' otherPartCollection = Me.allByAssyCode_Cartypes(otherAssycode, anInterface.Cartypes)
-                        If Not otherPartCollection Is Nothing Then
-                            For Each otherPart In otherPartCollection
-                                ' check if otherPart has a hit in cartypes as this part
-                                If Me.LEGACY_MatchWithCartypes(otherPart.LEGACY_GetCartypes) Then
-                                    If Not aDir.ContainsKey(otherPart.PartID) Then
-                                        InterfacingParts.Add(Item:=otherPart)
-                                        aDir.Add(otherPart.PartID, value:=otherPart)
-                                    End If
-                                End If
-                            Next otherPart
-                        End If
-                    End If
-                Next anInterface
+        '            End If
+        '            ' get interface corresponding parts
+        '            If anInterface.status <> LCase("na") And flag Then
+        '                ' TODO: REIMPLEMENT
+        '                ' otherPartCollection = Me.allByAssyCode_Cartypes(otherAssycode, anInterface.Cartypes)
+        '                If Not otherPartCollection Is Nothing Then
+        '                    For Each otherPart In otherPartCollection
+        '                        ' check if otherPart has a hit in cartypes as this part
+        '                        If Me.LEGACY_MatchWithCartypes(otherPart.LEGACY_GetCartypes) Then
+        '                            If Not aDir.ContainsKey(otherPart.PartID) Then
+        '                                InterfacingParts.Add(Item:=otherPart)
+        '                                aDir.Add(otherPart.PartID, value:=otherPart)
+        '                            End If
+        '                        End If
+        '                    Next otherPart
+        '                End If
+        '            End If
+        '        Next anInterface
 
-                getInterfacingParts = InterfacingParts
-                Exit Function
-            Else
-                getInterfacingParts = Nothing
-                Exit Function
-            End If
-        End Function
+        '        getInterfacingParts = InterfacingParts
+        '        Exit Function
+        '    Else
+        '        getInterfacingParts = Nothing
+        '        Exit Function
+        '    End If
+        'End Function
 
         '****** createDependencyFromInterfaces returns the clsOTDBDependency
         '******
-        Public Function CreateDependencyFromInterfaces(ifcdepends As Scheduling.clsOTDBDependency) As Boolean
-            Dim aColInterfaces As New Collection
-            Dim anInterface As IFM.clsOTDBInterface
-            Dim aCartypes As clsLEGACYCartypes
-            Dim ourAssyCode As String
-            Dim otherAssycode As String
-            Dim otherPartCollection As Collection
-            Dim otherPart As Part
-            Dim aDependM As New OnTrack.Scheduling.clsOTDBDependMember
-            'Dim ifcdepends As New clsOTDBDependency
-            Dim aDir As New Dictionary(Of String, Object)
-            Dim flag As Boolean
+        'Public Function CreateDependencyFromInterfaces(ifcdepends As Scheduling.clsOTDBDependency) As Boolean
+        '    Dim aColInterfaces As New Collection
+        '    Dim anInterface As IFM.clsOTDBInterface
+        '    Dim aCartypes As clsLEGACYCartypes
+        '    Dim ourAssyCode As String
+        '    Dim otherAssycode As String
+        '    Dim otherPartCollection As Collection
+        '    Dim otherPart As Part
+        '    Dim aDependM As New OnTrack.Scheduling.clsOTDBDependMember
+        '    'Dim ifcdepends As New clsOTDBDependency
+        '    Dim aDir As New Dictionary(Of String, Object)
+        '    Dim flag As Boolean
 
-            If Me.IsLoaded Then
+        '    If Me.IsLoaded Then
 
-                'get AssyCode of this Assy
-                ourAssyCode = Me.GetAssycode()
+        '        'get AssyCode of this Assy
+        '        ourAssyCode = Me.GetAssycode()
 
-                'get the interfaces
-                aColInterfaces = Me.GetInterfaces()
-                If aColInterfaces Is Nothing Then
-                    CreateDependencyFromInterfaces = False
-                    Exit Function
-                End If
+        '        'get the interfaces
+        '        aColInterfaces = Me.GetInterfaces()
+        '        If aColInterfaces Is Nothing Then
+        '            CreateDependencyFromInterfaces = False
+        '            Exit Function
+        '        End If
 
-                ' our cartypes
-                aCartypes = Me.LEGACY_GetCartypes
+        '        ' our cartypes
+        '        aCartypes = Me.LEGACY_GetCartypes
 
-                ' go through all interfaces and get the parts
-                For Each anInterface In aColInterfaces
-                    flag = True    ' to cointue
-                    ' we are pairno #1
-                    If anInterface.assy1 = ourAssyCode Then
-                        'if pairno #2 is the sender -> we are the receiver !
-                        If anInterface.getAssyisSender(2) Then
-                            flag = True
-                            otherAssycode = anInterface.assy2
-                            ' nor sender or receiver if r2
-                        ElseIf anInterface.status = "r2" Then
-                            flag = True
-                            otherAssycode = anInterface.assy2
-                        Else
-                            flag = False
-                        End If
-                    Else
-                        'we are pairno #2
-                        'if pairno #2 is the receiver if pair 1 is the sender
-                        If anInterface.getAssyisSender(1) Then
-                            flag = True
-                            otherAssycode = anInterface.assy1
-                            ' nor sender or receiver if r2
-                        ElseIf anInterface.status = "r2" Then
-                            flag = True
-                            otherAssycode = anInterface.assy1
-                        Else
-                            flag = False
-                        End If
-                    End If
+        '        ' go through all interfaces and get the parts
+        '        For Each anInterface In aColInterfaces
+        '            flag = True    ' to cointue
+        '            ' we are pairno #1
+        '            If anInterface.assy1 = ourAssyCode Then
+        '                'if pairno #2 is the sender -> we are the receiver !
+        '                If anInterface.getAssyisSender(2) Then
+        '                    flag = True
+        '                    otherAssycode = anInterface.assy2
+        '                    ' nor sender or receiver if r2
+        '                ElseIf anInterface.status = "r2" Then
+        '                    flag = True
+        '                    otherAssycode = anInterface.assy2
+        '                Else
+        '                    flag = False
+        '                End If
+        '            Else
+        '                'we are pairno #2
+        '                'if pairno #2 is the receiver if pair 1 is the sender
+        '                If anInterface.getAssyisSender(1) Then
+        '                    flag = True
+        '                    otherAssycode = anInterface.assy1
+        '                    ' nor sender or receiver if r2
+        '                ElseIf anInterface.status = "r2" Then
+        '                    flag = True
+        '                    otherAssycode = anInterface.assy1
+        '                Else
+        '                    flag = False
+        '                End If
+        '            End If
 
-                    ' get interface corresponding parts
-                    If anInterface.status <> LCase("na") And flag Then
-                        ' reimplement
-                        ' otherPartCollection = Me.allByAssyCode_Cartypes(otherAssycode, anInterface.Cartypes)
-                        If Not otherPartCollection Is Nothing Then
-                            ' create the ifcdepends
-                            If Not ifcdepends.IsCreated And Not ifcdepends.IsLoaded Then
-                                ifcdepends.Create(Me.PartID)
-                            End If
-                            ' add the Interfacing Parts for each Interface
-                            For Each otherPart In otherPartCollection
-                                ' check if otherPart has a hit in cartypes as this part
-                                If Me.LEGACY_MatchWithCartypes(otherPart.LEGACY_GetCartypes) Then
-                                    aDependM = ifcdepends.AddPartID(typeid:=ConstDepTypeIDIFC, partid:=otherPart.PartID)
-                                    If Not aDependM Is Nothing Then
-                                        If anInterface.status <> "r2" Then
-                                            aDependM.category = "receiver"
-                                        Else
-                                            aDependM.category = "bidirected"
-                                        End If
-                                        aDependM.condition = "IFC1"
-                                        aDependM.parameter_num1 = anInterface.UID
-                                        aDependM.parameter_txt1 = anInterface.status
-                                        aDependM.parameter_num2 = anInterface.Cartypes.nousedCars
-                                    End If
-                                End If
+        '            ' get interface corresponding parts
+        '            If anInterface.status <> LCase("na") And flag Then
+        '                ' reimplement
+        '                ' otherPartCollection = Me.allByAssyCode_Cartypes(otherAssycode, anInterface.Cartypes)
+        '                If Not otherPartCollection Is Nothing Then
+        '                    ' create the ifcdepends
+        '                    If Not ifcdepends.IsCreated And Not ifcdepends.IsLoaded Then
+        '                        ifcdepends.Create(Me.PartID)
+        '                    End If
+        '                    ' add the Interfacing Parts for each Interface
+        '                    For Each otherPart In otherPartCollection
+        '                        ' check if otherPart has a hit in cartypes as this part
+        '                        If Me.LEGACY_MatchWithCartypes(otherPart.LEGACY_GetCartypes) Then
+        '                            aDependM = ifcdepends.AddPartID(typeid:=ConstDepTypeIDIFC, partid:=otherPart.PartID)
+        '                            If Not aDependM Is Nothing Then
+        '                                If anInterface.status <> "r2" Then
+        '                                    aDependM.category = "receiver"
+        '                                Else
+        '                                    aDependM.category = "bidirected"
+        '                                End If
+        '                                aDependM.condition = "IFC1"
+        '                                aDependM.parameter_num1 = anInterface.UID
+        '                                aDependM.parameter_txt1 = anInterface.status
+        '                                aDependM.parameter_num2 = anInterface.Cartypes.nousedCars
+        '                            End If
+        '                        End If
 
-                            Next otherPart
-                        End If
-                    End If
-                Next anInterface
+        '                    Next otherPart
+        '                End If
+        '            End If
+        '        Next anInterface
 
-                If ifcdepends.NoMembers(ConstDepTypeIDIFC) > 0 Then
-                    CreateDependencyFromInterfaces = True
-                Else
-                    CreateDependencyFromInterfaces = False
-                End If
-                Exit Function
-            Else
-                CreateDependencyFromInterfaces = False
-                Exit Function
-            End If
-        End Function
+        '        If ifcdepends.NoMembers(ConstDepTypeIDIFC) > 0 Then
+        '            CreateDependencyFromInterfaces = True
+        '        Else
+        '            CreateDependencyFromInterfaces = False
+        '        End If
+        '        Exit Function
+        '    Else
+        '        CreateDependencyFromInterfaces = False
+        '        Exit Function
+        '    End If
+        'End Function
 
-        '****** getInterfaces returns the clsOTDBInterfaces to which this part has intefaces with
-        '******
-        Public Function GetInterfaces(Optional reload = False) As Collection
-            Dim aCollection As Collection
-            Dim assycode As String
-            Dim selectCartypes As clsLEGACYCartypes
-            Dim anInterface As New IFM.clsOTDBInterface
+        ''****** getInterfaces returns the clsOTDBInterfaces to which this part has intefaces with
+        ''******
+        'Public Function GetInterfaces(Optional reload = False) As Collection
+        '    Dim aCollection As Collection
+        '    Dim assycode As String
+        '    Dim selectCartypes As clsLEGACYCartypes
+        '    Dim anInterface As New IFM.clsOTDBInterface
 
-            If reload Or s_interfaceCollection.Count = 0 Then
-            End If
+        '    If reload Or s_interfaceCollection.Count = 0 Then
+        '    End If
 
-            If Me.IsLoaded Then
-                selectCartypes = Me.LEGACY_GetCartypes
-                If Me.LEGACY_GetCartypes.nousedCars = 0 Then
-                    Call CoreMessageHandler(subname:="Part.getInterfaces", message:="cartypes are not selected for any car", break:=False)
-                End If
-                ' get the assycode in the form xx.xx.xx
-                assycode = GetAssycode()
+        '    If Me.IsLoaded Then
+        '        selectCartypes = Me.LEGACY_GetCartypes
+        '        If Me.LEGACY_GetCartypes.nousedCars = 0 Then
+        '            Call CoreMessageHandler(subname:="Part.getInterfaces", message:="cartypes are not selected for any car", break:=False)
+        '        End If
+        '        ' get the assycode in the form xx.xx.xx
+        '        assycode = GetAssycode()
 
-                aCollection = anInterface.allByAssyCode(assycode, selectCartypes)
-                s_interfaceCollection = aCollection    'store the collection
-                GetInterfaces = aCollection
-                Exit Function
-            Else
-                GetInterfaces = Nothing
-                Exit Function
-            End If
-        End Function
+        '        aCollection = anInterface.allByAssyCode(assycode, selectCartypes)
+        '        s_interfaceCollection = aCollection    'store the collection
+        '        GetInterfaces = aCollection
+        '        Exit Function
+        '    Else
+        '        GetInterfaces = Nothing
+        '        Exit Function
+        '    End If
+        'End Function
         '****** getDeliverables return the Documents in a Collection
         '******
         Public Function GetDeliverables() As List(Of Deliverable)
@@ -697,85 +697,85 @@ error_handler:
 
         '************** matchWithCartypes: check if me.cartypes have at least one in common with anOthercartypes
         '**************
-        Public Function LEGACY_MatchWithCartypes(anOthercartypes As clsLEGACYCartypes) As Boolean
+        'Public Function LEGACY_MatchWithCartypes(anOthercartypes As clsLEGACYCartypes) As Boolean
 
-            ''' LEGACY
-            ''' 
-            Throw New NotImplementedException
+        ''' LEGACY
+        ''' 
+        'Throw New NotImplementedException
 
-            'Dim i As Integer
-            'Dim ourCartypes As clsLEGACYCartypes
+        'Dim i As Integer
+        'Dim ourCartypes As clsLEGACYCartypes
 
-            'If Not Me.IsLoaded And Not Me.IsCreated Then
-            '    MatchWithCartypes = False
-            'End If
+        'If Not Me.IsLoaded And Not Me.IsCreated Then
+        '    MatchWithCartypes = False
+        'End If
 
-            'ourCartypes = Me.GetCartypes
-            'For i = 1 To ourCartypes.getNoCars
-            '    If ourCartypes.getCar(i) = anOthercartypes.getCar(i) And ourCartypes.getCar(i) = True Then
-            '        MatchWithCartypes = True
-            '        Exit Function
-            '    End If
-            'Next i
+        'ourCartypes = Me.GetCartypes
+        'For i = 1 To ourCartypes.getNoCars
+        '    If ourCartypes.getCar(i) = anOthercartypes.getCar(i) And ourCartypes.getCar(i) = True Then
+        '        MatchWithCartypes = True
+        '        Exit Function
+        '    End If
+        'Next i
 
-            ''return false
-            'MatchWithCartypes = False
+        ''return false
+        'MatchWithCartypes = False
 
-        End Function
+        'End Function
 
         '****** getCartypes of the part -> Document
         '******
-        Public Function LEGACY_GetCartypes() As clsLEGACYCartypes
+        ' Public Function LEGACY_GetCartypes() As clsLEGACYCartypes
 
-            ''' should be done via a configuration
-            ''' getProperties
-            Throw New NotImplementedException
+        ''' should be done via a configuration
+        ''' getProperties
+        ' Throw New NotImplementedException
 
-            'Dim aTable As iormDataStore
-            'Dim aRecord As ormRecord
-            'Dim pkarry() As Object
-            'Dim aCartypes As New clsLEGACYCartypes
-            'Dim i As Integer
-            'Dim amount As Integer
-            'Dim fieldname As String
-
-
-            'If Not Me.IsLoaded Then
-            '    LEGACY_GetCartypes = Nothing
-            '    Exit Function
-            'End If
-
-            '' set the primaryKey
-            'ReDim pkarry(0)
-            'If Me.DeliverableUID <> 0 Then
-            '    pkarry(0) = Me.DeliverableUID
-            'Else
-            '    Dim aCollection As List(Of Deliverable) = Deliverable.AllByPnid(partid:=Me.PartID)
-            '    If aCollection.Count = 0 Then Debug.Assert(False)
-            '    Dim aDeliverable As Deliverable = aCollection.Item(1)
-            '    pkarry(0) = aDeliverable.Uid
-            'End If
+        'Dim aTable As iormDataStore
+        'Dim aRecord As ormRecord
+        'Dim pkarry() As Object
+        'Dim aCartypes As New clsLEGACYCartypes
+        'Dim i As Integer
+        'Dim amount As Integer
+        'Dim fieldname As String
 
 
-            '''' HACK !
-            'aTable = GetTableStore("tblcartypes")
-            'aRecord = aTable.GetRecordByPrimaryKey(pkarry)
+        'If Not Me.IsLoaded Then
+        '    LEGACY_GetCartypes = Nothing
+        '    Exit Function
+        'End If
 
-            'If aRecord Is Nothing Then
-            '    LEGACY_GetCartypes = Nothing
-            '    Exit Function
-            'Else
-            '    For i = 1 To aCartypes.getNoCars
-            '        fieldname = "ct" & Format(i, "0#")
-            '        amount = CInt(aRecord.GetValue(fieldname))
-            '        If amount > 0 Then Call aCartypes.addCartypeAmountByIndex(i, amount)
-            '    Next i
-            '    LEGACY_GetCartypes = aCartypes
-            '    Exit Function
-            'End If
+        '' set the primaryKey
+        'ReDim pkarry(0)
+        'If Me.DeliverableUID <> 0 Then
+        '    pkarry(0) = Me.DeliverableUID
+        'Else
+        '    Dim aCollection As List(Of Deliverable) = Deliverable.AllByPnid(partid:=Me.PartID)
+        '    If aCollection.Count = 0 Then Debug.Assert(False)
+        '    Dim aDeliverable As Deliverable = aCollection.Item(1)
+        '    pkarry(0) = aDeliverable.Uid
+        'End If
 
 
-        End Function
+        '''' HACK !
+        'aTable = GetTableStore("tblcartypes")
+        'aRecord = aTable.GetRecordByPrimaryKey(pkarry)
+
+        'If aRecord Is Nothing Then
+        '    LEGACY_GetCartypes = Nothing
+        '    Exit Function
+        'Else
+        '    For i = 1 To aCartypes.getNoCars
+        '        fieldname = "ct" & Format(i, "0#")
+        '        amount = CInt(aRecord.GetValue(fieldname))
+        '        If amount > 0 Then Call aCartypes.addCartypeAmountByIndex(i, amount)
+        '    Next i
+        '    LEGACY_GetCartypes = aCartypes
+        '    Exit Function
+        'End If
+
+
+        'End Function
 
 
 

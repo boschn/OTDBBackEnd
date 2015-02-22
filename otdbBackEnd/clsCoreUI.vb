@@ -25,15 +25,67 @@ Imports System.Collections.Generic
 Imports System.Runtime.CompilerServices
 Imports System.Diagnostics
 Imports System.Diagnostics.Debug
-
-
-Imports OnTrack
 Imports OnTrack.Database
 
 
 Namespace OnTrack.UI
 
 
+   ''' <summary>
+    ''' Event Arguments for Message Events
+    ''' </summary>
+    ''' <remarks></remarks>
+    Public Class UIStatusMessageEventArgs
+        Inherits System.EventArgs
+
+        Private _message As String
+        Private _timestamp As DateTime?
+
+        Public Sub New(message As String, Optional timestamp As DateTime? = Nothing)
+            _message = message
+            If timestamp Is Nothing Then timestamp = DateTime.Now
+            _timestamp = timestamp
+        End Sub
+        ''' <summary>
+        ''' gets the message
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property Message As String
+            Get
+                Return _message
+            End Get
+        End Property
+        ''' <summary>
+        ''' returns the timestamp
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property timestamp As DateTime
+            Get
+                Return _timestamp
+            End Get
+        End Property
+    End Class
+
+    ''' <summary>
+    ''' implements a Status Sender
+    ''' </summary>
+    ''' <remarks>
+    ''' functional Priniciples
+    ''' 1. Implementors are able to communicate Messages, Operations and Progress Information to the UI
+    ''' 2. Receiver is e.g. the StatusStrib
+    ''' </remarks>
+    Public Interface iUIStatusSender
+
+        ''' <summary>
+        ''' event to add a message to the Status Receiver
+        ''' </summary>
+        ''' <remarks></remarks>
+        Event OnIssueMessage As EventHandler(Of UIStatusMessageEventArgs)
+    End Interface
 
     ''' <summary>
     ''' base interface of the native Forms to fullfill
@@ -142,8 +194,8 @@ Namespace OnTrack.UI
                 Dim aType As System.Type = UITypeFor(otdbUIClassName)
                 Return aType.GetConstructor(New System.Type() {}).Invoke(New Object() {})
             Else
-                Call CoreMessageHandler(message:="UI Class is not registered", arg1:=otdbUIClassName, _
-                                       messagetype:=otCoreMessageType.InternalError, noOtdbAvailable:=True, subname:="OTDBUI.createUINew")
+                Call CoreMessageHandler(message:="UI Class is not registered", argument:=otdbUIClassName, _
+                                       messagetype:=otCoreMessageType.InternalError, noOtdbAvailable:=True, procedure:="OTDBUI.createUINew")
                 Return Nothing
             End If
         End Function
@@ -351,16 +403,16 @@ Namespace OnTrack.UI
 
         Protected Shadows _form As iUINativeFormLogin
 
-        Private _username As String = ""
-        Private _password As String = ""
-        Private _statustext As String = ""
-        Private _message As String = ""
-        Private _domain As String = ""
+        Private _username As String
+        Private _password As String
+        Private _statustext As String = String.empty
+        Private _message As String = String.empty
+        Private _domain As String = String.empty
         Private _enableUsername As Boolean = True
         Private _enableDomain As Boolean = False
         Private _enableConfigSet As Boolean = False
         Private _enableAccess As Boolean = False
-        Private _configset As String = ""
+        Private _configset As String = String.empty
 
         Private _possibleRights As New List(Of String)
         Private _possibleDomains As New List(Of String)
@@ -389,7 +441,7 @@ Namespace OnTrack.UI
             Get
                 Return Me._possibleConfigSets
             End Get
-            Set
+            Set(value As List(Of String))
                 Me._possibleConfigSets = Value
             End Set
         End Property
@@ -402,7 +454,7 @@ Namespace OnTrack.UI
             Get
                 Return Me._possibleDomains
             End Get
-            Set
+            Set(value As List(Of String))
                 Me._possibleDomains = Value
             End Set
         End Property
@@ -415,7 +467,7 @@ Namespace OnTrack.UI
             Get
                 Return Me._possibleRights
             End Get
-            Set
+            Set(value As List(Of String))
                 Me._possibleRights = Value
             End Set
         End Property
@@ -480,7 +532,7 @@ Namespace OnTrack.UI
             Get
                 Return Me._domain
             End Get
-            Set
+            Set(value As String)
                 Me._domain = Value
             End Set
         End Property
@@ -524,13 +576,13 @@ Namespace OnTrack.UI
             End Set
         End Property
 
-        Public Sub Initialize(Optional username As String = "", Optional password As String = "")
+        Public Sub Initialize(Optional username As String = Nothing, Optional password As String = Nothing)
             _username = username
             _form.Username = username
             _form.Password = password
             _form.UsernameEnabled = True
-            _form.Message = ""
-            _form.Domain = ""
+            _form.Message = String.Empty
+            _form.Domain = String.Empty
         End Sub
 
         Public Property Username As String
@@ -589,14 +641,14 @@ Namespace OnTrack.UI
                 If ot.CurrentConfigSetName <> Me.Configset And Me.EnableChangeConfigSet Then
                     ot.CurrentConfigSetName = Me.Configset
                 End If
-                Dim aDBDriver As iormDatabaseDriver = ot.CurrentDBDriver
+                Dim aDBDriver As iormRelationalDatabaseDriver = ot.CurrentDBDriver
 
                 If aDBDriver Is Nothing Then
                     aDBDriver = CurrentSession.CreateOrGetDatabaseDriver()
                 End If
 
                 If aDBDriver Is Nothing Then
-                    CoreMessageHandler(showmsgbox:=True, message:="No connection to OnTrack Database is available for verifying the user access - contact your administrator", messagetype:=otCoreMessageType.InternalError, subname:="CoreLoginForm.Verify")
+                    CoreMessageHandler(showmsgbox:=True, message:="No connection to OnTrack Database is available for verifying the user access - contact your administrator", messagetype:=otCoreMessageType.InternalError, procedure:="CoreLoginForm.Verify")
                     Return False
                 End If
                 '** verify
@@ -604,7 +656,7 @@ Namespace OnTrack.UI
 
             Catch ex As Exception
                 Me.Statustext = "OnTrack Database not available"
-                Call CoreMessageHandler(exception:=ex, subname:="clsUILogin.verify", break:=False)
+                Call CoreMessageHandler(exception:=ex, procedure:="clsUILogin.verify", break:=False)
                 Verify = False
             End Try
 

@@ -107,7 +107,7 @@ Public Class clsLEGACYCartypes
         Dim i As Integer
         Dim result As String
         '**
-        result = ""
+        result = String.empty
         For i = 0 To UBound(Me.Cartypes) - 1
             If sCartypes(i) = True Then
                 result = result & "X"
@@ -153,7 +153,7 @@ Public Class clsLEGACYCartypes
         Dim i As Integer
         Dim result As String
         '**
-        result = ""
+        result = String.empty
         For i = 0 To UBound(Me.Cartypes) - 1
             If sCartypes(i) = True Then
                 result = result & "H" & Format(i + 1, "00")

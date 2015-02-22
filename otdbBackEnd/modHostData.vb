@@ -35,10 +35,10 @@ Public Module modHostData
     '*************
     Public Function registerDefaultObjects() As Boolean
         Dim aSchedule As New ScheduleEdition
-        Dim aDependCheck As New clsOTDBDependCheck
+        'Dim aDependCheck As New clsOTDBDependCheck
 
-        Call registerHostApplicationFor(aSchedule.primaryTableID, True)
-        Call registerHostApplicationFor(aDependCheck.primaryTableID, True)
+        Call registerHostApplicationFor(aSchedule.ObjectPrimaryTableID, True)
+        'Call registerHostApplicationFor(aDependCheck.primaryTableID, True)
 
         registerDefaultObjects = True
     End Function
@@ -47,10 +47,10 @@ Public Module modHostData
     '*************
     Public Function unregisterDefaultObjects() As Boolean
         Dim aSchedule As New ScheduleEdition
-        Dim aDependCheck As New clsOTDBDependCheck
+        ' Dim aDependCheck As New clsOTDBDependCheck
 
-        Call unregisterHostApplicationFor(aSchedule.primaryTableID)
-        Call unregisterHostApplicationFor(aDependCheck.primaryTableID)
+        Call unregisterHostApplicationFor(aSchedule.ObjectPrimaryTableID)
+        'Call unregisterHostApplicationFor(aDependCheck.primaryTableID)
 
         unregisterDefaultObjects = True
     End Function
@@ -110,7 +110,7 @@ Public Module modHostData
 
     Public Function overloadFromHostApplication(ByRef aRecord As ormRecord) As Boolean
         Dim aSchedule As New ScheduleEdition
-        Dim aDependCheck As New clsOTDBDependCheck
+        'Dim aDependCheck As New clsOTDBDependCheck
 
         ' if not registered
         'If Not isRegisteredAtHostApplication(aRecord.TableIDs) Then
@@ -121,7 +121,7 @@ Public Module modHostData
 '        Select Case LCase(aRecord.TableIDs)
 
 '            Case LCase(aSchedule.PrimaryTableID)
-'#If ExcelVersion <> "" Then
+'#If ExcelVersion <> String.empty Then
 '                ' write it to
 '                'Debug.Print "excel"
 '#End If
@@ -146,7 +146,7 @@ Public Module modHostData
 
     Public Function overwriteToHostApplication(ByRef aRecord As ormRecord) As Boolean
         Dim aSchedule As New ScheduleEdition
-        Dim aDependCheck As New clsOTDBDependCheck
+        'Dim aDependCheck As New clsOTDBDependCheck
 
         ' if not registered
 '        If Not isRegisteredAtHostApplication(aRecord.TableIDs) Then
@@ -157,7 +157,7 @@ Public Module modHostData
 
 '        Select Case LCase(aRecord.TableIDs)
 '            Case LCase(aSchedule.primaryTableID)
-'#If ExcelVersion <> "" Then
+'#If ExcelVersion <> String.empty Then
 '                ' write it to
 '                'Debug.Print "excel"
 '#End If

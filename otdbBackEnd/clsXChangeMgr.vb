@@ -1058,7 +1058,7 @@ Namespace OnTrack.XChange
                 ElseIf _explicitDatatype <> 0 Then
                     Return _explicitDatatype
                 Else
-                    CoreMessageHandler(message:="Attribute or Datatype not set in slot", messagetype:=otCoreMessageType.InternalError, subname:="XSlot.Datatype")
+                    CoreMessageHandler(message:="Attribute or Datatype not set in slot", messagetype:=otCoreMessageType.InternalError, procedure:="XSlot.Datatype")
                     Return 0
                 End If
             End Get
@@ -1190,9 +1190,9 @@ Namespace OnTrack.XChange
                         hostvalue = CLng(dbvalue)
                         Return True
                     Else
-                        Call CoreMessageHandler(subname:="DefaultConvert2HostValue.convertValue2Hostvalue",
+                        Call CoreMessageHandler(procedure:="DefaultConvert2HostValue.convertValue2Hostvalue",
                                               message:="OTDB data '" & dbvalue & "' is not convertible to long",
-                                              arg1:=dbvalue)
+                                              argument:=dbvalue)
                         hostValueIsEmpty = True
                         Return False
                     End If
@@ -1209,9 +1209,9 @@ Namespace OnTrack.XChange
                         hostvalue = CDbl(dbvalue)
                         Return True
                     Else
-                        Call CoreMessageHandler(subname:="DefaultConvert2HostValue.convertValue2Hostvalue",
+                        Call CoreMessageHandler(procedure:="DefaultConvert2HostValue.convertValue2Hostvalue",
                                               message:="OTDB data '" & dbvalue & "' is not convertible to double",
-                                              arg1:=dbvalue)
+                                              argument:=dbvalue)
                         hostvalue = Nothing
                         hostValueIsEmpty = True
                         Return False
@@ -1225,17 +1225,17 @@ Namespace OnTrack.XChange
                     hostvalue = Converter.Enumerable2otString(dbvalue)
                     Return True
                 Case otDataType.Runtime
-                    Call CoreMessageHandler(subname:="DefaultConvert2HostValue.convertValue2Hostvalue",
+                    Call CoreMessageHandler(procedure:="DefaultConvert2HostValue.convertValue2Hostvalue",
                                             message:="OTDB data '" & dbvalue & "' is not convertible to runtime",
-                                            arg1:=dbvalue)
+                                            argument:=dbvalue)
                     hostvalue = Nothing
                     hostValueIsEmpty = True
                     Return False
 
                 Case otDataType.Formula
-                    Call CoreMessageHandler(subname:="DefaultConvert2HostValue.convertValue2Hostvalue",
+                    Call CoreMessageHandler(procedure:="DefaultConvert2HostValue.convertValue2Hostvalue",
                                             message:="OTDB data '" & dbvalue & "' is not convertible to formula",
-                                            arg1:=dbvalue)
+                                            argument:=dbvalue)
                     hostvalue = Nothing
                     hostValueIsEmpty = True
                     Return False
@@ -1258,9 +1258,9 @@ Namespace OnTrack.XChange
                         hostvalue = dbvalue
                         Return True
                     Else
-                        Call CoreMessageHandler(subname:="DefaultConvert2HostValue.convertValue2Hostvalue",
+                        Call CoreMessageHandler(procedure:="DefaultConvert2HostValue.convertValue2Hostvalue",
                                               message:="OTDB data '" & dbvalue & "' is not convertible to date, time, timestamp",
-                                              arg1:=dbvalue)
+                                              argument:=dbvalue)
                         hostvalue = Nothing
                         hostValueIsEmpty = True
                         Return False
@@ -1273,9 +1273,9 @@ Namespace OnTrack.XChange
                     hostvalue = dbvalue
                     Return True
                 Case Else
-                    Call CoreMessageHandler(subname:="XSlot.convert2HostValue",
+                    Call CoreMessageHandler(procedure:="XSlot.convert2HostValue",
                                            message:="type has no converter",
-                                           arg1:=hostvalue)
+                                           argument:=hostvalue)
                     hostvalue = Nothing
                     hostValueIsEmpty = True
                     Return False
@@ -1330,10 +1330,10 @@ Namespace OnTrack.XChange
                         If msglog IsNot Nothing Then
                             '1201;@;VALIDATOR;object entry validation for '%1%.%2% (XID %5%) failed. Value'%4%' couldnot be converted to data type '%3%';Provide a correct value;90;Error;false;|R1|;|XCHANGEENVELOPE|
                             msglog.Add(1201, CurrentSession.CurrentDomainID, Nothing, Nothing, Nothing, Nothing, _
-                                       "", "", datatype.ToString, hostvalue.ToString, "")
+                                       String.empty, String.empty, datatype.ToString, hostvalue.ToString, String.empty)
                         End If
-                        CoreMessageHandler(message:="value is not convertible to numeric or long", arg1:=hostvalue,
-                                           subname:="Xslot.DefaultConvert2DBValue", messagetype:=otCoreMessageType.ApplicationError)
+                        CoreMessageHandler(message:="value is not convertible to numeric or long", argument:=hostvalue,
+                                           procedure:="Xslot.DefaultConvert2DBValue", messagetype:=otCoreMessageType.ApplicationError)
                         dbvalue = Nothing
                         dbValueIsEmpty = True
                         Return False
@@ -1355,9 +1355,9 @@ Namespace OnTrack.XChange
                         If msglog IsNot Nothing Then
                             '1201;@;VALIDATOR;object entry validation for '%1%.%2% (XID %5%) failed. Value'%4%' couldnot be converted to data type '%3%';Provide a correct value;90;Error;false;|R1|;|XCHANGEENVELOPE|
                             msglog.Add(1201, CurrentSession.CurrentDomainID, Nothing, Nothing, Nothing, Nothing, _
-                                       "", "", datatype.ToString, hostvalue.ToString, "")
+                                       String.empty, String.empty, datatype.ToString, hostvalue.ToString, String.empty)
                         End If
-                        CoreMessageHandler(message:="value is not convertible to string", subname:="Xslot.DefaultConvert2DBValue",
+                        CoreMessageHandler(message:="value is not convertible to string", procedure:="Xslot.DefaultConvert2DBValue",
                                             messagetype:=otCoreMessageType.ApplicationError)
                         dbvalue = Nothing
                         dbValueIsEmpty = True
@@ -1365,15 +1365,15 @@ Namespace OnTrack.XChange
                     End If
 
                 Case otDataType.Runtime
-                    Call CoreMessageHandler(subname:="XSlot.convert2DBValue",
+                    Call CoreMessageHandler(procedure:="XSlot.convert2DBValue",
                                           message:="OTDB data " & hostvalue & " is not convertible from/to runtime",
-                                           arg1:=hostvalue)
+                                           argument:=hostvalue)
 
                     dbvalue = DBNull.Value
                     Return False
 
                 Case otDataType.Formula
-                    Call CoreMessageHandler(subname:="XSlot.convert2DBValue", arg1:=hostvalue.ToString,
+                    Call CoreMessageHandler(procedure:="XSlot.convert2DBValue", argument:=hostvalue.ToString,
                                           message:="OTDB data " & hostvalue & " is not convertible from/to formula")
 
                     dbvalue = Nothing
@@ -1392,11 +1392,11 @@ Namespace OnTrack.XChange
                         If msglog IsNot Nothing Then
                             '1201;@;VALIDATOR;object entry validation for '%1%.%2% (XID %5%) failed. Value'%4%' couldnot be converted to data type '%3%';Provide a correct value;90;Error;false;|R1|;|XCHANGEENVELOPE|
                             msglog.Add(1201, CurrentSession.CurrentDomainID, Nothing, Nothing, Nothing, Nothing, _
-                                       "", "", datatype.ToString, hostvalue.ToString, "")
+                                       String.empty, String.empty, datatype.ToString, hostvalue.ToString, String.empty)
                         End If
-                        Call CoreMessageHandler(subname:="XSlot.convert2DBValue",
+                        Call CoreMessageHandler(procedure:="XSlot.convert2DBValue",
                                               message:="OTDB data '" & hostvalue & "' is not convertible to Date",
-                                              arg1:=hostvalue)
+                                              argument:=hostvalue)
 
                         dbvalue = Nothing
                         dbValueIsEmpty = True
@@ -1434,11 +1434,11 @@ Namespace OnTrack.XChange
                         If msglog IsNot Nothing Then
                             ' 1201;@;VALIDATOR;object entry validation for '%1%.%2% (XID %5%) failed. Value'%4%' couldnot be converted to data type '%3%';Provide a correct value;90;Error;false;|R1|;|XCHANGEENVELOPE|
                             msglog.Add(1201, CurrentSession.CurrentDomainID, Nothing, Nothing, Nothing, Nothing, _
-                                       "", "", datatype.ToString, hostvalue.ToString, "")
+                                       String.empty, String.empty, datatype.ToString, hostvalue.ToString, String.empty)
                         End If
-                        Call CoreMessageHandler(subname:="XSlot.convert2DBValue",
+                        Call CoreMessageHandler(procedure:="XSlot.convert2DBValue",
                                             message:="OTDB data '" & hostvalue & "' is not convertible to boolean",
-                                            arg1:=hostvalue)
+                                            argument:=hostvalue)
 
                         dbvalue = True
                         dbValueIsEmpty = True
@@ -1449,8 +1449,8 @@ Namespace OnTrack.XChange
                     dbvalue = hostvalue
                     Return True
                 Case Else
-                    Call CoreMessageHandler(subname:="XSlot.convert2DBValue", message:="type has no converter", messagetype:=otCoreMessageType.InternalError, _
-                                            arg1:=hostvalue)
+                    Call CoreMessageHandler(procedure:="XSlot.convert2DBValue", message:="type has no converter", messagetype:=otCoreMessageType.InternalError, _
+                                            argument:=hostvalue)
                     dbvalue = Nothing
                     dbValueIsEmpty = True
                     Return False
@@ -1596,7 +1596,7 @@ Namespace OnTrack.XChange
                 _IsPrechecked = value
             End Set
         End Property
-       
+
         ''' <summary>
         ''' gets the timestamp for the precheck
         ''' </summary>
@@ -1611,7 +1611,7 @@ Namespace OnTrack.XChange
                 _PrecheckTimestamp = value
             End Set
         End Property
-       
+
         ''' <summary>
         ''' returns true if the envelope was xchanged / processed
         ''' </summary>
@@ -1686,7 +1686,7 @@ Namespace OnTrack.XChange
                 Else
                     _trackmessagelog = Nothing
                 End If
-               
+
             End Set
         End Property
 
@@ -1707,9 +1707,9 @@ Namespace OnTrack.XChange
         ''' <param name="objectname"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function HasConfigObjectEntryname(ByVal entryname As String, Optional objectname As String = "") As Boolean
+        Public Function HasConfigObjectEntryname(ByVal entryname As String, Optional objectname As String = Nothing) As Boolean
             If _xchangeconfig Is Nothing Then
-                Call CoreMessageHandler(message:="XChangeConfig is not set within XMAP", subname:="XEnvelope.HasConfigObjectEntryname")
+                Call CoreMessageHandler(message:="XChangeConfig is not set within XMAP", procedure:="XEnvelope.HasConfigObjectEntryname")
                 Return False
             End If
 
@@ -1728,10 +1728,10 @@ Namespace OnTrack.XChange
         ''' <param name="objectname"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function HasConfigXID(ByVal xid As String, Optional objectname As String = "") As Boolean
+        Public Function HasConfigXID(ByVal xid As String, Optional objectname As String = Nothing) As Boolean
 
             If _xchangeconfig Is Nothing Then
-                Call CoreMessageHandler(message:="XChangeConfig is not set within XMAP", subname:="XEnvelope.getvaluebyID")
+                Call CoreMessageHandler(message:="XChangeConfig is not set within XMAP", procedure:="XEnvelope.getvaluebyID")
                 Return Nothing
             End If
 
@@ -1959,7 +1959,7 @@ Namespace OnTrack.XChange
                                             Optional xcmd As otXChangeCommandType = Nothing) As Boolean
 
             If _xchangeconfig Is Nothing Then
-                Call CoreMessageHandler(message:="XChangeConfig is not set within XMAP", subname:="XEnvelope.AddByID")
+                Call CoreMessageHandler(message:="XChangeConfig is not set within XMAP", procedure:="XEnvelope.AddByID")
                 Return False
             End If
 
@@ -1993,7 +1993,7 @@ Namespace OnTrack.XChange
         ''' <remarks></remarks>
         Public Function AddSlotByObjectEntryName(ByVal entryname As String, ByVal value As Object,
                                            Optional ByVal isHostValue As Boolean = True,
-                                            Optional objectname As String = "",
+                                            Optional objectname As String = Nothing,
                                             Optional overwriteValue As Boolean = False,
                                             Optional extendXConfig As Boolean = False, _
                                             Optional ValueIsNull As Boolean = False, _
@@ -2003,7 +2003,7 @@ Namespace OnTrack.XChange
                                             Optional xcmd As otXChangeCommandType = Nothing) As Boolean
 
             If _xchangeconfig Is Nothing Then
-                Call CoreMessageHandler(message:="XChangeConfig is not set within XMAP", subname:="XEnvelope.AddByFieldname")
+                Call CoreMessageHandler(message:="XChangeConfig is not set within XMAP", procedure:="XEnvelope.AddByFieldname")
                 Return False
             End If
 
@@ -2035,14 +2035,14 @@ Namespace OnTrack.XChange
         ''' <remarks></remarks>
         Public Function AddSlotbyXEntry(ByRef entry As IXChangeConfigEntry, ByVal value As Object,
                                         Optional ByVal isHostValue As Boolean = True,
-                                        Optional objectname As String = "",
+                                        Optional objectname As String = Nothing,
                                         Optional overwriteValue As Boolean = False,
                                         Optional replaceSlotIfexists As Boolean = False, _
                                         Optional ValueIsNull As Boolean = False, _
                                         Optional SlotIsEmpty As Boolean = False) As Boolean
 
             If _xchangeconfig Is Nothing Then
-                Call CoreMessageHandler(message:="XChangeConfig is not set within XMAP", subname:="XEnvelope.AddSlotbyXEntry")
+                Call CoreMessageHandler(message:="XChangeConfig is not set within XMAP", procedure:="XEnvelope.AddSlotbyXEntry")
                 Return False
             End If
 
@@ -2086,10 +2086,10 @@ Namespace OnTrack.XChange
         ''' <param name="asHostValue"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetSlotValueByXID(ByVal xid As String, Optional objectname As String = "", Optional asHostValue As Boolean = True) As Object
+        Public Function GetSlotValueByXID(ByVal xid As String, Optional objectname As String = Nothing, Optional asHostValue As Boolean = True) As Object
 
             If _xchangeconfig Is Nothing Then
-                Call CoreMessageHandler(message:="XChangeConfig is not set within XMAP", subname:="XEnvelope.GetSlotValueByXID")
+                Call CoreMessageHandler(message:="XChangeConfig is not set within XMAP", procedure:="XEnvelope.GetSlotValueByXID")
                 Return Nothing
             End If
 
@@ -2097,7 +2097,7 @@ Namespace OnTrack.XChange
             If aXChangeMember IsNot Nothing Then
                 Return Me.GetSlotValueByXEntry(aXChangeMember)
             Else
-                CoreMessageHandler(message:="XChangeConfig '" & Me.Xchangeconfig.Configname & "' does not include the id", arg1:=xid, messagetype:=otCoreMessageType.ApplicationWarning, subname:="XEnvelope.GetSlotValueByID")
+                CoreMessageHandler(message:="XChangeConfig '" & Me.Xchangeconfig.Configname & "' does not include the id", argument:=xid, messagetype:=otCoreMessageType.ApplicationWarning, procedure:="XEnvelope.GetSlotValueByID")
                 Return Nothing
             End If
 
@@ -2109,10 +2109,10 @@ Namespace OnTrack.XChange
         ''' <param name="objectname"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function HasSlotByXID(ByVal xid As String, Optional objectname As String = "") As Object
+        Public Function HasSlotByXID(ByVal xid As String, Optional objectname As String = Nothing) As Object
 
             If _xchangeconfig Is Nothing Then
-                Call CoreMessageHandler(message:="XChangeConfig is not set within XMAP", subname:="XEnvelope.HasSlotByXID")
+                Call CoreMessageHandler(message:="XChangeConfig is not set within XMAP", procedure:="XEnvelope.HasSlotByXID")
                 Return Nothing
             End If
 
@@ -2132,10 +2132,10 @@ Namespace OnTrack.XChange
         ''' <param name="asHostValue"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetSlotValueByObjectEntryName(ByVal entryname As String, Optional objectname As String = "", Optional asHostValue As Boolean = True) As Object
+        Public Function GetSlotValueByObjectEntryName(ByVal entryname As String, Optional objectname As String = Nothing, Optional asHostValue As Boolean = True) As Object
 
             If _xchangeconfig Is Nothing Then
-                Call CoreMessageHandler(message:="XChangeConfig is not set within XMAP", subname:="XEnvelope.GetSlotValueByObjectEntryName")
+                Call CoreMessageHandler(message:="XChangeConfig is not set within XMAP", procedure:="XEnvelope.GetSlotValueByObjectEntryName")
                 Return Nothing
             End If
 
@@ -2144,7 +2144,7 @@ Namespace OnTrack.XChange
                 Return Me.GetSlotValueByXEntry(aXChangeMember)
             Else
                 CoreMessageHandler(message:="xconfiguration '" & Me.Xchangeconfig.Configname & "' does not include entryname", entryname:=entryname, objectname:=objectname, _
-                                   messagetype:=otCoreMessageType.ApplicationWarning, subname:="Xenvelope.GetSlotValueByObjectEntryName")
+                                   messagetype:=otCoreMessageType.ApplicationWarning, procedure:="Xenvelope.GetSlotValueByObjectEntryName")
                 Return Nothing
             End If
 
@@ -2156,10 +2156,10 @@ Namespace OnTrack.XChange
         ''' <param name="objectname"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function HasSlotByObjectEntryName(ByVal entryname As String, Optional objectname As String = "") As Boolean
+        Public Function HasSlotByObjectEntryName(ByVal entryname As String, Optional objectname As String = Nothing) As Boolean
 
             If _xchangeconfig Is Nothing Then
-                Call CoreMessageHandler(message:="XChangeConfig is not set within XMAP", subname:="XEnvelope.HasSlotByObjectEntryName")
+                Call CoreMessageHandler(message:="XChangeConfig is not set within XMAP", procedure:="XEnvelope.HasSlotByObjectEntryName")
                 Return Nothing
             End If
             Dim aXChangeMember As XChangeObjectEntry = _xchangeconfig.GetEntryByObjectEntryName(entryname:=entryname, objectname:=objectname)
@@ -2182,14 +2182,14 @@ Namespace OnTrack.XChange
         Public Function GetSlotValueByXEntry(ByRef entry As XChangeObjectEntry, Optional asHostValue As Boolean = True) As Object
 
             If _xchangeconfig Is Nothing Then
-                Call CoreMessageHandler(message:="XChangeConfig is not set within XMAP", subname:="XEnvelope.GetSlotValueByXEntry")
+                Call CoreMessageHandler(message:="XChangeConfig is not set within XMAP", procedure:="XEnvelope.GetSlotValueByXEntry")
                 Return Nothing
             End If
 
             If Not entry Is Nothing AndAlso (entry.IsLoaded Or entry.IsCreated) Then
                 Return Me.GetSlotValue(ordinal:=New Ordinal(entry.Ordinal), asHostvalue:=asHostValue)
             Else
-                Call CoreMessageHandler(message:="entry is nothing", messagetype:=otCoreMessageType.InternalWarning, subname:="XEnvelope.GetSlotValueByEntry")
+                Call CoreMessageHandler(message:="entry is nothing", messagetype:=otCoreMessageType.InternalWarning, procedure:="XEnvelope.GetSlotValueByEntry")
                 Return Nothing
             End If
         End Function
@@ -2202,7 +2202,7 @@ Namespace OnTrack.XChange
         Public Function HasSlotByXEntry(ByRef objectentry As XChangeObjectEntry) As Boolean
 
             If _xchangeconfig Is Nothing Then
-                Call CoreMessageHandler(message:="XChangeConfig is not set within XMAP", subname:="XEnvelope.HasSlotByXEntry")
+                Call CoreMessageHandler(message:="XChangeConfig is not set within XMAP", procedure:="XEnvelope.HasSlotByXEntry")
                 Return False
             End If
 
@@ -2223,10 +2223,10 @@ Namespace OnTrack.XChange
         ''' <param name="objectname"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetEntryByObjectEntryname(ByVal entryname As String, Optional objectname As String = "") As XChangeObjectEntry
+        Public Function GetEntryByObjectEntryname(ByVal entryname As String, Optional objectname As String = Nothing) As XChangeObjectEntry
 
             If _xchangeconfig Is Nothing Then
-                Call CoreMessageHandler(message:="XChangeConfig is not set within XMAP", subname:="XEnvelope.GetEntryByObjectEntryname")
+                Call CoreMessageHandler(message:="XChangeConfig is not set within XMAP", procedure:="XEnvelope.GetEntryByObjectEntryname")
                 Return Nothing
             End If
 
@@ -2239,10 +2239,10 @@ Namespace OnTrack.XChange
         ''' <param name="objectname"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetEntryByXID(ByVal XID As String, Optional objectname As String = "") As XChangeObjectEntry
+        Public Function GetEntryByXID(ByVal XID As String, Optional objectname As String = Nothing) As XChangeObjectEntry
 
             If _xchangeconfig Is Nothing Then
-                Call CoreMessageHandler(message:="XChangeConfig is not set within XMAP", subname:="XEnvelope.GetEntryByXID")
+                Call CoreMessageHandler(message:="XChangeConfig is not set within XMAP", procedure:="XEnvelope.GetEntryByXID")
                 Return Nothing
             End If
 
@@ -2480,10 +2480,10 @@ Namespace OnTrack.XChange
             ''' check if we need a object and how to get it
             ''' then run the command
 
-            Dim anObject As iormPersistable
+            Dim anObject As iormRelationalPersistable
             Select Case xobject.XChangeCmd
                 Case otXChangeCommandType.CreateUpdate
-                    anObject = ormDataObject.Retrieve(pkarry, xobject.XObjectDefinition.ObjectType)
+                    anObject = ormBusinessObject.RetrieveDataObject(pkarry, xobject.XObjectDefinition.ObjectType)
                     If anObject Is Nothing Then
                         ''' no object which could be retrieved - a new one will be created
                         If msglog IsNot Nothing Then msglog.Add(1004, CurrentSession.CurrentDomainID, Me.ContextIdentifier, Me.TupleIdentifier, _
@@ -2492,7 +2492,7 @@ Namespace OnTrack.XChange
                 Case otXChangeCommandType.Delete, otXChangeCommandType.Duplicate, otXChangeCommandType.Read, otXChangeCommandType.Update
                     '*** read the data
                     '***
-                    anObject = ormDataObject.Retrieve(pkarry, xobject.XObjectDefinition.ObjectType)
+                    anObject = ormBusinessObject.RetrieveDataObject(pkarry, xobject.XObjectDefinition.ObjectType)
                     If anObject Is Nothing Then
                         ''' no object which could be retrieved for such a operation
                         If msglog IsNot Nothing Then msglog.Add(1003, CurrentSession.CurrentDomainID, Me.ContextIdentifier, Me.TupleIdentifier, _
@@ -2502,7 +2502,7 @@ Namespace OnTrack.XChange
                     ''' no command ?!
                     If msglog IsNot Nothing Then msglog.Add(1005, CurrentSession.CurrentDomainID, Me.ContextIdentifier, Me.TupleIdentifier, _
                       Me.EntityIdentifier, Me, xobject.Configname, xobject.xobjectdefinition.id, xobject.XChangeCmd.ToString)
-                    CoreMessageHandler(message:="XCMD is not implemented for XConfig " & xobject.Configname, subname:="Xenvelope.RunDefaultXChange", arg1:=xobject.XChangeCmd, messagetype:=otCoreMessageType.InternalError)
+                    CoreMessageHandler(message:="XCMD is not implemented for XConfig " & xobject.Configname, procedure:="Xenvelope.RunDefaultXChange", argument:=xobject.XChangeCmd, messagetype:=otCoreMessageType.InternalError)
                     Return False
             End Select
 
@@ -2518,7 +2518,7 @@ Namespace OnTrack.XChange
         ''' <param name="dataobject"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Private Function RunDefaultPreCheck(ByRef dataobject As iormPersistable, xobject As XChangeObject, _
+        Private Function RunDefaultPreCheck(ByRef dataobject As iormRelationalPersistable, xobject As XChangeObject, _
                                            Optional msglog As ObjectMessageLog = Nothing) As Boolean
             Dim aValue As Object
 
@@ -2625,8 +2625,8 @@ Namespace OnTrack.XChange
                                         ''' 
                                         outvalue = aValue ' copy over
                                         If Not TryCast(dataobject, iormInfusable).Normalizevalue(anXEntry.ObjectEntryname, outvalue) Then
-                                            CoreMessageHandler(message:="Warning ! Could not normalize value", arg1:=outvalue, objectname:=anXEntry.Objectname, _
-                                                                entryname:=anXEntry.ObjectEntryname, subname:="Xenvelope.RunDefaultPrecheck")
+                                            CoreMessageHandler(message:="Warning ! Could not normalize value", argument:=outvalue, objectname:=anXEntry.Objectname, _
+                                                                entryname:=anXEntry.ObjectEntryname, procedure:="Xenvelope.RunDefaultPrecheck")
                                         End If
 
                                         ''' Validate the OutValue
@@ -2730,8 +2730,8 @@ Namespace OnTrack.XChange
                     msglog.Add(1005, CurrentSession.CurrentDomainID, Me.ContextIdentifier, Me.TupleIdentifier, _
                       Me.EntityIdentifier, Me, xobject.Configname, xobject.xobjectdefinition.id, xobject.XChangeCmd)
                     Call CoreMessageHandler(message:="XChangeCmd for this object is not known :" & xobject.Objectname,
-                                      arg1:=xobject.XChangeCmd, objectname:=xobject.Objectname, messagetype:=otCoreMessageType.ApplicationError,
-                                      subname:="XEnvelope.runXChangeCMD")
+                                      argument:=xobject.XChangeCmd, objectname:=xobject.Objectname, messagetype:=otCoreMessageType.ApplicationError,
+                                      procedure:="XEnvelope.runXChangeCMD")
                     Return False
             End Select
 
@@ -2744,7 +2744,7 @@ Namespace OnTrack.XChange
         ''' <param name="dataobject"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Private Function RunDefaultXChange(ByRef dataobject As iormPersistable,
+        Private Function RunDefaultXChange(ByRef dataobject As iormRelationalPersistable,
                                           Optional xobject As XChangeObject = Nothing, _
                                           Optional ByRef msglog As ObjectMessageLog = Nothing) As Boolean
             Dim aValue As Object
@@ -2760,7 +2760,7 @@ Namespace OnTrack.XChange
 
             '** no object is given
             If dataobject Is Nothing OrElse Not dataobject.isAlive(throwError:=False) Then
-                CoreMessageHandler(message:="dataobject must be alive to xchange it from an Envelope", subname:="XEnvelope.RunXChangeCMD", _
+                CoreMessageHandler(message:="dataobject must be alive to xchange it from an Envelope", procedure:="XEnvelope.RunXChangeCMD", _
                                    messagetype:=otCoreMessageType.InternalError, objectname:=dataobject.ObjectID)
                 Return False
             End If
@@ -2897,8 +2897,8 @@ Namespace OnTrack.XChange
                     '**** no command ?!
                 Case Else
                     Call CoreMessageHandler(message:="XChangeCmd for this object is not known :" & xobject.Objectname,
-                                      arg1:=xobject.XChangeCmd, objectname:=xobject.Objectname, messagetype:=otCoreMessageType.ApplicationError,
-                                      subname:="XEnvelope.runXChangeCMD")
+                                      argument:=xobject.XChangeCmd, objectname:=xobject.Objectname, messagetype:=otCoreMessageType.ApplicationError,
+                                      procedure:="XEnvelope.runXChangeCMD")
                     Return False
             End Select
 
@@ -2956,7 +2956,7 @@ Namespace OnTrack.XChange
                      Me.EntityIdentifier, Me, xobject.Configname, xobject.xobjectdefinition.id, xobject.XChangeCmd.ToString)
 
                 Call CoreMessageHandler(message:="primary key of table is Nothing in xchange config:" & xobject.Configname,
-                                      arg1:=xobject.Objectname, messagetype:=otCoreMessageType.InternalError, subname:="XEnvelope.runDefaultXChange4Object")
+                                      argument:=xobject.Objectname, messagetype:=otCoreMessageType.InternalError, procedure:="XEnvelope.runDefaultXChange4Object")
                 Return False
             Else
                 ReDim pkarry(xobject.XObjectDefinition.GetNoKeys - 1)
@@ -2976,8 +2976,8 @@ Namespace OnTrack.XChange
                          Me.EntityIdentifier, Me, xobject.Configname, xobject.xobjectdefinition.id, aPKEntry.Entryname)
 
                     Call CoreMessageHandler(message:="value of primary key is not in configuration or envelope :" & xobject.Configname,
-                                     arg1:=xobject.Objectname, entryname:=aPKEntry.Entryname, messagetype:=otCoreMessageType.ApplicationError,
-                                     subname:="XEnvelope.runDefaultXChange4Object")
+                                     argument:=xobject.Objectname, entryname:=aPKEntry.Entryname, messagetype:=otCoreMessageType.ApplicationError,
+                                     procedure:="XEnvelope.runDefaultXChange4Object")
                     Return False
                 End If
 
@@ -3003,24 +3003,24 @@ Namespace OnTrack.XChange
             ''' check if we need a object and how to get it
             ''' then run the command
 
-            Dim anObject As iormPersistable
+            Dim anObject As iormRelationalPersistable
             Select Case xobject.XChangeCmd
                 Case otXChangeCommandType.CreateUpdate
-                    ''' try to create
+                    ''' try to create with primary key
                     ''' 
-                    anObject = ormDataObject.CreateDataObject(pkarry, xobject.XObjectDefinition.ObjectType, domainID:=aDomainID)
+                    anObject = ormBusinessObject.CreateDataObject(New ormDatabaseKey(objectid:=xobject.XObjectDefinition.ID, keyvalues:=pkarry), xobject.XObjectDefinition.ObjectType, domainID:=aDomainID)
 
                     ''' retrieve the Object 
                     ''' 
                     If anObject Is Nothing Then
-                        anObject = ormDataObject.Retrieve(pkarry, xobject.XObjectDefinition.ObjectType)
+                        anObject = ormBusinessObject.RetrieveDataObject(pkarry, xobject.XObjectDefinition.ObjectType)
                     End If
                 Case otXChangeCommandType.Delete, otXChangeCommandType.Duplicate, otXChangeCommandType.Read, otXChangeCommandType.Update
                     '*** read the data
                     '***
-                    anObject = ormDataObject.Retrieve(pkarry, xobject.XObjectDefinition.ObjectType)
+                    anObject = ormBusinessObject.RetrieveDataObject(pkarry, xobject.XObjectDefinition.ObjectType)
                 Case Else
-                    CoreMessageHandler(message:="XCMD is not implemented for XConfig " & xobject.Configname, subname:="Xenvelope.RunDefaultXChange", arg1:=xobject.XChangeCmd, messagetype:=otCoreMessageType.InternalError)
+                    CoreMessageHandler(message:="XCMD is not implemented for XConfig " & xobject.Configname, procedure:="Xenvelope.RunDefaultXChange", argument:=xobject.XChangeCmd, messagetype:=otCoreMessageType.InternalError)
                     Return False
             End Select
 
@@ -3029,7 +3029,7 @@ Namespace OnTrack.XChange
                 Return Me.RunDefaultXChange(anObject, xobject:=xobject, msglog:=msglog)
             Else
                 CoreMessageHandler(message:="OnTrack DataObject could not be retrieved nor created: " & xobject.Objectname, _
-                                   subname:="Xenvelope.RunDefaultXChange", arg1:=Converter.Array2StringList(pkarry), messagetype:=otCoreMessageType.InternalError)
+                                   procedure:="Xenvelope.RunDefaultXChange", argument:=Converter.Array2StringList(pkarry), messagetype:=otCoreMessageType.InternalError)
 
                 Return False
             End If

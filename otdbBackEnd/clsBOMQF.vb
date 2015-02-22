@@ -47,10 +47,10 @@ Namespace OnTrack.Xchange
         Description:="message queue object with message entries as interacting transactional interface with ontrack", _
         title:="Message Queue", usecache:=True)> _
     Public Class MessageQueue
-        Inherits ormDataObject
+        Inherits ormBusinessObject
         Implements iormLoggable
         Implements iormInfusable
-        Implements iormPersistable
+        Implements iormRelationalPersistable
 
         ''' <summary>
         ''' Object 
@@ -62,13 +62,13 @@ Namespace OnTrack.Xchange
         ''' TableDefinition
         ''' </summary>
         ''' <remarks></remarks>
-        <ormSchemaTable(adddeletefieldbehavior:=True, Version:=2)> Public Const ConstTableID = "TBLMESSAGEQUEUES"
+        <ormTableAttribute(adddeletefieldbehavior:=True, Version:=2)> Public Const ConstPrimaryTableID = "TBLMESSAGEQUEUES"
 
         ''' <summary>
         ''' Primary Key
         ''' </summary>
         ''' <remarks></remarks>
-        <ormObjectEntry(Datatype:=otDataType.Text, size:=100, primarykeyordinal:=1, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=100, PrimaryEntryOrdinal:=1, _
             properties:={ObjectEntryProperty.Keyword}, _
             title:="ID", description:="id of the message queue")> Public Const ConstFNID = "id"
 
@@ -132,37 +132,37 @@ Namespace OnTrack.Xchange
         ''' Member Mapping
         ''' </summary>
         ''' <remarks></remarks>
-        <ormEntryMapping(entryname:=ConstFNID)> Private _id As String = ""
+        <ormObjectEntryMapping(entryname:=ConstFNID)> Private _id As String = String.empty
 
-        <ormEntryMapping(entryname:=ConstFNREQPERSON)> Private _requestingPerson As String
-        <ormEntryMapping(entryname:=ConstFNREQOU)> Private _requestingOU As String
-        <ormEntryMapping(entryname:=ConstFNReqDate)> Private _requestDate As DateTime?
+        <ormObjectEntryMapping(entryname:=ConstFNREQPERSON)> Private _requestingPerson As String
+        <ormObjectEntryMapping(entryname:=ConstFNREQOU)> Private _requestingOU As String
+        <ormObjectEntryMapping(entryname:=ConstFNReqDate)> Private _requestDate As DateTime?
 
-        <ormEntryMapping(entryname:=ConstFNCREATEPERSON)> Private _creatingPerson As String
-        <ormEntryMapping(entryname:=ConstFNCREATEOU)> Private _creatingOU As String
-        <ormEntryMapping(entryname:=ConstFNCREATEDate)> Private _creationDate As DateTime?
+        <ormObjectEntryMapping(entryname:=ConstFNCREATEPERSON)> Private _creatingPerson As String
+        <ormObjectEntryMapping(entryname:=ConstFNCREATEOU)> Private _creatingOU As String
+        <ormObjectEntryMapping(entryname:=ConstFNCREATEDate)> Private _creationDate As DateTime?
 
-        <ormEntryMapping(entryname:=ConstFNApprovingPERSON)> Private _approverperson As String
-        <ormEntryMapping(entryname:=ConstFNApprovalDate)> Private _ApprovalDate As DateTime?
+        <ormObjectEntryMapping(entryname:=ConstFNApprovingPERSON)> Private _approverperson As String
+        <ormObjectEntryMapping(entryname:=ConstFNApprovalDate)> Private _ApprovalDate As DateTime?
 
-        <ormEntryMapping(entryname:=ConstFNWorkspaceID)> Private _workspaceID As String
-        <ormEntryMapping(entryname:=ConstFNDomainID)> Private _domainID As String
+        <ormObjectEntryMapping(entryname:=ConstFNWorkspaceID)> Private _workspaceID As String
+        <ormObjectEntryMapping(entryname:=ConstFNDomainID)> Private _domainID As String
 
-        <ormEntryMapping(entryname:=ConstFNXConfigID)> Private _XConfigID As String
+        <ormObjectEntryMapping(entryname:=ConstFNXConfigID)> Private _XConfigID As String
 
-        <ormEntryMapping(entryname:=ConstFNTitle)> Private _title As String
-        <ormEntryMapping(entryname:=ConstFNComment)> Private _cmt As String
-        <ormEntryMapping(entryname:=ConstFNPlanRevision)> Private _planrevision As String
+        <ormObjectEntryMapping(entryname:=ConstFNTitle)> Private _title As String
+        <ormObjectEntryMapping(entryname:=ConstFNComment)> Private _cmt As String
+        <ormObjectEntryMapping(entryname:=ConstFNPlanRevision)> Private _planrevision As String
 
-        <ormEntryMapping(entryname:=ConstFNPreStamp)> Private _preTimeStamp As DateTime?
-        <ormEntryMapping(entryname:=ConstFNProcStamp)> Private _procTimeStamp As DateTime?
-        <ormEntryMapping(entryname:=ConstFNProcStatus)> Private _procStatus As String
-        <ormEntryMapping(entryname:=ConstFNProcUser)> Private _procUsername As String
-        <ormEntryMapping(entryname:=ConstFNProcComment)> Private _procComment As String
+        <ormObjectEntryMapping(entryname:=ConstFNPreStamp)> Private _preTimeStamp As DateTime?
+        <ormObjectEntryMapping(entryname:=ConstFNProcStamp)> Private _procTimeStamp As DateTime?
+        <ormObjectEntryMapping(entryname:=ConstFNProcStatus)> Private _procStatus As String
+        <ormObjectEntryMapping(entryname:=ConstFNProcUser)> Private _procUsername As String
+        <ormObjectEntryMapping(entryname:=ConstFNProcComment)> Private _procComment As String
 
-        <ormEntryMapping(entryname:=ConstFNContextID)> Private _ContextIdentifier As String
-        <ormEntryMapping(entryname:=ConstFNTupleID)> Private _TupleIdentifier As String
-        <ormEntryMapping(entryname:=ConstFNEntityID)> Private _EntitityIdentifier As String
+        <ormObjectEntryMapping(entryname:=ConstFNContextID)> Private _ContextIdentifier As String
+        <ormObjectEntryMapping(entryname:=ConstFNTupleID)> Private _TupleIdentifier As String
+        <ormObjectEntryMapping(entryname:=ConstFNEntityID)> Private _EntitityIdentifier As String
         ''' <summary>
         ''' Relation to XCOnfig ID
         ''' </summary>
@@ -170,7 +170,7 @@ Namespace OnTrack.Xchange
         <ormRelation(linkobject:=GetType(XChangeConfiguration), toprimarykeys:={ConstFNXConfigID}, _
             cascadeoncreate:=False, cascadeonDelete:=False, cascadeonUpdate:=False)> Public Const ConstRXConfig = "RElXConfig"
 
-        <ormEntryMapping(relationname:=ConstRXConfig, infusemode:=otInfuseMode.OnDemand)> Private _xchangeconfig As New XChangeConfiguration
+        <ormObjectEntryMapping(relationname:=ConstRXConfig, infusemode:=otInfuseMode.OnDemand)> Private _xchangeconfig As New XChangeConfiguration
 
         ''' <summary>
         ''' Relation to Mesages
@@ -180,7 +180,7 @@ Namespace OnTrack.Xchange
         <ormRelation(linkobject:=GetType(MQMessage), fromentries:={ConstFNID}, toentries:={MQMessage.ConstFNMQID}, _
           cascadeoncreate:=False, cascadeonDelete:=True, cascadeonUpdate:=True)> Public Const ConstRXMessages = "RELMESSAGES"
 
-        <ormEntryMapping(relationname:=ConstRXMessages, infusemode:=otInfuseMode.OnInject Or otInfuseMode.OnDemand)> _
+        <ormObjectEntryMapping(relationname:=ConstRXMessages, infusemode:=otInfuseMode.OnInject Or otInfuseMode.OnDemand)> _
         Private WithEvents _messages As ormRelationNewableCollection(Of MQMessage) = New ormRelationNewableCollection(Of MQMessage)(Me, keyentrynames:={MQMessage.constFNIDNO})
 
         '''
@@ -605,8 +605,8 @@ Namespace OnTrack.Xchange
         ''' <remarks></remarks>
         Public Property XChangeConfig() As XChangeConfiguration
             Get
-                If Me.XChangeConfigName IsNot Nothing AndAlso Me.XChangeConfigName <> "" Then
-                    If Me.GetRelationStatus(ConstRXConfig) = DataObjectRelationMgr.RelationStatus.Unloaded Then InfuseRelation(ConstRXConfig)
+                If Me.XChangeConfigName IsNot Nothing AndAlso Me.XChangeConfigName <> String.empty Then
+                    If Me.GetRelationStatus(ConstRXConfig) = ormRelationManager.RelationStatus.Unloaded Then InfuseRelation(ConstRXConfig)
                 Else
                     _xchangeconfig = Nothing
                 End If
@@ -775,7 +775,7 @@ Namespace OnTrack.Xchange
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function Create(id As String, Optional runtimeOnly As Boolean = False) As MessageQueue
-            Return ormDataObject.CreateDataObject(Of MessageQueue)(pkArray:={id.ToUpper}, checkUnique:=True, runtimeOnly:=runtimeOnly)
+            Return ormBusinessObject.CreateDataObject(Of MessageQueue)(pkArray:={id.ToUpper}, checkUnique:=True, runtimeOnly:=runtimeOnly)
         End Function
         ''' <summary>
         ''' retrieves a message queue object from store
@@ -784,7 +784,7 @@ Namespace OnTrack.Xchange
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function Retrieve(id As String) As MessageQueue
-            Return ormDataObject.Retrieve(Of MessageQueue)(pkArray:={id.ToUpper})
+            Return ormBusinessObject.RetrieveDataObject(Of MessageQueue)(pkArray:={id.ToUpper})
         End Function
 
         ''' <summary>
@@ -840,7 +840,7 @@ Namespace OnTrack.Xchange
         Public Function Clear(Optional ByRef workerthread As ComponentModel.BackgroundWorker = Nothing) As Boolean
             Dim progress As Long
             Dim maximum As Long = Me.Messages.Count
-         
+
             ' step through the RowEntries
             For Each aMessage As MQMessage In Me.Messages
                 aMessage.Clear()
@@ -918,10 +918,10 @@ Namespace OnTrack.Xchange
        Description:="message object of a message queue as interacting transactional interface with ontrack", _
        title:="Message", usecache:=True)> _
     Public Class MQMessage
-        Inherits ormDataObject
+        Inherits ormBusinessObject
         Implements iormLoggable
         Implements iormInfusable
-        Implements iormPersistable
+        Implements iormRelationalPersistable
 
 
         ''' <summary>
@@ -972,19 +972,19 @@ Namespace OnTrack.Xchange
         ''' </summary>
         ''' <remarks></remarks>
         ''' 
-        <ormChangeLogEntry(application:=ot.ConstApplicationBackend, module:=ot.ConstPNBSchemaVersion, version:=11, release:=0, patch:=0, _
+        <ormChangeLogEntry(application:=ot.ConstAssemblyName, module:=ot.ConstPNBSchemaVersion, version:=11, release:=0, patch:=0, _
             description:="added column prechecked")> _
-        <ormSchemaTable(version:=3, adddeletefieldbehavior:=True)> Public Const ConstTableID = "TBLMQMESSAGES"
+        <ormTableAttribute(version:=3, adddeletefieldbehavior:=True)> Public Const ConstPrimaryTableID = "TBLMQMESSAGES"
 
         ''' <summary>
         ''' Primary Keys
         ''' </summary>
         ''' <remarks></remarks>
-        <ormObjectEntry(referenceObjectEntry:=MessageQueue.ConstObjectID & "." & MessageQueue.ConstFNID, primarykeyordinal:=1, _
+        <ormObjectEntry(referenceObjectEntry:=MessageQueue.ConstObjectID & "." & MessageQueue.ConstFNID, PrimaryEntryOrdinal:=1, _
          useforeignkey:=otForeignKeyImplementation.NativeDatabase)> _
         Public Const ConstFNMQID = "MQID"
 
-        <ormObjectEntry(Datatype:=otDataType.Long, primarykeyordinal:=2, lowerRange:=0, _
+        <ormObjectEntry(Datatype:=otDataType.Long, PrimaryEntryOrdinal:=2, lowerRange:=0, _
             Title:="ID", description:="ordinal ID of the message")> Public Const constFNIDNO = "IDNO"
 
         ''' <summary>
@@ -1026,22 +1026,22 @@ Namespace OnTrack.Xchange
         ''' Mappings
         ''' </summary>
         ''' <remarks></remarks>
-        <ormEntryMapping(entryname:=ConstFNMQID)> Private _messagequeueID As String = ""
-        <ormEntryMapping(entryname:=constFNIDNO)> Private _idno As Long
+        <ormObjectEntryMapping(entryname:=ConstFNMQID)> Private _messagequeueID As String = String.empty
+        <ormObjectEntryMapping(entryname:=constFNIDNO)> Private _idno As Long
 
-        <ormEntryMapping(entryname:=ConstFNAction)> Private _action As String
+        <ormObjectEntryMapping(entryname:=ConstFNAction)> Private _action As String
 
-        <ormEntryMapping(entryname:=ConstFNPrechecked)> Private _prechecked As Boolean
-        <ormEntryMapping(entryname:=ConstFNProcessed)> Private _processed As Boolean
-        <ormEntryMapping(entryname:=ConstFNProcessable)> Private _processable As Boolean? = True 'init value
-        <ormEntryMapping(entryname:=ConstFNPROCSTAMP)> Private _processedOn As DateTime?
-        <ormEntryMapping(entryname:=ConstFNPRESTAMP)> Private _precheckedOn As DateTime?
+        <ormObjectEntryMapping(entryname:=ConstFNPrechecked)> Private _prechecked As Boolean
+        <ormObjectEntryMapping(entryname:=ConstFNProcessed)> Private _processed As Boolean
+        <ormObjectEntryMapping(entryname:=ConstFNProcessable)> Private _processable As Boolean? = True 'init value
+        <ormObjectEntryMapping(entryname:=ConstFNPROCSTAMP)> Private _processedOn As DateTime?
+        <ormObjectEntryMapping(entryname:=ConstFNPRESTAMP)> Private _precheckedOn As DateTime?
 
-        <ormEntryMapping(entryname:=ConstFNProcStatus)> Private _processstatus As String
+        <ormObjectEntryMapping(entryname:=ConstFNProcStatus)> Private _processstatus As String
 
-        <ormEntryMapping(entryname:=ConstFNContextID)> Private _ContextIdentifier As String
-        <ormEntryMapping(entryname:=ConstFNTupleID)> Private _TupleIdentifier As String
-        <ormEntryMapping(entryname:=ConstFNEntityID)> Private _EntitityIdentifier As String
+        <ormObjectEntryMapping(entryname:=ConstFNContextID)> Private _ContextIdentifier As String
+        <ormObjectEntryMapping(entryname:=ConstFNTupleID)> Private _TupleIdentifier As String
+        <ormObjectEntryMapping(entryname:=ConstFNEntityID)> Private _EntitityIdentifier As String
         ''' <summary>
         ''' Relation to the Slots
         ''' </summary>
@@ -1049,7 +1049,7 @@ Namespace OnTrack.Xchange
         <ormRelation(linkObject:=GetType(MQXSlot), fromEntries:={ConstFNMQID, constFNIDNO}, ToEntries:={MQXSlot.ConstFNMQID, MQXSlot.ConstFNSlotID}, _
             cascadeOnCreate:=False, cascadeOndelete:=True, cascadeOnUpdate:=True)> Public Const ConstRSlots = "RELSLOTS"
 
-        <ormEntryMapping(relationname:=ConstRSlots)> Private WithEvents _slots As ormRelationNewableCollection(Of MQXSlot) = _
+        <ormObjectEntryMapping(relationname:=ConstRSlots)> Private WithEvents _slots As ormRelationNewableCollection(Of MQXSlot) = _
             New ormRelationNewableCollection(Of MQXSlot)(Me, keyentrynames:={MQXSlot.ConstFNSlotID})
 
         ''' <summary>
@@ -1321,11 +1321,11 @@ Namespace OnTrack.Xchange
         Function AddSlot(ByRef slot As MQXSlot) As Boolean
             If Not Me.IsAlive("AddSlot") Then Return False
             If slot.MessageQueueID <> Me.MessageQueueID Then
-                CoreMessageHandler(message:="slot has different messagequeue binding", arg1:=slot.MessageQueueID, subname:="MQMessage.AddSlot", messagetype:=otCoreMessageType.InternalError)
+                CoreMessageHandler(message:="slot has different messagequeue binding", argument:=slot.MessageQueueID, procedure:="MQMessage.AddSlot", messagetype:=otCoreMessageType.InternalError)
                 Return False
             End If
             If slot.MessageID <> Me.IDNO Then
-                CoreMessageHandler(message:="slot has different message binding", arg1:=slot.MessageID, subname:="MQMessage.AddSlot", messagetype:=otCoreMessageType.InternalError)
+                CoreMessageHandler(message:="slot has different message binding", argument:=slot.MessageID, procedure:="MQMessage.AddSlot", messagetype:=otCoreMessageType.InternalError)
                 Return False
             End If
             _slots.Add(slot)
@@ -1394,7 +1394,7 @@ Namespace OnTrack.Xchange
                 Case ConstMQFOpDelete
                     IsActionProcessable = True
 
-                Case ""
+                Case String.empty
                     '513;@;MQF;message operation is missing - message not processed;;99;Error;false;|R1|S1|;|XCHANGEENVELOPE|MQMESSAGE|
                     msglog.Add(513, Nothing, Nothing, Nothing, Nothing, Me)
                     IsActionProcessable = False
@@ -1433,7 +1433,7 @@ Namespace OnTrack.Xchange
                 Return True
             Else
                 CoreMessageHandler("a message with idno '" & Me.IDNO & "' is already processed and cannot be reseted", dataobject:=Me, _
-                                    subname:="MQMessage.clear", messagetype:=otCoreMessageType.ApplicationError)
+                                    procedure:="MQMessage.clear", messagetype:=otCoreMessageType.ApplicationError)
                 Return False
             End If
         End Function
@@ -1446,7 +1446,7 @@ Namespace OnTrack.Xchange
         ''' <remarks></remarks>
         Public Shared Function Create(ByVal id As String, ByVal no As Long, Optional runtimeOnly As Boolean? = Nothing) As MQMessage
             Dim pkarry() As Object = {id.ToUpper, no}
-            Return ormDataObject.CreateDataObject(Of MQMessage)(pkArray:=pkarry, runtimeOnly:=runtimeOnly)
+            Return ormBusinessObject.CreateDataObject(Of MQMessage)(pkArray:=pkarry, runtimeOnly:=runtimeOnly)
         End Function
 
         ''' <summary>
@@ -1458,7 +1458,7 @@ Namespace OnTrack.Xchange
         ''' <remarks></remarks>
         Public Shared Function Retrieve(ByVal id As String, ByVal no As Long) As MQMessage
             Dim pkarry() As Object = {id.ToUpper, no}
-            Return ormDataObject.Retrieve(Of MQMessage)(pkArray:=pkarry)
+            Return ormBusinessObject.RetrieveDataObject(Of MQMessage)(pkArray:=pkarry)
         End Function
 
         ''' <summary>
@@ -1472,13 +1472,13 @@ Namespace OnTrack.Xchange
             Dim result As Boolean
 
             If Not Me.IsAlive("Precheck") Then Return False
-            Dim aconfigname As String = ""
+            Dim aconfigname As String = String.empty
             If Me.MessageQueue IsNot Nothing AndAlso Me.MessageQueue.XChangeConfig IsNot Nothing Then
                 aconfigname = Me.MessageQueue.XChangeConfig.Configname
             End If
 
             '* set the domainid
-            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
+            If String.IsnullorEmpty(domainID) Then domainid = CurrentSession.CurrentDomainID
             If Me.DomainID <> domainid Then Me.DomainID = domainid
 
             '''
@@ -1637,7 +1637,7 @@ Namespace OnTrack.Xchange
                         End If
 
 
-                    Case ""
+                    Case String.empty
                         '''
                         ''' Operation missing
                         ''' 
@@ -1861,12 +1861,12 @@ Namespace OnTrack.Xchange
             Try
 
                 If Me.MessageQueue Is Nothing Then
-                    Call CoreMessageHandler(subname:="MQMessage.RunOpAddAfter", arg1:=Me.MessageQueueID, message:="queue couldn't be loaded", messagetype:=otCoreMessageType.ApplicationError)
+                    Call CoreMessageHandler(procedure:="MQMessage.RunOpAddAfter", argument:=Me.MessageQueueID, message:="queue couldn't be loaded", messagetype:=otCoreMessageType.ApplicationError)
                     Return False
                 Else
                     aConfig = Me.MessageQueue.XChangeConfig
                     If aConfig Is Nothing Then
-                        Call CoreMessageHandler(subname:="MQMessage.RunOpAddAfter", arg1:=Me.MessageQueue.XChangeConfigName, message:="XChangeConfig couldn't be loaded", _
+                        Call CoreMessageHandler(procedure:="MQMessage.RunOpAddAfter", argument:=Me.MessageQueue.XChangeConfigName, message:="XChangeConfig couldn't be loaded", _
                                                 messagetype:=otCoreMessageType.ApplicationError)
                         Return False
                     End If
@@ -1907,7 +1907,7 @@ Namespace OnTrack.Xchange
                 '''
                 ''' process the AddAfter
                 ''' 
-                anoldUID = CLng(Me.Xenvelope.GetSlotValueByObjectEntryName(entryname:=Deliverable.constFNUid, objectname:=Deliverable.ConstObjectID, asHostValue:=False))
+                anoldUID = CLng(Me.Xenvelope.GetSlotValueByObjectEntryName(entryname:=Deliverable.ConstFNDLVUID, objectname:=Deliverable.ConstObjectID, asHostValue:=False))
                 Dim aTypeid As String = Me.Xenvelope.GetSlotValueByObjectEntryName(entryname:=Deliverable.constFNDeliverableTypeID, objectname:=Deliverable.ConstObjectID, asHostValue:=False)
                 Dim aDeliverableType As DeliverableType = DeliverableType.Retrieve(typeid:=aTypeid)
                 If aDeliverableType Is Nothing Then
@@ -1953,9 +1953,9 @@ Namespace OnTrack.Xchange
                     End If
 
                     ''' extend the config
-                    aConfigEntry = Me.MessageQueue.XChangeConfig.GetEntryByObjectEntryName(entryname:=Deliverable.constFNUid)
+                    aConfigEntry = Me.MessageQueue.XChangeConfig.GetEntryByObjectEntryName(entryname:=Deliverable.ConstFNDLVUID)
                     If aConfigEntry Is Nothing Then
-                        aConfig.AddEntryByObjectEntry(entryname:=Deliverable.constFNUid, objectname:=Deliverable.ConstObjectID, _
+                        aConfig.AddEntryByObjectEntry(entryname:=Deliverable.ConstFNDLVUID, objectname:=Deliverable.ConstObjectID, _
                                                       isXChanged:=True, xcmd:=otXChangeCommandType.CreateUpdate)
                     End If
                     ''' add / substitute the new slot
@@ -2025,7 +2025,7 @@ Namespace OnTrack.Xchange
                 Return result
 
             Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="MQMessage.RunOpAddAfter")
+                CoreMessageHandler(exception:=ex, procedure:="MQMessage.RunOpAddAfter")
                 '589;@;MQF;processing of message from %Tupleidentifier% with operation %1% failed due to an internal error %2%  - please see session error log under in session %3% under id %4% for details ;;99;Error;false;|R1|R1|;|XCHANGEENVELOPE|MQMESSAGE|
                 msglog.Add(589, Nothing, Nothing, Nothing, Nothing, Me, _
                            ConstMQFOpAddAfter, ot.GetLastError.Message, ot.GetLastError.MessageLogTag, ot.GetLastError.ID)
@@ -2053,12 +2053,12 @@ Namespace OnTrack.Xchange
             Dim anExistingUID As Long?
 
             If Me.MessageQueue Is Nothing Then
-                Call CoreMessageHandler(subname:="MQMessage.RunOpAddRevision", arg1:=Me.MessageQueueID, message:="queue couldn't be loaded", messagetype:=otCoreMessageType.ApplicationError)
+                Call CoreMessageHandler(procedure:="MQMessage.RunOpAddRevision", argument:=Me.MessageQueueID, message:="queue couldn't be loaded", messagetype:=otCoreMessageType.ApplicationError)
                 Return False
             Else
                 aConfig = Me.MessageQueue.XChangeConfig
                 If aConfig Is Nothing Then
-                    Call CoreMessageHandler(subname:="MQMessage.RunOpAddRevision", arg1:=Me.MessageQueue.XChangeConfigName, message:="XChangeConfig couldn't be loaded", _
+                    Call CoreMessageHandler(procedure:="MQMessage.RunOpAddRevision", argument:=Me.MessageQueue.XChangeConfigName, message:="XChangeConfig couldn't be loaded", _
                                             messagetype:=otCoreMessageType.ApplicationError)
                     Return False
                 End If
@@ -2101,7 +2101,7 @@ Namespace OnTrack.Xchange
                 '''
                 ''' process the AddRevision - clone the existing
                 ''' 
-                anExistingUID = CLng(Me.Xenvelope.GetSlotValueByObjectEntryName(entryname:=Deliverable.constFNUid, objectname:=Deliverable.ConstObjectID, asHostValue:=False))
+                anExistingUID = CLng(Me.Xenvelope.GetSlotValueByObjectEntryName(entryname:=Deliverable.ConstFNDLVUID, objectname:=Deliverable.ConstObjectID, asHostValue:=False))
 
                 '' create the deliverable -> deliverable type should be in here
                 Dim anExistingDeliverable As Deliverable = Deliverables.Deliverable.Retrieve(uid:=anExistingUID)
@@ -2127,9 +2127,9 @@ Namespace OnTrack.Xchange
                     End If
 
                     ''' extend the config
-                    aConfigEntry = Me.MessageQueue.XChangeConfig.GetEntryByObjectEntryName(entryname:=Deliverable.constFNUid)
+                    aConfigEntry = Me.MessageQueue.XChangeConfig.GetEntryByObjectEntryName(entryname:=Deliverable.ConstFNDLVUID)
                     If aConfigEntry Is Nothing Then
-                        aConfig.AddEntryByObjectEntry(entryname:=Deliverable.constFNUid, objectname:=Deliverable.ConstObjectID, _
+                        aConfig.AddEntryByObjectEntry(entryname:=Deliverable.ConstFNDLVUID, objectname:=Deliverable.ConstObjectID, _
                                                       isXChanged:=True, xcmd:=otXChangeCommandType.CreateUpdate)
                     End If
                     ''' add / substitute the new slot
@@ -2203,7 +2203,7 @@ Namespace OnTrack.Xchange
                 Return result
 
             Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="MQMessage.RunOPAddRevision")
+                CoreMessageHandler(exception:=ex, procedure:="MQMessage.RunOPAddRevision")
                 '589;@;MQF;processing of message from %Tupleidentifier% with operation %1% failed due to an internal error %2%  - please see session error log under in session %3% under id %4% for details ;;99;Error;false;|R1|R1|;|XCHANGEENVELOPE|MQMESSAGE|
                 msglog.Add(589, Nothing, Nothing, Nothing, Nothing, Me, _
                            ConstMQFOpAddRevision, ot.GetLastError.Message, ot.GetLastError.MessageLogTag, ot.GetLastError.ID)
@@ -2229,12 +2229,12 @@ Namespace OnTrack.Xchange
             Dim aXchangeObject As IXChangeConfigEntry
 
             If Me.MessageQueue Is Nothing Then
-                Call CoreMessageHandler(subname:="MQMessage.runXChange", arg1:=Me.MessageQueueID, message:="queue couldn't be loaded", messagetype:=otCoreMessageType.ApplicationError)
+                Call CoreMessageHandler(procedure:="MQMessage.runXChange", argument:=Me.MessageQueueID, message:="queue couldn't be loaded", messagetype:=otCoreMessageType.ApplicationError)
                 Return False
             Else
                 aConfig = Me.MessageQueue.XChangeConfig
                 If aConfig Is Nothing Then
-                    Call CoreMessageHandler(subname:="MQMessage.runXChange", arg1:=Me.MessageQueue.XChangeConfigName, message:="XChangeConfig couldn't be loaded", _
+                    Call CoreMessageHandler(procedure:="MQMessage.runXChange", argument:=Me.MessageQueue.XChangeConfigName, message:="XChangeConfig couldn't be loaded", _
                                             messagetype:=otCoreMessageType.ApplicationError)
                     Return False
                 End If
@@ -2369,8 +2369,8 @@ Namespace OnTrack.Xchange
       Description:="xchange slot object of a message in the message queue to hold the xchange entry", _
       title:="Message", usecache:=True)> _
     Public Class MQXSlot
-        Inherits ormDataObject
-        Implements iormPersistable
+        Inherits ormBusinessObject
+        Implements iormRelationalPersistable
         Implements iormLoggable
 
         Public Const ConstObjectID = "MQXSlot"
@@ -2378,21 +2378,21 @@ Namespace OnTrack.Xchange
         ''' Table
         ''' </summary>
         ''' <remarks></remarks>
-        <ormSchemaTable(adddeletefieldbehavior:=True, version:=2)> Public Const ConstTableID = "TBLMQSLOTS"
+        <ormTableAttribute(adddeletefieldbehavior:=True, version:=2)> Public Const ConstPrimaryTableID = "TBLMQSLOTS"
 
         ''' <summary>
         ''' Primary keys
         ''' </summary>
         ''' <remarks></remarks>
-        <ormObjectEntry(referenceObjectEntry:=MQMessage.ConstObjectID & "." & MQMessage.ConstFNMQID, primarykeyordinal:=1)> Public Const ConstFNMQID = "MQID"
-        <ormObjectEntry(referenceObjectEntry:=MQMessage.ConstObjectID & "." & MQMessage.constFNIDNO, primarykeyordinal:=2)> Public Const ConstFNIDNO = "MSGIDNO"
+        <ormObjectEntry(referenceObjectEntry:=MQMessage.ConstObjectID & "." & MQMessage.ConstFNMQID, PrimaryEntryOrdinal:=1)> Public Const ConstFNMQID = "MQID"
+        <ormObjectEntry(referenceObjectEntry:=MQMessage.ConstObjectID & "." & MQMessage.constFNIDNO, PrimaryEntryOrdinal:=2)> Public Const ConstFNIDNO = "MSGIDNO"
 
-        <ormSchemaForeignKey(entrynames:={ConstFNMQID, ConstFNIDNO}, _
+        <ormForeignKey(entrynames:={ConstFNMQID, ConstFNIDNO}, _
            foreignkeyreferences:={MQMessage.ConstObjectID & "." & MQMessage.ConstFNMQID, MQMessage.ConstObjectID & "." & MQMessage.constFNIDNO}, _
            useforeignkey:=otForeignKeyImplementation.NativeDatabase)> Public Const ConstFKMEssage = "FKMessage"
 
         <ormObjectEntry(referenceObjectEntry:=XChange.XChangeObjectEntry.ConstObjectID & "." & XChange.XChangeObjectEntry.constFNordinal, _
-            dbdefaultvalue:="0", defaultvalue:=0, isnullable:=False, primarykeyordinal:=3, _
+            dbdefaultvalue:="0", defaultvalue:=0, isnullable:=False, PrimaryEntryOrdinal:=3, _
            Title:="Identity Number", description:="reference ID (Ordinal No in the XChangeConfiguration)")> _
         Public Const ConstFNSlotID = "SLOTID"
 
@@ -2438,23 +2438,23 @@ Namespace OnTrack.Xchange
         ''' Mapping
         ''' </summary>
         ''' <remarks></remarks>
-        <ormEntryMapping(entryname:=ConstFNMQID)> Private _mqid As String = ""
-        <ormEntryMapping(entryname:=ConstFNIDNO)> Private _messageidno As Long
-        <ormEntryMapping(entryname:=ConstFNSlotID)> Private _slotid As String = ""
+        <ormObjectEntryMapping(entryname:=ConstFNMQID)> Private _mqid As String = String.empty
+        <ormObjectEntryMapping(entryname:=ConstFNIDNO)> Private _messageidno As Long
+        <ormObjectEntryMapping(entryname:=ConstFNSlotID)> Private _slotid As String = String.empty
 
-        <ormEntryMapping(entryname:=ConstFNDatatype)> Private _datatype As otDataType?
-        <ormEntryMapping(entryname:=ConstFNvalue)> Private _valuestring As String
-        <ormEntryMapping(entryname:=ConstFNIsNull)> Private _isnull As Boolean
-        <ormEntryMapping(entryname:=ConstFNIsEmpty)> Private _isempty As Boolean
+        <ormObjectEntryMapping(entryname:=ConstFNDatatype)> Private _datatype As otDataType?
+        <ormObjectEntryMapping(entryname:=ConstFNvalue)> Private _valuestring As String
+        <ormObjectEntryMapping(entryname:=ConstFNIsNull)> Private _isnull As Boolean
+        <ormObjectEntryMapping(entryname:=ConstFNIsEmpty)> Private _isempty As Boolean
 
-        <ormEntryMapping(entryname:=ConstFNProcStatus)> Private _procStatus As String
-        <ormEntryMapping(entryname:=ConstFNProcStamp)> Private _ProcTimestamp As Date?
-        <ormEntryMapping(entryname:=ConstFNProcessed)> Private _IsProcessed As Boolean
-        <ormEntryMapping(entryname:=ConstFNProcessable)> Private _IsProcessable As Boolean
+        <ormObjectEntryMapping(entryname:=ConstFNProcStatus)> Private _procStatus As String
+        <ormObjectEntryMapping(entryname:=ConstFNProcStamp)> Private _ProcTimestamp As Date?
+        <ormObjectEntryMapping(entryname:=ConstFNProcessed)> Private _IsProcessed As Boolean
+        <ormObjectEntryMapping(entryname:=ConstFNProcessable)> Private _IsProcessable As Boolean
 
-        <ormEntryMapping(entryname:=ConstFNContextID)> Private _ContextIdentifier As String
-        <ormEntryMapping(entryname:=ConstFNTupleID)> Private _TupleIdentifier As String
-        <ormEntryMapping(entryname:=ConstFNEntityID)> Private _EntitityIdentifier As String
+        <ormObjectEntryMapping(entryname:=ConstFNContextID)> Private _ContextIdentifier As String
+        <ormObjectEntryMapping(entryname:=ConstFNTupleID)> Private _TupleIdentifier As String
+        <ormObjectEntryMapping(entryname:=ConstFNEntityID)> Private _EntitityIdentifier As String
 
         '** dynmaic
         Private _message As MQMessage 'backlink
@@ -2769,7 +2769,7 @@ Namespace OnTrack.Xchange
                     End If
                 End If
             Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="MQXSlot_OnDefaultValuesNeeded")
+                CoreMessageHandler(exception:=ex, procedure:="MQXSlot_OnDefaultValuesNeeded")
             End Try
 
         End Sub
@@ -2819,8 +2819,8 @@ Namespace OnTrack.Xchange
                         Case otDataType.Text, otDataType.Memo
                             Me.ValueString = Me.Value.ToString
                         Case Else
-                            CoreMessageHandler(message:="datatype is not implemented", subname:="MQXSlot.OnFeeding", _
-                                               arg1:=Me.Datatype, messagetype:=otCoreMessageType.InternalError)
+                            CoreMessageHandler(message:="datatype is not implemented", procedure:="MQXSlot.OnFeeding", _
+                                               argument:=Me.Datatype, messagetype:=otCoreMessageType.InternalError)
                     End Select
 
                 Else
@@ -2829,7 +2829,7 @@ Namespace OnTrack.Xchange
 
 
             Catch ex As Exception
-                Call CoreMessageHandler(subname:="MQXslot.OnFeeding", exception:=ex)
+                Call CoreMessageHandler(procedure:="MQXslot.OnFeeding", exception:=ex)
             End Try
         End Sub
 
@@ -2852,9 +2852,9 @@ Namespace OnTrack.Xchange
                     Case otDataType.Text, otDataType.Memo
                         If aVAlue IsNot Nothing Then _data = CStr(aVAlue)
                     Case otDataType.Runtime, otDataType.Formula, otDataType.Binary
-                        _data = ""
-                        Call CoreMessageHandler(subname:="MQXSlot.oninfused", messagetype:=otCoreMessageType.ApplicationError, _
-                                              message:="runtime, formular, binary can't infuse", arg1:=aVAlue)
+                        _data = String.empty
+                        Call CoreMessageHandler(procedure:="MQXSlot.oninfused", messagetype:=otCoreMessageType.ApplicationError, _
+                                              message:="runtime, formular, binary can't infuse", argument:=aVAlue)
                     Case otDataType.[Date], otDataType.Timestamp
                         If Microsoft.VisualBasic.IsDate(aVAlue) Then
                             _data = CDate(aVAlue)
@@ -2866,13 +2866,13 @@ Namespace OnTrack.Xchange
                         If aVAlue IsNot Nothing Then _data = CBool(aVAlue)
 
                     Case Else
-                        Call CoreMessageHandler(subname:="MQXSlot.oninfused", _
-                                              message:="unknown datatype to be infused", arg1:=aVAlue)
+                        Call CoreMessageHandler(procedure:="MQXSlot.oninfused", _
+                                              message:="unknown datatype to be infused", argument:=aVAlue)
                 End Select
 
 
             Catch ex As Exception
-                Call CoreMessageHandler(exception:=ex, subname:="MQXSlot.oninfused")
+                Call CoreMessageHandler(exception:=ex, procedure:="MQXSlot.oninfused")
             End Try
 
 
@@ -2887,7 +2887,7 @@ Namespace OnTrack.Xchange
         ''' <remarks></remarks>
         Public Shared Function Create(ByVal mqid As String, ByVal messageidno As Long, ByVal slotid As Ordinal) As MQXSlot
             Dim pkarry() As Object = {mqid.ToUpper, messageidno, slotid.Value.ToString}
-            Return ormDataObject.CreateDataObject(Of MQXSlot)(pkArray:=pkarry, checkUnique:=True)
+            Return ormBusinessObject.CreateDataObject(Of MQXSlot)(pkArray:=pkarry, checkUnique:=True)
         End Function
         ''' <summary>
         ''' create a persistable object
@@ -2900,7 +2900,7 @@ Namespace OnTrack.Xchange
         Public Shared Function Retrieve(ByVal mqid As String, ByVal messageidno As Long, ByVal slotid As Ordinal) As MQXSlot
             Dim pkarry() As Object = {mqid.ToUpper, messageidno, slotid.Value.ToString}
 
-            Return ormDataObject.Retrieve(Of MQXSlot)(pkArray:=pkarry)
+            Return ormBusinessObject.RetrieveDataObject(Of MQXSlot)(pkArray:=pkarry)
         End Function
     End Class
 End Namespace

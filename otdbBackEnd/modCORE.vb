@@ -34,13 +34,20 @@ Namespace OnTrack
 
     Public Module ot
 
+
         ''' <summary>
-        ''' Version with Changelog
+        ''' Major Version of the 
         ''' </summary>
         ''' <remarks></remarks>
-        <ormChangeLogEntry(Application:=ConstApplicationBackend, Module:=ConstModuleCommons, Version:=1, Release:=0, patch:=3, changeimplno:=1, _
+        ''' 
+        <ormChangeLogEntry(Application:=ConstAssemblyName, Module:=ConstModuleCommons, Version:=1, Release:=0, patch:=3, changeimplno:=1, _
             description:="Introducing ChangeLogEntries as Business Objects")> _
-        Public Const ConstVersionCoreBackend As String = "1.0.3"
+        Public Const ConstMajorVersion As UInt16 = 2
+        ''' <summary>
+        ''' minor Version
+        ''' </summary>
+        ''' <remarks></remarks>
+        Public Const ConstMinorVersion As UInt16 = 0
 
         ' max size
         Public Const ConstDBDriverMaxTextSize = 255
@@ -123,6 +130,8 @@ Namespace OnTrack
         Public Const ConstPNBootStrapSchemaChecksum = "bootstrapschemaversion"
         Public Const ConstPNBSchemaVersion_TableHeader = "schemaversion_"
         Public Const ConstPNBSchemaVersion = "dbschemaversion"
+        Public Const ConstPNBSchemaInstallationDate = "dbschemainstalledon"
+        Public Const ConstPNBackendVersion = "dbschemainstalledbyOTDBBackend"
         Public Const ConstPNCalendarInitializedFrom = "calendarinitializedfrom"
         Public Const ConstPNCalendarInitializedto = "calendarinitializedto"
 
@@ -132,9 +141,9 @@ Namespace OnTrack
         ''' </summary>
         ''' <remarks></remarks>
         ''' 
-        <ormChangeLogEntry(application:=ConstApplicationBackend, module:=ConstPNBSchemaVersion, version:=12, release:=0, patch:=0, changeimplno:=1, _
+        <ormChangeLogEntry(application:=ConstAssemblyName, module:=ConstPNBSchemaVersion, version:=12, release:=0, patch:=0, changeimplno:=1, _
             description:="Introduced the db installation concept for using multiple installations in one ")> _
-        <ormChangeLogEntry(application:=ConstApplicationBackend, module:=ConstPNBSchemaVersion, version:=11, release:=0, patch:=0, changeimplno:=1, _
+        <ormChangeLogEntry(application:=ConstAssemblyName, module:=ConstPNBSchemaVersion, version:=11, release:=0, patch:=0, changeimplno:=1, _
             description:="ChangeLog Entry added")> _
         Public Const ConstOTDBSchemaVersion = 12
 
@@ -166,6 +175,8 @@ Namespace OnTrack
         Public Const constCPNDefaultDomainid = "otdb_parameter_default_domainid"
         Public Const ConstCPNSetupID = "otdb_parameter_setupid" ' Installation prefix to use 
         Public Const ConstCPNSetupDescription = "otdb_parameter_setup_description"
+        Public Const ConstCPNOfficeApplication = "otdb_parameter_office_application"
+        Public Const ConstCPNOfficeApplicationVersion = "otdb_parameter_office_application_version"
         ''' <summary>
         ''' config Property value
         ''' </summary>
@@ -189,16 +200,39 @@ Namespace OnTrack
         Public Const ConstDefaultSetupID = ""
 
         ''' <summary>
+        ''' Default Primary Key name
+        ''' </summary>
+        ''' <remarks></remarks>
+        Public Const ConstDefaultPrimaryKeyname As String = "PrimaryKey"
+        ''' <summary>
         ''' Default CalendarName
         ''' </summary>
         ''' <remarks></remarks>
         Public Const ConstDefaultCalendarName = "default"
-
+        ''' <summary>
+        ''' Default PrimaryDatabaseDriver
+        ''' </summary>
+        ''' <remarks></remarks>
+        Public Const ConstDefaultPrimaryDBDriver = "PrimaryDBDriver"
+        ''' <summary>
+        ''' Default PrimaryDatabaseDriver
+        ''' </summary>
+        ''' <remarks></remarks>
+        Public Const ConstDefaultContainerType = "TABLE"
+        ''' <summary>
+        ''' Default DeliverableType
+        ''' </summary>
+        ''' <remarks></remarks>
+        Public Const ConstDefaultDeliverableType = "default"
         ''' <summary>
         ''' Installation Paths for Data
         ''' </summary>
         ''' <remarks></remarks>
         Public Const ConstInitialDataFolder = "InitialData"
+        ''' <summary>
+        ''' Default Installation Data Path
+        ''' </summary>
+        ''' <remarks></remarks>
         Public Const ConstInitialDataDefaultFolder = "InitialData\Default"
 
         '** MQF operation codes
@@ -216,7 +250,7 @@ Namespace OnTrack
         ''' Application names
         ''' </summary>
         ''' <remarks></remarks>
-        Public Const ConstApplicationBackend = "otBackend"
+        Friend Const ConstAssemblyName = "otBackend"
 
         ''' <summary>
         ''' Name of the different OnTrack Modules
@@ -235,8 +269,8 @@ Namespace OnTrack
         Public Const ConstModuleDependency = "Dependencies"
         Public Const ConstModuleTracking = "Tracking"
         Public Const ConstModuleXChange = "XChange"
+        Public Const ConstModuleUIElements = "UIElements"
 
-       
         Public NullArray As Object = {}
 
 
@@ -245,7 +279,7 @@ Namespace OnTrack
         ''' </summary>
         ''' <remarks></remarks>
         Private _ApplicationName As String = String.Empty
-        Private _Version As String
+        Private _Version As Version
 
         Private WithEvents _CurrentSession As Session
         Private _configfilelocations As List(Of String) = New List(Of String)
@@ -282,37 +316,29 @@ Namespace OnTrack
             End Get
         End Property
         ''' <summary>
-        ''' Gets or sets the version.
+        ''' Gets or sets the top application version version.
         ''' </summary>
         ''' <value>The version.</value>
-        Public Property AssemblyVersion() As String
+        Public Property ApplicationVersion() As Version
             Get
-                If String.IsNullOrWhiteSpace(_Version) Then Return System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString()
+                If _Version Is Nothing Then
+                    Return System.Reflection.Assembly.GetExecutingAssembly().GetName().Version
+                End If
                 Return _Version
             End Get
-            Set(value As String)
+            Set(value As Version)
                 _Version = value
             End Set
         End Property
 
         ''' <summary>
-        ''' Gets or sets the name of the application.
+        ''' Gets or sets the name of the top application.
         ''' </summary>
         ''' <value>The name of the application.</value>
         Public Property ApplicationName() As String
             Get
                 If String.IsNullOrWhiteSpace(_ApplicationName) Then
-                    ' Get all Title attributes on this assembly
-                    Dim attributes As Object() = System.Reflection.Assembly.GetExecutingAssembly().GetCustomAttributes(GetType(AssemblyTitleAttribute), False)
-                    ' If there is at least one Title attribute
-                    If attributes.Length > 0 Then
-                        ' Select the first one
-                        Dim titleAttribute As AssemblyTitleAttribute = CType(attributes(0), AssemblyTitleAttribute)
-                        ' If it is not an empty string, return it
-                        If titleAttribute.Title <> "" Then
-                            Return titleAttribute.Title
-                        End If
-                    End If
+                    Return System.Reflection.Assembly.GetExecutingAssembly().GetName().Name
                 End If
 
                 Return _ApplicationName
@@ -322,6 +348,26 @@ Namespace OnTrack
             End Set
         End Property
         ''' <summary>
+        ''' Gets or sets the version.
+        ''' </summary>
+        ''' <value>The version.</value>
+        Public ReadOnly Property AssemblyVersion() As Version
+            Get
+                Dim aVersion As Version = System.Reflection.Assembly.GetAssembly(GetType(OnTrack.Session)).GetName().Version
+                Return New Version(ot.ConstMajorVersion, ot.ConstMinorVersion, aVersion.Build)
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the name of the assembly.
+        ''' </summary>
+        ''' <value>The name of the application.</value>
+        Public ReadOnly Property AssemblyName() As String
+            Get
+                Return ot.ConstAssemblyName
+            End Get
+        End Property
+        ''' <summary>
         ''' returns the name of the standard Config set to be used - might be nothing if not set
         ''' </summary>
         ''' <value></value>
@@ -329,7 +375,7 @@ Namespace OnTrack
         ''' <remarks></remarks>
         Public Property CurrentConfigSetName As String
             Get
-                If _configurations Is Nothing OrElse _configurations.CurrentSet = "" Then
+                If _configurations Is Nothing OrElse _configurations.CurrentSet = String.empty Then
                     Return GetConfigProperty(ConstCPNUseConfigSetName, configsetname:=ConstGlobalConfigSetName)
                 Else
                     Return _configurations.CurrentSet
@@ -384,9 +430,7 @@ Namespace OnTrack
             Get
                 '* Init -> during bootstrapping startup it might be that _CurrentSession is set
                 If _CurrentSession Is Nothing AndAlso Not IsInitialized Then
-                    If Not Initialize() Then
-                        Return Nothing
-                    End If
+                    If Not Initialize() Then Return Nothing
                 End If
 
                 Return _CurrentSession
@@ -405,10 +449,10 @@ Namespace OnTrack
             End Get
         End Property
         ''' <summary>
-        ''' Gets the primary DB env.
+        ''' Gets the primary database driver
         ''' </summary>
         ''' <value>The primary DB env.</value>
-        Public ReadOnly Property CurrentDBDriver() As iormDatabaseDriver
+        Public ReadOnly Property CurrentDBDriver() As iormPrimaryDriver
             Get
                 If IsInitialized OrElse Initialize() Then
                     Return CurrentSession.CurrentDBDriver
@@ -438,7 +482,7 @@ Namespace OnTrack
             Get
 
                 If CurrentConnection(autoConnect:=False) Is Nothing Then
-                    Return ""
+                    Return String.empty
                 Else
                     Return CurrentConnection(autoConnect:=False).Connectionstring
                 End If
@@ -481,22 +525,24 @@ Namespace OnTrack
         ''' </summary>
         ''' <value>The O TDB connection.</value>
         ReadOnly Property CurrentConnection(Optional autoConnect As Boolean = True, _
-        Optional accessRequest As otAccessRight = ConstDefaultAccessRight, _
-        Optional username As String = "", _
-        Optional password As String = "") As OnTrack.Database.iormConnection
+                                            Optional accessRequest As otAccessRight = ConstDefaultAccessRight, _
+                                            Optional username As String = Nothing, _
+                                            Optional password As String = Nothing, _
+                                            Optional silent As Boolean = False) As OnTrack.Database.iormConnection
             Get
                 '* Init
-                If Not IsInitialized Then
-                    If Not Initialize() Then
-                        Return Nothing
-                    End If
-                End If
+                If Not IsInitialized AndAlso Not Initialize() Then Return Nothing
 
                 ' ** select the Connection
-                If Not CurrentSession.CurrentDBDriver Is Nothing AndAlso Not CurrentSession.CurrentDBDriver.CurrentConnection Is Nothing Then
+                If CurrentSession IsNot Nothing AndAlso CurrentSession.CurrentDBDriver IsNot Nothing _
+                    AndAlso CurrentSession.CurrentDBDriver.CurrentConnection IsNot Nothing Then
                     Return CurrentSession.CurrentDBDriver.CurrentConnection
                 Else
-                    Call CoreMessageHandler(showmsgbox:=True, subname:="CurrentConnection", noOtdbAvailable:=True, message:="Connection is not set before Connect")
+                    If Not silent Then
+                        Call CoreMessageHandler(showmsgbox:=True, procedure:="CurrentConnection", _
+                                                noOtdbAvailable:=True, _
+                                                message:="Connection is not set before Connect")
+                    End If
                     Return Nothing
                 End If
 
@@ -523,7 +569,7 @@ Namespace OnTrack
         ''' <remarks></remarks>
         ReadOnly Property IsConnected As Boolean
             Get
-                If CurrentConnection(autoConnect:=False) Is Nothing Then
+                If CurrentConnection(autoConnect:=False, silent:=True) Is Nothing Then
                     Return False
                 Else
                     Return CurrentConnection(autoConnect:=False).IsConnected
@@ -551,7 +597,7 @@ Namespace OnTrack
         ReadOnly Property Username As String
             Get
                 If Not CurrentSession.IsRunning Then
-                    Return ""
+                    Return String.empty
                 Else
                     Return CurrentSession.OTdbUser.Username
                 End If
@@ -611,7 +657,7 @@ Namespace OnTrack
         '****
         '**** addConfigFilePath add a file path to the locations to look into
         Public Sub AddConfigFilePath(path As String)
-            If path <> "" AndAlso Not _configfilelocations.Contains(path) Then _configfilelocations.Add(path)
+            If path <> String.empty AndAlso Not _configfilelocations.Contains(path) Then _configfilelocations.Add(path)
         End Sub
         ''' <summary>
         ''' reads the config parameters from the configfile
@@ -620,7 +666,7 @@ Namespace OnTrack
         ''' <param name="configFileName">name of the config file to read</param>
         ''' <returns>true if successfull</returns>
         ''' <remarks></remarks>
-        Private Function ReadConfigFile(Optional ByVal configFilePath As String = "", Optional ByVal configFileName As String = "") As Boolean
+        Private Function ReadConfigFile(Optional ByVal configFilePath As String = Nothing, Optional ByVal configFileName As String = Nothing) As Boolean
             Dim readData As String
             Dim found As Boolean
             Dim reader As StreamReader
@@ -635,68 +681,54 @@ Namespace OnTrack
             Dim weight As UShort = 15
 
             '** get the config file name
-            If configFileName = "" Then
+            If String.IsNullOrWhiteSpace(configFileName) Then
                 If HasConfigProperty(ConstCPNConfigFileName) Then
                     configFileName = GetConfigProperty(ConstCPNConfigFileName)
                 End If
-                If configFileName = "" Then
+                If String.IsNullOrWhiteSpace(configFileName) Then
                     configFileName = My.Settings.DefaultConfigFileName
                 End If
-                If configFileName = "" Then
-                    Call CoreMessageHandler(subname:="modCore.GetConfigFromFile", _
+                If String.IsNullOrWhiteSpace(configFileName) Then
+                    Call CoreMessageHandler(procedure:="modCore.GetConfigFromFile", _
                                             message:="no config file defined", messagetype:=otCoreMessageType.ApplicationError)
                     Return False
                 End If
             End If
 
             '*
-
             found = False
-            ' check the configfilepath first
-            If configFilePath <> "" Then
-                If Mid(configFilePath, Len(configFilePath), 1) <> "\" Then configFilePath = configFilePath & "\"
+            Dim locations = ConfigFileLocations
+            If Not String.IsNullOrWhiteSpace(configFilePath) AndAlso Not locations.Contains(configFilePath) Then locations.Add(configFilePath)
 
-                If File.Exists(configFilePath & configFileName) Then
-                    found = True
-                End If
-            End If
-            '** still not found
-            If Not found Then
-                ' than the other paths
-                For i = ConfigFileLocations.Count - 1 To 0 Step -1
-                    Dim path = ConfigFileLocations.ElementAt(i)
-                    If path <> "" Then
-                        If Mid(path, Len(path), 1) <> "\" Then path = path & "\"
-                        If File.Exists(path & configFileName) Then
-                            configFilePath = path
-                            found = True
-                            Exit For
-                        End If
+            ' than the other paths
+            For i = locations.Count - 1 To 0 Step -1
+                Dim path = locations.ElementAt(i)
+                If Not String.IsNullOrWhiteSpace(path) Then
+                    If Mid(path, Len(path), 1) <> "\" Then path = path & "\"
+                    If File.Exists(path & configFileName) Then
+                        configFilePath = path
+                        found = True
+                        Exit For
                     End If
-                Next
-            End If
-            '** still nothing
-            If Not found Then
-                Return False
-            End If
+                End If
+            Next
+            'nothing
+            If Not found Then Return False
 
-            '* if not containskey ?!
-            'FileOpen(1, ConfigFilePath & ConfigFileName, OpenMode.Input, OpenAccess.Read, OpenShare.Shared)
-
+            'open path
             reader = New StreamReader(configFilePath & configFileName)
-
             _UsedConfigFileLocation = configFilePath ' remember
 
             Try
 
                 Do
                     readData = reader.ReadLine
-                    valueString = ""
+                    valueString = String.Empty
                     valueObject = Nothing
 
                     '** comment
                     If Regex.IsMatch(readData, "^\s*[;|\*|//|/*|-]") Then
-                        identifier = ""
+                        identifier = String.Empty
                         '*** Configuration Name Section
                     ElseIf Regex.IsMatch(readData, "\[\s*(?<name>\w.*\w)\s*\]") Then
                         Dim match As Match = Regex.Match(readData, "\[\s*(?<name>\w.*\w)\s*\]")
@@ -712,20 +744,20 @@ Namespace OnTrack
                                     sequence = ComplexPropertyStore.Sequence.Secondary
                                 Case Else
                                     sequence = ComplexPropertyStore.Sequence.Primary
-                                    CoreMessageHandler(message:="driver sequence not recognized - primary assumed", arg1:=driver, subname:="ReadConfigFile", messagetype:=otCoreMessageType.InternalError)
+                                    CoreMessageHandler(message:="driver sequence not recognized - primary assumed", argument:=driver, procedure:="ReadConfigFile", messagetype:=otCoreMessageType.InternalError)
                             End Select
 
                         Else
                             configsetname = valueString
                             sequence = ComplexPropertyStore.Sequence.Primary
                         End If
-                        identifier = ""
+                        identifier = String.Empty
                         '* parameter
                     ElseIf Regex.IsMatch(readData, "^\s*(?<name>.+)\s*[\=]\s*(?<value>.*)") Then
                         Dim match As Match = Regex.Match(readData, "^\s*(?<name>.+)\s*[\=]\s*(?<value>.*)")
                         identifier = Trim(match.Groups("name").Value)
                         valueString = Trim(match.Groups("value").Value)
-                        parameterName = ""
+                        parameterName = String.Empty
                         '** select
                         Select Case identifier.ToLower
                             Case "setupid", ConstCPNSetupID
@@ -818,8 +850,8 @@ Namespace OnTrack
                             Case String.Empty
                                 parameterName = String.Empty
                             Case Else
-                                CoreMessageHandler(message:="the config file parameter was not recognized", arg1:=identifier, messagetype:=otCoreMessageType.ApplicationError, _
-                                                   subname:="ot.GetConfigFromFile")
+                                CoreMessageHandler(message:="the config file parameter was not recognized", argument:=identifier, messagetype:=otCoreMessageType.ApplicationError, _
+                                                   procedure:="ot.GetConfigFromFile")
                                 parameterName = String.Empty
                         End Select
 
@@ -844,14 +876,14 @@ Namespace OnTrack
                 Loop Until reader.Peek = -1
 
                 Call CoreMessageHandler(message:=" config file '" & configFilePath & configFileName & "' read from file system", _
-                                        subname:="modOTDB.getConfigFromFile", messagetype:=otCoreMessageType.InternalInfo)
+                                        procedure:="modCore.getConfigFromFile", messagetype:=otCoreMessageType.InternalInfo)
 
                 Return True
 
 
             Catch ex As Exception
                 reader.Close()
-                Call CoreMessageHandler(subname:="modCore.GetConfigFromFile", message:="couldnot read config file ", arg1:=configFileName, _
+                Call CoreMessageHandler(procedure:="modCore.GetConfigFromFile", message:="couldnot read config file ", argument:=configFileName, _
                                         exception:=ex, messagetype:=otCoreMessageType.ApplicationError)
                 Return False
             End Try
@@ -888,7 +920,7 @@ Namespace OnTrack
         ''' <remarks></remarks>
         Public Function SetConfigProperty(ByVal name As String, ByVal value As Object, _
                                             Optional ByVal weight As UShort = 0,
-                                            Optional configsetname As String = "", _
+                                            Optional configsetname As String = Nothing, _
                                             Optional sequence As ComplexPropertyStore.Sequence = ComplexPropertyStore.Sequence.Primary) As Boolean
             Return _configurations.SetProperty(name:=name, value:=value, weight:=weight, setname:=configsetname, sequence:=sequence)
         End Function
@@ -899,7 +931,7 @@ Namespace OnTrack
         ''' <returns>object of the property</returns>
         ''' <remarks></remarks>
         Public Function GetConfigProperty(ByVal name As String, Optional weight As UShort = 0, _
-        Optional configsetname As String = "", _
+        Optional configsetname As String = Nothing, _
         Optional sequence As ComplexPropertyStore.Sequence = ComplexPropertyStore.Sequence.Primary) As Object
             Return _configurations.GetProperty(name:=name, weight:=weight, setname:=configsetname, sequence:=sequence)
         End Function
@@ -937,13 +969,14 @@ Namespace OnTrack
             If _configPropertiesRead And Not force Then
                 Return True
             End If
+
             '** default config set 
             SetConfigProperty(ConstCPNUseConfigSetName, weight:=10, value:=ConstGlobalConfigSetName)
 
             '** get the driver
             If Not My.Settings.Properties.Item(ConstCPNDriverName) Is Nothing Then
                 value = My.Settings.Properties.Item(ConstCPNDriverName).DefaultValue
-                If value <> "" Then
+                If value <> String.empty Then
                     SetConfigProperty(ConstCPNDriverName, weight:=10, value:=value, configsetname:=ConstGlobalConfigSetName)
                 End If
             End If
@@ -953,6 +986,17 @@ Namespace OnTrack
             uri = New System.Uri(System.Reflection.Assembly.GetExecutingAssembly().CodeBase)
             AddConfigFilePath(System.IO.Path.GetDirectoryName(uri.LocalPath))
             AddConfigFilePath(System.IO.Path.GetDirectoryName(uri.LocalPath) & "\Resources")
+
+            ''' HACK:
+            If uri.LocalPath.Contains("VisualStudio") Then
+                '** add path
+                AddConfigFilePath("C:\vol\projekte\OnTrack\OnTrack4XLS Workspace\OnTrack4XLS\OnTrack4XLS\Resources")
+                '** take SqlLocal Entry
+                SetConfigProperty(ConstCPNUseConfigSetName, weight:=90, value:="SqlLocal", _
+                                  configsetname:=ConstGlobalConfigSetName)
+
+            End If
+
 
             value = My.Settings.Default.DefaultConfigFileName
             If String.IsNullOrWhiteSpace(value) Then
@@ -994,17 +1038,7 @@ Namespace OnTrack
                 Return _ObjectClassStore.GetObjectClassDescriptionsByTable(tablename:=tableid)
             End If
         End Function
-        ''' <summary>
-        ''' Retrieves the schema table attribute by name
-        ''' </summary>
-        ''' <param name="tableid"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Function GetTableAttribute(tableid As String) As ormSchemaTableAttribute
-            If IsInitialized OrElse Initialize() Then
-                Return _ObjectClassStore.GetTableAttribute(tablename:=tableid)
-            End If
-        End Function
+
         ''' <summary>
         ''' Retrieves the ObjectClasses as system.type referenced by a tableid
         ''' </summary>
@@ -1023,9 +1057,37 @@ Namespace OnTrack
         ''' <param name="tablename"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetSchemaTableAttribute(tablename As String) As ormSchemaTableAttribute
+        Public Function GetContainerAttribute(containerid As String) As iormContainerAttribute
             If IsInitialized OrElse Initialize() Then
-                Return _ObjectClassStore.GetTableAttribute(tablename:=tablename.ToUpper)
+                Return TryCast(_ObjectClassStore.GetContainerAttribute(containerID:=containerid.ToUpper), ormTableAttribute)
+            Else
+                Return Nothing
+            End If
+        End Function
+        ''' <summary>
+        ''' returns a SchemaTableAttriute for tablename from the core repisotory
+        ''' </summary>
+        ''' <param name="columnname"></param>
+        ''' <param name="tablename"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function GetSchemaTableAttribute(tablename As String) As ormTableAttribute
+            If IsInitialized OrElse Initialize() Then
+                Return TryCast(_ObjectClassStore.GetContainerAttribute(containerID:=tablename.ToUpper), ormTableAttribute)
+            Else
+                Return Nothing
+            End If
+        End Function
+        ''' <summary>
+        ''' returns a list of all TableAttriutes 
+        ''' </summary>
+        ''' <param name="columnname"></param>
+        ''' <param name="tablename"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function GetTableAttributes() As List(Of ormTableAttribute)
+            If IsInitialized OrElse Initialize() Then
+                Return _ObjectClassStore.GetTableAttributes
             Else
                 Return Nothing
             End If
@@ -1095,8 +1157,8 @@ Namespace OnTrack
                 If _ObjectClassStore.GetModulenames.Contains(modulename.ToUpper) Then
                     Return _ObjectClassStore.GetObjectClassDescriptions(modulename)
                 Else
-                    CoreMessageHandler(message:="Module name does not exist in Object Class Repository", arg1:=modulename.ToUpper, _
-                                        subname:="ot.GetObjectClassDescriptionsForModule", messagetype:=otCoreMessageType.InternalError)
+                    CoreMessageHandler(message:="Module name does not exist in Object Class Repository", argument:=modulename.ToUpper, _
+                                        procedure:="ot.GetObjectClassDescriptionsForModule", messagetype:=otCoreMessageType.InternalError)
                     Return New List(Of ObjectClassDescription)
                 End If
 
@@ -1109,9 +1171,9 @@ Namespace OnTrack
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Function GetBootStrapTableNames() As List(Of String)
+        Function GetBootStrapContainerIDs() As List(Of String)
             If IsInitialized OrElse Initialize() Then
-                Return _ObjectClassStore.GetBootStrapTableNames
+                Return _ObjectClassStore.GetBootStrapContainerIDs
             Else
                 Return Nothing
             End If
@@ -1153,7 +1215,7 @@ Namespace OnTrack
         ''' <param name="objectname"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function CreateDataObjectInstance(type As Type) As iormPersistable
+        Public Function CreateDataObjectInstance(type As Type) As iormRelationalPersistable
             Return _ObjectClassStore.CreateInstance(type:=type)
         End Function
         ''' <summary>
@@ -1207,9 +1269,9 @@ Namespace OnTrack
         ''' <param name="tablename"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetSchemaTableColumnAttribute(columnname As String, tablename As String) As ormObjectEntryAttribute
+        Public Function GetSchemaTableColumnAttribute(columnname As String, tableid As String) As ormContainerEntryAttribute
             If IsInitialized OrElse Initialize() Then
-                Return _ObjectClassStore.GetSchemaColumnAttribute(columnname:=columnname.ToUpper, tablename:=tablename.ToUpper)
+                Return _ObjectClassStore.GetSchemaColumnAttribute(columnname:=columnname.ToUpper, tableid:=tableid.ToUpper)
             End If
         End Function
         ''' <summary>
@@ -1262,7 +1324,7 @@ Namespace OnTrack
                     If _ObjectClassStore.Initialize(force:=True) Then
                         Call CoreMessageHandler(showmsgbox:=False, message:=_ObjectClassStore.Count & " object class descriptions collected and setup", _
                                              noOtdbAvailable:=True, messagetype:=otCoreMessageType.InternalInfo, _
-                                            subname:="Initialize")
+                                            procedure:="Initialize")
                     End If
 
                     '***** Request a Session -> now we have a session log
@@ -1273,10 +1335,10 @@ Namespace OnTrack
                     Dim strHostName As String
                     Dim strIPAddress As String
                     strHostName = ipproperties.HostName
-                    If ipproperties.DomainName <> "" Then strHostName &= "." & ipproperties.DomainName
+                    If ipproperties.DomainName <> String.empty Then strHostName &= "." & ipproperties.DomainName
                     strIPAddress = System.Net.Dns.GetHostByName(strHostName).AddressList(0).ToString()
 
-                    Dim message As String = My.Application.Info.AssemblyName & " based on schema version " & ot.SchemaVersion & " started in version " & ot.AssemblyVersion.ToString _
+                    Dim message As String = ot.AssemblyName & " based on schema version " & ot.SchemaVersion & " started in version " & ot.AssemblyVersion.ToString _
                     & " loaded from " & My.Application.Info.DirectoryPath & " on system " & My.Computer.Name
                     If My.Computer.Network.IsAvailable Then
                         message &= String.Format(" ({0}, {1}) ", strHostName, strIPAddress)
@@ -1290,7 +1352,7 @@ Namespace OnTrack
                     '** message
                     Call CoreMessageHandler(showmsgbox:=False, message:=message, _
                                             noOtdbAvailable:=True, messagetype:=otCoreMessageType.InternalInfo, _
-                                            subname:="Initialize")
+                                            procedure:="Initialize")
 
                     ''' set intiialized
                     IsInitialized = True
@@ -1300,7 +1362,7 @@ Namespace OnTrack
                     If _changelog.Refresh(type:=GetType(ormChangeLogEntry)) Then
                         Call CoreMessageHandler(showmsgbox:=False, message:=_ObjectClassStore.Count & " object class descriptions collected and setup", _
                                             noOtdbAvailable:=True, messagetype:=otCoreMessageType.InternalInfo, _
-                                           subname:="Initialize")
+                                           procedure:="Initialize")
                     End If
                 End If
 
@@ -1308,7 +1370,7 @@ Namespace OnTrack
 
             Catch ex As Exception
 
-                Call CoreMessageHandler(subname:="modOTDB.Initialize", exception:=ex)
+                Call CoreMessageHandler(procedure:="modCore.Initialize", exception:=ex)
                 IsInitialized = False
                 Return False
             End Try
@@ -1316,9 +1378,7 @@ Namespace OnTrack
 
         End Function
 
-        '**********
-        '********** getDBParameter: get a Parameter from the OTDB
-        '**********
+
         ''' <summary>
         ''' retrieve a DB Parameter from Ontrack from the central core module
         ''' </summary>
@@ -1333,7 +1393,7 @@ Namespace OnTrack
             '*** initialized ?!
             If Not IsInitialized AndAlso Not Initialize() Then
                 Call CoreMessageHandler(noOtdbAvailable:=False, message:="Initialize of database envirorment failed", _
-                                        subname:="GetDBParameter", messagetype:=otCoreMessageType.InternalError)
+                                        procedure:="GetDBParameter", messagetype:=otCoreMessageType.InternalError)
                 Return Nothing
             End If
 
@@ -1343,9 +1403,6 @@ Namespace OnTrack
 
         End Function
 
-        '**********
-        '********** setDBParameter: set a Parameter to the OTDB
-        '**********
         ''' <summary>
         ''' sets a DB Parameter (in the DB) from the central core module
         ''' </summary>
@@ -1361,7 +1418,7 @@ Namespace OnTrack
             '*** initialized ?!
             If Not IsInitialized AndAlso Not Initialize() Then
                 Call CoreMessageHandler(noOtdbAvailable:=False, message:="Initialize of database envirorment failed", _
-                                        subname:="SetDBParameter", messagetype:=otCoreMessageType.InternalError)
+                                        procedure:="SetDBParameter", messagetype:=otCoreMessageType.InternalError)
                 Return Nothing
             End If
 
@@ -1379,12 +1436,12 @@ Namespace OnTrack
         ''' <param name="force"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Function GetTableStore(tableid As String, Optional ByVal force As Boolean = False) As iormDataStore
+        Function GetTableStore(tableid As String, Optional ByVal force As Boolean = False) As iormRelationalTableStore
 
             '*** initialized ?!
             If Not IsInitialized AndAlso Not Initialize() Then
                 Call CoreMessageHandler(noOtdbAvailable:=False, message:="Initialize of database envirorment failed", _
-                                            messagetype:=otCoreMessageType.InternalError, subname:="GetTableStore")
+                                            messagetype:=otCoreMessageType.InternalError, procedure:="GetTableStore")
                 Return Nothing
             End If
 
@@ -1394,7 +1451,7 @@ Namespace OnTrack
                 Return CurrentSession.CurrentDBDriver.GetTableStore(tableID:=tableid, force:=force)
             Else
                 Call CoreMessageHandler(noOtdbAvailable:=False, message:="Primary connection failed to be connected", _
-                                        messagetype:=otCoreMessageType.InternalError, subname:="GetTableStore")
+                                        messagetype:=otCoreMessageType.InternalError, procedure:="GetTableStore")
                 Return Nothing
             End If
         End Function
@@ -1419,7 +1476,7 @@ Namespace OnTrack
         ''' <remarks></remarks>
         Public Function Startup(accessRequest As otAccessRight, _
                                             Optional domainID As String = Nothing, _
-                                            Optional messagetext As String = "") As Boolean
+                                            Optional messagetext As String = Nothing) As Boolean
 
             '*** startup
             If Not CurrentSession.IsRunning AndAlso Not CurrentSession.IsStartingUp Then
@@ -1492,7 +1549,7 @@ Namespace OnTrack
                 Case otDataType.Timestamp
                     Return constNullDate
                 Case Else
-                    CoreMessageHandler(message:="datatype must be implemented", messagetype:=otCoreMessageType.InternalError, subname:="DefaultValue")
+                    CoreMessageHandler(message:="datatype must be implemented", messagetype:=otCoreMessageType.InternalError, procedure:="DefaultValue")
                     Return Nothing
             End Select
 
@@ -1525,7 +1582,7 @@ Namespace OnTrack
                 Case otDataType.Timestamp
                     Return GetType(DateTime)
                 Case Else
-                    CoreMessageHandler(message:="Mapping for datatype must be implemented", arg1:=datatype, subname:="DataTypeMapping", messagetype:=otCoreMessageType.InternalError)
+                    CoreMessageHandler(message:="Mapping for datatype must be implemented", argument:=datatype, procedure:="DataTypeMapping", messagetype:=otCoreMessageType.InternalError)
                     Throw New NotImplementedException("mapping in DatatypeMapping is not implemented")
             End Select
         End Function
@@ -1544,28 +1601,28 @@ Namespace OnTrack
         ''' <param name="messagetype"></param>
         ''' <param name="MSGLOG"></param>
         ''' <remarks></remarks>
-        Public Sub CoreMessageHandler(Optional ByVal message As String = "", _
+        Public Sub CoreMessageHandler(Optional ByVal message As String = Nothing, _
                                         Optional ByVal exception As Exception = Nothing, _
-                                        Optional ByVal arg1 As Object = Nothing, _
-                                        Optional ByVal subname As String = "", _
-                                        Optional ByVal tablename As String = "", _
-                                        Optional ByVal columnname As String = "", _
-                                        Optional ByVal objectname As String = "", _
-                                        Optional ByVal entryname As String = "", _
+                                        Optional ByVal argument As Object = Nothing, _
+                                        Optional ByVal procedure As String = Nothing, _
+                                        Optional ByVal containerID As String = Nothing, _
+                                        Optional ByVal containerEntryName As String = Nothing, _
+                                        Optional ByVal objectname As String = Nothing, _
+                                        Optional ByVal entryname As String = Nothing, _
                                         Optional ByVal showmsgbox As Boolean = False, _
                                         Optional ByVal break As Boolean = False, _
                                         Optional ByVal noOtdbAvailable As Boolean = False, _
                                         Optional ByVal messagetype As otCoreMessageType = otCoreMessageType.ApplicationError, _
                                         Optional ByRef msglog As ObjectMessageLog = Nothing, _
-                                        Optional ByVal username As String = "", _
+                                        Optional ByVal username As String = Nothing, _
                                         Optional ByVal tagvalues As Object = Nothing, _
-                                        Optional ByVal domainid As String = "", _
-                                        Optional ByVal dataobject As iormPersistable = Nothing)
+                                        Optional ByVal domainid As String = Nothing, _
+                                        Optional ByVal dataobject As iormRelationalPersistable = Nothing)
             '<CallerMemberName> Optional memberName As String = Nothing, _
             '   <CallerFilePath> Optional sourcefilePath As String = Nothing, _
             '  <CallerLineNumber()> Optional sourceLineNumber As Integer = 0)
-            Dim exmessagetext As String = ""
-            Dim routinestack As String = ""
+            Dim exmessagetext As String = String.Empty
+            Dim routinestack As String = String.Empty
             Dim aNewError As New SessionMessage
             Dim tagvaluestring As String
             Try
@@ -1610,9 +1667,9 @@ Namespace OnTrack
                 '***
                 If dataobject IsNot Nothing Then
                     If String.IsNullOrWhiteSpace(objectname) Then objectname = dataobject.ObjectID
-                    If String.IsNullOrWhiteSpace(tablename) Then tablename = dataobject.primaryTableID
+                    If String.IsNullOrWhiteSpace(containerID) Then containerID = dataobject.ObjectPrimaryTableID
                     If tagvalues Is Nothing Then tagvalues = dataobject.ObjectPrimaryKeyValues
-                    If String.IsNullOrWhiteSpace(domainid) AndAlso dataobject.ObjectHasDomainBehavior Then domainid = dataobject.DomainID
+                    If String.IsnullorEmpty(domainID) AndAlso dataobject.ObjectHasDomainBehavior Then domainid = dataobject.DomainID
                 End If
 
                 '**** add to the Connection.errorlog
@@ -1621,16 +1678,16 @@ Namespace OnTrack
                     .Message = message & vbLf
                     .Message &= exmessagetext
                     If msglog IsNot Nothing Then .Message &= vbLf & msglog.MessageText
-                    .Subname = subname
+                    .Subname = procedure
                     .Exception = exception
                     .messagetype = messagetype
                     .StackTrace = routinestack
 
                     '.Arguments = arg1
-                    If arg1 IsNot Nothing And Not IsArray(arg1) Then
-                        .Arguments = arg1.ToString
+                    If argument IsNot Nothing And Not IsArray(argument) Then
+                        .Arguments = argument.ToString
                     Else
-                        .Arguments = ""
+                        .Arguments = String.Empty
                     End If
 
 
@@ -1648,10 +1705,10 @@ Namespace OnTrack
                     .Objectname = objectname
                     .ObjectEntry = entryname
                     .Objecttag = tagvaluestring
-                    .Tablename = tablename
-                    .Columnname = columnname
+                    .Tablename = containerID
+                    .Columnname = containerEntryName
                     .Timestamp = Date.Now
-                    If Not String.IsNullOrWhiteSpace(domainid) Then
+                    If Not String.IsnullorEmpty(domainID) Then
                         .Domainid = domainid
                     ElseIf _CurrentSession IsNot Nothing AndAlso Not String.IsNullOrWhiteSpace(_CurrentSession.CurrentDomainID) Then
                         .Domainid = _CurrentSession.CurrentDomainID
@@ -1694,15 +1751,15 @@ Namespace OnTrack
 
                 System.Diagnostics.Debug.WriteLine("> OnTrack Session Message:" & message)
                 If msglog IsNot Nothing Then System.Diagnostics.Debug.WriteLine(">> Object Message Log :" & msglog.MessageText)
-                If arg1 IsNot Nothing Then System.Diagnostics.Debug.WriteLine("> Arguments:" & arg1.ToString)
-                If tagvaluestring IsNot Nothing Then System.Diagnostics.Debug.WriteLine("> Object Tag:" & tagvaluestring)
-                If tablename IsNot Nothing AndAlso tablename <> "" Then System.Diagnostics.Debug.WriteLine("> Tablename: " & tablename)
-                If columnname IsNot Nothing AndAlso columnname <> "" Then System.Diagnostics.Debug.WriteLine("> Columnname: " & columnname)
-                If objectname IsNot Nothing AndAlso objectname <> "" Then System.Diagnostics.Debug.WriteLine("> Objectname: " & objectname)
-                If entryname IsNot Nothing AndAlso entryname <> "" Then System.Diagnostics.Debug.WriteLine("> Entry: " & entryname)
-                If subname IsNot Nothing AndAlso subname <> "" Then System.Diagnostics.Debug.WriteLine("> Routine:" & CStr(subname))
-                If exmessagetext <> "" Then System.Diagnostics.Debug.WriteLine("> Exception Message:" & exmessagetext)
-                If routinestack <> "" Then System.Diagnostics.Debug.WriteLine("> Stack:" & routinestack)
+                If Not String.IsNullOrWhiteSpace(argument) Then System.Diagnostics.Debug.WriteLine("> Arguments:" & argument.ToString)
+                If Not String.IsNullOrWhiteSpace(tagvaluestring) Then System.Diagnostics.Debug.WriteLine("> Object Tag:" & tagvaluestring)
+                If Not String.IsNullOrWhiteSpace(containerID) Then System.Diagnostics.Debug.WriteLine("> Tablename: " & containerID)
+                If Not String.IsNullOrWhiteSpace(containerEntryName) Then System.Diagnostics.Debug.WriteLine("> Columnname: " & containerEntryName)
+                If Not String.IsNullOrWhiteSpace(objectname) Then System.Diagnostics.Debug.WriteLine("> Objectname: " & objectname)
+                If Not String.IsNullOrWhiteSpace(entryname) Then System.Diagnostics.Debug.WriteLine("> Entry: " & entryname)
+                If Not String.IsNullOrWhiteSpace(procedure) Then System.Diagnostics.Debug.WriteLine("> Routine:" & CStr(procedure))
+                If Not String.IsNullOrWhiteSpace(exmessagetext) Then System.Diagnostics.Debug.WriteLine("> Exception Message:" & exmessagetext)
+                If Not String.IsNullOrWhiteSpace(routinestack) Then System.Diagnostics.Debug.WriteLine("> Stack:" & routinestack)
 
 
                 '''
@@ -1737,15 +1794,15 @@ Namespace OnTrack
                                 .Title = "INTERNAL WARNING"
                                 .type = CoreMessageBox.MessageType.Warning
                         End Select
-                        .Title &= " from " & subname
+                        .Title &= " from " & procedure
                         '* Message
                         .Message = "Message: " & message
-                        If arg1 IsNot Nothing Then .Message &= vbLf & "Argument:" & arg1
-                        If objectname IsNot Nothing AndAlso objectname <> "" Then .Message &= vbLf & "Object: " & objectname
-                        If entryname IsNot Nothing AndAlso entryname <> "" Then .Message &= vbLf & "Entry: " & entryname
-                        If tablename IsNot Nothing AndAlso tablename <> "" Then .Message &= vbLf & "Table: " & tablename
-                        If columnname IsNot Nothing AndAlso columnname <> "" Then .Message &= vbLf & "Column: " & columnname
-                        If subname IsNot Nothing AndAlso subname <> "" Then .Message &= vbLf & "Routine: " & CStr(subname)
+                        If Not String.IsNullOrWhiteSpace(argument) Then .Message &= vbLf & "Argument:" & argument
+                        If Not String.IsNullOrWhiteSpace(objectname) Then .Message &= vbLf & "Object: " & objectname
+                        If Not String.IsNullOrWhiteSpace(entryname) Then .Message &= vbLf & "Entry: " & entryname
+                        If Not String.IsNullOrWhiteSpace(containerID) Then .Message &= vbLf & "Table: " & containerID
+                        If Not String.IsNullOrWhiteSpace(containerEntryName) Then .Message &= vbLf & "Column: " & containerEntryName
+                        If Not String.IsNullOrWhiteSpace(procedure) Then .Message &= vbLf & "Routine: " & CStr(procedure)
                         .Message &= vbLf & exmessagetext
 
 

@@ -214,7 +214,7 @@ Namespace OnTrack.IFM
             '                    Else
             '                        flag = False
             '                    End If
-            '                ElseIf Not IsEmpty(Value) And Not Value = "" Then
+            '                ElseIf Not IsEmpty(Value) And Not Value = String.empty Then
             '                    flag = True
             '                End If
 
@@ -716,7 +716,7 @@ error_handler:
             '                    If Value = True Then
             '                        flag = CBool(aRecord.GetValue(fieldname))
             '                    End If
-            '                ElseIf Not IsEmpty(Value) And Not Value = "" Then
+            '                ElseIf Not IsEmpty(Value) And Not Value = String.empty Then
             '                    flag = True
             '                End If
 
@@ -738,7 +738,7 @@ error_handler:
 
         '**** Inject : load the object by the PrimaryKeys
         '****
-        Public Function Inject(icdid As String, Optional icdrev As String = "") As Boolean
+        Public Function Inject(icdid As String, Optional icdrev As String = String.empty) As Boolean
             Dim aTable As iormDataStore
             Dim pkarry() As Object
             Dim aRecord As ormRecord

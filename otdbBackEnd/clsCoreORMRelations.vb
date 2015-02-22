@@ -1,7 +1,4 @@
 ﻿REM ***********************************************************************************************************************************************''' <summary>
-
-  
-  
 REM *********** ON TRACK DATABASE BACKEND LIBRARY
 REM ***********
 REM *********** relational helper classes
@@ -29,70 +26,9 @@ Namespace OnTrack.Database
     ''' 
     ''' </summary>
     ''' <remarks></remarks>
-    Partial Public MustInherit Class ormDataObject
+    Partial Public MustInherit Class ormBusinessObject
 
-        ''' <summary>
-        ''' Returns the Status of the Relation
-        ''' </summary>
-        ''' <param name="relationname"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Protected Function GetRelationStatus(relationname As String) As DataObjectRelationMgr.RelationStatus
-            Return _relationMgr.Status(relationname)
-        End Function
-        ''' <summary>
-        ''' infuse the relation mapped Members of a dataobject for a certain mode and fire the events
-        ''' </summary>
-        ''' <param name="dataobject"></param>
-        ''' <param name="classdescriptor"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Private Function InfuseRelationMapped(mode As otInfuseMode, Optional relationid As String = "", Optional force As Boolean = False) As Boolean
-
-            Dim anInfusedRelationList As List(Of String)
-
-            '* Fire Event OnRelationLoading
-            Dim ourEventArgs As New ormDataObjectEventArgs(Me, Nothing, relationID:={relationid}.ToList, infuseMode:=mode, runtimeOnly:=Me.RunTimeOnly)
-            ourEventArgs.Proceed = True
-            ourEventArgs.Result = True
-            RaiseEvent ClassOnCascadingRelation(Me, ourEventArgs)
-            If Not ourEventArgs.Proceed Then Return ourEventArgs.Result
-
-            Try
-
-                '*** Raise Event
-                Me.RaiseOnRelationLoading(Me, ourEventArgs)
-                If Not ourEventArgs.Proceed Then Return ourEventArgs.Result
-
-                ''' we have a relation
-                If relationid <> "" Then
-                    anInfusedRelationList = New List(Of String)
-                    anInfusedRelationList.Add(relationid)
-                End If
-                '''
-                ''' call the relation manager to retrieve and infuse the relations - fille the infused relation list
-                ''' 
-                _relationMgr.LoadNInfuseRelations(mode:=mode, relationnames:=anInfusedRelationList, force:=force)
-
-
-                '* Fire Event OnRelationLoading
-                ourEventArgs = New ormDataObjectEventArgs(Me, Nothing, , relationID:=anInfusedRelationList, infuseMode:=mode, runtimeOnly:=Me.RunTimeOnly)
-                '*** Raise Event
-                Me.RaiseOnRelationLoaded(Me, ourEventArgs)
-                If Not ourEventArgs.Proceed Then Return False
-
-                '* Fire Event OnRelationLoading
-                RaiseEvent ClassOnCascadedRelation(Me, ourEventArgs)
-                Return ourEventArgs.Proceed
-
-            Catch ex As Exception
-                Call CoreMessageHandler(subname:="ormDataObject.InfuseRelationMapped", exception:=ex, objectname:=Me.ObjectID, _
-                                        tablename:=Me.PrimaryTableID)
-                Return False
-
-            End Try
-
-        End Function
+       
         ''' <summary>
         ''' cascade the update of relational data
         ''' </summary>
@@ -102,7 +38,7 @@ Namespace OnTrack.Database
         ''' <remarks></remarks>
         'Private Shared Function CascadeRelation(ByRef dataobject As iormPersistable, ByRef classdescriptor As ObjectClassDescription, _
         '                                              cascadeUpdate As Boolean, cascadeDelete As Boolean, _
-        '                                              Optional relationid As String = "", _
+        '                                              Optional relationid As String = String.empty, _
         '                                              Optional timestamp As DateTime = constNullDate, _
         '                                              Optional uniquenesswaschecked As Boolean = True) As Boolean
 
@@ -124,7 +60,7 @@ Namespace OnTrack.Database
         '            For Each aRelationAttribute In classdescriptor.RelationAttributes
 
         '                '** run through specific relation condition 
-        '                If (relationid = "" OrElse relationid.ToLower = aRelationAttribute.Name.ToLower) And _
+        '                If (relationid = String.empty OrElse relationid.ToLower = aRelationAttribute.Name.ToLower) And _
         '                    ((cascadeUpdate AndAlso cascadeUpdate = aRelationAttribute.CascadeOnUpdate) OrElse _
         '                     (cascadeDelete AndAlso cascadeDelete = aRelationAttribute.CascadeOnDelete)) Then
         '                    '* get the list
@@ -230,7 +166,7 @@ Namespace OnTrack.Database
         '                                                    subname:="ormDataObject.CascadeRelation", messagetype:=otCoreMessageType.InternalError)
         '                            End If
 
-                                    
+
         '                        End If
 
         '                    Next
@@ -255,48 +191,14 @@ Namespace OnTrack.Database
 
         'End Function
 
-        ''' <summary>
-        ''' cascade the update of relational data
-        ''' </summary>
-        ''' <param name="dataobject"></param>
-        ''' <param name="classdescriptor"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Private Function CascadeRelations(Optional cascadeUpdate As Boolean = False, _
-                                          Optional cascadeDelete As Boolean = False, _
-                                          Optional ByRef relationnames As List(Of String) = Nothing, _
-                                          Optional timestamp As DateTime = constNullDate, _
-                                          Optional uniquenesswaschecked As Boolean = True) As Boolean
-
-            If timestamp = constNullDate Then timestamp = DateTime.Now
-
-            '* Fire Event OnRelationLoading
-            Dim ourEventArgs As New ormDataObjectEventArgs(Me, Nothing, relationID:=relationnames, timestamp:=timestamp)
-            RaiseEvent ClassOnCascadingRelation(Me, ourEventArgs)
-            If Not ourEventArgs.Proceed Then Return ourEventArgs.Proceed
-
-            ''' cascade it to the relation manager
-            If _relationMgr.CascadeRelations(cascadeUpdate:=cascadeUpdate, cascadeDelete:=cascadeDelete, _
-                                           relationnames:=relationnames, timestamp:=timestamp, uniquenesswaschecked:=uniquenesswaschecked) Then
-
-
-
-                '* Fire Event OnRelationLoaded
-                ourEventArgs = New ormDataObjectEventArgs(Me, Nothing, , relationID:=relationnames)
-                RaiseEvent ClassOnCascadedRelation(Me, ourEventArgs)
-                Return ourEventArgs.Proceed
-            Else
-                Return False
-            End If
-
-        End Function
+        
     End Class
 
     ''' <summary>
     ''' Class to administrate the lifecycle status of a relation in the data object
     ''' </summary>
     ''' <remarks></remarks>
-    Public Class DataObjectRelationMgr
+    Public Class ormRelationManager
         Implements IEnumerable(Of ormRelationAttribute)
 
 
@@ -307,12 +209,12 @@ Namespace OnTrack.Database
         Public Class EventArgs
             Inherits System.EventArgs
 
-            Private _objects As New List(Of iormPersistable)
+            Private _objects As New List(Of iormRelationalPersistable)
             Private _finished As Boolean = False
             Private _relationid As String
             Private _relationattribute As ormRelationAttribute
             Private _fieldinfo As FieldInfo
-            Private _dataobject As ormDataObject
+            Private _dataobject As ormBusinessObject
             Private _infusemode As otInfuseMode
             Private _objectmessagelog As ObjectMessageLog
 
@@ -324,10 +226,10 @@ Namespace OnTrack.Database
             ''' <remarks></remarks>
 
             Public Sub New(relationid As String, _
-                           Optional ByRef objects As List(Of iormPersistable) = Nothing, _
+                           Optional ByRef objects As List(Of iormRelationalPersistable) = Nothing, _
                            Optional ByRef relationAttribute As ormRelationAttribute = Nothing, _
                            Optional ByRef fieldinfo As FieldInfo = Nothing, _
-                           Optional ByRef dataobject As ormDataObject = Nothing, _
+                           Optional ByRef dataobject As ormBusinessObject = Nothing, _
                            Optional infusemode As otInfuseMode = 0)
                 _relationid = relationid
                 If objects IsNot Nothing Then _objects.AddRange(objects)
@@ -344,7 +246,7 @@ Namespace OnTrack.Database
 
 #Region "Properties"
 
-           
+
             ''' <summary>
             ''' Gets or sets the mode.
             ''' </summary>
@@ -362,11 +264,11 @@ Namespace OnTrack.Database
             ''' Gets or sets the dataobject.
             ''' </summary>
             ''' <value>The dataobject.</value>
-            Public Property Dataobject() As ormDataObject
+            Public Property Dataobject() As ormBusinessObject
                 Get
                     Return Me._dataobject
                 End Get
-                Set(value As ormDataObject)
+                Set(value As ormBusinessObject)
                     Me._dataobject = value
                 End Set
             End Property
@@ -409,13 +311,13 @@ Namespace OnTrack.Database
             ''' Gets the objects.
             ''' </summary>
             ''' <value>The objects.</value>
-            Public ReadOnly Property Objects() As List(Of iormPersistable)
+            Public ReadOnly Property Objects() As List(Of iormRelationalPersistable)
                 Get
                     Return Me._objects
                 End Get
             End Property
 #End Region
-            
+
 
         End Class
         ''' <summary>
@@ -427,20 +329,20 @@ Namespace OnTrack.Database
             Loaded = 1
         End Enum
 
-        Private WithEvents _dataobject As ormDataObject 'link to the data object
+        Private WithEvents _dataobject As ormBusinessObject 'link to the data object
         Private _relationStatus As RelationStatus() 'status of the relation in order of ObjectClassDescription.RelationAttributes
         Private _isInitialized As Boolean = False
         Private _objectmessagelog As ObjectMessageLog
 
-        Public Event OnRelatedObjectsRetrieveRequest(sender As Object, e As DataObjectRelationMgr.EventArgs)
-        Public Event OnRelatedObjectsCreateRequest(sender As Object, e As DataObjectRelationMgr.EventArgs)
+        Public Event OnRelatedObjectsRetrieveRequest(sender As Object, e As ormRelationManager.EventArgs)
+        Public Event OnRelatedObjectsCreateRequest(sender As Object, e As ormRelationManager.EventArgs)
 
         ''' <summary>
         ''' constructor
         ''' </summary>
         ''' <param name="objectid"></param>
         ''' <remarks></remarks>
-        Public Sub New(dataobject As ormDataObject)
+        Public Sub New(dataobject As ormRelationalInfusable)
             _dataobject = dataobject
 
         End Sub
@@ -455,7 +357,7 @@ Namespace OnTrack.Database
         Public Sub DataObjectRelationMGr_OnRuntimeSwitchOff(sender As Object, e As ormDataObjectEventArgs) Handles _dataobject.OnSwitchRuntimeOff
 
             For Each aRelationName In Me.Relationnames
-                Dim aFieldList As List(Of FieldInfo) = _dataobject.ObjectClassDescription.GetMappedRelationFieldInfos(relationName:=aRelationName)
+                Dim aFieldList As List(Of FieldInfo) = _dataobject.ObjectClassDescription.GetMappedRelation2FieldInfos(relationName:=aRelationName)
 
                 For Each aFieldInfo In aFieldList
                     Dim aMappingAttribute = _dataobject.ObjectClassDescription.GetEntryMappingAttributes(aFieldInfo.Name)
@@ -492,7 +394,7 @@ Namespace OnTrack.Database
                 _isInitialized = True
                 Return _isInitialized
             Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="DataObjectRelationMgr.Initialize", objectname:=_dataobject.ObjectID, messagetype:=otCoreMessageType.InternalError)
+                CoreMessageHandler(exception:=ex, procedure:="DataObjectRelationMgr.Initialize", objectname:=_dataobject.ObjectID, messagetype:=otCoreMessageType.InternalError)
                 Return False
             End Try
 
@@ -535,14 +437,14 @@ Namespace OnTrack.Database
             Get
                 If Not _isInitialized AndAlso Not Initialize() Then
                     CoreMessageHandler(message:="could not initialize DataObjectRelationMgr", objectname:=_dataobject.ObjectID, _
-                                       subname:="DataObjectRelationMgr.Get_Status", messagetype:=otCoreMessageType.InternalError)
+                                       procedure:="DataObjectRelationMgr.Get_Status", messagetype:=otCoreMessageType.InternalError)
                     Return 0
                 End If
 
                 Try
                     If i > _relationStatus.GetUpperBound(0) OrElse i < 0 Then
                         CoreMessageHandler(message:="relation found in relation names of class description out of bound of initialized relation set ?!", _
-                                         arg1:=i, subname:="DataObjectRelationMgr.Get_Status", objectname:=_dataobject.ObjectID, _
+                                         argument:=i, procedure:="DataObjectRelationMgr.Get_Status", objectname:=_dataobject.ObjectID, _
                                          messagetype:=otCoreMessageType.InternalError)
                         Return 0
                     End If
@@ -550,20 +452,20 @@ Namespace OnTrack.Database
                     '''
                     Return _relationStatus(i)
                 Catch ex As Exception
-                    CoreMessageHandler(exception:=ex, subname:="DataObjectRelationMgr.Get_Status", objectname:=_dataobject.ObjectID, messagetype:=otCoreMessageType.InternalError)
+                    CoreMessageHandler(exception:=ex, procedure:="DataObjectRelationMgr.Get_Status", objectname:=_dataobject.ObjectID, messagetype:=otCoreMessageType.InternalError)
                     Return 0
                 End Try
             End Get
             Private Set(value As RelationStatus)
                 If Not _isInitialized AndAlso Not Initialize() Then
                     CoreMessageHandler(message:="could not initialize DataObjectRelationMgr", objectname:=_dataobject.ObjectID, _
-                                       subname:="DataObjectRelationMgr.Set_Status", messagetype:=otCoreMessageType.InternalError)
+                                       procedure:="DataObjectRelationMgr.Set_Status", messagetype:=otCoreMessageType.InternalError)
                 End If
 
                 Try
                     If i > _relationStatus.GetUpperBound(0) Then
                         CoreMessageHandler(message:="relation found in relation names of class description out of bound of initialized relation set ?!", _
-                                         arg1:=i, subname:="DataObjectRelationMgr.Set_Status", objectname:=_dataobject.ObjectID, _
+                                         argument:=i, procedure:="DataObjectRelationMgr.Set_Status", objectname:=_dataobject.ObjectID, _
                                          messagetype:=otCoreMessageType.InternalError)
 
                     End If
@@ -571,7 +473,7 @@ Namespace OnTrack.Database
                     '''
                     _relationStatus(i) = value
                 Catch ex As Exception
-                    CoreMessageHandler(exception:=ex, subname:="DataObjectRelationMgr.Set_Status", objectname:=_dataobject.ObjectID, messagetype:=otCoreMessageType.InternalError)
+                    CoreMessageHandler(exception:=ex, procedure:="DataObjectRelationMgr.Set_Status", objectname:=_dataobject.ObjectID, messagetype:=otCoreMessageType.InternalError)
                 End Try
             End Set
         End Property
@@ -586,7 +488,7 @@ Namespace OnTrack.Database
             Get
                 If Not _isInitialized AndAlso Not Initialize() Then
                     CoreMessageHandler(message:="could not initialize DataObjectRelationMgr", objectname:=_dataobject.ObjectID, _
-                                       subname:="DataObjectRelationMgr.Get_Status", messagetype:=otCoreMessageType.InternalError)
+                                       procedure:="DataObjectRelationMgr.Get_Status", messagetype:=otCoreMessageType.InternalError)
                     Return 0
                 End If
 
@@ -594,7 +496,7 @@ Namespace OnTrack.Database
                     Dim i = _dataobject.ObjectClassDescription.RelationNames.IndexOf(relationname.ToUpper)
                     If i < 0 Then
                         CoreMessageHandler(message:="relation not found in relation names of class description", _
-                                           arg1:=relationname, subname:="DataObjectRelationMgr.Get_Status", objectname:=_dataobject.ObjectID, _
+                                           argument:=relationname, procedure:="DataObjectRelationMgr.Get_Status", objectname:=_dataobject.ObjectID, _
                                            messagetype:=otCoreMessageType.InternalError)
                         Return 0
                     End If
@@ -602,28 +504,28 @@ Namespace OnTrack.Database
                     '''
                     Return Status(Convert.ToUInt16(i))
                 Catch ex As Exception
-                    CoreMessageHandler(exception:=ex, subname:="DataObjectRelationMgr.Get_Status", objectname:=_dataobject.ObjectID, messagetype:=otCoreMessageType.InternalError)
+                    CoreMessageHandler(exception:=ex, procedure:="DataObjectRelationMgr.Get_Status", objectname:=_dataobject.ObjectID, messagetype:=otCoreMessageType.InternalError)
                     Return 0
                 End Try
             End Get
             Private Set(value As RelationStatus)
                 If Not _isInitialized AndAlso Not Initialize() Then
                     CoreMessageHandler(message:="could not initialize DataObjectRelationMgr", objectname:=_dataobject.ObjectID, _
-                                       subname:="DataObjectRelationMgr.Set_Status", messagetype:=otCoreMessageType.InternalError)
+                                       procedure:="DataObjectRelationMgr.Set_Status", messagetype:=otCoreMessageType.InternalError)
                 End If
 
                 Try
                     Dim i = _dataobject.ObjectClassDescription.RelationNames.IndexOf(relationname.ToUpper)
                     If i < 0 Then
                         CoreMessageHandler(message:="relation not found in relation names of class description", _
-                                           arg1:=relationname, subname:="DataObjectRelationMgr.Set_Status", objectname:=_dataobject.ObjectID, _
+                                           argument:=relationname, procedure:="DataObjectRelationMgr.Set_Status", objectname:=_dataobject.ObjectID, _
                                            messagetype:=otCoreMessageType.InternalError)
                     End If
 
                     '''
                     Status(Convert.ToUInt16(i)) = value
                 Catch ex As Exception
-                    CoreMessageHandler(exception:=ex, subname:="DataObjectRelationMgr.Set_Status", objectname:=_dataobject.ObjectID, messagetype:=otCoreMessageType.InternalError)
+                    CoreMessageHandler(exception:=ex, procedure:="DataObjectRelationMgr.Set_Status", objectname:=_dataobject.ObjectID, messagetype:=otCoreMessageType.InternalError)
                 End Try
             End Set
         End Property
@@ -645,19 +547,19 @@ Namespace OnTrack.Database
         Public Function GetObjectsFromContainer(relationname As String, _
                                                    Optional entryname As String = Nothing, _
                                                    Optional loadRelationIfNotloaded As Boolean = False, _
-                                                   Optional value As Object = Nothing) As List(Of iormPersistable)
+                                                   Optional value As Object = Nothing) As List(Of iormRelationalPersistable)
 
             If Not _isInitialized AndAlso Not Initialize() Then
                 CoreMessageHandler(message:="could not initialize DataObjectRelationMgr", objectname:=_dataobject.ObjectID, _
-                                   subname:="DataObjectRelationMgr.Get_Status", messagetype:=otCoreMessageType.InternalError)
-                Return New List(Of iormPersistable)
+                                   procedure:="DataObjectRelationMgr.Get_Status", messagetype:=otCoreMessageType.InternalError)
+                Return New List(Of iormRelationalPersistable)
             End If
 
             Try
 
 
-                Dim aFieldList As List(Of FieldInfo) = _dataobject.ObjectClassDescription.GetMappedRelationFieldInfos(relationName:=relationname)
-                Dim aList As New List(Of iormPersistable) ' results
+                Dim aFieldList As List(Of FieldInfo) = _dataobject.ObjectClassDescription.GetMappedRelation2FieldInfos(relationName:=relationname)
+                Dim aList As New List(Of iormRelationalPersistable) ' results
 
                 ''' check if relation is loaded
                 ''' infuse it if necessary
@@ -666,10 +568,10 @@ Namespace OnTrack.Database
                 If Me.Status(relationname) = RelationStatus.Unloaded Then
                     If loadRelationIfNotloaded Then
                         If TryCast(_dataobject, iormInfusable).InfuseRelation(relationname) Then
-                            Call CoreMessageHandler(subname:="DataObjectRelationMgr.SelectObjectsFromContainer", _
+                            Call CoreMessageHandler(procedure:="DataObjectRelationMgr.SelectObjectsFromContainer", _
                                                            message:="could not infuse relation into data object", _
-                                                           arg1:=relationname, objectname:=_dataobject.ObjectID, entryname:=entryname, tablename:=_dataobject.PrimaryTableID)
-                            Return New List(Of iormPersistable)
+                                                           argument:=relationname, objectname:=_dataobject.ObjectID, entryname:=entryname, containerID:=_dataobject.ObjectPrimaryTableID)
+                            Return New List(Of iormRelationalPersistable)
                         End If
 
                         'Else -> still fetch objects from Container ! there might be somethong
@@ -682,16 +584,16 @@ Namespace OnTrack.Database
                     'Dim aMappingAttribute = _dataobject.ObjectClassDescription.GetEntryMappingAttributes(aFieldinfo.Name)
 
                     ''' check if the container holds only one type
-                    If aFieldinfo.FieldType.GetInterfaces.Contains(GetType(iormPersistable)) Then
-                        Dim aContainer As iormPersistable
+                    If aFieldinfo.FieldType.GetInterfaces.Contains(GetType(iormRelationalPersistable)) Then
+                        Dim aContainer As iormRelationalPersistable
 
                         If Not Reflector.GetFieldValue(field:=aFieldinfo, dataobject:=_dataobject, value:=aContainer) Then
-                            Call CoreMessageHandler(subname:="DataObjectRelationMgr.SelectObjectsFromContainer", _
+                            Call CoreMessageHandler(procedure:="DataObjectRelationMgr.SelectObjectsFromContainer", _
                                                    message:="could not object mapped entry", _
-                                                   arg1:=aFieldinfo.Name, _
+                                                   argument:=aFieldinfo.Name, _
                                                    objectname:=_dataobject.ObjectID, _
                                                   entryname:=entryname, _
-                                                   tablename:=_dataobject.PrimaryTableID)
+                                                   containerID:=_dataobject.ObjectPrimaryTableID)
 
                         End If
 
@@ -704,14 +606,14 @@ Namespace OnTrack.Database
                         ''' check on arrays
                         ''' 
                     ElseIf aFieldinfo.FieldType.IsArray Then
-                        Dim aContainer As iormPersistable()
+                        Dim aContainer As iormRelationalPersistable()
                         If Not Reflector.GetFieldValue(field:=aFieldinfo, dataobject:=_dataobject, value:=aContainer) Then
-                            Call CoreMessageHandler(subname:="DataObjectRelationMgr.SelectObjectsFromContainer", _
+                            Call CoreMessageHandler(procedure:="DataObjectRelationMgr.SelectObjectsFromContainer", _
                                                    message:="could not object mapped entry", _
-                                                   arg1:=aFieldinfo.Name, _
+                                                   argument:=aFieldinfo.Name, _
                                                    objectname:=_dataobject.ObjectID, _
                                                   entryname:=entryname, _
-                                                   tablename:=_dataobject.PrimaryTableID)
+                                                   containerID:=_dataobject.ObjectPrimaryTableID)
 
                         End If
                         If aContainer IsNot Nothing Then
@@ -730,10 +632,10 @@ Namespace OnTrack.Database
                         Dim aContainer As IList
                         '** setfieldvalue by hook or slooow
                         If Not Reflector.GetFieldValue(field:=aFieldinfo, dataobject:=_dataobject, value:=aContainer) Then
-                            Call CoreMessageHandler(subname:="DataObjectRelationMgr.SelectObjectsFromContainer", _
+                            Call CoreMessageHandler(procedure:="DataObjectRelationMgr.SelectObjectsFromContainer", _
                                                     message:="could not object mapped entry", _
-                                                    arg1:=aFieldinfo.Name, objectname:=_dataobject.ObjectID, _
-                                                   entryname:=entryname, tablename:=_dataobject.PrimaryTableID)
+                                                    argument:=aFieldinfo.Name, objectname:=_dataobject.ObjectID, _
+                                                   entryname:=entryname, containerID:=_dataobject.ObjectPrimaryTableID)
                         End If
                         If aContainer IsNot Nothing Then
                             '' return the search condition
@@ -766,9 +668,9 @@ Namespace OnTrack.Database
                     ElseIf Reflector.TypeImplementsGenericInterface(aFieldinfo.FieldType, GetType(iormRelationalCollection(Of ))) Then
                         Dim aGenericContainer As Object
                         If Not Reflector.GetFieldValue(field:=aFieldinfo, dataobject:=_dataobject, value:=aGenericContainer) Then
-                            Call CoreMessageHandler(subname:="DataObjectRelationMgr.SelectObjectsFromContainer", _
+                            Call CoreMessageHandler(procedure:="DataObjectRelationMgr.SelectObjectsFromContainer", _
                                             message:="iormRelationalCollection must not be nothing", _
-                                            arg1:=aFieldinfo.Name, objectname:=_dataobject.ObjectID, entryname:=entryname, tablename:=_dataobject.PrimaryTableID)
+                                            argument:=aFieldinfo.Name, objectname:=_dataobject.ObjectID, entryname:=entryname, containerID:=_dataobject.ObjectPrimaryTableID)
                         End If
 
                         If aGenericContainer IsNot Nothing Then
@@ -780,7 +682,7 @@ Namespace OnTrack.Database
                             Dim keynames As String() = aGenericContainer.Keynames
                             If entryname IsNot Nothing AndAlso keynames.Length = 1 AndAlso Array.Exists(keynames, Function(x) x = entryname) Then
                                 If value IsNot Nothing Then
-                                    Dim anObject As iormPersistable = aGenericContainer.Item(value)
+                                    Dim anObject As iormRelationalPersistable = aGenericContainer.Item(value)
                                     If anObject IsNot Nothing Then aList.Add(anObject)
                                 Else
                                     aList.AddRange(aGenericContainer.ToList)
@@ -806,9 +708,9 @@ Namespace OnTrack.Database
 
                 Return aList
             Catch ex As Exception
-                Call CoreMessageHandler(subname:="DataObjectRelationMgr.SelectObjectsFromContainer", exception:=ex, _
-                                        arg1:=value, objectname:=_dataobject.ObjectID, entryname:=entryname, tablename:=_dataobject.PrimaryTableID)
-                Return New List(Of iormPersistable)
+                Call CoreMessageHandler(procedure:="DataObjectRelationMgr.SelectObjectsFromContainer", exception:=ex, _
+                                        argument:=value, objectname:=_dataobject.ObjectID, entryname:=entryname, containerID:=_dataobject.ObjectPrimaryTableID)
+                Return New List(Of iormRelationalPersistable)
             End Try
         End Function
 
@@ -819,27 +721,27 @@ Namespace OnTrack.Database
         ''' <param name="mode"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Private Function InfuseRelatedObjectIntoContainer(relationname As String, mode As otInfuseMode, objects As List(Of iormPersistable)) As Boolean
+        Private Function InfuseRelatedObjectIntoContainer(relationname As String, mode As otInfuseMode, objects As List(Of iormRelationalPersistable)) As Boolean
             If Not _isInitialized AndAlso Not Initialize() Then
                 CoreMessageHandler(message:="could not initialize DataObjectRelationMgr", objectname:=_dataobject.ObjectID, _
-                                   subname:="DataObjectRelationMgr.InfuseRelatedObjectIntoContainer", messagetype:=otCoreMessageType.InternalError)
+                                   procedure:="DataObjectRelationMgr.InfuseRelatedObjectIntoContainer", messagetype:=otCoreMessageType.InternalError)
                 Return False
             End If
 
             Try
 
-                Dim aFieldList As List(Of FieldInfo) = _dataobject.ObjectClassDescription.GetMappedRelationFieldInfos(relationName:=relationname)
+                Dim aFieldList As List(Of FieldInfo) = _dataobject.ObjectClassDescription.GetMappedRelation2FieldInfos(relationName:=relationname)
 
                 For Each aFieldInfo In aFieldList
                     Dim aMappingAttribute = _dataobject.ObjectClassDescription.GetEntryMappingAttributes(aFieldInfo.Name)
 
                     ''' check if the container holds only one type
-                    If aFieldInfo.FieldType.GetInterfaces.Contains(GetType(iormPersistable)) Then
+                    If aFieldInfo.FieldType.GetInterfaces.Contains(GetType(iormRelationalPersistable)) Then
                         '** setfieldvalue by hook or slooow
                         If Not Reflector.SetFieldValue(field:=aFieldInfo, dataobject:=_dataobject, value:=objects.First) Then
-                            Call CoreMessageHandler(subname:="DataObjectRelationMgr.InfuseRelatedObjectIntoContainer", _
+                            Call CoreMessageHandler(procedure:="DataObjectRelationMgr.InfuseRelatedObjectIntoContainer", _
                                                    message:="could not object mapped entry", _
-                                                   arg1:=aFieldInfo.Name, objectname:=_dataobject.ObjectID, entryname:=aMappingAttribute.EntryName, tablename:=_dataobject.primaryTableID)
+                                                   argument:=aFieldInfo.Name, objectname:=_dataobject.ObjectID, entryname:=aMappingAttribute.EntryName, containerID:=_dataobject.ObjectPrimaryTableID)
                             Return False
                         End If
                         Return True
@@ -847,9 +749,9 @@ Namespace OnTrack.Database
                     ElseIf aFieldInfo.FieldType.IsArray Then
                         '** setfieldvalue by hook or slooow
                         If Not Reflector.SetFieldValue(field:=aFieldInfo, dataobject:=_dataobject, value:=objects.ToArray) Then
-                            Call CoreMessageHandler(subname:="DataObjectRelationMgr.InfuseRelatedObjectIntoContainer", _
+                            Call CoreMessageHandler(procedure:="DataObjectRelationMgr.InfuseRelatedObjectIntoContainer", _
                                                    message:="could not object mapped entry", _
-                                                   arg1:=aFieldInfo.Name, objectname:=_dataobject.ObjectID, entryname:=aMappingAttribute.EntryName, tablename:=_dataobject.primaryTableID)
+                                                   argument:=aFieldInfo.Name, objectname:=_dataobject.ObjectID, entryname:=aMappingAttribute.EntryName, containerID:=_dataobject.ObjectPrimaryTableID)
                             Return False
                         End If
                         Return True
@@ -857,9 +759,9 @@ Namespace OnTrack.Database
                     ElseIf aFieldInfo.FieldType.GetInterfaces.Contains(GetType(IList)) Then
                         '** setfieldvalue by hook or slooow
                         If Not Reflector.SetFieldValue(field:=aFieldInfo, dataobject:=_dataobject, value:=objects) Then
-                            Call CoreMessageHandler(subname:="DataObjectRelationMgr.InfuseRelatedObjectIntoContainer", _
+                            Call CoreMessageHandler(procedure:="DataObjectRelationMgr.InfuseRelatedObjectIntoContainer", _
                                                     message:="could not object mapped entry", _
-                                                    arg1:=aFieldInfo.Name, objectname:=_dataobject.ObjectID, entryname:=aMappingAttribute.EntryName, tablename:=_dataobject.primaryTableID)
+                                                    argument:=aFieldInfo.Name, objectname:=_dataobject.ObjectID, entryname:=aMappingAttribute.EntryName, containerID:=_dataobject.ObjectPrimaryTableID)
                             Return False
                         End If
 
@@ -881,9 +783,9 @@ Namespace OnTrack.Database
 
                             '** setfieldvalue by hook or slooow
                             If Not Reflector.SetFieldValue(field:=aFieldInfo, dataobject:=_dataobject, value:=aDictionary) Then
-                                Call CoreMessageHandler(subname:="DataObjectRelationMgr.InfuseRelatedObjectIntoContainer", _
+                                Call CoreMessageHandler(procedure:="DataObjectRelationMgr.InfuseRelatedObjectIntoContainer", _
                                         message:="could not object mapped entry", _
-                                        arg1:=aFieldInfo.Name, objectname:=_dataobject.ObjectID, entryname:=aMappingAttribute.EntryName, tablename:=_dataobject.primaryTableID)
+                                        argument:=aFieldInfo.Name, objectname:=_dataobject.ObjectID, entryname:=aMappingAttribute.EntryName, containerID:=_dataobject.ObjectPrimaryTableID)
 
                                 Return False
                             End If
@@ -892,7 +794,7 @@ Namespace OnTrack.Database
                         '** assign
                         For Each anObject In objects
                             If typedef(0) = GetType(String) Then
-                                Dim aKey As String = ""
+                                Dim aKey As String = String.Empty
                                 For i = 0 To aMappingAttribute.KeyEntries.Count - 1
                                     If i > 0 Then aKey &= ConstDelimiter
                                     aKey &= anObject.Record.GetValue(aMappingAttribute.KeyEntries(i)).ToString
@@ -902,8 +804,8 @@ Namespace OnTrack.Database
                                 Else
                                     CoreMessageHandler(message:="for relation '" & relationname & "' :key in dictionary member '" & aFieldInfo.Name & "' already exists", _
                                                        messagetype:=otCoreMessageType.InternalWarning, _
-                                                       objectname:=_dataobject.ObjectID, tablename:=_dataobject.primaryTableID, _
-                                                       arg1:=aKey, subname:="DataObjectRelationMgr.InfuseRelatedObjectIntoContainer")
+                                                       objectname:=_dataobject.ObjectID, containerID:=_dataobject.ObjectPrimaryTableID, _
+                                                       argument:=aKey, procedure:="DataObjectRelationMgr.InfuseRelatedObjectIntoContainer")
                                 End If
 
 
@@ -914,12 +816,12 @@ Namespace OnTrack.Database
                                 Else
                                     CoreMessageHandler(message:="for relation '" & relationname & "' :key in dictionary member '" & aFieldInfo.Name & "' already exists", _
                                                        messagetype:=otCoreMessageType.InternalWarning, _
-                                                       objectname:=_dataobject.ObjectID, tablename:=_dataobject.primaryTableID, _
-                                                       arg1:=aKey, subname:="DataObjectRelationMgr.InfuseRelatedObjectIntoContainer")
+                                                       objectname:=_dataobject.ObjectID, containerID:=_dataobject.ObjectPrimaryTableID, _
+                                                       argument:=aKey, procedure:="DataObjectRelationMgr.InfuseRelatedObjectIntoContainer")
                                 End If
                             Else
-                                Call CoreMessageHandler(subname:="DataObjectRelationMgr.InfuseRelatedObjectIntoContainer", message:="cannot convert key to dicitionary from List of iormpersistables", _
-                                                        objectname:=_dataobject.ObjectID, tablename:=_dataobject.primaryTableID)
+                                Call CoreMessageHandler(procedure:="DataObjectRelationMgr.InfuseRelatedObjectIntoContainer", message:="cannot convert key to dicitionary from List of iormpersistables", _
+                                                        objectname:=_dataobject.ObjectID, containerID:=_dataobject.ObjectPrimaryTableID)
                             End If
                         Next
 
@@ -928,9 +830,9 @@ Namespace OnTrack.Database
                     ElseIf Reflector.TypeImplementsGenericInterface(aFieldInfo.FieldType, GetType(iormRelationalCollection(Of ))) Then
                         Dim aCollection As Object
                         If Not Reflector.GetFieldValue(field:=aFieldInfo, dataobject:=_dataobject, value:=aCollection) Then
-                            Call CoreMessageHandler(subname:="DataObjectRelationMgr.InfuseRelatedObjectIntoContainer", _
+                            Call CoreMessageHandler(procedure:="DataObjectRelationMgr.InfuseRelatedObjectIntoContainer", _
                                             message:="iormRelationalCollection must not be nothing", _
-                                            arg1:=aFieldInfo.Name, objectname:=_dataobject.ObjectID, entryname:=aMappingAttribute.EntryName, tablename:=_dataobject.primaryTableID)
+                                            argument:=aFieldInfo.Name, objectname:=_dataobject.ObjectID, entryname:=aMappingAttribute.EntryName, containerID:=_dataobject.ObjectPrimaryTableID)
                             Return False
                         End If
 
@@ -944,8 +846,8 @@ Namespace OnTrack.Database
                 Next
 
             Catch ex As Exception
-                Call CoreMessageHandler(subname:="DataObjectRelationMgr.InfuseRelatedObjectIntoContainer", exception:=ex, _
-                                      arg1:=relationname, objectname:=_dataobject.ObjectID, tablename:=_dataobject.primaryTableID)
+                Call CoreMessageHandler(procedure:="DataObjectRelationMgr.InfuseRelatedObjectIntoContainer", exception:=ex, _
+                                      argument:=relationname, objectname:=_dataobject.ObjectID, containerID:=_dataobject.ObjectPrimaryTableID)
                 Return False
 
             End Try
@@ -960,7 +862,7 @@ Namespace OnTrack.Database
 
             If Not _isInitialized AndAlso Not Initialize() Then
                 CoreMessageHandler(message:="could not initialize DataObjectRelationMgr", objectname:=_dataobject.ObjectID, _
-                                   subname:="DataObjectRelationMgr.LoadRelations", messagetype:=otCoreMessageType.InternalError)
+                                   procedure:="DataObjectRelationMgr.LoadRelations", messagetype:=otCoreMessageType.InternalError)
                 Return False
             End If
             Try
@@ -973,13 +875,13 @@ Namespace OnTrack.Database
                 For Each relationname In relationnames
                     relationLoaded = False
                     Dim aRelationAttribute = _dataobject.ObjectClassDescription.GetRelationAttribute(relationname:=relationname)
-                    Dim aList As New List(Of iormPersistable)
+                    Dim aList As New List(Of iormRelationalPersistable)
                     '''
                     ''' run if it was not loaded before or force
                     ''' 
                     'If aRelationAttribute IsNot Nothing AndAlso (Me.Status(relationname) = RelationStatus.Unloaded OrElse force) Then
                     If aRelationAttribute IsNot Nothing Then
-                        Dim aFieldList As List(Of FieldInfo) = _dataobject.ObjectClassDescription.GetMappedRelationFieldInfos(relationName:=aRelationAttribute.Name)
+                        Dim aFieldList As List(Of FieldInfo) = _dataobject.ObjectClassDescription.GetMappedRelation2FieldInfos(relationName:=aRelationAttribute.Name)
 
                         For Each aFieldInfo In aFieldList
                             Dim aMappingAttribute = _dataobject.ObjectClassDescription.GetEntryMappingAttributes(aFieldInfo.Name)
@@ -993,7 +895,7 @@ Namespace OnTrack.Database
 
                                 ''' raise event
                                 ''' 
-                                Dim theEventargs As New DataObjectRelationMgr.EventArgs(relationname, relationAttribute:=aRelationAttribute, _
+                                Dim theEventargs As New ormRelationManager.EventArgs(relationname, relationAttribute:=aRelationAttribute, _
                                                                                         dataobject:=_dataobject, fieldinfo:=aFieldInfo, infusemode:=mode)
                                 RaiseEvent OnRelatedObjectsRetrieveRequest(Me, theEventargs)
                                 If theEventargs.Objects.Count > 0 Then aList.AddRange(theEventargs.Objects)
@@ -1011,7 +913,7 @@ Namespace OnTrack.Database
                                     '''
                                     ''' 3. get the related Object by Retrieving
                                     ''' 
-                                    Dim anObject As iormPersistable = Me.GetRelatedObjectByRetrieve(relationname:=relationname)
+                                    Dim anObject As iormRelationalPersistable = Me.GetRelatedObjectByRetrieve(relationname:=relationname)
                                     If anObject IsNot Nothing Then aList.Add(anObject)
                                 Else
                                     '''
@@ -1043,8 +945,8 @@ Namespace OnTrack.Database
                     ''' 
                     If relationLoaded AndAlso aList.Count > 0 Then
                         If Not InfuseRelatedObjectIntoContainer(relationname, mode, aList) Then
-                            CoreMessageHandler(message:="failed to infuse relation container objects in data object", arg1:=relationname, objectname:=_dataobject.ObjectID, _
-                                                subname:="DataObjectRelationMgr.LoadRelation", messagetype:=otCoreMessageType.InternalError)
+                            CoreMessageHandler(message:="failed to infuse relation container objects in data object", argument:=relationname, objectname:=_dataobject.ObjectID, _
+                                                procedure:="DataObjectRelationMgr.LoadRelation", messagetype:=otCoreMessageType.InternalError)
                             Return False
                         End If
                     End If
@@ -1057,8 +959,8 @@ Namespace OnTrack.Database
                 Return True
 
             Catch ex As Exception
-                CoreMessageHandler(exception:=ex, arg1:=relationnames.ToString, objectname:=_dataobject.ObjectID, _
-                                     subname:="DataObjectRelationMgr.LoadRelation", messagetype:=otCoreMessageType.InternalError)
+                CoreMessageHandler(exception:=ex, argument:=relationnames.ToString, objectname:=_dataobject.ObjectID, _
+                                     procedure:="DataObjectRelationMgr.LoadRelation", messagetype:=otCoreMessageType.InternalError)
                 Return False
             End Try
 
@@ -1075,7 +977,7 @@ Namespace OnTrack.Database
 
             If Not _isInitialized AndAlso Not Initialize() Then
                 CoreMessageHandler(message:="could not initialize DataObjectRelationMgr", objectname:=_dataobject.ObjectID, _
-                                   subname:="DataObjectRelationMgr.CreateRelations", messagetype:=otCoreMessageType.InternalError)
+                                   procedure:="DataObjectRelationMgr.CreateRelations", messagetype:=otCoreMessageType.InternalError)
                 Return False
             End If
             Try
@@ -1088,14 +990,14 @@ Namespace OnTrack.Database
 
                 For Each relationname In relationnames
                     Dim aRelationAttribute = _dataobject.ObjectClassDescription.GetRelationAttribute(relationname:=relationname)
-                    Dim aList As New List(Of iormPersistable)
+                    Dim aList As New List(Of iormRelationalPersistable)
                     '''
                     ''' check if loaded before or force -> what to to with outdated relations ?!
                     ''' 
                     ''' If aRelationAttribute IsNot Nothing AndAlso (Me.Status(relationname) = RelationStatus.Unloaded OrElse force) Then
                     If aRelationAttribute IsNot Nothing Then
 
-                        Dim aFieldList As List(Of FieldInfo) = _dataobject.ObjectClassDescription.GetMappedRelationFieldInfos(relationName:=aRelationAttribute.Name)
+                        Dim aFieldList As List(Of FieldInfo) = _dataobject.ObjectClassDescription.GetMappedRelation2FieldInfos(relationName:=aRelationAttribute.Name)
 
                         For Each aFieldInfo In aFieldList
                             Dim aMappingAttribute = _dataobject.ObjectClassDescription.GetEntryMappingAttributes(aFieldInfo.Name)
@@ -1107,7 +1009,7 @@ Namespace OnTrack.Database
 
                             ''' raise event
                             ''' 
-                            Dim theEventargs As New DataObjectRelationMgr.EventArgs(relationname, relationAttribute:=aRelationAttribute, _
+                            Dim theEventargs As New ormRelationManager.EventArgs(relationname, relationAttribute:=aRelationAttribute, _
                                                                                     dataobject:=_dataobject, fieldinfo:=aFieldInfo, infusemode:=mode)
                             RaiseEvent OnRelatedObjectsCreateRequest(Me, theEventargs)
                             If theEventargs.Objects.Count > 0 Then aList.AddRange(theEventargs.Objects)
@@ -1146,8 +1048,8 @@ Namespace OnTrack.Database
                     ''' 
                     If relationLoaded AndAlso aList.Count > 0 Then
                         If Not InfuseRelatedObjectIntoContainer(relationname, mode, aList) Then
-                            CoreMessageHandler(message:="failed to infuse relation container objects in data object", arg1:=relationname, objectname:=_dataobject.ObjectID, _
-                                                subname:="DataObjectRelationMgr.CreateRelations", messagetype:=otCoreMessageType.InternalError)
+                            CoreMessageHandler(message:="failed to infuse relation container objects in data object", argument:=relationname, objectname:=_dataobject.ObjectID, _
+                                                procedure:="DataObjectRelationMgr.CreateRelations", messagetype:=otCoreMessageType.InternalError)
                             Return False
                         Else
 
@@ -1162,8 +1064,8 @@ Namespace OnTrack.Database
                 Return True
 
             Catch ex As Exception
-                CoreMessageHandler(exception:=ex, arg1:=relationnames.ToString, objectname:=_dataobject.ObjectID, _
-                                     subname:="DataObjectRelationMgr.CreateRelations", messagetype:=otCoreMessageType.InternalError)
+                CoreMessageHandler(exception:=ex, argument:=relationnames.ToString, objectname:=_dataobject.ObjectID, _
+                                     procedure:="DataObjectRelationMgr.CreateRelations", messagetype:=otCoreMessageType.InternalError)
                 Return False
             End Try
 
@@ -1175,14 +1077,13 @@ Namespace OnTrack.Database
         ''' <remarks></remarks>
         Public Function CascadeRelations(Optional cascadeUpdate As Boolean = False,
                                          Optional cascadeDelete As Boolean = False, _
-                                         Optional relationid As String = "", _
                                          Optional timestamp As DateTime = constNullDate, _
                                          Optional uniquenesswaschecked As Boolean = True,
                                          Optional ByRef relationnames As List(Of String) = Nothing) As Boolean
 
             If Not _isInitialized AndAlso Not Initialize() Then
                 CoreMessageHandler(message:="could not initialize DataObjectRelationMgr", objectname:=_dataobject.ObjectID, _
-                                   subname:="DataObjectRelationMgr.CascadeRelations", messagetype:=otCoreMessageType.InternalError)
+                                   procedure:="DataObjectRelationMgr.CascadeRelations", messagetype:=otCoreMessageType.InternalError)
                 Return False
             End If
             Try
@@ -1195,7 +1096,7 @@ Namespace OnTrack.Database
                 For Each relationname In relationnames
                     Dim aRelationAttribute = _dataobject.ObjectClassDescription.GetRelationAttribute(relationname:=relationname)
 
-                   
+
                     '''
                     ''' check  if this relation needs to be cascaded
                     If aRelationAttribute IsNot Nothing AndAlso _
@@ -1211,14 +1112,14 @@ Namespace OnTrack.Database
                                 ''' listen to the messages
                                 AddHandler TryCast(anObject, iormLoggable).ObjectMessageLog.OnObjectMessageAdded, AddressOf Me.DataObject_OnObjectMessageAdded
                                 ''' here persist
-                               
+
                                 If Not anObject.RuntimeOnly AndAlso Not anObject.Persist(timestamp:=timestamp) Then
                                     CoreMessageHandler("object could not persist", dataobject:=anObject, messagetype:=otCoreMessageType.InternalError, _
-                                                       subname:="DataObjectRelationMgr.CascadeRelation")
+                                                       procedure:="DataObjectRelationMgr.CascadeRelation")
                                     result = result And False
                                 ElseIf anObject.RuntimeOnly Then
                                     CoreMessageHandler("object on RuntimeOnly could not persist", dataobject:=anObject, messagetype:=otCoreMessageType.InternalWarning, _
-                                                      subname:="DataObjectRelationMgr.CascadeRelation")
+                                                      procedure:="DataObjectRelationMgr.CascadeRelation")
                                     result = result And False
                                 Else
                                     result = result And True
@@ -1249,8 +1150,8 @@ Namespace OnTrack.Database
                 Return result
 
             Catch ex As Exception
-                CoreMessageHandler(exception:=ex, arg1:=relationnames.ToString, objectname:=_dataobject.ObjectID, _
-                                     subname:="DataObjectRelationMgr.CascadeRelations", messagetype:=otCoreMessageType.InternalError)
+                CoreMessageHandler(exception:=ex, argument:=relationnames.ToString, objectname:=_dataobject.ObjectID, _
+                                     procedure:="DataObjectRelationMgr.CascadeRelations", messagetype:=otCoreMessageType.InternalError)
                 Return False
             End Try
 
@@ -1277,25 +1178,25 @@ Namespace OnTrack.Database
         ''' <param name="classdescriptor"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Private Function GetRelatedObjectByCreate(relationname As String) As iormPersistable
+        Private Function GetRelatedObjectByCreate(relationname As String) As iormRelationalPersistable
             Dim aRelationAttribute As ormRelationAttribute = _dataobject.ObjectClassDescription.GetRelationAttribute(relationname)
             If aRelationAttribute Is Nothing Then
                 CoreMessageHandler(message:="relation was not found in classdescription", _
-                                   arg1:=relationname, objectname:=_dataobject.ObjectID, _
-                                    subname:="DataObjectRelationMgr.GetObjectByCreate", messagetype:=otCoreMessageType.InternalError)
+                                   argument:=relationname, objectname:=_dataobject.ObjectID, _
+                                    procedure:="DataObjectRelationMgr.GetObjectByCreate", messagetype:=otCoreMessageType.InternalError)
                 Return Nothing
             End If
             Dim theKeyvalues As New List(Of Object)
             Dim keyentries As String()
-            Dim runtimeOnly As Boolean = _dataobject.RuntimeOnly
+            Dim runtimeOnly As Boolean = _dataobject.RunTimeOnly
 
             '** get the keys althoug determining if TOEntries are by Primarykey is a bit obsolete
             If aRelationAttribute.HasValueToPrimarykeys Then
                 keyentries = aRelationAttribute.ToPrimaryKeys
             Else
                 CoreMessageHandler(message:="relation attribute has no ToPrimarykeys set - unable to create", _
-                                    arg1:=aRelationAttribute.Name, objectname:=_dataobject.ObjectID, _
-                                     subname:="DataObjectRelationMgr.GetObjectByCreate", messagetype:=otCoreMessageType.InternalError)
+                                    argument:=aRelationAttribute.Name, objectname:=_dataobject.ObjectID, _
+                                     procedure:="DataObjectRelationMgr.GetObjectByCreate", messagetype:=otCoreMessageType.InternalError)
                 Return Nothing
             End If
 
@@ -1303,7 +1204,7 @@ Namespace OnTrack.Database
                 Dim aTargetObjectDescriptor As ObjectClassDescription = ot.GetObjectClassDescription(aRelationAttribute.LinkObject)
                 Dim anOperationAttribute As ormObjectOperationMethodAttribute = _
                     aTargetObjectDescriptor.GetObjectOperationAttributeByTag(tag:=ObjectClassDescription.ConstMTCreateDataObject)
-
+                Dim aPrimaryKey As ormDatabaseKey
 
                 If anOperationAttribute IsNot Nothing Then
                     '''
@@ -1311,8 +1212,9 @@ Namespace OnTrack.Database
                     ''' 
                     theKeyvalues = Reflector.GetColumnEntryValues(dataobject:=_dataobject, entrynames:=keyentries)
                     Dim aDelegate As ObjectClassDescription.OperationCallerDelegate = aTargetObjectDescriptor.GetOperartionCallerDelegate(operationname:=anOperationAttribute.OperationName)
+                    aPrimaryKey = New ormDatabaseKey(objectid:=aTargetObjectDescriptor.ObjectAttribute.ID, keyvalues:=theKeyvalues.ToArray)
                     '** relate also in the runtime !
-                    Dim anObject As iormPersistable = aDelegate(Nothing, {theKeyvalues.ToArray, aTargetObjectDescriptor.Type, Nothing, Nothing, runtimeOnly})
+                    Dim anObject As iormRelationalPersistable = aDelegate(Nothing, {aPrimaryKey, aTargetObjectDescriptor.Type, Nothing, Nothing, runtimeOnly})
                     Return anObject
 
                 Else
@@ -1323,15 +1225,16 @@ Namespace OnTrack.Database
 
                     Dim aTargetType As System.Type = aTargetObjectDescriptor.Type
                     theKeyvalues = Reflector.GetColumnEntryValues(dataobject:=_dataobject, entrynames:=keyentries)
+                    aPrimaryKey = New ormDatabaseKey(objectid:=aTargetObjectDescriptor.ObjectAttribute.ID, keyvalues:=theKeyvalues.ToArray)
                     Dim createMethod = ot.GetMethodInfo(aTargetType, ObjectClassDescription.ConstMTCreateDataObject)
 
                     If createMethod IsNot Nothing Then
                         '** if creating then do also with the new data object in the runtime
-                        Dim anObject As iormPersistable = createMethod.Invoke(Nothing, {theKeyvalues.ToArray, Nothing, Nothing, runtimeOnly})
+                        Dim anObject As iormRelationalPersistable = createMethod.Invoke(Nothing, {aPrimaryKey, Nothing, Nothing, runtimeOnly})
                         Return anObject
                     Else
                         CoreMessageHandler(message:="the CREATE method was not found on this object class", messagetype:=otCoreMessageType.InternalError, _
-                                            objectname:=aTargetType.Name, subname:="DataObjectRelationMgr.GetObjectByCreate")
+                                            objectname:=aTargetType.Name, procedure:="DataObjectRelationMgr.GetObjectByCreate")
                         Return Nothing
                     End If
                 End If
@@ -1341,8 +1244,8 @@ Namespace OnTrack.Database
 
             Catch ex As Exception
                 CoreMessageHandler(exception:=ex, _
-                                    arg1:=aRelationAttribute.Name, objectname:=_dataobject.ObjectID, _
-                                     subname:="DataObjectRelationMgr.GetRelatedObjectByCreate")
+                                    argument:=aRelationAttribute.Name, objectname:=_dataobject.ObjectID, _
+                                     procedure:="DataObjectRelationMgr.GetRelatedObjectByCreate")
                 Return Nothing
             End Try
 
@@ -1352,12 +1255,12 @@ Namespace OnTrack.Database
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Private Function GetRelatedObjectsByOperation(relationname As String, operationname As String) As List(Of iormPersistable)
-            Dim aList As New List(Of iormPersistable)
+        Private Function GetRelatedObjectsByOperation(relationname As String, operationname As String) As List(Of iormRelationalPersistable)
+            Dim aList As New List(Of iormRelationalPersistable)
             If Not _isInitialized AndAlso Not Initialize() Then
                 CoreMessageHandler(message:="could not initialize DataObjectRelationMgr", objectname:=_dataobject.ObjectID, _
-                                   subname:="DataObjectRelationMgr.GetRelatedObjectsByOperation", messagetype:=otCoreMessageType.InternalError)
-                Return New List(Of iormPersistable)
+                                   procedure:="DataObjectRelationMgr.GetRelatedObjectsByOperation", messagetype:=otCoreMessageType.InternalError)
+                Return New List(Of iormRelationalPersistable)
             End If
             Try
                 Dim aRelationAttribute = _dataobject.ObjectClassDescription.GetRelationAttribute(relationname)
@@ -1365,8 +1268,8 @@ Namespace OnTrack.Database
 
                 Dim aOperationAttribute = _dataobject.ObjectClassDescription.GetObjectOperationAttribute(name:=operationname)
                 If aOperationAttribute Is Nothing Then
-                    CoreMessageHandler(message:="operation id not found in the class description repository", arg1:=operationname, messagetype:=otCoreMessageType.InternalError, _
-                                       subname:="DataObjetRelationMGr.GetRelatedObjectsFromOperation")
+                    CoreMessageHandler(message:="operation id not found in the class description repository", argument:=operationname, messagetype:=otCoreMessageType.InternalError, _
+                                       procedure:="DataObjetRelationMGr.GetRelatedObjectsFromOperation")
                     Return aList
                 End If
 
@@ -1400,14 +1303,14 @@ Namespace OnTrack.Database
                 Dim result As Object = aDelegate(_dataobject, theParameters)
 
                 ''' check if the container holds only one type
-                If aReturnType.GetInterfaces.Contains(GetType(iormPersistable)) Then
-                    Dim anObject As iormPersistable = TryCast(result, iormPersistable)
+                If aReturnType.GetInterfaces.Contains(GetType(iormRelationalPersistable)) Then
+                    Dim anObject As iormRelationalPersistable = TryCast(result, iormRelationalPersistable)
                     If anObject IsNot Nothing Then aList.Add(anObject)
 
                     ''' check on arrays
                     ''' 
                 ElseIf aReturnType.IsArray Then
-                    Dim theObjects As iormPersistable() = TryCast(result, iormPersistable())
+                    Dim theObjects As iormRelationalPersistable() = TryCast(result, iormRelationalPersistable())
                     If theObjects IsNot Nothing Then
                         aList.AddRange(theObjects)
                     End If
@@ -1434,16 +1337,16 @@ Namespace OnTrack.Database
                     End If
                     '*** relationCollection
                 ElseIf Reflector.TypeImplementsGenericInterface(aReturnType, GetType(iormRelationalCollection(Of ))) Then
-                    Dim aContainer As iormRelationalCollection(Of iormPersistable) = result
+                    Dim aContainer As iormRelationalCollection(Of iormRelationalPersistable) = result
                     aList.AddRange(aContainer.ToList)
                 End If
 
 
                 Return aList
             Catch ex As Exception
-                Call CoreMessageHandler(subname:="DataObjectRelationMgr.GetRelatedObjectsByOperation ", exception:=ex, _
-                                        arg1:=relationname, objectname:=_dataobject.ObjectID)
-                Return New List(Of iormPersistable)
+                Call CoreMessageHandler(procedure:="DataObjectRelationMgr.GetRelatedObjectsByOperation ", exception:=ex, _
+                                        argument:=relationname, objectname:=_dataobject.ObjectID)
+                Return New List(Of iormRelationalPersistable)
             End Try
         End Function
         ''' <summary>
@@ -1456,22 +1359,22 @@ Namespace OnTrack.Database
         ''' <returns></returns>
         ''' <remarks></remarks>
         Private Function GetRelatedObjectsByQuery(relationname As String, _
-                                                 Optional dbdriver As iormDatabaseDriver = Nothing) As List(Of iormPersistable)
+                                                 Optional dbdriver As iormRelationalDatabaseDriver = Nothing) As List(Of iormRelationalPersistable)
             If Not _isInitialized AndAlso Not Initialize() Then
                 CoreMessageHandler(message:="could not initialize DataObjectRelationMgr", objectname:=_dataobject.ObjectID, _
-                                   subname:="DataObjectRelationMgr.GetRelatedObjectsByQuery", messagetype:=otCoreMessageType.InternalError)
-                Return New List(Of iormPersistable)
+                                   procedure:="DataObjectRelationMgr.GetRelatedObjectsByQuery", messagetype:=otCoreMessageType.InternalError)
+                Return New List(Of iormRelationalPersistable)
             End If
 
             Dim theKeyvalues As New List(Of Object)
-            Dim theObjectList As New List(Of iormPersistable)
+            Dim theObjectList As New List(Of iormRelationalPersistable)
             If dbdriver Is Nothing Then dbdriver = _dataobject.DatabaseDriver
             If dbdriver Is Nothing Then dbdriver = CurrentDBDriver
             Dim arelationAttribute As ormRelationAttribute = _dataobject.ObjectClassDescription.GetRelationAttribute(relationname)
             Dim aTargetObjectDescriptor As ObjectClassDescription = ot.GetObjectClassDescription(arelationAttribute.LinkObject)
             If aTargetObjectDescriptor Is Nothing Then
-                CoreMessageHandler(message:="class description for class of" & arelationAttribute.LinkObject.FullName & " could not be retrieved", arg1:=arelationAttribute.Name, _
-                                   subname:="DataObjectRelationMgr.GetRelatedObjects", messagetype:=otCoreMessageType.InternalError)
+                CoreMessageHandler(message:="class description for class of" & arelationAttribute.LinkObject.FullName & " could not be retrieved", argument:=arelationAttribute.Name, _
+                                   procedure:="DataObjectRelationMgr.GetRelatedObjects", messagetype:=otCoreMessageType.InternalError)
                 Return theObjectList
             End If
             Dim aTargetType As System.Type = aTargetObjectDescriptor.Type
@@ -1481,29 +1384,29 @@ Namespace OnTrack.Database
             Dim FNDomainID As String = Domain.ConstFNDomainID
             Dim FNDeleted As String = ConstFNIsDeleted
             Dim domainID As String = CurrentSession.CurrentDomainID
-            Dim fromTablename As String = _dataobject.ObjectClassDescription.Tables.First
-            Dim toTablename = aTargetObjectDescriptor.Tables.First ' First Tablename if multiple
+            Dim fromTablename As String = _dataobject.ObjectClassDescription.Tablenames.First
+            Dim ToTableID = aTargetObjectDescriptor.Tablenames.First ' First Tablename if multiple
 
-           
+
 
             '** get the keys althoug determining if TOEntries are by Primarykey is a bit obsolete
             If Not arelationAttribute.HasValueFromEntries OrElse Not arelationAttribute.HasValueToEntries Then
                 CoreMessageHandler(message:="relation attribute has nor fromEntries or ToEntries set", _
-                                    arg1:=arelationAttribute.Name, objectname:=_dataobject.ObjectID, _
-                                     subname:="DataObjectRelationMgr.GetRelatedObjects", messagetype:=otCoreMessageType.InternalError)
+                                    argument:=arelationAttribute.Name, objectname:=_dataobject.ObjectID, _
+                                     procedure:="DataObjectRelationMgr.GetRelatedObjects", messagetype:=otCoreMessageType.InternalError)
                 Return theObjectList
             ElseIf arelationAttribute.ToEntries.Count > arelationAttribute.FromEntries.Count Then
                 CoreMessageHandler(message:="relation attribute has nor mot ToEntries than FromEntries set", _
-                                    arg1:=arelationAttribute.Name, objectname:=_dataobject.ObjectID, _
-                                     subname:="DataObjectRelationMgr.GetRelatedObjects", messagetype:=otCoreMessageType.InternalError)
+                                    argument:=arelationAttribute.Name, objectname:=_dataobject.ObjectID, _
+                                     procedure:="DataObjectRelationMgr.GetRelatedObjects", messagetype:=otCoreMessageType.InternalError)
                 Return theObjectList
 
             End If
 
-            If Not aTargetType.GetInterfaces.Contains(GetType(iormPersistable)) And Not aTargetType.GetInterfaces.Contains(GetType(iormInfusable)) Then
+            If Not aTargetType.GetInterfaces.Contains(GetType(iormRelationalPersistable)) And Not aTargetType.GetInterfaces.Contains(GetType(iormInfusable)) Then
                 CoreMessageHandler(message:="target type has neither iormperistable nor iorminfusable interface", _
-                                   arg1:=arelationAttribute.Name, objectname:=_dataobject.ObjectID, _
-                                    subname:="DataObjectRelationMgr.GetRelatedObjects", messagetype:=otCoreMessageType.InternalError)
+                                   argument:=arelationAttribute.Name, objectname:=_dataobject.ObjectID, _
+                                    procedure:="DataObjectRelationMgr.GetRelatedObjects", messagetype:=otCoreMessageType.InternalError)
                 Return theObjectList
             End If
             '***
@@ -1511,8 +1414,8 @@ Namespace OnTrack.Database
                 '** return if we are bootstrapping
                 If CurrentSession.IsBootstrappingInstallationRequested Then
                     CoreMessageHandler(message:="query for relations not possible during bootstrapping installation", _
-                                        arg1:=arelationAttribute.Name, objectname:=_dataobject.ObjectID, _
-                                         subname:="DataObjectRelationMgr.GetRelatedObjects", messagetype:=otCoreMessageType.InternalWarning)
+                                        argument:=arelationAttribute.Name, objectname:=_dataobject.ObjectID, _
+                                         procedure:="DataObjectRelationMgr.GetRelatedObjects", messagetype:=otCoreMessageType.InternalWarning)
                     Return theObjectList
 
                     '** avoid loops during startup and domain switching
@@ -1528,12 +1431,12 @@ Namespace OnTrack.Database
                     deletebehavior = anObjectDefinition.HasDeleteFieldBehavior
                 End If
                 theKeyvalues = Reflector.GetColumnEntryValues(dataobject:=_dataobject, entrynames:=arelationAttribute.FromEntries)
-                Dim wherekey As String = ""
+                Dim wherekey As String = String.Empty
 
                 '** get a Store
-                Dim aStore As iormDataStore = dbdriver.GetTableStore(toTablename)
+                Dim aStore As iormRelationalTableStore = dbdriver.GetTableStore(ToTableID)
                 Dim aCommand As ormSqlSelectCommand = aStore.CreateSqlSelectCommand(id:="allbyRelation" & arelationAttribute.Name, addAllFields:=True)
-                If Not aCommand.Prepared Then
+                If Not aCommand.IsPrepared Then
                     ' build the key part
                     For i = 0 To arelationAttribute.ToEntries.Count - 1
                         If i > 0 Then wherekey &= " AND "
@@ -1551,11 +1454,11 @@ Namespace OnTrack.Database
                     '** parameters
                     For i = 0 To arelationAttribute.ToEntries.Count - 1
                         aCommand.AddParameter(New ormSqlCommandParameter(ID:="@" & arelationAttribute.ToEntries(i), columnname:=arelationAttribute.ToEntries(i), _
-                                                                         tablename:=toTablename))
+                                                                         tableid:=ToTableID))
                     Next
-                    If deletebehavior Then aCommand.AddParameter(New ormSqlCommandParameter(ID:="@deleted", ColumnName:=FNDeleted, tablename:=toTablename))
-                    If domainBehavior Then aCommand.AddParameter(New ormSqlCommandParameter(ID:="@domainID", ColumnName:=FNDomainID, tablename:=toTablename))
-                    If domainBehavior Then aCommand.AddParameter(New ormSqlCommandParameter(ID:="@globalID", ColumnName:=FNDomainID, tablename:=toTablename))
+                    If deletebehavior Then aCommand.AddParameter(New ormSqlCommandParameter(ID:="@deleted", ColumnName:=FNDeleted, tableid:=ToTableID))
+                    If domainBehavior Then aCommand.AddParameter(New ormSqlCommandParameter(ID:="@domainID", ColumnName:=FNDomainID, tableid:=ToTableID))
+                    If domainBehavior Then aCommand.AddParameter(New ormSqlCommandParameter(ID:="@globalID", ColumnName:=FNDomainID, tableid:=ToTableID))
                     aCommand.Prepare()
                 End If
                 '** parameters
@@ -1570,17 +1473,17 @@ Namespace OnTrack.Database
                 ' Infuse
                 Dim aRecordCollection As List(Of ormRecord) = aCommand.RunSelect
                 If aRecordCollection Is Nothing Then
-                    CoreMessageHandler(message:="no records returned due to previous errors", subname:="DataObjectRelationMgr.GetRelatedObjects", arg1:=arelationAttribute.Name, _
-                                        objectname:=aTargetObjectDescriptor.ObjectAttribute.ID, tablename:=toTablename, messagetype:=otCoreMessageType.InternalError)
+                    CoreMessageHandler(message:="no records returned due to previous errors", procedure:="DataObjectRelationMgr.GetRelatedObjects", argument:=arelationAttribute.Name, _
+                                        objectname:=aTargetObjectDescriptor.ObjectAttribute.ID, containerID:=ToTableID, messagetype:=otCoreMessageType.InternalError)
                     Return theObjectList
                 End If
                 Dim aDomainRecordCollection As New Dictionary(Of String, ormRecord)
-                Dim pknames = aStore.TableSchema.PrimaryKeys
+                Dim pknames = aStore.ContainerSchema.PrimaryEntryNames
                 For Each aRecord As ormRecord In aRecordCollection
 
                     If domainBehavior And domainID <> ConstGlobalDomain Then
                         '** build pk key
-                        Dim pk As String = ""
+                        Dim pk As String = String.Empty
                         For Each acolumnname In pknames
                             If acolumnname <> FNDomainID Then pk &= aRecord.GetValue(index:=acolumnname).ToString & ConstDelimiter
                         Next
@@ -1595,19 +1498,17 @@ Namespace OnTrack.Database
                         End If
                     Else
                         Dim atargetobject = ot.CreateDataObjectInstance(aTargetType)
-                        If DirectCast(atargetobject, iormInfusable).Infuse(aRecord) Then
-                            theObjectList.Add(DirectCast(atargetobject, iormPersistable))
-                        End If
+                        If atargetobject.Infuse(aRecord) Then theObjectList.Add(atargetobject)
                     End If
                 Next
 
                 '** sort out the domains
                 If domainBehavior And domainID <> ConstGlobalDomain Then
                     For Each aRecord In aDomainRecordCollection.Values
-                        Dim atargetobject As iormInfusable = TryCast(ot.CreateDataObjectInstance(aTargetType), iormInfusable)
-                        If ormDataObject.InfuseDataObject(record:=aRecord, dataobject:=atargetobject, _
+                        Dim atargetobject As iormInfusable = ot.CreateDataObjectInstance(aTargetType)
+                        If ormBusinessObject.InfuseDataObject(record:=aRecord, dataobject:=atargetobject, _
                                                           mode:=otInfuseMode.OnInject Or otInfuseMode.OnDefault) Then
-                            theObjectList.Add(DirectCast(atargetobject, iormPersistable))
+                            theObjectList.Add(DirectCast(atargetobject, iormRelationalPersistable))
                         End If
                     Next
                 End If
@@ -1618,8 +1519,8 @@ Namespace OnTrack.Database
 
             Catch ex As Exception
                 CoreMessageHandler(exception:=ex, _
-                                    arg1:=relationname, objectname:=_dataobject.ObjectID, _
-                                     subname:="DataObjectRelationMgr.GetRelatedObjects")
+                                    argument:=relationname, objectname:=_dataobject.ObjectID, _
+                                     procedure:="DataObjectRelationMgr.GetRelatedObjects")
                 Return theObjectList
             End Try
 
@@ -1637,16 +1538,16 @@ Namespace OnTrack.Database
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function DeleteRelatedObjects(relationname As String, _
-                                             Optional dbdriver As iormDatabaseDriver = Nothing, _
-                                             Optional timestamp As DateTime? = Nothing) As List(Of iormPersistable)
+                                             Optional dbdriver As iormRelationalDatabaseDriver = Nothing, _
+                                             Optional timestamp As DateTime? = Nothing) As List(Of iormRelationalPersistable)
             If Not _isInitialized AndAlso Not Initialize() Then
                 CoreMessageHandler(message:="could not initialize DataObjectRelationMgr", objectname:=_dataobject.ObjectID, _
-                                   subname:="DataObjectRelationMgr.DeleteRelatedObjects", messagetype:=otCoreMessageType.InternalError)
-                Return New List(Of iormPersistable)
+                                   procedure:="DataObjectRelationMgr.DeleteRelatedObjects", messagetype:=otCoreMessageType.InternalError)
+                Return New List(Of iormRelationalPersistable)
             End If
 
             Dim theKeyvalues As New List(Of Object)
-            Dim theObjectList As New List(Of iormPersistable)
+            Dim theObjectList As New List(Of iormRelationalPersistable)
             If dbdriver Is Nothing Then dbdriver = _dataobject.DatabaseDriver
             If dbdriver Is Nothing Then dbdriver = CurrentDBDriver
             Dim aRelationAttribute As ormRelationAttribute = _dataobject.ObjectClassDescription.GetRelationAttribute(relationname)
@@ -1658,28 +1559,28 @@ Namespace OnTrack.Database
             Dim FNDomainID As String = Domain.ConstFNDomainID
             Dim FNDeleted As String = ConstFNIsDeleted
             Dim domainID As String = CurrentSession.CurrentDomainID
-            Dim fromTablename As String = _dataobject.ObjectClassDescription.Tables.First
-            Dim toTablename = aTargetObjectDescriptor.Tables.First ' First Tablename if multiple
+            Dim fromTablename As String = _dataobject.ObjectClassDescription.Tablenames.First
+            Dim toTablename = aTargetObjectDescriptor.Tablenames.First ' First Tablename if multiple
 
 
             '** get the keys althoug determining if TOEntries are by Primarykey is a bit obsolete
             If Not aRelationAttribute.HasValueFromEntries OrElse Not aRelationAttribute.HasValueToEntries Then
                 CoreMessageHandler(message:="relation attribute has nor fromEntries or ToEntries set", _
-                                    arg1:=aRelationAttribute.Name, objectname:=_dataobject.ObjectID, _
-                                     subname:="DataObjectRelationMgr.DeleteRelatedObjects", messagetype:=otCoreMessageType.InternalError)
+                                    argument:=aRelationAttribute.Name, objectname:=_dataobject.ObjectID, _
+                                     procedure:="DataObjectRelationMgr.DeleteRelatedObjects", messagetype:=otCoreMessageType.InternalError)
                 Return theObjectList
             ElseIf aRelationAttribute.ToEntries.Count > aRelationAttribute.FromEntries.Count Then
                 CoreMessageHandler(message:="relation attribute has nor mot ToEntries than FromEntries set", _
-                                    arg1:=aRelationAttribute.Name, objectname:=_dataobject.ObjectID, _
-                                     subname:="DataObjectRelationMgr.DeleteRelatedObjects", messagetype:=otCoreMessageType.InternalError)
+                                    argument:=aRelationAttribute.Name, objectname:=_dataobject.ObjectID, _
+                                     procedure:="DataObjectRelationMgr.DeleteRelatedObjects", messagetype:=otCoreMessageType.InternalError)
                 Return theObjectList
 
             End If
 
-            If Not aTargetType.GetInterfaces.Contains(GetType(iormPersistable)) And Not aTargetType.GetInterfaces.Contains(GetType(iormInfusable)) Then
+            If Not aTargetType.GetInterfaces.Contains(GetType(iormRelationalPersistable)) And Not aTargetType.GetInterfaces.Contains(GetType(iormInfusable)) Then
                 CoreMessageHandler(message:="target type has neither iormperistable nor iorminfusable interface", _
-                                   arg1:=aRelationAttribute.Name, objectname:=_dataobject.ObjectID, _
-                                    subname:="DataObjectRelationMgr.DeleteRelatedObjects", messagetype:=otCoreMessageType.InternalError)
+                                   argument:=aRelationAttribute.Name, objectname:=_dataobject.ObjectID, _
+                                    procedure:="DataObjectRelationMgr.DeleteRelatedObjects", messagetype:=otCoreMessageType.InternalError)
                 Return theObjectList
             End If
             '***
@@ -1704,12 +1605,12 @@ Namespace OnTrack.Database
                 '    deletebehavior = anObjectDefinition.HasDeleteFieldBehavior
                 'End If
                 theKeyvalues = Reflector.GetColumnEntryValues(dataobject:=_dataobject, entrynames:=aRelationAttribute.FromEntries)
-                Dim wherekey As String = ""
+                Dim wherekey As String = String.Empty
 
                 '** get a Store
-                Dim aStore As iormDataStore = dbdriver.GetTableStore(toTablename)
+                Dim aStore As iormRelationalTableStore = dbdriver.GetTableStore(toTablename)
                 Dim aCommand As ormSqlCommand = aStore.CreateSqlCommand(id:="DeleteAllbyRelation_" & aRelationAttribute.Name)
-                If Not aCommand.Prepared Then
+                If Not aCommand.IsPrepared Then
                     aCommand.DatabaseDriver = dbdriver
                     Dim aSqlText = String.Format("DELETE FROM {0} WHERE ", toTablename)
                     aCommand.AddTable(toTablename) ' add it manually for recaching
@@ -1731,8 +1632,8 @@ Namespace OnTrack.Database
 
                     '** parameters
                     For i = 0 To aRelationAttribute.ToEntries.Count - 1
-                        Dim anEntryAttribute As ormObjectEntryAttribute = _dataobject.ObjectClassDescription.GetObjectEntryAttribute(entryname:=aRelationAttribute.ToEntries(i))
-                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@" & aRelationAttribute.ToEntries(i), datatype:=anEntryAttribute.DataType, notColumn:=True))
+                        Dim anEntryAttribute As iormObjectEntry = _dataobject.ObjectClassDescription.GetObjectEntryAttribute(entryname:=aRelationAttribute.ToEntries(i))
+                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@" & aRelationAttribute.ToEntries(i), datatype:=anEntryAttribute.Datatype, notColumn:=True))
                     Next
                     If timestamp.HasValue Then aCommand.AddParameter(New ormSqlCommandParameter(ID:="@" & ConstFNUpdatedOn, datatype:=otDataType.Timestamp, notColumn:=True))
                     'If deletebehavior Then aCommand.AddParameter(New ormSqlCommandParameter(ID:="@deleted", ColumnName:=FNDeleted, tablename:=toTablename))
@@ -1764,8 +1665,8 @@ Namespace OnTrack.Database
 
             Catch ex As Exception
                 CoreMessageHandler(exception:=ex, _
-                                    arg1:=aRelationAttribute.Name, objectname:=_dataobject.ObjectID, _
-                                     subname:="DataObjectRelationMgr.DeleteRelatedObjects")
+                                    argument:=aRelationAttribute.Name, objectname:=_dataobject.ObjectID, _
+                                     procedure:="DataObjectRelationMgr.DeleteRelatedObjects")
                 Return theObjectList
             End Try
 
@@ -1780,16 +1681,16 @@ Namespace OnTrack.Database
         ''' <param name="classdescriptor"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Private Function GetRelatedObjectByRetrieve(relationname As String) As iormPersistable
+        Private Function GetRelatedObjectByRetrieve(relationname As String) As iormRelationalPersistable
             Dim theKeyvalues As New List(Of Object)
             Dim keyentries As String()
-            Dim runtimeOnly As Boolean = _dataobject.RuntimeOnly
-
+            Dim runtimeOnly As Boolean = _dataobject.RunTimeOnly
+            Dim aKey As ormDatabaseKey
             Dim aRelationAttribute As ormRelationAttribute = _dataobject.ObjectClassDescription.GetRelationAttribute(relationname:=relationname)
             If aRelationAttribute Is Nothing Then
                 CoreMessageHandler(message:="relation was not found in class description", _
-                                    arg1:=relationname, objectname:=_dataobject.ObjectID, _
-                                     subname:="DataObjectRelationMgr.GetObjectByRetrieve", messagetype:=otCoreMessageType.InternalError)
+                                    argument:=relationname, objectname:=_dataobject.ObjectID, _
+                                     procedure:="DataObjectRelationMgr.GetObjectByRetrieve", messagetype:=otCoreMessageType.InternalError)
                 Return Nothing
             End If
             '** get the keys althoug determining if TOEntries are by Primarykey is a bit obsolete
@@ -1801,8 +1702,8 @@ Namespace OnTrack.Database
                 keyentries = aRelationAttribute.FromEntries
             Else
                 CoreMessageHandler(message:="relation attribute has nor fromEntries or ToEntries set", _
-                                    arg1:=aRelationAttribute.Name, objectname:=_dataobject.ObjectID, _
-                                     subname:="DataObjectRelationMgr.GetObjectByRetrieve", messagetype:=otCoreMessageType.InternalError)
+                                    argument:=aRelationAttribute.Name, objectname:=_dataobject.ObjectID, _
+                                     procedure:="DataObjectRelationMgr.GetObjectByRetrieve", messagetype:=otCoreMessageType.InternalError)
                 Return Nothing
             End If
 
@@ -1816,6 +1717,9 @@ Namespace OnTrack.Database
                     ''' new code - fast
                     ''' 
                     theKeyvalues = Reflector.GetColumnEntryValues(dataobject:=_dataobject, entrynames:=keyentries)
+                    ' get a key by Primary Key
+                    aKey = New ormDatabaseKey(objectid:=aTargetObjectDescriptor.ObjectAttribute.ID, keyvalues:=theKeyvalues.ToArray)
+
                     ''' if we have nothing we could not get all the values from the object
                     ''' in some cases this is ok
                     If theKeyvalues.Contains(Nothing) Then
@@ -1825,7 +1729,7 @@ Namespace OnTrack.Database
                     End If
                     Dim aDelegate As ObjectClassDescription.OperationCallerDelegate = aTargetObjectDescriptor.GetOperartionCallerDelegate(operationname:=anOperationAttribute.OperationName)
                     '** relate also in the runtime !
-                    Dim anObject As iormPersistable = aDelegate(Nothing, {theKeyvalues.ToArray, aTargetObjectDescriptor.Type, Nothing, Nothing, Nothing, runtimeOnly})
+                    Dim anObject As iormRelationalPersistable = aDelegate(Nothing, {aKey, aTargetObjectDescriptor.Type, Nothing, Nothing, Nothing, runtimeOnly})
                     Return anObject
 
                 Else
@@ -1835,6 +1739,8 @@ Namespace OnTrack.Database
 
                     Dim aTargetType As System.Type = aTargetObjectDescriptor.Type
                     theKeyvalues = Reflector.GetColumnEntryValues(dataobject:=_dataobject, entrynames:=keyentries)
+                    aKey = New ormDatabaseKey(objectid:=aTargetObjectDescriptor.ObjectAttribute.ID, keyvalues:=theKeyvalues.ToArray)
+
 
 
                     '** full primary key
@@ -1842,11 +1748,11 @@ Namespace OnTrack.Database
                     Dim retrieveMethod = ot.GetMethodInfo(aTargetType, ObjectClassDescription.ConstMTRetrieve)
                     If retrieveMethod IsNot Nothing Then
                         '** relate also in the runtime !
-                        Dim anObject As iormPersistable = retrieveMethod.Invoke(Nothing, {theKeyvalues.ToArray, Nothing, Nothing, Nothing, runtimeOnly})
+                        Dim anObject As iormRelationalPersistable = retrieveMethod.Invoke(Nothing, {aKey, Nothing, Nothing, Nothing, runtimeOnly})
                         Return anObject
                     Else
                         CoreMessageHandler(message:="the RETRIEVE method was not found on this object class", messagetype:=otCoreMessageType.InternalError, _
-                                            objectname:=aTargetType.Name, subname:="DataObjectRelationMgr.GetObjectByRetrieve")
+                                            objectname:=aTargetType.Name, procedure:="DataObjectRelationMgr.GetObjectByRetrieve")
                         Return Nothing
                     End If
                 End If
@@ -1858,8 +1764,8 @@ Namespace OnTrack.Database
 
             Catch ex As Exception
                 CoreMessageHandler(exception:=ex, _
-                                    arg1:=aRelationAttribute.Name, objectname:=_dataobject.ObjectID, _
-                                     subname:="DataObjectRelationMgr.GetRelatedObjectByRetrieve")
+                                    argument:=aRelationAttribute.Name, objectname:=_dataobject.ObjectID, _
+                                     procedure:="DataObjectRelationMgr.GetRelatedObjectByRetrieve")
                 Return Nothing
             End Try
 

@@ -315,7 +315,7 @@ Namespace OnTrack.Database
     ''' </summary>
     ''' <remarks></remarks>
     
-    Public Class ormRelationCollectionEnumerator(Of T As {iormInfusable, iormPersistable})
+    Public Class ormRelationCollectionEnumerator(Of T As {iormInfusable, iormRelationalPersistable})
         Implements IEnumerator(Of T)
 
         Private _collection As ormRelationCollection(Of T)
@@ -380,16 +380,16 @@ Namespace OnTrack.Database
         Property Item(key As Object) As T
         Property Item(keys As Object()) As T
 
-        Property item(key As DataKeyTuple) As T
+        Property item(key As DataValueTuple) As T
 
 
         Function ContainsKey(keys As Object()) As Boolean
         Function ContainsKey(key As Object) As Boolean
 
-        Function ContainsKey(key As DataKeyTuple) As Boolean
+        Function ContainsKey(key As DataValueTuple) As Boolean
 
 
-        Function GetKeyValues(item As T) As DataKeyTuple
+        Function GetKeyValues(item As T) As DataValueTuple
 
         ReadOnly Property KeyNames() As String()
     End Interface
@@ -400,7 +400,7 @@ Namespace OnTrack.Database
     ''' <typeparam name="T"></typeparam>
     ''' <remarks></remarks>
 
-    Public Class ormRelationNewableCollection(Of T As {New, iormInfusable, iormPersistable})
+    Public Class ormRelationNewableCollection(Of T As {New, iormInfusable, iormRelationalPersistable})
         Inherits ormRelationCollection(Of T)
 
         ''' <summary>
@@ -446,7 +446,7 @@ Namespace OnTrack.Database
         ''' <param name="containerobject"></param>
         ''' <param name="keynames"></param>
         ''' <remarks></remarks>
-        Public Sub New(container As iormPersistable, keyentrynames As String())
+        Public Sub New(container As iormRelationalPersistable, keyentrynames As String())
             MyBase.New(container:=container, keyentrynames:=keyentrynames)
         End Sub
 
@@ -470,7 +470,7 @@ Namespace OnTrack.Database
                 keys = e.Keys
 
                 If keys Is Nothing Then
-                    CoreMessageHandler(message:="no keys retrieved by event RequestKey", subname:="ormRelationNewableCollection.AddCreate", messagetype:=otCoreMessageType.InternalError)
+                    CoreMessageHandler(message:="no keys retrieved by event RequestKey", procedure:="ormRelationNewableCollection.AddCreate", messagetype:=otCoreMessageType.InternalError)
                     Return Nothing
                 End If
             End If
@@ -486,15 +486,15 @@ Namespace OnTrack.Database
 
             Dim arecord As New ormRecord
             If args.Dataobject.Feed(arecord) Then
-                anItem = ormDataObject.CreateDataObject(Of T)(arecord, domainID:=domainid, checkUnique:=checkUnique, runtimeOnly:=runtimeOnly)
+                anItem = ormBusinessObject.CreateDataObject(Of T)(arecord, domainID:=domainid, checkUnique:=checkUnique, runtimeOnly:=runtimeOnly)
                 If anItem IsNot Nothing Then
                     Me.Add(anItem)
                     Return anItem
                 Else
-                    anItem = CTypeDynamic(Of T)(ormDataObject.Retrieve(pkArray:=keys, type:=GetType(T), domainID:=domainid, runtimeOnly:=runtimeOnly))
+                    anItem = CTypeDynamic(Of T)(ormBusinessObject.RetrieveDataObject(pkArray:=keys, type:=GetType(T), domainID:=domainid, runtimeOnly:=runtimeOnly))
                     If anItem.isdeleted Then
                         CoreMessageHandler("adding create a deleted dataobject - use undelete instead", dataobject:=anItem, _
-                                            subname:="ormRelationNewableCollection.AddCreate", messagetype:=otCoreMessageType.ApplicationError)
+                                            procedure:="ormRelationNewableCollection.AddCreate", messagetype:=otCoreMessageType.ApplicationError)
                         anItem = Nothing
                     End If
                 End If
@@ -509,7 +509,7 @@ Namespace OnTrack.Database
     ''' <typeparam name="T"></typeparam>
     ''' <remarks></remarks>
 
-    Public Class ormRelationCollection(Of T As {iormInfusable, iormPersistable})
+    Public Class ormRelationCollection(Of T As {iormInfusable, iormRelationalPersistable})
         Implements iormRelationalCollection(Of T)
 
         ''' <summary>
@@ -541,8 +541,8 @@ Namespace OnTrack.Database
 
         End Class
 
-        Private _dictionary As New SortedDictionary(Of DataKeyTuple, iormPersistable)
-        Protected WithEvents _container As iormPersistable
+        Private _dictionary As New SortedDictionary(Of DataValueTuple, iormRelationalPersistable)
+        Protected WithEvents _container As iormRelationalPersistable
 
         Protected _keyentries As String()
 
@@ -559,7 +559,7 @@ Namespace OnTrack.Database
         ''' <param name="containerobject"></param>
         ''' <param name="keynames"></param>
         ''' <remarks></remarks>
-        Public Sub New(container As iormPersistable, keyentrynames As String())
+        Public Sub New(container As iormRelationalPersistable, keyentrynames As String())
             If container IsNot Nothing Then _container = container
             _keyentries = keyentrynames
         End Sub
@@ -580,7 +580,7 @@ Namespace OnTrack.Database
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public ReadOnly Property Keys As IList(Of DataKeyTuple)
+        Public ReadOnly Property Keys As IList(Of DataValueTuple)
             Get
                 Return _dictionary.Keys.ToList
             End Get
@@ -603,9 +603,9 @@ Namespace OnTrack.Database
         ''' <param name="item"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetKeyValues(item As T) As DataKeyTuple Implements iormRelationalCollection(Of T).GetKeyValues
+        Public Function GetKeyValues(item As T) As DataValueTuple Implements iormRelationalCollection(Of T).GetKeyValues
 
-            Dim keys As New DataKeyTuple(_keyentries.Count)
+            Dim keys As New DataValueTuple(_keyentries.Count)
             For i = 0 To _keyentries.GetUpperBound(0)
                 keys.Item(i) = item.GetValue(_keyentries(i))
             Next i
@@ -646,7 +646,7 @@ Namespace OnTrack.Database
         ''' <param name="e"></param>
         ''' <remarks></remarks>
         Private Sub IormPersistable_OnDelete(sender As Object, e As ormDataObjectEventArgs)
-            Dim anItem As iormPersistable = e.DataObject
+            Dim anItem As iormRelationalPersistable = e.DataObject
             Me.Remove(anItem)
         End Sub
         ''' <summary>
@@ -663,7 +663,7 @@ Namespace OnTrack.Database
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function ContainsKey(keys As Object()) As Boolean Implements iormRelationalCollection(Of T).ContainsKey
-            Dim aKey As New DataKeyTuple(keys.GetUpperBound(0) + 1)
+            Dim aKey As New DataValueTuple(keys.GetUpperBound(0) + 1)
             aKey.Values = keys
             Return _dictionary.ContainsKey(key:=aKey)
         End Function
@@ -673,7 +673,7 @@ Namespace OnTrack.Database
         ''' <param name="keys"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function ContainsKey(keys As DataKeyTuple) As Boolean Implements iormRelationalCollection(Of T).ContainsKey
+        Public Function ContainsKey(keys As DataValueTuple) As Boolean Implements iormRelationalCollection(Of T).ContainsKey
             Return _dictionary.ContainsKey(key:=keys)
         End Function
 
@@ -685,7 +685,7 @@ Namespace OnTrack.Database
         ''' <remarks></remarks>
         Public Function ContainsKey(key As Object) As Boolean Implements iormRelationalCollection(Of T).ContainsKey
             If key.GetType.IsArray AndAlso key.GetType.GetArrayRank = 1 Then
-                Dim akey As New DataKeyTuple(UBound(key) + 1)
+                Dim akey As New DataValueTuple(UBound(key) + 1)
                 Dim i As UShort = 0
                 For Each aValue In key
                     akey.Values(i) = aValue
@@ -694,7 +694,7 @@ Namespace OnTrack.Database
 
                 Return _dictionary.ContainsKey(key:=akey)
             Else
-                Dim aKey As New DataKeyTuple(1)
+                Dim aKey As New DataValueTuple(1)
                 aKey.Values = {key}
                 Return _dictionary.ContainsKey(key:=aKey)
             End If
@@ -772,12 +772,12 @@ Namespace OnTrack.Database
         ''' <remarks></remarks>
         Public Property Item(keys As Object()) As T Implements iormRelationalCollection(Of T).Item
             Get
-                Dim aKey As New DataKeyTuple(keys.GetUpperBound(0) + 1)
+                Dim aKey As New DataValueTuple(keys.GetUpperBound(0) + 1)
                 aKey.Values = keys
                 Return Me.Item(aKey)
             End Get
             Set(value As T)
-                Dim aKey As New DataKeyTuple(keys.GetUpperBound(0) + 1)
+                Dim aKey As New DataValueTuple(keys.GetUpperBound(0) + 1)
                 aKey.Values = keys
                 Me.Item(aKey) = value
             End Set
@@ -789,7 +789,7 @@ Namespace OnTrack.Database
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property Item(key As DataKeyTuple) As T Implements iormRelationalCollection(Of T).Item
+        Public Property Item(key As DataValueTuple) As T Implements iormRelationalCollection(Of T).Item
             Get
                 If ContainsKey(key) Then Return _dictionary.Item(key:=key)
             End Get
@@ -808,11 +808,11 @@ Namespace OnTrack.Database
         Public Property Item(key As Object) As T Implements iormRelationalCollection(Of T).Item
             Get
                 ' strange we cannot overload
-                If key.GetType.Equals(GetType(DataKeyTuple)) Then
+                If key.GetType.Equals(GetType(DataValueTuple)) Then
                     Return _dictionary.Item(key:=key)
 
                 ElseIf key.GetType.IsArray AndAlso key.GetType.GetArrayRank = 1 Then
-                    Dim akey As New DataKeyTuple(UBound(key) + 1)
+                    Dim akey As New DataValueTuple(UBound(key) + 1)
                     Dim i As UShort = 0
                     For Each aValue In key
                         akey.Values(i) = aValue
@@ -821,7 +821,7 @@ Namespace OnTrack.Database
 
                     Return CType(_dictionary.Item(key:=akey), T)
                 Else
-                    Dim aKey As New DataKeyTuple(1)
+                    Dim aKey As New DataValueTuple(1)
                     aKey.Values = {key}
                     Return CType(_dictionary.Item(key:=aKey), T)
                 End If
@@ -829,11 +829,11 @@ Namespace OnTrack.Database
             End Get
             Set(value As T)
                 ' strange we cannot overload
-                If key.GetType.Equals(GetType(DataKeyTuple)) Then
-                    _dictionary.Add(key:=CType(key, DataKeyTuple), value:=value)
+                If key.GetType.Equals(GetType(DataValueTuple)) Then
+                    _dictionary.Add(key:=CType(key, DataValueTuple), value:=value)
 
                 ElseIf key.GetType.IsArray And key.GetType.GetArrayRank = 1 Then
-                    Dim akey As New DataKeyTuple(UBound(key) + 1)
+                    Dim akey As New DataValueTuple(UBound(key) + 1)
                     Dim i As UShort = 0
                     For Each aValue In key
                         akey.Values(i) = aValue
@@ -842,7 +842,7 @@ Namespace OnTrack.Database
 
                     _dictionary.Add(key:=akey, value:=value)
                 Else
-                    Dim aKey As New DataKeyTuple(1)
+                    Dim aKey As New DataValueTuple(1)
                     aKey.Values = {key}
                     Me.Item(aKey) = value
                 End If
@@ -950,7 +950,7 @@ Namespace OnTrack.Database
         Private _sets As New Dictionary(Of String, Dictionary(Of String, SortedList(Of UShort, Object)))
 
         Private _currentset As String
-        Private _defaultset As String = ""
+        Private _defaultset As String = String.empty
 
         ''' <summary>
         ''' constructor
@@ -1028,12 +1028,12 @@ Namespace OnTrack.Database
         ''' <remarks></remarks>
         Public Function SetProperty(ByVal name As String, ByVal value As Object, _
                                     Optional ByVal weight As UShort = 0,
-                                    Optional setname As String = "", _
+                                    Optional setname As String = Nothing, _
                                     Optional sequence As Sequence = Sequence.Primary) As Boolean
 
             Dim aWeightedList As SortedList(Of UShort, Object)
             Dim aSet As Dictionary(Of String, SortedList(Of UShort, Object))
-            If setname = "" Then
+            If String.IsNullOrWhiteSpace(setname) Then
                 setname = _defaultset
             End If
 
@@ -1076,22 +1076,22 @@ Namespace OnTrack.Database
         ''' <returns>object of the property</returns>
         ''' <remarks></remarks>
         Public Function GetProperty(ByVal name As String, Optional weight As UShort = 0, _
-        Optional setname As String = "", _
+        Optional setname As String = Nothing, _
         Optional sequence As Sequence = Sequence.Primary) As Object
 
             Dim aConfigSet As Dictionary(Of String, SortedList(Of UShort, Object))
-            If setname = "" Then
+            If String.IsNullOrWhiteSpace(setname) Then
                 setname = _currentset
             End If
             '* test
-            If setname <> "" AndAlso HasProperty(name, setname:=setname, sequence:=sequence) Then
+            If Not String.IsNullOrWhiteSpace(setname) AndAlso HasProperty(name, setname:=setname, sequence:=sequence) Then
                 aConfigSet = GetSet(setname, sequence)
-            ElseIf setname <> "" AndAlso HasProperty(name, setname:=setname) Then
+            ElseIf Not String.IsNullOrWhiteSpace(setname) AndAlso HasProperty(name, setname:=setname) Then
                 aConfigSet = GetSet(setname)
-            ElseIf setname = "" AndAlso _currentset IsNot Nothing AndAlso HasProperty(name, setname:=_currentset, sequence:=sequence) Then
+            ElseIf String.IsNullOrWhiteSpace(setname) AndAlso _currentset IsNot Nothing AndAlso HasProperty(name, setname:=_currentset, sequence:=sequence) Then
                 setname = _currentset
                 aConfigSet = GetSet(setname, sequence)
-            ElseIf setname = "" AndAlso _defaultset IsNot Nothing AndAlso HasProperty(name, setname:=_defaultset) Then
+            ElseIf String.IsNullOrWhiteSpace(setname) AndAlso _defaultset IsNot Nothing AndAlso HasProperty(name, setname:=_defaultset) Then
                 setname = _defaultset
                 aConfigSet = GetSet(setname)
             Else
@@ -1159,79 +1159,34 @@ Namespace OnTrack.Database
 
     End Class
 
-    ''' <summary>
-    ''' Registery with some meta information
-    ''' </summary>
-    ''' <remarks></remarks>
-    Public Class ormDataTupleMetaClass(Of T)
-        Private _objecttype As System.Type
-        Private _objecttypename As String = ""
-        Private _noKeys As UShort
-
-        Private _lockobject As New Object
-
-        ''' <summary>
-        ''' constructor with an ormDataObject Class Type
-        ''' </summary>
-        ''' <param name="type"></param>
-        ''' <remarks></remarks>
-        Public Sub New([type] As System.Type)
-            If [type].GetInterfaces.Contains(GetType(T)) OrElse [type].IsAssignableFrom(GetType(T)) Then
-                Dim aDescriptor = ot.GetObjectClassDescription([type])
-                If aDescriptor IsNot Nothing Then
-                    _noKeys = aDescriptor.PrimaryKeyEntryNames.Count
-                Else
-                    Throw New Exception("registerentry: descriptor not found")
-                End If
-            Else
-                Throw New Exception("registeryEntry: " & [type].Name & " has no interface or base class for " & GetType(T).Name)
-            End If
-        End Sub
-        ''' <summary>
-        ''' Gets the objecttype.
-        ''' </summary>
-        ''' <value>The objecttype.</value>
-        Public ReadOnly Property Objecttype() As Type
-            Get
-                Return Me._objecttype
-            End Get
-        End Property
-
-        ''' <summary>
-        ''' Gets the objecttypename.
-        ''' </summary>
-        ''' <value>The objecttypename.</value>
-        Public ReadOnly Property Objecttypename() As String
-            Get
-                If _objecttype IsNot Nothing Then Return Me._objecttype.Name
-                Return ""
-            End Get
-        End Property
-
-        ''' <summary>
-        ''' Gets the no keys.
-        ''' </summary>
-        ''' <value>The no keys.</value>
-        Public ReadOnly Property NoKeys() As UShort
-            Get
-                Return Me._noKeys
-            End Get
-        End Property
-
-    End Class
 
     ''' <summary>
-    ''' the generic object unique key class
+    ''' a DataValue Tuple holds a dynamic number of values(objects)
     ''' </summary>
-    ''' <remarks></remarks>
-    Public Class DataKeyTuple
+    ''' <remarks>
+    ''' SwRS Design Principle
+    ''' 1. a Tuple can hold a dynamic number of objects
+    ''' 2. the Entries can be addressed by number or by unique name
+    ''' 3. The Entrynames are passed as array reference
+    ''' 4. The values are cloned
+    ''' </remarks>
+    Public Class DataValueTuple
         Implements IHashCodeProvider
         Implements IQueryable
         Implements IComparable
 
 
-        '** Keys is an array of objects
+        ''' <summary>
+        ''' Values 
+        ''' </summary>
+        ''' <remarks></remarks>
         Protected _Values() As Object
+
+        ''' <summary>
+        ''' Entrynames should be kept as reference - these are facultative
+        ''' </summary>
+        ''' <remarks></remarks>
+        Protected _EntryNames() As String
 
         Private _lockobject As New Object ''' internal lock object
 
@@ -1241,12 +1196,37 @@ Namespace OnTrack.Database
         ''' <param name="registeryentry"></param>
         ''' <remarks></remarks>
 
-        Public Sub New(nokeys As UShort)
-            ReDim _Values(nokeys - 1)
+        Public Sub New(size As UShort)
+            ReDim _Values(size - 1)
         End Sub
-        Public Sub New(keys() As Object)
-            _Values = keys
+        ''' <summary>
+        ''' constructor with values
+        ''' </summary>
+        ''' <param name="values"></param>
+        ''' <remarks></remarks>
+        Public Sub New(values() As Object, Optional ByRef entrynames() As String = Nothing)
+            _Values = values.Clone 'take a copy
+            _EntryNames = entrynames 'keep reference
         End Sub
+        Public Sub New(head As Object, tail() As Object, Optional ByRef entrynames() As String = Nothing)
+            ReDim _Values(tail.GetUpperBound(0) + 1)
+            If head IsNot Nothing Then _Values(0) = head.clone
+            Array.ConstrainedCopy(tail.Clone, 0, _Values, 1, tail.Length)
+            _EntryNames = entrynames 'keep reference
+        End Sub
+        ''' <summary>
+        ''' Returns the actuals count means if initialised the number of non-nothing members
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Overloads ReadOnly Property Count As UShort
+            Get
+                ' count 
+                If _Values.Count > 0 Then Return Array.FindAll(_Values, Function(x) x IsNot Nothing).Count
+                Return 0
+            End Get
+        End Property
         ''' <summary>
         ''' returns the size of the ObjectKey Array
         ''' </summary>
@@ -1272,37 +1252,43 @@ Namespace OnTrack.Database
                 Me._Values = value
             End Set
         End Property
+        ''' <summary>
+        ''' return hashcode
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Overridable Function GetHashCode() As Integer
+            If Me.Size = 0 Then Return 0
 
+            Dim hashvalue As Integer = 0
+            For i = _Values.GetLowerBound(0) To _Values.GetUpperBound(0)
+                If _Values(i) Is Nothing Then
+                    hashvalue = hashvalue Xor 0
+                Else
+                    hashvalue = hashvalue Xor _Values(i).GetHashCode()
+                End If
+            Next
+            Return hashvalue
+        End Function
         ''' <summary>
         ''' returns a hash value for the keys
         ''' </summary>
         ''' <param name="obj"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Function GetHashCode(o As Object) As Integer Implements IHashCodeProvider.GetHashCode
-            Dim aKey As DataKeyTuple = TryCast(o, DataKeyTuple)
-            If aKey Is Nothing Then Return o.GetHashCode
-            If aKey.Values Is Nothing Then Return 0
-
-            Dim hashvalue As Integer = 0
-            For i = 0 To aKey.Values.Count - 1
-                If aKey.Values(i) Is Nothing Then
-                    hashvalue = hashvalue Xor 0
-                Else
-                    hashvalue = hashvalue Xor aKey.Values(i).GetHashCode()
-                End If
-            Next
-            Return hashvalue
+        Public Overridable Function GetHashCode(o As Object) As Integer Implements IHashCodeProvider.GetHashCode
+            If o IsNot Nothing Then Return o.GetHashCode
+            Return Me.GetHashCode
         End Function
         ''' <summary>
-        ''' Equal routine of 2 keys
+        ''' Equal routine of 2 data tuples
         ''' </summary>
         ''' <param name="obj"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overrides Function Equals(obj As Object) As Boolean
+        Public Overridable Function Equals(obj As Object) As Boolean
             Try
-                Dim aKey As DataKeyTuple = TryCast(obj, DataKeyTuple)
+                Dim aKey As DataValueTuple = TryCast(obj, DataValueTuple)
                 If aKey Is Nothing Then
                     Return False
                 Else
@@ -1314,7 +1300,7 @@ Namespace OnTrack.Database
                         Return True
                     End If
 
-                    If aKey.Values.Count <> _Values.Count Then Return False
+                    If aKey.Count <> Me.Count Then Return False
                     For i As UShort = 0 To CUShort(aKey.Values.Count - 1)
                         If aKey(i) Is Nothing AndAlso Me(CUShort(i)) Is Nothing Then
                             Return True
@@ -1336,19 +1322,11 @@ Namespace OnTrack.Database
                 End If
 
             Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="ObjectKeyArray.Equals")
+                CoreMessageHandler(exception:=ex, procedure:="ObjectKeyArray.Equals")
                 Return False
             End Try
         End Function
-        ''' <summary>
-        ''' returns a hash value for the keys
-        ''' </summary>
-        ''' <param name="obj"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Overrides Function GetHashCode() As Integer
-            Return Me.GetHashCode(Me)
-        End Function
+
         ''' <summary>
         ''' gets or sets the item in an key
         ''' </summary>
@@ -1356,12 +1334,51 @@ Namespace OnTrack.Database
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Default Public Property Item(index As UShort) As Object
+        Default Public Overridable Property Item(index As Integer) As Object
             Get
-                Return _Values(index)
+                If index >= _Values.GetLowerBound(0) AndAlso index <= _Values.GetUpperBound(0) Then
+                    Return _Values(index)
+                Else
+                    Throw New ormException(message:="DataValueTuple: index " & index & " out of bound")
+                End If
             End Get
             Set(value As Object)
-                _Values(index) = value
+                If index >= _Values.GetLowerBound(0) AndAlso index <= _Values.GetUpperBound(0) Then
+                    _Values(index) = value
+                Else
+                    Throw New ormException(message:="DataValueTuple: index " & index & "  out of bound")
+                End If
+
+            End Set
+        End Property
+        ''' <summary>
+        ''' gets or sets the item in an key
+        ''' </summary>
+        ''' <param name="index"></param>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Default Public Overridable Property Item(index As String) As Object
+            Get
+                Dim i As Int64
+                If _EntryNames.Count > 0 Then
+                    i = Array.IndexOf(_EntryNames, index)
+                ElseIf IsNumeric(index) Then
+                    i = Convert.ToInt64(index)
+                Else
+                    Throw New ormException(message:="DataValueTuple: index by string '" & index & "' is not applicable")
+                End If
+
+                If i >= _Values.GetLowerBound(0) AndAlso i <= _Values.GetUpperBound(0) Then
+                    Return _Values(i)
+                Else
+                    Throw New ormException(message:="DataValueTuple: index " & index & " (" & i & ") out of bound")
+                End If
+
+            End Get
+            Set(value As Object)
+                Dim i As Integer = Array.FindIndex(Of Object)(_EntryNames, Function(x) x IsNot Nothing AndAlso x = index)
+                Me(i) = value
             End Set
         End Property
         ''' <summary>
@@ -1369,7 +1386,7 @@ Namespace OnTrack.Database
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetEnumerator() As IEnumerator Implements IEnumerable.GetEnumerator
+        Public Overridable Function GetEnumerator() As IEnumerator Implements IEnumerable.GetEnumerator
             Return _Values.ToList
         End Function
 
@@ -1409,10 +1426,15 @@ Namespace OnTrack.Database
             End If
 
         End Function
-
-        Public Function CompareTo(obj As Object) As Integer Implements IComparable.CompareTo
+        ''' <summary>
+        ''' compare
+        ''' </summary>
+        ''' <param name="obj"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Overridable Function CompareTo(obj As Object) As Integer Implements IComparable.CompareTo
             Try
-                Dim aKey As DataKeyTuple = TryCast(obj, DataKeyTuple)
+                Dim aKey As DataValueTuple = TryCast(obj, DataValueTuple)
                 If aKey Is Nothing Then
                     Return False
                 Else
@@ -1441,63 +1463,593 @@ Namespace OnTrack.Database
                 End If
 
             Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="ObjectKeyArray.Equals")
+                CoreMessageHandler(exception:=ex, procedure:="ObjectKeyArray.Equals")
                 Return False
             End Try
         End Function
     End Class
 
     ''' <summary>
-    ''' the generic object unique key class
+    ''' a data value tuple describeing a database key by referenceing to a database key object
     ''' </summary>
-    ''' <remarks></remarks>
-    Public Class ormPrimaryKey(Of T)
-        Inherits DataKeyTuple
-
-
-        '** Keys is an array of objects
-        Private _registery As ormDataTupleMetaClass(Of T)
+    ''' <remarks>
+    ''' SwRS Design Principle
+    ''' 
+    ''' The first data datum from the data value tuple contains a canonical keyid, if keyid is not nothing.
+    ''' the keyid is either the primary key name (or nothing) orelse the name of an index of the table
+    ''' 
+    ''' </remarks>
+    Public Class ormDatabaseKey
+        Inherits DataValueTuple
+        Implements ICloneable
+        Implements IEquatable(Of ormDatabaseKey)
 
         ''' <summary>
-        ''' constructor of an keyentry
+        ''' Comparer Class for Dictioneries
         ''' </summary>
-        ''' <param name="registeryentry"></param>
         ''' <remarks></remarks>
-        Public Sub New(registeryentry As ormDataTupleMetaClass(Of T))
-            MyBase.New(registeryentry.NoKeys)
-            _registery = registeryentry
-        End Sub
+        Public Class Comparer
+            Implements IEqualityComparer(Of ormDatabaseKey)
+            Sub New()
+
+            End Sub
+            ''' <summary>
+            ''' Equalses the specified x.
+            ''' </summary>
+            ''' <param name="x">The x.</param>
+            ''' <param name="y">The y.</param>
+            ''' <returns></returns>
+            Public Overloads Function [Equals](x As ormDatabaseKey, y As ormDatabaseKey) As Boolean Implements IEqualityComparer(Of ormDatabaseKey).[Equals]
+                Return x.Equals(y)
+            End Function
+
+            ''' <summary>
+            ''' Gets the hash code.
+            ''' </summary>
+            ''' <param name="obj">The obj.</param>
+            ''' <returns></returns>
+            Public Overloads Function GetHashCode(obj As ormDatabaseKey) As Integer Implements IEqualityComparer(Of ormDatabaseKey).GetHashCode
+                Return obj.GetHashCode
+            End Function
+
+        End Class
+        Private _tableid As String
+        Private _keyid As String 'id of the key
+        Private _objectid As String ' object id of the key if assigned to an object
+        Private _isUnique As Boolean
+
+        ''' <summary>
+        ''' create a primary key withvalues
+        ''' </summary>
+        ''' <param name="keyvalues"></param>
+        ''' <remarks></remarks>
         Public Sub New(keyvalues() As Object)
             MyBase.New(keyvalues)
         End Sub
+        ''' <summary>
+        ''' create a key with reference to a tableid, keyvalues (optional the keyid - if nothing -> primary key)
+        ''' </summary>
+        ''' <param name="typeid"></param>
+        ''' <param name="keyvalues"></param>
+        ''' <remarks></remarks>
+        Public Sub New(objectid As String, keyvalues() As Object, Optional tableid As String = Nothing, Optional keyid As Object = Nothing)
+            MyBase.New(head:=keyid, tail:=keyvalues)
+            SetKeyid(objectid:=objectid, tableid:=tableid, keyid:=keyid)
+        End Sub
+        ''' <summary>
+        ''' create a key with reference to a tableid, keyvalues (optional the keyid - if nothing -> primary key)
+        ''' </summary>
+        ''' <param name="typeid"></param>
+        ''' <param name="keyvalues"></param>
+        ''' <remarks></remarks>
+        Public Sub New(tableid As String, keyvalues() As Object, Optional keyid As Object = Nothing)
+            MyBase.New(head:=keyid, tail:=keyvalues)
+            SetKeyid(tableid:=tableid, keyid:=keyid)
+        End Sub
+        ''' <summary>
+        ''' create a key with reference to a tableid, keyvalues (optional the keyid - if nothing -> primary key)
+        ''' </summary>
+        ''' <param name="typeid"></param>
+        ''' <param name="keyvalues"></param>
+        ''' <remarks></remarks>
+        Public Sub New(objectid As String, Optional tableid As String = Nothing, Optional keyid As String = Nothing)
+            MyBase.New({})
+            SetKeyid(objectid:=objectid, tableid:=tableid, keyid:=keyid)
+        End Sub
+
+
+        ''' <summary>
+        ''' Gets the objectid.
+        ''' </summary>
+        ''' <value>The objectid.</value>
+        Public ReadOnly Property Objectid As String
+            Get
+                Return Me._objectid
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Gets the tableid for the key.
+        ''' </summary>
+        ''' <value>The tableid.</value>
+        Public ReadOnly Property Tableid As String
+            Get
+                Return Me._tableid
+            End Get
+        End Property
+        ''' <summary>
+        ''' Gets the id for the key.
+        ''' </summary>
+        ''' <value>The tableid.</value>
+        Public ReadOnly Property KeyID As String
+            Get
+                Return Me._keyid
+            End Get
+        End Property
+        ''' <summary>
+        ''' Gets or sets the unique flag.
+        ''' </summary>
+        ''' <value>The is unique.</value>
+        Public Property IsUnique As Boolean
+            Get
+                Return Me._isUnique
+            End Get
+            Set(value As Boolean)
+                Me._isUnique = value
+            End Set
+        End Property
+        ''' <summary>
+        ''' returns the Names of the keys
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property EntryNames As String()
+            Get
+                Return _EntryNames
+            End Get
+        End Property
+
         ''' <summary>
         ''' Gets or sets the keys.
         ''' </summary>
         ''' <value>The keys.</value>
         Public Overrides Property Values() As Object()
             Get
-                Return Me._Values
+                If _keyid Is Nothing Then Return Me._Values
+                Return _Values.Skip(1).ToArray
             End Get
             Set(value As Object())
-                If value.GetUpperBound(0) <> _registery.NoKeys - 1 Then Throw New Exception("keys of this type have different bound")
-                Me._Values = value
+                'If value.GetUpperBound(0) <> _registery.NoKeys - 1 Then Throw New Exception("keys of this type have different bound")
+                '* different on typeid or without
+                If _keyid Is Nothing Then
+                    Me._Values = value
+                Else
+                    Dim i As UShort = Math.Min(_Values.Length - 1, value.Length) ' leave out keyid (first)
+                    Array.ConstrainedCopy(value, 0, _Values, 1, i)
+                End If
             End Set
         End Property
+        ''' <summary>
+        ''' gets or sets the item in an key
+        ''' </summary>
+        ''' <param name="index"></param>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Default Public Overrides Property Item(index As Integer) As Object
+            Get
+                If _keyid IsNot Nothing AndAlso index >= Me.GetLowerBound(0) AndAlso index <= Me.GetUpperBound(0) Then
+                    Return MyBase.Item(index + 1)
+                ElseIf _keyid Is Nothing AndAlso index >= Me.GetLowerBound(0) AndAlso index <= Me.GetUpperBound(0) Then
+                    Return MyBase.Item(index)
+                Else
+                    Throw New ormException(message:="ormDatabaseKey: index " & index & " out of bound")
+                End If
+            End Get
+            Set(value As Object)
+                If _keyid IsNot Nothing AndAlso index >= Me.GetLowerBound(0) AndAlso index <= Me.GetUpperBound(0) Then
+                    MyBase.Item(index + 1) = value
+                ElseIf _keyid Is Nothing AndAlso index >= Me.GetLowerBound(0) AndAlso index <= Me.GetUpperBound(0) Then
+                    MyBase.Item(index) = value
+                Else
+                    Throw New ormException(message:="ormDatabaseKey: index " & index & "  out of bound")
+                End If
 
+            End Set
+        End Property
+        ''' <summary>
+        ''' get an enumerator
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Overrides Function GetEnumerator() As IEnumerator
+            Return Me.Values.ToList
+        End Function
+        ''' <summary>
+        ''' Returns the size of the key 
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Overloads ReadOnly Property Size As UShort
+            Get
+                ' count if  keyid is applied (all entries -> first id not in entrynames)
+                If _keyid IsNot Nothing Then Return _EntryNames.Count
+                Return _Values.Count
+            End Get
+        End Property
+        ''' <summary>
+        ''' Returns the actuals count means if initialised the number of non-nothing members
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Overloads ReadOnly Property Count As UShort
+            Get
+                ' count if not keyid is applied (all entires)
+                If _Values.Count > 0 And _keyid Is Nothing Then Return Array.FindAll(_Values, Function(x) x IsNot Nothing).Count
+                ' count if keyid is applied (leave the first out)
+                If _Values.Count > 0 And _keyid IsNot Nothing Then Return Array.FindAll(_Values, Function(x) x IsNot Nothing).Count - 1
+                Return 0
+            End Get
+        End Property
+        ''' <summary>
+        ''' Simulate the Upper Bound
+        ''' </summary>
+        ''' <param name="i"></param>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property GetUpperBound(Optional i As Integer = 0) As Short
+            Get
+                Return Me.Size - 1
+            End Get
+        End Property
+        ''' <summary>
+        ''' Simulate the lower Bound
+        ''' </summary>
+        ''' <param name="i"></param>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property GetLowerBound(Optional i As Integer = 0) As Short
+            Get
+                Return 0
+            End Get
+        End Property
+        ''' <summary>
+        ''' returns the index of the domain id if the key is bound to a table
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function GetDomainIDOrdinal() As Short
+            If _EntryNames.Count > 0 Then Return Array.FindIndex(_EntryNames, Function(x) x.ToUpper = Commons.Domain.ConstFNDomainID)
+            Return -1
+        End Function
+        ''' <summary>
+        ''' sets the reference keyid for this key
+        ''' </summary>
+        ''' <param name="keyid"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Private Function SetKeyid(Optional tableid As String = Nothing, Optional keyid As String = Nothing, Optional objectid As String = Nothing) As Boolean
+            _objectid = objectid.ToUpper
+
+            ''' this routine is based on the class descriptions not on the objectdefinition since 
+            ''' the information about keys are derived from indices and tables primary key which should be tightly
+            ''' linked with the code and are therefore obsolete
+            ''' 
+
+            '** if we have just the objectid
+            If tableid Is Nothing AndAlso objectid IsNot Nothing Then
+                Dim anObjectDescription As ObjectClassDescription = ot.GetObjectClassDescriptionByID(id:=objectid)
+                If anObjectDescription IsNot Nothing Then
+                    tableid = anObjectDescription.ObjectAttribute.PrimaryContainerID
+                Else
+                    CoreMessageHandler(message:="object class description for '" & objectid & "' could not be retrieved from store", _
+                                      procedure:="ormDatabaseKey.setKeyiD", messagetype:=otCoreMessageType.InternalError)
+                    Return False
+                End If
+
+            End If
+
+
+            Dim aTableAttribute = ot.GetSchemaTableAttribute(tablename:=tableid)
+            If aTableAttribute IsNot Nothing AndAlso (keyid Is Nothing OrElse keyid.ToUpper = aTableAttribute.PrimaryKey.ToUpper) Then
+                _EntryNames = aTableAttribute.PrimaryEntryNames
+                ReDim Preserve _Values(_EntryNames.GetUpperBound(0) + 1) ' plus keyid
+                _tableid = tableid.ToUpper
+                _keyid = tableid.ToUpper & "." & aTableAttribute.PrimaryKey.ToUpper
+                _Values(0) = _keyid
+                _isUnique = True
+
+            ElseIf aTableAttribute IsNot Nothing AndAlso keyid IsNot Nothing Then
+
+                Dim anIndexAttribute As ormIndexAttribute = aTableAttribute.GetIndex(indexname:=keyid.ToUpper)
+                If anIndexAttribute Is Nothing Then
+                    CoreMessageHandler(message:="keyid (indexid) '" & keyid & "' could not be retrieved from table attribute '" & tableid & "'", _
+                                       procedure:="ormDatabaseKey.setKeyiD", messagetype:=otCoreMessageType.InternalError)
+                    Return False
+                Else
+                    _tableid = tableid.ToUpper
+                    _keyid = tableid.ToUpper & "." & keyid.ToUpper
+                    _EntryNames = anIndexAttribute.ColumnNames
+                    ReDim Preserve _Values(_EntryNames.GetUpperBound(0) + 1) 'plus keyid
+                    _isUnique = anIndexAttribute.IsUnique
+                    _Values(0) = _keyid
+                End If
+            Else
+                If String.IsNullOrWhiteSpace(tableid) Then tableid = Nothing
+                If String.IsNullOrWhiteSpace(keyid) Then keyid = Nothing
+                CoreMessageHandler(message:="tableid or keyid couldnot be retrieved from Attributes", argument:=tableid & "." & keyid, procedure:="ormDatabaseKey.setKeyiD", messagetype:=otCoreMessageType.InternalError)
+                Return False
+            End If
+
+            Return True
+        End Function
+        ''' <summary>
+        ''' substitutes in a primary key array (of a table) the domainid with the current domainid
+        ''' </summary>
+        ''' <param name="tablename"></param>
+        ''' <param name="pkarray"></param>
+        ''' <param name="domainid"></param>
+        ''' <param name="runtimeOnly"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function SubstituteDomainID(domainid As String, _
+                                            Optional substitueOnlyNothingDomain As Boolean = True, _
+                                            Optional runtimeOnly As Boolean = False) As Boolean
+            Dim domindex As Integer = -1
+
+            ''' beware of startup and installation
+            ''' here the Substitute doesnot work and doesnot make any sense
+            ''' 
+            If Not runtimeOnly AndAlso ot.CurrentSession.IsRepositoryAvailable Then
+                Dim aTabledefinition As ContainerDefinition = CurrentSession.Objects.GetTable(tablename:=Me.Tableid, runtimeOnly:=runtimeOnly)
+                If aTabledefinition Is Nothing Then
+                    CoreMessageHandler(message:="table definition could not be retrieved", procedure:="ormDatabaseKey.SubstituteDomainID", _
+                                    argument:=domainid, containerID:=Me.Tableid, containerEntryName:=Commons.DomainSetting.ConstFNDomainID, messagetype:=otCoreMessageType.InternalError)
+                    Return False
+                ElseIf Not aTabledefinition.DomainBehavior Then
+                    ' this might also be called if we donot have domain behavior 
+                    'CoreMessageHandler(message:="table definition shows no domainhebahvior -> check it", subname:="ormDatabaseKey.SubstituteDomainID", _
+                    '                arg1:=domainid, tablename:=tablename, columnname:=DomainSetting.ConstFNDomainID, messagetype:=otCoreMessageType.InternalError)
+                    Return True
+                End If
+
+                ''' check if the domain id is part of the primary key
+                ''' 
+                domindex = Me.GetDomainIDOrdinal
+                If domindex >= 0 Then
+                    If String.IsNullOrEmpty(domainid) Then domainid = CurrentSession.CurrentDomainID
+                    Me(domindex) = UCase(domainid) ' set domainid
+                ElseIf aTabledefinition.DomainBehavior Then
+                    CoreMessageHandler(message:="domainID is not in primary key although domain behavior is set", procedure:="ormDatabaseKey.SubstituteDomainID", _
+                                       argument:=domainid, containerID:=Me.Tableid, containerEntryName:=Commons.Domain.ConstFNDomainID, messagetype:=otCoreMessageType.InternalError)
+                End If
+
+                ''' check if nothing is in key
+                ''' 
+                For i = 0 To Me.GetUpperBound(0)
+                    If Me(i) Is Nothing Then
+                        If Me.Tableid IsNot Nothing Then
+                            CoreMessageHandler(message:="part of key is nothing", procedure:="ormDatabaseKey.SubstituteDomainID", _
+                                 argument:=i, containerID:=Me.Tableid, containerEntryName:=Me.EntryNames(i), messagetype:=otCoreMessageType.InternalWarning)
+                        Else
+                            CoreMessageHandler(message:="part of key is nothing", procedure:="ormDatabaseKey.SubstituteDomainID", _
+                                argument:=i, containerID:=Me.Tableid, messagetype:=otCoreMessageType.InternalWarning)
+                        End If
+                    End If
+                Next
+
+                ''' return successful
+                ''' 
+                Return True
+            Else
+                ''' do the same but use the attributes since we are bootstrapping or starting up
+                ''' 
+                Dim aContainerAttribute As iormContainerAttribute = ot.GetContainerAttribute(Me.Tableid)
+                If aContainerAttribute Is Nothing Then
+                    CoreMessageHandler(message:="table attribute could not be retrieved", procedure:="ormDatabaseKey.SubstituteDomainID", _
+                                    argument:=domainid, containerID:=Me.Tableid, containerEntryName:=Commons.Domain.ConstFNDomainID, messagetype:=otCoreMessageType.InternalError)
+                    Return False
+                ElseIf (aContainerAttribute.HasValueAddDomainBehavior AndAlso aContainerAttribute.AddDomainBehavior) Then
+                    Dim keynames As String() = aContainerAttribute.PrimaryEntryNames
+                    domindex = Array.FindIndex(Me.EntryNames, Function(s) s.ToLower = Commons.Domain.ConstFNDomainID.ToLower)
+                    If domindex >= 0 Then
+                        If String.IsnullorEmpty(domainID) Then domainid = CurrentSession.CurrentDomainID
+
+                        If Me.Size = keynames.Count Then
+                            ' set only if nothing is set
+                            If Me(domindex) Is Nothing OrElse String.IsNullOrWhiteSpace(Me(domindex)) Then
+                                Me(domindex) = UCase(domainid)
+                            ElseIf Me(domindex) <> UCase(domainid) Then
+                                Me(domindex) = UCase(domainid)
+                            End If
+                        Else
+                            'ReDim Preserve primarykey(keynames.Count)
+                            Me(domindex) = UCase(domainid)
+                        End If
+                    Else
+                        CoreMessageHandler(message:="domainID is not in primary key although domain behavior is set", procedure:="ormDataObject.SubstituteDomainIDinPKArray", _
+                                     argument:=domainid, containerID:=Me.Tableid, containerEntryName:=Commons.Domain.ConstFNDomainID, messagetype:=otCoreMessageType.InternalError)
+                        Return False
+                    End If
+                Else
+                    Return True
+                End If
+
+                Return True
+            End If
+            Return True
+        End Function
+        ''' <summary>
+        ''' helper routine to check and fix the primary key on length, datatype and domain substitution
+        ''' </summary>
+        ''' <param name="pkarray"></param>
+        ''' <param name="runtimeOnly"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function ChecknFix(domainid As String, _
+                                    Optional substitueOnlyNothingDomain As Boolean = True, _
+                                    Optional runtimeOnly As Boolean = False) As Boolean
+
+            If Me.Objectid Is Nothing Then Return False
+
+            Dim aDescription = ot.GetObjectClassDescriptionByID(id:=Me.Objectid)
+
+            ''' Substitute the DomainID
+            '''
+            SubstituteDomainID(substitueOnlyNothingDomain:=substitueOnlyNothingDomain, domainid:=domainid, runtimeOnly:=runtimeOnly)
+
+            ''' convert the  key fields
+            ''' 
+            Dim i As UShort = 0
+            For Each aColumnname In Me.EntryNames
+                Dim aMappingList As IEnumerable(Of FieldInfo) = aDescription.GetMappedContainerEntry2FieldInfos(containerEntryName:=aColumnname, containerID:=Me.Tableid)
+
+                If aMappingList IsNot Nothing Then
+                    For Each aMapping In aMappingList
+                        If Me(i) Is Nothing Then
+                            'do nothing since the event handler to generate a key might be called by an event
+                            '
+                            'CoreMessageHandler(message:="part of primary key must not be nothing", arg1:=pkarray(i), _
+                            '                   objectname:=aDescription.Name, messagetype:=otCoreMessageType.InternalError, _
+                            '                   subname:="ormDatabaseKey.SubstituteDomainID)
+                            'Return False
+                        ElseIf Not Me(i).GetType.Equals(aMapping.FieldType) Then
+                            Dim avalue = Me(i)
+                            Try
+                                Me(i) = CTypeDynamic(avalue, aMapping.FieldType)
+                            Catch ex As Exception
+                                CoreMessageHandler(exception:=ex, argument:=Me(i), procedure:="ormDatabaseKey.SubstituteDomainID")
+                                Return False
+                            End Try
+
+                        End If
+
+                    Next
+                End If
+
+                ''' increase
+                ''' 
+                i += 1
+            Next
+            Return True
+        End Function
+
+        ''' <summary>
+        ''' clone this key
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function Clone() As Object Implements ICloneable.Clone
+            Return New ormDatabaseKey(objectid:=_objectid, keyid:=_keyid, tableid:=_tableid, keyvalues:=_Values)
+        End Function
+
+        ''' <summary>
+        ''' Equal routine of 2 keys
+        ''' </summary>
+        ''' <param name="obj"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Overrides Function Equals(obj As Object) As Boolean
+            Dim aKey As ormDatabaseKey = TryCast(obj, ormDatabaseKey)
+            If aKey Is Nothing Then Return False
+            Return Me.Equals(other:=aKey)
+        End Function
+
+        ''' <summary>
+        ''' Equalses the specified other.
+        ''' </summary>
+        ''' <param name="other">The other.</param>
+        ''' <returns></returns>
+        Public Overloads Function [Equals](other As ormDatabaseKey) As Boolean Implements IEquatable(Of ormDatabaseKey).[Equals]
+            If other.KeyID = Me.KeyID Then
+                Return MyBase.Equals(other) ' test the values
+            End If
+            Return False
+        End Function
+        ''' <summary>
+        ''' return the hashcode
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Overloads Function GetHashCode() As Integer
+            Return MyBase.GetHashCode
+        End Function
+
+        ''' <summary>
+        ''' compare
+        ''' </summary>
+        ''' <param name="obj"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Overrides Function CompareTo(obj As Object) As Integer
+            Dim aKey As ormDatabaseKey = TryCast(obj, ormDatabaseKey)
+            If aKey Is Nothing Then Return False
+            If aKey.KeyID = Me.KeyID Then
+                Return MyBase.CompareTo(aKey) ' test the values
+            End If
+            Return Me.KeyID.CompareTo(aKey.KeyID)
+        End Function
+        ''' <summary>
+        ''' to string function
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Overrides Function ToString() As String
+            Dim aString As New System.Text.StringBuilder("[<")
+
+            If _keyid IsNot Nothing Then
+                aString.Append(KeyID)
+            Else
+                aString.Append("-")
+            End If
+            aString.Append(">")
+
+            Dim first As Boolean = True
+            For Each aValue In Me.Values
+                If Not first Then
+                    aString.Append(",")
+                Else
+                    first = False
+                End If
+                If aValue IsNot Nothing Then
+                    aString.Append(aValue.ToString)
+                Else
+                    aString.Append("NULL")
+                End If
+
+            Next
+            aString.Append("]")
+            Return aString.ToString
+        End Function
     End Class
 
 
     ''' <summary>
     ''' represents a record data tuple for to be stored and retrieved in a data store
     ''' </summary>
-    ''' <remarks></remarks>
+    ''' <remarks>
+    ''' Design Principles
+    ''' 
+    ''' 1. An ormRecord can be bound to one or multiple tables -> bound mode and fixed number of columns
+    '''    1.1 in Bound mode the re record is always set to all the columns of the table
+    '''    1.2 In Bound mode the record should also know if it is created or loaded or changed
+    ''' 2. An ormRecord can also be set individual by entry name -> unbound dynamic
+    ''' 3. An ormRecord is splittup in entrynames in the form [table].[columnname]
+    '''    3.1 it can be adressed either by entry name or by number 
+    ''' 4. Keep the orginal values
+    '''</remarks>
     Public Class ormRecord
         Inherits Dynamic.DynamicObject
 
         Private _FixEntries As Boolean = False
         Private _isBound As Boolean = False
-        Private _TableStores As iormDataStore() = {}
-        Private _DbDriver As iormDatabaseDriver = Nothing
+        Private _TableStores As iormRelationalTableStore() = {}
+        Private _DbDriver As iormRelationalDatabaseDriver = Nothing
         Private _entrynames() As String = {}
         Private _Values() As Object = {}
         Private _OriginalValues() As Object = {}
@@ -1505,7 +2057,7 @@ Namespace OnTrack.Database
         Private _isUnknown As Boolean = True
         Private _isLoaded As Boolean = False
         Private _isChanged As Boolean = False
-        Private _tableids As String() = {}
+        Private _TableIds As String() = {}
         Private _upperRangeofTable As ULong() = {}
         Private _isnullable As Boolean() = {}
 
@@ -1515,7 +2067,7 @@ Namespace OnTrack.Database
         End Sub
 
         Public Sub New(ByVal tableID As String, _
-                       Optional dbdriver As iormDatabaseDriver = Nothing, _
+                       Optional dbdriver As iormRelationalDatabaseDriver = Nothing, _
                        Optional fillDefaultValues As Boolean = False, _
                        Optional runtimeOnly As Boolean = False)
             _DbDriver = dbdriver
@@ -1528,7 +2080,7 @@ Namespace OnTrack.Database
         End Sub
 
         Public Sub New(ByVal tableIDs As String(), _
-                       Optional dbdriver As iormDatabaseDriver = Nothing, _
+                       Optional dbdriver As iormRelationalDatabaseDriver = Nothing, _
                        Optional fillDefaultValues As Boolean = False, _
                        Optional runtimeOnly As Boolean = False)
             _DbDriver = dbdriver
@@ -1697,13 +2249,13 @@ Namespace OnTrack.Database
         ''' <remarks></remarks>
         Public Property TableIDs As String()
             Get
-                Return TableIDs
+                Return _tableids
             End Get
             Private Set(value As String())
                 If Not _isBound Then
                     _tableids = value
                 Else
-                    CoreMessageHandler(message:="tableids cannot be assigned after binding a record", subname:="ormRecord.tableids")
+                    CoreMessageHandler(message:="tableids cannot be assigned after binding a record", procedure:="ormRecord.tableids")
                     Throw New ormException(message:="tableids cannot be assigned after binding a record")
                 End If
             End Set
@@ -1715,7 +2267,7 @@ Namespace OnTrack.Database
         ''' <param name="tableid"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetTablestore(tableid As String) As iormDataStore
+        Public Function GetTablestore(tableid As String) As iormRelationalTableStore
             If _isBound Then
                 Dim i As Integer = Array.IndexOf(_tableids, tableid.ToUpper)
                 If i >= 0 Then Return _TableStores(i)
@@ -1731,7 +2283,7 @@ Namespace OnTrack.Database
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public ReadOnly Property TableStores As iormDataStore()
+        Public ReadOnly Property TableStores As iormRelationalTableStore()
             Get
                 If Alive Then
                     Return _TableStores
@@ -1769,37 +2321,37 @@ Namespace OnTrack.Database
 
                 If _isBound Then
                     Dim flagColumnNameCheck As Boolean = False
-                    If _TableStores.Length > 1 OrElse datarow.Table.TableName.ToUpper <> _TableStores(0).TableSchema.TableID.ToUpper Then
+                    If _TableStores.Length > 1 OrElse datarow.Table.TableName.ToUpper <> _TableStores(0).ContainerSchema.ContainerID.ToUpper Then
                         flagColumnNameCheck = True
                     End If
 
                     ''' run through
                     For n = 0 To _TableStores.Length - 1
-                        For j = 1 To _TableStores(n).TableSchema.NoFields
-                            Dim aColumnname As String = _TableStores(n).TableSchema.Getfieldname(j)
+                        For j = 1 To _TableStores(n).ContainerSchema.NoEntries
+                            Dim aColumnname As String = _TableStores(n).ContainerSchema.GetEntryName(j)
                             If datarow.Table.Columns.Contains(aColumnname) Then
                                 Dim aValue As Object = datarow.Item(aColumnname)
-                                If flagColumnNameCheck AndAlso ZeroBasedIndexOf(_TableStores(n).TableID & "." & aColumnname) < 0 Then
-                                    CoreMessageHandler(message:="column doesnot exist in record ?!", arg1:=datarow.Item(aColumnname), _
-                                                        columnname:=aColumnname, tablename:=datarow.Table.TableName, subname:="ormRecord.LoadFrom(Datarow)")
+                                If flagColumnNameCheck AndAlso ZeroBasedIndexOf(_TableStores(n).ContainerID & "." & aColumnname) < 0 Then
+                                    CoreMessageHandler(message:="column doesnot exist in record ?!", argument:=datarow.Item(aColumnname), _
+                                                        containerEntryName:=aColumnname, containerID:=datarow.Table.TableName, procedure:="ormRecord.LoadFrom(Datarow)")
                                     '''convert and set the value
                                 ElseIf _TableStores(n).Convert2ObjectData(index:=j, invalue:=datarow.Item(aColumnname), outvalue:=aValue) Then
                                     If Not SetValue(j, aValue) Then
-                                        CoreMessageHandler(message:="could not set value from data reader", arg1:=aValue, _
-                                                           columnname:=aColumnname, tablename:=datarow.Table.TableName, subname:="ormRecord.LoadFrom(Datarow)")
+                                        CoreMessageHandler(message:="could not set value from data reader", argument:=aValue, _
+                                                           containerEntryName:=aColumnname, containerID:=datarow.Table.TableName, procedure:="ormRecord.LoadFrom(Datarow)")
                                         result = False
                                     Else
                                         result = result And True
                                     End If
                                 Else
-                                    CoreMessageHandler(message:="could not convert value from data reader", arg1:=datarow.Item(aColumnname), _
-                                                       columnname:=aColumnname, tablename:=datarow.Table.TableName, subname:="ormRecord.LoadFrom(Datarow)")
+                                    CoreMessageHandler(message:="could not convert value from data reader", argument:=datarow.Item(aColumnname), _
+                                                       containerEntryName:=aColumnname, containerID:=datarow.Table.TableName, procedure:="ormRecord.LoadFrom(Datarow)")
                                     result = False
                                 End If
 
                             Else
-                                CoreMessageHandler(message:="column from table not in datareader - record uncomplete", columnname:=aColumnname, _
-                                                   tablename:=datarow.Table.TableName, subname:="ormRecord.LoadFrom(Datarow)")
+                                CoreMessageHandler(message:="column from table not in datareader - record uncomplete", containerEntryName:=aColumnname, _
+                                                   containerID:=datarow.Table.TableName, procedure:="ormRecord.LoadFrom(Datarow)")
                                 result = False
                             End If
                         Next j
@@ -1820,8 +2372,8 @@ Namespace OnTrack.Database
                         ''' Dim Outvalue = CTypeDynamic (avalue, atype)
                         '''
                         If Not SetValue(datarow.Table.TableName.ToUpper & "." & aColumnname.ToUpper, aValue) Then
-                            CoreMessageHandler(message:="could not set value from data reader", arg1:=aValue, _
-                                               columnname:=aColumnname, tablename:=datarow.Table.TableName, subname:="ormRecord.LoadFrom(Datarow)")
+                            CoreMessageHandler(message:="could not set value from data reader", argument:=aValue, _
+                                               containerEntryName:=aColumnname, containerID:=datarow.Table.TableName, procedure:="ormRecord.LoadFrom(Datarow)")
                             result = False
                         Else
                             result = True
@@ -1832,7 +2384,7 @@ Namespace OnTrack.Database
                 End If
 
             Catch ex As Exception
-                Call CoreMessageHandler(subname:="ormRecord.LoadFrom(Datarow)", exception:=ex, message:="Exception", tablename:=datarow.Table.TableName)
+                Call CoreMessageHandler(procedure:="ormRecord.LoadFrom(Datarow)", exception:=ex, message:="Exception", containerID:=datarow.Table.TableName)
                 Return False
             End Try
 
@@ -1862,9 +2414,9 @@ Namespace OnTrack.Database
                     Else
                         ''' go through each tablestore
                         For n = 0 To _TableStores.Length - 1
-                            For j = 1 To _TableStores(n).TableSchema.NoFields
+                            For j = 1 To _TableStores(n).ContainerSchema.NoEntries
                                 Dim found As Integer = -1
-                                Dim aColumnname As String = _TableStores(n).TableSchema.Getfieldname(j)
+                                Dim aColumnname As String = _TableStores(n).ContainerSchema.GetEntryName(j)
                                 For i = 0 To datareader.FieldCount - 1
                                     If datareader.GetName(i) = aColumnname Then
                                         ''' uuuh slow
@@ -1875,29 +2427,29 @@ Namespace OnTrack.Database
                                 Next
                                 If found >= 0 Then
                                     Dim aValue As Object
-                                    Dim index As Integer = ZeroBasedIndexOf(_TableStores(n).TableID & "." & aColumnname) + 1
+                                    Dim index As Integer = ZeroBasedIndexOf(_TableStores(n).ContainerID & "." & aColumnname) + 1
                                     If index >= 0 Then
                                         If _TableStores(n).Convert2ObjectData(index:=j, invalue:=datareader.Item(found), outvalue:=aValue) Then
                                             If Not SetValue(index, aValue) Then
-                                                CoreMessageHandler(message:="set value failed", arg1:=aValue, columnname:=aColumnname, tablename:=_tableids(n), subname:="ormRecord.LoadFrom")
+                                                CoreMessageHandler(message:="set value failed", argument:=aValue, containerEntryName:=aColumnname, containerID:=_tableids(n), procedure:="ormRecord.LoadFrom")
                                                 result = False
                                             Else
                                                 result = result And True
                                             End If
                                         Else
-                                            CoreMessageHandler(message:="data conversion failed", arg1:=datareader.Item(aColumnname), columnname:=aColumnname, _
-                                                               tablename:=_tableids(n), subname:="ormRecord.LoadFrom")
+                                            CoreMessageHandler(message:="data conversion failed", argument:=datareader.Item(aColumnname), containerEntryName:=aColumnname, _
+                                                               containerID:=_tableids(n), procedure:="ormRecord.LoadFrom")
                                             result = False
                                         End If
                                     Else
                                         CoreMessageHandler(message:="index in record failed - canonical name doesnot exist ?", _
-                                                           arg1:=datareader.Item(aColumnname), columnname:=aColumnname, tablename:=_tableids(n), subname:="ormRecord.LoadFrom")
+                                                           argument:=datareader.Item(aColumnname), containerEntryName:=aColumnname, containerID:=_tableids(n), procedure:="ormRecord.LoadFrom")
                                         result = False
                                     End If
 
                                 Else
-                                    CoreMessageHandler(message:="column from table not in datareader - record uncomplete", columnname:=aColumnname, _
-                                                       tablename:=_tableids(n), subname:="ormRecord.LoadFrom(IDataReader)")
+                                    CoreMessageHandler(message:="column from table not in datareader - record uncomplete", containerEntryName:=aColumnname, _
+                                                       containerID:=_tableids(n), procedure:="ormRecord.LoadFrom(IDataReader)")
                                     result = False
                                 End If
                             Next j
@@ -1911,15 +2463,15 @@ Namespace OnTrack.Database
                     ''' 
                     For j = 0 To datareader.FieldCount - 1
                         Dim aName As String = datareader.GetName(j)
-                        If aName = "" Then aName = "column" & j.ToString
+                        If aName = String.empty Then aName = "column" & j.ToString
                         Dim aValue As Object = datareader.Item(j)
 
                         ''' how to convert ?!
                         ''' we have already system type
 
                         If Not SetValue(aName.ToString, aValue) Then
-                            CoreMessageHandler(message:="could not set value from data reader", arg1:=aValue, _
-                                                messagetype:=otCoreMessageType.InternalError, subname:="ormRecord.LoadFrom(IDataReader)")
+                            CoreMessageHandler(message:="could not set value from data reader", argument:=aValue, _
+                                                messagetype:=otCoreMessageType.InternalError, procedure:="ormRecord.LoadFrom(IDataReader)")
                             result = False
                         Else
                             result = result And True
@@ -1931,8 +2483,8 @@ Namespace OnTrack.Database
 
 
             Catch ex As Exception
-                Call CoreMessageHandler(subname:="ormRecord.LoadFrom(IDataReader)", exception:=ex, message:="Exception", _
-                                      arg1:=_tableids)
+                Call CoreMessageHandler(procedure:="ormRecord.LoadFrom(IDataReader)", exception:=ex, message:="Exception", _
+                                      argument:=_tableids)
                 Return False
             End Try
 
@@ -1958,9 +2510,9 @@ Namespace OnTrack.Database
 
                     Dim aRecord As ormRecord
                     Try
-                        ReDim pkarr(0 To _TableStores(n).TableSchema.NoPrimaryKeyFields - 1)
-                        For i = 1 To _TableStores(n).TableSchema.NoPrimaryKeyFields
-                            index = _TableStores(n).TableSchema.GetordinalOfPrimaryKeyField(i)
+                        ReDim pkarr(0 To _TableStores(n).ContainerSchema.NoPrimaryEntries - 1)
+                        For i = 1 To _TableStores(n).ContainerSchema.NoPrimaryEntries
+                            index = _TableStores(n).ContainerSchema.GetOrdinalOfPrimaryEntry(i)
                             value = Me.GetValue(index)
                             pkarr(i - 1) = value
                         Next i
@@ -1975,7 +2527,7 @@ Namespace OnTrack.Database
                         End If
                     Catch ex As Exception
                         Call CoreMessageHandler(exception:=ex, message:="Exception", messagetype:=otCoreMessageType.InternalException, _
-                                              subname:="ormRecord.checkStatus")
+                                              procedure:="ormRecord.checkStatus")
                         Return False
                     End Try
                 Next
@@ -2031,7 +2583,7 @@ Namespace OnTrack.Database
             Dim names As String() = Shuffle.NameSplitter(index.ToString)
             Dim n As Integer = Array.IndexOf(_tableids, names(0))
             If n >= 0 Then
-                Return _TableStores(n).TableSchema.GetDefaultValue(i)
+                Return _TableStores(n).ContainerSchema.GetDefaultValue(i)
             Else
                 Return Nothing
             End If
@@ -2050,8 +2602,8 @@ Namespace OnTrack.Database
         ''' <remarks></remarks>
 
         Public Function SetTable(ByVal tableID As String, _
-                                 Optional dbdriver As iormDatabaseDriver = Nothing, _
-                                 Optional tablestore As iormDataStore = Nothing, _
+                                 Optional dbdriver As iormRelationalDatabaseDriver = Nothing, _
+                                 Optional tablestore As iormRelationalTableStore = Nothing, _
                                  Optional forceReload As Boolean = False, _
                                  Optional fillDefaultValues As Boolean = False) As Boolean
             Return Me.SetTables(tableIDs:={tableID}, dbdriver:=dbdriver, forceReload:=forceReload, fillDefaultValues:=fillDefaultValues)
@@ -2067,7 +2619,7 @@ Namespace OnTrack.Database
         ''' <remarks></remarks>
         ''' 
         Public Function SetTables(ByVal tableIDs() As String, _
-                                 Optional dbdriver As iormDatabaseDriver = Nothing, _
+                                 Optional dbdriver As iormRelationalDatabaseDriver = Nothing, _
                                  Optional forceReload As Boolean = False, _
                                  Optional fillDefaultValues As Boolean = False) As Boolean
 
@@ -2086,15 +2638,15 @@ Namespace OnTrack.Database
                         _TableStores(I) = dbdriver.GetTableStore(tableIDs(I))
                     End If
 
-                    If _TableStores(I) Is Nothing OrElse _TableStores(I).TableSchema Is Nothing _
-                        OrElse Not _TableStores(I).TableSchema.IsInitialized Then
+                    If _TableStores(I) Is Nothing OrElse _TableStores(I).ContainerSchema Is Nothing _
+                        OrElse Not _TableStores(I).ContainerSchema.IsInitialized Then
 
-                        CoreMessageHandler(message:="record cannot be bound to table - tablestore cannot be initialized", arg1:=tableIDs(I), _
-                                           subname:="ormRecord.setTables")
+                        CoreMessageHandler(message:="record cannot be bound to table - tablestore cannot be initialized", argument:=tableIDs(I), _
+                                           procedure:="ormRecord.setTables")
                         Return False
                     Else
                         '' set the upper ranges in the record
-                        _upperRangeofTable(I) = _TableStores(I).TableSchema.NoFields - 1
+                        _upperRangeofTable(I) = _TableStores(I).ContainerSchema.NoEntries - 1
                         totalsize += _upperRangeofTable(I)
                     End If
 
@@ -2125,19 +2677,19 @@ Namespace OnTrack.Database
                         Dim newEntrynames(totalsize) As String
 
                         For I = 0 To _TableStores.Length - 1
-                            Dim aTablename As String = _TableStores(I).TableID.ToUpper
+                            Dim aTablename As String = _TableStores(I).ContainerID.ToUpper
                             '** re-sort 
-                            For j = 1 To _TableStores(I).TableSchema.NoFields
+                            For j = 1 To _TableStores(I).ContainerSchema.NoEntries
 
                                 ''' calculate new index
                                 Dim index As UShort = 0
                                 If I > 0 Then index = _upperRangeofTable(I - 1)
                                 index += j - 1
-                                Dim aFieldname As String = _TableStores(I).TableSchema.Getfieldname(j).ToUpper
+                                Dim aFieldname As String = _TableStores(I).ContainerSchema.GetEntryName(j).ToUpper
                                 Dim aCanonicalName As String = aTablename & "." & aFieldname
                                 newEntrynames(index) = aCanonicalName
                                 ''' fill the nullable
-                                _isnullable(index) = _TableStores(I).TableSchema.GetNullable(j)
+                                _isnullable(index) = _TableStores(I).ContainerSchema.GetNullable(j)
                                 '' get old index 
                                 Dim oldindex As Integer = Array.FindIndex(_entrynames, Function(x) x IsNot Nothing AndAlso (x.ToUpper = aFieldname OrElse x.ToUpper = aCanonicalName))
                                 If oldindex >= _Values.GetLowerBound(0) And oldindex <= _Values.GetUpperBound(0) Then
@@ -2159,18 +2711,18 @@ Namespace OnTrack.Database
                         ''' set the entry names and initial values
                         ''' for each table
                         For I = 0 To _TableStores.Length - 1
-                            For j = 1 To _TableStores(I).TableSchema.NoFields
+                            For j = 1 To _TableStores(I).ContainerSchema.NoEntries
                                 ''' calculate index
                                 Dim index As UShort = 0
                                 If I > 0 Then index = _upperRangeofTable(I - 1)
                                 index += j - 1
                                 ''' set fieldname
-                                _entrynames(index) = _TableStores(I).TableID.ToUpper & "." & _TableStores(I).TableSchema.Getfieldname(j).ToUpper
+                                _entrynames(index) = _TableStores(I).ContainerID.ToUpper & "." & _TableStores(I).ContainerSchema.GetEntryName(j).ToUpper
                                 ''' fill the nullable
-                                _isnullable(index) = _TableStores(I).TableSchema.GetNullable(j)
+                                _isnullable(index) = _TableStores(I).ContainerSchema.GetNullable(j)
                                 ''' fill default from tablestore
                                 If fillDefaultValues Then
-                                    If Not _TableStores(I).TableSchema.GetNullable(j) Then
+                                    If Not _TableStores(I).ContainerSchema.GetNullable(j) Then
                                         _Values(index) = Me.GetDefaultValue(j)
                                     Else
                                         _Values(index) = Nothing
@@ -2187,7 +2739,7 @@ Namespace OnTrack.Database
                     Return _isBound
 
                 Else
-                    Call CoreMessageHandler(message:="Tablestore or tableschema is not initialized", subname:="ormRecord.setTables", _
+                    Call CoreMessageHandler(message:="Tablestore or tableschema is not initialized", procedure:="ormRecord.setTables", _
                                           messagetype:=otCoreMessageType.InternalError)
                     Return False
                 End If
@@ -2227,7 +2779,7 @@ Namespace OnTrack.Database
                     Return True
                 End If
             Else
-                CoreMessageHandler(message:="unbound record cannot be persisted", messagetype:=otCoreMessageType.InternalError, subname:="ormRecord.Persist")
+                CoreMessageHandler(message:="unbound record cannot be persisted", messagetype:=otCoreMessageType.InternalError, procedure:="ormRecord.Persist")
                 Return False
             End If
 
@@ -2247,29 +2799,29 @@ Namespace OnTrack.Database
 
             If _isBound Then
                 For n = 0 To _TableStores.Length - 1
-                    ReDim pkarr(0 To _TableStores(n).TableSchema.NoPrimaryKeyFields - 1)
-                    For i = 0 To _TableStores(n).TableSchema.NoPrimaryKeyFields - 1
+                    ReDim pkarr(0 To _TableStores(n).ContainerSchema.NoPrimaryEntries - 1)
+                    For i = 0 To _TableStores(n).ContainerSchema.NoPrimaryEntries - 1
                         ''' get index
                         If n > 0 Then
                             index = _upperRangeofTable(n - 1)
                         Else
                             index = 0
                         End If
-                        index += _TableStores(n).TableSchema.GetordinalOfPrimaryKeyField(i + 1)
+                        index += _TableStores(n).ContainerSchema.GetOrdinalOfPrimaryEntry(i + 1)
                         If Me.HasIndex(index) Then
                             pkarr(i) = Me.GetValue(index)
                         Else
-                            CoreMessageHandler(message:="part of primary key for tablestore is not in record", columnname:=index, _
-                                               tablename:=_TableStores(n).TableID, subname:="ormRecord.Delete", messagetype:=otCoreMessageType.InternalError)
+                            CoreMessageHandler(message:="part of primary key for tablestore is not in record", containerEntryName:=index, _
+                                               containerID:=_TableStores(n).ContainerID, procedure:="ormRecord.Delete", messagetype:=otCoreMessageType.InternalError)
                         End If
 
                     Next i
                     ' delete
-                    result = result And _TableStores(n).DelRecordByPrimaryKey(pkarr)
+                    result = result And _TableStores(n).DeleteRecordByPrimaryKey(pkarr)
                 Next
                 Return result
             Else
-                Call CoreMessageHandler(subname:="ormRecord.delete", message:="Record not bound to a TableStore", _
+                Call CoreMessageHandler(procedure:="ormRecord.delete", message:="Record not bound to a TableStore", _
                                       messagetype:=otCoreMessageType.InternalError)
                 Return False
             End If
@@ -2308,7 +2860,7 @@ Namespace OnTrack.Database
             ElseIf _isBound And _entrynames.Length = 0 Then
                 Dim aList As New List(Of String)
                 For n = 0 To _TableStores.Length - 1
-                    aList.AddRange(_TableStores(n).TableSchema.Fieldnames)
+                    aList.AddRange(_TableStores(n).ContainerSchema.EntryNames)
                 Next
             Else
                 Keys = _entrynames.ToList
@@ -2335,7 +2887,7 @@ Namespace OnTrack.Database
                         Dim n As Integer = Array.IndexOf(_tableids, names(0))
                         If n < 0 Then Return -1
                         If n > 0 Then i = _upperRangeofTable(n - 1)
-                        i += _TableStores(n).TableSchema.GetFieldordinal(names(1)) - 1
+                        i += _TableStores(n).ContainerSchema.GetEntryOrdinal(names(1)) - 1
                         Return i
                     Else
                         Dim acolumnname As String = Shuffle.NameSplitter(entryname).Last
@@ -2362,7 +2914,7 @@ Namespace OnTrack.Database
 
             ' no table ?!
             If Not _isBound Then
-                Call CoreMessageHandler(subname:="ormRecord.isValueChanged", arg1:=index, message:="record is not bound to table")
+                Call CoreMessageHandler(procedure:="ormRecord.isValueChanged", argument:=index, message:="record is not bound to table")
                 Return False
             End If
 
@@ -2385,7 +2937,7 @@ Namespace OnTrack.Database
             Else
 
                 Call CoreMessageHandler(message:="Index of " & index & " is out of bound of OTDBTableEnt ", _
-                                      subname:="ormRecord.isIndexChangedValue", arg1:=index, _
+                                      procedure:="ormRecord.isIndexChangedValue", argument:=index, _
                                       messagetype:=otCoreMessageType.InternalError)
                 Return False
             End If
@@ -2406,7 +2958,7 @@ Namespace OnTrack.Database
             Try
                 If _Values.GetUpperBound(0) > 0 Then
                     If [array].GetUpperBound(0) <> _Values.GetUpperBound(0) Then
-                        CoreMessageHandler(message:="input array has different upper bound than the set values array", arg1:=[array].GetUpperBound(0), _
+                        CoreMessageHandler(message:="input array has different upper bound than the set values array", argument:=[array].GetUpperBound(0), _
                                             messagetype:=otCoreMessageType.InternalError)
                         Return False
                     Else
@@ -2427,7 +2979,7 @@ Namespace OnTrack.Database
                 End If
 
             Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="ormRecord.Set")
+                CoreMessageHandler(exception:=ex, procedure:="ormRecord.Set")
                 Return False
             End Try
 
@@ -2461,16 +3013,16 @@ Namespace OnTrack.Database
                 If IsNumeric(index) Then
                     i = CLng(index) - 1
                     If i > _entrynames.GetUpperBound(0) OrElse i < 0 Then
-                        CoreMessageHandler(message:="index is out of range 0.." & _entrynames.GetUpperBound(0), arg1:=i, _
-                                            messagetype:=otCoreMessageType.InternalError, subname:="ormRecord.SetValue")
+                        CoreMessageHandler(message:="index is out of range 0.." & _entrynames.GetUpperBound(0), argument:=i, _
+                                            messagetype:=otCoreMessageType.InternalError, procedure:="ormRecord.SetValue")
                         Return False  'wrong table
                     End If
 
                 Else
                     i = ZeroBasedIndexOf(index)
                     If i < 0 And _isBound Then
-                        CoreMessageHandler(message:="column name was not found as index in record", arg1:=index, _
-                                            messagetype:=otCoreMessageType.InternalError, subname:="ormRecord.SetValue")
+                        CoreMessageHandler(message:="column name was not found as index in record", argument:=index, _
+                                            messagetype:=otCoreMessageType.InternalError, procedure:="ormRecord.SetValue")
                         Return False  'wrong table
                     End If
 
@@ -2530,7 +3082,7 @@ Namespace OnTrack.Database
                 Else
 
                     Call CoreMessageHandler(message:="Index of " & index & " is out of bound of", _
-                                          subname:="ormRecord.setValue", arg1:=value, entryname:=index, messagetype:=otCoreMessageType.InternalError)
+                                          procedure:="ormRecord.setValue", argument:=value, entryname:=index, messagetype:=otCoreMessageType.InternalError)
                     Return False
                 End If
 
@@ -2538,7 +3090,7 @@ Namespace OnTrack.Database
 
 
             Catch ex As Exception
-                Call CoreMessageHandler(subname:="ormRecord.setValue", exception:=ex)
+                Call CoreMessageHandler(procedure:="ormRecord.setValue", exception:=ex)
                 Return False
             End Try
 
@@ -2600,13 +3152,13 @@ Namespace OnTrack.Database
                     End If
                 Else
                     Call CoreMessageHandler(message:="Index of " & index & " is out of bound of tablestore or doesnot exist in record '", _
-                                          subname:="ormRecord.getValue", entryname:=index, messagetype:=otCoreMessageType.InternalError)
+                                          procedure:="ormRecord.getValue", entryname:=index, messagetype:=otCoreMessageType.InternalError)
                     notFound = True
                     Return Nothing
                 End If
 
             Catch ex As Exception
-                Call CoreMessageHandler(subname:="ormRecord.getValue", exception:=ex)
+                Call CoreMessageHandler(procedure:="ormRecord.getValue", exception:=ex)
                 Return Nothing
             End Try
         End Function

@@ -27,11 +27,11 @@ Namespace OnTrack.Database
         Protected _message As String
         Protected _subname As String
         Protected _path As String ' Database path
-        Public Sub New(Optional message As String = Nothing, Optional exception As Exception = Nothing, Optional subname As String = "", Optional path As String = "")
-            If message IsNot Nothing Then _message = message
-            If subname IsNot Nothing Then _subname = subname
+        Public Sub New(Optional message As String = Nothing, Optional exception As Exception = Nothing, Optional subname As String = Nothing, Optional path As String = Nothing)
+            If Not String.IsNullOrWhiteSpace(message) Then _message = message
+            If Not String.IsNullOrWhiteSpace(subname) Then _subname = subname
             If exception IsNot Nothing Then _InnerException = exception
-            If path IsNot Nothing Then _path = path
+            If Not String.IsNullOrWhiteSpace(path) Then _path = path
         End Sub
 
         ''' <summary>
@@ -82,7 +82,7 @@ Namespace OnTrack.Database
     ''' <remarks></remarks>
     Public Class ormNoConnectionException
         Inherits ormException
-        Public Sub New(Optional message As String = Nothing, Optional exception As Exception = Nothing, Optional subname As String = "", Optional path As String = "")
+        Public Sub New(Optional message As String = Nothing, Optional exception As Exception = Nothing, Optional subname As String = Nothing, Optional path As String = Nothing)
             MyBase.New(message:=message, exception:=exception, subname:=subname, path:=path)
         End Sub
 

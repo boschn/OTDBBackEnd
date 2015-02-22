@@ -43,11 +43,11 @@ Namespace OnTrack
 
         '******  PARAMETERS
         Private _DependencySynchroMinOverlap As Integer  '= 7
-        Private _DefaultWorkspace As String    '= ""
+        Private _DefaultWorkspace As String    '= String.empty
         Private _DefaultCalendarName As String = ConstDefaultCalendarName 'needed for Installation Calendar Setup
         Private _TodayLatency As Integer
-        Private _DefaultScheduleTypeID As String = ""
-        Private _DefaultDeliverableTypeID As String = ""
+        Private _DefaultScheduleTypeID As String = String.empty
+        Private _DefaultDeliverableTypeID As String = String.empty
         Private _AutoPublishTarget As Boolean = False
         Private _DeliverableUniqueEntries As String()
         Private _DeliverableOnCloningCloneAlso As String()
@@ -85,10 +85,12 @@ Namespace OnTrack
         Private _IsInstallationRunning As Boolean = False ' actual Installallation running ?
 
         ' the environments
-        Private WithEvents _primaryDBDriver As iormDatabaseDriver
+        Private WithEvents _primaryDBDriver As iormRelationalDatabaseDriver
         Private WithEvents _primaryConnection As iormConnection
         Private WithEvents _configurations As ComplexPropertyStore
+        Private WithEvents _databasedrivers As New Dictionary(Of String, iormDatabaseDriver)
 
+        ' current settings
         Private _CurrentDomain As Domain
         Private _UILogin As UI.CoreLoginForm
         Private _AccessLevel As otAccessRight    ' access
@@ -120,18 +122,18 @@ Namespace OnTrack
         ''' </summary>
         ''' <param name="SessionID"> unqiue ID of the Session</param>
         ''' <remarks></remarks>
-        Public Sub New(configurations As ComplexPropertyStore, Optional id As String = "")
+        Public Sub New(configurations As ComplexPropertyStore, Optional id As String = Nothing)
             '* ID
-            If id <> "" Then
+            If Not String.IsNullOrWhiteSpace(id) Then
                 id = UCase(id)
-            ElseIf ApplicationName <> "" Then
-                id = ApplicationName
+            ElseIf Not String.IsNullOrWhiteSpace(ot.ApplicationName) Then
+                id = ot.ApplicationName
             Else
-                id = My.Application.Info.AssemblyName
+                id = ot.AssemblyName
             End If
             '* session
             _SessionID = ConstDelimiter & Date.Now.ToString("s") & ConstDelimiter & My.Computer.Name & ConstDelimiter _
-            & Environment.UserName & ConstDelimiter & id & ConstDelimiter & My.Application.Info.Version.ToString & ConstDelimiter
+            & Environment.UserName & ConstDelimiter & id & ConstDelimiter & ot.ApplicationVersion.ToString & ConstDelimiter
             '* init
             _errorLog = New SessionMessageLog(_SessionID)
             _logagent = New SessionAgent(Me)
@@ -165,7 +167,7 @@ Namespace OnTrack
         ''' <remarks></remarks>
         Public ReadOnly Property CurrentSetupID As String
             Get
-                If IsConnected OrElse IsStartingUp OrElse IsInstallationRunning Then
+                If _setupID IsNot Nothing Then 'AndAlso (IsConnected OrElse IsStartingUp OrElse IsInstallationRunning)  -> if dropping no condition is hold
                     Return _setupID
                 Else
                     Return String.Empty
@@ -269,20 +271,27 @@ Namespace OnTrack
                 Me._AccessLevel = value
             End Set
         End Property
+        Public ReadOnly Property IsRepositoryAvailable(Optional domainid As String = Nothing) As Boolean
+            Get
+                If Not Me.IsRunning AndAlso Not Me.IsStartingUp AndAlso Not Me.IsInstallationRunning AndAlso Not Me.IsBootstrappingInstallationRequested Then
+                    Return False
+                End If
+            End Get
+        End Property
         ''' <summary>
         ''' Gets or sets the Objects for an optional domainid
         ''' </summary>
         ''' <value>The Objects.</value>
         Public ReadOnly Property Objects(Optional domainid As String = Nothing) As ObjectRepository
             Get
-                If Not Me.IsRunning AndAlso Not Me.IsStartingUp AndAlso Not Me.IsInstallationRunning AndAlso Not Me.IsBootstrappingInstallationRequested Then
+                If Not IsRepositoryAvailable And _DomainRepositories.Count = 0 Then
                     CoreMessageHandler(message:="OnTrack Session needs to be started before accessing the Object Repository", messagetype:=otCoreMessageType.InternalError, _
-                                       subname:="Session.Objects")
+                                                           procedure:="Session.Objects")
                 End If
                 ''' if domain switching then  use global domain repository untill domain is fully switched
                 If Me.IsDomainSwitching AndAlso _DomainRepositories.ContainsKey(key:=ConstGlobalDomain) Then
                     Return _DomainRepositories.Item(key:=ConstGlobalDomain)
-                ElseIf Not String.IsNullOrWhiteSpace(domainid) AndAlso _DomainRepositories.ContainsKey(key:=domainid) Then
+                ElseIf Not String.IsnullorEmpty(domainID) AndAlso _DomainRepositories.ContainsKey(key:=domainid) Then
                     Return _DomainRepositories.Item(key:=domainid)
                 ElseIf _DomainRepositories.ContainsKey(key:=_CurrentDomainID) Then
                     Return _DomainRepositories.Item(key:=_CurrentDomainID)
@@ -406,7 +415,7 @@ Namespace OnTrack
                     If Not Me.IsRunning Then
                         _configurations.CurrentSet = value ' raises event
                     Else
-                        CoreMessageHandler(message:="a running session can not be set to another config set name", arg1:=value, messagetype:=otCoreMessageType.ApplicationError, subname:="Sesion.setname")
+                        CoreMessageHandler(message:="a running session can not be set to another config set name", argument:=value, messagetype:=otCoreMessageType.ApplicationError, procedure:="Sesion.setname")
                     End If
                 End If
             End Set
@@ -584,7 +593,7 @@ Namespace OnTrack
         ''' Gets the primary DB driver.
         ''' </summary>
         ''' <value>The primary DB driver.</value>
-        Public Property CurrentDBDriver() As iormDatabaseDriver
+        Public Property CurrentDBDriver() As iormRelationalDatabaseDriver
             Get
                 If Me.IsInitialized OrElse Me.Initialize Then
                     Return Me._primaryDBDriver
@@ -592,7 +601,7 @@ Namespace OnTrack
                     Return Nothing
                 End If
             End Get
-            Protected Set(value As iormDatabaseDriver)
+            Protected Set(value As iormRelationalDatabaseDriver)
                 Me._primaryDBDriver = value
                 Me._primaryConnection = value.CurrentConnection
                 Me.IsInitialized = True
@@ -620,7 +629,7 @@ Namespace OnTrack
             '** do only something if we have run through
             If Me.IsRunning Then
                 '** do nothing if we are running
-                CoreMessageHandler(message:="current config set name was changed after session is running -ignored", subname:="OnCurrentConfigSetChanged", arg1:=e.Setname, messagetype:=otCoreMessageType.InternalError)
+                CoreMessageHandler(message:="current config set name was changed after session is running -ignored", procedure:="OnCurrentConfigSetChanged", argument:=e.Setname, messagetype:=otCoreMessageType.InternalError)
             Else
                 ''' create or get the Database Driver
                 _primaryDBDriver = CreateOrGetDatabaseDriver(session:=Me)
@@ -629,7 +638,7 @@ Namespace OnTrack
                     _primaryConnection = _primaryDBDriver.CurrentConnection
                     If _primaryConnection Is Nothing Then
                         CoreMessageHandler(message:="The database connection could not be set - initialization of session aborted ", _
-                                           noOtdbAvailable:=True, subname:="Session.OnCurrentConfigSetChange", _
+                                           noOtdbAvailable:=True, procedure:="Session.OnCurrentConfigSetChange", _
                                            messagetype:=otCoreMessageType.InternalInfo)
                     End If
                 End If
@@ -647,7 +656,7 @@ Namespace OnTrack
             '** do only something if we have run through
             If Me.IsRunning Then
                 '** do nothing if we are running
-                CoreMessageHandler(message:="current config set name was changed after session is running -ignored", subname:="OnCurrentConfigSetChanged", arg1:=e.Setname, messagetype:=otCoreMessageType.InternalError)
+                CoreMessageHandler(message:="current config set name was changed after session is running -ignored", procedure:="OnCurrentConfigSetChanged", argument:=e.Setname, messagetype:=otCoreMessageType.InternalError)
             Else
                 If Me.IsInitialized Then
                     ''' propagate the change shoud be running automatically 
@@ -662,30 +671,73 @@ Namespace OnTrack
         ''' <param name="session"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Friend Function CreateOrGetDatabaseDriver(Optional session As Session = Nothing) As iormDatabaseDriver
+        Friend Function CreateOrGetDatabaseDriver(Optional session As Session = Nothing) As iormRelationalDatabaseDriver
             Dim avalue As Object
-            Dim aDBDriver As iormDatabaseDriver
+            Dim aDBDriver As iormRelationalDatabaseDriver
 
 
             If session Is Nothing Then session = ot.CurrentSession
+            If _primaryDBDriver IsNot Nothing Then
+                Me.DeRegisterDatabaseDriver(_primaryDBDriver)
 
+            End If
             '*** which Environment / Driver to use look into configurations config 
             avalue = _configurations.GetProperty(name:=ConstCPNDriverName, setname:=session.ConfigSetname)
             If avalue IsNot Nothing AndAlso DirectCast(avalue, otDbDriverType) = otDbDriverType.ADOClassic Then
                 Call CoreMessageHandler(showmsgbox:=True, message:="Initialization of database driver failed. Type of Database Environment " & ConstCPNDriverName & " is outdated. Parameter DefaultDBEnvirormentName has unknown value", _
-                                        noOtdbAvailable:=True, arg1:=avalue, subname:="Session.GetDatabaseDriver", messagetype:=otCoreMessageType.ApplicationError)
+                                        noOtdbAvailable:=True, argument:=avalue, procedure:="Session.GetDatabaseDriver", messagetype:=otCoreMessageType.ApplicationError)
                 Return Nothing
             ElseIf avalue IsNot Nothing AndAlso DirectCast(avalue, otDbDriverType) = otDbDriverType.ADONETOLEDB Then
-                aDBDriver = New oleDBDriver(ID:=avalue, session:=session)
+                aDBDriver = New oleDBDriver(ID:=ConstDefaultPrimaryDBDriver, session:=session)
             ElseIf avalue IsNot Nothing AndAlso DirectCast(avalue, otDbDriverType) = otDbDriverType.ADONETSQL Then
-                aDBDriver = New mssqlDBDriver(ID:=avalue, session:=session)
+                aDBDriver = New mssqlDBDriver(ID:=ConstDefaultPrimaryDBDriver, session:=session)
             Else
                 Return Nothing
             End If
 
+            Me.RegisterDatabaseDriver(aDBDriver)
             Return aDBDriver
         End Function
-
+        ''' <summary>
+        ''' returns a registered database driver
+        ''' </summary>
+        ''' <param name="databasedriver"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function RetrieveDatabaseDriver(id As String) As iormDatabaseDriver
+            If _databasedrivers.ContainsKey(key:=id) Then
+                Return _databasedrivers.Item(key:=id)
+            End If
+            Return Nothing
+        End Function
+        ''' <summary>
+        ''' register a database driver at the session
+        ''' </summary>
+        ''' <param name="databasedriver"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function DeRegisterDatabaseDriver(databasedriver As iormDatabaseDriver) As Boolean
+            If _databasedrivers.ContainsKey(key:=databasedriver.ID) Then
+                _databasedrivers.Remove(key:=databasedriver.ID)
+                Return True
+            End If
+            CoreMessageHandler(message:="could not de-register database driver at session", argument:=databasedriver.ID, procedure:="Session.RegisterDatabaseDriver")
+            Return False
+        End Function
+        ''' <summary>
+        ''' register a database driver at the session
+        ''' </summary>
+        ''' <param name="databasedriver"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function RegisterDatabaseDriver(databasedriver As iormDatabaseDriver) As Boolean
+            If Not _databasedrivers.ContainsKey(key:=databasedriver.ID) Then
+                _databasedrivers.Add(key:=databasedriver.ID, value:=databasedriver)
+                Return True
+            End If
+            CoreMessageHandler(message:="could not register database driver at session", argument:=databasedriver.ID, procedure:="Session.RegisterDatabaseDriver")
+            Return False
+        End Function
 
         ''' <summary>
         ''' Initialize the Session 
@@ -693,22 +745,22 @@ Namespace OnTrack
         ''' <param name="DBDriver">DBDriver to be provided</param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Private Function Initialize(Optional useConfigsetName As String = "") As Boolean
+        Private Function Initialize(Optional useConfigsetName As String = Nothing) As Boolean
             '
             Try
 
                 '*** Retrieve Config Properties and set the Bag
                 If Not ot.RetrieveConfigProperties() Then
                     Call CoreMessageHandler(showmsgbox:=True, message:="config properties couldnot be retrieved - Initialized failed. ", _
-                                            noOtdbAvailable:=True, subname:="Session.Initialize", messagetype:=otCoreMessageType.InternalError)
+                                            noOtdbAvailable:=True, procedure:="Session.Initialize", messagetype:=otCoreMessageType.InternalError)
                     Return False
                 Else
                     Call CoreMessageHandler(showmsgbox:=False, message:="config properties could be retrieved", _
-                                            noOtdbAvailable:=True, subname:="Session.Initialize", messagetype:=otCoreMessageType.InternalInfo)
+                                            noOtdbAvailable:=True, procedure:="Session.Initialize", messagetype:=otCoreMessageType.InternalInfo)
                 End If
 
                 ' set the configuration set to be used
-                If useConfigsetName = "" Then
+                If String.IsNullOrWhiteSpace(useConfigsetName) Then
                     '** get the default - trigger change event
                     If _configurations.CurrentSet IsNot Nothing Then
                         useConfigsetName = _configurations.CurrentSet
@@ -718,7 +770,7 @@ Namespace OnTrack
 
                 ElseIf Not _configurations.HasSet(useConfigsetName) Then
                     Call CoreMessageHandler(message:="config properties set could not be retrieved from config set properties - Initialized failed. ", _
-                                           noOtdbAvailable:=True, subname:="Session.Initialize", messagetype:=otCoreMessageType.InternalError)
+                                           noOtdbAvailable:=True, procedure:="Session.Initialize", messagetype:=otCoreMessageType.InternalError)
                     Return False
                 End If
                 '** set a specific - trigger change event
@@ -730,7 +782,7 @@ Namespace OnTrack
                 '** and reading the properties if not something is wrong
                 If _primaryDBDriver Is Nothing OrElse _primaryConnection Is Nothing Then
                     Call CoreMessageHandler(showmsgbox:=True, message:="config properties are invalid - Session to Ontrack failed to initialize. ", _
-                                           noOtdbAvailable:=True, subname:="Session.Initialize", messagetype:=otCoreMessageType.InternalError)
+                                           noOtdbAvailable:=True, procedure:="Session.Initialize", messagetype:=otCoreMessageType.InternalError)
                     Return False
                 End If
 
@@ -751,7 +803,7 @@ Namespace OnTrack
 
                 '** fine 
                 Call CoreMessageHandler(message:="The Session '" & Me.SessionID & "' is initialized ", _
-                                        noOtdbAvailable:=True, subname:="Session.Initialize", _
+                                        noOtdbAvailable:=True, procedure:="Session.Initialize", _
                                         messagetype:=otCoreMessageType.InternalInfo)
 
                 _IsInitialized = True
@@ -759,7 +811,7 @@ Namespace OnTrack
 
             Catch ex As Exception
 
-                Call CoreMessageHandler(exception:=ex, noOtdbAvailable:=True, subname:="Session.Initialize")
+                Call CoreMessageHandler(exception:=ex, noOtdbAvailable:=True, procedure:="Session.Initialize")
                 Return False
             End Try
 
@@ -779,14 +831,14 @@ Namespace OnTrack
                 If _primaryDBDriver IsNot Nothing Then
                     _IsBootstrappingInstallRequested = True
                     RaiseEvent StartOfBootStrapInstallation(Me, New SessionEventArgs(Me))
-                    Call CoreMessageHandler(subname:="Session.OnRequestBootstrapInstall", message:="bootstrapping mode started", _
-                                               arg1:=Me.SessionID, messagetype:=otCoreMessageType.InternalInfo)
+                    Call CoreMessageHandler(procedure:="Session.OnRequestBootstrapInstall", message:="bootstrapping mode started", _
+                                               argument:=Me.SessionID, messagetype:=otCoreMessageType.InternalInfo)
                 End If
             End If
 
             If Not _IsInstallationRunning AndAlso e.Install Then
-                Call CoreMessageHandler(subname:="Session.OnRequestBootstrapInstall", message:="bootstrapping installation started", _
-                                                arg1:=Me.SessionID, messagetype:=otCoreMessageType.InternalInfo)
+                Call CoreMessageHandler(procedure:="Session.OnRequestBootstrapInstall", message:="bootstrapping installation started", _
+                                                argument:=Me.SessionID, messagetype:=otCoreMessageType.InternalInfo)
                 '** issue an installation
                 e.InstallationResult = _primaryDBDriver.InstallOnTrackDatabase(askBefore:=e.AskBefore, modules:=e.Modules)
             End If
@@ -797,7 +849,7 @@ Namespace OnTrack
         ''' <value>The session ID.</value>
 
         Private Sub OnConnecting(sender As Object, e As ormConnectionEventArgs) Handles _primaryConnection.OnConnection
-            Me.StartUpSessionEnviorment(force:=True, domainID:=e.DomainID)
+            Me.StartUpSessionEnviorment(force:=True, domainid:=e.DomainID)
         End Sub
 
         ''' <summary>
@@ -816,8 +868,8 @@ Namespace OnTrack
         Public Function InstallOnTrackDatabase(Optional sequence As ComplexPropertyStore.Sequence = ComplexPropertyStore.Sequence.Primary) As Boolean
             '** lazy initialize
             If Not Me.IsInitialized AndAlso Not Me.Initialize() Then
-                CoreMessageHandler(subname:="Session.InstallOnTrackDatabase", message:="failed to initialize session", _
-                                        arg1:=Me.SessionID, messagetype:=otCoreMessageType.InternalError)
+                CoreMessageHandler(procedure:="Session.InstallOnTrackDatabase", message:="failed to initialize session", _
+                                        argument:=Me.SessionID, messagetype:=otCoreMessageType.InternalError)
                 Return False
             End If
 
@@ -829,12 +881,12 @@ Namespace OnTrack
                 If _primaryDBDriver.InstallOnTrackDatabase(askBefore:=True, modules:={}) Then
                     Return True
                 Else
-                    CoreMessageHandler(subname:="Session.InstallOnTrackDatabase", message:="installation failed", _
-                                        arg1:=Me.SessionID, messagetype:=otCoreMessageType.InternalError)
+                    CoreMessageHandler(procedure:="Session.InstallOnTrackDatabase", message:="installation failed", _
+                                        argument:=Me.SessionID, messagetype:=otCoreMessageType.InternalError)
                 End If
             Else
-                CoreMessageHandler(subname:="Session.InstallOnTrackDatabase", message:="other sequences not implemented", _
-                                        arg1:=Me.SessionID, messagetype:=otCoreMessageType.InternalError)
+                CoreMessageHandler(procedure:="Session.InstallOnTrackDatabase", message:="other sequences not implemented", _
+                                        argument:=Me.SessionID, messagetype:=otCoreMessageType.InternalError)
                 Return False
             End If
 
@@ -857,8 +909,8 @@ Namespace OnTrack
         Public Function RequestEndofBootstrap() As Boolean
             '** lazy initialize
             If Not Me.IsInitialized AndAlso Not Me.Initialize() Then
-                Call CoreMessageHandler(subname:="Session.RequestEndofBootstrap", message:="failed to initialize session", _
-                                        arg1:=Me.SessionID, messagetype:=otCoreMessageType.InternalError)
+                Call CoreMessageHandler(procedure:="Session.RequestEndofBootstrap", message:="failed to initialize session", _
+                                        argument:=Me.SessionID, messagetype:=otCoreMessageType.InternalError)
                 Return False
             End If
 
@@ -867,16 +919,16 @@ Namespace OnTrack
                 If Not CurrentDBDriver.VerifyOnTrackDatabase Then
                     '** raise event
                     RaiseEvent EndOfBootStrapInstallation(Me, New SessionEventArgs(Me, abortOperation:=True))
-                    Call CoreMessageHandler(subname:="Session.RequestEndofBootstrap", message:="bootstrapping aborted - verify failed", _
-                                        arg1:=Me.SessionID, messagetype:=otCoreMessageType.InternalInfo)
+                    Call CoreMessageHandler(procedure:="Session.RequestEndofBootstrap", message:="bootstrapping aborted - verify failed", _
+                                        argument:=Me.SessionID, messagetype:=otCoreMessageType.InternalInfo)
                     Me.IsBootstrappingInstallationRequested = False
                     Me.IsInstallationRunning = False
                     Return False ' return false to indicate that state is not ok
                 Else
                     '** raise event
                     RaiseEvent EndOfBootStrapInstallation(Me, New SessionEventArgs(Me))
-                    Call CoreMessageHandler(subname:="Session.RequestEndofBootstrap", message:="bootstrapping ended", _
-                                        arg1:=Me.SessionID, messagetype:=otCoreMessageType.InternalInfo)
+                    Call CoreMessageHandler(procedure:="Session.RequestEndofBootstrap", message:="bootstrapping ended", _
+                                        argument:=Me.SessionID, messagetype:=otCoreMessageType.InternalInfo)
                     Me.IsBootstrappingInstallationRequested = False
                     Me.IsInstallationRunning = False
                     Return True
@@ -897,8 +949,8 @@ Namespace OnTrack
             Dim anUsername As String
             '** lazy initialize
             If Not Me.IsInitialized AndAlso Not Me.Initialize() Then
-                Call CoreMessageHandler(subname:="Session.RequireAccessRight", message:="failed to initialize session", _
-                                        arg1:=Me.SessionID, messagetype:=otCoreMessageType.InternalError)
+                Call CoreMessageHandler(procedure:="Session.RequireAccessRight", message:="failed to initialize session", _
+                                        argument:=Me.SessionID, messagetype:=otCoreMessageType.InternalError)
                 Return False
             End If
             '* take the OTDBDriver
@@ -909,17 +961,17 @@ Namespace OnTrack
             '* how to check and wha to do
 
             If Me.IsRunning Then
-                If String.IsNullOrWhiteSpace(domainID) Then domainID = Me.CurrentDomainID
+                If String.IsnullorEmpty(domainID) Then domainID = Me.CurrentDomainID
                 anUsername = Me.OTdbUser.Username
 
-                Return Me.RequestUserAccess(accessRequest:=accessRequest, username:=anUsername, domainID:=domainID, loginOnFailed:=reLogin)
+                Return Me.RequestUserAccess(accessRequest:=accessRequest, username:=anUsername, domainid:=domainID, loginOnFailed:=reLogin)
             Else
-                If String.IsNullOrWhiteSpace(domainID) Then domainID = ConstGlobalDomain
+                If String.IsnullorEmpty(domainID) Then domainID = ConstGlobalDomain
 
                 If Me.StartUp(AccessRequest:=accessRequest, domainID:=domainID) Then
                     Return Me.ValidateAccessRights(accessrequest:=accessRequest, domainid:=domainID)
                 Else
-                    CoreMessageHandler(message:="failed to startup a session", subname:="Session.RequireAccessRight", messagetype:=otCoreMessageType.InternalError)
+                    CoreMessageHandler(message:="failed to startup a session", procedure:="Session.RequireAccessRight", messagetype:=otCoreMessageType.InternalError)
                     Return False
                 End If
             End If
@@ -960,14 +1012,16 @@ Namespace OnTrack
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function ValidateUser(ByVal username As String, ByVal password As String, ByVal accessRequest As otAccessRight, ByVal domainID As String, _
-          Optional databasedriver As iormDatabaseDriver = Nothing, Optional uservalidation As UserValidation = Nothing, Optional messagetext As String = "") As Boolean
+                                      Optional databasedriver As iormRelationalDatabaseDriver = Nothing, _
+                                      Optional uservalidation As UserValidation = Nothing, _
+                                      Optional messagetext As String = Nothing) As Boolean
 
             If databasedriver Is Nothing Then databasedriver = _primaryDBDriver
             If databasedriver Is Nothing Then
-                CoreMessageHandler(message:="database driver is not available ", subname:="Session.ValidateUser", messagetype:=otCoreMessageType.InternalError)
+                CoreMessageHandler(message:="database driver is not available ", procedure:="Session.ValidateUser", messagetype:=otCoreMessageType.InternalError)
                 Return False
             End If
-            Return databasedriver.validateUser(username:=username, password:=password, accessRequest:=accessRequest)
+            Return databasedriver.ValidateUser(username:=username, password:=password, accessRequest:=accessRequest)
         End Function
 
         ''' <summary>
@@ -990,7 +1044,7 @@ Namespace OnTrack
                 Return True
             ElseIf _OTDBUser Is Nothing OrElse Not _OTDBUser.IsAlive Then
                 CoreMessageHandler(message:="no otdb user is loaded into the session -failed to validate accessrights", messagetype:=otCoreMessageType.InternalError, _
-                                                  subname:="Session.validateAccessRights")
+                                                  procedure:="Session.validateAccessRights")
                 Return False
             End If
 
@@ -1010,16 +1064,16 @@ Namespace OnTrack
                     Dim anObjectname As String
                     Dim anTransactionname As String
                     Shuffle.NameSplitter(opname, anObjectname, anTransactionname)
-                    If anObjectname Is Nothing OrElse anObjectname = "" Then
-                        CoreMessageHandler(message:="ObjectID is missing in operation name", arg1:=opname, subname:="Session.validateOTDBAccessLevel", messagetype:=otCoreMessageType.InternalError)
+                    If anObjectname Is Nothing OrElse anObjectname = String.empty Then
+                        CoreMessageHandler(message:="ObjectID is missing in operation name", argument:=opname, procedure:="Session.validateOTDBAccessLevel", messagetype:=otCoreMessageType.InternalError)
                         result = result And False
-                    ElseIf anTransactionname Is Nothing OrElse anTransactionname = "" Then
-                        CoreMessageHandler(message:="Operation Name is missing in operation name", arg1:=opname, subname:="Session.validateOTDBAccessLevel", messagetype:=otCoreMessageType.InternalError)
+                    ElseIf anTransactionname Is Nothing OrElse anTransactionname = String.empty Then
+                        CoreMessageHandler(message:="Operation Name is missing in operation name", argument:=opname, procedure:="Session.validateOTDBAccessLevel", messagetype:=otCoreMessageType.InternalError)
                         result = result And False
                     Else
                         Dim aObjectDefinition = Me.Objects.GetObject(objectid:=anObjectname, runtimeOnly:=Me.IsBootstrappingInstallationRequested)
                         If aObjectDefinition Is Nothing And Not Me.IsBootstrappingInstallationRequested Then
-                            CoreMessageHandler(message:="Object is missing in object repository", arg1:=opname, subname:="Session.validateOTDBAccessLevel", messagetype:=otCoreMessageType.InternalError)
+                            CoreMessageHandler(message:="Object is missing in object repository", argument:=opname, procedure:="Session.validateOTDBAccessLevel", messagetype:=otCoreMessageType.InternalError)
                             result = result And False
                         Else
                             '** get the ObjectDefinition's effective permissions
@@ -1052,13 +1106,13 @@ Namespace OnTrack
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function RequestUserAccess(accessRequest As otAccessRight, _
-                                            Optional ByRef username As String = "", _
+                                            Optional ByRef username As String = Nothing, _
                                             Optional ByRef password As String = Nothing, _
                                             Optional ByRef domainid As String = Nothing, _
                                             Optional ByRef [objecttransactions] As String() = Nothing, _
                                             Optional loginOnDisConnected As Boolean = False, _
                                             Optional loginOnFailed As Boolean = False, _
-                                            Optional messagetext As String = "") As Boolean
+                                            Optional messagetext As String = Nothing) As Boolean
 
             Dim userValidation As UserValidation
             userValidation.ValidEntry = False
@@ -1078,21 +1132,23 @@ Namespace OnTrack
 
             ElseIf Not Me.IsRunning Then
 
+                ''' todo: check if validation is obtainable -> user table there or something
+                ''' 
 
                 '*** OTDBUsername supplied
 
                 If loginOnDisConnected And accessRequest <> ConstDefaultAccessRight Then
                     If Me.OTdbUser IsNot Nothing AndAlso Me.OTdbUser.IsAnonymous Then
                         Me.UILogin.EnableUsername = True
-                        Me.UILogin.Username = String.Empty
-                        Me.UILogin.Password = String.Empty
+                        Me.UILogin.Username = Nothing
+                        Me.UILogin.Password = Nothing
                     End If
                     'LoginWindow
                     Me.UILogin.Configset = ot.CurrentConfigSetName
                     Me.UILogin.PossibleConfigSets = ot.ConfigSetNamesToSelect
                     Me.UILogin.EnableChangeConfigSet = True
                     If Not String.IsNullOrWhiteSpace(messagetext) Then Me.UILogin.Messagetext = messagetext
-                    If String.IsNullOrWhiteSpace(domainid) Then
+                    If String.IsnullorEmpty(domainID) Then
                         domainid = ConstGlobalDomain
                         Me.UILogin.Domain = domainid
                         Me.UILogin.EnableDomain = True
@@ -1111,7 +1167,7 @@ Namespace OnTrack
                     Me.UILogin.Show()
 
                     If Not Me.UILogin.Ok Then
-                        CoreMessageHandler(message:="login aborted by user", subname:="Session.verifyuserAccess", messagetype:=otCoreMessageType.ApplicationInfo)
+                        CoreMessageHandler(message:="login aborted by user", procedure:="Session.verifyuserAccess", messagetype:=otCoreMessageType.ApplicationInfo)
                         Return False
                     Else
                         username = Me.UILogin.Username
@@ -1130,15 +1186,15 @@ Namespace OnTrack
 
                     ' just check the provided username
                 ElseIf Not String.IsNullOrWhiteSpace(username) Then
-                    If Not String.IsNullOrWhiteSpace(domainid) Then domainid = ConstGlobalDomain
+                    If Not String.IsnullorEmpty(domainID) Then domainid = ConstGlobalDomain
                     userValidation = _primaryDBDriver.GetUserValidation(username)
-                    If userValidation.ValidEntry AndAlso password = "" Then
+                    If userValidation.ValidEntry AndAlso password = String.Empty Then
                         password = userValidation.Password
                     End If
                     '* no username but default accessrequest then look for the anonymous user
                 ElseIf accessRequest = ConstDefaultAccessRight Then
-                    If String.IsNullOrWhiteSpace(domainid) Then domainid = ConstGlobalDomain
-                    userValidation = _primaryDBDriver.GetUserValidation(username:="", selectAnonymous:=True)
+                    If String.IsnullorEmpty(domainID) Then domainid = ConstGlobalDomain
+                    userValidation = _primaryDBDriver.GetUserValidation(username:=String.Empty, selectAnonymous:=True)
                     If userValidation.ValidEntry Then
                         username = userValidation.Username
                         password = userValidation.Password
@@ -1149,7 +1205,7 @@ Namespace OnTrack
                 If Not userValidation.ValidEntry Then
                     Call CoreMessageHandler(showmsgbox:=True, _
                                             message:=" Access to OnTrack Database is prohibited - User not found", _
-                                            arg1:=userValidation.Username, noOtdbAvailable:=True, break:=False)
+                                            argument:=userValidation.Username, noOtdbAvailable:=True, break:=False)
 
                     '*** reset
                     Call ShutDown()
@@ -1157,13 +1213,13 @@ Namespace OnTrack
                 Else
                     '**** Check Password
                     '****
-                    If String.IsNullOrWhiteSpace(domainid) Then domainid = ConstGlobalDomain
+                    If String.IsnullorEmpty(domainID) Then domainid = ConstGlobalDomain
                     If _primaryDBDriver.ValidateUser(accessRequest:=accessRequest, username:=username, password:=password, domainid:=domainid) Then
-                        Call CoreMessageHandler(subname:="Session.verifyUserAccess", break:=False, message:="User verified successfully", _
-                                                arg1:=username, noOtdbAvailable:=True, messagetype:=otCoreMessageType.ApplicationInfo)
+                        Call CoreMessageHandler(procedure:="Session.verifyUserAccess", break:=False, message:="User verified successfully", _
+                                                argument:=username, noOtdbAvailable:=True, messagetype:=otCoreMessageType.ApplicationInfo)
                     Else
-                        Call CoreMessageHandler(subname:="Session.verifyUserAccess", break:=False, message:="User not verified successfully", _
-                                                arg1:=username, noOtdbAvailable:=True, messagetype:=otCoreMessageType.ApplicationError)
+                        Call CoreMessageHandler(procedure:="Session.verifyUserAccess", break:=False, message:="User not verified successfully", _
+                                                argument:=username, noOtdbAvailable:=True, messagetype:=otCoreMessageType.ApplicationError)
                         Return False
                     End If
 
@@ -1173,7 +1229,7 @@ Namespace OnTrack
                 '**** CONNECTION on CONNECTED !
             Else
                 '** stay in the current domain 
-                If String.IsNullOrWhiteSpace(domainid) Then domainid = ot.CurrentSession.CurrentDomainID
+                If String.IsnullorEmpty(domainID) Then domainid = ot.CurrentSession.CurrentDomainID
 
                 '** validate the current user with the request if it is failing then
                 '** do check again
@@ -1185,7 +1241,7 @@ Namespace OnTrack
                     '** check if new OTDBUsername is valid
                     'LoginWindow
                     ' enable domain
-                    If Not String.IsNullOrWhiteSpace(domainid) Then
+                    If Not String.IsnullorEmpty(domainID) Then
                         Me.UILogin.Domain = domainid
                         Me.UILogin.EnableDomain = False
                     Else
@@ -1201,22 +1257,22 @@ Namespace OnTrack
                     Me.UILogin.Configset = ot.CurrentConfigSetName
                     Me.UILogin.EnableChangeConfigSet = False
                     Me.UILogin.Accessright = accessRequest
-                    If messagetext <> "" Then
+                    If Not String.IsNullOrWhiteSpace(messagetext) Then
                         Me.UILogin.Messagetext = messagetext
                     Else
                         Me.UILogin.Messagetext = "<html><strong>Welcome !</strong><br />Please change to a valid user and password for the needed access right.</html>"
                     End If
                     Me.UILogin.EnableUsername = True
-                    Me.UILogin.Username = String.Empty
+                    Me.UILogin.Username = Nothing
                     Me.UILogin.Password = Nothing
                     'Me.UILogin.Session = Me
 
                     Me.UILogin.Show()
 
                     If Not Me.UILogin.Ok Then
-                        Call CoreMessageHandler(subname:="Session.verifyUserAccess", break:=False, _
+                        Call CoreMessageHandler(procedure:="Session.verifyUserAccess", break:=False, _
                                                 message:="login aborted by user - fall back to user " & username, _
-                                                arg1:=username, messagetype:=otCoreMessageType.ApplicationInfo)
+                                                argument:=username, messagetype:=otCoreMessageType.ApplicationInfo)
                         Return False
                     End If
 
@@ -1229,9 +1285,9 @@ Namespace OnTrack
                     '* check validation -> relogin on connected -> EventHandler ?!
                     '* or abortion of the login window
                     If _primaryDBDriver.ValidateUser(accessRequest:=accessRequest, username:=username, password:=password, domainid:=domainid) Then
-                        Call CoreMessageHandler(subname:="Session.verifyUserAccess", break:=False, _
+                        Call CoreMessageHandler(procedure:="Session.verifyUserAccess", break:=False, _
                                                 message:="User change verified successfully on domain '" & domainid & "'", _
-                                                arg1:=username, noOtdbAvailable:=True, messagetype:=otCoreMessageType.ApplicationInfo)
+                                                argument:=username, noOtdbAvailable:=True, messagetype:=otCoreMessageType.ApplicationInfo)
                         If Me.CurrentDomainID <> Me.UILogin.Domain Then
                             SwitchToDomain(Me.UILogin.Domain)
                         End If
@@ -1244,7 +1300,7 @@ Namespace OnTrack
                             Me.UserChangedEvent(_OTDBUser)
                         Else
                             CoreMessageHandler(message:="user definition cannot be loaded", messagetype:=otCoreMessageType.InternalError, _
-                                               arg1:=username, noOtdbAvailable:=False, subname:="Session.verifyUserAccess")
+                                               argument:=username, noOtdbAvailable:=False, procedure:="Session.verifyUserAccess")
                             username = _OTDBUser.Username
                             password = _OTDBUser.Password
                             Return False
@@ -1255,8 +1311,8 @@ Namespace OnTrack
                         username = _OTDBUser.Username
                         password = _OTDBUser.Password
 
-                        Call CoreMessageHandler(subname:="Session.verifyUserAccess", break:=False, message:="User couldnot be verified - fallback to user " & username, _
-                                                arg1:=username, noOtdbAvailable:=True, messagetype:=otCoreMessageType.ApplicationError, showmsgbox:=True)
+                        Call CoreMessageHandler(procedure:="Session.verifyUserAccess", break:=False, message:="User couldnot be verified - fallback to user " & username, _
+                                                argument:=username, noOtdbAvailable:=True, messagetype:=otCoreMessageType.ApplicationError, showmsgbox:=True)
 
 
                         Return False
@@ -1276,7 +1332,7 @@ Namespace OnTrack
                     Me.UILogin.Configset = ot.CurrentConfigSetName
                     Me.UILogin.EnableChangeConfigSet = False
                     Me.UILogin.Accessright = accessRequest
-                    If messagetext <> "" Then
+                    If messagetext <> String.Empty Then
                         Me.UILogin.Messagetext = messagetext
                     Else
                         Me.UILogin.Messagetext = "<html><strong>Attention !</strong><br />Please confirm by your password to obtain the access right.</html>"
@@ -1288,9 +1344,9 @@ Namespace OnTrack
 
                     Me.UILogin.Show()
                     If Not Me.UILogin.Ok Then
-                        Call CoreMessageHandler(subname:="Session.verifyUserAccess", break:=False, _
+                        Call CoreMessageHandler(procedure:="Session.verifyUserAccess", break:=False, _
                                                 message:="login aborted by user - fall back to user " & username, _
-                                                arg1:=username, messagetype:=otCoreMessageType.ApplicationInfo)
+                                                argument:=username, messagetype:=otCoreMessageType.ApplicationInfo)
                         Return False
                     End If
                     ' return input
@@ -1314,8 +1370,8 @@ Namespace OnTrack
                         '** fallback
                         username = _OTDBUser.Username
                         password = _OTDBUser.Password
-                        Call CoreMessageHandler(subname:="Session.verifyUserAccess", break:=False, message:="User couldnot be verified - fallback to user " & username, _
-                                                arg1:=username, noOtdbAvailable:=True, messagetype:=otCoreMessageType.ApplicationError, showmsgbox:=True)
+                        Call CoreMessageHandler(procedure:="Session.verifyUserAccess", break:=False, message:="User couldnot be verified - fallback to user " & username, _
+                                                argument:=username, noOtdbAvailable:=True, messagetype:=otCoreMessageType.ApplicationError, showmsgbox:=True)
                         Return False
                     End If
 
@@ -1395,25 +1451,24 @@ Namespace OnTrack
         ''' <returns>True if successfull False else</returns>
         ''' <remarks></remarks>
         Public Function StartUp(AccessRequest As otAccessRight, _
-                                Optional useconfigsetname As String = "", _
+                                Optional useconfigsetname As String = Nothing, _
                             Optional domainID As String = Nothing, _
-                            Optional OTDBUsername As String = "", _
-                            Optional OTDBPassword As String = "", _
+                            Optional OTDBUsername As String = Nothing, _
+                            Optional OTDBPassword As String = Nothing, _
                             Optional installIfNecessary As Boolean? = Nothing, _
-                            Optional ByVal messagetext As String = "") As Boolean
-            Dim aConfigsetname As String
+                            Optional ByVal messagetext As String = Nothing) As Boolean
             Dim aValue As Object
             Dim result As Boolean
 
             Try
                 If Me.IsRunning OrElse Me.IsStartingUp Then
-                    CoreMessageHandler(message:="Session is already running or starting up - further startups not possible", arg1:=Me.SessionID, subname:="Session.Startup", messagetype:=otCoreMessageType.InternalInfo)
+                    CoreMessageHandler(message:="Session is already running or starting up - further startups not possible", argument:=Me.SessionID, procedure:="Session.Startup", messagetype:=otCoreMessageType.InternalInfo)
                     Return False
                 End If
 
                 '** default is install on startup
                 If Not installIfNecessary.HasValue Then installIfNecessary = True
-                If String.IsNullOrWhiteSpace(domainID) Then domainID = _CurrentDomainID
+                If String.IsnullorEmpty(domainID) Then domainID = _CurrentDomainID
 
                 '** set statup
                 Me.IsStartingUp = True
@@ -1431,20 +1486,20 @@ Namespace OnTrack
                     _setupID = ConstDefaultSetupID
                 End If
 
-                Call CoreMessageHandler(subname:="Session.Startup", message:="setup id for the session set to '" & _setupID & "'", _
-                                           arg1:=_SessionID, messagetype:=otCoreMessageType.InternalInfo)
+                Call CoreMessageHandler(procedure:="Session.Startup", message:="setup id for the session set to '" & _setupID & "'", _
+                                           argument:=_SessionID, messagetype:=otCoreMessageType.InternalInfo)
 
                 '** lazy initialize
                 If Not Me.IsInitialized AndAlso Not Me.Initialize() Then
-                    Call CoreMessageHandler(subname:="Session.Startup", message:="failed to initialize session", _
-                                            arg1:=Me.SessionID, messagetype:=otCoreMessageType.InternalError)
+                    Call CoreMessageHandler(procedure:="Session.Startup", message:="failed to initialize session", _
+                                            argument:=Me.SessionID, messagetype:=otCoreMessageType.InternalError)
                     Return False
                 End If
 
                 '* take the OTDBDriver
                 If _primaryDBDriver Is Nothing Then
                     CoreMessageHandler(message:="primary database driver is not set", messagetype:=otCoreMessageType.InternalError, _
-                                       subname:="Session.Startup")
+                                       procedure:="Session.Startup")
                     '** reset
                     If IsBootstrappingInstallationRequested Then Me.RequestEndofBootstrap()
                     Me.IsRunning = False
@@ -1454,17 +1509,17 @@ Namespace OnTrack
 
                 '** set domain without switching since it is not running
                 '**
-                If String.IsNullOrWhiteSpace(domainID) Then
+                If String.IsnullorEmpty(domainID) Then
                     If ot.HasConfigSetProperty(constCPNDefaultDomainid) Then
                         domainID = CStr(ot.GetConfigProperty(constCPNDefaultDomainid)).ToUpper
-                        If Not String.IsNullOrWhiteSpace(domainID) Then
+                        If Not String.IsnullorEmpty(domainID) Then
                             Me.CurrentDomainID = domainID
                         Else
                             Me.CurrentDomainID = ConstGlobalDomain
                         End If
                     ElseIf ot.HasConfigSetProperty(constCPNDefaultDomainid, configsetname:=ConstGlobalConfigSetName) Then
                         domainID = CStr(ot.GetConfigProperty(constCPNDefaultDomainid, configsetname:=ConstGlobalConfigSetName)).ToUpper
-                        If Not String.IsNullOrWhiteSpace(domainID) Then
+                        If Not String.IsnullorEmpty(domainID) Then
                             Me.CurrentDomainID = domainID
                         Else
                             Me.CurrentDomainID = ConstGlobalDomain
@@ -1482,13 +1537,17 @@ Namespace OnTrack
                 ElseIf ot.SchemaVersion < Convert.ToUInt64(aValue) Then
                     CoreMessageHandler(showmsgbox:=True, message:="Verifying the OnTrack Database failed. The Tooling schema version of # " & ot.SchemaVersion & _
                                        " is less than the database schema version of #" & aValue & " - Session could not start up", _
-                                       messagetype:=otCoreMessageType.InternalError, subname:="Session.Startup")
+                                       messagetype:=otCoreMessageType.InternalError, procedure:="Session.Startup")
                     '** reset
                     If IsBootstrappingInstallationRequested Then Me.RequestEndofBootstrap()
                     Me.IsRunning = False
                     Me.IsStartingUp = False
                     Return False
                 ElseIf ot.SchemaVersion > Convert.ToUInt64(aValue) Then
+                    result = _primaryDBDriver.VerifyOnTrackDatabase(install:=installIfNecessary, modules:=ot.InstalledModules, verifySchema:=False)
+                ElseIf Not _primaryDBDriver.VerifyOnTrackDatabase(install:=False, modules:={ot.ConstModuleRepository}, verifySchema:=False) Then
+                    ''' if repository failed check and install all modules again
+                    ''' 
                     result = _primaryDBDriver.VerifyOnTrackDatabase(install:=installIfNecessary, modules:=ot.InstalledModules, verifySchema:=False)
                 Else
                     '** check also the bootstrap version
@@ -1502,7 +1561,7 @@ Namespace OnTrack
                 '** the starting up aborted
                 If Not Me.IsStartingUp Then
                     CoreMessageHandler(message:="Startup of Session was aborted", _
-                                       messagetype:=otCoreMessageType.InternalInfo, subname:="Session.Startup")
+                                       messagetype:=otCoreMessageType.InternalInfo, procedure:="Session.Startup")
                     '** reset
                     If IsBootstrappingInstallationRequested Then Me.RequestEndofBootstrap()
                     Me.IsRunning = False
@@ -1513,7 +1572,7 @@ Namespace OnTrack
                 '** the installation failed
                 If Not result And installIfNecessary Then
                     CoreMessageHandler(showmsgbox:=True, message:="Verifying and Installing the OnTrack Database failed - Session could not start up", _
-                                       messagetype:=otCoreMessageType.InternalError, subname:="Session.Startup")
+                                       messagetype:=otCoreMessageType.InternalError, procedure:="Session.Startup")
                     '** reset
                     If IsBootstrappingInstallationRequested Then Me.RequestEndofBootstrap()
                     Me.IsRunning = False
@@ -1521,9 +1580,13 @@ Namespace OnTrack
                     Return False
                 ElseIf Not installIfNecessary And Not result Then
                     CoreMessageHandler(showmsgbox:=True, message:="Verifying  the OnTrack Database failed - Session will be started anyway on demand", _
-                                                      messagetype:=otCoreMessageType.InternalWarning, subname:="Session.Startup")
+                                                      messagetype:=otCoreMessageType.InternalWarning, procedure:="Session.Startup")
                 End If
 
+                ''' default messagetext
+                If messagetext Is Nothing Then
+                    messagetext = "Please provide valid username and password to logon."
+                End If
                 '** request access
                 If RequestUserAccess(accessRequest:=AccessRequest, _
                                      username:=OTDBUsername, _
@@ -1535,7 +1598,7 @@ Namespace OnTrack
                     '** the starting up aborted
                     If Not Me.IsStartingUp Then
                         CoreMessageHandler(message:="Startup of Session was aborted", _
-                                           messagetype:=otCoreMessageType.InternalInfo, subname:="Session.Startup")
+                                           messagetype:=otCoreMessageType.InternalInfo, procedure:="Session.Startup")
                         '** reset
                         If IsBootstrappingInstallationRequested Then Me.RequestEndofBootstrap()
                         Me.IsRunning = False
@@ -1553,8 +1616,8 @@ Namespace OnTrack
                                                       doLogin:=True) Then
 
                         ''' start up message
-                        CoreMessageHandler(message:="Could not connect to OnTrack Database though primary connection", arg1:=_primaryConnection.ID, _
-                                                      messagetype:=otCoreMessageType.InternalError, subname:="Session.Startup")
+                        CoreMessageHandler(message:="Could not connect to OnTrack Database though primary connection", argument:=_primaryConnection.ID, _
+                                                      messagetype:=otCoreMessageType.InternalError, procedure:="Session.Startup")
                         '** reset
                         If IsBootstrappingInstallationRequested Then Me.RequestEndofBootstrap()
                         Me.IsRunning = False
@@ -1564,8 +1627,8 @@ Namespace OnTrack
 
                     '** Initialize through events
                 Else
-                    CoreMessageHandler(message:="user could not be verified - abort to start up a session", messagetype:=otCoreMessageType.InternalInfo, arg1:=OTDBUsername, _
-                                       subname:="Session.Startup")
+                    CoreMessageHandler(message:="user could not be verified - abort to start up a session", messagetype:=otCoreMessageType.InternalInfo, argument:=OTDBUsername, _
+                                       procedure:="Session.Startup")
                     '** reset
                     If IsBootstrappingInstallationRequested Then Me.RequestEndofBootstrap()
                     Me.IsRunning = False
@@ -1578,10 +1641,10 @@ Namespace OnTrack
             Catch ex As ormNoConnectionException
                 Return False
             Catch ex As ormException
-                CoreMessageHandler(exception:=ex, subname:="Session.Startup")
+                CoreMessageHandler(exception:=ex, procedure:="Session.Startup")
                 Return False
             Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="Session.Startup")
+                CoreMessageHandler(exception:=ex, procedure:="Session.Startup")
                 Return False
 
             End Try
@@ -1596,9 +1659,9 @@ Namespace OnTrack
         Public Function ShutDown(Optional force As Boolean = False) As Boolean
 
             '***
-            Call CoreMessageHandler(showmsgbox:=False, message:="Session Shutdown", arg1:=_SessionID, _
+            Call CoreMessageHandler(showmsgbox:=False, message:="Session Shutdown", argument:=_SessionID, _
                                     break:=True, noOtdbAvailable:=True, messagetype:=otCoreMessageType.ApplicationInfo, _
-                                    subname:="Session.ShutDown")
+                                    procedure:="Session.ShutDown")
 
             '*** shut down the primary connection
             If Not _primaryConnection Is Nothing AndAlso _primaryConnection.IsConnected Then
@@ -1611,10 +1674,10 @@ Namespace OnTrack
             'reset
             _IsRunning = False
             _CurrentDomain = Nothing
-            _CurrentDomainID = ""
-            _CurrentWorkspaceID = ""
+            _CurrentDomainID = String.empty
+            _CurrentWorkspaceID = String.empty
             _AccessLevel = 0
-            _Username = ""
+            _Username = String.empty
             _IsInitialized = False
             For Each anObjectstore In _DomainRepositories.Values
                 'anObjectstore.reset()
@@ -1678,10 +1741,10 @@ Namespace OnTrack
                 '** check on bootstrapping 
                 If newDomain Is Nothing And Not Me.IsBootstrappingInstallationRequested Then
                     CoreMessageHandler(message:="domain does not exist - falling back to global domain", _
-                                       arg1:=newDomainID, subname:="Session.SetDomain", messagetype:=otCoreMessageType.ApplicationError)
+                                       argument:=newDomainID, procedure:="Session.SetDomain", messagetype:=otCoreMessageType.ApplicationError)
                     newDomain = Domain.Retrieve(id:=ConstGlobalDomain, dbdriver:=Me._primaryDBDriver, runtimeOnly:=Me.IsBootstrappingInstallationRequested)
                     If newDomain Is Nothing Then
-                        CoreMessageHandler(message:="global domain does not exist", arg1:=ConstGlobalDomain, subname:="Session.SetDomain", messagetype:=otCoreMessageType.InternalError)
+                        CoreMessageHandler(message:="global domain does not exist", argument:=ConstGlobalDomain, procedure:="Session.SetDomain", messagetype:=otCoreMessageType.InternalError)
                         Return False
                     End If
 
@@ -1732,7 +1795,7 @@ Namespace OnTrack
                         Me.DefaultWorkspaceID = newDomain.GetSetting(id:=ConstCPDefaultWorkspace).value
                         _CurrentWorkspaceID = _DefaultWorkspace
                     Else
-                        Me.DefaultWorkspaceID = ""
+                        Me.DefaultWorkspaceID = String.empty
                     End If
 
                     If newDomain.HasSetting(id:=ConstCPDefaultCalendarName) Then
@@ -1750,14 +1813,14 @@ Namespace OnTrack
                     If newDomain.HasSetting(id:=ConstCDefaultScheduleTypeID) Then
                         Me.DefaultScheduleTypeID = newDomain.GetSetting(id:=ConstCDefaultScheduleTypeID).value
                     Else
-                        Me.DefaultScheduleTypeID = "none"
+                        Me.DefaultScheduleTypeID = String.Empty
 
                     End If
 
                     If newDomain.HasSetting(id:=ConstCPDefaultDeliverableTypeID) Then
                         Me.DefaultDeliverableTypeID = newDomain.GetSetting(id:=ConstCPDefaultDeliverableTypeID).value
                     Else
-                        Me.DefaultDeliverableTypeID = ""
+                        Me.DefaultDeliverableTypeID = String.empty
                     End If
 
                     If newDomain.HasSetting(id:=ConstCPAutoPublishTarget) Then
@@ -1793,12 +1856,12 @@ Namespace OnTrack
                 ''' rause the domain changed event
                 RaiseEvent OnDomainChanged(Me, New SessionEventArgs(Me))
                 CoreMessageHandler(message:="Domain switched to '" & newDomainID & "' - " & newDomain.Description, _
-                                    subname:="Session.SwitchToDomain", dataobject:=newDomain, messagetype:=otCoreMessageType.ApplicationInfo)
+                                    procedure:="Session.SwitchToDomain", dataobject:=newDomain, messagetype:=otCoreMessageType.ApplicationInfo)
                 Me.IsDomainSwitching = False
                 Return True
 
             Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="Session.SwitchToDomain")
+                CoreMessageHandler(exception:=ex, procedure:="Session.SwitchToDomain")
                 _loadDomainReqeusted = False
                 Me.IsDomainSwitching = False
                 Return False
@@ -1825,14 +1888,14 @@ Namespace OnTrack
                         If CBool(aValue) Then
                             _logagent.Start()
                             '***
-                            Call CoreMessageHandler(showmsgbox:=False, message:=" LogAgent for Session started ", arg1:=_SessionID, _
+                            Call CoreMessageHandler(showmsgbox:=False, message:=" LogAgent for Session started ", argument:=_SessionID, _
                                                     break:=True, noOtdbAvailable:=True, messagetype:=otCoreMessageType.ApplicationInfo, _
-                                                    subname:="Session.startupSesssionEnviorment")
+                                                    procedure:="Session.startupSesssionEnviorment")
                         Else
                             '***
-                            Call CoreMessageHandler(showmsgbox:=False, message:=" LogAgent for Session not used by configuration ", arg1:=_SessionID, _
+                            Call CoreMessageHandler(showmsgbox:=False, message:=" LogAgent for Session not used by configuration ", argument:=_SessionID, _
                                                     break:=True, noOtdbAvailable:=True, messagetype:=otCoreMessageType.ApplicationInfo, _
-                                                    subname:="Session.startupSesssionEnviorment")
+                                                    procedure:="Session.startupSesssionEnviorment")
                         End If
 
                     End If
@@ -1841,7 +1904,7 @@ Namespace OnTrack
                         '***
                         Call CoreMessageHandler(showmsgbox:=False, message:=" Session cannot initiated no DBDriver set ", _
                                                 break:=True, noOtdbAvailable:=True, messagetype:=otCoreMessageType.InternalError, _
-                                                subname:="Session.startupSesssionEnviorment")
+                                                procedure:="Session.startupSesssionEnviorment")
                         Me.IsStartingUp = False
                         IsRunning = False
                         Return False
@@ -1850,13 +1913,13 @@ Namespace OnTrack
                     '''
                     ''' load domain before retrieving any data
                     ''' 
-                    If String.IsNullOrWhiteSpace(domainid) Then domainid = Me.CurrentDomainID
+                    If String.IsnullorEmpty(domainID) Then domainid = Me.CurrentDomainID
                     '* set it here that we are really loading in SetDomain and not only 
                     '* assigning _DomainID (if no connection is available)
                     If SwitchToDomain(newDomainID:=domainid) Then
                         Call CoreMessageHandler(message:="Session Domain set to '" & domainid & "' - " & CurrentSession.CurrentDomain.Description, _
                                                 messagetype:=otCoreMessageType.ApplicationInfo, _
-                                                subname:="Session.startupSesssionEnviorment")
+                                                procedure:="Session.startupSesssionEnviorment")
                     End If
 
                     '''
@@ -1869,18 +1932,18 @@ Namespace OnTrack
                         _AccessLevel = _OTDBUser.AccessRight
                     Else
                         Call CoreMessageHandler(showmsgbox:=True, message:=" Session could not initiate - user could not be retrieved from database", _
-                                               break:=False, arg1:=_primaryDBDriver.CurrentConnection.Dbuser, noOtdbAvailable:=True, messagetype:=otCoreMessageType.InternalError, _
-                                               subname:="Session.startupSesssionEnviorment")
+                                               break:=False, argument:=_primaryDBDriver.CurrentConnection.Dbuser, noOtdbAvailable:=True, messagetype:=otCoreMessageType.InternalError, _
+                                               procedure:="Session.startupSesssionEnviorment")
                         IsRunning = False
                         Me.IsStartingUp = False
                         Return False
                     End If
 
-                   
+
                     '** the starting up aborted
                     If Not Me.IsStartingUp Then
                         CoreMessageHandler(message:="Startup of Session was aborted", _
-                                           messagetype:=otCoreMessageType.InternalInfo, subname:="Session.StartupSessionEnviorment")
+                                           messagetype:=otCoreMessageType.InternalInfo, procedure:="Session.StartupSessionEnviorment")
                         '** reset
                         If IsBootstrappingInstallationRequested Then Me.RequestEndofBootstrap()
                         Me.IsRunning = False
@@ -1898,7 +1961,7 @@ Namespace OnTrack
                     '** the starting up aborted
                     If Not Me.IsStartingUp Then
                         CoreMessageHandler(message:="Startup of Session was aborted", _
-                                           messagetype:=otCoreMessageType.InternalInfo, subname:="Session.StartupSessionEnviorment")
+                                           messagetype:=otCoreMessageType.InternalInfo, procedure:="Session.StartupSessionEnviorment")
                         '** reset
                         If IsBootstrappingInstallationRequested Then Me.RequestEndofBootstrap()
                         Me.IsRunning = False
@@ -1922,7 +1985,7 @@ Namespace OnTrack
                 Return False
 
             Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="Session.StartupSessionEnviorment")
+                CoreMessageHandler(exception:=ex, procedure:="Session.StartupSessionEnviorment")
                 Me.IsRunning = False
                 Me.IsStartingUp = False
                 Return False
@@ -1953,14 +2016,14 @@ Namespace OnTrack
                 aValue = ot.GetConfigProperty(constCPNUseLogAgent)
                 If CBool(aValue) Then
                     '***
-                    Call CoreMessageHandler(showmsgbox:=False, message:="LogAgent for Session stopped ", arg1:=_SessionID, _
+                    Call CoreMessageHandler(showmsgbox:=False, message:="LogAgent for Session stopped ", argument:=_SessionID, _
                                             break:=True, noOtdbAvailable:=True, messagetype:=otCoreMessageType.ApplicationInfo, _
-                                            subname:="Session.shutdownSessionEviorment")
+                                            procedure:="Session.shutdownSessionEviorment")
                 Else
                     '***
-                    Call CoreMessageHandler(showmsgbox:=False, message:=" LogAgent for Session not used by configuration but stopped anyway ", arg1:=_SessionID, _
+                    Call CoreMessageHandler(showmsgbox:=False, message:=" LogAgent for Session not used by configuration but stopped anyway ", argument:=_SessionID, _
                                             break:=True, noOtdbAvailable:=True, messagetype:=otCoreMessageType.ApplicationInfo, _
-                                            subname:="Session.startupSesssionEnviorment")
+                                            procedure:="Session.startupSesssionEnviorment")
                 End If
 
             End If
@@ -1971,9 +2034,9 @@ Namespace OnTrack
             _DomainRepositories.Clear()
             _OTDBUser = Nothing
             IsRunning = False
-            Call CoreMessageHandler(showmsgbox:=False, message:="Session ended ", arg1:=_SessionID, _
+            Call CoreMessageHandler(showmsgbox:=False, message:="Session ended ", argument:=_SessionID, _
                                     break:=True, noOtdbAvailable:=True, messagetype:=otCoreMessageType.ApplicationInfo, _
-                                    subname:="Session.shutdownSessionEviorment")
+                                    procedure:="Session.shutdownSessionEviorment")
             '** flush the log
             Me.CurrentDBDriver.PersistLog(Me.Errorlog)
             Return True
@@ -2002,7 +2065,7 @@ Namespace OnTrack
 
         End Sub
 
-       
+
     End Class
 
     ''' <summary>
@@ -2184,8 +2247,8 @@ Namespace OnTrack
 
     <ormObject(id:=SessionMessage.ConstObjectID, description:="message generated during an OnTrack session", modulename:=ConstModuleCommons, Version:=1)> _
     Public Class SessionMessage
-        Inherits ormDataObject
-        Implements iormPersistable
+        Inherits ormBusinessObject
+        Implements iormRelationalPersistable
         Implements iormInfusable
         Implements iormCloneable
         Implements ICloneable
@@ -2193,17 +2256,17 @@ Namespace OnTrack
         '*** CONST Schema
         Public Const ConstObjectID = "SessionMessage"
         '** Table
-        <ormSchemaTableAttribute(Version:=5)> Public Const ConstTableID = "tblSessionLogMessages"
+        <ormTableAttribute(Version:=5)> Public Const ConstPrimaryTableID = "tblSessionLogMessages"
 
         ''' <summary>
         ''' primary keys
         ''' </summary>
         ''' <remarks></remarks>
         <ormObjectEntry(Datatype:=otDataType.Text, size:=100, _
-                         title:="Session", Description:="sessiontag", primaryKeyordinal:=1)> Public Const ConstFNTag As String = "tag"
+                         title:="Session", Description:="sessiontag", PrimaryEntryOrdinal:=1)> Public Const ConstFNTag As String = "tag"
 
         <ormObjectEntry(Datatype:=otDataType.Long, _
-                         title:="no", Description:="number of entry", primaryKeyordinal:=2)> Public Const ConstFNno As String = "no"
+                         title:="no", Description:="number of entry", PrimaryEntryOrdinal:=2)> Public Const ConstFNno As String = "no"
 
         ''' <summary>
         ''' column definitions
@@ -2252,22 +2315,22 @@ Namespace OnTrack
                         title:="tag", Description:="object tag values")> Public Const ConstFNObjectTag As String = "OBJECTTAG"
 
         ' fields
-        <ormEntryMapping(EntryName:=ConstFNTag)> Private _tag As String = ""
-        <ormEntryMapping(EntryName:=ConstFNID)> Private _id As String = ""
-        <ormEntryMapping(EntryName:=ConstFNno)> Private _entryno As Long = 0
-        <ormEntryMapping(EntryName:=ConstFNmessage)> Private _Message As String = ""
-        <ormEntryMapping(EntryName:=ConstFNsubname)> Private _Subname As String = ""
-        <ormEntryMapping(EntryName:=ConstFNtimestamp)> Private _Timestamp As Date = constNullDate
-        <ormEntryMapping(EntryName:=ConstFNObjectname)> Private _Objectname As String = ""
-        <ormEntryMapping(EntryName:=ConstFNObjectentry)> Private _Entryname As String = ""
-        <ormEntryMapping(EntryName:=ConstFNtablename)> Private _Tablename As String = ""
-        <ormEntryMapping(EntryName:=ConstFNColumn)> Private _Columnname As String = ""
-        <ormEntryMapping(EntryName:=ConstFNtype)> Private _ErrorType As otCoreMessageType
-        <ormEntryMapping(EntryName:=ConstFNUsername)> Private _Username As String = ""
-        <ormEntryMapping(EntryName:=ConstFNStack)> Private _StackTrace As String = ""
-        <ormEntryMapping(EntryName:=ConstFNarg)> Private _Arguments As String = ""
-        <ormEntryMapping(EntryName:=ConstFNDomainID)> Private _domainid As String = ""
-        <ormEntryMapping(EntryName:=ConstFNObjectTag)> Private _objecttag As String = ""
+        <ormObjectEntryMapping(EntryName:=ConstFNTag)> Private _tag As String = String.empty
+        <ormObjectEntryMapping(EntryName:=ConstFNID)> Private _id As String = String.empty
+        <ormObjectEntryMapping(EntryName:=ConstFNno)> Private _entryno As Long = 0
+        <ormObjectEntryMapping(EntryName:=ConstFNmessage)> Private _Message As String = String.empty
+        <ormObjectEntryMapping(EntryName:=ConstFNsubname)> Private _Subname As String = String.empty
+        <ormObjectEntryMapping(EntryName:=ConstFNtimestamp)> Private _Timestamp As Date = constNullDate
+        <ormObjectEntryMapping(EntryName:=ConstFNObjectname)> Private _Objectname As String = String.empty
+        <ormObjectEntryMapping(EntryName:=ConstFNObjectentry)> Private _Entryname As String = String.empty
+        <ormObjectEntryMapping(EntryName:=ConstFNtablename)> Private _Tablename As String = String.empty
+        <ormObjectEntryMapping(EntryName:=ConstFNColumn)> Private _Columnname As String = String.empty
+        <ormObjectEntryMapping(EntryName:=ConstFNtype)> Private _ErrorType As otCoreMessageType
+        <ormObjectEntryMapping(EntryName:=ConstFNUsername)> Private _Username As String = String.empty
+        <ormObjectEntryMapping(EntryName:=ConstFNStack)> Private _StackTrace As String = String.empty
+        <ormObjectEntryMapping(EntryName:=ConstFNarg)> Private _Arguments As String = String.empty
+        <ormObjectEntryMapping(EntryName:=ConstFNDomainID)> Private _domainid As String = String.empty
+        <ormObjectEntryMapping(EntryName:=ConstFNObjectTag)> Private _objecttag As String = String.empty
 
         '** dynamic
         Private _processed As Boolean = False
@@ -2529,20 +2592,10 @@ Namespace OnTrack
         Public Shared Function CreateDataObject(ByVal sessiontag As String, ByVal entryno As Long) As SessionMessage
             Dim primarykey() As Object = {sessiontag, entryno}
             ' create
-            Return ormDataObject.CreateDataObject(Of SessionMessage)(primarykey, checkUnique:=False, runtimeOnly:=True)
+            Return ormBusinessObject.CreateDataObject(Of SessionMessage)(primarykey, checkUnique:=False, runtimeOnly:=True)
         End Function
 
-        ''' <summary>
-        ''' create an object after it was used
-        ''' </summary>
-        ''' <param name="sessiontag"></param>
-        ''' <param name="entryno"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Function Create(ByVal sessiontag As String, ByVal entryno As Long) As Boolean
-            Dim primarykey() As Object = {sessiontag, entryno}
-            Return MyBase.Create(primarykey, checkUnique:=False, runtimeOnly:=True)
-        End Function
+
         ''' <summary>
         ''' load and infuse the object by primary key
         ''' </summary>
@@ -2552,7 +2605,7 @@ Namespace OnTrack
         ''' <remarks></remarks>
         Public Shared Function Retrieve(ByVal sessiontag As String, ByVal entryno As Long) As SessionMessage
             Dim primarykey() As Object = {sessiontag, entryno}
-            Return ormDataObject.Retrieve(Of SessionMessage)(pkArray:=primarykey)
+            Return ormBusinessObject.RetrieveDataObject(Of SessionMessage)(pkArray:=primarykey)
         End Function
 
 
@@ -2705,7 +2758,7 @@ Namespace OnTrack
             '** we have a session
             If CurrentSession.IsRunning Then
                 '*** only if the table is there
-                If CurrentSession.CurrentDBDriver.GetTable(SessionMessage.ConstTableID) Is Nothing Then
+                If CurrentSession.CurrentDBDriver.GetContainerObject(SessionMessage.ConstPrimaryTableID) Is Nothing Then
                     Return False
                 End If
 
@@ -2864,7 +2917,7 @@ Namespace OnTrack
         ''' Variables
         ''' </summary>
         ''' <remarks></remarks>
-        Private _tag As String = ""
+        Private _tag As String = String.empty
 
         Private _ContextIdentifier As String
         Private _TupleIdentifier As String
@@ -2888,7 +2941,7 @@ Namespace OnTrack
         ''' <param name="container"></param>
         ''' <remarks></remarks>
 
-        Public Sub New(Optional container As ormDataObject = Nothing, _
+        Public Sub New(Optional container As ormBusinessObject = Nothing, _
                        Optional contextidenifier As String = Nothing, _
                        Optional tupleidentifier As String = Nothing, _
                        Optional entitityidentifier As String = Nothing)
@@ -2997,7 +3050,7 @@ Namespace OnTrack
         ''' <param name="e"></param>
         ''' <remarks></remarks>
         Public Sub ObjectMessageLog_OnInfused(sender As Object, e As ormDataObjectEventArgs)
-            _tag = TryCast(_container, ormDataObject).ObjectTag
+            _tag = TryCast(_container, ormBusinessObject).ObjectTag
         End Sub
 
         ''' <summary>
@@ -3024,14 +3077,14 @@ Namespace OnTrack
             Dim newCollection As ormRelationCollection(Of ObjectMessage) = New ormRelationCollection(Of ObjectMessage)(Nothing, keyentrynames:={ObjectMessage.ConstFNNo})
             'Dim aTag = TryCast(_container, ormDataObject).ObjectTag
             Try
-                Dim aStore As iormDataStore = ot.GetTableStore(ObjectMessage.ConstTableID) '_container.PrimaryTableStore is the class itself
+                Dim aStore As iormRelationalTableStore = ot.GetTableStore(ObjectMessage.ConstPrimaryTableID) '_container.PrimaryTableStore is the class itself
                 Dim aCommand As ormSqlSelectCommand = aStore.CreateSqlSelectCommand(id:="RetrieveObjectMessages", addAllFields:=True)
-                If Not aCommand.Prepared Then
+                If Not aCommand.IsPrepared Then
                     aCommand.Where = "[" & ObjectMessage.ConstFNTag & "] = @tag "
                     aCommand.Where &= " AND [" & ObjectMessage.ConstFNIsDeleted & "] = @deleted "
                     aCommand.OrderBy = "[" & ObjectMessage.ConstFNNo & "] asc"
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@tag", ColumnName:=ObjectMessage.ConstFNTag, tablename:=ObjectMessage.ConstTableID))
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@deleted", ColumnName:=ObjectMessage.ConstFNIsDeleted, tablename:=ObjectMessage.ConstTableID))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@tag", ColumnName:=ObjectMessage.ConstFNTag, tableid:=ObjectMessage.ConstPrimaryTableID))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@deleted", ColumnName:=ObjectMessage.ConstFNIsDeleted, tableid:=ObjectMessage.ConstPrimaryTableID))
                     aCommand.Prepare()
                 End If
                 aCommand.SetParameterValue(ID:="@tag", value:=msglogtag)
@@ -3051,7 +3104,7 @@ Namespace OnTrack
 
             Catch ex As Exception
 
-                Call CoreMessageHandler(exception:=ex, subname:="ObjectMessageLog.Retrieve")
+                Call CoreMessageHandler(exception:=ex, procedure:="ObjectMessageLog.Retrieve")
                 Return newCollection
 
             End Try
@@ -3099,7 +3152,7 @@ Namespace OnTrack
             Dim runtimeOnly As Boolean = False
 
             ''' default values
-            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
+            If String.IsnullorEmpty(domainID) Then domainid = CurrentSession.CurrentDomainID
             If String.IsNullOrWhiteSpace(contextidentifier) Then contextidentifier = Me.ContextIdentifier
             If String.IsNullOrWhiteSpace(tupleIdentifier) Then tupleIdentifier = Me.TupleIdentifier
             If String.IsNullOrWhiteSpace(entitityIdentifier) Then entitityIdentifier = Me.EntityIdentifier
@@ -3117,15 +3170,15 @@ Namespace OnTrack
             ''' get the Message Definition
             Dim aMessageDefinition As ObjectMessageType = ObjectMessageType.Retrieve(uid:=typeuid, domainID:=domainid)
             If aMessageDefinition Is Nothing Then
-                Dim anObjectname As String = ""
+                Dim anObjectname As String = String.empty
                 If _container IsNot Nothing Then anObjectname = _container.ObjectID
                 Dim context As String
                 If contextidentifier IsNot Nothing Then context &= contextidentifier
                 If tupleIdentifier IsNot Nothing Then context &= tupleIdentifier & ConstDelimiter
                 If entitityIdentifier IsNot Nothing Then context &= entitityIdentifier & ConstDelimiter
 
-                CoreMessageHandler(message:="object message type of uid '" & typeuid.ToString & "' could not be retrieved with context '" & context & "'", subname:="ObjectMessageLog.Add", _
-                                   messagetype:=otCoreMessageType.InternalWarning, objectname:=anObjectname, arg1:=Me.Tag)
+                CoreMessageHandler(message:="object message type of uid '" & typeuid.ToString & "' could not be retrieved with context '" & context & "'", procedure:="ObjectMessageLog.Add", _
+                                   messagetype:=otCoreMessageType.InternalWarning, objectname:=anObjectname, argument:=Me.Tag)
             End If
 
             If _container Is Nothing Then
@@ -3147,7 +3200,7 @@ Namespace OnTrack
 
             ''' check on tag - set it
             If String.IsNullOrWhiteSpace(Me.Tag) Then
-                If _container IsNot Nothing Then _tag = TryCast(_container, ormDataObject).ObjectTag
+                If _container IsNot Nothing Then _tag = TryCast(_container, ormBusinessObject).ObjectTag
                 If String.IsNullOrWhiteSpace(_tag) Then _tag = Guid.NewGuid.ToString
                 For Each message In Me
                     message.Tag = _tag
@@ -3634,8 +3687,8 @@ Namespace OnTrack
             '''
             '''
             If Me.ContainsKey(key:={entry.Application, entry.Module, entry.Version, entry.Release, entry.Patch, entry.ChangeImplementationNo}) Then
-                CoreMessageHandler(message:="change log entry already in change log", arg1:=Converter.Array2StringList({entry.Application, entry.Module, entry.Version, entry.Release, entry.Patch, entry.ChangeImplementationNo}), _
-                                   messagetype:=otCoreMessageType.InternalWarning, subname:="OnTrackChangeLog.Add")
+                CoreMessageHandler(message:="change log entry already in change log", argument:=Converter.Array2StringList({entry.Application, entry.Module, entry.Version, entry.Release, entry.Patch, entry.ChangeImplementationNo}), _
+                                   messagetype:=otCoreMessageType.InternalWarning, procedure:="OnTrackChangeLog.Add")
             End If
 
             ''' add the max version to the Application Version
@@ -3664,7 +3717,8 @@ Namespace OnTrack
             Dim anEntry As OnTrackChangeLogEntry
             If ot.IsInitialized AndAlso CurrentSession.IsRunning Then
                 anEntry = OnTrackChangeLogEntry.Create(application:=attribute.Application, [module]:=attribute.Module, _
-                                                                                 version:=attribute.Version, release:=attribute.Release, patch:=attribute.Patch, changeimplno:=attribute.Changeimplno)
+                                                       version:=attribute.Version, release:=attribute.Release, patch:=attribute.Patch, _
+                                                       changeimplno:=attribute.Changeimplno)
 
                 If anEntry IsNot Nothing Then
                     With anEntry
@@ -3674,8 +3728,8 @@ Namespace OnTrack
                     End With
                     Return Me.Add(anEntry)
                 Else
-                    CoreMessageHandler(message:="could not create change log entry - already in change log ?!", arg1:=Converter.Array2StringList({attribute.Application, attribute.Module, attribute.Version, attribute.Release, attribute.Patch, attribute.Changeimplno}), _
-                                                      messagetype:=otCoreMessageType.InternalWarning, subname:="OnTrackChangeLog.AddAttribute")
+                    CoreMessageHandler(message:="could not create change log entry - already in change log ?!", argument:=Converter.Array2StringList({attribute.Application, attribute.Module, attribute.Version, attribute.Release, attribute.Patch, attribute.Changeimplno}), _
+                                                      messagetype:=otCoreMessageType.InternalWarning, procedure:="OnTrackChangeLog.AddAttribute")
                 End If
             Else
                 anEntry = New OnTrackChangeLogEntry(application:=attribute.Application, [module]:=attribute.Module, _
@@ -3707,10 +3761,10 @@ Namespace OnTrack
                                                                                                        OnTrackChangeLogEntry.ConstFNPatch, OnTrackChangeLogEntry.ConstFNImplNo})
 
             Try
-                Dim aStore As iormDataStore = ot.GetTableStore(OnTrackChangeLogEntry.ConstTableID) '_container.PrimaryTableStore is the class itself
+                Dim aStore As iormRelationalTableStore = ot.GetTableStore(OnTrackChangeLogEntry.ConstPrimaryTableID) '_container.PrimaryTableStore is the class itself
                 Dim aCommand As ormSqlSelectCommand = aStore.CreateSqlSelectCommand(id:="RetrieveChangeLogEntry", addAllFields:=True)
-                If Not aCommand.Prepared Then
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@deleted", ColumnName:=ObjectMessage.ConstFNIsDeleted, tablename:=ObjectMessage.ConstTableID))
+                If Not aCommand.IsPrepared Then
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@deleted", ColumnName:=ObjectMessage.ConstFNIsDeleted, tableid:=ObjectMessage.ConstPrimaryTableID))
                     aCommand.Prepare()
                 End If
                 aCommand.SetParameterValue(ID:="@deleted", value:=False)
@@ -3729,7 +3783,7 @@ Namespace OnTrack
 
             Catch ex As Exception
 
-                Call CoreMessageHandler(exception:=ex, subname:="OnTrackChangeLog.Retrieve")
+                Call CoreMessageHandler(exception:=ex, procedure:="OnTrackChangeLog.Retrieve")
                 Return newCollection
 
             End Try
@@ -3745,9 +3799,9 @@ Namespace OnTrack
     ''' <remarks></remarks>
 
     <ormObject(version:=1, id:=ObjectMessage.ConstObjectID, modulename:=ConstModuleCommons)> Public Class ObjectMessage
-        Inherits ormDataObject
+        Inherits ormBusinessObject
         Implements iormInfusable
-        Implements iormPersistable
+        Implements iormRelationalPersistable
 
         '* schema
         Public Const ConstObjectID = "ObjectMessage"
@@ -3756,15 +3810,15 @@ Namespace OnTrack
         ''' Table
         ''' </summary>
         ''' <remarks></remarks>
-        <ormSchemaTable(version:=1)> Public Const ConstTableID As String = "tblObjectMessages"
+        <ormTableAttribute(version:=1)> Public Const ConstPrimaryTableID As String = "tblObjectMessages"
 
         ''' <summary>
         ''' Primary Key Entries
         ''' </summary>
         ''' <remarks></remarks>
-        <ormObjectEntry(Datatype:=otDataType.Text, size:=255, PrimarykeyOrdinal:=1, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=255, PrimaryEntryOrdinal:=1, _
                          XID:="olog1", title:="Tag", description:="tag to the object message log")> Public Shadows Const ConstFNTag = "MSGLOGTAG"
-        <ormObjectEntry(Datatype:=otDataType.Long, PrimarykeyOrdinal:=2, _
+        <ormObjectEntry(Datatype:=otDataType.Long, PrimaryEntryOrdinal:=2, _
                          XID:="olog2", title:="Number", description:="number of the object message")> Public Const ConstFNNo = "IDNO"
 
         ''' <summary>
@@ -3810,7 +3864,7 @@ Namespace OnTrack
 
         <ormObjectEntry(referenceObjectEntry:=ObjectDefinition.ConstObjectID & "." & ObjectDefinition.ConstFNID, isnullable:=True, _
                       XID:="olog21", title:="Objectname", description:="Object name")> Public Const ConstFNObjectname = "Objectname"
-        <ormObjectEntry(referenceObjectEntry:=ObjectColumnEntry.ConstObjectID & "." & ObjectColumnEntry.ConstFNEntryName, isnullable:=True, _
+        <ormObjectEntry(referenceObjectEntry:=ObjectContainerEntry.ConstObjectID & "." & ObjectContainerEntry.ConstFNEntryName, isnullable:=True, _
                       XID:="olog22", title:="Entryname", description:="entry name of the object")> Public Const ConstFNEntryname = "Entryname"
 
         <ormObjectEntry(datatype:=otDataType.List, size:=255, isnullable:=True, _
@@ -3820,29 +3874,29 @@ Namespace OnTrack
         ''' Mappings
         ''' </summary>
         ''' <remarks></remarks>
-        <ormEntryMapping(EntryName:=ConstFNTag)> Private _tag As String
-        <ormEntryMapping(EntryName:=ConstFNNo)> Private _no As Long?
-        <ormEntryMapping(EntryName:=ConstFNMessageTypeUID)> Private _typeuid As Long
-        <ormEntryMapping(EntryName:=ConstFNMessage)> Private _message As String
+        <ormObjectEntryMapping(EntryName:=ConstFNTag)> Private _tag As String
+        <ormObjectEntryMapping(EntryName:=ConstFNNo)> Private _no As Long?
+        <ormObjectEntryMapping(EntryName:=ConstFNMessageTypeUID)> Private _typeuid As Long
+        <ormObjectEntryMapping(EntryName:=ConstFNMessage)> Private _message As String
 
-        <ormEntryMapping(EntryName:=ConstFNPERSIST)> Private _persistflag As Boolean
+        <ormObjectEntryMapping(EntryName:=ConstFNPERSIST)> Private _persistflag As Boolean
 
-        <ormEntryMapping(EntryName:=ConstFNContextID)> Private _ContextID As String
-        <ormEntryMapping(EntryName:=ConstFNTupleID)> Private _TupleID As String
-        <ormEntryMapping(EntryName:=ConstFNEntityID)> Private _EntitityID As String
-        <ormEntryMapping(EntryName:=ConstFNParameters)> Private _Parameters As String()
+        <ormObjectEntryMapping(EntryName:=ConstFNContextID)> Private _ContextID As String
+        <ormObjectEntryMapping(EntryName:=ConstFNTupleID)> Private _TupleID As String
+        <ormObjectEntryMapping(EntryName:=ConstFNEntityID)> Private _EntitityID As String
+        <ormObjectEntryMapping(EntryName:=ConstFNParameters)> Private _Parameters As String()
 
-        <ormEntryMapping(EntryName:=ConstFNArea)> Private _Area As String
-        <ormEntryMapping(EntryName:=ConstFNWeight)> Private _Weight As Double?
-        <ormEntryMapping(EntryName:=ConstFNTimeStamp)> Private _Timestamp As DateTime?
-        <ormEntryMapping(EntryName:=ConstFNUsername)> Private _username As String
-        <ormEntryMapping(EntryName:=ConstFNSessionTAG)> Private _sessionid As String
-        <ormEntryMapping(EntryName:=ConstFNWORKSPACEID)> Private _workspaceID As String
-        <ormEntryMapping(EntryName:=ConstFNSessionMSGNo)> Private _sessionmsgno As Long
+        <ormObjectEntryMapping(EntryName:=ConstFNArea)> Private _Area As String
+        <ormObjectEntryMapping(EntryName:=ConstFNWeight)> Private _Weight As Double?
+        <ormObjectEntryMapping(EntryName:=ConstFNTimeStamp)> Private _Timestamp As DateTime?
+        <ormObjectEntryMapping(EntryName:=ConstFNUsername)> Private _username As String
+        <ormObjectEntryMapping(EntryName:=ConstFNSessionTAG)> Private _sessionid As String
+        <ormObjectEntryMapping(EntryName:=ConstFNWORKSPACEID)> Private _workspaceID As String
+        <ormObjectEntryMapping(EntryName:=ConstFNSessionMSGNo)> Private _sessionmsgno As Long
 
-        <ormEntryMapping(EntryName:=ConstFNObjectname)> Private _objectname As String
-        <ormEntryMapping(EntryName:=ConstFNEntryname)> Private _entryname As String
-        <ormEntryMapping(EntryName:=ConstFnPkValues)> Private _objpkvalues As String()
+        <ormObjectEntryMapping(EntryName:=ConstFNObjectname)> Private _objectname As String
+        <ormObjectEntryMapping(EntryName:=ConstFNEntryname)> Private _entryname As String
+        <ormObjectEntryMapping(EntryName:=ConstFnPkValues)> Private _objpkvalues As String()
 
 
         ''' <summary>
@@ -3853,7 +3907,7 @@ Namespace OnTrack
                      cascadeonCreate:=True, cascadeOnDelete:=False, cascadeOnUpdate:=False)> _
         Public Const ConstRMessageType = "RelMessageType"
 
-        <ormEntryMapping(relationName:=ConstRMessageType, infusemode:=otInfuseMode.OnCreate OrElse otInfuseMode.OnInject OrElse otInfuseMode.OnDemand)> Private _messagetype As New ObjectMessageType
+        <ormObjectEntryMapping(relationName:=ConstRMessageType, infusemode:=otInfuseMode.OnCreate OrElse otInfuseMode.OnInject OrElse otInfuseMode.OnDemand)> Private _messagetype As New ObjectMessageType
 
         ''' <summary>
         ''' runtime dynamic members
@@ -3888,7 +3942,7 @@ Namespace OnTrack
             End Get
             Set(value As Object)
                 If value IsNot Nothing Then
-                    Dim apersistable As iormPersistable = TryCast(value, iormPersistable)
+                    Dim apersistable As iormRelationalPersistable = TryCast(value, iormRelationalPersistable)
                     If apersistable IsNot Nothing Then
                         Me.Objectname = apersistable.ObjectID
                         Dim aList As New List(Of String)
@@ -3964,7 +4018,7 @@ Namespace OnTrack
         ''' <remarks></remarks>
         ReadOnly Property IsDataObject As Boolean
             Get
-                If _tag IsNot Nothing AndAlso _tag <> "" AndAlso _no.HasValue AndAlso _no > 0 AndAlso Me.IsAlive(throwError:=False) Then
+                If _tag IsNot Nothing AndAlso _tag <> String.empty AndAlso _no.HasValue AndAlso _no > 0 AndAlso Me.IsAlive(throwError:=False) Then
                     Return True
                 End If
                 Return False
@@ -4117,7 +4171,7 @@ Namespace OnTrack
         ''' <remarks></remarks>
         Public ReadOnly Property MessageType As ObjectMessageType
             Get
-                If Me.GetRelationStatus(ConstRMessageType) = DataObjectRelationMgr.RelationStatus.Unloaded Then InfuseRelation(ConstRMessageType)
+                If Me.GetRelationStatus(ConstRMessageType) = ormRelationManager.RelationStatus.Unloaded Then InfuseRelation(ConstRMessageType)
                 Return _messagetype
             End Get
 
@@ -4133,7 +4187,7 @@ Namespace OnTrack
         ''' <remarks></remarks>
         Public ReadOnly Property HighestStatusItems(Optional domainid As String = Nothing, Optional statustype As String = Nothing) As IList(Of StatusItem)
             Get
-                If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
+                If String.IsnullorEmpty(domainID) Then domainid = CurrentSession.CurrentDomainID
                 Dim aShortlist As IEnumerable(Of StatusItem) = Me.StatusItems(domainid:=domainid, statustype:=statustype)
                 If aShortlist Is Nothing OrElse aShortlist.Count = 0 Then Return New List(Of StatusItem)
                 Dim highest As Integer = aShortlist.Max(Function(x) x.Weight)
@@ -4150,7 +4204,7 @@ Namespace OnTrack
         Public ReadOnly Property StatusItems(Optional domainid As String = Nothing, Optional statustype As String = Nothing) As IList(Of Commons.StatusItem)
             Get
                 If Me.MessageType IsNot Nothing Then
-                    If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
+                    If String.IsnullorEmpty(domainID) Then domainid = CurrentSession.CurrentDomainID
                     Return Me.MessageType.StatusItems(domainid:=domainid, statustype:=statustype)
                 End If
                 Return New List(Of StatusItem)
@@ -4213,7 +4267,7 @@ Namespace OnTrack
         ''' <remarks></remarks>
         Public Shared Function Retrieve(ByVal msglogtag As String, ByVal ID As Long) As ObjectMessage
             Dim primarykey() As Object = {msglogtag.ToUpper, ID}
-            Return ormDataObject.Retrieve(Of ObjectMessage)(primarykey)
+            Return ormBusinessObject.RetrieveDataObject(Of ObjectMessage)(primarykey)
         End Function
 
 
@@ -4234,7 +4288,7 @@ Namespace OnTrack
                                       Optional ByVal domainid As String = Nothing, _
                                       Optional checkUnique As Boolean = False, _
                                       Optional runtimeOnly As Boolean = True) As ObjectMessage
-            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
+            If String.IsnullorEmpty(domainID) Then domainid = CurrentSession.CurrentDomainID
             Dim aRecord As New ormRecord
             With aRecord
                 If msglogtag IsNot Nothing Then .SetValue(ConstFNTag, msglogtag.ToUpper)
@@ -4256,7 +4310,7 @@ Namespace OnTrack
                 Return anObjectMessage
             Else
                 ''' create a normal ObjectMessage which is alive
-                Return ormDataObject.CreateDataObject(Of ObjectMessage)(aRecord, checkUnique:=checkUnique, runtimeOnly:=runtimeOnly)
+                Return ormBusinessObject.CreateDataObject(Of ObjectMessage)(aRecord, checkUnique:=checkUnique, runtimeOnly:=runtimeOnly)
             End If
 
         End Function

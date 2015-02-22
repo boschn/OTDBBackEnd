@@ -21,7 +21,7 @@ Public Module modHelperVBA
     '**********
     '**********
     ''' <summary>
-    ''' returns True if the object is empty - nothing or "" or Whitespace
+    ''' returns True if the object is empty - nothing or String.empty or Whitespace
     ''' </summary>
     ''' <param name="value"></param>
     ''' <returns></returns>

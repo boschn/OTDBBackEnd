@@ -21,12 +21,8 @@ Imports System.Collections.Generic
 Imports System.Reflection
 
 Namespace OnTrack.Database
-    ''' <summary>
-    ''' Event based parts of the ormDataObject Class
-    '''
-    ''' </summary>
-    ''' <remarks></remarks>
-    Partial Public MustInherit Class ormDataObject
+   
+    Partial Public MustInherit Class ormBusinessObject
         ''' <summary>
         ''' Events
         ''' </summary>
@@ -34,9 +30,7 @@ Namespace OnTrack.Database
         Public Event PropertyChanged As System.ComponentModel.PropertyChangedEventHandler Implements System.ComponentModel.INotifyPropertyChanged.PropertyChanged
 
         '** Lifecycle Events
-        Public Event OnCreateDefaultValuesNeeded(sender As Object, e As ormDataObjectEventArgs) Implements iormInfusable.OnCreateDefaultValuesNeeded
-        Public Event OnDefaultValueNeeded(sender As Object, e As ormDataObjectEntryEventArgs) Implements iormInfusable.OnDefaultValueNeeded
-
+       
         Public Shared Event ClassOnRetrieving(sender As Object, e As ormDataObjectEventArgs)
         Public Shared Event ClassOnOverloaded(sender As Object, e As ormDataObjectOverloadedEventArgs)
         Public Shared Event ClassOnRetrieved(sender As Object, e As ormDataObjectEventArgs)
@@ -44,24 +38,10 @@ Namespace OnTrack.Database
         Public Event OnInjected(sender As Object, e As ormDataObjectEventArgs) Implements iormPersistable.OnInjected
         Public Event OnInjecting(sender As Object, e As ormDataObjectEventArgs) Implements iormPersistable.OnInjecting
 
-        Public Shared Event ClassOnInfusing(sender As Object, e As ormDataObjectEventArgs)
-        Public Shared Event ClassOnInfused(sender As Object, e As ormDataObjectEventArgs)
-        Public Event OnInfusing(sender As Object, e As ormDataObjectEventArgs) Implements iormInfusable.OnInfusing
-        Public Event OnInfused(sender As Object, e As ormDataObjectEventArgs) Implements iormInfusable.OnInfused
-        Public Event OnColumnsInfused(sender As Object, e As ormDataObjectEventArgs) Implements iormInfusable.OnColumnsInfused
-
-        Public Shared Event ClassOnColumnMappingInfusing(sender As Object, e As ormDataObjectEventArgs)
-        Public Shared Event ClassOnColumnMappingInfused(sender As Object, e As ormDataObjectEventArgs)
-
         Public Shared Event ClassOnPersisting(sender As Object, e As ormDataObjectEventArgs)
         Public Shared Event ClassOnPersisted(sender As Object, e As ormDataObjectEventArgs)
         Public Event OnPersisting(sender As Object, e As ormDataObjectEventArgs) Implements iormPersistable.OnPersisting
         Public Event OnPersisted(sender As Object, e As ormDataObjectEventArgs) Implements iormPersistable.OnPersisted
-
-        Public Event OnFeeding(sender As Object, e As ormDataObjectEventArgs) Implements iormPersistable.OnFeeding
-        Public Event OnFed(sender As Object, e As ormDataObjectEventArgs) Implements iormPersistable.OnFed
-        Public Shared Event ClassOnFeeding(sender As Object, e As ormDataObjectEventArgs)
-        Public Shared Event ClassOnFed(sender As Object, e As ormDataObjectEventArgs)
 
         Public Shared Event ClassOnUnDeleting(sender As Object, e As ormDataObjectEventArgs)
         Public Shared Event ClassOnUnDeleted(sender As Object, e As ormDataObjectEventArgs)
@@ -77,14 +57,12 @@ Namespace OnTrack.Database
         Public Shared Event ClassOnCreated(sender As Object, e As ormDataObjectEventArgs)
         Public Event OnCreating(sender As Object, e As ormDataObjectEventArgs) Implements iormPersistable.OnCreating
         Public Event OnCreated(sender As Object, e As ormDataObjectEventArgs) Implements iormPersistable.OnCreated
+        Public Event OnCreateDefaultValuesNeeded(sender As Object, e As ormDataObjectEventArgs) Implements iormPersistable.OnCreateDefaultValuesNeeded
 
         Public Event OnCloning(sender As Object, e As ormDataObjectCloneEventArgs) Implements iormCloneable.OnCloning
         Public Event OnCloned(sender As Object, e As ormDataObjectCloneEventArgs) Implements iormCloneable.OnCloned
         Public Shared Event ClassOnCloning(sender As Object, e As ormDataObjectCloneEventArgs)
         Public Shared Event ClassOnCloned(sender As Object, e As ormDataObjectCloneEventArgs)
-
-        Public Event OnInitializing(sender As Object, e As ormDataObjectEventArgs)
-        Public Event OnInitialized(sender As Object, e As ormDataObjectEventArgs)
 
         '* uniqueness Class Event
         Public Shared Event ClassOnCheckingUniqueness(sender As Object, e As ormDataObjectEventArgs)
@@ -95,25 +73,9 @@ Namespace OnTrack.Database
         Public Event OnValidating(sender As Object, e As ormDataObjectEventArgs) Implements iormValidatable.OnValidating
         Public Event OnValidated(sender As Object, e As ormDataObjectEventArgs) Implements iormValidatable.OnValidated
 
-        '* relation Events
-        Public Shared Event ClassOnCascadingRelation(sender As Object, e As ormDataObjectEventArgs)
-        Public Shared Event ClassOnCascadedRelation(sender As Object, e As ormDataObjectEventArgs)
-        Public Event OnRelationLoading(sender As Object, e As ormDataObjectEventArgs)
-        Public Event OnRelationLoad(sender As Object, e As ormDataObjectEventArgs)
-
-        Protected Event OnRelationRetrieveNeeded(sender As Object, e As ormDataObjectRelationEventArgs)
-        Protected Event OnRelationCreateNeeded(sender As Object, e As ormDataObjectRelationEventArgs)
-        Protected Event OnRelationUpdateNeeded(sender As Object, e As ormDataObjectRelationEventArgs)
-        Protected Event OnRelationDeleteNeeded(sender As Object, e As ormDataObjectRelationEventArgs)
-
-        '** object entry wevents
-        Public Event OnEntryChanged As EventHandler(Of ormDataObjectEntryEventArgs)
-        Public Event OnEntryChanging As EventHandler(Of ormDataObjectEntryEventArgs)
 
         '** Events for the Switch from Runtime Mode on to Off
-        Public Event OnSwitchRuntimeOff(sender As Object, e As ormDataObjectEventArgs)
-        Public Event OnSwitchRuntimeOn(sender As Object, e As ormDataObjectEventArgs)
-
+       
         '** ObjectMessage Added to Log
         Public Event OnObjectMessageAdded(sender As Object, e As ObjectMessageLog.EventArgs)
 
@@ -126,53 +88,7 @@ Namespace OnTrack.Database
         Private Sub ormDataObject_OnObjectMessageAdded(sender As Object, e As ObjectMessageLog.EventArgs) Handles _objectmessagelog.OnObjectMessageAdded
             RaiseEvent OnObjectMessageAdded(sender:=sender, e:=e)
         End Sub
-        ''' <summary>
-        ''' cascade the OnRelationLoadNeeded from RelationManager
-        ''' </summary>
-        ''' <param name="sender"></param>
-        ''' <param name="e"></param>
-        ''' <remarks></remarks>
-
-        Private Sub ormDataObject_RaiseOnRelationLoadNeeded(sender As Object, e As DataObjectRelationMgr.EventArgs) Handles _relationMgr.OnRelatedObjectsRetrieveRequest
-            Dim args As New ormDataObjectRelationEventArgs(e)
-            RaiseEvent OnRelationRetrieveNeeded(sender, args)
-        End Sub
-
-        ''' <summary>
-        ''' cascade the OnRelationLoadNeeded from RelationManager
-        ''' </summary>
-        ''' <param name="sender"></param>
-        ''' <param name="e"></param>
-        ''' <remarks></remarks>
-
-        Private Sub ormDataObject_RaiseOnRelationCreateNeeded(sender As Object, e As DataObjectRelationMgr.EventArgs) Handles _relationMgr.OnRelatedObjectsCreateRequest
-            Dim args As New ormDataObjectRelationEventArgs(e)
-            RaiseEvent OnRelationCreateNeeded(sender, args)
-        End Sub
-
-        '' <summary>
-        ''' cascade the OnRelationLoadNeeded from RelationManager
-        ''' </summary>
-        ''' <param name="sender"></param>
-        ''' <param name="e"></param>
-        ''' <remarks></remarks>
-
-        Private Sub ormDataObject_RaiseOnRelationUpdateNeeded(sender As Object, e As DataObjectRelationMgr.EventArgs)
-            Dim args As New ormDataObjectRelationEventArgs(e)
-            RaiseEvent OnRelationUpdateNeeded(sender, args)
-        End Sub
-
-        '' <summary>
-        ''' cascade the OnRelationLoadNeeded from RelationManager
-        ''' </summary>
-        ''' <param name="sender"></param>
-        ''' <param name="e"></param>
-        ''' <remarks></remarks>
-
-        Private Sub ormDataObject_RaiseOnRelationDeleteNeeded(sender As Object, e As DataObjectRelationMgr.EventArgs)
-            Dim args As New ormDataObjectRelationEventArgs(e)
-            RaiseEvent OnRelationDeleteNeeded(sender, args)
-        End Sub
+        
         ''' <summary>
         ''' raises the PropetfyChanged Event
         ''' </summary>
@@ -181,26 +97,6 @@ Namespace OnTrack.Database
         ''' <remarks></remarks>
         Protected Sub RaiseObjectEntryChanged(entryname As String)
             RaiseEvent PropertyChanged(Me, New PropertyChangedEventArgs(entryname))
-        End Sub
-
-
-        ''' <summary>
-        ''' Raise the Instance OnRelationLoading
-        ''' </summary>
-        ''' <param name="sender"></param>
-        ''' <param name="e"></param>
-        ''' <remarks></remarks>
-        Private Sub RaiseOnRelationLoading(sender As Object, e As ormDataObjectEventArgs)
-            RaiseEvent OnRelationLoading(sender, e)
-        End Sub
-        ''' <summary>
-        ''' Raise the Instance OnRelationLoaded
-        ''' </summary>
-        ''' <param name="sender"></param>
-        ''' <param name="e"></param>
-        ''' <remarks></remarks>
-        Private Sub RaiseOnRelationLoaded(sender As Object, e As ormDataObjectEventArgs)
-            RaiseEvent OnRelationLoad(sender, e)
         End Sub
 
         ''' <summary>
@@ -217,11 +113,11 @@ Namespace OnTrack.Database
                 For Each anEntry In e.DataObject.ObjectDefinition.GetEntries
                     ' only the columns
                     If anEntry.IsColumn Then
-                        Dim anColumnEntry As ObjectColumnEntry = TryCast(anEntry, ObjectColumnEntry)
-                        If anColumnEntry IsNot Nothing And Not e.Record.HasIndex(anColumnEntry.TableName & "." & anColumnEntry.Columnname) Then
+                        Dim anColumnEntry As ObjectContainerEntry = TryCast(anEntry, ObjectContainerEntry)
+                        If anColumnEntry IsNot Nothing And Not e.Record.HasIndex(anColumnEntry.ContainerID & "." & anColumnEntry.ContainerEntryName) Then
                             '' if a default value is neded is decided in the defaultvalue property
                             '' it might be nothing if nullable is true
-                            result = result And e.Record.SetValue(anColumnEntry.TableName & "." & anColumnEntry.Columnname, value:=anColumnEntry.Defaultvalue)
+                            result = result And e.Record.SetValue(anColumnEntry.ContainerID & "." & anColumnEntry.ContainerEntryName, value:=anColumnEntry.Defaultvalue)
                         End If
                     End If
                 Next
@@ -230,11 +126,11 @@ Namespace OnTrack.Database
                 ''' 
                 For Each anEntry In Me.ObjectClassDescription.ObjectEntryAttributes
                     ' only the columns
-                    If anEntry.EntryType = otObjectEntryType.Column And Not e.Record.HasIndex(anEntry.Tablename & "." & anEntry.ColumnName) Then
+                    If anEntry.EntryType = otObjectEntryType.ContainerEntry And Not e.Record.HasIndex(anEntry.ContainerID & "." & anEntry.ContainerEntryName) Then
                         If anEntry.HasValueDefaultValue Then
-                            result = result And e.Record.SetValue(anEntry.Tablename & "." & anEntry.ColumnName, value:=Converter.Object2otObject(anEntry.DefaultValue, anEntry.DataType))
+                            result = result And e.Record.SetValue(anEntry.ContainerID & "." & anEntry.ContainerEntryName, value:=Converter.Object2otObject(anEntry.DefaultValue, anEntry.DataType))
                         ElseIf Not anEntry.HasValueIsNullable OrElse (anEntry.HasValueIsNullable AndAlso Not anEntry.IsNullable) Then
-                            result = result And e.Record.SetValue(anEntry.Tablename & "." & anEntry.ColumnName, value:=ot.GetDefaultValue(anEntry.DataType))
+                            result = result And e.Record.SetValue(anEntry.ContainerID & "." & anEntry.ContainerEntryName, value:=ot.GetDefaultValue(anEntry.DataType))
                         End If
                     End If
                 Next
@@ -243,6 +139,61 @@ Namespace OnTrack.Database
 
             e.Result = result
             e.Proceed = True
+        End Sub
+
+        ''' <summary>
+        ''' Event Handler for initializing
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Private Sub ormBusinessObject_OnInitializing(sender As Object, e As ormDataObjectEventArgs) Handles Me.OnInitializing
+            ''' set the status of the tables if not infused already
+            ''' 
+            If _tableisloaded Is Nothing OrElse _tableisloaded.Length = 0 Then
+                ReDim Preserve _tableisloaded(Me.TableIDs.GetUpperBound(0))
+                '** set all tables to be unloaded
+                ' Array.ForEach(Of Boolean)(_tableisloaded, Function(x) x = False) -> do not overwrite true
+            End If
+            ''' get new  record if necessary
+            ''' STILL we rely on One Table for the Record
+            If _record Is Nothing Then
+                _record = New ormRecord(Me.TableIDs, dbdriver:=_defaultdbdriver, runtimeOnly:=RunTimeOnly)
+                'now we are not runtime only anymore -> set also the table and let's have a fixed structure
+            ElseIf Not Me.RunTimeOnly Then
+                _record.SetTables(Me.TableIDs, dbdriver:=_defaultdbdriver)
+            End If
+        End Sub
+
+        ''' <summary>
+        ''' Handler for ObjectEntryValidation
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Private Sub ormBusinessObject_EntryValidationNeeded(sender As Object, e As ormDataObjectEntryValidationEventArgs) Handles Me.EntryValidationNeeded
+            If e.Msglog Is Nothing Then e.Msglog = Me.ObjectMessageLog
+            e.Result = Validate(entryname:=e.ObjectEntryName, value:=e.Value, msglog:=e.Msglog)
+        End Sub
+        ''' <summary>
+        ''' Handles the OnEntryChanged Event
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Private Sub ormBusinessObject_OnEntryChanged(sender As Object, e As ormDataObjectEntryEventArgs) Handles Me.OnEntryChanged
+            RaiseEvent PropertyChanged(Me, New PropertyChangedEventArgs(e.ObjectEntryName))
+        End Sub
+
+        ''' <summary>
+        ''' handler for the OnInfused Event 
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Private Sub ormBusinessObject_OnInfused(sender As Object, e As ormDataObjectEventArgs) Handles Me.OnInfused
+            '** set all tables to be loaded
+            Setloaded()
         End Sub
     End Class
 
@@ -253,25 +204,25 @@ Namespace OnTrack.Database
     Public Class ormDataObjectOverloadedEventArgs
         Inherits ormDataObjectEventArgs
 
-        Private _globalPKArray As Object()
+        Private _globalPKArray As ormDatabaseKey
 
         ''' <summary>
         ''' constructor
         ''' </summary>
         ''' <remarks></remarks>
-        Public Sub New(globalPKarray As Object(), domainPKArray As Object(), dataobject As ormDataObject, _
+        Public Sub New(globalPrimaryKey As ormDatabaseKey, domainPrimaryKey As ormDatabaseKey, dataobject As ormBusinessObject, _
                        Optional usecache As Boolean = True, _
                          Optional ByRef msglog As ObjectMessageLog = Nothing,
                         Optional timestamp? As DateTime = Nothing)
 
-            MyBase.New(object:=dataobject, pkarray:=domainPKArray, msglog:=msglog, timestamp:=timestamp, usecache:=usecache)
-            _globalPKArray = globalPKarray
+            MyBase.New(object:=dataobject, key:=domainPrimaryKey, msglog:=msglog, timestamp:=timestamp, usecache:=usecache)
+            _globalPKArray = globalPrimaryKey
         End Sub
         ''' <summary>
         ''' Gets or sets the old object.
         ''' </summary>
         ''' <value>The old object.</value>
-        Public ReadOnly Property GlobalPKArray() As Object()
+        Public ReadOnly Property GlobalPrimaryKey As ormDatabaseKey
             Get
                 Return _globalPKArray
             End Get
@@ -281,12 +232,12 @@ Namespace OnTrack.Database
         ''' Gets or sets the old object.
         ''' </summary>
         ''' <value>The old object.</value>
-        Public Property DomainPKArray() As Object()
+        Public Property DomainPrimaryKey As ormDatabaseKey
             Get
-                Return Me.Pkarray
+                Return Me.Key
             End Get
-            Set(value As Object())
-                Me.Pkarray = value
+            Set(value As ormDatabaseKey)
+                Me.Key = value
             End Set
 
         End Property
@@ -298,15 +249,15 @@ Namespace OnTrack.Database
     Public Class ormDataObjectCloneEventArgs
         Inherits ormDataObjectEventArgs
 
-        Private _oldObject As ormDataObject
+        Private _oldObject As ormBusinessObject
 
 
         ''' <summary>
         ''' constructor
         ''' </summary>
         ''' <remarks></remarks>
-        Public Sub New([newObject] As ormDataObject, _
-                       [oldObject] As ormDataObject, _
+        Public Sub New([newObject] As ormBusinessObject, _
+                       [oldObject] As ormBusinessObject, _
                          Optional ByRef msglog As ObjectMessageLog = Nothing,
                         Optional timestamp? As DateTime = Nothing)
 
@@ -317,7 +268,7 @@ Namespace OnTrack.Database
         ''' Gets or sets the old object.
         ''' </summary>
         ''' <value>The old object.</value>
-        Public ReadOnly Property OldObject() As ormDataObject
+        Public ReadOnly Property OldObject() As ormBusinessObject
             Get
                 Return Me._oldObject
             End Get
@@ -327,11 +278,11 @@ Namespace OnTrack.Database
         ''' Gets or sets the old object.
         ''' </summary>
         ''' <value>The old object.</value>
-        Public Property NewObject() As ormDataObject
+        Public Property NewObject() As ormBusinessObject
             Get
                 Return Me.DataObject
             End Get
-            Set(value As ormDataObject)
+            Set(value As ormBusinessObject)
                 Me.DataObject = value
             End Set
 
@@ -345,11 +296,11 @@ Namespace OnTrack.Database
     Public Class ormDataObjectEventArgs
         Inherits EventArgs
 
-        Protected _Object As ormDataObject
+        Protected _Object As ormBusinessObject
         Protected _Record As ormRecord
         Protected _DescribedByAttributes As Boolean = False
         Protected _UseCache As Boolean = False
-        Protected _pkarray As Object()
+        Protected _key As ormDatabaseKey
         Protected _relationIDs As List(Of String)
         Protected _Abort As Boolean = False
         Protected _result As Boolean = True
@@ -364,14 +315,14 @@ Namespace OnTrack.Database
         ''' constructor
         ''' </summary>
         ''' <remarks></remarks>
-        Public Sub New([object] As ormDataObject, _
+        Public Sub New([object] As ormBusinessObject, _
                        Optional record As ormRecord = Nothing, _
                        Optional describedByAttributes As Boolean = False, _
                         Optional relationID As List(Of String) = Nothing, _
-                        Optional domainid as string = nothing,
+                        Optional domainid As String = Nothing,
                         Optional domainBehavior As Nullable(Of Boolean) = Nothing, _
                           Optional usecache As Nullable(Of Boolean) = Nothing, _
-                        Optional pkarray As Object() = Nothing, _
+                        Optional key As ormDatabaseKey = Nothing, _
                         Optional runtimeOnly As Boolean = False, _
                         Optional infuseMode As otInfuseMode? = Nothing, _
                          Optional ByRef msglog As ObjectMessageLog = Nothing,
@@ -380,12 +331,12 @@ Namespace OnTrack.Database
             _Record = record
             _relationIDs = relationID
             _DescribedByAttributes = describedByAttributes
-            If _domainID <> "" Then _domainID = domainID
+            If _domainID <> String.empty Then _domainID = domainid
             If domainBehavior.HasValue Then _hasDomainBehavior = domainBehavior
             If usecache.HasValue Then _UseCache = usecache
             If infuseMode.HasValue Then _infusemode = infuseMode
             If timestamp.HasValue Then _timestamp = timestamp
-            _pkarray = pkarray
+            If key IsNot Nothing Then _key = key
             _result = False
             _runtimeonly = runtimeOnly
             _Abort = False
@@ -475,12 +426,12 @@ Namespace OnTrack.Database
         ''' Gets or sets the pkarray.
         ''' </summary>
         ''' <value>The pkarray.</value>
-        Public Property Pkarray() As Object()
+        Public Property Key As ormDatabaseKey
             Get
-                Return Me._pkarray
+                Return Me._key
             End Get
-            Set(value As Object())
-                Me._pkarray = value
+            Set(value As ormDatabaseKey)
+                Me._key = value
             End Set
         End Property
 
@@ -546,11 +497,11 @@ Namespace OnTrack.Database
         ''' Gets the object.
         ''' </summary>
         ''' <value>The object.</value>
-        Public Property DataObject() As ormDataObject
+        Public Property DataObject() As ormBusinessObject
             Get
                 Return Me._Object
             End Get
-            Set(value As ormDataObject)
+            Set(value As ormBusinessObject)
                 _Object = value
             End Set
         End Property
@@ -570,7 +521,7 @@ Namespace OnTrack.Database
         ''' constructor
         ''' </summary>
         ''' <remarks></remarks>
-        Public Sub New([object] As ormDataObject, _
+        Public Sub New([object] As ormBusinessObject, _
                         entryname As String,
                         Optional value As Object = Nothing,
                         Optional domainid as string = nothing,
@@ -607,7 +558,7 @@ Namespace OnTrack.Database
         ''' constructor
         ''' </summary>
         ''' <remarks></remarks>
-        Public Sub New([object] As ormDataObject, _
+        Public Sub New([object] As ormBusinessObject, _
                         Optional domainid as string = nothing,
                         Optional ByRef msglog As ObjectMessageLog = Nothing,
                         Optional timestamp? As DateTime = Nothing)
@@ -637,7 +588,7 @@ Namespace OnTrack.Database
     Public Class ormDataObjectEntryEventArgs
         Inherits EventArgs
 
-        Private _Object As ormDataObject
+        Private _Object As ormBusinessObject
         Private _ObjectEntryName As String
         Private _Abort As Boolean = False
         Private _result As Boolean = True
@@ -650,7 +601,7 @@ Namespace OnTrack.Database
         ''' constructor
         ''' </summary>
         ''' <remarks></remarks>
-        Public Sub New([object] As ormDataObject, _
+        Public Sub New([object] As ormBusinessObject, _
                         entryname As String,
                         Optional value As Object = Nothing,
                         Optional domainid as string = nothing,
@@ -658,7 +609,7 @@ Namespace OnTrack.Database
                         Optional timestamp? As DateTime = Nothing)
             _Object = [object]
             _ObjectEntryName = entryname
-            If _domainID <> "" Then _domainID = domainID
+            If _domainID <> String.empty Then _domainID = domainID
             'If oldvalue IsNot Nothing Then _oldvalue = oldvalue
             If value IsNot Nothing Then _newvalue = value
             _result = False
@@ -671,10 +622,13 @@ Namespace OnTrack.Database
         ''' Gets or sets the msglog.
         ''' </summary>
         ''' <value>The msglog.</value>
-        Public ReadOnly Property Msglog() As ObjectMessageLog
+        Public Property Msglog As ObjectMessageLog
             Get
                 Return Me._msglog
             End Get
+            Set(value As ObjectMessageLog)
+                _msglog = value
+            End Set
         End Property
 
         ''' <summary>
@@ -780,11 +734,11 @@ Namespace OnTrack.Database
         ''' Gets the object.
         ''' </summary>
         ''' <value>The object.</value>
-        Public Property DataObject() As ormDataObject
+        Public Property DataObject() As ormBusinessObject
             Get
                 Return Me._Object
             End Get
-            Set(value As ormDataObject)
+            Set(value As ormBusinessObject)
                 _Object = value
             End Set
         End Property
@@ -800,13 +754,13 @@ Namespace OnTrack.Database
 
 
         Private _timestamp As DateTime = DateTime.Now
-        Private _relationEventArgs As DataObjectRelationMgr.EventArgs
+        Private _relationEventArgs As ormRelationManager.EventArgs
 
         ''' <summary>
         ''' constructor
         ''' </summary>
         ''' <remarks></remarks>
-        Public Sub New(ByRef relationMgrEventArgs As DataObjectRelationMgr.EventArgs, _
+        Public Sub New(ByRef relationMgrEventArgs As ormRelationManager.EventArgs, _
                         Optional timestamp? As DateTime = Nothing)
             _relationEventArgs = relationMgrEventArgs
             If timestamp.HasValue Then _timestamp = timestamp
@@ -846,7 +800,7 @@ Namespace OnTrack.Database
         ''' Gets or sets the relation ID.
         ''' </summary>
         ''' <value>The relation ID.</value>
-        Public ReadOnly Property RelationObjects() As List(Of iormPersistable)
+        Public ReadOnly Property RelationObjects() As List(Of iormRelationalPersistable)
             Get
                 Return _relationEventArgs.Objects
             End Get
@@ -880,7 +834,7 @@ Namespace OnTrack.Database
         ''' Gets the object.
         ''' </summary>
         ''' <value>The object.</value>
-        Public ReadOnly Property DataObject() As ormDataObject
+        Public ReadOnly Property DataObject() As ormBusinessObject
             Get
                 Return _relationEventArgs.Dataobject
             End Get

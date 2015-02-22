@@ -44,7 +44,7 @@ Namespace OnTrack.Configurables
     <ormObject(id:=Configuration.ConstObjectID, version:=1, adddomainbehavior:=True, adddeletefieldbehavior:=True, usecache:=True, _
         modulename:=ConstModuleConfiguration, Title:="Configuration", description:="definition of a configuration")> _
     Public Class Configuration
-        Inherits ormDataObject
+        Inherits ormBusinessObject
 
         Public Const ConstObjectID = "Configuration"
 
@@ -52,7 +52,7 @@ Namespace OnTrack.Configurables
         ''' Table Definition
         ''' </summary>
         ''' <remarks></remarks>
-        <ormSchemaTable(version:=1, usecache:=True)> Public Const ConstTableID = "TBLDEFCONFIGURATION"
+        <ormTableAttribute(version:=1, usecache:=True)> Public Const ConstPrimaryTableID = "TBLDEFCONFIGURATION"
 
         ''' <summary>
         ''' primary keys
@@ -60,12 +60,12 @@ Namespace OnTrack.Configurables
         ''' <remarks></remarks>
         ''' 
 
-        <ormObjectEntry(Datatype:=otDataType.Long, primaryKeyOrdinal:=1, _
+        <ormObjectEntry(Datatype:=otDataType.Long, PrimaryEntryOrdinal:=1, _
             properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty},
             XID:="CNF1", title:="Configuration UID", description:="UID of the configuration")> Public Const ConstFNConfigUID = "UID"
 
 
-        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=2 _
+        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, PrimaryEntryOrdinal:=2 _
        , useforeignkey:=otForeignKeyImplementation.NativeDatabase, defaultvalue:=ConstGlobalDomain)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
         ''' <summary>
@@ -94,11 +94,11 @@ Namespace OnTrack.Configurables
         ''' Mappings
         ''' </summary>
         ''' <remarks></remarks>
-        <ormEntryMapping(EntryName:=ConstFNConfigUID)> Private _uid As Long
-        <ormEntryMapping(EntryName:=constFNConfigID)> Private _id As String = ""
-        <ormEntryMapping(EntryName:=ConstFNDescription)> Private _description As String = ""
-        <ormEntryMapping(EntryName:=ConstFNProperties)> Private _properties As String()
-        <ormEntryMapping(EntryName:=ConstFNObjects)> Private _objects As String()
+        <ormObjectEntryMapping(EntryName:=ConstFNConfigUID)> Private _uid As Long
+        <ormObjectEntryMapping(EntryName:=constFNConfigID)> Private _id As String = String.empty
+        <ormObjectEntryMapping(EntryName:=ConstFNDescription)> Private _description As String = String.empty
+        <ormObjectEntryMapping(EntryName:=ConstFNProperties)> Private _properties As String()
+        <ormObjectEntryMapping(EntryName:=ConstFNObjects)> Private _objects As String()
 
         ''' <summary>
         ''' Relations
@@ -107,7 +107,7 @@ Namespace OnTrack.Configurables
         <ormRelation(linkobject:=GetType(ConfigItemSelector), cascadeOnDelete:=True, cascadeOnUpdate:=True, _
             fromEntries:={constFNConfigID}, toEntries:={ConfigItemSelector.ConstFNConfiguID})> Public Const ConstREntities = "CONFIGCONDITION"
 
-        <ormEntryMapping(RelationName:=ConstREntities, infuseMode:=otInfuseMode.OnInject Or otInfuseMode.OnDemand, _
+        <ormObjectEntryMapping(RelationName:=ConstREntities, infuseMode:=otInfuseMode.OnInject Or otInfuseMode.OnDemand, _
             keyentries:={ConfigItemSelector.ConstFNIDNO})> Private WithEvents _conditionCollection As New ormRelationCollection(Of ConfigItemSelector)(Me, {ConfigItemSelector.ConstFNIDNO})
 
 #Region "Properties"
@@ -201,8 +201,8 @@ Namespace OnTrack.Configurables
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overloads Shared Function Retrieve(uid As Long, Optional domainid As String = Nothing)
-            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
-            Return ormDataObject.Retrieve(Of Configuration)(pkArray:={uid, domainid.ToUpper}, domainID:=domainid)
+            If String.IsnullorEmpty(domainID) Then domainid = CurrentSession.CurrentDomainID
+            Return ormBusinessObject.RetrieveDataObject(Of Configuration)(pkArray:={uid, domainid.ToUpper}, domainID:=domainid)
         End Function
 
 
@@ -224,7 +224,7 @@ Namespace OnTrack.Configurables
                     e.Result = True
                     e.Proceed = True
                 Else
-                    CoreMessageHandler(message:="primary keys could not be created ?!", subname:="Configuration.OnCreate", messagetype:=otCoreMessageType.InternalError)
+                    CoreMessageHandler(message:="primary keys could not be created ?!", procedure:="Configuration.OnCreate", messagetype:=otCoreMessageType.InternalError)
                 End If
             End If
         End Sub
@@ -236,14 +236,14 @@ Namespace OnTrack.Configurables
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overloads Shared Function Create(id As String, Optional uid As Long = 0, Optional domainid As String = Nothing)
-            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
+            If String.IsnullorEmpty(domainID) Then domainid = CurrentSession.CurrentDomainID
             Dim aRecord As New ormRecord
             With aRecord
                 .SetValue(constFNConfigID, id)
                 .SetValue(ConstFNConfigUID, uid)
                 .SetValue(ConstFNDomainID, domainid)
             End With
-            Return ormDataObject.CreateDataObject(Of Configuration)(aRecord, domainID:=domainid, checkUnique:=True)
+            Return ormBusinessObject.CreateDataObject(Of Configuration)(aRecord, domainID:=domainid, checkUnique:=True)
         End Function
 
 
@@ -257,7 +257,7 @@ Namespace OnTrack.Configurables
     <ormObject(id:=ConfigItemSelector.ConstObjectID, version:=1, adddomainbehavior:=True, adddeletefieldbehavior:=True, usecache:=True, _
         modulename:=ConstModuleConfiguration, Title:="Configuration Condition", description:="definition of a configuration condition")> _
     Public Class ConfigItemSelector
-        Inherits ormDataObject
+        Inherits ormBusinessObject
 
         Public Shadows Const ConstObjectID = "ConfigItemSelector"
 
@@ -265,24 +265,24 @@ Namespace OnTrack.Configurables
         ''' Table Definition
         ''' </summary>
         ''' <remarks></remarks>
-        <ormSchemaTable(version:=1, usecache:=True)> Public Shadows Const ConstTableID = "tblDefConfigSConditions"
+        <ormTableAttribute(version:=1, usecache:=True)> Public Shadows Const ConstPrimaryTableID = "tblDefConfigSConditions"
 
         ''' <summary>
         ''' primary keys
         ''' </summary>
         ''' <remarks></remarks>
 
-        <ormObjectEntry(referenceObjectEntry:=Configuration.ConstObjectID & "." & Configuration.ConstFNConfigUID, primarykeyordinal:=1 _
+        <ormObjectEntry(referenceObjectEntry:=Configuration.ConstObjectID & "." & Configuration.ConstFNConfigUID, PrimaryEntryOrdinal:=1 _
          , defaultvalue:=ConstGlobalDomain)> Public Const ConstFNConfiguID = Configuration.ConstFNConfigUID
 
-        <ormObjectEntry(Datatype:=otDataType.Long, primarykeyordinal:=2, _
+        <ormObjectEntry(Datatype:=otDataType.Long, PrimaryEntryOrdinal:=2, _
          XID:="CCOND2", title:="ID", description:="ID of the configuration condition")> Public Const ConstFNIDNO = "IDNO"
 
-        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=3 _
+        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, PrimaryEntryOrdinal:=3 _
          , useforeignkey:=otForeignKeyImplementation.None, defaultvalue:=ConstGlobalDomain)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
         '*** foreign key
-        <ormSchemaForeignKey(entrynames:={ConstFNConfiguID, ConstFNDomainID}, _
+        <ormForeignKey(entrynames:={ConstFNConfiguID, ConstFNDomainID}, _
             foreignkeyreferences:={Configuration.ConstObjectID & "." & Configuration.ConstFNConfigUID, Configuration.ConstObjectID & "." & Configuration.ConstFNDomainID}, _
             useforeignkey:=otForeignKeyImplementation.NativeDatabase)> Public Const constFKConditions = "FK_ConfigConditions_Configs"
 
@@ -310,11 +310,11 @@ Namespace OnTrack.Configurables
         ''' </summary>
         ''' <remarks></remarks>
 
-        <ormEntryMapping(EntryName:=ConstFNConfiguID)> Private _configID As Long
-        <ormEntryMapping(entryname:=ConstFNIDNO)> Private _id As Long
-        <ormEntryMapping(EntryName:=ConstFNRuletype)> Private _ruletype As otConfigConditionRuleType
-        <ormEntryMapping(EntryName:=ConstFNDescription)> Private _description As String
-        <ormEntryMapping(EntryName:=ConstFNProperties)> Private _properties As String()
+        <ormObjectEntryMapping(EntryName:=ConstFNConfiguID)> Private _configID As Long
+        <ormObjectEntryMapping(entryname:=ConstFNIDNO)> Private _id As Long
+        <ormObjectEntryMapping(EntryName:=ConstFNRuletype)> Private _ruletype As otConfigConditionRuleType
+        <ormObjectEntryMapping(EntryName:=ConstFNDescription)> Private _description As String
+        <ormObjectEntryMapping(EntryName:=ConstFNProperties)> Private _properties As String()
 
 
 #Region "Properties"
@@ -395,17 +395,17 @@ Namespace OnTrack.Configurables
             If my IsNot Nothing Then
                 Dim configuid As Long? = e.Record.GetValue(ConstFNConfiguID)
                 If configuid Is Nothing Then
-                    CoreMessageHandler(message:="section does not exist", subname:="ConfigEntity.OnCreating", _
+                    CoreMessageHandler(message:="section does not exist", procedure:="ConfigEntity.OnCreating", _
                                        messagetype:=otCoreMessageType.ApplicationError, _
-                                       arg1:=my.ConfigurationID)
+                                       argument:=my.ConfigurationID)
                     e.AbortOperation = True
                     Return
                 End If
                 Dim mySection As Configuration = Configuration.Retrieve(uid:=configuid)
                 If mySection Is Nothing Then
-                    CoreMessageHandler(message:="section does not exist", subname:="ConfigEntity.OnCreating", _
+                    CoreMessageHandler(message:="section does not exist", procedure:="ConfigEntity.OnCreating", _
                                        messagetype:=otCoreMessageType.ApplicationError, _
-                                       arg1:=my.ConfigurationID)
+                                       argument:=my.ConfigurationID)
                     e.AbortOperation = True
                     Return
                 End If
@@ -418,7 +418,7 @@ Namespace OnTrack.Configurables
                         e.Result = True
                         e.Proceed = True
                     Else
-                        CoreMessageHandler(message:="primary keys could not be created ?!", subname:="ConfigCondition.OnCreate", _
+                        CoreMessageHandler(message:="primary keys could not be created ?!", procedure:="ConfigCondition.OnCreate", _
                                            messagetype:=otCoreMessageType.InternalError)
                     End If
                 End If
@@ -437,9 +437,9 @@ Namespace OnTrack.Configurables
             If my IsNot Nothing Then
                 Dim myConfiguration As Configuration = Configuration.Retrieve(uid:=my.ConfigurationID)
                 If myConfiguration Is Nothing Then
-                    CoreMessageHandler(message:="section does not exist", subname:="ConfigEntity.OnCreating", _
+                    CoreMessageHandler(message:="section does not exist", procedure:="ConfigEntity.OnCreating", _
                                        messagetype:=otCoreMessageType.ApplicationError, _
-                                       arg1:=my.ConfigurationID)
+                                       argument:=my.ConfigurationID)
                     e.AbortOperation = True
                     Return
                 Else
@@ -456,9 +456,9 @@ Namespace OnTrack.Configurables
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overloads Shared Function Create(configid As Long, Optional id As Long = 0, Optional domainid As String = Nothing) As ConfigItemSelector
-            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
+            If String.IsnullorEmpty(domainID) Then domainid = CurrentSession.CurrentDomainID
             Dim primarykey As Object() = {configid, id, domainid}
-            Return ormDataObject.CreateDataObject(Of ConfigItemSelector)(pkArray:=primarykey, domainID:=domainid, checkUnique:=True)
+            Return ormBusinessObject.CreateDataObject(Of ConfigItemSelector)(pkArray:=primarykey, domainID:=domainid, checkUnique:=True)
         End Function
 
         ''' <summary>
@@ -470,9 +470,9 @@ Namespace OnTrack.Configurables
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overloads Shared Function Retrieve(configid As Long, id As Long, Optional domainid As String = Nothing) As ConfigItemSelector
-            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
+            If String.IsnullorEmpty(domainID) Then domainid = CurrentSession.CurrentDomainID
             Dim primarykey As Object() = {configid, id, domainid}
-            Return ormDataObject.Retrieve(Of ConfigItemSelector)(pkArray:=primarykey)
+            Return ormBusinessObject.RetrieveDataObject(Of ConfigItemSelector)(pkArray:=primarykey)
         End Function
     End Class
 

@@ -112,7 +112,7 @@ Namespace OnTrack.Scheduling
                 Exit Function
             End If
 
-            createClusterID = ""
+            createClusterID = String.empty
         End Function
 
         '***** markclusterID marks a ClusterID in the Dictionary in the Collection for same
@@ -275,7 +275,7 @@ Namespace OnTrack.Scheduling
         '        '    aDependency.delete
         '    End If
         '    clusterid = aDependency.clusterid(ConstDepTypeIDIFC)
-        '    'If clusterid = "" Then
+        '    'If clusterid = String.empty Then
         '    clusterid = createClusterID(ConstDepTypeIDIFC)
         '    Call aDependency.generateCluster(ConstDepTypeIDIFC, aClusterID:=clusterid, aLevel:=1)
         '    'End If
@@ -401,7 +401,7 @@ Namespace OnTrack.Scheduling
                 aDependency = New clsOTDBDependency
                 If aDependency.loadbyDependant(aDepMember.PARTID) Then
                     clusterid = aDependency.clusterid(ConstDepTypeIDIFC)
-                    If clusterid = "" Then
+                    If clusterid = String.empty Then
                         clusterid = createClusterID(ConstDepTypeIDIFC)
                         Call aDependency.generateCluster(ConstDepTypeIDIFC, aClusterID:=clusterid, aLevel:=1)
                     End If
@@ -427,7 +427,7 @@ Namespace OnTrack.Scheduling
         ''' </summary>
         ''' <param name="workspaceID"></param>
         ''' <remarks></remarks>
-        Public Function BuildDynamicDependencyCluster(Optional ByVal workspaceID As String = "", Optional workerthread As BackgroundWorker = Nothing) As Boolean
+        Public Function BuildDynamicDependencyCluster(Optional ByVal workspaceID As String = String.empty, Optional workerthread As BackgroundWorker = Nothing) As Boolean
             Dim aDepColl As New Collection
             Dim aPart As New Part
             Dim aSenderColl As New Collection
@@ -446,7 +446,7 @@ Namespace OnTrack.Scheduling
                 Return False
             End If
 
-            If workspaceID = "" Then
+            If workspaceID = String.empty Then
                 workspaceID = CurrentSession.CurrentWorkspaceID
             End If
 
@@ -491,7 +491,7 @@ Namespace OnTrack.Scheduling
                 aDependency = New clsOTDBDependency
                 If aDependency.loadbyDependant(aDepMember.PARTID) Then
                     clusterid = aDependency.DynClusterid(ConstDepTypeIDIFC, workspaceID:=workspaceID)
-                    If clusterid = "" Then
+                    If clusterid = String.empty Then
                         clusterid = CreateClusterID(ConstDepTypeIDIFC, isDynamic:=True)
                         Call aDependency.GenerateDynCluster(ConstDepTypeIDIFC, clusterid:=clusterid, level:=1, workspaceID:=workspaceID)
                     End If
@@ -526,7 +526,7 @@ Namespace OnTrack.Scheduling
         ''' </summary>
         ''' <param name="workspaceID"></param>
         ''' <remarks></remarks>
-        Public Function CheckAllDependencies(Optional ByVal workspaceID As String = "", Optional workerthread As BackgroundWorker = Nothing) As Boolean
+        Public Function CheckAllDependencies(Optional ByVal workspaceID As String = String.empty, Optional workerthread As BackgroundWorker = Nothing) As Boolean
             Dim aPartsColl As New List(Of Part)
             Dim aPart As New Part
             'Dim aProgressBar As New clsUIProgressBarForm
@@ -549,7 +549,7 @@ Namespace OnTrack.Scheduling
                 Exit Function
             End If
 
-            If workspaceID = "" Then
+            If workspaceID = String.empty Then
                 workspaceID = CurrentSession.CurrentWorkspaceID
             End If
 
@@ -618,7 +618,7 @@ Namespace OnTrack.Scheduling
         ''' <remarks></remarks>
         Public Function CheckDependenciesFor(ByVal partID As String, _
                                              ByRef dependency As clsOTDBDependency, _
-                                             Optional workspaceID As String = "") As Boolean
+                                             Optional workspaceID As String = String.empty) As Boolean
 
             Dim aPart As Part = Part.Retrieve(partID)
 

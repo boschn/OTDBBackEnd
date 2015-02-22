@@ -38,7 +38,7 @@ Namespace OnTrack.Commons
     <ormObject(id:=ValueList.ConstObjectID, version:=1, adddomainbehavior:=True, adddeletefieldbehavior:=True, usecache:=True, _
         modulename:=ConstModuleCommons, Title:="Value List", description:="definition of a list of lookup values")> _
     Public Class ValueList
-        Inherits ormDataObject
+        Inherits ormBusinessObject
 
         Public Const ConstObjectID = "ValueList"
 
@@ -46,14 +46,14 @@ Namespace OnTrack.Commons
         ''' Table Definition
         ''' </summary>
         ''' <remarks></remarks>
-        <ormSchemaTable(version:=1, usecache:=True)> Public Const ConstTableID = "TBLDEFVALUELISTS"
+        <ormTableAttribute(version:=1, usecache:=True)> Public Const ConstPrimaryTableID = "TBLDEFVALUELISTS"
 
         '** primary Keys
-        <ormObjectEntry(Datatype:=otDataType.Text, size:=50, primaryKeyOrdinal:=1, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=50, PrimaryEntryOrdinal:=1, _
             properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty},
             XID:="VL1", title:="List ID", description:="ID of the value list")> Public Const ConstFNListID = "LISTID"
 
-        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=2 _
+        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, PrimaryEntryOrdinal:=2 _
          , useforeignkey:=otForeignKeyImplementation.NativeDatabase, defaultvalue:=ConstGlobalDomain)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
         <ormObjectEntry(Datatype:=otDataType.Text, isnullable:=True, _
@@ -65,8 +65,8 @@ Namespace OnTrack.Commons
         ''' </summary>
         ''' <remarks></remarks>
 
-        <ormEntryMapping(EntryName:=ConstFNListID)> Private _id As String = ""
-        <ormEntryMapping(EntryName:=ConstFNDescription)> Private _description As String = ""
+        <ormObjectEntryMapping(EntryName:=ConstFNListID)> Private _id As String = String.empty
+        <ormObjectEntryMapping(EntryName:=ConstFNDescription)> Private _description As String = String.empty
 
         ''' <summary>
         ''' Relations
@@ -75,7 +75,7 @@ Namespace OnTrack.Commons
         <ormRelation(linkobject:=GetType(ValueEntry), cascadeOnDelete:=True, cascadeOnUpdate:=True, _
             fromEntries:={ConstFNListID}, toEntries:={ValueEntry.ConstFNListID})> Public Const ConstRValues = "RELVALUES"
 
-        <ormEntryMapping(RelationName:=ConstRValues, infuseMode:=otInfuseMode.OnInject Or otInfuseMode.OnDemand, _
+        <ormObjectEntryMapping(RelationName:=ConstRValues, infuseMode:=otInfuseMode.OnInject Or otInfuseMode.OnDemand, _
             keyentries:={ValueEntry.ConstFNValue})> Private WithEvents _valuesCollection As New ormRelationCollection(Of ValueEntry)(Me, {ValueEntry.ConstFNValue})
 
 #Region "Properties"
@@ -139,8 +139,8 @@ Namespace OnTrack.Commons
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overloads Shared Function Retrieve(id As String, Optional domainid As String = Nothing) As ValueList
-            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
-            Return ormDataObject.Retrieve(Of ValueList)(pkArray:={id.ToUpper, domainid.ToUpper}, domainID:=domainid)
+            If String.IsnullorEmpty(domainID) Then domainid = CurrentSession.CurrentDomainID
+            Return ormBusinessObject.RetrieveDataObject(Of ValueList)(pkArray:={id.ToUpper, domainid.ToUpper}, domainID:=domainid)
         End Function
 
         ''' <summary>
@@ -151,8 +151,8 @@ Namespace OnTrack.Commons
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overloads Shared Function Create(id As String, Optional domainid As String = Nothing) As ValueList
-            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
-            Return ormDataObject.CreateDataObject(Of ValueList)(pkArray:={id.ToUpper, domainid.ToUpper}, domainID:=domainid, checkUnique:=True)
+            If String.IsnullorEmpty(domainID) Then domainid = CurrentSession.CurrentDomainID
+            Return ormBusinessObject.CreateDataObject(Of ValueList)(pkArray:={id.ToUpper, domainid.ToUpper}, domainID:=domainid, checkUnique:=True)
         End Function
 
 
@@ -179,23 +179,23 @@ Namespace OnTrack.Commons
     ''' <remarks></remarks>
     <ormObject(id:=ValueEntry.ConstObjectID, modulename:=ConstModuleCommons, Version:=1, Description:="lookup value pairs for general use", _
         useCache:=True, adddeletefieldbehavior:=True, addDomainBehavior:=True)> Public Class ValueEntry
-        Inherits ormDataObject
+        Inherits ormBusinessObject
         Implements iormInfusable
-        Implements iormPersistable
+        Implements iormRelationalPersistable
 
         Public Const ConstObjectID = "ValueEntry"
         '** Table Schema
-        <ormSchemaTableAttribute(Version:=1, usecache:=True)> Public Const ConstTableID As String = "tblDefValueEntries"
+        <ormTableAttribute(Version:=1, usecache:=True)> Public Const ConstPrimaryTableID As String = "tblDefValueEntries"
 
         '*** Primary Keys
-        <ormObjectEntry(Datatype:=otDataType.Text, size:=100, primaryKeyordinal:=1, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=100, PrimaryEntryOrdinal:=1, _
             properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty},
            XID:="VE2", title:="List", description:="ID of the list of values")> Public Const ConstFNListID = "ID"
 
-        <ormObjectEntry(Datatype:=otDataType.Text, size:=100, primaryKeyordinal:=2, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=100, PrimaryEntryOrdinal:=2, _
             XID:="VE3", title:="Value", description:="value entry")> Public Const ConstFNValue = "VALUE"
 
-        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=3 _
+        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, PrimaryEntryOrdinal:=3 _
          , useforeignkey:=otForeignKeyImplementation.NativeDatabase, defaultvalue:=ConstGlobalDomain)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
         ''' <summary>
@@ -215,13 +215,13 @@ Namespace OnTrack.Commons
          XID:="VE6", title:="Ordinal", description:="ordinal value of the entry")> Public Const ConstFNOrdinal = "ORDINAL"
 
         ' fields
-        <ormEntryMapping(EntryName:=ConstFNDomainID)> Private _DomainID As String
-        <ormEntryMapping(EntryName:=ConstFNListID)> Private _ID As String = ""
-        <ormEntryMapping(EntryName:=ConstFNDescription)> Private _Description As String
-        <ormEntryMapping(EntryName:=ConstFNSelector)> Private _selector As String
-        <ormEntryMapping(EntryName:=ConstFNValue)> Private _valuestring As String = ""
-        <ormEntryMapping(EntryName:=ConstFNOrdinal)> Private _ordinal As Long
-        <ormEntryMapping(EntryName:=ConstFNDatatype)> Private _datatype As otDataType = 0
+        <ormObjectEntryMapping(EntryName:=ConstFNDomainID)> Private _DomainID As String
+        <ormObjectEntryMapping(EntryName:=ConstFNListID)> Private _ID As String = String.empty
+        <ormObjectEntryMapping(EntryName:=ConstFNDescription)> Private _Description As String
+        <ormObjectEntryMapping(EntryName:=ConstFNSelector)> Private _selector As String
+        <ormObjectEntryMapping(EntryName:=ConstFNValue)> Private _valuestring As String = String.empty
+        <ormObjectEntryMapping(EntryName:=ConstFNOrdinal)> Private _ordinal As Long
+        <ormObjectEntryMapping(EntryName:=ConstFNDatatype)> Private _datatype As otDataType = 0
 
         '' dynamic
         Private _value As Object
@@ -344,7 +344,7 @@ Namespace OnTrack.Commons
                 If value IsNot Nothing Then
                     Me.ValueString = value.ToString
                 Else
-                    Me.ValueString = ""
+                    Me.ValueString = String.empty
                 End If
             End Set
             Get
@@ -367,9 +367,9 @@ Namespace OnTrack.Commons
             If my IsNot Nothing Then
                 Dim listid As String = e.Record.GetValue(ConstFNListID)
                 If listid Is Nothing Then
-                    CoreMessageHandler(message:="value list id does not exist", subname:="valueentry.OnCreating", _
+                    CoreMessageHandler(message:="value list id does not exist", procedure:="valueentry.OnCreating", _
                                        messagetype:=otCoreMessageType.ApplicationError, _
-                                       arg1:=my.ListID)
+                                       argument:=my.ListID)
                     e.AbortOperation = True
                     Return
                 End If
@@ -377,9 +377,9 @@ Namespace OnTrack.Commons
                 ''' we need to check on the object here
                 _list = ValueList.Retrieve(id:=listid)
                 If _list Is Nothing Then
-                    CoreMessageHandler(message:="value list does not exist", subname:="valueentry.OnCreated", _
+                    CoreMessageHandler(message:="value list does not exist", procedure:="valueentry.OnCreated", _
                                        messagetype:=otCoreMessageType.ApplicationError, _
-                                       arg1:=listid)
+                                       argument:=listid)
                     e.AbortOperation = True
                     Return
                 End If
@@ -399,9 +399,9 @@ Namespace OnTrack.Commons
                 If _list Is Nothing Then
                     _list = ValueList.Retrieve(id:=my.ListID)
                     If _list Is Nothing Then
-                        CoreMessageHandler(message:="value list does not exist", subname:="valueentry.OnCreated", _
+                        CoreMessageHandler(message:="value list does not exist", procedure:="valueentry.OnCreated", _
                                           messagetype:=otCoreMessageType.ApplicationError, _
-                                           arg1:=my.ListID)
+                                           argument:=my.ListID)
                         e.AbortOperation = True
                         Return
                     End If
@@ -443,9 +443,9 @@ Namespace OnTrack.Commons
                         aVAlue = Record.GetValue(ConstFNValue)
                         If aVAlue IsNot Nothing Then _value = CStr(aVAlue)
                     Case otDataType.Runtime, otDataType.Formula, otDataType.Binary
-                        _value = ""
-                        Call CoreMessageHandler(subname:="ValueEntry.infuse", messagetype:=otCoreMessageType.ApplicationError, _
-                                              message:="runtime, formular, binary can't infuse", arg1:=aVAlue)
+                        _value = String.empty
+                        Call CoreMessageHandler(procedure:="ValueEntry.infuse", messagetype:=otCoreMessageType.ApplicationError, _
+                                              message:="runtime, formular, binary can't infuse", argument:=aVAlue)
                     Case otDataType.[Date], otDataType.Timestamp
                         aVAlue = Record.GetValue(ConstFNValue)
                         If Microsoft.VisualBasic.IsDate(aVAlue) Then
@@ -465,8 +465,8 @@ Namespace OnTrack.Commons
                     Case otDataType.Memo
                         If aVAlue IsNot Nothing Then _value = CStr(aVAlue)
                     Case Else
-                        Call CoreMessageHandler(subname:="ValueEntry.infuse", _
-                                              message:="unknown datatype to be infused", arg1:=aVAlue)
+                        Call CoreMessageHandler(procedure:="ValueEntry.infuse", _
+                                              message:="unknown datatype to be infused", argument:=aVAlue)
                 End Select
 
                 ''' still here ?
@@ -475,7 +475,7 @@ Namespace OnTrack.Commons
                 Me.Value = aVAlue
 
             Catch ex As Exception
-                Call CoreMessageHandler(exception:=ex, subname:="ValueEntry.Infuse")
+                Call CoreMessageHandler(exception:=ex, procedure:="ValueEntry.Infuse")
             End Try
 
 
@@ -499,8 +499,8 @@ Namespace OnTrack.Commons
                     Case otDataType.Text, otDataType.Memo
                         Call Me.Record.SetValue(ConstFNValue, CStr(aValue))
                     Case otDataType.Runtime, otDataType.Formula, otDataType.Binary
-                        Call CoreMessageHandler(subname:="ValueEntry.persist", _
-                                              message:="datatype (runtime, formular, binary) not specified how to be persisted", arg1:=_datatype)
+                        Call CoreMessageHandler(procedure:="ValueEntry.persist", _
+                                              message:="datatype (runtime, formular, binary) not specified how to be persisted", argument:=_datatype)
                     Case otDataType.[Date]
                         If Microsoft.VisualBasic.IsDate(aValue) Then
                             Call Me.Record.SetValue(ConstFNValue, Converter.Date2LocaleShortDateString(CDate(aValue)))
@@ -519,14 +519,14 @@ Namespace OnTrack.Commons
                         Call Me.Record.SetValue(ConstFNValue, CStr(aValue))
                     Case Else
                         Call Me.Record.SetValue(ConstFNValue, CStr(aValue))
-                        Call CoreMessageHandler(subname:="ValueEntry.OnFed", _
-                                              message:="datatype not specified how to be persisted", arg1:=_datatype)
+                        Call CoreMessageHandler(procedure:="ValueEntry.OnFed", _
+                                              message:="datatype not specified how to be persisted", argument:=_datatype)
                 End Select
 
 
 
             Catch ex As Exception
-                Call CoreMessageHandler(subname:="ValueEntry.OnFed", exception:=ex)
+                Call CoreMessageHandler(procedure:="ValueEntry.OnFed", exception:=ex)
             End Try
         End Sub
 
@@ -538,9 +538,9 @@ Namespace OnTrack.Commons
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overloads Shared Function Retrieve(ByVal listID As String, ByVal value As Object, Optional ByVal domainid As String = Nothing, Optional forcereload As Boolean = False) As ValueEntry
-            If String.IsNullOrWhiteSpace(domainID) Then domainID = CurrentSession.CurrentDomainID
+            If String.IsnullorEmpty(domainID) Then domainID = CurrentSession.CurrentDomainID
             Dim pkarray() As Object = {UCase(listID), value.ToString, UCase(domainID)}
-            Return Retrieve(Of ValueEntry)(pkArray:=pkarray, forceReload:=forcereload)
+            Return RetrieveDataObject(Of ValueEntry)(pkArray:=pkarray, forceReload:=forcereload)
         End Function
         ''' <summary>
         ''' Retrieve all value entries by list id in the domain
@@ -549,7 +549,7 @@ Namespace OnTrack.Commons
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overloads Shared Function RetrieveByListID(ByVal listID As String, Optional ByVal domainid As String = Nothing, Optional forcereload As Boolean = False) As List(Of ValueEntry)
-            Dim aList As List(Of ValueEntry) = ormDataObject.AllDataObject(Of ValueEntry)(ID:="allbyListID", domainID:=domainID)
+            Dim aList As List(Of ValueEntry) = ormBusinessObject.AllDataObject(Of ValueEntry)(ID:="allbyListID", domainID:=domainID)
             Return aList
         End Function
 
@@ -560,9 +560,9 @@ Namespace OnTrack.Commons
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function Create(ByVal listid As String, ByVal value As Object, Optional ByVal domainid As String = Nothing) As ValueEntry
-            If String.IsNullOrWhiteSpace(domainID) Then domainID = CurrentSession.CurrentDomainID
+            If String.IsnullorEmpty(domainID) Then domainID = CurrentSession.CurrentDomainID
             Dim primarykey() As Object = {UCase(listid), value.ToString, UCase(domainID)}
-            Return ormDataObject.CreateDataObject(Of ValueEntry)(primarykey, checkUnique:=True)
+            Return ormBusinessObject.CreateDataObject(Of ValueEntry)(primarykey, checkUnique:=True)
         End Function
 
     End Class
@@ -573,24 +573,24 @@ Namespace OnTrack.Commons
     ''' <remarks></remarks>
     <ormObject(id:=DomainSetting.ConstObjectID, modulename:=ConstModuleCommons, adddomainbehavior:=True, description:="properties per domain", _
         Version:=1, useCache:=True)> Public Class DomainSetting
-        Inherits ormDataObject
+        Inherits ormBusinessObject
         Implements iormInfusable
-        Implements iormPersistable
+        Implements iormRelationalPersistable
 
         '** const
         Public Const ConstObjectID = "DomainSetting"
         '** will be cached over domains
-        <ormSchemaTableAttribute(adddeletefieldbehavior:=False, usecache:=False, Version:=1)> Public Const ConstTableID As String = "tblDefDomainSettings"
+        <ormTableAttribute(adddeletefieldbehavior:=False, usecache:=False, Version:=1)> Public Const ConstPrimaryTableID As String = "tblDefDomainSettings"
 
         <ormObjectEntry(XID:="DMS1", _
             referenceobjectentry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, _
             title:="domain", Description:="domain identifier", defaultvalue:=ConstGlobalDomain, _
-            primaryKeyordinal:=1, _
+            PrimaryEntryOrdinal:=1, _
             isactive:=True, useforeignkey:=otForeignKeyImplementation.ORM)> _
         Const ConstFNDomainID As String = Domain.ConstFNDomainID
 
         <ormObjectEntry(XID:="DMS2", _
-           Datatype:=otDataType.Text, size:=100, primaryKeyordinal:=2, _
+           Datatype:=otDataType.Text, size:=100, PrimaryEntryOrdinal:=2, _
            properties:={ObjectEntryProperty.Keyword}, _
            title:="Setting", description:="ID of the setting per domain")> _
         Const ConstFNSettingID = "id"
@@ -608,11 +608,11 @@ Namespace OnTrack.Commons
         Const ConstFNDatatype = "datatype"
 
         ' fields
-        <ormEntryMapping(EntryName:=ConstFNDomainID)> Private _DomainID As String = ""
-        <ormEntryMapping(EntryName:=ConstFNSettingID)> Private _ID As String = ""
-        <ormEntryMapping(EntryName:=ConstFNDescription)> Private _description As String = ""
-        <ormEntryMapping(EntryName:=ConstFNValue)> Private _valuestring As String = ""
-        <ormEntryMapping(EntryName:=ConstFNDatatype)> Private _datatype As otDataType = 0
+        <ormObjectEntryMapping(EntryName:=ConstFNDomainID)> Private _DomainID As String = String.empty
+        <ormObjectEntryMapping(EntryName:=ConstFNSettingID)> Private _ID As String = String.empty
+        <ormObjectEntryMapping(EntryName:=ConstFNDescription)> Private _description As String = String.empty
+        <ormObjectEntryMapping(EntryName:=ConstFNValue)> Private _valuestring As String = String.empty
+        <ormObjectEntryMapping(EntryName:=ConstFNDatatype)> Private _datatype As otDataType = 0
 
 #Region "Properties"
         ''' <summary>
@@ -677,7 +677,7 @@ Namespace OnTrack.Commons
         Public Property value As Object
             Set(value As Object)
                 If value Is Nothing Then
-                    _valuestring = ""
+                    _valuestring = String.empty
                 Else
                     _valuestring = value.ToString
                 End If
@@ -691,9 +691,9 @@ Namespace OnTrack.Commons
                             If _valuestring Is Nothing Then Return constNullDate
                             If IsDate(_valuestring) Then Return CDate(_valuestring)
                             If _valuestring = constNullDate.ToString OrElse _valuestring = ConstNullTime.ToString Then Return constNullDate
-                            If _valuestring = "" Then Return constNullDate
+                            If _valuestring = String.empty Then Return constNullDate
                         Case otDataType.List, otDataType.Memo, otDataType.Text
-                            If _valuestring Is Nothing Then Return ""
+                            If _valuestring Is Nothing Then Return String.empty
                             Return CStr(_valuestring)
                         Case otDataType.Numeric
                             If IsNumeric(_valuestring) Then
@@ -711,14 +711,14 @@ Namespace OnTrack.Commons
                         Case otDataType.Bool
                             Return CBool(_valuestring)
                         Case Else
-                            CoreMessageHandler(message:="data type not covered: " & _datatype, arg1:=_valuestring, subname:="DomainSetting.value", _
+                            CoreMessageHandler(message:="data type not covered: " & _datatype, argument:=_valuestring, procedure:="DomainSetting.value", _
                                                messagetype:=otCoreMessageType.ApplicationError)
                             Return Nothing
 
                     End Select
                 Catch ex As Exception
                     CoreMessageHandler(exception:=ex, message:="could not convert value to data type " & _datatype, _
-                                       arg1:=_valuestring, subname:="DomainSetting.value", messagetype:=otCoreMessageType.ApplicationError)
+                                       argument:=_valuestring, procedure:="DomainSetting.value", messagetype:=otCoreMessageType.ApplicationError)
                     Return Nothing
                 End Try
 
@@ -734,7 +734,7 @@ Namespace OnTrack.Commons
         ''' <remarks></remarks>
         Public Overloads Shared Function Retrieve(ByVal domainID As String, ByVal id As String, Optional forcereload As Boolean = False) As DomainSetting
             Dim pkarray() As Object = {UCase(domainID), UCase(id)}
-            Return Retrieve(Of DomainSetting)(pkArray:=pkarray, forceReload:=forcereload)
+            Return RetrieveDataObject(Of DomainSetting)(pkArray:=pkarray, forceReload:=forcereload)
         End Function
         ''' <summary>
         ''' Retrieve the workspaceID Cache Object
@@ -743,11 +743,11 @@ Namespace OnTrack.Commons
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overloads Shared Function RetrieveForDomain(domainid As String) As List(Of DomainSetting)
-            Dim aList As List(Of DomainSetting) = ormDataObject.AllDataObject(Of DomainSetting)(ID:="allforDomain", domainID:=domainid)
+            Dim aList As List(Of DomainSetting) = ormBusinessObject.AllDataObject(Of DomainSetting)(ID:="allforDomain", domainID:=domainid)
             'Additional parameters and where clause is not needed - automatically settings for the current domainid are selected
             'by the algo
             'where:="[" & ConstFNDomainID & "] = @" & ConstFNDomainID, _
-            'parameters:={New ormSqlCommandParameter(id:="@" & ConstFNDomainID, columnname:=ConstFNDomainID, tablename:=ConstTableID, value:=domainID)}.ToList)
+            'parameters:={New ormSqlCommandParameter(id:="@" & ConstFNDomainID, columnname:=ConstFNDomainID, tablename:=ConstPrimaryTableID, value:=domainID)}.ToList)
             Return aList
         End Function
         ''' <summary>
@@ -757,11 +757,11 @@ Namespace OnTrack.Commons
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overloads Shared Function RetrieveAllofCurrentDomain() As List(Of DomainSetting)
-            Dim aList As List(Of DomainSetting) = ormDataObject.AllDataObject(Of DomainSetting)(ID:="allbyDomain")
+            Dim aList As List(Of DomainSetting) = ormBusinessObject.AllDataObject(Of DomainSetting)(ID:="allbyDomain")
             'Additional parameters and where clause is not needed - automatically settings for the current domainid are selected
             'by the algo
             'where:="[" & ConstFNDomainID & "] = @" & ConstFNDomainID, _
-            'parameters:={New ormSqlCommandParameter(id:="@" & ConstFNDomainID, columnname:=ConstFNDomainID, tablename:=ConstTableID, value:=domainID)}.ToList)
+            'parameters:={New ormSqlCommandParameter(id:="@" & ConstFNDomainID, columnname:=ConstFNDomainID, tablename:=ConstPrimaryTableID, value:=domainID)}.ToList)
             Return aList
         End Function
 
@@ -773,7 +773,7 @@ Namespace OnTrack.Commons
         ''' <remarks></remarks>
         Public Shared Function Create(ByVal domainID As String, ByVal id As String) As DomainSetting
             Dim primarykey() As Object = {UCase(domainID), UCase(id)}
-            Return ormDataObject.CreateDataObject(Of DomainSetting)(primarykey, checkUnique:=False)
+            Return ormBusinessObject.CreateDataObject(Of DomainSetting)(primarykey, checkUnique:=False)
         End Function
 
     End Class
@@ -785,20 +785,20 @@ Namespace OnTrack.Commons
     <ormObject(id:=Group.ConstObjectID, description:="group definition for users", _
         modulename:=ConstModuleCommons, Version:=1, usecache:=True, adddomainbehavior:=True, adddeletefieldbehavior:=True, isbootstrap:=False)> _
     Public Class Group
-        Inherits ormDataObject
+        Inherits ormBusinessObject
 
 
         '*** Object ID
         Public Const ConstObjectID = "Group"
 
         '*** Schema Table
-        <ormSchemaTable(version:=1, usecache:=True)> Public Const ConstTableID As String = "tblDefGroups"
+        <ormTableAttribute(version:=1, usecache:=True)> Public Const ConstPrimaryTableID As String = "tblDefGroups"
 
         '*** Primary Keys
-        <ormObjectEntry(Datatype:=otDataType.Text, size:=50, primarykeyordinal:=1, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=50, PrimaryEntryOrdinal:=1, _
             properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty},
           XID:="G1", title:="Group", description:="name of the OnTrack user group")> Public Const ConstFNGroupname = "groupname"
-        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=2, _
+        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, PrimaryEntryOrdinal:=2, _
                        defaultvalue:=ConstGlobalDomain)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
         '*** Fields
@@ -825,20 +825,20 @@ Namespace OnTrack.Commons
         '* Members
         <ormRelation(cascadeOnDelete:=True, cascadeonUpdate:=True, FromEntries:={ConstFNGroupname}, toEntries:={GroupMember.ConstFNGroupname}, _
             LinkObject:=GetType(GroupMember))> Const ConstRelMembers = "members"
-        <ormEntryMapping(Relationname:=ConstRelMembers, infusemode:=otInfuseMode.OnInject Or otInfuseMode.OnDemand)> _
+        <ormObjectEntryMapping(Relationname:=ConstRelMembers, infusemode:=otInfuseMode.OnInject Or otInfuseMode.OnDemand)> _
         Private _groupmembers As New List(Of GroupMember)
 
         'fields
-        <ormEntryMapping(EntryName:=ConstFNGroupname)> Private _groupname As String
-        <ormEntryMapping(EntryName:=ConstFNDescription)> Private _desc As String
+        <ormObjectEntryMapping(EntryName:=ConstFNGroupname)> Private _groupname As String
+        <ormObjectEntryMapping(EntryName:=ConstFNDescription)> Private _desc As String
 
-        <ormEntryMapping(EntryName:=ConstFNDefaultWorkspace)> Private _DefaultWorkspaceID As String
-        <ormEntryMapping(EntryName:=ConstFNDefaultDomainID)> Private _DefaultDomainID As String
+        <ormObjectEntryMapping(EntryName:=ConstFNDefaultWorkspace)> Private _DefaultWorkspaceID As String
+        <ormObjectEntryMapping(EntryName:=ConstFNDefaultDomainID)> Private _DefaultDomainID As String
 
-        <ormEntryMapping(EntryName:=ConstFNReadData)> Private _hasRead As Boolean
-        <ormEntryMapping(EntryName:=ConstFNUpdateData)> Private _hasUpdate As Boolean
-        <ormEntryMapping(EntryName:=ConstFNAlterSchema)> Private _hasAlterSchema As Boolean
-        <ormEntryMapping(EntryName:=ConstFNNoAccess)> Private _hasNoRights As Boolean
+        <ormObjectEntryMapping(EntryName:=ConstFNReadData)> Private _hasRead As Boolean
+        <ormObjectEntryMapping(EntryName:=ConstFNUpdateData)> Private _hasUpdate As Boolean
+        <ormObjectEntryMapping(EntryName:=ConstFNAlterSchema)> Private _hasAlterSchema As Boolean
+        <ormObjectEntryMapping(EntryName:=ConstFNNoAccess)> Private _hasNoRights As Boolean
 
 
 #Region "Properties"
@@ -972,7 +972,7 @@ Namespace OnTrack.Commons
                         Me.HasReadRights = False
                         Me.HasNoRights = True
                     Case Else
-                        CoreMessageHandler(message:="access right not implemented", arg1:=value, subname:="Group.AccessRight", messagetype:=otCoreMessageType.InternalError)
+                        CoreMessageHandler(message:="access right not implemented", argument:=value, procedure:="Group.AccessRight", messagetype:=otCoreMessageType.InternalError)
 
                 End Select
 
@@ -986,7 +986,7 @@ Namespace OnTrack.Commons
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function All() As List(Of Group)
-            Return ormDataObject.AllDataObject(Of Group)(orderby:=ConstFNGroupname)
+            Return ormBusinessObject.AllDataObject(Of Group)(orderby:=ConstFNGroupname)
         End Function
 
         ''' <summary>
@@ -996,8 +996,8 @@ Namespace OnTrack.Commons
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overloads Shared Function Retrieve(ByVal groupname As String, Optional domainid As String = Nothing, Optional forcereload As Boolean = False) As Group
-            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
-            Return Retrieve(Of Group)(pkArray:={groupname, domainid}, domainID:=domainid, forceReload:=forcereload)
+            If String.IsnullorEmpty(domainID) Then domainid = CurrentSession.CurrentDomainID
+            Return RetrieveDataObject(Of Group)(pkArray:={groupname, domainid}, domainID:=domainid, forceReload:=forcereload)
         End Function
 
         ''' <summary>
@@ -1007,9 +1007,9 @@ Namespace OnTrack.Commons
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function Create(ByVal groupname As String, Optional domainid As String = Nothing) As Group
-            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
+            If String.IsnullorEmpty(domainID) Then domainid = CurrentSession.CurrentDomainID
             Dim primarykey() As Object = {groupname, domainid}
-            Return ormDataObject.CreateDataObject(Of Group)(primarykey, domainID:=domainid, checkUnique:=True)
+            Return ormBusinessObject.CreateDataObject(Of Group)(primarykey, domainID:=domainid, checkUnique:=True)
         End Function
 
     End Class
@@ -1021,28 +1021,38 @@ Namespace OnTrack.Commons
     <ormObject(id:=GroupMember.ConstObjectID, description:="group member definition of n:m relation from user to groups", _
         modulename:=ConstModuleCommons, Version:=1, usecache:=True, isbootstrap:=False, adddomainbehavior:=True, adddeletefieldbehavior:=True)> _
     Public Class GroupMember
-        Inherits ormDataObject
+        Inherits ormBusinessObject
 
 
         '*** Object ID
         Public Const ConstObjectID = "GroupMember"
 
-        '*** Schema Table
-        <ormSchemaTable(version:=1)> Public Const ConstTableID As String = "tblDefGroupMembers"
-        <ormSchemaIndex(columnname1:=ConstFNUsername, columnname2:=ConstFNDomainID, columnname3:=ConstFNGroupname)> Public Const ConstIndUser As String = "indUser"
+        <ormTableAttribute(version:=1)> Public Const ConstPrimaryTableID As String = "tblDefGroupMembers"
+        <ormIndex(columnname1:=ConstFNUsername, columnname2:=ConstFNDomainID, columnname3:=ConstFNGroupname)> Public Const ConstIndUser As String = "indUser"
 
-        '*** Primary Keys
-        <ormObjectEntry(referenceObjectEntry:=Group.ConstObjectID & "." & Group.ConstFNGroupname, primarykeyordinal:=1, _
+        ''' <summary>
+        ''' PrimaryKey
+        ''' </summary>
+        ''' <remarks></remarks>
+        <ormObjectEntry(referenceObjectEntry:=Group.ConstObjectID & "." & Group.ConstFNGroupname, PrimaryEntryOrdinal:=1, _
           XID:="G1", title:="Group", description:="name of the OnTrack user group")> _
         Public Const ConstFNGroupname = "groupname"
-        <ormObjectEntry(referenceObjectEntry:=User.ConstObjectID & "." & User.ConstFNUsername, primarykeyordinal:=2, _
+        <ormObjectEntry(referenceObjectEntry:=User.ConstObjectID & "." & User.ConstFNUsername, PrimaryEntryOrdinal:=2, _
           XID:="G1", title:="Group", description:="name of the OnTrack user group", useforeignkey:=otForeignKeyImplementation.NativeDatabase)> _
         Public Const ConstFNUsername = "username"
 
-        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=3, _
+        ''' <summary>
+        ''' Domain
+        ''' </summary>
+        ''' <remarks></remarks>
+        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, PrimaryEntryOrdinal:=3, _
                        defaultvalue:=ConstGlobalDomain, useforeignkey:=otForeignKeyImplementation.None)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
-        <ormSchemaForeignKey(entrynames:={ConstFNGroupname, ConstFNDomainID}, _
+        ''' <summary>
+        ''' Foreign Key to Group
+        ''' </summary>
+        ''' <remarks></remarks>
+        <ormForeignKey(entrynames:={ConstFNGroupname, ConstFNDomainID}, _
             foreignkeyreferences:={Group.ConstObjectID & "." & Group.ConstFNGroupname, Group.ConstObjectID & "." & Group.ConstFNDomainID}, _
             useforeignkey:=otForeignKeyImplementation.NativeDatabase)> Public Const constFKGroups = "FKGroups"
 
@@ -1051,8 +1061,8 @@ Namespace OnTrack.Commons
 
 
         'mapping
-        <ormEntryMapping(EntryName:=ConstFNGroupname)> Private _groupname As String
-        <ormEntryMapping(EntryName:=ConstFNUsername)> Private _username As String
+        <ormObjectEntryMapping(EntryName:=ConstFNGroupname)> Private _groupname As String
+        <ormObjectEntryMapping(EntryName:=ConstFNUsername)> Private _username As String
 
 
 #Region "Properties"
@@ -1076,7 +1086,7 @@ Namespace OnTrack.Commons
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function All() As List(Of Group)
-            Return ormDataObject.AllDataObject(Of Group)(orderby:=ConstFNGroupname)
+            Return ormBusinessObject.AllDataObject(Of Group)(orderby:=ConstFNGroupname)
         End Function
 
         ''' <summary>
@@ -1086,8 +1096,8 @@ Namespace OnTrack.Commons
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overloads Shared Function Retrieve(ByVal groupname As String, ByVal username As String, Optional ByVal domainid As String = Nothing, Optional forcereload As Boolean = False) As GroupMember
-            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
-            Return Retrieve(Of GroupMember)(pkArray:={groupname, username, domainid}, domainID:=domainid, forceReload:=forcereload)
+            If String.IsnullorEmpty(domainID) Then domainid = CurrentSession.CurrentDomainID
+            Return RetrieveDataObject(Of GroupMember)(pkArray:={groupname, username, domainid}, domainID:=domainid, forceReload:=forcereload)
         End Function
 
         ''' <summary>
@@ -1117,9 +1127,9 @@ Namespace OnTrack.Commons
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overloads Shared Function Create(ByVal groupname As String, ByVal username As String, Optional ByVal domainid As String = Nothing, Optional runtimeOnly As Boolean = False) As GroupMember
-            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
+            If String.IsnullorEmpty(domainID) Then domainid = CurrentSession.CurrentDomainID
             Dim primarykey() As Object = {groupname, username, domainid}
-            Return ormDataObject.CreateDataObject(Of GroupMember)(primarykey, domainID:=domainid, checkUnique:=False, runtimeOnly:=runtimeOnly)
+            Return ormBusinessObject.CreateDataObject(Of GroupMember)(primarykey, domainID:=domainid, checkUnique:=False, runtimeOnly:=runtimeOnly)
         End Function
 
     End Class
@@ -1131,17 +1141,17 @@ Namespace OnTrack.Commons
     <ormObject(id:=User.ConstObjectID, description:="user definition for OnTrack login users", _
         modulename:=ConstModuleCommons, Version:=1, isbootstrap:=True, usecache:=True, adddeletefieldbehavior:=True)> _
     Public Class User
-        Inherits ormDataObject
+        Inherits ormBusinessObject
         Implements iormCloneable
         Implements iormInfusable
 
         '*** Object ID
         Public Const ConstObjectID = "User"
         '*** Schema Table
-        <ormSchemaTable(version:=2, usecache:=True)> Public Const ConstTableID As String = "tblDefUsers"
+        <ormTableAttribute(version:=2, usecache:=True)> Public Const ConstPrimaryTableID As String = "tblDefUsers"
 
         '*** Primary Keys
-        <ormObjectEntry(Datatype:=otDataType.Text, size:=50, primarykeyordinal:=1, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=50, PrimaryEntryOrdinal:=1, _
             properties:={ObjectEntryProperty.Trim}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty},
           XID:="U1", title:="username", description:="name of the OnTrack user")> Public Const ConstFNUsername = "username"
 
@@ -1187,20 +1197,20 @@ Namespace OnTrack.Commons
             LinkObject:=GetType(GroupMember))> Public Const ConstRelMembers = "members"
 
         'fields
-        <ormEntryMapping(EntryName:=ConstFNUsername)> Private _username As String
-        <ormEntryMapping(EntryName:=ConstFNPassword)> Private _password As String
-        <ormEntryMapping(EntryName:=ConstFNDescription)> Private _desc As String
-        <ormEntryMapping(EntryName:=ConstFNPerson)> Private _personID As String
+        <ormObjectEntryMapping(EntryName:=ConstFNUsername)> Private _username As String
+        <ormObjectEntryMapping(EntryName:=ConstFNPassword)> Private _password As String
+        <ormObjectEntryMapping(EntryName:=ConstFNDescription)> Private _desc As String
+        <ormObjectEntryMapping(EntryName:=ConstFNPerson)> Private _personID As String
 
-        <ormEntryMapping(EntryName:=ConstFNDefaultWorkspace)> Private _DefaultWorkspace As String
-        <ormEntryMapping(EntryName:=ConstFNDefaultDomainID)> Private _DefaultDomainID As String
-        <ormEntryMapping(EntryName:=ConstFNIsAnonymous)> Private _isAnonymous As Boolean
-        <ormEntryMapping(EntryName:=ConstFNReadData)> Private _hasRead As Boolean
-        <ormEntryMapping(EntryName:=ConstFNUpdateData)> Private _hasUpdate As Boolean
-        <ormEntryMapping(EntryName:=ConstFNAlterSchema)> Private _hasAlterSchema As Boolean
-        <ormEntryMapping(EntryName:=ConstFNNoAccess)> Private _hasNoRights As Boolean
+        <ormObjectEntryMapping(EntryName:=ConstFNDefaultWorkspace)> Private _DefaultWorkspace As String
+        <ormObjectEntryMapping(EntryName:=ConstFNDefaultDomainID)> Private _DefaultDomainID As String
+        <ormObjectEntryMapping(EntryName:=ConstFNIsAnonymous)> Private _isAnonymous As Boolean
+        <ormObjectEntryMapping(EntryName:=ConstFNReadData)> Private _hasRead As Boolean
+        <ormObjectEntryMapping(EntryName:=ConstFNUpdateData)> Private _hasUpdate As Boolean
+        <ormObjectEntryMapping(EntryName:=ConstFNAlterSchema)> Private _hasAlterSchema As Boolean
+        <ormObjectEntryMapping(EntryName:=ConstFNNoAccess)> Private _hasNoRights As Boolean
 
-        <ormEntryMapping(Relationname:=ConstRelMembers, infusemode:=otInfuseMode.OnDemand)> Private _groupmembers As New List(Of GroupMember)
+        <ormObjectEntryMapping(Relationname:=ConstRelMembers, infusemode:=otInfuseMode.OnDemand)> Private _groupmembers As New List(Of GroupMember)
         ' dynamics
         Private _listtings As New Dictionary(Of String, UserSetting)
         Private _listtingsLoaded As Boolean = False
@@ -1430,7 +1440,7 @@ Namespace OnTrack.Commons
                         Me.HasReadRights = False
                         Me.HasNoRights = True
                     Case Else
-                        CoreMessageHandler(message:="access right not implemented", arg1:=value, subname:="User.AccessRight", messagetype:=otCoreMessageType.InternalError)
+                        CoreMessageHandler(message:="access right not implemented", argument:=value, procedure:="User.AccessRight", messagetype:=otCoreMessageType.InternalError)
 
                 End Select
 
@@ -1445,7 +1455,7 @@ Namespace OnTrack.Commons
         ''' <remarks></remarks>
         Public Shared Function GetInsertInitalUserSQLString(username As String, person As String, password As String, desc As String, group As String, defaultworkspace As String) As String
 
-            Dim aSqlString As String = String.Format("INSERT INTO [{0}] ", CurrentSession.CurrentDBDriver.GetNativeTableName(ConstTableID))
+            Dim aSqlString As String = String.Format("INSERT INTO [{0}] ", CurrentSession.CurrentDBDriver.GetNativeDBObjectName(ConstPrimaryTableID))
             'aSqlString &= "( [username], person, [password], [desc],  defws, isanon, alterschema, readdata, updatedata, noright, UpdatedOn, CreatedOn)"
             aSqlString &= String.Format("( [{0}], [{1}], [{2}], [{3}],  [{4}], [{5}], [{6}], [{7}], {8}, [{9}], [{10}], [{11}], [{12}])", _
                                          ConstFNUsername, ConstFNPerson, ConstFNPassword, ConstFNDescription, ConstFNDefaultWorkspace, ConstFNDefaultDomainID, _
@@ -1465,14 +1475,14 @@ Namespace OnTrack.Commons
         ''' <remarks></remarks>
         Public Shared Function GetCreateSqlString() As String
 
-            Dim aSqlString As String = String.Format("CREATE TABLE [{0}] ", CurrentSession.CurrentDBDriver.GetNativeTableName(ConstTableID))
+            Dim aSqlString As String = String.Format("CREATE TABLE [{0}] ", CurrentSession.CurrentDBDriver.GetNativeDBObjectName(ConstPrimaryTableID))
             aSqlString &= String.Format("( [{0}] nvarchar(50) not null, [{1}] nvarchar(50)  null, [{2}] nvarchar(50)  null, ", _
                                         ConstFNUsername, ConstFNPassword, ConstFNPerson)
             aSqlString &= String.Format("[{0}] nvarchar(max)  null default , [{1}] nvarchar(max)  null default, [{2}] bit not null default 0, [{3}] bit not null default 0, [{4}] bit not null default 0, [{5}] bit not null default 0, ", _
                                         ConstFNDefaultWorkspace, ConstFNDefaultDomainID, ConstFNAlterSchema, ConstFNUpdateData, ConstFNReadData, ConstFNNoAccess)
             aSqlString &= String.Format(" [{0}] nvarchar(max)  null default , [{1}] DATETIME not null , [{2}] Datetime not null , " & _
                                                 "CONSTRAINT [{3}_primarykey] PRIMARY KEY NONCLUSTERED ([{3}] Asc) ", _
-                                                ConstFNDescription, ConstFNUpdatedOn, ConstFNCreatedOn, ConstFNUsername, ConstTableID)
+                                                ConstFNDescription, ConstFNUpdatedOn, ConstFNCreatedOn, ConstFNUsername, ConstPrimaryTableID)
             aSqlString &= "WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]) ON [PRIMARY];"
 
             Return aSqlString
@@ -1493,7 +1503,7 @@ Namespace OnTrack.Commons
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function All() As List(Of User)
-            Return ormDataObject.AllDataObject(Of User)(orderby:=ConstFNUsername)
+            Return ormBusinessObject.AllDataObject(Of User)(orderby:=ConstFNUsername)
         End Function
 
         '****** getAnonymous: "static" function to return the first Anonymous user
@@ -1506,9 +1516,9 @@ Namespace OnTrack.Commons
         Public Shared Function GetAnonymous() As OnTrack.Commons.User
             Dim aObjectCollection As List(Of User)
             If CurrentSession.CurrentDBDriver.DatabaseType = otDBServerType.SQLServer Then
-                aObjectCollection = ormDataObject.AllDataObject(Of User)(orderby:=ConstFNUsername, where:=ConstFNIsAnonymous & "=1")
+                aObjectCollection = ormBusinessObject.AllDataObject(Of User)(orderby:=ConstFNUsername, where:=ConstFNIsAnonymous & "=1")
             Else
-                aObjectCollection = ormDataObject.AllDataObject(Of User)(orderby:=ConstFNUsername, where:=ConstFNIsAnonymous & "=true")
+                aObjectCollection = ormBusinessObject.AllDataObject(Of User)(orderby:=ConstFNUsername, where:=ConstFNIsAnonymous & "=true")
             End If
 
             If aObjectCollection.Count = 0 Then
@@ -1526,7 +1536,7 @@ Namespace OnTrack.Commons
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overloads Shared Function Retrieve(ByVal username As String, Optional forcereload As Boolean = False) As User
-            Return Retrieve(Of User)(pkArray:={username}, forceReload:=forcereload)
+            Return RetrieveDataObject(Of User)(pkArray:={username}, forceReload:=forcereload)
         End Function
         ''' <summary>
         ''' Returns a list of groupdefinition this belongs to
@@ -1587,9 +1597,8 @@ Namespace OnTrack.Commons
             If Me.HasSetting(id:=id) Then
                 aSetting = Me.GetSetting(id:=id)
             Else
-                If Not aSetting.Create(Username:=Me.Username, id:=id) Then
-                    aSetting = UserSetting.Retrieve(Username:=Me.Username, id:=id)
-                End If
+                aSetting = UserSetting.Create(username:=Me.Username, id:=id)
+                If aSetting Is Nothing Then aSetting = UserSetting.Retrieve(Username:=Me.Username, id:=id)
             End If
 
             If aSetting Is Nothing OrElse Not (aSetting.IsLoaded Or aSetting.IsCreated) Then
@@ -1633,7 +1642,7 @@ Namespace OnTrack.Commons
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function CreateSchema(Optional silent As Boolean = True) As Boolean
-            Return ormDataObject.CreateDataObjectSchema(Of User)(silent:=silent)
+            Return ormBusinessObject.CreateDataObjectSchema(Of User)(silent:=silent)
         End Function
 
         ''' <summary>
@@ -1644,7 +1653,7 @@ Namespace OnTrack.Commons
         ''' <remarks></remarks>
         Public Overloads Shared Function Create(ByVal username As String) As User
             Dim primarykey() As Object = {username}
-            Return ormDataObject.CreateDataObject(Of User)(primarykey, checkUnique:=True)
+            Return ormBusinessObject.CreateDataObject(Of User)(primarykey, checkUnique:=True)
         End Function
 
     End Class
@@ -1654,20 +1663,20 @@ Namespace OnTrack.Commons
     ''' <remarks></remarks>
     <ormObject(id:=UserSetting.ConstObjectID, description:="properties per user", _
         modulename:=ConstModuleCommons, Version:=1, useCache:=True)> Public Class UserSetting
-        Inherits ormDataObject
+        Inherits ormBusinessObject
         Implements iormInfusable
-        Implements iormPersistable
+        Implements iormRelationalPersistable
 
         Public Const ConstObjectID = "UserSetting"
         '** Table Schema
-        <ormSchemaTableAttribute(adddeletefieldbehavior:=True, Version:=1)> Public Const ConstTableID As String = "tblDefUserSettings"
+        <ormTableAttribute(adddeletefieldbehavior:=True, Version:=1)> Public Const ConstPrimaryTableID As String = "tblDefUserSettings"
 
         '** Primary Key
-        <ormObjectEntry(XID:="US1", referenceobjectentry:=User.ConstObjectID & "." & User.ConstFNUsername, primaryKeyordinal:=1)> _
+        <ormObjectEntry(XID:="US1", referenceobjectentry:=User.ConstObjectID & "." & User.ConstFNUsername, PrimaryEntryOrdinal:=1)> _
         Const ConstFNUsername As String = User.ConstFNUsername
 
         '** Fields
-        <ormObjectEntry(Datatype:=otDataType.Text, size:=100, primaryKeyordinal:=2, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=100, PrimaryEntryOrdinal:=2, _
                     validationPropertyStrings:={ObjectValidationProperty.NotEmpty}, _
            XID:="US2", title:="Setting", description:="ID of the setting per user")> Const ConstFNSettingID = "id"
 
@@ -1681,11 +1690,11 @@ Namespace OnTrack.Commons
           XID:="US5", title:="datatype", description:="data type of the user setting value")> Const ConstFNDatatype = "datatype"
 
         ' fields
-        <ormEntryMapping(EntryName:=ConstFNUsername)> Private _Username As String = ""
-        <ormEntryMapping(EntryName:=ConstFNSettingID)> Private _ID As String = ""
-        <ormEntryMapping(EntryName:=ConstFNDescription)> Private _description As String = ""
-        <ormEntryMapping(EntryName:=ConstFNValue)> Private _valuestring As String = ""
-        <ormEntryMapping(EntryName:=ConstFNDatatype)> Private _datatype As otDataType = 0
+        <ormObjectEntryMapping(EntryName:=ConstFNUsername)> Private _Username As String = String.empty
+        <ormObjectEntryMapping(EntryName:=ConstFNSettingID)> Private _ID As String = String.empty
+        <ormObjectEntryMapping(EntryName:=ConstFNDescription)> Private _description As String = String.empty
+        <ormObjectEntryMapping(EntryName:=ConstFNValue)> Private _valuestring As String = String.empty
+        <ormObjectEntryMapping(EntryName:=ConstFNDatatype)> Private _datatype As otDataType = 0
 
 
 #Region "Properties"
@@ -1751,7 +1760,7 @@ Namespace OnTrack.Commons
         Public Property Value As Object
             Set(value As Object)
                 If value Is Nothing Then
-                    _valuestring = ""
+                    _valuestring = String.empty
                 Else
                     _valuestring = value.ToString
                 End If
@@ -1765,9 +1774,9 @@ Namespace OnTrack.Commons
                             If _valuestring Is Nothing Then Return constNullDate
                             If IsDate(_valuestring) Then Return CDate(_valuestring)
                             If _valuestring = constNullDate.ToString OrElse _valuestring = ConstNullTime.ToString Then Return constNullDate
-                            If _valuestring = "" Then Return constNullDate
+                            If _valuestring = String.empty Then Return constNullDate
                         Case otDataType.List, otDataType.Memo, otDataType.Text
-                            If _valuestring Is Nothing Then Return ""
+                            If _valuestring Is Nothing Then Return String.empty
                             Return CStr(_valuestring)
                         Case otDataType.Numeric
                             If IsNumeric(_valuestring) Then
@@ -1783,14 +1792,14 @@ Namespace OnTrack.Commons
                             End If
                             Return CLng(_valuestring)
                         Case Else
-                            CoreMessageHandler(message:="data type not covered: " & _datatype, arg1:=_valuestring, subname:="DomainSetting.value", _
+                            CoreMessageHandler(message:="data type not covered: " & _datatype, argument:=_valuestring, procedure:="DomainSetting.value", _
                                                messagetype:=otCoreMessageType.ApplicationError)
                             Return Nothing
 
                     End Select
                 Catch ex As Exception
                     CoreMessageHandler(exception:=ex, message:="could not convert value to data type " & _datatype, _
-                                       arg1:=_valuestring, subname:="DomainSetting.value", messagetype:=otCoreMessageType.ApplicationError)
+                                       argument:=_valuestring, procedure:="DomainSetting.value", messagetype:=otCoreMessageType.ApplicationError)
                     Return Nothing
                 End Try
 
@@ -1808,7 +1817,7 @@ Namespace OnTrack.Commons
         ''' <remarks></remarks>
         Public Overloads Shared Function Retrieve(ByVal Username As String, ByVal id As String, Optional forcereload As Boolean = False) As UserSetting
             Dim pkarray() As Object = {UCase(Username), UCase(id)}
-            Return Retrieve(Of UserSetting)(pkArray:=pkarray, forceReload:=forcereload)
+            Return RetrieveDataObject(Of UserSetting)(pkArray:=pkarray, forceReload:=forcereload)
         End Function
         ''' <summary>
         ''' Retrieve the workspaceID Cache Object
@@ -1820,28 +1829,9 @@ Namespace OnTrack.Commons
             Dim aParameterslist As New List(Of ormSqlCommandParameter)
             aParameterslist.Add(New ormSqlCommandParameter(ID:="@Username", columnname:=ConstFNUsername, value:=Username))
 
-            Dim aList As List(Of UserSetting) = ormDataObject.AllDataObject(Of UserSetting)(ID:="allby" & Username, where:=ConstFNUsername & "= @Username", _
+            Dim aList As List(Of UserSetting) = ormBusinessObject.AllDataObject(Of UserSetting)(ID:="allby" & Username, where:=ConstFNUsername & "= @Username", _
                                                                                       parameters:=aParameterslist)
             Return aList
-        End Function
-        ''' <summary>
-        ''' load and infuse the current workspaceID object
-        ''' </summary>
-        ''' <param name="workspaceID"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Overloads Function Inject(ByVal Username As String, ByVal id As String) As Boolean
-            Dim primarykey() As Object = {UCase(Trim(Username)), UCase(id)}
-            Return MyBase.Inject(primarykey)
-        End Function
-        ''' <summary>
-        ''' create the objects persistence schema
-        ''' </summary>
-        ''' <param name="silent"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Shared Function CreateSchema(Optional silent As Boolean = True) As Boolean
-            Return ormDataObject.CreateDataObjectSchema(Of UserSetting)(silent:=silent)
         End Function
 
         ''' <summary>
@@ -1850,15 +1840,10 @@ Namespace OnTrack.Commons
         ''' <param name="workspaceID"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function Create(ByVal Username As String, ByVal id As String) As Boolean
+        Public Shared Function Create(ByVal username As String, ByVal id As String) As UserSetting
             Dim primarykey() As Object = {UCase(Username), UCase(id)}
-            If MyBase.Create(primarykey, checkUnique:=False) Then
-                _Username = UCase(Username)
-                _ID = UCase(id)
-                Return True
-            Else
-                Return False
-            End If
+            Return ormBusinessObject.CreateDataObject(Of UserSetting)(primarykey, checkUnique:=False)
+
         End Function
 
     End Class
@@ -1870,20 +1855,20 @@ Namespace OnTrack.Commons
     ''' <remarks></remarks>
     <ormObject(id:=Person.ConstObjectID, modulename:=ConstModuleCommons, description:="person definition", _
         usecache:=True, Version:=1, addDomainBehavior:=True, adddeletefieldbehavior:=True)> Public Class Person
-        Inherits ormDataObject
+        Inherits ormBusinessObject
         Implements iormInfusable
-        Implements iormPersistable
+        Implements iormRelationalPersistable
 
         '** Object ID
         Public Const ConstObjectID = "Person"
         '** Table
-        <ormSchemaTable(version:=2, usecache:=True)> Public Const constTableID As String = "tblDefPersons"
+        <ormTableAttribute(version:=2, usecache:=True)> Public Const ConstPrimaryTableID As String = "tblDefPersons"
 
         '** primary keys
-        <ormObjectEntry(Datatype:=otDataType.Text, size:=100, primarykeyordinal:=1, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=100, PrimaryEntryOrdinal:=1, _
             properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty},
             XID:="P1", title:="ID", description:="ID of the person")> Public Const constFNID = "id"
-        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=2 _
+        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, PrimaryEntryOrdinal:=2 _
          , useforeignkey:=otForeignKeyImplementation.NativeDatabase)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
         '** fields
@@ -1913,19 +1898,19 @@ Namespace OnTrack.Commons
          XID:="P12", title:="phone", description:="fax of the person")> Public Const constFNFax = "fax"
 
         ' field mapping
-        <ormEntryMapping(EntryName:=constFNID)> Private _id As String = ""
-        <ormEntryMapping(EntryName:=constFNFirstName)> Private _firstname As String = ""
-        <ormEntryMapping(EntryName:=constFNMidNames)> Private _midnames As String = ""
-        <ormEntryMapping(EntryName:=constFNSirName)> Private _sirname As String = ""
-        <ormEntryMapping(EntryName:=ConstFNIsRole)> Private _isrole As Boolean = False
-        <ormEntryMapping(EntryName:=constFNDescription)> Private _description As String = ""
-        <ormEntryMapping(EntryName:=ConstFNManager)> Private _managerid As String = ""
-        <ormEntryMapping(EntryName:=ConstFNOrgUnit)> Private _orgunitID As String = ""
-        <ormEntryMapping(EntryName:=constFNCompany)> Private _companyID As String = ""
-        <ormEntryMapping(EntryName:=constFNeMail)> Private _emailaddy As String = ""
-        <ormEntryMapping(EntryName:=constFNPhone)> Private _phone As String = ""
-        <ormEntryMapping(EntryName:=constFNMobile)> Private _mobile As String = ""
-        <ormEntryMapping(EntryName:=constFNFax)> Private _fax As String = ""
+        <ormObjectEntryMapping(EntryName:=constFNID)> Private _id As String = String.empty
+        <ormObjectEntryMapping(EntryName:=constFNFirstName)> Private _firstname As String = String.empty
+        <ormObjectEntryMapping(EntryName:=constFNMidNames)> Private _midnames As String = String.empty
+        <ormObjectEntryMapping(EntryName:=constFNSirName)> Private _sirname As String = String.empty
+        <ormObjectEntryMapping(EntryName:=ConstFNIsRole)> Private _isrole As Boolean = False
+        <ormObjectEntryMapping(EntryName:=constFNDescription)> Private _description As String = String.empty
+        <ormObjectEntryMapping(EntryName:=ConstFNManager)> Private _managerid As String = String.empty
+        <ormObjectEntryMapping(EntryName:=ConstFNOrgUnit)> Private _orgunitID As String = String.empty
+        <ormObjectEntryMapping(EntryName:=constFNCompany)> Private _companyID As String = String.empty
+        <ormObjectEntryMapping(EntryName:=constFNeMail)> Private _emailaddy As String = String.empty
+        <ormObjectEntryMapping(EntryName:=constFNPhone)> Private _phone As String = String.empty
+        <ormObjectEntryMapping(EntryName:=constFNMobile)> Private _mobile As String = String.empty
+        <ormObjectEntryMapping(EntryName:=constFNFax)> Private _fax As String = String.empty
 
 
 #Region "Properties"
@@ -2163,36 +2148,7 @@ Namespace OnTrack.Commons
         ''' <remarks></remarks>
         Public Overloads Shared Function Retrieve(ByVal id As String, Optional domainid As String = Nothing, Optional forcereload As Boolean = False) As Person
             Dim primarykey() As Object = {id, domainID}
-            Return Retrieve(Of Person)(pkArray:=primarykey, domainID:=domainID, forceReload:=forcereload)
-        End Function
-        ''' <summary>
-        ''' loads the persistence object with ID from the parameters
-        ''' </summary>
-        ''' <param name="name"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Function Inject(ByVal firstname As String, ByVal sirname As String, Optional ByVal midnames As String() = Nothing, Optional domainid As String = Nothing) As Boolean
-            Return Inject(id:=BuildID(firstname:=firstname, midnames:=midnames, sirname:=sirname), domainID:=domainID)
-        End Function
-        ''' <summary>
-        ''' Load and infuses a object by primary key
-        ''' </summary>
-        ''' <param name="Name"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Function Inject(ByVal id As String, Optional domainid As String = Nothing) As Boolean
-            Dim primarykey() As Object = {id, domainID}
-            Return MyBase.Inject(pkArray:=primarykey, domainID:=domainID)
-        End Function
-        ''' <summary>
-        ''' create the persistency schema
-        ''' </summary>
-        ''' <param name="silent"></param>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Shared Function CreateSchema(Optional silent As Boolean = True) As Boolean
-            Return ormDataObject.CreateDataObjectSchema(Of Person)(silent:=silent)
-
+            Return RetrieveDataObject(Of Person)(pkArray:=primarykey, domainID:=domainID, forceReload:=forcereload)
         End Function
 
         ''' <summary>
@@ -2201,7 +2157,7 @@ Namespace OnTrack.Commons
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function All(Optional domainid As String = Nothing) As List(Of Person)
-            Return ormDataObject.AllDataObject(Of Person)(domainID:=domainID)
+            Return ormBusinessObject.AllDataObject(Of Person)(domainID:=domainID)
         End Function
 
         ''' <summary>
@@ -2211,13 +2167,13 @@ Namespace OnTrack.Commons
         ''' <remarks></remarks>
         Private Shared Function BuildID(ByVal firstname As String, ByVal sirname As String, Optional ByVal midnames As String() = Nothing) As String
             Dim pattern As String = "\b(\w|['-])+\b"
-            Dim midnamesS As String = ""
+            Dim midnamesS As String = String.empty
             ' With lambda support:
             firstname = Regex.Replace(firstname.ToLower, pattern, Function(m) m.Value(0).ToString().ToUpper() & m.Value.Substring(1))
             sirname = Regex.Replace(firstname.ToLower, pattern, Function(m) m.Value(0).ToString().ToUpper() & m.Value.Substring(1))
             If midnames IsNot Nothing Then midnamesS = Regex.Replace(LCase(Converter.Array2otString(midnames)), pattern, Function(m) m.Value(0).ToString().ToUpper() & m.Value.Substring(1))
 
-            If midnamesS <> "" Then
+            If midnamesS <> String.empty Then
                 Return sirname & ", " & firstname & " (" & midnamesS & ")"
             Else
                 Return sirname & ", " & firstname
@@ -2229,10 +2185,10 @@ Namespace OnTrack.Commons
         ''' <param name="name"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function Create(ByVal id As String, Optional domainid As String = Nothing) As Boolean
-            Dim primarykey() As Object = {id, domainID}
+        Public Overloads Shared Function Create(ByVal id As String, Optional domainid As String = Nothing) As Person
+            Dim primarykey() As Object = {id, domainid}
             ' set the primaryKey
-            Return MyBase.Create(primarykey, domainID:=domainID, checkUnique:=True)
+            Return ormBusinessObject.CreateDataObject(Of Person)(primarykey, domainID:=domainid, checkUnique:=True)
         End Function
         ''' <summary>
         ''' Creates the persistence object with ID from the parameters
@@ -2240,8 +2196,8 @@ Namespace OnTrack.Commons
         ''' <param name="name"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function Create(ByVal firstname As String, ByVal sirname As String, Optional ByVal midnames As String() = Nothing, Optional domainid As String = Nothing) As Boolean
-            Return Create(id:=BuildID(firstname:=firstname, midnames:=midnames, sirname:=sirname), domainID:=domainID)
+        Public Overloads Shared Function Create(ByVal firstname As String, ByVal sirname As String, Optional ByVal midnames As String() = Nothing, Optional domainid As String = Nothing) As Person
+            Return Create(id:=BuildID(firstname:=firstname, midnames:=midnames, sirname:=sirname), domainid:=domainid)
         End Function
     End Class
 
@@ -2254,24 +2210,24 @@ Namespace OnTrack.Commons
         usecache:=True, adddomainbehavior:=True, adddeletefieldbehavior:=True, _
         Description:="message definitions for object messages")> _
     Public Class ObjectMessageType
-        Inherits ormDataObject
+        Inherits ormBusinessObject
         Implements iormInfusable
-        Implements iormPersistable
+        Implements iormRelationalPersistable
 
         Public Const ConstObjectID = "OBJECTMESSAGETYPE"
         ''' <summary>
         ''' Table
         ''' </summary>
         ''' <remarks></remarks>
-        <ormSchemaTable(version:=1, usecache:=True, addDomainBehavior:=True)> Public Const ConstTableID As String = "TBLDEFOBJECTMESSAGES"
+        <ormTableAttribute(version:=1, usecache:=True, addDomainBehavior:=True)> Public Const ConstPrimaryTableID As String = "TBLDEFOBJECTMESSAGES"
 
         ''' <summary>
         ''' Primary Keys
         ''' </summary>
         ''' <remarks></remarks>
-        <ormObjectEntry(Datatype:=otDataType.Long, primarykeyordinal:=1, _
+        <ormObjectEntry(Datatype:=otDataType.Long, PrimaryEntryOrdinal:=1, _
            XID:="omd1", title:="UID", description:="unique identifier of the object message")> Public Const ConstFNUID = "UID"
-        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=2 _
+        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, PrimaryEntryOrdinal:=2 _
         , useforeignkey:=otForeignKeyImplementation.NativeDatabase, defaultvalue:=ConstGlobalDomain)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
         ''' <summary>
@@ -2300,15 +2256,15 @@ Namespace OnTrack.Commons
         ''' column field mapping
         ''' </summary>
         ''' <remarks></remarks>
-        <ormEntryMapping(EntryName:=ConstFNUID)> Private _uid As Long
-        <ormEntryMapping(EntryName:=constFNWeight)> Private _weight As Double?
-        <ormEntryMapping(EntryName:=constFNArea)> Private _area As String
-        <ormEntryMapping(EntryName:=constFNType)> Private _type As otObjectMessageType
-        <ormEntryMapping(EntryName:=constFNText)> Private _message As String
-        <ormEntryMapping(EntryName:=constFNDescription)> Private _desc As String
-        <ormEntryMapping(EntryName:=constFNIsPersisted)> Private _IsPersisted As Boolean
-        <ormEntryMapping(EntryName:=constFNSStatusTypes)> Private _statustypes As String()
-        <ormEntryMapping(EntryName:=constFNSStatusCodes)> Private _statuscodes As String()
+        <ormObjectEntryMapping(EntryName:=ConstFNUID)> Private _uid As Long
+        <ormObjectEntryMapping(EntryName:=constFNWeight)> Private _weight As Double?
+        <ormObjectEntryMapping(EntryName:=constFNArea)> Private _area As String
+        <ormObjectEntryMapping(EntryName:=constFNType)> Private _type As otObjectMessageType
+        <ormObjectEntryMapping(EntryName:=constFNText)> Private _message As String
+        <ormObjectEntryMapping(EntryName:=constFNDescription)> Private _desc As String
+        <ormObjectEntryMapping(EntryName:=constFNIsPersisted)> Private _IsPersisted As Boolean
+        <ormObjectEntryMapping(EntryName:=constFNSStatusTypes)> Private _statustypes As String()
+        <ormObjectEntryMapping(EntryName:=constFNSStatusCodes)> Private _statuscodes As String()
 
         ''' dynamic
         ''' 
@@ -2412,7 +2368,7 @@ Namespace OnTrack.Commons
         Public ReadOnly Property StatusItems(Optional domainid As String = Nothing, Optional statustype As String = Nothing) As IList(Of StatusItem)
             Get
                 Dim aList As New List(Of StatusItem)
-                If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
+                If String.IsnullorEmpty(domainID) Then domainid = CurrentSession.CurrentDomainID
                 For Each aPair In _StatusCodeDictionary
                     Dim aCode As String = aPair.Value
                     Dim aType As String = aPair.Key
@@ -2477,9 +2433,9 @@ Namespace OnTrack.Commons
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function Retrieve(ByVal uid As Long, Optional domainid As String = Nothing) As ObjectMessageType
-            If String.IsNullOrWhiteSpace(domainID) Then domainID = CurrentSession.CurrentDomainID
+            If String.IsnullorEmpty(domainID) Then domainID = CurrentSession.CurrentDomainID
             Dim primarykey() As Object = {uid, domainID}
-            Return ormDataObject.Retrieve(Of ObjectMessageType)(pkArray:=primarykey)
+            Return ormBusinessObject.RetrieveDataObject(Of ObjectMessageType)(pkArray:=primarykey)
         End Function
 
 
@@ -2489,7 +2445,7 @@ Namespace OnTrack.Commons
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function All(Optional domainid As String = Nothing) As List(Of ObjectMessageType)
-            Return ormDataObject.AllDataObject(Of ObjectMessageType)(domainID:=domainID)
+            Return ormBusinessObject.AllDataObject(Of ObjectMessageType)(domainID:=domainID)
         End Function
 
 
@@ -2499,10 +2455,10 @@ Namespace OnTrack.Commons
         ''' <param name="ID"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Function Create(ByVal uid As Long, Optional ByVal domainid As String = Nothing) As Boolean
+        Public Overloads Shared Function Create(ByVal uid As Long, Optional ByVal domainid As String = Nothing) As ObjectMessageType
             Dim primarykey() As Object = {uid}
             ' set the primaryKey
-            Return MyBase.Create(primarykey, domainID:=domainID, checkUnique:=True)
+            Return ormBusinessObject.CreateDataObject(Of ObjectMessageType)(primarykey, domainID:=domainid, checkUnique:=True)
         End Function
 
 
@@ -2534,10 +2490,10 @@ Namespace OnTrack.Commons
             ''' 
             If _statuscodes IsNot Nothing AndAlso _statustypes IsNot Nothing AndAlso _statuscodes.Count <> _statustypes.Count Then
                 CoreMessageHandler(message:="statustypes and statuscodes differ in length ?!", messagetype:=otCoreMessageType.ApplicationError, _
-                                   subname:="ObjectMessageType.OnInfused")
+                                   procedure:="ObjectMessageType.OnInfused")
             ElseIf (_statuscodes Is Nothing AndAlso _statustypes IsNot Nothing) OrElse (_statuscodes IsNot Nothing AndAlso _statustypes Is Nothing) Then
                 CoreMessageHandler(message:="statustypes and statuscodes differ in length ?!", messagetype:=otCoreMessageType.ApplicationError, _
-                                  subname:="ObjectMessageType.OnInfused")
+                                  procedure:="ObjectMessageType.OnInfused")
             ElseIf _statuscodes IsNot Nothing AndAlso _statustypes IsNot Nothing Then
                 For I = 0 To _statustypes.GetUpperBound(0)
                     If I <= _statuscodes.GetUpperBound(0) Then
@@ -2576,33 +2532,212 @@ Namespace OnTrack.Commons
     End Class
 
     ''' <summary>
+    ''' Status Type Class 
+    ''' </summary>
+    ''' <remarks>
+    '''  Design Principle:
+    ''' 
+    ''' 1. Create or Add or Update Items by StatusType Object
+    ''' </remarks>
+    ''' 
+    <ormChangeLogEntry(Application:=ConstAssemblyName, Module:=ConstModuleCommons, Version:=2, Release:=0, patch:=0, changeimplno:=3, _
+         description:="Introducing Status Type object")> _
+   <ormObject(id:=StatusType.ConstObjectID, description:="status type definitions", _
+       modulename:=ConstModuleCommons, Version:=1, usecache:=True, adddomainbehavior:=True, adddeletefieldbehavior:=True, isbootstrap:=False)> _
+    Public Class StatusType
+        Inherits ormBusinessObject
+
+        '*** Object ID
+        Public Const ConstObjectID = "StatusType"
+
+        ''' <summary>
+        ''' Table Definition
+        ''' </summary>
+        ''' <remarks></remarks>
+        <ormChangeLogEntry(Application:=ConstAssemblyName, Module:=ConstModuleRepository, Version:=ConstOTDBSchemaVersion, Release:=0, patch:=0, changeimplno:=6, _
+        description:="added table " & ConstPrimaryTableID)> _
+        <ormTableAttribute(version:=1, usecache:=True)> Public Const ConstPrimaryTableID As String = "TBLDEFSTATUSTYPES"
+
+        ''' <summary>
+        ''' Primary Keys
+        ''' </summary>
+        ''' <remarks></remarks>
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=50, PrimaryEntryOrdinal:=1, _
+            properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty},
+          XID:="ST1", title:="Status Type", description:="name of the status type")> Public Const ConstFNID = "ID"
+
+        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, PrimaryEntryOrdinal:=2, _
+                       defaultvalue:=ConstGlobalDomain)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
+
+        ''' <summary>
+        ''' Entries
+        ''' </summary>
+        ''' <remarks></remarks>
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=255, _
+        XID:="ST10", title:="description", description:="description of the status type")> Public Const ConstFNDescription = "DESC"
+
+
+
+        '* Relations
+        '* Members
+        <ormRelation(cascadeOnDelete:=True, cascadeonUpdate:=True, FromEntries:={ConstFNID}, toEntries:={StatusItem.constFNType}, _
+            LinkObject:=GetType(StatusItem))> Const ConstRelItems = "ITEMS"
+
+        <ormObjectEntryMapping(Relationname:=ConstRelItems, infusemode:=otInfuseMode.OnInject Or otInfuseMode.OnDemand, _
+        keyentries:={StatusItem.constFNType})> Private WithEvents _items As New ormRelationCollection(Of StatusItem)(Me, {StatusItem.constFNType})
+
+        'fields
+        <ormObjectEntryMapping(EntryName:=ConstFNID)> Private _id As String
+        <ormObjectEntryMapping(EntryName:=ConstFNDescription)> Private _desc As String
+
+
+
+
+#Region "Properties"
+
+        ''' <summary>
+        ''' returns the ID / name of the status type
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property ID As String
+            Get
+                Return _id
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' returns the description of the type
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Property Description() As String
+            Get
+                Description = _desc
+            End Get
+            Set(ByVal avalue As String)
+                SetValue(entryname:=ConstFNDescription, value:=avalue)
+            End Set
+        End Property
+
+        ''' <summary>
+        ''' returns the collection of items 
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        ReadOnly Property Items As ormRelationCollection(Of StatusItem)
+            Get
+                Return _items
+            End Get
+        End Property
+
+#End Region
+
+        ''' <summary>
+        ''' Handler for the OnAdded event
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+
+        Private Sub ValuesCollection_OnAdded(sender As Object, e As Database.ormRelationCollection(Of StatusItem).EventArgs) Handles _items.OnAdded
+            If Not _items.Contains(e.Dataobject) Then
+                _items.Add(e.Dataobject)
+            End If
+        End Sub
+        ''' <summary>
+        ''' Returns a collection of all objects
+        ''' </summary>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Shared Function All() As List(Of Group)
+            Return ormBusinessObject.AllDataObject(Of Group)(orderby:=ConstFNID)
+        End Function
+
+        ''' <summary>
+        ''' Retrieve a User Definition
+        ''' </summary>
+        ''' <param name="id"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Overloads Shared Function Retrieve(ByVal id As String, Optional domainid As String = Nothing, Optional forcereload As Boolean = False) As StatusType
+            If String.IsNullOrEmpty(domainid) Then domainid = CurrentSession.CurrentDomainID
+            Return RetrieveDataObject(Of StatusType)(pkArray:={id, domainid}, domainID:=domainid, forceReload:=forcereload)
+        End Function
+
+        ''' <summary>
+        ''' Create persistency for this object
+        ''' </summary>
+        ''' <param name="groupname"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Shared Function Create(ByVal id As String, Optional domainid As String = Nothing) As StatusType
+            If String.IsNullOrEmpty(domainid) Then domainid = CurrentSession.CurrentDomainID
+            Dim primarykey() As Object = {id, domainid}
+            Return ormBusinessObject.CreateDataObject(Of StatusType)(primarykey, domainID:=domainid, checkUnique:=True)
+        End Function
+
+    End Class
+
+    ''' <summary>
     ''' Status ITEM Class for Stati in Object Messages
     ''' </summary>
-    ''' <remarks></remarks>
-    <ormObject(id:=StatusItem.ConstObjectID, description:="status item description for object messages and others", _
-        modulename:=ConstModuleCommons, Version:=1, usecache:=True, addDomainBehavior:=True, adddeletefieldbehavior:=True)> Public Class StatusItem
-        Inherits ormDataObject
-        Implements iormPersistable
+    ''' <remarks>
+    '''  Design Principle:
+    ''' 
+    ''' 1. Create or Add or Update Items by StatusType Object
+    ''' 2. Retrieve direct a status
+    ''' </remarks>
+    ''' 
+    <ormChangeLogEntry(Application:=ConstAssemblyName, Module:=ConstModuleCommons, Version:=2, Release:=0, patch:=0, changeimplno:=2, _
+        description:="Modify Status Item object to be a member of the Status Type object")> _
+   <ormObject(id:=StatusItem.ConstObjectID, description:="status item description for object messages and others", _
+       modulename:=ConstModuleCommons, Version:=1, usecache:=True, addDomainBehavior:=True, adddeletefieldbehavior:=True)> _
+    Public Class StatusItem
+        Inherits ormBusinessObject
+        Implements iormRelationalPersistable
         Implements iormInfusable
 
-        '** Status Item
+        ''' <summary>
+        ''' Object ID
+        ''' </summary>
+        ''' <remarks></remarks>
         Public Const ConstObjectID = "StatusItem"
 
-        '** Table
-        <ormSchemaTable(version:=2, usecache:=True)> Public Const ConstTableID As String = "tblDefStatusItems"
+        ''' <summary>
+        ''' Table
+        ''' </summary>
+        ''' <remarks></remarks>
+        ''' 
+        <ormChangeLogEntry(Application:=ConstAssemblyName, Module:=ConstModuleRepository, Version:=ConstOTDBSchemaVersion, Release:=0, patch:=0, changeimplno:=5, _
+        description:="added foreign keys for table " & ConstPrimaryTableID)> _
+        <ormTableAttribute(version:=2, usecache:=True)> Public Const ConstPrimaryTableID As String = "tblDefStatusItems"
 
-        '* primary Key
-        <ormObjectEntry(Datatype:=otDataType.Text, size:=50, primarykeyordinal:=1, _
+        ''' <summary>
+        ''' Primary Keys
+        ''' </summary>
+        ''' <remarks></remarks>
+        <ormObjectEntry(referenceObjectEntry:=StatusType.ConstObjectID & "." & StatusType.ConstFNID, PrimaryEntryOrdinal:=1, _
+                        XID:="SI1", title:="Type", description:="type id of the status")> Public Const constFNType = "typeid"
+
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=50, PrimaryEntryOrdinal:=2, _
             properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty},
-            XID:="si1", title:="Type", description:="type id of the status")> Public Const constFNType = "typeid"
+           XID:="SI2", title:="Code", description:="code id of the status")> Public Const constFNCode = "code"
 
-        <ormObjectEntry(Datatype:=otDataType.Text, size:=50, primarykeyordinal:=2, _
-            properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty},
-           XID:="si2", title:="Code", description:="code id of the status")> Public Const constFNCode = "code"
-
-        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=3 _
+        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, PrimaryEntryOrdinal:=3 _
          , useforeignkey:=otForeignKeyImplementation.NativeDatabase, defaultvalue:=ConstGlobalDomain)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
+        ''' <summary>
+        ''' Foreign Key to Status Type keys
+        ''' </summary>
+        ''' <remarks></remarks>
+        <ormForeignKey(entrynames:={constFNType, ConstFNDomainID}, _
+            foreignkeyreferences:={Commons.StatusType.ConstObjectID & "." & Commons.StatusType.ConstFNID, _
+                                   Commons.StatusType.ConstObjectID & "." & Commons.StatusType.ConstFNDomainID}, _
+            useforeignkey:=otForeignKeyImplementation.NativeDatabase)> Public Const constFKType = "FKType"
 
         '* fields
         <ormObjectEntry(Datatype:=otDataType.Text, size:=100, _
@@ -2634,23 +2769,23 @@ Namespace OnTrack.Commons
 
 
         '* mappings
-        <ormEntryMapping(EntryName:=constFNType)> Private _type As String = ""  ' Status Type
-        <ormEntryMapping(EntryName:=constFNCode)> Private _code As String = ""  ' code
+        <ormObjectEntryMapping(EntryName:=constFNType)> Private _type As String = String.Empty  ' Status Type
+        <ormObjectEntryMapping(EntryName:=constFNCode)> Private _code As String = String.Empty  ' code
 
-        <ormEntryMapping(EntryName:=ConstFNTitle)> Private _title As String
-        <ormEntryMapping(EntryName:=constFNDescription)> Private _description As String
-        <ormEntryMapping(EntryName:=constFNKPICode)> Private _kpicode As String
-        <ormEntryMapping(EntryName:=constFNWeight)> Private _weight As Double?
-        <ormEntryMapping(EntryName:=ConstFNFGColor)> Private _fgcolor As Long?
-        <ormEntryMapping(EntryName:=ConstFNBGColor)> Private _bgcolor As Long?
-        <ormEntryMapping(EntryName:=ConstFNKPIFGColor)> Private _kpifgcolor As Long?
-        <ormEntryMapping(EntryName:=ConstFNKPIBGColor)> Private _kpibgcolor As Long?
-        <ormEntryMapping(EntryName:=constFNIsEndStatus)> Private _endStatus As Boolean
-        <ormEntryMapping(EntryName:=constFNIsStartStatus)> Private _startStatus As Boolean
-        <ormEntryMapping(EntryName:=constFNAbort)> Private _Aborting As Boolean
-        <ormEntryMapping(EntryName:=constFNIsIntermediateStatus)> Private _intermediateStatus As Boolean
+        <ormObjectEntryMapping(EntryName:=ConstFNTitle)> Private _title As String
+        <ormObjectEntryMapping(EntryName:=constFNDescription)> Private _description As String
+        <ormObjectEntryMapping(EntryName:=constFNKPICode)> Private _kpicode As String
+        <ormObjectEntryMapping(EntryName:=constFNWeight)> Private _weight As Double?
+        <ormObjectEntryMapping(EntryName:=ConstFNFGColor)> Private _fgcolor As Long?
+        <ormObjectEntryMapping(EntryName:=ConstFNBGColor)> Private _bgcolor As Long?
+        <ormObjectEntryMapping(EntryName:=ConstFNKPIFGColor)> Private _kpifgcolor As Long?
+        <ormObjectEntryMapping(EntryName:=ConstFNKPIBGColor)> Private _kpibgcolor As Long?
+        <ormObjectEntryMapping(EntryName:=constFNIsEndStatus)> Private _endStatus As Boolean
+        <ormObjectEntryMapping(EntryName:=constFNIsStartStatus)> Private _startStatus As Boolean
+        <ormObjectEntryMapping(EntryName:=constFNAbort)> Private _Aborting As Boolean
+        <ormObjectEntryMapping(EntryName:=constFNIsIntermediateStatus)> Private _intermediateStatus As Boolean
 
-
+        Private _statusType As StatusType 'cached backlink
 
 #Region "Properties"
 
@@ -2921,7 +3056,86 @@ Namespace OnTrack.Commons
         End Property
 #End Region
 
+        ''' <summary>
+        ''' Handles OnCreating 
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Public Sub ValueEntry_OnCreating(sender As Object, e As ormDataObjectEventArgs) Handles Me.OnCreating
+            Dim my As ValueEntry = TryCast(e.DataObject, ValueEntry)
 
+            If my IsNot Nothing Then
+                Dim listid As String = e.Record.GetValue(constFNType)
+                If listid Is Nothing Then
+                    CoreMessageHandler(message:="Status Type id does not exist", procedure:="StatusItem.OnCreating", _
+                                       messagetype:=otCoreMessageType.ApplicationError, _
+                                       argument:=my.ListID)
+                    e.AbortOperation = True
+                    Return
+                End If
+                ''' even if it is early to retrieve the value list and set it (since this might disposed since we have not run through checkuniqueness and cache)
+                ''' we need to check on the object here
+                _statusType = StatusType.Retrieve(id:=listid)
+                If _statusType Is Nothing Then
+                    CoreMessageHandler(message:="Status Type does not exist", procedure:="StatusItem.OnCreated", _
+                                       messagetype:=otCoreMessageType.ApplicationError, _
+                                       argument:=listid)
+                    e.AbortOperation = True
+                    Return
+                End If
+            End If
+        End Sub
+
+        ''' <summary>
+        ''' Handles OnCreated and Relation to ConfigSet
+        ''' </summary>
+        ''' <param name="sender"></param>
+        ''' <param name="e"></param>
+        ''' <remarks></remarks>
+        Public Sub ValueEntry_OnCreated(sender As Object, e As ormDataObjectEventArgs) Handles Me.OnCreated
+            Dim my As StatusItem = TryCast(e.DataObject, StatusItem)
+
+            If my IsNot Nothing Then
+                If _statusType Is Nothing Then
+                    _statusType = StatusType.Retrieve(id:=my.TypeID)
+                    If _statusType Is Nothing Then
+                        CoreMessageHandler(message:="type id does not exist", procedure:="StatusItem.OnCreated", _
+                                          messagetype:=otCoreMessageType.ApplicationError, _
+                                           argument:=my.TypeID)
+                        e.AbortOperation = True
+                        Return
+                    End If
+                End If
+            End If
+
+        End Sub
+
+
+        ''' <summary>
+        ''' Infuse the data object by record
+        ''' </summary>
+        ''' <param name="aRecord"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Sub ValueEntry_OnInfused(sender As Object, e As ormDataObjectEventArgs) Handles Me.OnInfused
+            Dim my As StatusItem = TryCast(e.DataObject, StatusItem)
+
+            Try
+                ''' infuse is called on create as well as on retrieve / inject 
+                ''' only on the create case we need to add to the status item otherwise
+                ''' statustype will load the items
+                ''' or the item will stand alone
+                If my IsNot Nothing AndAlso e.Infusemode = otInfuseMode.OnCreate AndAlso _statusType IsNot Nothing Then
+                    _statusType.Items.Add(my)
+                End If
+
+            Catch ex As Exception
+                Call CoreMessageHandler(exception:=ex, procedure:="StatusItem.Infuse")
+            End Try
+
+
+        End Sub
         ''' <summary>
         ''' Retrieve from datastore
         ''' </summary>
@@ -2929,9 +3143,9 @@ Namespace OnTrack.Commons
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overloads Shared Function Retrieve([typeid] As String, code As String, Optional domainid As String = Nothing, Optional forcereload As Boolean = False) As StatusItem
-            If String.IsNullOrWhiteSpace(domainID) Then domainID = CurrentSession.CurrentDomainID
-            Dim pkarry() As Object = {typeid.ToUpper, code.ToUpper, domainID}
-            Return Retrieve(Of StatusItem)(pkArray:=pkarry, domainID:=domainID, forceReload:=forcereload)
+            If String.IsNullOrEmpty(domainid) Then domainid = CurrentSession.CurrentDomainID
+            Dim pkarry() As Object = {typeid.ToUpper, code.ToUpper, domainid}
+            Return RetrieveDataObject(Of StatusItem)(pkArray:=pkarry, domainID:=domainid, forceReload:=forcereload)
         End Function
 
 
@@ -2944,9 +3158,9 @@ Namespace OnTrack.Commons
         ''' <remarks></remarks>
         Public Shared Function Create(ByVal typeid As String, ByVal code As String, Optional ByVal domainid As String = Nothing) As StatusItem
             ' set the primaryKey
-            If String.IsNullOrWhiteSpace(domainID) Then domainID = CurrentSession.CurrentDomainID
-            Dim primarykey() As Object = {typeid.ToUpper, code.ToUpper, domainID}
-            Return ormDataObject.CreateDataObject(Of StatusItem)(primarykey, domainID:=domainID, checkUnique:=True)
+            If String.IsNullOrEmpty(domainid) Then domainid = CurrentSession.CurrentDomainID
+            Dim primarykey() As Object = {typeid.ToUpper, code.ToUpper, domainid}
+            Return ormBusinessObject.CreateDataObject(Of StatusItem)(primarykey, domainID:=domainid, checkUnique:=True)
         End Function
 
     End Class
@@ -2958,17 +3172,17 @@ Namespace OnTrack.Commons
     <ormObject(id:=Workspace.ConstObjectID, adddomainBehavior:=False, adddeletefieldbehavior:=True, usecache:=True, _
         modulename:=ConstModuleCommons, description:="workspace definition for vertical grouping in scheduling", _
         Version:=1, useCache:=True)> Public Class Workspace
-        Inherits ormDataObject
+        Inherits ormBusinessObject
         Implements iormInfusable
-        Implements iormPersistable
+        Implements iormRelationalPersistable
 
         Public Const ConstObjectID = "Workspace"
 
         '** Table Schema
-        <ormSchemaTableAttribute(Version:=2, usecache:=True)> Public Const ConstTableID As String = "tblDefWorkspaces"
+        <ormTableAttribute(Version:=2, usecache:=True)> Public Const ConstPrimaryTableID As String = "tblDefWorkspaces"
 
         '** primary Keys
-        <ormObjectEntry(Datatype:=otDataType.Text, size:=50, primaryKeyordinal:=1, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=50, PrimaryEntryOrdinal:=1, _
             properties:={ObjectEntryProperty.Keyword}, validationPropertystrings:={ObjectValidationProperty.NotEmpty}, _
             XID:="WS", title:="Workspace", Description:="workspaceID identifier")> Public Const ConstFNID As String = "wspace"
 
@@ -3021,18 +3235,18 @@ Namespace OnTrack.Commons
 
 
         ' fields
-        <ormEntryMapping(EntryName:=ConstFNID)> Private _ID As String = ""
-        <ormEntryMapping(EntryName:=ConstFNDescription)> Private _description As String = ""
-        <ormEntryMapping(EntryName:=ConstFNIsBase)> Private _isBasespace As Boolean
-        <ormEntryMapping(EntryName:=ConstFNHasAct)> Private _hasActuals As Boolean
-        <ormEntryMapping(EntryName:=ConstFNFCRelyOn)> Private _fcrelyingOn As String()
-        <ormEntryMapping(EntryName:=ConstFNActRelyOn)> Private _actrelyingOn As String()
-        <ormEntryMapping(EntryName:=ConstFNAccesslist)> Private _accesslistID As String()
+        <ormObjectEntryMapping(EntryName:=ConstFNID)> Private _ID As String = String.empty
+        <ormObjectEntryMapping(EntryName:=ConstFNDescription)> Private _description As String = String.empty
+        <ormObjectEntryMapping(EntryName:=ConstFNIsBase)> Private _isBasespace As Boolean
+        <ormObjectEntryMapping(EntryName:=ConstFNHasAct)> Private _hasActuals As Boolean
+        <ormObjectEntryMapping(EntryName:=ConstFNFCRelyOn)> Private _fcrelyingOn As String()
+        <ormObjectEntryMapping(EntryName:=ConstFNActRelyOn)> Private _actrelyingOn As String()
+        <ormObjectEntryMapping(EntryName:=ConstFNAccesslist)> Private _accesslistID As String()
 
-        <ormEntryMapping(EntryName:=ConstFNMinScheduleUPC)> Private _min_schedule_updc As Long
-        <ormEntryMapping(EntryName:=ConstFNMaxScheduleUPC)> Private _max_schedule_updc As Long
-        <ormEntryMapping(EntryName:=ConstFNMinTargetUPDC)> Private _min_target_updc As Long
-        <ormEntryMapping(EntryName:=ConstFNMaxTargetUPDC)> Private _max_target_updc As Long
+        <ormObjectEntryMapping(EntryName:=ConstFNMinScheduleUPC)> Private _min_schedule_updc As Long
+        <ormObjectEntryMapping(EntryName:=ConstFNMaxScheduleUPC)> Private _max_schedule_updc As Long
+        <ormObjectEntryMapping(EntryName:=ConstFNMinTargetUPDC)> Private _min_target_updc As Long
+        <ormObjectEntryMapping(EntryName:=ConstFNMaxTargetUPDC)> Private _max_target_updc As Long
 
         ' dynamics
         Private _fc_wspace_stack As New List(Of String)
@@ -3060,7 +3274,7 @@ Namespace OnTrack.Commons
         ''' <returns></returns>
         ''' <remarks></remarks>
 
-        <ormPropertyMappingAttribute(ID:="ID", fieldname:=ConstFNID, tablename:=ConstTableID)> ReadOnly Property ID() As String
+        <ormPropertyMappingAttribute(ID:="ID", fieldname:=ConstFNID, tablename:=ConstPrimaryTableID)> ReadOnly Property ID() As String
             Get
                 Return _ID
             End Get
@@ -3259,9 +3473,9 @@ Namespace OnTrack.Commons
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overloads Shared Function Retrieve(ByVal id As String, Optional domainid As String = Nothing, Optional forcereload As Boolean = False) As Workspace
-            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
+            If String.IsnullorEmpty(domainID) Then domainid = CurrentSession.CurrentDomainID
             Dim pkarray() As Object = {UCase(id)}
-            Return Retrieve(Of Workspace)(pkArray:=pkarray, domainID:=domainid, forceReload:=forcereload)
+            Return RetrieveDataObject(Of Workspace)(pkArray:=pkarray, domainID:=domainid, forceReload:=forcereload)
         End Function
 
 
@@ -3272,9 +3486,9 @@ Namespace OnTrack.Commons
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overloads Shared Function Create(ByVal workspaceID As String, Optional ByVal domainid As String = Nothing) As Workspace
-            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
+            If String.IsnullorEmpty(domainID) Then domainid = CurrentSession.CurrentDomainID
             Dim primarykey() As Object = {workspaceID.ToUpper}
-            Return ormDataObject.CreateDataObject(Of Workspace)(pkArray:=primarykey, domainID:=domainid, checkUnique:=True)
+            Return ormBusinessObject.CreateDataObject(Of Workspace)(pkArray:=primarykey, domainID:=domainid, checkUnique:=True)
         End Function
 
 
@@ -3284,7 +3498,7 @@ Namespace OnTrack.Commons
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function All() As List(Of Workspace)
-            Return ormDataObject.AllDataObject(Of Workspace)()
+            Return ormBusinessObject.AllDataObject(Of Workspace)()
         End Function
 
     End Class
@@ -3295,21 +3509,21 @@ Namespace OnTrack.Commons
     ''' <remarks></remarks>
     <ormObject(version:=1, id:=Domain.ConstObjectID, description:="domain definition for horizontal grouping of objects", _
         modulename:=ConstModuleCommons, isbootstrap:=True, useCache:=True)> Public Class Domain
-        Inherits ormDataObject
+        Inherits ormBusinessObject
         Implements iormInfusable
-        Implements iormPersistable
+        Implements iormRelationalPersistable
 
 
         '** const
         Public Const ConstObjectID = "Domain"
-        <ormSchemaTableAttribute(Version:=1, usecache:=True)> Public Const ConstTableID As String = "tblDefDomains"
+        <ormTableAttribute(Version:=1, usecache:=True)> Public Const ConstPrimaryTableID As String = "tblDefDomains"
 
         '** key
         <ormObjectEntry(XID:="DM1", _
             Datatype:=otDataType.Text, size:=50, Properties:={ObjectEntryProperty.Keyword}, _
             validationPropertyStrings:={ObjectValidationProperty.NotEmpty}, _
             title:="Domain", Description:="domain identifier", _
-            primaryKeyordinal:=1, isnullable:=False, useforeignkey:=otForeignKeyImplementation.None)> Public Const ConstFNDomainID As String = "DOMAINID"
+            PrimaryEntryOrdinal:=1, isnullable:=False, useforeignkey:=otForeignKeyImplementation.None)> Public Const ConstFNDomainID As String = "DOMAINID"
 
         '** fields
         <ormObjectEntry(XID:="DM2", _
@@ -3330,12 +3544,12 @@ Namespace OnTrack.Commons
 
 
         ' field mappings
-        <ormEntryMapping(EntryName:=ConstFNDomainID)> Private _domainID As String
-        <ormEntryMapping(EntryName:=ConstFNDescription)> Private _description As String
-        <ormEntryMapping(EntryName:=ConstFNIsGlobal)> Private _isGlobal As Boolean
+        <ormObjectEntryMapping(EntryName:=ConstFNDomainID)> Private _domainID As String
+        <ormObjectEntryMapping(EntryName:=ConstFNDescription)> Private _description As String
+        <ormObjectEntryMapping(EntryName:=ConstFNIsGlobal)> Private _isGlobal As Boolean
 
-        <ormEntryMapping(EntryName:=ConstFNMinDeliverableUID)> Private _min_deliverable_uid As Long
-        <ormEntryMapping(EntryName:=ConstFNMaxDeliverableUID)> Private _max_deliverable_uid As Long
+        <ormObjectEntryMapping(EntryName:=ConstFNMinDeliverableUID)> Private _min_deliverable_uid As Long
+        <ormObjectEntryMapping(EntryName:=ConstFNMaxDeliverableUID)> Private _max_deliverable_uid As Long
 
         ' inherited from dataobject -> disabled
         '<ormEntryMapping(EntryName:=ConstFNDomainID, enabled:=False)> Protected _domainID As String = ConstGlobalDomain
@@ -3356,7 +3570,7 @@ Namespace OnTrack.Commons
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        <ormPropertyMappingAttribute(ID:="ID", fieldname:=ConstFNDomainID, tablename:=ConstTableID)> ReadOnly Property ID() As String
+        <ormPropertyMappingAttribute(ID:="ID", fieldname:=ConstFNDomainID, tablename:=ConstPrimaryTableID)> ReadOnly Property ID() As String
             Get
                 ID = _domainID
             End Get
@@ -3438,7 +3652,7 @@ Namespace OnTrack.Commons
         ''' <remarks></remarks>
         Public Shared Function GetInsertGlobalDomainSQLString(domainid As String, description As String, mindeliverableuid As Long, maxdeliverableuid As Long) As String
 
-            Dim aSqlString As String = String.Format("INSERT INTO [{0}] ", CurrentSession.CurrentDBDriver.GetNativeTableName(ConstTableID))
+            Dim aSqlString As String = String.Format("INSERT INTO [{0}] ", CurrentSession.CurrentDBDriver.GetNativeDBObjectName(ConstPrimaryTableID))
             aSqlString &= String.Format("( [{0}], [{1}], [{2}], [{3}],  [{4}], [{5}], [{6}])", _
                                          ConstFNDomainID, ConstFNDescription, ConstFNIsGlobal, ConstFNMinDeliverableUID, ConstFNMaxDeliverableUID, _
                                          ConstFNCreatedOn, ConstFNUpdatedOn)
@@ -3452,7 +3666,7 @@ Namespace OnTrack.Commons
                                             Date.Now.ToString("yyyy-MM-ddThh:mm:ss"), Date.Now.ToString("yyyy-MM-ddThh:mm:ss"))
             Else
                 CoreMessageHandler(message:="database type must be implemented in routine sql", messagetype:=otCoreMessageType.InternalError, _
-                                   subname:="Domain.GetInsertGlobaldomainSQLString")
+                                   procedure:="Domain.GetInsertGlobaldomainSQLString")
             End If
 
 
@@ -3507,9 +3721,9 @@ Namespace OnTrack.Commons
         ''' <param name="id"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Shared Function Retrieve(ByVal id As String, Optional dbdriver As iormDatabaseDriver = Nothing, Optional runtimeOnly As Boolean = False, Optional forcereload As Boolean = False) As Domain
+        Public Overloads Shared Function Retrieve(ByVal id As String, Optional dbdriver As iormRelationalDatabaseDriver = Nothing, Optional runtimeOnly As Boolean = False, Optional forcereload As Boolean = False) As Domain
             Dim pkarray() As Object = {UCase(id)}
-            Return Retrieve(Of Domain)(pkArray:=pkarray, dbdriver:=dbdriver, runtimeOnly:=runtimeOnly, forceReload:=forcereload)
+            Return RetrieveDataObject(Of Domain)(pkArray:=pkarray, dbdriver:=dbdriver, runtimeOnly:=runtimeOnly, forceReload:=forcereload)
         End Function
 
         ''' <summary>
@@ -3540,7 +3754,7 @@ Namespace OnTrack.Commons
         ''' <param name="id"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function SetSetting(id As String, datatype As otDataType, value As Object, Optional description As String = "") As Boolean
+        Public Function SetSetting(id As String, datatype As otDataType, value As Object, Optional description As String = Nothing) As Boolean
             Dim aSetting As New DomainSetting
             If Me.HasSetting(id:=id) Then
                 aSetting = Me.GetSetting(id:=id)
@@ -3601,7 +3815,7 @@ Namespace OnTrack.Commons
                 Next
 
             Catch ex As Exception
-                Call CoreMessageHandler(subname:="Domain.OnPersisted", exception:=ex)
+                Call CoreMessageHandler(procedure:="Domain.OnPersisted", exception:=ex)
             End Try
         End Sub
 
@@ -3619,7 +3833,7 @@ Namespace OnTrack.Commons
                 End If
 
             Catch ex As Exception
-                Call CoreMessageHandler(exception:=ex, subname:="Domain.Infuse")
+                Call CoreMessageHandler(exception:=ex, procedure:="Domain.Infuse")
             End Try
         End Sub
         ''' <summary>
@@ -3629,7 +3843,7 @@ Namespace OnTrack.Commons
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function CreateSchema(Optional silent As Boolean = True) As Boolean
-            Return ormDataObject.CreateDataObjectSchema(Of Domain)(silent:=silent)
+            Return ormBusinessObject.CreateDataObjectSchema(Of Domain)(silent:=silent)
         End Function
 
         ''' <summary>
@@ -3640,7 +3854,7 @@ Namespace OnTrack.Commons
         ''' <remarks></remarks>
         Public Shared Function Create(ByVal ID As String, Optional runtimeonly As Boolean = False) As Domain
             Dim primarykey() As Object = {ID.ToUpper}
-            Return ormDataObject.CreateDataObject(Of Domain)(pkArray:=primarykey, runtimeOnly:=runtimeonly, checkUnique:=Not runtimeonly)
+            Return ormBusinessObject.CreateDataObject(Of Domain)(pkArray:=primarykey, runtimeOnly:=runtimeonly, checkUnique:=Not runtimeonly)
         End Function
 
 #Region "static routines"
@@ -3650,7 +3864,7 @@ Namespace OnTrack.Commons
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function All() As List(Of Domain)
-            Return ormDataObject.AllDataObject(Of Domain)()
+            Return ormBusinessObject.AllDataObject(Of Domain)()
         End Function
 #End Region
     End Class
@@ -3664,20 +3878,20 @@ Namespace OnTrack.Commons
 
     <ormObject(id:=OrgUnit.ConstObjectID, modulename:=ConstModuleCommons, description:="recursive organization unit for a group of persons", _
         Version:=1, useCache:=True, adddeletefieldbehavior:=True, addDomainBehavior:=True)> Public Class OrgUnit
-        Inherits ormDataObject
-        Implements iormPersistable
+        Inherits ormBusinessObject
+        Implements iormRelationalPersistable
         Implements iormInfusable
 
         '**
         Public Const ConstObjectID = "OrgUnit"
         '** Table
-        <ormSchemaTable(version:=2, usecache:=True)> Public Const ConstTableID As String = "tblDefOrgUnits"
+        <ormTableAttribute(version:=2, usecache:=True)> Public Const ConstPrimaryTableID As String = "tblDefOrgUnits"
 
         '** primary Keys
-        <ormObjectEntry(Datatype:=otDataType.Text, size:=100, primaryKeyOrdinal:=1, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=100, PrimaryEntryOrdinal:=1, _
             properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty},
             XID:="OU1", title:="OrgUnit", description:="ID of the organization unit")> Public Const ConstFNID = "id"
-        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=2 _
+        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, PrimaryEntryOrdinal:=2 _
          , useforeignkey:=otForeignKeyImplementation.NativeDatabase, defaultvalue:=ConstGlobalDomain)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
         '** fields
@@ -3693,12 +3907,12 @@ Namespace OnTrack.Commons
          XID:="OU6", title:="Function", description:="default function ID of the  organization unit")> Public Const ConstFNFunction = "funct"
 
         ' field mapping
-        <ormEntryMapping(EntryName:=ConstFNID)> Private _id As String = ""
-        <ormEntryMapping(EntryName:=ConstFNDescription)> Private _description As String = ""
-        <ormEntryMapping(EntryName:=ConstFNManager)> Private _manager As String = ""
-        <ormEntryMapping(EntryName:=ConstFNSite)> Private _siteid As String = ""
-        <ormEntryMapping(EntryName:=ConstFNSuperior)> Private _superiorOUID As String = ""
-        <ormEntryMapping(EntryName:=ConstFNFunction)> Private _functionid As String = ""
+        <ormObjectEntryMapping(EntryName:=ConstFNID)> Private _id As String = String.empty
+        <ormObjectEntryMapping(EntryName:=ConstFNDescription)> Private _description As String = String.empty
+        <ormObjectEntryMapping(EntryName:=ConstFNManager)> Private _manager As String = String.empty
+        <ormObjectEntryMapping(EntryName:=ConstFNSite)> Private _siteid As String = String.empty
+        <ormObjectEntryMapping(EntryName:=ConstFNSuperior)> Private _superiorOUID As String = String.empty
+        <ormObjectEntryMapping(EntryName:=ConstFNFunction)> Private _functionid As String = String.empty
 
 
 
@@ -3770,7 +3984,7 @@ Namespace OnTrack.Commons
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overloads Shared Function Retrieve(ByVal id As String, Optional domainid As String = Nothing, Optional forcereload As Boolean = False) As OrgUnit
-            Return Retrieve(Of OrgUnit)(pkArray:={domainID, id}, domainID:=domainID, forceReload:=forcereload)
+            Return RetrieveDataObject(Of OrgUnit)(pkArray:={domainID, id}, domainID:=domainID, forceReload:=forcereload)
         End Function
 
 
@@ -3780,7 +3994,7 @@ Namespace OnTrack.Commons
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function All() As List(Of OrgUnit)
-            Return ormDataObject.AllDataObject(Of OrgUnit)()
+            Return ormBusinessObject.AllDataObject(Of OrgUnit)()
         End Function
         '**** create : create a new Object with primary keys
         '****
@@ -3799,20 +4013,20 @@ Namespace OnTrack.Commons
     ''' <remarks></remarks>
     <ormObject(id:=Site.ConstObjectiD, description:="site (geographic units) definition for organization units", modulename:=ConstModuleCommons, _
         Version:=1, useCache:=True, addDomainBehavior:=True, adddeletefieldbehavior:=True)> Public Class Site
-        Inherits ormDataObject
+        Inherits ormBusinessObject
         Implements iormInfusable
-        Implements iormPersistable
+        Implements iormRelationalPersistable
 
         '** ObjectID
         Public Const ConstObjectiD = "Site"
         '** Table
-        <ormSchemaTable(version:=2, useCache:=True)> Public Const ConstTableID As String = "tblDefOUSites"
+        <ormTableAttribute(version:=2, useCache:=True)> Public Const ConstPrimaryTableID As String = "tblDefOUSites"
 
         '** keys
-        <ormObjectEntry(Datatype:=otDataType.Text, size:=50, primarykeyordinal:=1, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=50, PrimaryEntryOrdinal:=1, _
             XID:="OUS1", title:="Site ID", description:="id of the site")> Public Const constFNId = "id"
 
-        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=2 _
+        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, PrimaryEntryOrdinal:=2 _
          , useforeignkey:=otForeignKeyImplementation.NativeDatabase, defaultvalue:=ConstGlobalDomain)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
 
@@ -3822,9 +4036,9 @@ Namespace OnTrack.Commons
 
         <ormObjectEntry(Datatype:=otDataType.Memo, XID:="OUS10", title:="Description", description:="description of the site")> Public Const constFNDescription = "desc"
         ' field mapping
-        <ormEntryMapping(EntryName:=constFNId)> Private _iD As String = ""
-        <ormEntryMapping(EntryName:=ConstFNCalendarID)> Private _CalendarID As String = ""
-        <ormEntryMapping(EntryName:=constFNDescription)> Private _description As String = ""
+        <ormObjectEntryMapping(EntryName:=constFNId)> Private _iD As String = String.empty
+        <ormObjectEntryMapping(EntryName:=ConstFNCalendarID)> Private _CalendarID As String = String.empty
+        <ormObjectEntryMapping(EntryName:=constFNDescription)> Private _description As String = String.empty
 
 
 #Region "Properties"
@@ -3864,7 +4078,7 @@ Namespace OnTrack.Commons
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overloads Shared Function Retrieve(ByVal id As String, Optional domainid As String = Nothing, Optional forcereload As Boolean = False) As Site
-            Return Retrieve(Of Site)(pkArray:={UCase(id), domainid}, domainID:=domainid, forceReload:=forcereload)
+            Return RetrieveDataObject(Of Site)(pkArray:={UCase(id), domainid}, domainID:=domainid, forceReload:=forcereload)
         End Function
 
 
@@ -3874,7 +4088,7 @@ Namespace OnTrack.Commons
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function All(Optional domainid As String = Nothing) As List(Of Site)
-            Return ormDataObject.AllDataObject(Of Site)(domainID:=domainID)
+            Return ormBusinessObject.AllDataObject(Of Site)(domainID:=domainID)
         End Function
         '**** create : create a new Object with primary keys
         ''' <summary>
@@ -3887,7 +4101,7 @@ Namespace OnTrack.Commons
         Public Overloads Shared Function Create(ByVal id As String, Optional domainid As String = Nothing) As Site
             Dim primarykey() As Object = {id, domainID}
             ' set the primaryKey
-            Return ormDataObject.CreateDataObject(Of Site)(primarykey, domainID:=domainID, checkUnique:=True)
+            Return ormBusinessObject.CreateDataObject(Of Site)(primarykey, domainID:=domainID, checkUnique:=True)
         End Function
 
     End Class
@@ -3900,31 +4114,31 @@ Namespace OnTrack.Commons
     ''' 
     <ormObject(id:=OnTrackChangeLogEntry.ConstObjectiD, description:="Entry of the OnTrack Change Log", modulename:=ConstModuleCommons, _
         Version:=1, useCache:=True, addDomainBehavior:=False, adddeletefieldbehavior:=False)> Public Class OnTrackChangeLogEntry
-        Inherits ormDataObject
+        Inherits ormBusinessObject
 
 
         '** ObjectID
         Public Const ConstObjectiD = "OTChangeLogEntry"
         '** Table
-        <ormSchemaTable(version:=3, useCache:=True)> Public Const ConstTableID As String = "TBLCHANGELOGENTRIES"
+        <ormTableAttribute(version:=3, useCache:=True)> Public Const ConstPrimaryTableID As String = "TBLCHANGELOGENTRIES"
 
         '** keys
-        <ormObjectEntry(Datatype:=otDataType.Text, size:=50, primarykeyordinal:=1, defaultvalue:="OTBACKEND", _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=50, PrimaryEntryOrdinal:=1, defaultvalue:="OTBACKEND", _
             XID:="CLE1", title:="Application", description:="Name of the OnTrack application")> Public Const ConstFNApplication = "APPLICATION"
 
-        <ormObjectEntry(Datatype:=otDataType.Text, size:=50, primarykeyordinal:=2, defaultvalue:=ot.ConstModuleCommons, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=50, PrimaryEntryOrdinal:=2, defaultvalue:=ot.ConstModuleCommons, _
             XID:="CLE2", title:="Module", description:="Name of the OnTrack application module")> Public Const ConstFNModule = "MODULE"
 
-        <ormObjectEntry(Datatype:=otDataType.Long, primarykeyordinal:=3, defaultvalue:=1, _
+        <ormObjectEntry(Datatype:=otDataType.Long, PrimaryEntryOrdinal:=3, defaultvalue:=1, _
             XID:="CLE3", title:="Version", description:="Version number of the OnTrack application release")> Public Const ConstFNVersion = "VERSION"
 
-        <ormObjectEntry(Datatype:=otDataType.Long, primarykeyordinal:=4, defaultvalue:=1, _
+        <ormObjectEntry(Datatype:=otDataType.Long, PrimaryEntryOrdinal:=4, defaultvalue:=1, _
            XID:="CLE4", title:="Release", description:="Number of the application release")> Public Const ConstFNRelease = "RELEASE"
 
-        <ormObjectEntry(Datatype:=otDataType.Long, primarykeyordinal:=5, defaultvalue:=0, _
+        <ormObjectEntry(Datatype:=otDataType.Long, PrimaryEntryOrdinal:=5, defaultvalue:=0, _
             XID:="CLE5", title:="Patch", description:="Patch number of the OnTrack application version")> Public Const ConstFNPatch = "PATCH"
 
-        <ormObjectEntry(Datatype:=otDataType.Long, primarykeyordinal:=6, defaultvalue:=1, _
+        <ormObjectEntry(Datatype:=otDataType.Long, PrimaryEntryOrdinal:=6, defaultvalue:=1, _
             XID:="CLE6", title:="Implementation No", description:="implementation number of the OnTrack application change")> Public Const ConstFNImplNo = "NO"
 
         ''' <summary>
@@ -3945,16 +4159,16 @@ Namespace OnTrack.Commons
 
 
         ' field mapping
-        <ormEntryMapping(EntryName:=ConstFNApplication)> Private _Application As String = ""
-        <ormEntryMapping(EntryName:=ConstFNModule)> Private _Module As String = ""
-        <ormEntryMapping(EntryName:=ConstFNRelease)> Private _Release As Long
-        <ormEntryMapping(EntryName:=ConstFNVersion)> Private _Version As Long
-        <ormEntryMapping(EntryName:=ConstFNPatch)> Private _Patch As Long
-        <ormEntryMapping(EntryName:=ConstFNImplno)> Private _ChangeImplementationNo As Long
+        <ormObjectEntryMapping(EntryName:=ConstFNApplication)> Private _Application As String = String.empty
+        <ormObjectEntryMapping(EntryName:=ConstFNModule)> Private _Module As String = String.empty
+        <ormObjectEntryMapping(EntryName:=ConstFNRelease)> Private _Release As Long
+        <ormObjectEntryMapping(EntryName:=ConstFNVersion)> Private _Version As Long
+        <ormObjectEntryMapping(EntryName:=ConstFNPatch)> Private _Patch As Long
+        <ormObjectEntryMapping(EntryName:=ConstFNImplno)> Private _ChangeImplementationNo As Long
 
-        <ormEntryMapping(EntryName:=ConstFNCRID)> Private _changerequestID As String
-        <ormEntryMapping(EntryName:=constFNDescription)> Private _description As String
-        <ormEntryMapping(EntryName:=ConstFNReleaseDate)> Private _releasedate As Date?
+        <ormObjectEntryMapping(EntryName:=ConstFNCRID)> Private _changerequestID As String
+        <ormObjectEntryMapping(EntryName:=constFNDescription)> Private _description As String
+        <ormObjectEntryMapping(EntryName:=ConstFNReleaseDate)> Private _releasedate As Date?
 
         ''' <summary>
         '''  constructor
@@ -4110,7 +4324,7 @@ Namespace OnTrack.Commons
         ''' <remarks></remarks>
         Public Overloads Shared Function Retrieve(ByVal application As String, ByVal [module] As String, version As Long, release As Long, patch As Long, changeimplno As Long _
                                                   ) As OnTrackChangeLogEntry
-            Return Retrieve(Of OnTrackChangeLogEntry)(pkArray:={UCase(application), UCase([module]), release, version, patch, changeimplno})
+            Return RetrieveDataObject(Of OnTrackChangeLogEntry)(pkArray:={UCase(application), UCase([module]), release, version, patch, changeimplno})
         End Function
 
 
@@ -4120,7 +4334,7 @@ Namespace OnTrack.Commons
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function All() As List(Of OnTrackChangeLogEntry)
-            Return ormDataObject.AllDataObject(Of OnTrackChangeLogEntry)()
+            Return ormBusinessObject.AllDataObject(Of OnTrackChangeLogEntry)()
         End Function
         '**** create : create a new Object with primary keys
         ''' <summary>
@@ -4135,7 +4349,7 @@ Namespace OnTrack.Commons
             If Not patch.HasValue Then patch = 0
             Dim primarykey() As Object = {UCase(application), UCase([module]), version, release, patch, changeimplno}
             ' set the primaryKey
-            Return ormDataObject.CreateDataObject(Of OnTrackChangeLogEntry)(primarykey, checkUnique:=True, runtimeOnly:=runtimeOnly)
+            Return ormBusinessObject.CreateDataObject(Of OnTrackChangeLogEntry)(primarykey, checkUnique:=True, runtimeOnly:=runtimeOnly)
         End Function
 
         ''' <summary>

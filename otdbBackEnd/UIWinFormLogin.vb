@@ -430,7 +430,7 @@ Public Class UIWinFormLogin
         Me.RBMessage.Name = "RBMessage"
         Me.RBMessage.Size = New System.Drawing.Size(167, 88)
         Me.RBMessage.TabIndex = 11
-        Me.RBMessage.Text = ""
+        Me.RBMessage.Text = String.empty
         '
         'Label4
         '

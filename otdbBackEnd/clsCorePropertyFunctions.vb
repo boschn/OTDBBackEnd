@@ -91,9 +91,9 @@ Namespace OnTrack.Database
                 _property = ToEnum(aName)
                 Return
             Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="AbstractPropertyFunction", arg1:=GetType(T).FullName & ":" & propertystring)
+                CoreMessageHandler(exception:=ex, procedure:="AbstractPropertyFunction", argument:=GetType(T).FullName & ":" & propertystring)
             End Try
-           
+
         End Sub
         ''' <summary>
         ''' set the enumeration
@@ -249,7 +249,7 @@ Namespace OnTrack.Database
         Public Sub New(propertystring As String)
             MyBase.New(propertystring:=propertystring)
             If Not Validate(Me) Then
-                CoreMessageHandler(message:="Argument value is not valid", arg1:=propertystring, subname:="ObjectPermissionRuleProperty.New", _
+                CoreMessageHandler(message:="Argument value is not valid", argument:=propertystring, procedure:="ObjectPermissionRuleProperty.New", _
                                     messagetype:=otCoreMessageType.InternalError)
             End If
         End Sub
@@ -314,44 +314,44 @@ Namespace OnTrack.Database
                         If [property].Arguments.Count = 3 Then
                             Dim accessright As AccessRightProperty = New AccessRightProperty([property].Arguments(0).ToString)
                             If Not CBool([property].Arguments(1)) Then
-                                CoreMessageHandler(message:="second argument must be a bool ", arg1:=[property].ToString, _
-                                               subname:="ObjectpermissionRuleProperty.Validate", messagetype:=otCoreMessageType.InternalError)
+                                CoreMessageHandler(message:="second argument must be a bool ", argument:=[property].ToString, _
+                                               procedure:="ObjectpermissionRuleProperty.Validate", messagetype:=otCoreMessageType.InternalError)
                                 Return False
                             End If
                             If Not CBool([property].Arguments(2)) Then
-                                CoreMessageHandler(message:="third argument must be a bool ", arg1:=[property].ToString, _
-                                               subname:="ObjectpermissionRuleProperty.Validate", messagetype:=otCoreMessageType.InternalError)
+                                CoreMessageHandler(message:="third argument must be a bool ", argument:=[property].ToString, _
+                                               procedure:="ObjectpermissionRuleProperty.Validate", messagetype:=otCoreMessageType.InternalError)
                                 Return False
                             End If
                             Return True
                         Else
-                            CoreMessageHandler(message:="Number of arguments wrong (should be 3)", arg1:=[property].ToString, _
-                                               subname:="ObjectpermissionRuleProperty.Validate", messagetype:=otCoreMessageType.InternalError)
+                            CoreMessageHandler(message:="Number of arguments wrong (should be 3)", argument:=[property].ToString, _
+                                               procedure:="ObjectpermissionRuleProperty.Validate", messagetype:=otCoreMessageType.InternalError)
                             Return False
                         End If
                     Case otObjectPermissionRuleProperty.Group, otObjectPermissionRuleProperty.User
                         If [property].Arguments.Count = 1 Then
                             If Not CBool([property].Arguments(0)) Then
-                                CoreMessageHandler(message:="first argument must be a bool ", arg1:=[property].ToString, _
-                                               subname:="ObjectpermissionRuleProperty.Validate", messagetype:=otCoreMessageType.InternalError)
+                                CoreMessageHandler(message:="first argument must be a bool ", argument:=[property].ToString, _
+                                               procedure:="ObjectpermissionRuleProperty.Validate", messagetype:=otCoreMessageType.InternalError)
                                 Return False
                             End If
                             If Not CBool([property].Arguments(1)) Then
-                                CoreMessageHandler(message:="second argument must be a bool ", arg1:=[property].ToString, _
-                                               subname:="ObjectpermissionRuleProperty.Validate", messagetype:=otCoreMessageType.InternalError)
+                                CoreMessageHandler(message:="second argument must be a bool ", argument:=[property].ToString, _
+                                               procedure:="ObjectpermissionRuleProperty.Validate", messagetype:=otCoreMessageType.InternalError)
                                 Return False
                             End If
                             Return True
                         Else
-                            CoreMessageHandler(message:="Number of arguments wrong (should be one)", arg1:=[property].ToString, _
-                                               subname:="ObjectpermissionRuleProperty.Validate", messagetype:=otCoreMessageType.InternalError)
+                            CoreMessageHandler(message:="Number of arguments wrong (should be one)", argument:=[property].ToString, _
+                                               procedure:="ObjectpermissionRuleProperty.Validate", messagetype:=otCoreMessageType.InternalError)
                             Return False
                         End If
                     Case Else
                         Return True
                 End Select
             Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="ObjectpermissionRuleProperty.Validate")
+                CoreMessageHandler(exception:=ex, procedure:="ObjectpermissionRuleProperty.Validate")
                 Return False
             End Try
 
@@ -390,6 +390,7 @@ Namespace OnTrack.Database
         Inherits AbstractPropertyFunction(Of otForeignKeyProperty)
         Public Const OnUpdate = "ONUPDATE"
         Public Const OnDelete = "ONDELETE"
+        Public Const PrimaryTableLink = "PRIMARYTABLELINK"
 
         ''' <summary>
         ''' constructor
@@ -399,7 +400,7 @@ Namespace OnTrack.Database
         Public Sub New(propertystring As String)
             MyBase.New(propertystring:=propertystring)
             If Not Validate(Me) Then
-                CoreMessageHandler(message:="Argument value is not valid", arg1:=propertystring, subname:="ObjectPermissionRuleProperty.New", _
+                CoreMessageHandler(message:="Argument value is not valid", argument:=propertystring, procedure:="ObjectPermissionRuleProperty.New", _
                                     messagetype:=otCoreMessageType.InternalError)
             End If
         End Sub
@@ -440,21 +441,23 @@ Namespace OnTrack.Database
                     Case otForeignKeyProperty.OnUpdate, otForeignKeyProperty.OnDelete
                         If [property].Arguments.Count = 1 Then
                             If Not ForeignKeyActionProperty.Validate([property].Arguments(0).ToString) Then
-                                CoreMessageHandler(message:="argument must be of otForeignKeyAction ", arg1:=[property].ToString, _
-                                               subname:="ForeignKeyProperty.Validate", messagetype:=otCoreMessageType.InternalError)
+                                CoreMessageHandler(message:="argument must be of otForeignKeyAction ", argument:=[property].ToString, _
+                                               procedure:="ForeignKeyProperty.Validate", messagetype:=otCoreMessageType.InternalError)
                                 Return False
                             End If
                             Return True
                         Else
-                            CoreMessageHandler(message:="Number of arguments wrong (should be 1)", arg1:=[property].ToString, _
-                                               subname:="ForeignKeyProperty.Validate", messagetype:=otCoreMessageType.InternalError)
+                            CoreMessageHandler(message:="Number of arguments wrong (should be 1)", argument:=[property].ToString, _
+                                               procedure:="ForeignKeyProperty.Validate", messagetype:=otCoreMessageType.InternalError)
                             Return False
                         End If
+                    Case otForeignKeyProperty.PrimaryTableLink
+                        Return True
                     Case Else
                         Return False
                 End Select
             Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="ForeignKeyProperty.Validate")
+                CoreMessageHandler(exception:=ex, procedure:="ForeignKeyProperty.Validate")
                 Return False
             End Try
 
@@ -475,6 +478,7 @@ Namespace OnTrack.Database
     Public Enum otForeignKeyProperty
         <Description(ForeignKeyProperty.OnUpdate)> OnUpdate = 1
         <Description(ForeignKeyProperty.OnDelete)> OnDelete
+        <Description(ForeignKeyProperty.PrimaryTableLink)> PrimaryTableLink 'Link a secondary table to a primary
     End Enum
     ''' <summary>
     ''' ObjectPermission Rule Property
@@ -597,8 +601,8 @@ Namespace OnTrack.Database
                     [out] = [in].ToString.Trim
                     Return True
                 Case Else
-                    CoreMessageHandler(message:="Property function is not implemented", arg1:=_property.ToString, messagetype:=otCoreMessageType.InternalError, _
-                                       subname:="ObjectEntryProperty.Apply")
+                    CoreMessageHandler(message:="Property function is not implemented", argument:=_property.ToString, messagetype:=otCoreMessageType.InternalError, _
+                                       procedure:="ObjectEntryProperty.Apply")
                     Return False
             End Select
         End Function
@@ -644,7 +648,7 @@ Namespace OnTrack.Database
         Public Sub New(propertystring As String)
             MyBase.New(propertystring:=propertystring)
             If Not Validate(Me) Then
-                CoreMessageHandler(message:="Argument value is not valid", arg1:=propertystring, subname:="LookupProperty.New", _
+                CoreMessageHandler(message:="Argument value is not valid", argument:=propertystring, procedure:="LookupProperty.New", _
                                     messagetype:=otCoreMessageType.InternalError)
             End If
         End Sub
@@ -670,39 +674,39 @@ Namespace OnTrack.Database
                         ''' optional arguemnt of foreign key
                         ''' 
                         If [property].Arguments IsNot Nothing AndAlso [property].Arguments.Count > 1 Then
-                            CoreMessageHandler(message:="first argument is optional foreign key name - more arguments specified as required ", arg1:=[property].ToString, _
-                                           subname:="LookupProperty.Validate", messagetype:=otCoreMessageType.InternalError)
+                            CoreMessageHandler(message:="first argument is optional foreign key name - more arguments specified as required ", argument:=[property].ToString, _
+                                           procedure:="LookupProperty.Validate", messagetype:=otCoreMessageType.InternalError)
                             Return False
                         End If
-                        
+
                     Case otLookupProperty.UseObjectEntry
                         If [property].Arguments IsNot Nothing AndAlso [property].Arguments.Count = 1 Then
-                            If [property].Arguments(0) = Nothing OrElse [property].Arguments(0) = "" Then
-                                CoreMessageHandler(message:="first argument must be a object name ", arg1:=[property].ToString, _
-                                               subname:="LookupProperty.Validate", messagetype:=otCoreMessageType.InternalError)
+                            If [property].Arguments(0) = Nothing OrElse [property].Arguments(0) = String.empty Then
+                                CoreMessageHandler(message:="first argument must be a object name ", argument:=[property].ToString, _
+                                               procedure:="LookupProperty.Validate", messagetype:=otCoreMessageType.InternalError)
                                 Return False
                             End If
                         Else
-                            CoreMessageHandler(message:="Number of arguments wrong (should be one)", arg1:=[property].ToString, _
-                                               subname:="LookupProperty.Validate", messagetype:=otCoreMessageType.InternalError)
+                            CoreMessageHandler(message:="Number of arguments wrong (should be one)", argument:=[property].ToString, _
+                                               procedure:="LookupProperty.Validate", messagetype:=otCoreMessageType.InternalError)
                             Return False
                         End If
                     Case otLookupProperty.UseValueList
                         If [property].Arguments IsNot Nothing AndAlso [property].Arguments.Count = 1 Then
-                            If [property].Arguments(0) = Nothing OrElse [property].Arguments(0) = "" Then
-                                CoreMessageHandler(message:="first argument must be a value list id ", arg1:=[property].ToString, _
-                                               subname:="LookupProperty.Validate", messagetype:=otCoreMessageType.InternalError)
+                            If [property].Arguments(0) = Nothing OrElse [property].Arguments(0) = String.empty Then
+                                CoreMessageHandler(message:="first argument must be a value list id ", argument:=[property].ToString, _
+                                               procedure:="LookupProperty.Validate", messagetype:=otCoreMessageType.InternalError)
                                 Return False
                             End If
                         Else
-                            CoreMessageHandler(message:="Number of arguments wrong (should be one)", arg1:=[property].ToString, _
-                                               subname:="LookupProperty.Validate", messagetype:=otCoreMessageType.InternalError)
+                            CoreMessageHandler(message:="Number of arguments wrong (should be one)", argument:=[property].ToString, _
+                                               procedure:="LookupProperty.Validate", messagetype:=otCoreMessageType.InternalError)
                             Return False
                         End If
                     Case otLookupProperty.UseAttributeValues, otLookupProperty.UseAttributeReference
                         If [property].Arguments IsNot Nothing AndAlso [property].Arguments.Count > 0 Then
-                            CoreMessageHandler(message:="Number of arguments wrong (should be none)", arg1:=[property].ToString, _
-                                               subname:="LookupProperty.Validate", messagetype:=otCoreMessageType.InternalError)
+                            CoreMessageHandler(message:="Number of arguments wrong (should be none)", argument:=[property].ToString, _
+                                               procedure:="LookupProperty.Validate", messagetype:=otCoreMessageType.InternalError)
                             Return False
                         End If
                     Case Else
@@ -711,7 +715,7 @@ Namespace OnTrack.Database
 
                 Return True
             Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="LookupProperty.Validate")
+                CoreMessageHandler(exception:=ex, procedure:="LookupProperty.Validate")
                 Return False
             End Try
 
@@ -735,36 +739,36 @@ Namespace OnTrack.Database
                 anEntyname = names(0)
             End If
             If objectname Is Nothing Then
-                CoreMessageHandler(message:="ObjectEntryname has no objectname", arg1:=objectentryname, _
-                                  subname:="LookupProperty.UniqueRowValues", messagetype:=otCoreMessageType.InternalError)
+                CoreMessageHandler(message:="ObjectEntryname has no objectname", argument:=objectentryname, _
+                                  procedure:="LookupProperty.UniqueRowValues", messagetype:=otCoreMessageType.InternalError)
                 Return New List(Of Object)
             End If
             Dim aclassdescription As ObjectClassDescription = ot.GetObjectClassDescriptionByID(anObjectname)
             If aclassdescription Is Nothing Then
-                CoreMessageHandler(message:="Objectname is not in class repository", arg1:=objectentryname, _
-                                  subname:="LookupProperty.UniqueRowValues", messagetype:=otCoreMessageType.InternalError)
+                CoreMessageHandler(message:="Objectname is not in class repository", argument:=objectentryname, _
+                                  procedure:="LookupProperty.UniqueRowValues", messagetype:=otCoreMessageType.InternalError)
                 Return New List(Of Object)
             End If
-            Dim anObjectEntryAttribute As ormObjectEntryAttribute = aclassdescription.GetObjectEntryAttribute(entryname:=anEntyname)
+            Dim anObjectEntryAttribute = aclassdescription.GetObjectEntryAttribute(entryname:=anEntyname)
             If anObjectEntryAttribute Is Nothing Then
-                CoreMessageHandler(message:="ObjectEntry is not in class repository", arg1:=objectentryname, _
-                                 subname:="LookupProperty.UniqueRowValues", messagetype:=otCoreMessageType.InternalError)
+                CoreMessageHandler(message:="ObjectEntry is not in class repository", argument:=objectentryname, _
+                                 procedure:="LookupProperty.UniqueRowValues", messagetype:=otCoreMessageType.InternalError)
                 Return New List(Of Object)
             End If
-            If Not anObjectEntryAttribute.HasValueTableName Then
-                CoreMessageHandler(message:="ObjectEntryAttribute has no Tablename", arg1:=anObjectEntryAttribute.ObjectName & "." & anObjectEntryAttribute.EntryName, _
-                                   subname:="LookupProperty.UniqueRowValues", messagetype:=otCoreMessageType.InternalError)
+            If Not anObjectEntryAttribute.HasValueContainerID Then
+                CoreMessageHandler(message:="ObjectEntryAttribute has no Tablename", argument:=anObjectEntryAttribute.ObjectName & "." & anObjectEntryAttribute.EntryName, _
+                                   procedure:="LookupProperty.UniqueRowValues", messagetype:=otCoreMessageType.InternalError)
                 Return New List(Of Object)
             End If
             Dim anObjectDefinition As ObjectDefinition = ot.CurrentSession.Objects.GetObject(objectid:=anObjectname)
             If anObjectDefinition Is Nothing Then
-                CoreMessageHandler(message:="ObjectDefinition not found", arg1:=anObjectname, _
-                                   subname:="LookupProperty.UniqueRowValues", messagetype:=otCoreMessageType.InternalError)
+                CoreMessageHandler(message:="ObjectDefinition not found", argument:=anObjectname, _
+                                   procedure:="LookupProperty.UniqueRowValues", messagetype:=otCoreMessageType.InternalError)
                 Return New List(Of Object)
             End If
-            Dim aTablename As String = anObjectEntryAttribute.Tablename
-            Dim aColumnname As String = anObjectEntryAttribute.ColumnName
-            Dim aTable As TableDefinition = anObjectDefinition.GetTable(aTablename)
+            Dim aTablename As String = anObjectEntryAttribute.ContainerID
+            Dim aColumnname As String = anObjectEntryAttribute.ContainerEntryName
+            Dim aTable As ContainerDefinition = anObjectDefinition.GetTable(aTablename)
             Dim aForeignKey As ForeignKeyDefinition
             Dim found As Boolean = False
             Dim indexEntry As Integer
@@ -788,12 +792,12 @@ Namespace OnTrack.Database
             Next
 
             If Not found Then
-                CoreMessageHandler(message:="no foreign key definition in table '" & aTablename & "' with columnname '" & aColumnname & "' found", arg1:=anObjectname, _
-                                  subname:="LookupProperty.UniqueRowValues", messagetype:=otCoreMessageType.InternalError)
+                CoreMessageHandler(message:="no foreign key definition in table '" & aTablename & "' with columnname '" & aColumnname & "' found", argument:=anObjectname, _
+                                  procedure:="LookupProperty.UniqueRowValues", messagetype:=otCoreMessageType.InternalError)
                 Return New List(Of Object)
             End If
 
-           Dim aForeignKeyReferences As List(Of String) = aForeignKey.ForeignKeyReferences.ToList
+            Dim aForeignKeyReferences As List(Of String) = aForeignKey.ForeignKeyReferences.ToList
             Dim aDomainFieldname As String = Commons.Domain.ConstFNDomainID
             Dim aCommand As ormSqlSelectCommand
             Dim theForeignKeyTables As List(Of String) = aForeignKey.ForeignKeyReferenceTables
@@ -809,14 +813,20 @@ Namespace OnTrack.Database
             '''
             Try
                 If theForeignKeyTables.Count = 1 Then
-                    Dim aStore As iormDataStore = ot.GetTableStore(tableid:=theForeignKeyTables.First)
+                    Dim aStore As iormRelationalTableStore = ot.GetTableStore(tableid:=theForeignKeyTables.First)
                     aCommand = aStore.CreateSqlSelectCommand(id:=aColumnname & "_FKValues_" & aForeignKey.Id, addAllFields:=False)
                 Else
-                    aCommand = ot.CurrentDBDriver.CreateSqlSelectCommand(id:=aTablename & "_" & aColumnname & "_FKValues_" & aForeignKey.Id)
+                    If ot.CurrentDBDriver.GetType.GetInterfaces.Contains(GetType(iormRelationalDatabaseDriver)) Then
+                        aCommand = CType(ot.CurrentDBDriver, iormRelationalDatabaseDriver).CreateSqlSelectCommand(id:=aTablename & "_" & aColumnname & "_FKValues_" & aForeignKey.Id)
+                    Else
+                        Call CoreMessageHandler(message:="current database driver is not a relational driver - no sql possible to build lookup foreign key values", _
+                                                procedure:="LookupProperty.UniqueRowValues", messagetype:=otCoreMessageType.InternalError)
+                        Return New List(Of Object)
+                    End If
 
                 End If
 
-                If Not aCommand.Prepared Then
+                If Not aCommand.IsPrepared Then
 
                     ''' build for multiple tables
                     ''' 
@@ -896,7 +906,7 @@ Namespace OnTrack.Database
 
 
             Catch ex As Exception
-                Call CoreMessageHandler(exception:=ex, subname:="LookupProperty.UniqueRowValues")
+                Call CoreMessageHandler(exception:=ex, procedure:="LookupProperty.UniqueRowValues")
                 Return New List(Of Object)
 
             End Try
@@ -921,51 +931,51 @@ Namespace OnTrack.Database
                 anEntyname = names(0)
             End If
             If objectname Is Nothing Then
-                CoreMessageHandler(message:="ObjectEntryname has no objectname", arg1:=objectentryname, _
-                                  subname:="LookupProperty.UniqueRowValues", messagetype:=otCoreMessageType.InternalError)
+                CoreMessageHandler(message:="ObjectEntryname has no objectname", argument:=objectentryname, _
+                                  procedure:="LookupProperty.UniqueRowValues", messagetype:=otCoreMessageType.InternalError)
                 Return New List(Of Object)
             End If
             Dim aclassdescription As ObjectClassDescription = ot.GetObjectClassDescriptionByID(anObjectname)
             If aclassdescription Is Nothing Then
-                CoreMessageHandler(message:="Objectname is not in class repository", arg1:=objectentryname, _
-                                  subname:="LookupProperty.UniqueRowValues", messagetype:=otCoreMessageType.InternalError)
+                CoreMessageHandler(message:="Objectname is not in class repository", argument:=objectentryname, _
+                                  procedure:="LookupProperty.UniqueRowValues", messagetype:=otCoreMessageType.InternalError)
                 Return New List(Of Object)
             End If
             Dim anObjectEntryAttribute As ormObjectEntryAttribute = aclassdescription.GetObjectEntryAttribute(entryname:=anEntyname)
             If anObjectEntryAttribute Is Nothing Then
-                CoreMessageHandler(message:="ObjectEntry is not in class repository", arg1:=objectentryname, _
-                                 subname:="LookupProperty.UniqueRowValues", messagetype:=otCoreMessageType.InternalError)
+                CoreMessageHandler(message:="ObjectEntry is not in class repository", argument:=objectentryname, _
+                                 procedure:="LookupProperty.UniqueRowValues", messagetype:=otCoreMessageType.InternalError)
                 Return New List(Of Object)
             End If
-            If Not anObjectentryattribute.HasValueTableName Then
-                CoreMessageHandler(message:="ObjectEntryAttribute has no Tablename", arg1:=anObjectEntryAttribute.ObjectName & "." & anObjectEntryAttribute.EntryName, _
-                                   subname:="LookupProperty.UniqueRowValues", messagetype:=otCoreMessageType.InternalError)
+            If Not anObjectentryattribute.HasValueContainerID Then
+                CoreMessageHandler(message:="ObjectEntryAttribute has no Tablename", argument:=anObjectEntryAttribute.ObjectName & "." & anObjectEntryAttribute.EntryName, _
+                                   procedure:="LookupProperty.UniqueRowValues", messagetype:=otCoreMessageType.InternalError)
                 Return New List(Of Object)
             End If
             Dim anObjectDefinition As ObjectDefinition = ot.CurrentSession.Objects.GetObject(objectid:=anObjectname)
             If anObjectDefinition Is Nothing Then
-                CoreMessageHandler(message:="ObjectDefinition not found", arg1:=anObjectname, _
-                                   subname:="LookupProperty.UniqueRowValues", messagetype:=otCoreMessageType.InternalError)
+                CoreMessageHandler(message:="ObjectDefinition not found", argument:=anObjectname, _
+                                   procedure:="LookupProperty.UniqueRowValues", messagetype:=otCoreMessageType.InternalError)
                 Return New List(Of Object)
             End If
-            Dim aTablename As String = anObjectEntryAttribute.Tablename
-            Dim aColumnname As String = anObjectEntryAttribute.ColumnName
+            Dim aTablename As String = anObjectEntryAttribute.ContainerID
+            Dim aColumnname As String = anObjectEntryAttribute.ContainerEntryName
             Dim aDomainFieldname As String = Commons.Domain.ConstFNDomainID
 
             '''
             '''
             Try
-                Dim aStore As iormDataStore = ot.GetTableStore(tableid:=aTablename)
+                Dim aStore As iormRelationalTableStore = ot.GetTableStore(tableid:=aTablename)
                 Dim aCommand As ormSqlSelectCommand = aStore.CreateSqlSelectCommand(id:=aColumnname & "_Values", addAllFields:=False)
-                If Not aCommand.Prepared Then
+                If Not aCommand.IsPrepared Then
                     aCommand.select = "DISTINCT [" & aColumnname & "]"
                     If anObjectDefinition.HasDomainBehavior Then aCommand.select &= ", [" & aDomainFieldname & "]"
                     aCommand.Where = ConstFNIsDeleted & " = @deleted "
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@deleted", ColumnName:=ConstFNIsDeleted, tablename:=aTablename))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@deleted", ColumnName:=ConstFNIsDeleted, tableid:=aTablename))
                     If anObjectDefinition.HasDomainBehavior Then
                         aCommand.Where &= " AND ([" & aDomainFieldname & "] = @domainID OR [" & aDomainFieldname & "] = @globalID)"
-                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@domainID", ColumnName:=aDomainFieldname, tablename:=aTablename))
-                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@globalID", ColumnName:=aDomainFieldname, tablename:=aTablename))
+                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@domainID", ColumnName:=aDomainFieldname, tableid:=aTablename))
+                        aCommand.AddParameter(New ormSqlCommandParameter(ID:="@globalID", ColumnName:=aDomainFieldname, tableid:=aTablename))
                     End If
 
                     aCommand.Prepare()
@@ -1006,7 +1016,7 @@ Namespace OnTrack.Database
 
 
             Catch ex As Exception
-                Call CoreMessageHandler(exception:=ex, subname:="LookupProperty.UniqueRowValues")
+                Call CoreMessageHandler(exception:=ex, procedure:="LookupProperty.UniqueRowValues")
                 Return New List(Of Object)
 
             End Try
@@ -1023,21 +1033,21 @@ Namespace OnTrack.Database
             Dim aList As New List(Of Object)
 
             Select Case _property
-               
+
                 Case otLookupProperty.UseAttributeReference
                     '''
                     ''' use the object reference
                     ''' 
                     Dim aclassdescription As ObjectClassDescription = ot.GetObjectClassDescriptionByID(entry.Objectname)
                     If aclassdescription Is Nothing Then
-                        CoreMessageHandler(message:="Objectname is not in class repository", arg1:=entry.Objectname, _
-                                          subname:="LookupProperty.GetValues", messagetype:=otCoreMessageType.InternalError)
+                        CoreMessageHandler(message:="Objectname is not in class repository", argument:=entry.Objectname, _
+                                          procedure:="LookupProperty.GetValues", messagetype:=otCoreMessageType.InternalError)
                         Return New List(Of Object)
                     End If
                     Dim anObjectEntryAttribute As ormObjectEntryAttribute = aclassdescription.GetObjectEntryAttribute(entryname:=entry.Entryname)
                     If anObjectEntryAttribute Is Nothing Then
-                        CoreMessageHandler(message:="ObjectEntry is not in class repository", arg1:=entry.Objectname & "." & entry.Entryname, _
-                                         subname:="LookupProperty.GetValues", messagetype:=otCoreMessageType.InternalError)
+                        CoreMessageHandler(message:="ObjectEntry is not in class repository", argument:=entry.Objectname & "." & entry.Entryname, _
+                                         procedure:="LookupProperty.GetValues", messagetype:=otCoreMessageType.InternalError)
                         Return New List(Of Object)
                     End If
                     If anObjectEntryAttribute.HasValueReferenceObjectEntry Then
@@ -1045,12 +1055,12 @@ Namespace OnTrack.Database
                         Dim aReference As ormObjectEntryAttribute = ot.GetObjectClassDescriptionByID(id:=names(0)).GetObjectEntryAttribute(entryname:=names(1))
                         Return UniqueObjectColumnEntryValues(objectentryname:=aReference.EntryName, objectname:=aReference.ObjectName)
                     Else
-                        CoreMessageHandler(message:="ObjectEntry has no references to lookup", arg1:=entry.Objectname & "." & entry.Entryname, _
-                                         subname:="LookupProperty.GetValues", messagetype:=otCoreMessageType.InternalError)
+                        CoreMessageHandler(message:="ObjectEntry has no references to lookup", argument:=entry.Objectname & "." & entry.Entryname, _
+                                         procedure:="LookupProperty.GetValues", messagetype:=otCoreMessageType.InternalError)
                         Return New List(Of Object)
                     End If
 
-                    
+
 
                 Case otLookupProperty.UseAttributeValues
                     '''
@@ -1077,26 +1087,26 @@ Namespace OnTrack.Database
                     ''' use the object entry in the argument
                     ''' 
                     If Arguments.Count = 0 OrElse String.IsNullOrWhiteSpace(Arguments(0).ToString) Then
-                        CoreMessageHandler(message:="UseObjectEntry Attribute für ObjectEntry has missing reference object entry argument", arg1:=entry.Objectname & "." & entry.Entryname, _
-                                       subname:="LookupProperty.GetValues", messagetype:=otCoreMessageType.InternalError)
+                        CoreMessageHandler(message:="UseObjectEntry Attribute für ObjectEntry has missing reference object entry argument", argument:=entry.Objectname & "." & entry.Entryname, _
+                                       procedure:="LookupProperty.GetValues", messagetype:=otCoreMessageType.InternalError)
                         Return New List(Of Object)
                     End If
                     Dim names As String() = Shuffle.NameSplitter(Arguments(0).ToString)
                     If names.Count < 2 OrElse String.IsNullOrWhiteSpace(Arguments(0).ToString) Then
-                        CoreMessageHandler(message:="UseObjectEntry Attribute für ObjectEntry has malformatted reference object entry argument '" & Arguments(0).ToString & "'", arg1:=entry.Objectname & "." & entry.Entryname, _
-                                       subname:="LookupProperty.GetValues", messagetype:=otCoreMessageType.InternalError)
+                        CoreMessageHandler(message:="UseObjectEntry Attribute für ObjectEntry has malformatted reference object entry argument '" & Arguments(0).ToString & "'", argument:=entry.Objectname & "." & entry.Entryname, _
+                                       procedure:="LookupProperty.GetValues", messagetype:=otCoreMessageType.InternalError)
                         Return New List(Of Object)
                     End If
                     Dim aclassdescription As ObjectClassDescription = ot.GetObjectClassDescriptionByID(names(0))
                     If aclassdescription Is Nothing Then
-                        CoreMessageHandler(message:="Objectname is not in class repository", arg1:=names(0), _
-                                          subname:="LookupProperty.GetValues", messagetype:=otCoreMessageType.InternalError)
+                        CoreMessageHandler(message:="Objectname is not in class repository", argument:=names(0), _
+                                          procedure:="LookupProperty.GetValues", messagetype:=otCoreMessageType.InternalError)
                         Return New List(Of Object)
                     End If
-                    Dim anObjectEntryAttribute As ormObjectEntryAttribute = aclassdescription.GetObjectEntryAttribute(entryname:=names(1))
+                    Dim anObjectEntryAttribute As iormObjectEntry = aclassdescription.GetObjectEntryAttribute(entryname:=names(1))
                     If anObjectEntryAttribute Is Nothing Then
-                        CoreMessageHandler(message:="ObjectEntry is not in class repository", arg1:=Arguments(0).ToString, _
-                                         subname:="LookupProperty.GetValues", messagetype:=otCoreMessageType.InternalError)
+                        CoreMessageHandler(message:="ObjectEntry is not in class repository", argument:=Arguments(0).ToString, _
+                                         procedure:="LookupProperty.GetValues", messagetype:=otCoreMessageType.InternalError)
                         Return New List(Of Object)
                     End If
                     Return UniqueObjectColumnEntryValues(objectentryname:=names(1), objectname:=names(0))
@@ -1109,13 +1119,13 @@ Namespace OnTrack.Database
                         aList = aValueList.Values
                         Return aList
                     Else
-                        CoreMessageHandler(message:="list could not be retrieved", arg1:=Me._arguments(0).ToString, messagetype:=otCoreMessageType.ApplicationError, _
-                                     subname:="LookupProperty.GetList")
+                        CoreMessageHandler(message:="list could not be retrieved", argument:=Me._arguments(0).ToString, messagetype:=otCoreMessageType.ApplicationError, _
+                                     procedure:="LookupProperty.GetList")
                         Return aList
                     End If
                 Case Else
-                    CoreMessageHandler(message:="Property function is not implemented", arg1:=_property.ToString, messagetype:=otCoreMessageType.InternalError, _
-                                       subname:="LookupProperty.GetList")
+                    CoreMessageHandler(message:="Property function is not implemented", argument:=_property.ToString, messagetype:=otCoreMessageType.InternalError, _
+                                       procedure:="LookupProperty.GetList")
                     Return aList
             End Select
         End Function

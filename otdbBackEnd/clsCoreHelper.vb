@@ -60,19 +60,20 @@ Namespace OnTrack.Database
         ''' <param name="runtimeOnly"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Shared Function SubstituteDomainIDinTablePrimaryKey(tablename As String, ByRef pkarray As Object(), domainid As String, _
+        Public Shared Function SubstituteDomainIDinTablePrimaryKey(ByRef primarykey As ormDatabaseKey, domainid As String, _
                                                                     Optional substitueOnlyNothingDomain As Boolean = True, _
                                                                     Optional runtimeOnly As Boolean = False) As Boolean
             Dim domindex As Integer = -1
+            Dim containerID As String = primarykey.Tableid
 
             ''' beware of startup and installation
             ''' here the Substitute doesnot work and doesnot make any sense
             ''' 
             If Not runtimeOnly AndAlso Not CurrentSession.IsBootstrappingInstallationRequested AndAlso Not CurrentSession.IsStartingUp AndAlso Not CurrentSession.IsDomainSwitching Then
-                Dim aTabledefinition As TableDefinition = CurrentSession.Objects.GetTable(tablename:=tablename, runtimeOnly:=runtimeOnly)
+                Dim aTabledefinition As ContainerDefinition = CurrentSession.Objects.GetTable(tablename:=containerID, runtimeOnly:=runtimeOnly)
                 If aTabledefinition Is Nothing Then
-                    CoreMessageHandler(message:="table definition could not be retrieved", subname:="Shuffle.SubstituteDomainIDinPKArray", _
-                                    arg1:=domainid, tablename:=tablename, columnname:=DomainSetting.ConstFNDomainID, messagetype:=otCoreMessageType.InternalError)
+                    CoreMessageHandler(message:="table definition could not be retrieved", procedure:="Shuffle.SubstituteDomainIDinPKArray", _
+                                    argument:=domainid, containerID:=containerID, containerEntryName:=DomainSetting.ConstFNDomainID, messagetype:=otCoreMessageType.InternalError)
                     Return False
                 ElseIf Not aTabledefinition.DomainBehavior Then
                     ' this might also be called if we donot have domain behavior 
@@ -81,39 +82,39 @@ Namespace OnTrack.Database
                     Return True
                 End If
                 ''' get schema
-                Dim aSchema = ot.CurrentDBDriver.GetTableSchema(tableID:=tablename)
+                Dim aSchema = ot.CurrentDBDriver.RetrieveContainerSchema(containerID)
 
                 ''' check if the domain id is part of the primary key
                 ''' 
                 domindex = aSchema.GetDomainIDPKOrdinal
                 If domindex > 0 Then
-                    If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
+                    If String.IsNullOrEmpty(domainid) Then domainid = CurrentSession.CurrentDomainID
                     ''' check if the count of the arrays match
-                    If pkarray.Count = aSchema.NoPrimaryKeyFields Then
+                    If primarykey.Count = aSchema.NoPrimaryEntries Then
                         ' set only if nothing is set
-                        If pkarray(domindex - 1) Is Nothing OrElse String.IsNullOrWhiteSpace(pkarray(domindex - 1)) Then
-                            pkarray(domindex - 1) = UCase(domainid) ' set the domainid
+                        If primarykey(domindex - 1) Is Nothing OrElse String.IsNullOrWhiteSpace(primarykey(domindex - 1)) Then
+                            primarykey(domindex - 1) = UCase(domainid) ' set the domainid
                             ' replace all values if flag is set 
-                        ElseIf Not substitueOnlyNothingDomain AndAlso pkarray(domindex - 1) <> UCase(domainid) Then
-                            pkarray(domindex - 1) = UCase(domainid)
+                        ElseIf Not substitueOnlyNothingDomain AndAlso primarykey(domindex - 1) <> UCase(domainid) Then
+                            primarykey(domindex - 1) = UCase(domainid)
                         End If
                     Else
                         ''' extend the primary key
-                        ReDim Preserve pkarray(aSchema.NoPrimaryKeyFields - 1)
-                        pkarray(domindex - 1) = UCase(domainid) ' set domainid
+                        'ReDim Preserve primarykey(aSchema.NoPrimaryKeyFields - 1)
+                        primarykey(domindex - 1) = UCase(domainid) ' set domainid
                     End If
                 ElseIf aTabledefinition.DomainBehavior Then
-                    CoreMessageHandler(message:="domainID is not in primary key although domain behavior is set", subname:="Shuffle.SubstituteDomainIDinPKArray", _
-                                       arg1:=domainid, tablename:=tablename, columnname:=Domain.ConstFNDomainID, messagetype:=otCoreMessageType.InternalError)
+                    CoreMessageHandler(message:="domainID is not in primary key although domain behavior is set", procedure:="Shuffle.SubstituteDomainIDinPKArray", _
+                                       argument:=domainid, containerID:=containerID, containerEntryName:=Domain.ConstFNDomainID, messagetype:=otCoreMessageType.InternalError)
                 End If
 
                 ''' check if nothing is in key
                 ''' 
-                For i = 0 To pkarray.GetUpperBound(0)
-                    If pkarray(i) Is Nothing Then
+                For i = 0 To primarykey.GetUpperBound(0)
+                    If primarykey(i) Is Nothing Then
                         Dim acolumnname As String = aTabledefinition.GetPrimaryKeyColumnNames.ElementAt(i)
-                        CoreMessageHandler(message:="part of primary key is nothing", subname:="Shuffle.SubstituteDomainIDinPKArray", _
-                             arg1:=i, tablename:=tablename, columnname:=acolumnname, messagetype:=otCoreMessageType.InternalWarning)
+                        CoreMessageHandler(message:="part of primary key is nothing", procedure:="Shuffle.SubstituteDomainIDinPKArray", _
+                             argument:=i, containerID:=containerID, containerEntryName:=acolumnname, messagetype:=otCoreMessageType.InternalWarning)
 
                     End If
                 Next
@@ -124,31 +125,31 @@ Namespace OnTrack.Database
             Else
                 ''' do the same but use the attributes since we are bootstrapping or starting up
                 ''' 
-                Dim anTableAttribute As ormSchemaTableAttribute = ot.GetTableAttribute(tablename)
-                If anTableAttribute Is Nothing Then
-                    CoreMessageHandler(message:="table attribute could not be retrieved", subname:="Shuffle.SubstituteDomainIDinPKArray", _
-                                    arg1:=domainid, tablename:=tablename, columnname:=Domain.ConstFNDomainID, messagetype:=otCoreMessageType.InternalError)
+                Dim aContainerAttribute As iormContainerAttribute = ot.GetContainerAttribute(containerID)
+                If aContainerAttribute Is Nothing Then
+                    CoreMessageHandler(message:="table attribute could not be retrieved", procedure:="Shuffle.SubstituteDomainIDinPKArray", _
+                                    argument:=domainid, containerID:=containerID, containerEntryName:=Domain.ConstFNDomainID, messagetype:=otCoreMessageType.InternalError)
                     Return False
-                ElseIf (anTableAttribute.HasValueAddDomainBehavior AndAlso anTableAttribute.AddDomainBehavior) Then
-                    Dim keynames As String() = anTableAttribute.PrimaryKeyColumnNames
+                ElseIf (aContainerAttribute.HasValueAddDomainBehavior AndAlso aContainerAttribute.AddDomainBehavior) Then
+                    Dim keynames As String() = aContainerAttribute.PrimaryEntryNames
                     domindex = Array.FindIndex(keynames, Function(s) s.ToLower = Domain.ConstFNDomainID.ToLower)
                     If domindex >= 0 Then
-                        If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
+                        If String.IsNullOrEmpty(domainid) Then domainid = CurrentSession.CurrentDomainID
 
-                        If pkarray.Count = keynames.Count Then
+                        If primarykey.Count = keynames.Count Then
                             ' set only if nothing is set
-                            If pkarray(domindex) Is Nothing OrElse String.IsNullOrWhiteSpace(pkarray(domindex)) Then
-                                pkarray(domindex) = UCase(domainid)
-                            ElseIf pkarray(domindex) <> UCase(domainid) Then
-                                pkarray(domindex) = UCase(domainid)
+                            If primarykey(domindex) Is Nothing OrElse String.IsNullOrWhiteSpace(primarykey(domindex)) Then
+                                primarykey(domindex) = UCase(domainid)
+                            ElseIf primarykey(domindex) <> UCase(domainid) Then
+                                primarykey(domindex) = UCase(domainid)
                             End If
                         Else
-                            ReDim Preserve pkarray(keynames.Count)
-                            pkarray(domindex) = UCase(domainid)
+                            'ReDim Preserve primarykey(keynames.Count)
+                            primarykey(domindex) = UCase(domainid)
                         End If
                     Else
-                        CoreMessageHandler(message:="domainID is not in primary key although domain behavior is set", subname:="ormDataObject.SubstituteDomainIDinPKArray", _
-                                     arg1:=domainid, tablename:=tablename, columnname:=Domain.ConstFNDomainID, messagetype:=otCoreMessageType.InternalError)
+                        CoreMessageHandler(message:="domainID is not in primary key although domain behavior is set", procedure:="ormDataObject.SubstituteDomainIDinPKArray", _
+                                     argument:=domainid, containerID:=containerID, containerEntryName:=Domain.ConstFNDomainID, messagetype:=otCoreMessageType.InternalError)
                         Return False
                     End If
                 Else
@@ -166,44 +167,44 @@ Namespace OnTrack.Database
         ''' <param name="runtimeOnly"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Shared Function ChecknFixPimaryKey(objectid As String, ByRef pkarray As Object(), domainid As String, _
+        Public Shared Function ChecknFixPimaryKey(objectid As String, ByRef primarykey As ormDatabaseKey, domainid As String, _
                                                   Optional substitueOnlyNothingDomain As Boolean = True, _
                                                   Optional runtimeOnly As Boolean = False) As Boolean
             Dim aPrimaryTableid As String
 
             Dim aDescription = ot.GetObjectClassDescriptionByID(id:=objectid)
-            If aDescription IsNot Nothing Then aPrimaryTableid = aDescription.PrimaryTable
+            If aDescription IsNot Nothing Then aPrimaryTableid = aDescription.PrimaryContainerID
 
             ''' bring it to length
-            If pkarray Is Nothing OrElse pkarray.Count = 0 OrElse aDescription.PrimaryKeyEntryNames.Count <> pkarray.Count Then
-                ReDim Preserve pkarray(aDescription.PrimaryKeyEntryNames.Count - 1)
-            End If
+            'If primarykey Is Nothing OrElse primarykey.Size = 0 OrElse aDescription.PrimaryKeyEntryNames.Count <> primarykey.Size Then
+            'ReDim Preserve primarykey(aDescription.PrimaryKeyEntryNames.Count - 1)
+            'End If
 
             ''' Substitute the DomainID
             '''
-            SubstituteDomainIDinTablePrimaryKey(tablename:=aPrimaryTableid, pkarray:=pkarray, substitueOnlyNothingDomain:=substitueOnlyNothingDomain, domainid:=domainid, runtimeOnly:=runtimeOnly)
+            SubstituteDomainIDinTablePrimaryKey(primarykey:=primarykey, substitueOnlyNothingDomain:=substitueOnlyNothingDomain, domainid:=domainid, runtimeOnly:=runtimeOnly)
 
-            ''' convert the primary key fields
+            ''' convert the  key fields
             ''' 
             Dim i As UShort = 0
             For Each aPKName In aDescription.PrimaryKeyEntryNames
-                Dim aMappingList = aDescription.GetMappedColumnFieldInfos(columnname:=aPKName, tablename:=aPrimaryTableid)
+                Dim aMappingList = aDescription.GetMappedContainerEntry2FieldInfos(containerEntryName:=aPKName, containerID:=primarykey.Tableid)
 
                 If aMappingList IsNot Nothing Then
                     For Each aMapping In aMappingList
-                        If pkarray(i) Is Nothing Then
-                            'do nothing since the event handler to generate a key might be called
+                        If primarykey(i) Is Nothing Then
+                            'do nothing since the event handler to generate a key might be called by an event
                             '
                             'CoreMessageHandler(message:="part of primary key must not be nothing", arg1:=pkarray(i), _
                             '                   objectname:=aDescription.Name, messagetype:=otCoreMessageType.InternalError, _
                             '                   subname:="Shuffle.SubstituteDomainIDInPrimaryKey")
                             'Return False
-                        ElseIf Not pkarray(i).GetType.Equals(aMapping.FieldType) Then
-                            Dim avalue = pkarray(i)
+                        ElseIf Not primarykey(i).GetType.Equals(aMapping.FieldType) Then
+                            Dim avalue = primarykey(i)
                             Try
-                                pkarray(i) = CTypeDynamic(avalue, aMapping.FieldType)
+                                primarykey(i) = CTypeDynamic(avalue, aMapping.FieldType)
                             Catch ex As Exception
-                                CoreMessageHandler(exception:=ex, arg1:=pkarray(i), subname:="Shuffle.SubstituteDomainIDInPrimaryKey")
+                                CoreMessageHandler(exception:=ex, argument:=primarykey(i), procedure:="Shuffle.SubstituteDomainIDInPrimaryKey")
                                 Return False
                             End Try
 
@@ -290,7 +291,7 @@ Namespace OnTrack.Database
         Public Shared Function Array2otString(input() As Object) As String
             Dim i As Integer
             If IsArrayInitialized(input) Then
-                Dim aStrValue As String = ""
+                Dim aStrValue As String = String.empty
                 For i = LBound(input) To UBound(input)
                     If i = LBound(input) Then
                         aStrValue = ConstDelimiter & CStr(input(i)) & ConstDelimiter
@@ -300,7 +301,7 @@ Namespace OnTrack.Database
                 Next i
                 Return aStrValue
             Else
-                Return ""
+                Return String.empty
             End If
         End Function
         ''' <summary>
@@ -312,7 +313,7 @@ Namespace OnTrack.Database
         Public Shared Function Array2StringList(input() As Object, Optional delimiter As Char = ","c) As String
             Dim i As Integer
             If IsArrayInitialized(input) Then
-                Dim aStrValue As String = ""
+                Dim aStrValue As String = String.empty
                 For i = LBound(input) To UBound(input)
                     If i = LBound(input) Then
                         aStrValue = CStr(input(i))
@@ -322,7 +323,7 @@ Namespace OnTrack.Database
                 Next i
                 Return aStrValue
             Else
-                Return ""
+                Return String.empty
             End If
         End Function
         ''' <summary>
@@ -332,18 +333,18 @@ Namespace OnTrack.Database
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function Enumerable2otString(input As IEnumerable) As String
-            Dim aStrValue As String = ""
-            If input Is Nothing Then Return ""
+            Dim aStrValue As String = String.empty
+            If input Is Nothing Then Return String.empty
             For Each anElement In input
                 Dim s As String
                 If anElement Is Nothing Then
-                    s = ""
+                    s = String.empty
                 Else
                     s = anElement.ToString
                 End If
 
 
-                If aStrValue = "" Then
+                If aStrValue = String.empty Then
                     aStrValue = ConstDelimiter & s & ConstDelimiter
                 Else
                     aStrValue &= s & ConstDelimiter
@@ -358,18 +359,18 @@ Namespace OnTrack.Database
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function Enumerable2StringList(input As IEnumerable, Optional delimiter As Char = ","c) As String
-            Dim aStrValue As String = ""
-            If input Is Nothing Then Return ""
+            Dim aStrValue As String = String.empty
+            If input Is Nothing Then Return String.empty
             For Each anElement In input
                 Dim s As String
                 If anElement Is Nothing Then
-                    s = ""
+                    s = String.empty
                 Else
                     s = anElement.ToString
                 End If
 
 
-                If aStrValue = "" Then
+                If aStrValue = String.empty Then
                     aStrValue = s
                 Else
                     aStrValue &= delimiter & s
@@ -491,7 +492,7 @@ Namespace OnTrack.Database
                     Case otDataType.Memo, otDataType.Text
                         If input Is Nothing Then
                             failed = True
-                            Return ""
+                            Return String.empty
                         Else
                             failed = False
                             Return input.ToString
@@ -522,14 +523,14 @@ Namespace OnTrack.Database
                         End If
 
                     Case Else
-                        CoreMessageHandler(message:="Datatype is not implemented in this routine", subname:="Converter:object2otObject", arg1:=datatype, _
+                        CoreMessageHandler(message:="Datatype is not implemented in this routine", procedure:="Converter:object2otObject", argument:=datatype, _
                                             messagetype:=otCoreMessageType.InternalError)
                         failed = True
                         Return Nothing
                 End Select
 
             Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="Converter.Object2OTObject")
+                CoreMessageHandler(exception:=ex, procedure:="Converter.Object2OTObject")
                 failed = True
                 Return Nothing
             End Try
@@ -607,7 +608,7 @@ Namespace OnTrack.Database
             Return False
         End Function
 
-        
+
         ''' <summary>
         ''' returns true if the type is nullable or string (which is also nullable)
         ''' </summary>
@@ -663,20 +664,20 @@ Namespace OnTrack.Database
                         '** Attributes
                         For Each anAttribute As System.Attribute In Attribute.GetCustomAttributes(aFieldInfo)
                             '** TABLE
-                            If anAttribute.GetType().Equals(GetType(ormSchemaTableAttribute)) Then
+                            If anAttribute.GetType().Equals(GetType(ormTableAttribute)) Then
                                 '* set the tablename
-                                DirectCast(anAttribute, ormSchemaTableAttribute).TableName = aFieldInfo.GetValue(Nothing).ToString
+                                DirectCast(anAttribute, ormTableAttribute).TableID = aFieldInfo.GetValue(Nothing).ToString
                                 anAttributeList.Add(anAttribute)
                                 '** FIELD COLUMN
-                            ElseIf anAttribute.GetType().Equals(GetType(ormObjectEntryAttribute)) Then
+                            ElseIf anAttribute.GetType().Equals(GetType(iormObjectEntry)) Then
                                 '* set the cloumn name
-                                DirectCast(anAttribute, ormObjectEntryAttribute).ColumnName = aFieldInfo.GetValue(Nothing).ToString
+                                DirectCast(anAttribute, ormObjectEntryAttribute).ContainerEntryName = aFieldInfo.GetValue(Nothing).ToString
 
                                 anAttributeList.Add(anAttribute)
                                 '** INDEX
-                            ElseIf anAttribute.GetType().Equals(GetType(ormSchemaIndexAttribute)) Then
+                            ElseIf anAttribute.GetType().Equals(GetType(ormIndexAttribute)) Then
                                 '* set the index name
-                                DirectCast(anAttribute, ormSchemaIndexAttribute).IndexName = aFieldInfo.GetValue(Nothing).ToString
+                                DirectCast(anAttribute, ormIndexAttribute).IndexName = aFieldInfo.GetValue(Nothing).ToString
 
                                 anAttributeList.Add(anAttribute)
                             End If
@@ -688,7 +689,7 @@ Namespace OnTrack.Database
 
             Catch ex As Exception
 
-                Call CoreMessageHandler(subname:="Reflector.GetAttribute", exception:=ex)
+                Call CoreMessageHandler(procedure:="Reflector.GetAttribute", exception:=ex)
                 Return anAttributeList
 
             End Try
@@ -721,10 +722,10 @@ Namespace OnTrack.Database
                         '** Attributes
                         For Each anAttribute As System.Attribute In Attribute.GetCustomAttributes(aFieldInfo)
                             ''' Column
-                            If anAttribute.GetType().Equals(GetType(ormObjectEntryAttribute)) Then
+                            If anAttribute.GetType().Equals(GetType(iormObjectEntry)) Then
                                 If aFieldInfo.GetValue(Nothing).ToString.ToUpper = columnName.ToUpper Then
                                     '* set the column name
-                                    DirectCast(anAttribute, ormObjectEntryAttribute).ColumnName = aFieldInfo.GetValue(Nothing).ToString
+                                    DirectCast(anAttribute, ormObjectEntryAttribute).ContainerEntryName = aFieldInfo.GetValue(Nothing).ToString
 
                                     Return anAttribute
                                 End If
@@ -737,7 +738,7 @@ Namespace OnTrack.Database
 
             Catch ex As Exception
 
-                Call CoreMessageHandler(subname:="Reflector.GetColumnAttribute", exception:=ex)
+                Call CoreMessageHandler(procedure:="Reflector.GetColumnAttribute", exception:=ex)
                 Return Nothing
 
             End Try
@@ -769,10 +770,10 @@ Namespace OnTrack.Database
                         '** Attributes
                         For Each anAttribute As System.Attribute In Attribute.GetCustomAttributes(aFieldInfo)
                             ''' Index
-                            If anAttribute.GetType().Equals(GetType(ormSchemaIndexAttribute)) Then
+                            If anAttribute.GetType().Equals(GetType(ormIndexAttribute)) Then
                                 If aFieldInfo.GetValue(Nothing).ToString.ToUpper = indexName.ToUpper Then
                                     '* set the index name
-                                    DirectCast(anAttribute, ormSchemaIndexAttribute).IndexName = aFieldInfo.GetValue(Nothing).ToString
+                                    DirectCast(anAttribute, ormIndexAttribute).IndexName = aFieldInfo.GetValue(Nothing).ToString
 
                                     Return anAttribute
                                 End If
@@ -785,7 +786,7 @@ Namespace OnTrack.Database
 
             Catch ex As Exception
 
-                Call CoreMessageHandler(subname:="Reflector.GetIndexAttribute", exception:=ex)
+                Call CoreMessageHandler(procedure:="Reflector.GetIndexAttribute", exception:=ex)
                 Return Nothing
 
             End Try
@@ -798,12 +799,12 @@ Namespace OnTrack.Database
         ''' <param name="classdescriptor"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Shared Function GetColumnEntryValues(dataobject As iormPersistable, Optional entrynames As String() = Nothing) As List(Of Object)
+        Public Shared Function GetColumnEntryValues(dataobject As iormRelationalPersistable, Optional entrynames As String() = Nothing) As List(Of Object)
             Dim aDescriptor As ObjectClassDescription = ot.GetObjectClassDescription(dataobject.GetType)
             Dim aList As New List(Of Object)
             If aDescriptor Is Nothing Then
-                CoreMessageHandler(message:="Class Description not found for data object", arg1:=dataobject.GetType.Name, _
-                                   subname:="Reflector.Getvalues", messagetype:=otCoreMessageType.InternalError)
+                CoreMessageHandler(message:="Class Description not found for data object", argument:=dataobject.GetType.Name, _
+                                   procedure:="Reflector.Getvalues", messagetype:=otCoreMessageType.InternalError)
                 Return aList
             End If
             If entrynames Is Nothing Then
@@ -813,9 +814,9 @@ Namespace OnTrack.Database
             '*** get the values in the order of the entrynames
             For Each anEntryname In entrynames
                 Dim anObjectEntry = aDescriptor.GetObjectEntryAttribute(entryname:=anEntryname)
-                If anObjectEntry IsNot Nothing AndAlso anObjectEntry.HasValueColumnName AndAlso anObjectEntry.HasValueTableName Then
-                    Dim aFieldlist = aDescriptor.GetMappedColumnFieldInfos(columnname:=anObjectEntry.ColumnName, _
-                                                                           tablename:=anObjectEntry.Tablename)
+                If anObjectEntry IsNot Nothing AndAlso anObjectEntry.HasValueContainerEntryName AndAlso anObjectEntry.HasValueContainerID Then
+                    Dim aFieldlist = aDescriptor.GetMappedContainerEntry2FieldInfos(containerEntryName:=anObjectEntry.ContainerEntryName, _
+                                                                           containerID:=anObjectEntry.ContainerID)
                     If aFieldlist IsNot Nothing AndAlso aFieldlist.Count > 0 Then
                         Dim aValue As Object
                         '** get value by hook or slooow
@@ -826,22 +827,22 @@ Namespace OnTrack.Database
                         aList.Add(aValue)
                     ElseIf aFieldlist Is Nothing OrElse aFieldlist.Count = 0 Then
                         CoreMessageHandler(message:="Object Entry not mapped to a FieldMember of the class ", _
-                                       arg1:=dataobject.GetType.Name, entryname:=anEntryname, objectname:=dataobject.ObjectID, _
-                                       subname:="Reflector.Getvalues", messagetype:=otCoreMessageType.InternalWarning)
+                                       argument:=dataobject.GetType.Name, entryname:=anEntryname, objectname:=dataobject.ObjectID, _
+                                       procedure:="Reflector.Getvalues", messagetype:=otCoreMessageType.InternalWarning)
                     Else
                         CoreMessageHandler(message:="Object Entry mapped to multiple FieldMember of the class - first one taken ", _
-                                       arg1:=dataobject.GetType.Name, entryname:=anEntryname, objectname:=dataobject.ObjectID, _
-                                       subname:="Reflector.Getvalues", messagetype:=otCoreMessageType.InternalWarning)
+                                       argument:=dataobject.GetType.Name, entryname:=anEntryname, objectname:=dataobject.ObjectID, _
+                                       procedure:="Reflector.Getvalues", messagetype:=otCoreMessageType.InternalWarning)
                     End If
 
                 ElseIf anObjectEntry Is Nothing Then
                     CoreMessageHandler(message:="Object Entry not found in Class Description ", _
-                                       arg1:=dataobject.GetType.Name, entryname:=anEntryname, objectname:=dataobject.ObjectID, _
-                                       subname:="Reflector.Getvalues", messagetype:=otCoreMessageType.InternalError)
-                ElseIf Not anObjectEntry.HasValueColumnName OrElse Not anObjectEntry.HasValueTableName Then
+                                       argument:=dataobject.GetType.Name, entryname:=anEntryname, objectname:=dataobject.ObjectID, _
+                                       procedure:="Reflector.Getvalues", messagetype:=otCoreMessageType.InternalError)
+                ElseIf Not anObjectEntry.HasValueContainerEntryName OrElse Not anObjectEntry.HasValueContainerID Then
                     CoreMessageHandler(message:="Class Description Object Entry has no tablename or columnname ", _
-                                       arg1:=dataobject.GetType.Name, entryname:=anEntryname, objectname:=dataobject.ObjectID, _
-                                       subname:="Reflector.Getvalues", messagetype:=otCoreMessageType.InternalError)
+                                       argument:=dataobject.GetType.Name, entryname:=anEntryname, objectname:=dataobject.ObjectID, _
+                                       procedure:="Reflector.Getvalues", messagetype:=otCoreMessageType.InternalError)
                 End If
             Next
 
@@ -857,20 +858,20 @@ Namespace OnTrack.Database
         ''' <param name="value"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Shared Function SetFieldValue(field As FieldInfo, dataobject As iormPersistable, value As Object) As Boolean
+        Public Shared Function SetFieldValue(field As FieldInfo, dataobject As iormRelationalPersistable, value As Object) As Boolean
 
             Try
                 Dim converter As TypeConverter = TypeDescriptor.GetConverter(field.FieldType)
                 Dim aClassDescription = dataobject.ObjectClassDescription 'ot.GetObjectClassDescription(dataobject.GetType)
                 If aClassDescription Is Nothing Then
-                    CoreMessageHandler(message:="class description of object could not be retrieved", objectname:=dataobject.ObjectID, arg1:=field.Name, _
-                                       subname:="Reflector.SetFieldValue", messagetype:=otCoreMessageType.InternalError)
+                    CoreMessageHandler(message:="class description of object could not be retrieved", objectname:=dataobject.ObjectID, argument:=field.Name, _
+                                       procedure:="Reflector.SetFieldValue", messagetype:=otCoreMessageType.InternalError)
                     Return False
                 End If
                 Dim aSetter = aClassDescription.GetFieldMemberSetterDelegate(field.Name)
                 If aSetter Is Nothing Then
-                    CoreMessageHandler(message:="setter delegate of object could not be retrieved - field.setvalue will be used", objectname:=dataobject.ObjectID, arg1:=field.Name, _
-                                       subname:="Reflector.SetFieldValue", messagetype:=otCoreMessageType.InternalError)
+                    CoreMessageHandler(message:="setter delegate of object could not be retrieved - field.setvalue will be used", objectname:=dataobject.ObjectID, argument:=field.Name, _
+                                       procedure:="Reflector.SetFieldValue", messagetype:=otCoreMessageType.InternalError)
                 End If
 
                 ''' if we have a null somehow
@@ -941,151 +942,151 @@ Namespace OnTrack.Database
                     ''' setter for all types of list interfaces
                     ''' 
                 ElseIf targettype.GetInterfaces.Contains(GetType(IList)) Then
-                        Dim anArray As String()
-                        Dim aList As Object
-                        If value.GetType.IsArray Then
-                            anArray = value
-                            If anArray.Count = 0 Then
-                                aList = Reflector.CreateInstanceOfIlist(targettype.GetGenericArguments.First)
-                            Else
-                                aList = anArray.ToList
-                            End If
-                        ElseIf value.GetType.GetInterfaces.Contains(GetType(IList)) Then
-                            ''' make sure that the inner type of the list 
-                            ''' are casted as well before we pass it
-                            Dim innertype As System.Type = value.GetType.GetGenericArguments.First
+                    Dim anArray As String()
+                    Dim aList As Object
+                    If value.GetType.IsArray Then
+                        anArray = value
+                        If anArray.Count = 0 Then
                             aList = Reflector.CreateInstanceOfIlist(targettype.GetGenericArguments.First)
-                            For i = 0 To DirectCast(value, IList).Count - 1
-                                '' try to cast
-                                Dim item As Object = CTypeDynamic(DirectCast(value, IList).Item(i), innertype)
-                                TryCast(aList, IList).Add(item)
-                            Next
-
-                        ElseIf value.GetType.Equals(GetType(String)) Then
-                            anArray = OnTrack.Database.Converter.otString2Array(value)
-                            If anArray.Count = 0 Then
-                                aList = New List(Of String) 'HACK ! this should be of generic type of the field
-                            Else
-                                aList = anArray.ToList
-                            End If
-
                         Else
-                            CoreMessageHandler(message:="Type is not convertable to ILIST", subname:="Reflector.SetFieldValue", messagetype:=otCoreMessageType.InternalError, _
-                                               entryname:=field.Name, tablename:=dataobject.primaryTableID, _
-                                               arg1:=field.Name)
+                            aList = anArray.ToList
+                        End If
+                    ElseIf value.GetType.GetInterfaces.Contains(GetType(IList)) Then
+                        ''' make sure that the inner type of the list 
+                        ''' are casted as well before we pass it
+                        Dim innertype As System.Type = value.GetType.GetGenericArguments.First
+                        aList = Reflector.CreateInstanceOfIlist(targettype.GetGenericArguments.First)
+                        For i = 0 To DirectCast(value, IList).Count - 1
+                            '' try to cast
+                            Dim item As Object = CTypeDynamic(DirectCast(value, IList).Item(i), innertype)
+                            TryCast(aList, IList).Add(item)
+                        Next
 
+                    ElseIf value.GetType.Equals(GetType(String)) Then
+                        anArray = OnTrack.Database.Converter.otString2Array(value)
+                        If anArray.Count = 0 Then
+                            aList = New List(Of String) 'HACK ! this should be of generic type of the field
+                        Else
+                            aList = anArray.ToList
                         End If
 
-                        ''' set the value
-                        ''' 
-                        If aSetter IsNot Nothing Then
-                            aSetter(dataobject, aList)
-                        Else
-                            field.SetValue(dataobject, aList)
-                        End If
+                    Else
+                        CoreMessageHandler(message:="Type is not convertable to ILIST", procedure:="Reflector.SetFieldValue", messagetype:=otCoreMessageType.InternalError, _
+                                           entryname:=field.Name, containerID:=dataobject.ObjectPrimaryTableID, _
+                                           argument:=field.Name)
+
+                    End If
+
+                    ''' set the value
+                    ''' 
+                    If aSetter IsNot Nothing Then
+                        aSetter(dataobject, aList)
+                    Else
+                        field.SetValue(dataobject, aList)
+                    End If
 
                 ElseIf value Is Nothing OrElse targettype.Equals(value.GetType) Then
-                        If aSetter IsNot Nothing Then
-                            aSetter(dataobject, value)
-                        Else
-                            field.SetValue(dataobject, value)
-                        End If
+                    If aSetter IsNot Nothing Then
+                        aSetter(dataobject, value)
+                    Else
+                        field.SetValue(dataobject, value)
+                    End If
 
                 ElseIf targettype.IsEnum Then
-                        Dim anewValue As Object
-                        If value.GetType.Equals(GetType(String)) Then
-                            '* transform
-                            anewValue = CTypeDynamic([Enum].Parse(field.FieldType, value, ignoreCase:=True), field.FieldType)
-                        Else
-                            anewValue = CTypeDynamic(value, field.FieldType)
-                        End If
+                    Dim anewValue As Object
+                    If value.GetType.Equals(GetType(String)) Then
+                        '* transform
+                        anewValue = CTypeDynamic([Enum].Parse(field.FieldType, value, ignoreCase:=True), field.FieldType)
+                    Else
+                        anewValue = CTypeDynamic(value, field.FieldType)
+                    End If
 
-                        If aSetter IsNot Nothing Then
-                            aSetter(dataobject, anewValue)
-                        Else
-                            field.SetValue(dataobject, anewValue)
-                        End If
+                    If aSetter IsNot Nothing Then
+                        aSetter(dataobject, anewValue)
+                    Else
+                        field.SetValue(dataobject, anewValue)
+                    End If
                 ElseIf converter.CanConvertFrom(value.GetType) Then
-                        Dim anewvalue As Object = converter.ConvertFrom(value)
-                        If aSetter IsNot Nothing Then
-                            aSetter(dataobject, anewvalue)
-                        Else
-                            field.SetValue(dataobject, anewvalue)
-                        End If
+                    Dim anewvalue As Object = converter.ConvertFrom(value)
+                    If aSetter IsNot Nothing Then
+                        aSetter(dataobject, anewvalue)
+                    Else
+                        field.SetValue(dataobject, anewvalue)
+                    End If
                 ElseIf targettype.Equals(GetType(Long)) AndAlso IsNumeric(value) Then
-                        If aSetter IsNot Nothing Then
-                            aSetter(dataobject, CLng(value))
-                        Else
-                            field.SetValue(dataobject, CLng(value))
-                        End If
+                    If aSetter IsNot Nothing Then
+                        aSetter(dataobject, CLng(value))
+                    Else
+                        field.SetValue(dataobject, CLng(value))
+                    End If
                 ElseIf targettype.Equals(GetType(Boolean)) Then
-                        If aSetter IsNot Nothing Then
-                            aSetter(dataobject, CBool(value))
-                        Else
-                            field.SetValue(dataobject, CBool(value))
-                        End If
+                    If aSetter IsNot Nothing Then
+                        aSetter(dataobject, CBool(value))
+                    Else
+                        field.SetValue(dataobject, CBool(value))
+                    End If
 
                 ElseIf targettype.Equals(GetType(String)) Then
-                        If aSetter IsNot Nothing Then
-                            aSetter(dataobject, CStr(value))
-                        Else
-                            field.SetValue(dataobject, CStr(value))
-                        End If
+                    If aSetter IsNot Nothing Then
+                        aSetter(dataobject, CStr(value))
+                    Else
                         field.SetValue(dataobject, CStr(value))
+                    End If
+                    field.SetValue(dataobject, CStr(value))
                 ElseIf targettype.Equals(GetType(Integer)) AndAlso IsNumeric(value) Then
-                        If aSetter IsNot Nothing Then
-                            aSetter(dataobject, CInt(value))
-                        Else
-                            field.SetValue(dataobject, CInt(value))
-                        End If
+                    If aSetter IsNot Nothing Then
+                        aSetter(dataobject, CInt(value))
+                    Else
+                        field.SetValue(dataobject, CInt(value))
+                    End If
 
                 ElseIf targettype.Equals(GetType(UInteger)) AndAlso IsNumeric(value) _
                     AndAlso value >= UInteger.MinValue AndAlso value <= UInteger.MaxValue Then
-                        If aSetter IsNot Nothing Then
-                            aSetter(dataobject, CUInt(value))
-                        Else
-                            field.SetValue(dataobject, CUInt(value))
-                        End If
+                    If aSetter IsNot Nothing Then
+                        aSetter(dataobject, CUInt(value))
+                    Else
+                        field.SetValue(dataobject, CUInt(value))
+                    End If
                 ElseIf targettype.Equals(GetType(UShort)) And IsNumeric(value) _
                     AndAlso value >= UShort.MinValue AndAlso value <= UShort.MaxValue Then
-                        If aSetter IsNot Nothing Then
-                            aSetter(dataobject, CUShort(value))
-                        Else
-                            field.SetValue(dataobject, CUShort(value))
-                        End If
+                    If aSetter IsNot Nothing Then
+                        aSetter(dataobject, CUShort(value))
+                    Else
+                        field.SetValue(dataobject, CUShort(value))
+                    End If
                 ElseIf targettype.Equals(GetType(ULong)) And IsNumeric(value) _
                      AndAlso value >= ULong.MinValue AndAlso value <= ULong.MaxValue Then
-                        If aSetter IsNot Nothing Then
-                            aSetter(dataobject, CULng(value))
-                        Else
-                            field.SetValue(dataobject, CULng(value))
-                        End If
+                    If aSetter IsNot Nothing Then
+                        aSetter(dataobject, CULng(value))
+                    Else
+                        field.SetValue(dataobject, CULng(value))
+                    End If
 
                 ElseIf targettype.Equals(GetType(Double)) And IsNumeric(value) _
                     AndAlso value >= Double.MinValue AndAlso value <= Double.MaxValue Then
-                        If aSetter IsNot Nothing Then
-                            aSetter(dataobject, CDbl(value))
-                        Else
-                            field.SetValue(dataobject, CDbl(value))
-                        End If
+                    If aSetter IsNot Nothing Then
+                        aSetter(dataobject, CDbl(value))
+                    Else
+                        field.SetValue(dataobject, CDbl(value))
+                    End If
                 ElseIf targettype.Equals(GetType(Decimal)) And IsNumeric(value) _
                   AndAlso value >= Decimal.MinValue AndAlso value <= Decimal.MaxValue Then
-                        If aSetter IsNot Nothing Then
-                            aSetter(dataobject, CDec(value))
-                        Else
-                            field.SetValue(dataobject, CDec(value))
-                        End If
+                    If aSetter IsNot Nothing Then
+                        aSetter(dataobject, CDec(value))
+                    Else
+                        field.SetValue(dataobject, CDec(value))
+                    End If
                 ElseIf targettype.Equals(GetType(Object)) Then
-                        If aSetter IsNot Nothing Then
-                            aSetter(dataobject, value)
-                        Else
-                            field.SetValue(dataobject, value)
-                        End If
+                    If aSetter IsNot Nothing Then
+                        aSetter(dataobject, value)
+                    Else
+                        field.SetValue(dataobject, value)
+                    End If
                 Else
-                        Call CoreMessageHandler(subname:="ormDataObject.infuse", message:="cannot convert record value type to field type", _
-                                               entryname:=field.Name, tablename:=dataobject.primaryTableID, _
-                                               arg1:=field.Name, messagetype:=otCoreMessageType.InternalError)
-                        Return False
+                    Call CoreMessageHandler(procedure:="ormDataObject.infuse", message:="cannot convert record value type to field type", _
+                                           entryname:=field.Name, containerID:=dataobject.ObjectPrimaryTableID, _
+                                           argument:=field.Name, messagetype:=otCoreMessageType.InternalError)
+                    Return False
                 End If
                 'End SyncLock
 
@@ -1093,7 +1094,7 @@ Namespace OnTrack.Database
 
             Catch ex As Exception
 
-                CoreMessageHandler(exception:=ex, subname:="Reflector.SetFieldValue", arg1:=value, entryname:=field.Name, objectname:=dataobject.ObjectID)
+                CoreMessageHandler(exception:=ex, procedure:="Reflector.SetFieldValue", argument:=value, entryname:=field.Name, objectname:=dataobject.ObjectID)
                 Return False
             End Try
 
@@ -1107,20 +1108,20 @@ Namespace OnTrack.Database
         ''' <param name="value"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Shared Function GetFieldValue(field As FieldInfo, dataobject As iormPersistable, ByRef value As Object) As Boolean
+        Public Shared Function GetFieldValue(field As FieldInfo, dataobject As iormRelationalPersistable, ByRef value As Object) As Boolean
 
             Try
                 'Dim converter As TypeConverter = TypeDescriptor.GetConverter(field.FieldType)
                 Dim aClassDescription = dataobject.ObjectClassDescription 'ot.GetObjectClassDescription(dataobject.GetType)
                 If aClassDescription Is Nothing Then
-                    CoreMessageHandler(message:="class description of object could not be retrieved", objectname:=dataobject.ObjectID, arg1:=field.Name, _
-                                       subname:="Reflector.GetFieldValue", messagetype:=otCoreMessageType.InternalError)
+                    CoreMessageHandler(message:="class description of object could not be retrieved", objectname:=dataobject.ObjectID, argument:=field.Name, _
+                                       procedure:="Reflector.GetFieldValue", messagetype:=otCoreMessageType.InternalError)
                     Return False
                 End If
                 Dim aGetter = aClassDescription.GetFieldMemberGetterDelegate(field.Name)
                 If aGetter Is Nothing Then
-                    CoreMessageHandler(message:="setter delegate of object could not be retrieved", objectname:=dataobject.ObjectID, arg1:=field.Name, _
-                                      subname:="Reflector.GetFieldValue", messagetype:=otCoreMessageType.InternalError)
+                    CoreMessageHandler(message:="setter delegate of object could not be retrieved", objectname:=dataobject.ObjectID, argument:=field.Name, _
+                                      procedure:="Reflector.GetFieldValue", messagetype:=otCoreMessageType.InternalError)
                     Return False
                 End If
 
@@ -1130,7 +1131,7 @@ Namespace OnTrack.Database
 
             Catch ex As Exception
 
-                CoreMessageHandler(exception:=ex, subname:="Reflector.GetFieldValue", arg1:=value, entryname:=field.Name, objectname:=dataobject.ObjectID)
+                CoreMessageHandler(exception:=ex, procedure:="Reflector.GetFieldValue", argument:=value, entryname:=field.Name, objectname:=dataobject.ObjectID)
                 Return False
             End Try
 

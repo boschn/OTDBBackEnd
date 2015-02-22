@@ -84,10 +84,10 @@ Namespace OnTrack
         Private _CreateInstanceDelegateStore As New Dictionary(Of String, ObjectClassDescription.CreateInstanceDelegate) ' Class Name and Delegate for Instance Creator
         Private _DescriptionsByClassTypeDescriptionStore As New Dictionary(Of String, ObjectClassDescription) 'name of classes with id
         Private _DescriptionsByIDDescriptionStore As New Dictionary(Of String, ObjectClassDescription) 'name of classes with id
-        Private _Table2ObjectClassStore As New Dictionary(Of String, List(Of Type)) 'name of tables to types
+        Private _Container2ObjectClassStore As New Dictionary(Of String, List(Of Type)) 'name of tables to types
         Private _BootstrapObjectClasses As New List(Of Type)
         Private _ClassDescriptorPerModule As New Dictionary(Of String, List(Of ObjectClassDescription))
-        Private _TableAttributesStore As New Dictionary(Of String, ormSchemaTableAttribute)
+        Private _ContainerAttributesStore As New Dictionary(Of String, iormContainerAttribute)
 
         Public Event OnObjectClassDescriptionLoaded(sender As Object, e As ObjectClassRepository.EventArgs)
 
@@ -149,97 +149,102 @@ Namespace OnTrack
         ''' <param name="tableattribute"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function AlterTableAttribute(ByRef tableattribute As ormSchemaTableAttribute, Optional fieldinfo As FieldInfo = Nothing) As Boolean
-            Dim aTableattribute As ormSchemaTableAttribute
+        Public Function AlterContainerAttribute(ByRef containerAttribute As iormContainerAttribute, Optional fieldinfo As FieldInfo = Nothing) As Boolean
+            Dim aContainerAttribute As iormContainerAttribute
             Dim afieldvalue As String
-            Dim aTablename As String
+            Dim aContainerID As String
 
             If fieldinfo IsNot Nothing Then
                 afieldvalue = fieldinfo.GetValue(Nothing).ToString.ToUpper
             End If
 
             '***
-            If tableattribute.HasValueTableName Then
-                aTablename = tableattribute.TableName
+            If containerAttribute.HasValueContainerID Then
+                aContainerID = containerAttribute.ContainerID
             ElseIf fieldinfo IsNot Nothing Then
-                aTablename = afieldvalue
-            ElseIf tableattribute.HasValueID Then
-                aTablename = tableattribute.ID
+                aContainerID = afieldvalue
+            ElseIf containerAttribute.HasValueID Then
+                aContainerID = containerAttribute.ID
             Else
-                CoreMessageHandler(message:="cannot determine tablename", subname:="ObjectClassrepository.AlterTableAttribute", _
+                CoreMessageHandler(message:="cannot determine container name", procedure:="ObjectClassrepository.AlterContainerAttribute", _
                                    messagetype:=otCoreMessageType.InternalError)
                 Return False
             End If
 
-            If _TableAttributesStore.ContainsKey(aTablename) Then
-                aTableattribute = _TableAttributesStore.Item(aTablename)
+            If _ContainerAttributesStore.ContainsKey(aContainerID) Then
+                aContainerAttribute = _ContainerAttributesStore.Item(aContainerID)
                 '** default values
-                With aTableattribute
+                With aContainerAttribute
                     '**
-                    If Not .HasValueTableName Then .TableName = aTablename
+                    If Not .HasValueContainerID Then .ContainerID = aContainerID
                     '** version
-                    If tableattribute.HasValueVersion Then
+                    If containerAttribute.HasValueVersion Then
                         If Not .HasValueVersion Then
-                            .Version = tableattribute.Version
-                        ElseIf .Version < tableattribute.Version Then
-                            .Version = tableattribute.Version
+                            .Version = containerAttribute.Version
+                        ElseIf .Version < containerAttribute.Version Then
+                            .Version = containerAttribute.Version
                         End If
                     End If
 
                     '** copy
                     '** true overrules
-                    If (.HasValueAddDomainBehavior AndAlso Not .AddDomainBehavior AndAlso tableattribute.HasValueAddDomainBehavior) _
-                        OrElse (Not .HasValueAddDomainBehavior AndAlso tableattribute.HasValueAddDomainBehavior) Then
-                        .AddDomainBehavior = tableattribute.AddDomainBehavior
+                    If (.HasValueAddDomainBehavior AndAlso Not .AddDomainBehavior AndAlso containerAttribute.HasValueAddDomainBehavior) _
+                        OrElse (Not .HasValueAddDomainBehavior AndAlso containerAttribute.HasValueAddDomainBehavior) Then
+                        .AddDomainBehavior = containerAttribute.AddDomainBehavior
                     End If
-                    If (.HasValueDeleteFieldBehavior AndAlso Not .AddDeleteFieldBehavior AndAlso tableattribute.HasValueDeleteFieldBehavior) _
-                       OrElse (Not .HasValueDeleteFieldBehavior AndAlso tableattribute.HasValueDeleteFieldBehavior) Then
-                        .AddDeleteFieldBehavior = tableattribute.AddDeleteFieldBehavior
+                    If (.HasValueDeleteFieldBehavior AndAlso Not .AddDeleteFieldBehavior AndAlso containerAttribute.HasValueDeleteFieldBehavior) _
+                       OrElse (Not .HasValueDeleteFieldBehavior AndAlso containerAttribute.HasValueDeleteFieldBehavior) Then
+                        .AddDeleteFieldBehavior = containerAttribute.AddDeleteFieldBehavior
                     End If
-                    If (.HasValueSpareFields AndAlso Not .HasValueSpareFields AndAlso tableattribute.HasValueSpareFields) _
-                      OrElse (Not .HasValueSpareFields AndAlso tableattribute.HasValueSpareFields) Then
-                        .AddSpareFields = tableattribute.AddSpareFields
+                    If (.HasValueSpareFields AndAlso Not .HasValueSpareFields AndAlso containerAttribute.HasValueSpareFields) _
+                      OrElse (Not .HasValueSpareFields AndAlso containerAttribute.HasValueSpareFields) Then
+                        .AddSpareFields = containerAttribute.AddSpareFields
                     End If
-                    If (.HasValueUseCache AndAlso Not .UseCache AndAlso tableattribute.HasValueUseCache) _
-                     OrElse (Not .HasValueUseCache AndAlso tableattribute.HasValueUseCache) Then
-                        .UseCache = tableattribute.UseCache
+                    If (.HasValueUseCache AndAlso Not .UseCache AndAlso containerAttribute.HasValueUseCache) _
+                     OrElse (Not .HasValueUseCache AndAlso containerAttribute.HasValueUseCache) Then
+                        .UseCache = containerAttribute.UseCache
                     End If
                     '** other
-                    If Not .HasValueDescription AndAlso tableattribute.HasValueDescription Then
-                        .Description = tableattribute.Description
+                    If Not .HasValueDescription AndAlso containerAttribute.HasValueDescription Then
+                        .Description = containerAttribute.Description
                     End If
-                    If Not .HasValuePrimaryKey AndAlso tableattribute.HasValuePrimaryKey Then
-                        .PrimaryKey = tableattribute.PrimaryKey
+                    If Not .HasValuePrimaryKey AndAlso containerAttribute.HasValuePrimaryKey Then
+                        .PrimaryKey = containerAttribute.PrimaryKey
                     End If
-                    If Not .HasValueID AndAlso tableattribute.HasValueID Then
-                        .ID = tableattribute.ID
+                    If Not .HasValueID AndAlso containerAttribute.HasValueID Then
+                        .ID = containerAttribute.ID
                     End If
 
                     '** import foreign keys
-                    For Each afk In tableattribute.ForeignKeyAttributes
-                        If Not .HasForeignkey(afk.ID) Then
+                    For Each afk In containerAttribute.ForeignKeyAttributes
+                        If Not .HasForeignKey(afk.ID) Then
                             .AddForeignKey(afk)
                         End If
                     Next
                     '** import columns
-                    For Each acol In tableattribute.ColumnAttributes
-                        If Not .HasColumn(acol.ColumnName) Then
-                            .AddColumn(acol)
+                    For Each acol In containerAttribute.EntryAttributes
+                        If Not .HasEntry(acol.ContainerEntryName) Then
+                            .AddEntry(acol)
                         End If
                     Next
-
+                    '** import indices
+                    For Each anindex In containerAttribute.IndexAttributes
+                        If Not .HasIndex(anindex.IndexName) Then
+                            .AddIndex(anindex)
+                        End If
+                    Next
                 End With
                 '** overwrite
-                tableattribute = aTableattribute
+                containerAttribute = aContainerAttribute
             Else
                 '** take the new one
-                With tableattribute
+                With containerAttribute
                     '**
-                    .TableName = aTablename
+                    .ContainerID = aContainerID
                     '** version
                     If Not .HasValueVersion Then .Version = 1
                 End With
-                _TableAttributesStore.Add(key:=tableattribute.TableName.ToUpper, value:=tableattribute)
+                _ContainerAttributesStore.Add(key:=containerAttribute.ContainerID.ToUpper, value:=containerAttribute)
             End If
 
         End Function
@@ -257,7 +262,7 @@ Namespace OnTrack
                     If Not aList.Contains(anObjectDescription) Then aList.Add(anObjectDescription)
                 Else
                     CoreMessageHandler(message:="Object Description not found for bootstrapping classes", objectname:=aClasstype.Name, _
-                                       subname:="objectClassRepository.GetBootStrapObjectClassDescriptions", messagetype:=otCoreMessageType.InternalError)
+                                       procedure:="objectClassRepository.GetBootStrapObjectClassDescriptions", messagetype:=otCoreMessageType.InternalError)
                 End If
             Next
             Return aList
@@ -267,18 +272,18 @@ Namespace OnTrack
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetBootStrapTableNames() As List(Of String)
+        Public Function GetBootStrapContainerIDs() As List(Of String)
             Me.Initialize()
             Dim aList = New List(Of String)
             For Each aClasstype In _BootstrapObjectClasses
                 Dim anObjectDescription As ObjectClassDescription = Me.GetObjectClassDescription(aClasstype)
                 If anObjectDescription IsNot Nothing Then
-                    For Each aName In anObjectDescription.Tables
+                    For Each aName In anObjectDescription.Tablenames
                         If Not aList.Contains(aName.ToUpper) Then aList.Add(aName.ToUpper)
                     Next
                 Else
                     CoreMessageHandler(message:="Object Description not found for bootstrapping classes", objectname:=aClasstype.Name, _
-                                       subname:="objectClassRepository.getBootStrapTablesNames", messagetype:=otCoreMessageType.InternalError)
+                                       procedure:="objectClassRepository.getBootStrapTablesNames", messagetype:=otCoreMessageType.InternalError)
                 End If
             Next
             Return aList
@@ -289,19 +294,19 @@ Namespace OnTrack
         ''' <param name="type"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function CreateInstance(type As System.Type) As iormPersistable
+        Public Function CreateInstance(type As System.Type) As iormRelationalPersistable
             Try
-                If Not _CreateInstanceDelegateStore.ContainsKey(key:=Type.FullName.ToUpper) Then
+                If Not _CreateInstanceDelegateStore.ContainsKey(key:=type.FullName.ToUpper) Then
                     CoreMessageHandler(message:="type is not found in the instance creator store of class descriptions", _
-                                       arg1:=Type.FullName, subname:="ObjectClassRepository.CreateInstance", messagetype:=otCoreMessageType.InternalError)
+                                       argument:=type.FullName, procedure:="ObjectClassRepository.CreateInstance", messagetype:=otCoreMessageType.InternalError)
                     Return Nothing
                 End If
 
                 Dim aDelegate As ObjectClassDescription.CreateInstanceDelegate = _CreateInstanceDelegateStore.Item(key:=type.FullName.ToUpper)
-                Dim anObject As iormPersistable = aDelegate()
+                Dim anObject As iormRelationalPersistable = aDelegate()
                 Return anObject
             Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="ObjectClassRepository.CreateInstance", arg1:=Type.FullName)
+                CoreMessageHandler(exception:=ex, procedure:="ObjectClassRepository.CreateInstance", argument:=type.FullName)
                 Return Nothing
             End Try
         End Function
@@ -338,6 +343,9 @@ Namespace OnTrack
 
             If _DescriptionsByClassTypeDescriptionStore.ContainsKey(key:=typename) Then
                 Return _DescriptionsByClassTypeDescriptionStore.Item(key:=typename)
+            ElseIf Assembly.GetExecutingAssembly.GetType(typename, throwOnError:=False, ignoreCase:=True) IsNot Nothing AndAlso _
+                _DescriptionsByClassTypeDescriptionStore.ContainsKey(key:=Assembly.GetExecutingAssembly.GetType(typename, throwOnError:=False, ignoreCase:=True).FullName) Then
+                Return _DescriptionsByClassTypeDescriptionStore.Item(key:=Assembly.GetExecutingAssembly.GetType(typename, throwOnError:=False, ignoreCase:=True).FullName)
             Else
                 Return Nothing
             End If
@@ -358,24 +366,52 @@ Namespace OnTrack
             End If
         End Function
         ''' <summary>
-        ''' returns the SchemaTableAttribute for a table name
+        ''' returns the container attribute for a container name
         ''' </summary>
         ''' <param name="tablename"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetTableAttribute(tablename As String) As ormSchemaTableAttribute
+        Public Function GetContainerAttribute(containerID As String) As iormContainerAttribute
             Me.Initialize()
 
-            If _TableAttributesStore.ContainsKey(key:=tablename.ToUpper) Then
-                Return _TableAttributesStore(key:=tablename.ToUpper)
+            If _ContainerAttributesStore.ContainsKey(key:=containerID.ToUpper) Then
+                Return _ContainerAttributesStore(key:=containerID.ToUpper)
             Else
                 Return Nothing
             End If
 
         End Function
+        ''' <summary>
+        ''' returns a list of all container attributes 
+        ''' </summary>
+        ''' <param name="tablename"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property ContainerAttributes() As List(Of iormContainerAttribute)
+            Get
+                Me.Initialize()
+                Return _ContainerAttributesStore.Values.ToList
+            End Get
+        End Property
+           
+        ''' <summary>
+        ''' returns a list of all table attributes
+        ''' </summary>
+        ''' <param name="tablename"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function GetTableAttributes() As List(Of ormTableAttribute)
+            Dim aList As New List(Of ormTableAttribute)
+            For Each anAttribute In Me.ContainerAttributes
+                If anAttribute.GetType Is GetType(ormTableAttribute) Then
+                    aList.Add(anAttribute)
+                End If
+            Next
+            Return aList
+        End Function
 
         ''' <summary>
-        ''' gets a schemaColumnAttribute for tablename and columnname
+        ''' gets a ormObjectEntryAttribute for an entryname
         ''' </summary>
         ''' <param name="columnname"></param>
         ''' <param name="tablename"></param>
@@ -397,18 +433,18 @@ Namespace OnTrack
         ''' <param name="attribute"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function SubstituteReferencedTableColumn(ByRef attribute As ormSchemaTableColumnAttribute) As Boolean
+        Public Function SubstituteReferencedContainerEntryProperties(ByRef attribute As iormContainerEntryAttribute) As Boolean
             '*** REFERENCE OBJECT ENTRY
             If attribute.HasValueReferenceObjectEntry Then
-                Dim refObjectName As String = ""
-                Dim refObjectEntry As String = ""
+                Dim refObjectName As String = String.Empty
+                Dim refObjectEntry As String = String.Empty
                 Dim names = Shuffle.NameSplitter(attribute.ReferenceObjectEntry)
                 If names.Count > 1 Then
                     refObjectName = names(0)
                     refObjectEntry = names(1)
                 Else
-                    CoreMessageHandler(message:="objectname is missing in reference " & attribute.ReferenceObjectEntry, subname:="ObjectClassRepository.GetReferenceTableColumn", _
-                                       messagetype:=otCoreMessageType.InternalError, arg1:=attribute.ReferenceObjectEntry, columnname:=attribute.ColumnName, tablename:=attribute.Tablename)
+                    CoreMessageHandler(message:="objectname is missing in reference " & attribute.ReferenceObjectEntry, procedure:="ObjectClassRepository.GetReferenceTableColumn", _
+                                       messagetype:=otCoreMessageType.InternalError, argument:=attribute.ReferenceObjectEntry, containerEntryName:=attribute.ContainerEntryName, containerID:=attribute.ContainerID)
                     Return False
                 End If
 
@@ -419,13 +455,13 @@ Namespace OnTrack
                 If anReferenceAttribute IsNot Nothing Then
                     With anReferenceAttribute
                         If .HasValueID And Not attribute.HasValueID Then attribute.ID = .ID '-> should be set by the const value
-                        If .HasValueTableName And Not attribute.HasValueTableName Then attribute.Tablename = .Tablename
-                        If .HasValueColumnName And Not attribute.HasValueColumnName Then attribute.ColumnName = .ColumnName
+                        If .HasValueContainerID And Not attribute.HasValueContainerID Then attribute.ContainerID = .ContainerID
+                        If .HasValueContainerEntryName And Not attribute.HasValueContainerEntryName Then attribute.ContainerEntryName = .ContainerEntryName
                         If .HasValueRelation And Not attribute.HasValueRelation Then attribute.Relation = .Relation
                         If .HasValueIsNullable And Not attribute.HasValueIsNullable Then attribute.IsNullable = .IsNullable
                         If .HasValueIsUnique And Not attribute.HasValueIsUnique Then attribute.IsUnique = .IsUnique
-                        If .HasValueDataType And Not attribute.HasValueDataType Then attribute.DataType = .DataType
-                        If .HasValueInnerDataType And Not attribute.HasValueInnerDataType Then attribute.InnerDataType = .InnerDataType
+                        If .HasValueDataType And Not attribute.HasValueDataType Then attribute.DataType = .Datatype
+                        If .HasValueInnerDataType And Not attribute.HasValueInnerDataType Then attribute.InnerDataType = .InnerDatatype
                         If .HasValueSize And Not attribute.HasValueSize Then attribute.Size = .Size
                         If .HasValueDescription And Not attribute.HasValueDescription Then attribute.Description = .Description
                         If .HasValueDBDefaultValue And Not attribute.HasValueDBDefaultValue Then attribute.DBDefaultValue = .DBDefaultValue
@@ -438,7 +474,7 @@ Namespace OnTrack
 
                 Else
                     CoreMessageHandler(message:="referenceObjectEntry  object id '" & refObjectName & "' and column name '" & refObjectEntry & "' not found for column schema", _
-                                       columnname:=attribute.ColumnName, tablename:=attribute.Tablename, subname:="ObjectClassRepository.GetReferenceTableColumn", messagetype:=otCoreMessageType.InternalError)
+                                       containerEntryName:=attribute.ContainerEntryName, containerID:=attribute.ContainerID, procedure:="ObjectClassRepository.GetReferenceTableColumn", messagetype:=otCoreMessageType.InternalError)
                 End If
                 Return True
             Else
@@ -455,8 +491,8 @@ Namespace OnTrack
         Public Function SubstituteReferencedObjectEntry(ByRef attribute As ormObjectEntryAttribute) As Boolean
             '*** REFERENCE OBJECT ENTRY
             If attribute.HasValueReferenceObjectEntry Then
-                Dim refObjectName As String = ""
-                Dim refObjectEntry As String = ""
+                Dim refObjectName As String = String.Empty
+                Dim refObjectEntry As String = String.Empty
                 Dim names = Shuffle.NameSplitter(attribute.ReferenceObjectEntry)
                 If names.Count > 1 Then
                     refObjectName = names(0)
@@ -473,9 +509,10 @@ Namespace OnTrack
                 If anReferenceAttribute IsNot Nothing Then
                     With anReferenceAttribute
                         '** read table column elements and then the object references
-                        If SubstituteReferencedTableColumn(attribute:=attribute) Then
+                        If SubstituteReferencedContainerEntryProperties(attribute:=attribute) Then
                             If .HasValueEntryType And Not attribute.HasValueEntryType Then attribute.EntryType = .EntryType
                             If .HasValueTitle And Not attribute.HasValueTitle Then attribute.Title = .Title
+                            If .HasValueCategory And Not attribute.HasValueCategory Then attribute.Category = .Category
                             If .HasValueDescription And Not attribute.HasValueDescription Then attribute.Description = .Description
 
                             If .HasValueXID And Not attribute.HasValueXID Then attribute.XID = .XID
@@ -501,7 +538,7 @@ Namespace OnTrack
 
                 Else
                     CoreMessageHandler(message:="referenceObjectEntry  object id '" & refObjectName & "' and column name '" & refObjectEntry & "' not found for column schema", _
-                                       entryname:=attribute.EntryName, objectname:=attribute.ObjectName, subname:="ObjectClassRepository.SubstituteReferencedObjectEntry", messagetype:=otCoreMessageType.InternalError)
+                                       entryname:=attribute.EntryName, objectname:=attribute.ObjectName, procedure:="ObjectClassRepository.SubstituteReferencedObjectEntry", messagetype:=otCoreMessageType.InternalError)
                 End If
                 Return True
             Else
@@ -516,34 +553,34 @@ Namespace OnTrack
         ''' <param name="tablename"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetSchemaColumnAttribute(columnname As String, Optional tablename As String = "") As ormSchemaTableColumnAttribute
+        Public Function GetSchemaColumnAttribute(columnname As String, Optional tableid As String = Nothing) As ormContainerEntryAttribute
             Me.Initialize()
-            Dim aFieldname As String = ""
-            Dim aTablename As String = ""
+            Dim aFieldname As String = String.Empty
+            Dim aTablename As String = String.Empty
             Dim names() As String = Shuffle.NameSplitter(columnname)
-            Dim anAttribute As ormSchemaTableColumnAttribute
+            Dim anAttribute As ormContainerEntryAttribute
 
 
 
             '** split the names
-            If tablename <> "" And names.Count = 1 Then
+            If Not String.IsNullOrWhiteSpace(tableid) And names.Count = 1 Then
                 aFieldname = columnname.ToUpper
-                aTablename = tablename.ToUpper
-            ElseIf names.Count > 1 AndAlso tablename = "" Then
+                aTablename = tableid.ToUpper
+            ElseIf names.Count > 1 AndAlso String.IsNullOrWhiteSpace(tableid) Then
                 aTablename = names(0)
                 aFieldname = names(1)
             Else
                 CoreMessageHandler(message:="more than one tables in the description but no table name specified in the column name or as argument", _
-                                   messagetype:=otCoreMessageType.InternalError, subname:="ObjectClassDescription.getSchemaColumnAttribute", _
-                                   arg1:=names, tablename:=tablename, columnname:=columnname)
+                                   messagetype:=otCoreMessageType.InternalError, procedure:="ObjectClassDescription.getSchemaColumnAttribute", _
+                                   argument:=names, containerID:=tableid, containerEntryName:=columnname)
                 Return Nothing
             End If
 
             '** return
-            If _TableAttributesStore.ContainsKey(key:=tablename.ToUpper) Then
-                anAttribute = _TableAttributesStore.Item(key:=aTablename).GetColumn(aFieldname)
+            If _ContainerAttributesStore.ContainsKey(key:=tableid.ToUpper) Then
+                anAttribute = _ContainerAttributesStore.Item(key:=aTablename).GetEntry(aFieldname)
                 '*** substitute references
-                SubstituteReferencedTableColumn(attribute:=anAttribute)
+                SubstituteReferencedContainerEntryProperties(attribute:=anAttribute)
                 '** return
                 Return anAttribute
 
@@ -561,11 +598,11 @@ Namespace OnTrack
         Public Function GetObjectClassDescriptionsByTable(tablename As String, Optional onlyenabled As Boolean = True) As List(Of ObjectClassDescription)
             Me.Initialize()
             Dim alist As New List(Of ObjectClassDescription)
-            If Not _TableAttributesStore.ContainsKey(tablename.ToUpper) Then Return alist
-            If onlyenabled AndAlso Not _TableAttributesStore.Item(tablename.ToUpper).Enabled Then Return alist
+            If Not _ContainerAttributesStore.ContainsKey(tablename.ToUpper) Then Return alist
+            If onlyenabled AndAlso Not _ContainerAttributesStore.Item(tablename.ToUpper).Enabled Then Return alist
 
-            If _Table2ObjectClassStore.ContainsKey(tablename.ToUpper) Then
-                For Each aObjectType In _Table2ObjectClassStore.Item(tablename.ToUpper)
+            If _Container2ObjectClassStore.ContainsKey(tablename.ToUpper) Then
+                For Each aObjectType In _Container2ObjectClassStore.Item(tablename.ToUpper)
                     alist.Add(GetObjectClassDescription(aObjectType))
                 Next
             End If
@@ -603,11 +640,11 @@ Namespace OnTrack
         ''' <remarks></remarks>
         Public Function GetObjectClassesForTable(tablename As String, Optional onlyenabled As Boolean = True) As List(Of Type)
             Me.Initialize()
-            If Not _TableAttributesStore.ContainsKey(tablename.ToUpper) Then Return New List(Of Type)
-            If onlyenabled AndAlso Not _TableAttributesStore.Item(tablename.ToUpper).Enabled Then Return New List(Of Type)
+            If Not _ContainerAttributesStore.ContainsKey(tablename.ToUpper) Then Return New List(Of Type)
+            If onlyenabled AndAlso Not _ContainerAttributesStore.Item(tablename.ToUpper).Enabled Then Return New List(Of Type)
 
-            If _Table2ObjectClassStore.ContainsKey(key:=tablename.ToUpper) Then
-                Return _Table2ObjectClassStore.Item(key:=tablename.ToUpper)
+            If _Container2ObjectClassStore.ContainsKey(key:=tablename.ToUpper) Then
+                Return _Container2ObjectClassStore.Item(key:=tablename.ToUpper)
             Else
                 Return New List(Of Type)
             End If
@@ -633,13 +670,13 @@ Namespace OnTrack
             If IsInitialized Or Not force Then Return True
             Dim aFieldList As System.Reflection.FieldInfo()
 
-            '*** select all the dataobjects
+            '*** select all the dataobjects implementors
             ''' register all data objects which have a direct orm mapping
             ''' implementation of the interface iormpersistable
 
             Dim thisAsm As Assembly = Assembly.GetExecutingAssembly()
             Dim adataObjectClassLists As List(Of Type) = thisAsm.GetTypes().Where(Function(t) _
-                                                                                  ((GetType(iormPersistable).IsAssignableFrom(t) AndAlso t.IsClass AndAlso Not t.IsAbstract))).ToList()
+                                                                                  ((t.GetInterfaces.Contains(GetType(iormDataObject)) AndAlso t.IsClass AndAlso Not t.IsAbstract))).ToList()
             _BootStrapSchemaCheckSum = 0
 
             '*** go through the classes in the assembly
@@ -656,6 +693,7 @@ Namespace OnTrack
                     ''' 
                     If anAttribute.GetType().Equals(GetType(ormObjectAttribute)) Then
                         Dim anObjectAttribute = DirectCast(anAttribute, ormObjectAttribute)
+                        anewDescription.ObjectAttribute = anObjectAttribute
                         '** bootstrapping classes ??
                         If anObjectAttribute.HasValueIsBootstap Then
                             If anObjectAttribute.IsBootstrap Then
@@ -677,6 +715,12 @@ Namespace OnTrack
                     End If
                 Next
 
+                ''' no object attribute -> description ?!
+                If Not _DescriptionsByClassTypeDescriptionStore.ContainsKey(key:=aClass.FullName) Then
+                    Call CoreMessageHandler(procedure:="ObjectClassRepository.Initialize", _
+                                                          message:="WARNING! CLASS '" & aClass.FullName & "' implements IORMDATAOBJECT BUT HAS NO <OrmAttribute> -> DATA OBJECT CLASS NOT STORED In REPOSITORY", _
+                                                          messagetype:=otCoreMessageType.InternalWarning, argument:=aClass.FullName)
+                End If
                 ''' create the InstanceCreator
                 ''' 
                 'Dim func As Type = GetType(Func(Of ))
@@ -699,9 +743,10 @@ Namespace OnTrack
                     If aFieldInfo.MemberType = Reflection.MemberTypes.Field Then
                         '** Attributes
                         For Each anAttribute As System.Attribute In Attribute.GetCustomAttributes(aFieldInfo)
-                            ''' check for tables first to get them all before we process the
+
+                            ''' check for containers first to get them all before we process the
                             ''' objects in details
-                            If anAttribute.GetType().Equals(GetType(ormSchemaTableAttribute)) Then
+                            If anAttribute.GetType().GetInterfaces.Contains(GetType(iormContainerAttribute)) Then
                                 Dim alist As List(Of Type)
 
                                 ''' do we have the same const variable name herited from other classes ?
@@ -711,29 +756,41 @@ Namespace OnTrack
                                               Reflection.BindingFlags.Static)
                                 If localfield Is Nothing OrElse (localfield IsNot Nothing AndAlso aFieldInfo.DeclaringType.Equals(localfield.ReflectedType)) Then
 
+                                    Dim aContainerID As String
+                                    If CType(anAttribute, iormContainerAttribute).HasValueContainerID Then
+                                        aContainerID = CType(anAttribute, iormContainerAttribute).ContainerID
+                                    Else
+                                        aContainerID = aFieldInfo.GetValue(Nothing).ToString.ToUpper
+                                    End If
+
 
                                     '** Type Definition
-                                    If _Table2ObjectClassStore.ContainsKey(aFieldInfo.GetValue(Nothing).ToString.ToUpper) Then
-                                        alist = _Table2ObjectClassStore.Item(aFieldInfo.GetValue(Nothing).ToString.ToUpper)
+                                    If _Container2ObjectClassStore.ContainsKey(aContainerID) Then
+                                        alist = _Container2ObjectClassStore.Item(aContainerID)
                                     Else
                                         alist = New List(Of Type)
-                                        _Table2ObjectClassStore.Add(key:=aFieldInfo.GetValue(Nothing).ToString.ToUpper, value:=alist)
+                                        _Container2ObjectClassStore.Add(key:=aContainerID, value:=alist)
                                     End If
                                     If Not alist.Contains(item:=aClass) Then
                                         alist.Add(aClass)
+                                        ' set also the primary table id of the object with the first
+                                        If Not anewDescription.ObjectAttribute.HasValuePrimaryContainerID Then
+                                            anewDescription.ObjectAttribute.PrimaryContainerID = aContainerID
+                                        End If
+
                                     End If
 
                                     '*** Calculate the Checksum from the Tableversions in the Bootstrapclasses
                                     If _BootstrapObjectClasses.Contains(aClass) Then
-                                        If Not DirectCast(anAttribute, ormSchemaTableAttribute).HasValueVersion Then
-                                            DirectCast(anAttribute, ormSchemaTableAttribute).Version = 1
+                                        If Not CType(anAttribute, iormContainerAttribute).HasValueVersion Then
+                                            DirectCast(anAttribute, iormContainerAttribute).Version = 1
                                         End If
                                         Dim i = _BootstrapObjectClasses.IndexOf(aClass)
-                                        _BootStrapSchemaCheckSum += DirectCast(anAttribute, ormSchemaTableAttribute).Version * Math.Pow(10, i)
+                                        _BootStrapSchemaCheckSum += DirectCast(anAttribute, iormContainerAttribute).Version * Math.Pow(10, i)
                                     End If
 
                                     '*** add to global tableattribute store
-                                    Me.AlterTableAttribute(anAttribute, fieldinfo:=aFieldInfo)
+                                    Me.AlterContainerAttribute(anAttribute, fieldinfo:=aFieldInfo)
                                 End If
 
                                 '*** Object Attribute
@@ -752,6 +809,9 @@ Namespace OnTrack
                                 End If
                                 ''' remove ObjectID
                                 If _DescriptionsByIDDescriptionStore.ContainsKey(key:=anObjectAttribute.ID) Then
+                                    Call CoreMessageHandler(procedure:="ObjectClassRepository.Initialize", _
+                                                            message:="WARNING! ID '" & anObjectAttribute.ID & "' OF DATA OBJECT CLASS ALREADY STORED In REPOSITORY", _
+                                                            messagetype:=otCoreMessageType.InternalWarning, argument:=anObjectAttribute.ClassName)
                                     _DescriptionsByIDDescriptionStore.Remove(key:=anObjectAttribute.ID)
                                 End If
                                 ''' Add both
@@ -793,7 +853,7 @@ Namespace OnTrack
                 Return True
             Catch ex As Exception
 
-                Call CoreMessageHandler(subname:="ObjectClassRepository.Initialize", exception:=ex)
+                Call CoreMessageHandler(procedure:="ObjectClassRepository.Initialize", exception:=ex)
 
             End Try
 
@@ -807,15 +867,17 @@ Namespace OnTrack
 
     Public Class ObjectClassDescription
 
-        Public Const ConstMTRetrieve = "RETRIEVE"
+        Public Const ConstMTRetrieve = "RETRIEVEDATAOBJECT"
         Public Const ConstMTCreateDataObject = "CREATEDATAOBJECT"
+
+
 
         ''' <summary>
         ''' Delegates
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Delegate Function CreateInstanceDelegate() As iormPersistable
+        Public Delegate Function CreateInstanceDelegate() As iormRelationalPersistable
         Public Delegate Function OperationCallerDelegate(dataobject As Object, parameters As Object()) As Object
         Public Delegate Function MappingGetterDelegate(dataobject As Object) As Object
 
@@ -825,43 +887,46 @@ Namespace OnTrack
         ''' <remarks></remarks>
         Private _Type As Type
         Private _ObjectAttribute As ormObjectAttribute
-        Private _TableAttributes As New Dictionary(Of String, ormSchemaTableAttribute) 'name of table to Attribute
+
+        Private _ContainerAttributes As New Dictionary(Of String, iormContainerAttribute) 'name of table to Attribute
+
         Private _ObjectEntryAttributes As New Dictionary(Of String, ormObjectEntryAttribute) 'name of object entry to Attribute
         Private _ObjectTransactionAttributes As New Dictionary(Of String, ormObjectTransactionAttribute) 'name of object entry to Attribute
         Private _ObjectOperationAttributes As New Dictionary(Of String, ormObjectOperationMethodAttribute) 'name of object entry to Attribute
         Private _ObjectOperationAttributesByTag As New Dictionary(Of String, ormObjectOperationMethodAttribute) 'name of object entry to Attribute
 
         Private _OperationCallerDelegates As New Dictionary(Of String, OperationCallerDelegate) ' dictionary of columns to mappings field to getter delegates
-        Private _ObjectEntriesPerTable As New Dictionary(Of String, Dictionary(Of String, ormObjectEntryAttribute)) ' dictionary of tables to dictionary of columns
+        Private _ObjectEntriesPerContainer As New Dictionary(Of String, Dictionary(Of String, ormObjectEntryAttribute)) ' dictionary of tables to dictionary of columns
 
-        Private _TableColumnsMappings As New Dictionary(Of String, Dictionary(Of String, List(Of FieldInfo))) ' dictionary of tables to dictionary of fieldmappings
-        Private _ColumnEntryMapping As New Dictionary(Of String, List(Of FieldInfo)) ' dictionary of columns to mappings
+        Private _ContainerMappings As New Dictionary(Of String, Dictionary(Of String, List(Of FieldInfo))) ' dictionary of container to dictionary of fieldmappings
+        Private _ContainerEntryMappings As New Dictionary(Of String, List(Of FieldInfo)) ' dictionary of container entries to mappings
         Private _MappingSetterDelegates As New Dictionary(Of String, Action(Of ormDataObject, Object)) ' dictionary of field to setter delegates
         Private _MappingGetterDelegates As New Dictionary(Of String, MappingGetterDelegate) ' dictionary of columns to mappings field to getter delegates
 
-        Private _TableIndices As New Dictionary(Of String, Dictionary(Of String, ormSchemaIndexAttribute)) ' dictionary of tables to dictionary of indices
-        Private _Indices As New Dictionary(Of String, ormSchemaIndexAttribute) ' dictionary of columns to mappings
+        Private _ContainerIndices As New Dictionary(Of String, Dictionary(Of String, ormIndexAttribute)) ' dictionary of containers to dictionary of indices
+        Private _Indices As New Dictionary(Of String, ormIndexAttribute) ' dictionary of columns to mappings
 
-        Private _TableRelationMappings As New Dictionary(Of String, Dictionary(Of String, List(Of FieldInfo))) ' dictionary of tables to dictionary of relation mappings
+        Private _ContainerRelationMappings As New Dictionary(Of String, Dictionary(Of String, List(Of FieldInfo))) ' dictionary of tables to dictionary of relation mappings
         Private _RelationEntryMapping As New Dictionary(Of String, List(Of FieldInfo)) ' dictionary of relations to mappings
-        Private _TableRelations As New Dictionary(Of String, Dictionary(Of String, ormRelationAttribute)) ' dictionary of tables to dictionary of relation
+        Private _ContainerRelations As New Dictionary(Of String, Dictionary(Of String, ormRelationAttribute)) ' dictionary of tables to dictionary of relation
         Private _Relations As New Dictionary(Of String, ormRelationAttribute) ' dictionary of relations 
 
         Private _DataOperationHooks As New Dictionary(Of String, RuntimeMethodHandle)
-        Private _EntryMappings As New Dictionary(Of String, ormEntryMapping)
+        Private _EntryMappings As New Dictionary(Of String, ormObjectEntryMapping)
 
-        Private _ForeignKeys As New Dictionary(Of String, Dictionary(Of String, ormSchemaForeignKeyAttribute)) 'dictionary of tables and foreign keys by ids
+        Private _ForeignKeys As New Dictionary(Of String, Dictionary(Of String, ormForeignKeyAttribute)) 'dictionary of tables and foreign keys by ids
         Private _QueryAttributes As New Dictionary(Of String, ormObjectQueryAttribute) 'dictionary of queries and definitions
 
         Private _isInitalized As Boolean = False
         Private _lock As New Object
 
         '' caches
-        Private _cachedMappedColumnnames As List(Of String) = Nothing
-        Private _cachedColumnnames As List(Of String) = Nothing
+        Private _cachedMappedContainerEntryNames As List(Of String) = Nothing
+        Private _cachedContainerEntryNames As List(Of String) = Nothing
         Private _cachedEntrynames As List(Of String) = Nothing
         Private _cachedQuerynames As List(Of String) = Nothing
         Private _cachedTablenames As List(Of String) = Nothing
+        Private _cachedContainerIDs As List(Of String) = Nothing
         Private _cachedRelationNames As List(Of String) = Nothing
 
         '** backreference
@@ -889,12 +954,24 @@ Namespace OnTrack
             End Set
         End Property
         ''' <summary>
+        ''' Gets or sets the primary table ID.
+        ''' </summary>
+        ''' <value>The primary table ID.</value>
+        Public Property PrimaryContainerID() As String
+            Get
+                Return _ObjectAttribute.PrimaryContainerID
+            End Get
+            Private Set(value As String)
+                _ObjectAttribute.PrimaryContainerID = value
+            End Set
+        End Property
+        ''' <summary>
         ''' Gets or sets the object attribute.
         ''' </summary>
         ''' <value>The object attribute.</value>
         Public ReadOnly Property PrimaryKeyEntryNames() As String()
             Get
-                If _ObjectAttribute IsNot Nothing Then Return Me._ObjectAttribute.PrimaryKeys
+                If _ObjectAttribute IsNot Nothing Then Return Me._ObjectAttribute.PrimaryKeyEntryNames
                 Return {}
             End Get
 
@@ -936,31 +1013,39 @@ Namespace OnTrack
                 Return _Type.Name
             End Get
         End Property
-
         ''' <summary>
-        ''' gets the primary table
+        ''' gets a List of all container ids
         ''' </summary>
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public ReadOnly Property PrimaryTable As String
+        Public ReadOnly Property ContainerIDs As List(Of String)
             Get
-                Return _TableAttributes.Keys.ToList.First
+                If _cachedContainerIDs Is Nothing Then
+                    Dim theNames As New List(Of String)
+                    Dim aList = _ContainerAttributes.Values.Where(Function(x) x.Enabled = True) ' only the enabled
+                    If aList IsNot Nothing Then
+                        theNames = aList.Select(Function(x) x.ContainerID).ToList ' get the remaining keynames
+                    End If
+                    _cachedContainerIDs = theNames
+                End If
+                Return _cachedContainerIDs
             End Get
         End Property
+
         ''' <summary>
         ''' gets a List of all table names
         ''' </summary>
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public ReadOnly Property Tables As List(Of String)
+        Public ReadOnly Property Tablenames As List(Of String)
             Get
                 If _cachedTablenames Is Nothing Then
                     Dim theNames As New List(Of String)
-                    Dim aList = _TableAttributes.Values.Where(Function(x) x.Enabled = True) ' only the enabled
+                    Dim aList As List(Of ormTableAttribute) = _ContainerAttributes.Values.Where(Function(x) x.Enabled = True AndAlso x.GetType Is GetType(ormTableAttribute)) ' only the enabled
                     If aList IsNot Nothing Then
-                        theNames = aList.Select(Function(x) x.TableName).ToList ' get the remaining keynames
+                        theNames = aList.Select(Function(x) x.TableID).ToList ' get the remaining keynames
                     End If
                     _cachedTablenames = theNames
                 End If
@@ -987,7 +1072,7 @@ Namespace OnTrack
             End Get
         End Property
         ''' <summary>
-        ''' gets a List of all entry names
+        ''' gets a List of all object entry names
         ''' </summary>
         ''' <value></value>
         ''' <returns></returns>
@@ -1007,27 +1092,27 @@ Namespace OnTrack
             End Get
         End Property
         ''' <summary>
-        ''' gets a List of all enabled column names
+        ''' gets a List of all enabled container entry names
         ''' </summary>
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public ReadOnly Property ColumnNames As List(Of String)
+        Public ReadOnly Property ContainerEntryNames As List(Of String)
             Get
-                If _cachedColumnnames Is Nothing Then
+                If _cachedContainerEntryNames Is Nothing Then
                     Dim aList As New List(Of String)
-                    For Each perTable In _ObjectEntriesPerTable
-                        If _TableAttributes.Item(perTable.Key).Enabled Then
-                            Dim entriesperTables = _ObjectEntriesPerTable.Item(key:=perTable.Key)
+                    For Each perTable In _ObjectEntriesPerContainer
+                        If _ContainerAttributes.Item(perTable.Key).Enabled Then
+                            Dim entriesperTables = _ObjectEntriesPerContainer.Item(key:=perTable.Key)
                             For Each anEntry In entriesperTables.Values
-                                If anEntry.Enabled Then aList.Add(item:=anEntry.ColumnName)
+                                If anEntry.Enabled Then aList.Add(item:=anEntry.ContainerEntryName)
                             Next
                         End If
                     Next
-                    _cachedColumnnames = aList
+                    _cachedContainerEntryNames = aList
                 End If
 
-                Return _cachedColumnnames
+                Return _cachedContainerEntryNames
             End Get
         End Property
         ''' <summary>
@@ -1053,7 +1138,7 @@ Namespace OnTrack
             End Get
         End Property
         ''' <summary>
-        ''' gets a List of all column attributes
+        ''' gets a List of all objectattributes attributes
         ''' </summary>
         ''' <value></value>
         ''' <returns></returns>
@@ -1070,26 +1155,43 @@ Namespace OnTrack
             End Get
         End Property
         ''' <summary>
-        ''' gets a List of all column attributes
+        ''' gets a List of all primary key column attributes
         ''' </summary>
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public ReadOnly Property MappedColumnNames As List(Of String)
+        Public ReadOnly Property PrimaryEntryAttributes As List(Of ormObjectEntryAttribute)
             Get
-                If _cachedMappedColumnnames Is Nothing Then
+                Dim aList As New List(Of ormObjectEntryAttribute)
+                For Each anAttribute In _ObjectEntryAttributes.Values.Where(Function(x) x.Enabled = True And Me.PrimaryKeyEntryNames.Contains(x.ContainerEntryName))
+                    _repository.SubstituteReferencedObjectEntry(attribute:=anAttribute)
+                    SubstituteDefaultValues(attribute:=anAttribute)
+                    aList.Add(anAttribute)
+                Next
+                Return aList
+            End Get
+        End Property
+        ''' <summary>
+        ''' gets a List of all mapped Container Entry Names
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property MappedContainerEntryNames As List(Of String)
+            Get
+                If _cachedMappedContainerEntryNames Is Nothing Then
                     Dim aList As New List(Of String)
-                    For Each aTableAttribute In _TableAttributes.Values.Where(Function(x) x.Enabled = True)
-                        Dim theColumns = _TableAttributes.Item(key:=aTableAttribute.TableName).ColumnAttributes.Where(Function(x) x.Enabled = True).Select(Function(x) x.ColumnName)
-                        Dim aDir As Dictionary(Of String, List(Of FieldInfo)) = _TableColumnsMappings.Item(key:=aTableAttribute.TableName)
-                        For Each aColumnName In aDir.Keys
-                            If theColumns.Contains(aColumnName) Then aList.Add(item:=aTableAttribute.TableName & "." & aColumnName)
+                    For Each aContainerAttribute In _ContainerAttributes.Values.Where(Function(x) x.Enabled = True)
+                        Dim theColumns = _ContainerAttributes.Item(key:=aContainerAttribute.ContainerID).EntryAttributes.Where(Function(x) x.Enabled = True).Select(Function(x) x.ContainerEntryName)
+                        Dim aDir As Dictionary(Of String, List(Of FieldInfo)) = _ContainerMappings.Item(key:=aContainerAttribute.ContainerID)
+                        For Each anEntryName In aDir.Keys
+                            If theColumns.Contains(anEntryName) Then aList.Add(item:=aContainerAttribute.ContainerID & "." & anEntryName)
                         Next
                     Next
-                    _cachedMappedColumnnames = aList
+                    _cachedMappedContainerEntryNames = aList
                 End If
 
-                Return _cachedMappedColumnnames
+                Return _cachedMappedContainerEntryNames
             End Get
         End Property
         ''' <summary>
@@ -1125,12 +1227,12 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public ReadOnly Property IndexAttributes As List(Of ormSchemaIndexAttribute)
+        Public ReadOnly Property IndexAttributes As List(Of ormIndexAttribute)
             Get
-                Dim aList As New List(Of ormSchemaIndexAttribute)
-                For Each aTablename In _ObjectEntriesPerTable.Keys
-                    If _TableAttributes.ContainsKey(aTablename) AndAlso _TableAttributes.Item(aTablename).Enabled Then
-                        Dim aList2 As List(Of ormSchemaIndexAttribute) = _TableIndices.Item(key:=aTablename).Values.Where(Function(x) x.Enabled = True).ToList
+                Dim aList As New List(Of ormIndexAttribute)
+                For Each aTablename In _ObjectEntriesPerContainer.Keys
+                    If _ContainerAttributes.ContainsKey(aTablename) AndAlso _ContainerAttributes.Item(aTablename).Enabled Then
+                        Dim aList2 As List(Of ormIndexAttribute) = _ContainerIndices.Item(key:=aTablename).Values.Where(Function(x) x.Enabled = True).ToList
                         aList.AddRange(aList2)
                     End If
                 Next
@@ -1149,14 +1251,31 @@ Namespace OnTrack
             End Get
         End Property
         ''' <summary>
+        ''' gets a List of all container Attributes
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property ContainerAttributes As List(Of iormContainerAttribute)
+            Get
+                Return _ContainerAttributes.Values.Where(Function(x) x.Enabled = True).ToList
+            End Get
+        End Property
+        ''' <summary>
         ''' gets a List of all table Attributes
         ''' </summary>
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public ReadOnly Property TableAttributes As List(Of ormSchemaTableAttribute)
+        Public ReadOnly Property TableAttributes As List(Of ormTableAttribute)
             Get
-                Return _TableAttributes.Values.Where(Function(x) x.Enabled = True).ToList
+                Dim aList As New List(Of ormTableAttribute)
+                For Each anTableAttribute In _ContainerAttributes.Values.Where(Function(x) x.Enabled = True)
+                    If anTableAttribute.GetType Is GetType(ormTableAttribute) Then
+                        aList.Add(TryCast(anTableAttribute, ormTableAttribute))
+                    End If
+                Next
+                Return aList
             End Get
         End Property
 
@@ -1166,9 +1285,32 @@ Namespace OnTrack
         ''' <param name="tablename"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetSchemaTableAttribute(tablename As String, Optional OnlyEnabled As Boolean = True) As ormSchemaTableAttribute
-            If _TableAttributes.ContainsKey(key:=tablename) Then
-                Dim anAttribute As ormSchemaTableAttribute = _TableAttributes.Item(tablename)
+        Public Function GetContainerAttribute(containerID As String, Optional OnlyEnabled As Boolean = True) As iormContainerAttribute
+            If _ContainerAttributes.ContainsKey(key:=containerID) Then
+                Dim anAttribute = _ContainerAttributes.Item(containerID)
+                If OnlyEnabled Then
+                    If anAttribute.Enabled Then
+                        Return anAttribute
+                    Else
+                        Return Nothing
+                    End If
+                Else
+                    Return anAttribute
+                End If
+
+            Else
+                Return Nothing
+            End If
+        End Function
+        ''' <summary>
+        ''' returns the SchemaTableAttribute for a table name
+        ''' </summary>
+        ''' <param name="tablename"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function GetTableAttribute(tableid As String, Optional OnlyEnabled As Boolean = True) As ormTableAttribute
+            If _ContainerAttributes.ContainsKey(key:=tableid) Then
+                Dim anAttribute As ormTableAttribute = TryCast(_ContainerAttributes.Item(tableid), ormTableAttribute)
                 If OnlyEnabled Then
                     If anAttribute.Enabled Then
                         Return anAttribute
@@ -1213,8 +1355,8 @@ Namespace OnTrack
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function GetObjectTransactionAttribute(name As String, Optional onlyEnabled As Boolean = True) As ormObjectTransactionAttribute
-            Dim anEntryname As String = ""
-            Dim anObjectname As String = ""
+            Dim anEntryname As String = String.Empty
+            Dim anObjectname As String = String.Empty
             Dim names() As String = Shuffle.NameSplitter(name)
 
             '** split the names
@@ -1277,8 +1419,8 @@ Namespace OnTrack
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function GetObjectOperationAttribute(name As String) As ormObjectOperationMethodAttribute
-            Dim anEntryname As String = ""
-            Dim anObjectname As String = ""
+            Dim anEntryname As String = String.Empty
+            Dim anObjectname As String = String.Empty
             Dim names() As String = Shuffle.NameSplitter(name)
 
             '** split the names
@@ -1331,8 +1473,8 @@ Namespace OnTrack
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function HasObjectEntryAttribute(entryname As String, Optional onlyenabled As Boolean = True) As Boolean
-            Dim anEntryname As String = ""
-            Dim anObjectname As String = ""
+            Dim anEntryname As String = String.Empty
+            Dim anObjectname As String = String.Empty
             Dim names() As String = Shuffle.NameSplitter(entryname)
 
             '** split the names
@@ -1356,23 +1498,23 @@ Namespace OnTrack
             Return _ObjectEntryAttributes.ContainsKey(key:=anEntryname)
         End Function
         ''' <summary>
-        ''' returns the schemaColumnAttribute for a given columnname and tablename
+        ''' returns the ormObjectEntryAttribute for a given entryname
         ''' </summary>
         ''' <param name="columnname"></param>
         ''' <param name="tablename"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function GetObjectEntryAttribute(entryname As String, Optional onlyenabled As Boolean = True) As ormObjectEntryAttribute
-            Dim anEntryname As String = ""
-            Dim anObjectname As String = ""
+            Dim anEntryname As String = String.Empty
+            Dim anObjectname As String = String.Empty
             Dim names() As String = Shuffle.NameSplitter(entryname)
 
             '** split the names
             If names.Count > 1 Then
                 anObjectname = names(0)
                 If anObjectname <> _ObjectAttribute.ID Then
-                    CoreMessageHandler(message:="object name of Object is not equal with entry name", arg1:=anObjectname, entryname:=entryname, _
-                                       subname:="ObjectClassDescription.GetObjectEntryAttribute", messagetype:=otCoreMessageType.InternalWarning)
+                    CoreMessageHandler(message:="object name of Object is not equal with entry name", argument:=anObjectname, entryname:=entryname, _
+                                       procedure:="ObjectClassDescription.GetObjectEntryAttribute", messagetype:=otCoreMessageType.InternalWarning)
                     anEntryname = entryname.ToUpper
                     anObjectname = _ObjectAttribute.ID
                 Else
@@ -1383,21 +1525,21 @@ Namespace OnTrack
                 anEntryname = entryname.ToUpper
             End If
 
-                '** return
+            '** return
 
-                If _ObjectEntryAttributes.ContainsKey(key:=anEntryname) Then
-                    Dim anAttribute As ormObjectEntryAttribute = _ObjectEntryAttributes.Item(key:=anEntryname)
-                    If onlyenabled AndAlso Not anAttribute.Enabled Then Return Nothing
+            If _ObjectEntryAttributes.ContainsKey(key:=anEntryname) Then
+                Dim anAttribute As ormObjectEntryAttribute = _ObjectEntryAttributes.Item(key:=anEntryname)
+                If onlyenabled AndAlso Not anAttribute.Enabled Then Return Nothing
 
-                    '' substitute entries
-                    _repository.SubstituteReferencedObjectEntry(attribute:=anAttribute)
-                    '' set default values on non-set 
-                    Me.SubstituteDefaultValues(attribute:=anAttribute)
-                    ''return final
-                    Return anAttribute
-                Else
-                    Return Nothing
-                End If
+                '' substitute entries
+                _repository.SubstituteReferencedObjectEntry(attribute:=anAttribute)
+                '' set default values on non-set 
+                Me.SubstituteDefaultValues(attribute:=anAttribute)
+                ''return final
+                Return anAttribute
+            Else
+                Return Nothing
+            End If
 
         End Function
         ''' <summary>
@@ -1408,7 +1550,7 @@ Namespace OnTrack
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function GetRelationAttribute(relationname As String, Optional onlyenabled As Boolean = False) As ormRelationAttribute
-            Dim aRelationName As String = ""
+            Dim aRelationName As String = String.Empty
             Dim names() As String = Shuffle.NameSplitter(relationname)
 
             '** split the names
@@ -1439,7 +1581,7 @@ Namespace OnTrack
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function GetQueryAttribute(name As String, Optional onlyenabled As Boolean = True) As ormObjectQueryAttribute
-            Dim aQueryname As String = ""
+            Dim aQueryname As String = String.Empty
             Dim names() As String = Shuffle.NameSplitter(name)
 
             '** split the names
@@ -1464,9 +1606,9 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetIndexAttributes(tablename As String, Optional onlyenabled As Boolean = True) As List(Of ormSchemaIndexAttribute)
-            If Not onlyenabled Then Return _TableIndices.Item(key:=tablename).Values.ToList
-            Return _TableIndices.Item(key:=tablename).Values.Where(Function(x) x.Enabled = True).ToList
+        Public Function GetIndexAttributes(containerID As String, Optional onlyenabled As Boolean = True) As List(Of ormIndexAttribute)
+            If Not onlyenabled Then Return _ContainerIndices.Item(key:=containerID).Values.ToList
+            Return _ContainerIndices.Item(key:=containerID).Values.Where(Function(x) x.Enabled = True).ToList
         End Function
         ''' <summary>
         ''' gets the mapping attribute for a member name (of class)
@@ -1474,9 +1616,9 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetEntryMappingAttributes(membername As String, Optional onlyenabled As Boolean = True) As ormEntryMapping
+        Public Function GetEntryMappingAttributes(membername As String, Optional onlyenabled As Boolean = True) As ormObjectEntryMapping
             If _EntryMappings.ContainsKey(key:=membername) Then
-                Dim anAttribute As ormEntryMapping = _EntryMappings.Item(key:=membername)
+                Dim anAttribute As ormObjectEntryMapping = _EntryMappings.Item(key:=membername)
                 If onlyenabled AndAlso Not anAttribute.Enabled Then Return Nothing
                 Return anAttribute
             Else
@@ -1489,7 +1631,7 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetFieldMemberSetterDelegate(membername As String) As Action(Of ormDataObject, Object)
+        Public Function GetFieldMemberSetterDelegate(membername As String) As Action(Of ormBusinessObject, Object)
             If _MappingSetterDelegates.ContainsKey(membername) Then
                 Return _MappingSetterDelegates.Item(key:=membername)
             Else
@@ -1530,48 +1672,48 @@ Namespace OnTrack
         ''' <param name="tablename"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetMappedColumnFieldInfos(columnname As String, _
-                                                  Optional tablename As String = "", _
+        Public Function GetMappedContainerEntry2FieldInfos(containerEntryName As String, _
+                                                  Optional containerID As String = Nothing, _
                                                   Optional onlyenabled As Boolean = True) As List(Of FieldInfo)
-            Dim aColumnname As String = ""
-            Dim aTablename As String = ""
-            If columnname Is Nothing Then
-                CoreMessageHandler(message:="function called with nothing as columnname", subname:="ObjectClassDescription.GetMappedColumnFieldInfos", arg1:=Me.ObjectAttribute.ID, _
+            Dim aContainerEntryName As String = String.Empty
+            Dim aContainerID As String = String.Empty
+            If containerEntryName Is Nothing Then
+                CoreMessageHandler(message:="function called with nothing as container entry name ", procedure:="ObjectClassDescription.GetMappedColumnFieldInfos", argument:=Me.ObjectAttribute.ID, _
                                    messagetype:=otCoreMessageType.InternalError)
                 Return New List(Of FieldInfo)
             End If
-            Dim names() As String = Shuffle.NameSplitter(columnname)
+            Dim names() As String = Shuffle.NameSplitter(containerEntryName)
 
             '** split the names
             If names.Count > 1 Then
-                If tablename = "" Then
-                    aTablename = names(0)
+                If String.IsNullOrWhiteSpace(containerID) Then
+                    aContainerID = names(0)
                 Else
-                    aTablename = tablename.ToUpper
+                    aContainerID = containerID.ToUpper
                 End If
-                aColumnname = names(1)
+                aContainerEntryName = names(1)
             Else
-                aColumnname = columnname.ToUpper
-                aTablename = _TableAttributes.Keys.First
-                If _TableAttributes.Count > 1 Then
+                aContainerEntryName = containerEntryName.ToUpper
+                aContainerID = Me.PrimaryContainerID
+                If _ContainerAttributes.Count > 1 Then
                     CoreMessageHandler(message:="more than one tables in the description but no table name specified in the column name or as argument", _
-                                       messagetype:=otCoreMessageType.InternalWarning, subname:="ObjectClassDescription.GetMappedColumnFieldInfos", _
-                                       arg1:=columnname)
+                                       messagetype:=otCoreMessageType.InternalWarning, procedure:="ObjectClassDescription.GetMappedColumnFieldInfos", _
+                                       argument:=containerEntryName)
                 End If
             End If
 
             '** return
-            If _TableColumnsMappings.ContainsKey(key:=aTablename) Then
+            If _ContainerMappings.ContainsKey(key:=aContainerID) Then
                 ''' check on the enabled table
                 If onlyenabled Then
-                    If Not _TableAttributes.ContainsKey(aTablename) OrElse Not _TableAttributes.Item(key:=aTablename).Enabled Then
+                    If Not _ContainerAttributes.ContainsKey(aContainerID) OrElse Not _ContainerAttributes.Item(key:=aContainerID).Enabled Then
                         Return New List(Of FieldInfo)
                     End If
 
                 End If
-                If _TableColumnsMappings.Item(key:=aTablename).ContainsKey(key:=aColumnname) Then
+                If _ContainerMappings.Item(key:=aContainerID).ContainsKey(key:=aContainerEntryName) Then
 
-                    Return _TableColumnsMappings.Item(key:=aTablename).Item(key:=aColumnname)
+                    Return _ContainerMappings.Item(key:=aContainerID).Item(key:=aContainerEntryName)
                 Else
                     Return New List(Of FieldInfo)
                 End If
@@ -1593,14 +1735,14 @@ Namespace OnTrack
                 Return New List(Of FieldInfo)
             End If
 
-            Dim aFieldname As String = anObjectEntry.ColumnName
-            Dim aTablename As String = anObjectEntry.Tablename
+            Dim aFieldname As String = anObjectEntry.ContainerEntryName
+            Dim aTablename As String = anObjectEntry.ContainerID
 
 
             '** return
-            If _TableColumnsMappings.ContainsKey(key:=aTablename) Then
-                If _TableColumnsMappings.Item(key:=aTablename).ContainsKey(key:=aFieldname) Then
-                    Return _TableColumnsMappings.Item(key:=aTablename).Item(key:=aFieldname)
+            If _ContainerMappings.ContainsKey(key:=aTablename) Then
+                If _ContainerMappings.Item(key:=aTablename).ContainsKey(key:=aFieldname) Then
+                    Return _ContainerMappings.Item(key:=aTablename).Item(key:=aFieldname)
                 Else
                     Return New List(Of FieldInfo)
                 End If
@@ -1616,36 +1758,36 @@ Namespace OnTrack
         ''' <param name="tablename"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetMappedRelationFieldInfos(relationName As String, _
-                                                    Optional tablename As String = "", _
+        Public Function GetMappedRelation2FieldInfos(relationName As String, _
+                                                    Optional tableid As String = Nothing, _
                                                     Optional onlyenabled As Boolean = True) As List(Of FieldInfo)
-            Dim aRelationName As String = ""
-            Dim aTablename As String = ""
+            Dim aRelationName As String = String.Empty
+            Dim atableid As String = String.Empty
             Dim names() As String = Shuffle.NameSplitter(relationName)
 
             '** split the names
             If names.Count > 1 Then
-                If tablename = "" Then
-                    aTablename = names(0)
+                If String.IsNullOrWhiteSpace(tableid) Then
+                    atableid = names(0)
                 Else
-                    aTablename = tablename.ToUpper
+                    atableid = tableid.ToUpper
                 End If
                 aRelationName = names(1)
             Else
                 aRelationName = relationName.ToUpper
-                aTablename = _TableAttributes.Keys.First
-                If _TableAttributes.Count > 1 Then
+                atableid = Me.PrimaryContainerID
+                If _ContainerAttributes.Count > 1 Then
                     CoreMessageHandler(message:="more than one tables in the description but no table name specified in the column name or as argument", _
-                                       messagetype:=otCoreMessageType.InternalWarning, subname:="ObjectClassDescription.GetMappedRelationFieldInfos", _
-                                       arg1:=relationName)
+                                       messagetype:=otCoreMessageType.InternalWarning, procedure:="ObjectClassDescription.GetMappedRelationFieldInfos", _
+                                       argument:=relationName)
                 End If
             End If
 
 
             '** return
-            If _TableRelationMappings.ContainsKey(key:=aTablename) Then
-                If _TableRelationMappings.Item(key:=aTablename).ContainsKey(key:=aRelationName) Then
-                    Return _TableRelationMappings.Item(key:=aTablename).Item(key:=aRelationName)
+            If _ContainerRelationMappings.ContainsKey(key:=atableid) Then
+                If _ContainerRelationMappings.Item(key:=atableid).ContainsKey(key:=aRelationName) Then
+                    Return _ContainerRelationMappings.Item(key:=atableid).Item(key:=aRelationName)
                 Else
                     Return New List(Of FieldInfo)
                 End If
@@ -1661,19 +1803,19 @@ Namespace OnTrack
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetColumnNames(tablename As String, Optional onlyenabled As Boolean = True) As IList(Of String)
+        Public Function GetColumnNames(tableid As String, Optional onlyenabled As Boolean = True) As IList(Of String)
             If onlyenabled Then
                 '' check the table and the object entries per table
-                If Not _TableAttributes.ContainsKey(tablename.ToUpper) OrElse Not _TableAttributes.Item(tablename.ToUpper).Enabled _
-                   OrElse Not _ObjectEntriesPerTable.ContainsKey(key:=tablename.ToUpper) Then
+                If Not _ContainerAttributes.ContainsKey(tableid.ToUpper) OrElse Not _ContainerAttributes.Item(tableid.ToUpper).Enabled _
+                   OrElse Not _ObjectEntriesPerContainer.ContainsKey(key:=tableid.ToUpper) Then
                     Return New List(Of String)
                 End If
 
-                Return _ObjectEntriesPerTable.Item(tablename.ToUpper).Values.Where(Function(x) x.Enabled = True)
+                Return _ObjectEntriesPerContainer.Item(tableid.ToUpper).Values.Where(Function(x) x.Enabled = True)
 
-            ElseIf _ObjectEntriesPerTable.ContainsKey(key:=tablename.ToUpper) Then
+            ElseIf _ObjectEntriesPerContainer.ContainsKey(key:=tableid.ToUpper) Then
 
-                Return _ObjectEntriesPerTable.Item(key:=tablename.ToUpper).Keys.ToList
+                Return _ObjectEntriesPerContainer.Item(key:=tableid.ToUpper).Keys.ToList
             End If
 
             Return New List(Of String)
@@ -1685,64 +1827,69 @@ Namespace OnTrack
         ''' <param name="tablename"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Private Function InitializeTableAttribute(attribute As Attribute, tablename As String, overridesExisting As Boolean) As Boolean
-            Dim aTableAttribute As ormSchemaTableAttribute = DirectCast(attribute, ormSchemaTableAttribute)
+        Private Function InitializeContainerAttribute(attribute As Attribute, containerID As String, overridesExisting As Boolean) As Boolean
+            Dim aContainerAttribute As iormContainerAttribute = DirectCast(attribute, iormContainerAttribute)
             Try
 
                 '** Tables
-                If _TableAttributes.ContainsKey(key:=tablename) And overridesExisting Then
-                    _TableAttributes.Remove(key:=tablename)
-                ElseIf _TableAttributes.ContainsKey(key:=tablename) And Not overridesExisting Then
+                If _ContainerAttributes.ContainsKey(key:=containerID) And overridesExisting Then
+                    _ContainerAttributes.Remove(key:=containerID)
+                ElseIf _ContainerAttributes.ContainsKey(key:=containerID) And Not overridesExisting Then
                     Return True '* do nothing since we have a ClassOverrides tableattribute
                 End If
 
-
-
                 '** default values
-                With aTableAttribute
-                    .ID = tablename.ToUpper
-                    '**
-                    If Not .HasValueTableName Then .TableName = tablename.ToUpper
+                With aContainerAttribute
+                    If Not .HasValueID Then .ID = containerID.ToUpper
+                    '** make sure that the tableid is the value provided in the tableid - the const value of the fieldinfo
+                    '** otherwise the automatic setting of the default primary table will not work -> see initialize of ObjectClassRegistery
+                    .ContainerID = containerID.ToUpper
                     '** version
                     If Not .HasValueVersion Then .Version = 1
                     '** set the link
                     If _ObjectAttribute IsNot Nothing Then .ObjectID = _ObjectAttribute.ID
+                    If Not .HasValuePrimaryKey Then .PrimaryKey = ot.ConstDefaultPrimaryKeyname
+                    If Not .HasValueDatabaseDriverID Then .DatabaseDriverID = ot.ConstDefaultPrimaryDBDriver
                 End With
+
+
+
                 '** check the table attribute from global store
                 '** merge the values there
                 '** table name must be set
-                _repository.AlterTableAttribute(aTableAttribute)
+                _repository.AlterContainerAttribute(aContainerAttribute)
 
 
                 '** add it
-                _TableAttributes.Add(key:=aTableAttribute.TableName, value:=aTableAttribute)
+                _ContainerAttributes.Add(key:=aContainerAttribute.ContainerID, value:=aContainerAttribute)
                 '** to the object attributes
-                If _ObjectAttribute.Tablenames Is Nothing OrElse _ObjectAttribute.Tablenames.Count = 0 Then
-                    _ObjectAttribute.Tablenames = {aTableAttribute.TableName}
+                If _ObjectAttribute.ContainerIDs Is Nothing OrElse _ObjectAttribute.ContainerIDs.Count = 0 Then
+                    _ObjectAttribute.ContainerIDs = {aContainerAttribute.ContainerID}
+                    If Not _ObjectAttribute.HasValuePrimaryContainerID Then _ObjectAttribute.PrimaryContainerID = aContainerAttribute.ContainerID
                 Else
-                    ReDim Preserve _ObjectAttribute.Tablenames(_ObjectAttribute.Tablenames.GetUpperBound(0) + 1)
-                    _ObjectAttribute.Tablenames(_ObjectAttribute.Tablenames.GetUpperBound(0)) = aTableAttribute.TableName
+                    ReDim Preserve _ObjectAttribute.ContainerIDs(_ObjectAttribute.ContainerIDs.GetUpperBound(0) + 1)
+                    _ObjectAttribute.ContainerIDs(_ObjectAttribute.ContainerIDs.GetUpperBound(0)) = aContainerAttribute.ContainerID
                 End If
 
-                '** Add Columns per Table
-                If _ObjectEntriesPerTable.ContainsKey(key:=aTableAttribute.TableName) Then _ObjectEntriesPerTable.Remove(key:=aTableAttribute.TableName)
-                _ObjectEntriesPerTable.Add(key:=aTableAttribute.TableName, value:=New Dictionary(Of String, ormObjectEntryAttribute))
-                '** Mappings per Table
-                If _TableColumnsMappings.ContainsKey(key:=aTableAttribute.TableName) Then _TableColumnsMappings.Remove(key:=aTableAttribute.TableName)
-                _TableColumnsMappings.Add(key:=aTableAttribute.TableName, value:=New Dictionary(Of String, List(Of FieldInfo)))
-                '** Indices per Table
-                If _TableIndices.ContainsKey(key:=aTableAttribute.TableName) Then _TableIndices.Remove(key:=aTableAttribute.TableName)
-                _TableIndices.Add(key:=aTableAttribute.TableName, value:=New Dictionary(Of String, ormSchemaIndexAttribute))
-                '** Relations per Table
-                If _TableRelationMappings.ContainsKey(key:=aTableAttribute.TableName) Then _TableRelationMappings.Remove(key:=aTableAttribute.TableName)
-                _TableRelationMappings.Add(key:=aTableAttribute.TableName, value:=New Dictionary(Of String, List(Of FieldInfo)))
-                '** Relations per Table
-                If _TableRelations.ContainsKey(key:=aTableAttribute.TableName) Then _TableRelations.Remove(key:=aTableAttribute.TableName)
-                _TableRelations.Add(key:=aTableAttribute.TableName, value:=New Dictionary(Of String, ormRelationAttribute))
+                '** Add Columns per Container
+                If _ObjectEntriesPerContainer.ContainsKey(key:=aContainerAttribute.ContainerID) Then _ObjectEntriesPerContainer.Remove(key:=aContainerAttribute.ContainerID)
+                _ObjectEntriesPerContainer.Add(key:=aContainerAttribute.ContainerID, value:=New Dictionary(Of String, ormObjectEntryAttribute))
+                '** Mappings per Container
+                If _ContainerMappings.ContainsKey(key:=aContainerAttribute.ContainerID) Then _ContainerMappings.Remove(key:=aContainerAttribute.ContainerID)
+                _ContainerMappings.Add(key:=aContainerAttribute.ContainerID, value:=New Dictionary(Of String, List(Of FieldInfo)))
+                '** Indices per Container
+                If _ContainerIndices.ContainsKey(key:=aContainerAttribute.ContainerID) Then _ContainerIndices.Remove(key:=aContainerAttribute.ContainerID)
+                _ContainerIndices.Add(key:=aContainerAttribute.ContainerID, value:=New Dictionary(Of String, ormIndexAttribute))
+                '** Relations per Container
+                If _ContainerRelationMappings.ContainsKey(key:=aContainerAttribute.ContainerID) Then _ContainerRelationMappings.Remove(key:=aContainerAttribute.ContainerID)
+                _ContainerRelationMappings.Add(key:=aContainerAttribute.ContainerID, value:=New Dictionary(Of String, List(Of FieldInfo)))
+                '** Relations per Container
+                If _ContainerRelations.ContainsKey(key:=aContainerAttribute.ContainerID) Then _ContainerRelations.Remove(key:=aContainerAttribute.ContainerID)
+                _ContainerRelations.Add(key:=aContainerAttribute.ContainerID, value:=New Dictionary(Of String, ormRelationAttribute))
 
                 Return True
             Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="ObjectClassDescription.InitializeTableAttribute")
+                CoreMessageHandler(exception:=ex, procedure:="ObjectClassDescription.InitializeContainerAttribute")
                 Return False
             End Try
 
@@ -1757,9 +1904,7 @@ Namespace OnTrack
         Private Function InitializeQueryAttribute(attribute As Attribute, queryname As String, value As String, overridesExisting As Boolean) As Boolean
             Dim aQueryAttribute As ormObjectQueryAttribute = DirectCast(attribute, ormObjectQueryAttribute)
             Try
-                If queryname = "" Then
-                    queryname = value.ToUpper
-                End If
+                If String.IsNullOrWhiteSpace(queryname) Then queryname = value.ToUpper
 
                 '** Tables
                 If _QueryAttributes.ContainsKey(key:=queryname) And overridesExisting Then
@@ -1783,7 +1928,7 @@ Namespace OnTrack
 
                 Return True
             Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="ObjectClassDescription.InitializeQueryAttribute")
+                CoreMessageHandler(exception:=ex, procedure:="ObjectClassDescription.InitializeQueryAttribute")
                 Return False
             End Try
 
@@ -1797,39 +1942,34 @@ Namespace OnTrack
         ''' <param name="fieldvalue"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Private Function InitializeObjectEntryAttribute(attribute As Attribute, name As String, tablename As String, fieldvalue As String, overridesExisting As Boolean) As Boolean
-            Dim anObjectEntryName As String = ""
-            Dim globaleTableAttributes As ormSchemaTableAttribute
+        Private Function InitializeObjectEntryAttribute(attribute As Attribute, name As String, containerID As String, fieldvalue As String, overridesExisting As Boolean) As Boolean
+            Dim anObjectEntryName As String = String.Empty
+            Dim globalContainerAttributes As iormContainerAttribute
 
             Try
                 '* set the column name
-                Dim anObjectEntryAttribute As ormObjectEntryAttribute = DirectCast(attribute, ormObjectEntryAttribute)
+                Dim anObjectEntryAttribute As ormObjectEntryAttribute = DirectCast(attribute, iormObjectEntry)
 
-                If name = "" Then
-                    name = fieldvalue
-                    '** default
-                    If anObjectEntryAttribute.Tablename Is Nothing OrElse anObjectEntryAttribute.Tablename = "" Then
-                        If _TableAttributes.Count = 0 Then
+                If String.IsNullOrWhiteSpace(name) Then name = fieldvalue
+                '** default
+                If String.IsNullOrWhiteSpace(containerID) Then
+                    If Not anObjectEntryAttribute.HasValueContainerID Then
+                        If _ContainerAttributes.Count = 0 Then
                             CoreMessageHandler(message:="Object Entry Attribute was not assigned to a table - no tables seem to be defined in the class", _
-                                               arg1:=_Type.Name, entryname:=fieldvalue, messagetype:=otCoreMessageType.InternalError, _
-                                               subname:="ObjectClassDescription.InitializeObjectEntryAttribute", objectname:=_Type.Name)
+                                               argument:=_Type.Name, entryname:=fieldvalue, messagetype:=otCoreMessageType.InternalError, _
+                                               procedure:="ObjectClassDescription.InitializeObjectEntryAttribute", objectname:=_Type.Name)
                             Return False
                         End If
-                        tablename = _TableAttributes.First.Key
-                        If _TableAttributes.Count > 1 Then
-                            CoreMessageHandler(message:="Object Entry Attribute was not assigned to a table although multiple tables are defined in class", _
-                                               arg1:=_Type.Name, entryname:=fieldvalue, messagetype:=otCoreMessageType.InternalWarning, _
-                                               subname:="ObjectClassDescription.InitializeObjectEntryAttribute", objectname:=_Type.Name)
-                        End If
+                        containerID = Me.PrimaryContainerID
                     Else
-                        tablename = anObjectEntryAttribute.Tablename
+                        containerID = anObjectEntryAttribute.ContainerID
                     End If
                 End If
 
                 ' reset the attributes 
                 If Not anObjectEntryAttribute.HasValueID Then anObjectEntryAttribute.ID = name.ToUpper
-                If Not anObjectEntryAttribute.HasValueColumnName Then anObjectEntryAttribute.ColumnName = name.ToUpper
-                If Not anObjectEntryAttribute.HasValueTableName Then anObjectEntryAttribute.Tablename = tablename.ToUpper
+                If Not anObjectEntryAttribute.HasValueContainerEntryName Then anObjectEntryAttribute.ContainerEntryName = name.ToUpper
+                If Not anObjectEntryAttribute.HasValueContainerID Then anObjectEntryAttribute.ContainerID = containerID.ToUpper
                 If Not anObjectEntryAttribute.HasValueObjectName Then anObjectEntryAttribute.ObjectName = _ObjectAttribute.ID.ToUpper
                 If Not anObjectEntryAttribute.HasValueEntryName Then anObjectEntryAttribute.EntryName = name.ToUpper
                 If Not anObjectEntryAttribute.HasValueVersion Then anObjectEntryAttribute.Version = 1
@@ -1855,6 +1995,7 @@ Namespace OnTrack
                 If Not _ObjectEntryAttributes.ContainsKey(key:=name) Then
                     _ObjectEntryAttributes.Add(key:=name, value:=anObjectEntryAttribute)
                 ElseIf Not overridesExisting Then
+                    'Return True do it later
                 ElseIf overridesExisting Then
                     _ObjectEntryAttributes.Remove(key:=name) ' if not enabled still please remove the entry
                     _ObjectEntryAttributes.Add(key:=name, value:=anObjectEntryAttribute)
@@ -1863,21 +2004,21 @@ Namespace OnTrack
 
                 '** save in object description per Table as well as in global TableAttributes Store
                 '** of the repository
-                Dim aDictionary = _ObjectEntriesPerTable.Item(key:=tablename)
+                Dim aDictionary = _ObjectEntriesPerContainer.Item(key:=containerID)
                 If aDictionary IsNot Nothing Then
                     If Not aDictionary.ContainsKey(key:=anObjectEntryName) Then
                         aDictionary.Add(key:=anObjectEntryName, value:=anObjectEntryAttribute)
-                        globaleTableAttributes = _repository.GetTableAttribute(tablename)
-                        If globaleTableAttributes IsNot Nothing Then
+                        globalContainerAttributes = _repository.GetContainerAttribute(containerID)
+                        If globalContainerAttributes IsNot Nothing Then
 
-                            If Not globaleTableAttributes.HasColumn(anObjectEntryAttribute.ColumnName) Then
-                                globaleTableAttributes.AddColumn(anObjectEntryAttribute)
+                            If Not globalContainerAttributes.HasEntry(anObjectEntryAttribute.ContainerEntryName) Then
+                                globalContainerAttributes.AddEntry(anObjectEntryAttribute)
                             Else
-                                globaleTableAttributes.UpdateColumn(anObjectEntryAttribute)
+                                globalContainerAttributes.UpdateEntry(anObjectEntryAttribute)
                             End If
                         Else
-                            CoreMessageHandler(message:="table attribute was not defined in global table attribute store", arg1:=name, messagetype:=otCoreMessageType.InternalError, _
-                                               subname:="ObjectClassDescription.InitializeObjectEntryAttribute", tablename:=tablename, objectname:=_Type.Name)
+                            CoreMessageHandler(message:="container attribute was not defined in global container attribute store", argument:=name, messagetype:=otCoreMessageType.InternalError, _
+                                               procedure:="ObjectClassDescription.InitializeObjectEntryAttribute", containerID:=containerID, objectname:=_Type.Name)
 
                         End If
                     ElseIf Not overridesExisting Then
@@ -1887,24 +2028,24 @@ Namespace OnTrack
                         '*** override
                         aDictionary.Remove(key:=anObjectEntryName) '* through out
                         aDictionary.Add(key:=anObjectEntryName, value:=anObjectEntryAttribute) '* add new
-                        globaleTableAttributes = _repository.GetTableAttribute(tablename)
-                        If globaleTableAttributes IsNot Nothing Then
-                            If globaleTableAttributes.GetColumn(anObjectEntryAttribute.ColumnName) Is Nothing Then
-                                globaleTableAttributes.AddColumn(anObjectEntryAttribute)
+                        globalContainerAttributes = _repository.GetContainerAttribute(containerID)
+                        If globalContainerAttributes IsNot Nothing Then
+                            If globalContainerAttributes.GetEntry(anObjectEntryAttribute.ContainerEntryName) Is Nothing Then
+                                globalContainerAttributes.AddEntry(anObjectEntryAttribute)
                             End If
                         Else
-                            CoreMessageHandler(message:="table attribute was not defined in global table attribute store", arg1:=name, messagetype:=otCoreMessageType.InternalError, _
-                                               subname:="ObjectClassDescription.InitializeObjectEntryAttribute", tablename:=tablename, objectname:=_Type.Name)
+                            CoreMessageHandler(message:="container attribute was not defined in global container attribute store", argument:=name, messagetype:=otCoreMessageType.InternalError, _
+                                               procedure:="ObjectClassDescription.InitializeObjectEntryAttribute", containerID:=containerID, objectname:=_Type.Name)
 
                         End If
                     Else
-                        CoreMessageHandler(message:="object entry exists in table more than once", arg1:=name, messagetype:=otCoreMessageType.InternalError, _
-                                           subname:="ObjectClassDescription.InitializeObjectEntryAttribute", tablename:=tablename, objectname:=_Type.Name)
+                        CoreMessageHandler(message:="object entry exists in container more than once", argument:=name, messagetype:=otCoreMessageType.InternalError, _
+                                           procedure:="ObjectClassDescription.InitializeObjectEntryAttribute", containerID:=containerID, objectname:=_Type.Name)
                     End If
 
                 Else
-                    CoreMessageHandler(message:="_tablecolumns does not exist", arg1:=tablename, messagetype:=otCoreMessageType.InternalError, _
-                                       subname:="ObjectClassDescription.InitializeObjectEntryAttribute", objectname:=_Type.Name)
+                    CoreMessageHandler(message:="_tablecolumns does not exist", argument:=containerID, messagetype:=otCoreMessageType.InternalError, _
+                                       procedure:="ObjectClassDescription.InitializeObjectEntryAttribute", objectname:=_Type.Name)
                 End If
 
 
@@ -1924,79 +2065,153 @@ Namespace OnTrack
                 If anObjectEntryAttribute.HasValueUseForeignKey AndAlso anObjectEntryAttribute.UseForeignKey <> otForeignKeyImplementation.None Then
                     If anObjectEntryAttribute.UseForeignKey <> otForeignKeyImplementation.None And _
                         Not anObjectEntryAttribute.HasValueForeignKeyReferences And anObjectEntryAttribute.HasValueReferenceObjectEntry Then
+                        ' foreign key reference is the the reference object entry
                         anObjectEntryAttribute.ForeignKeyReferences = {anObjectEntryAttribute.ReferenceObjectEntry}
+
                     ElseIf anObjectEntryAttribute.UseForeignKey <> otForeignKeyImplementation.None And _
                         Not anObjectEntryAttribute.HasValueForeignKeyReferences And Not anObjectEntryAttribute.HasValueReferenceObjectEntry Then
                         CoreMessageHandler(message:="For using foreign keys either the foreign key reference or the reference object entry is set", _
-                                               arg1:=_Type.Name, entryname:=fieldvalue, messagetype:=otCoreMessageType.InternalWarning, _
-                                               subname:="ObjectClassDescription.InitializeObjectEntryAttribute", objectname:=_Type.Name)
+                                               argument:=_Type.Name, entryname:=fieldvalue, messagetype:=otCoreMessageType.InternalWarning, _
+                                               procedure:="ObjectClassDescription.InitializeObjectEntryAttribute", objectname:=_Type.Name)
                     End If
+
                     '*** create and add
-                    If globaleTableAttributes IsNot Nothing Then
-                        Dim newForeignKey As New ormSchemaForeignKeyAttribute
+                    If globalContainerAttributes IsNot Nothing Then
+                        Dim newForeignKey As New ormForeignKeyAttribute
                         With newForeignKey
-                            .ID = "FK_" & globaleTableAttributes.TableName & "_" & anObjectEntryAttribute.ColumnName
-                            If anObjectEntryAttribute.HasValueForeignKeyReferences Then .ForeignKeyReferences = anObjectEntryAttribute.ForeignKeyReferences
-                            .Entrynames = {anObjectEntryAttribute.ObjectName & "." & anObjectEntryAttribute.ColumnName}
-                            If anObjectEntryAttribute.HasValueForeignKeyProperties Then .ForeignKeyProperties = anObjectEntryAttribute.ForeignKeyProperties
-                            .UseForeignKey = anObjectEntryAttribute.UseForeignKey
+                            .ID = "FK_" & globalContainerAttributes.ContainerID & "_" & anObjectEntryAttribute.ContainerEntryName
+                            '** use the reference
+                            If anObjectEntryAttribute.HasValueForeignKeyReferences Then
+                                .ForeignKeyReferences = anObjectEntryAttribute.ForeignKeyReferences
+                            Else
+                                CoreMessageHandler(message:="For using foreign keys either the foreign key reference or the reference object entry must be set", _
+                                              argument:=_Type.Name, entryname:=fieldvalue, messagetype:=otCoreMessageType.InternalWarning, _
+                                              procedure:="ObjectClassDescription.InitializeObjectEntryAttribute", objectname:=_Type.Name)
+                            End If
+
+                            .Entrynames = {anObjectEntryAttribute.ObjectName & "." & anObjectEntryAttribute.ContainerEntryName}
+
+                            If anObjectEntryAttribute.HasValueForeignKeyProperties Then
+                                .ForeignKeyProperties = anObjectEntryAttribute.ForeignKeyProperties
+                            Else
+                                ' CoreMessageHandler(message:="For using foreign keys the foreign key property should be set", _
+                                '             arg1:=_Type.Name, entryname:=fieldvalue, messagetype:=otCoreMessageType.InternalWarning, _
+                                '            subname:="ObjectClassDescription.InitializeObjectEntryAttribute", objectname:=_Type.Name)
+
+                                ''' add defaults
+                                Dim alist As New List(Of String)
+                                alist.Add(ForeignKeyProperty.OnDelete & "(" & ForeignKeyActionProperty.Cascade & ")")
+                                alist.Add(ForeignKeyProperty.OnUpdate & "(" & ForeignKeyActionProperty.Cascade & ")")
+                                .ForeignKeyProperties = alist.ToArray
+                            End If
+                            If anObjectEntryAttribute.HasValueUseForeignKey Then
+                                .UseForeignKey = anObjectEntryAttribute.UseForeignKey
+                            Else
+                                .UseForeignKey = otForeignKeyImplementation.None
+                            End If
+
                             .Description = "created out of object entry " & anObjectEntryAttribute.ObjectName & "." & anObjectEntryAttribute.EntryName
                             .Version = anObjectEntryAttribute.Version
                             .ObjectID = anObjectEntryAttribute.ObjectName
-                            .Tablename = anObjectEntryAttribute.Tablename
+                            .TableID = anObjectEntryAttribute.ContainerID
+
                         End With
+
+                        '** check if the foreign key is a primarylink
+                        '** add the default properties of OnDelete/OnUpdate
+                        If anObjectEntryAttribute.HasValueForeignKeyProperties AndAlso _
+                            Array.Exists(Of ForeignKeyProperty)(anObjectEntryAttribute.ForeignKeyProperty, Function(x) (x.Enum = otForeignKeyProperty.PrimaryTableLink)) Then
+                            ''' add also the OnDelete / OnUpdate if not existing
+                            ''' 
+                            If Not Array.Exists(Of ForeignKeyProperty)(newForeignKey.ForeignKeyProperty, Function(x) (x.Enum = otForeignKeyProperty.OnDelete)) Then
+                                Dim alist As List(Of String) = newForeignKey.ForeignKeyProperties.ToList
+                                alist.Add(ForeignKeyProperty.OnDelete & "(" & ForeignKeyActionProperty.Cascade & ")")
+                                newForeignKey.ForeignKeyProperties = alist.ToArray
+                            End If
+                            If Not Array.Exists(Of ForeignKeyProperty)(newForeignKey.ForeignKeyProperty, Function(x) (x.Enum = otForeignKeyProperty.OnUpdate)) Then
+                                Dim alist As List(Of String) = newForeignKey.ForeignKeyProperties.ToList
+                                alist.Add(ForeignKeyProperty.OnUpdate & "(" & ForeignKeyActionProperty.Cascade & ")")
+                                newForeignKey.ForeignKeyProperties = alist.ToArray
+                            End If
+                        End If
+
                         '** add the foreign key
-                        If Not globaleTableAttributes.HasForeignkey(newForeignKey.ID) Then
-                            globaleTableAttributes.AddForeignKey(newForeignKey)
+                        If Not globalContainerAttributes.HasForeignkey(newForeignKey.ID) Then
+                            globalContainerAttributes.AddForeignKey(newForeignKey)
                         Else
                             CoreMessageHandler(message:="foreign key with ID '" & newForeignKey.ID & "' already exists in table attribute", _
-                                              arg1:=newForeignKey.ID, tablename:=globaleTableAttributes.TableName, entryname:=fieldvalue, _
+                                              argument:=newForeignKey.ID, containerID:=globalContainerAttributes.ContainerID, entryname:=fieldvalue, _
                                               messagetype:=otCoreMessageType.InternalWarning, _
-                                              subname:="ObjectClassDescription.InitializeObjectEntryAttribute", objectname:=_Type.Name)
+                                              procedure:="ObjectClassDescription.InitializeObjectEntryAttribute", objectname:=_Type.Name)
                         End If
-                        Dim TablewiseDict As New Dictionary(Of String, ormSchemaForeignKeyAttribute)
-                        If _ForeignKeys.ContainsKey(key:=tablename) Then
-                            TablewiseDict = _ForeignKeys.Item(key:=tablename)
+                        Dim containerWise As New Dictionary(Of String, ormForeignKeyAttribute)
+                        If _ForeignKeys.ContainsKey(key:=containerID) Then
+                            ContainerWise = _ForeignKeys.Item(key:=containerID)
                         Else
-                            _ForeignKeys.Add(key:=tablename, value:=TablewiseDict)
+                            _ForeignKeys.Add(key:=containerID, value:=ContainerWise)
                         End If
-                        If Not TablewiseDict.ContainsKey(key:=newForeignKey.ID) Then
-                            TablewiseDict.Add(key:=newForeignKey.ID, value:=newForeignKey)
+                        If Not ContainerWise.ContainsKey(key:=newForeignKey.ID) Then
+                            ContainerWise.Add(key:=newForeignKey.ID, value:=newForeignKey)
                         Else
                             CoreMessageHandler(message:="foreign key with ID '" & newForeignKey.ID & "' already exists in object class attribute", _
-                                           arg1:=newForeignKey.ID, tablename:=globaleTableAttributes.TableName, entryname:=fieldvalue, _
+                                           argument:=newForeignKey.ID, containerID:=globalContainerAttributes.ContainerID, entryname:=fieldvalue, _
                                            messagetype:=otCoreMessageType.InternalWarning, _
-                                           subname:="ObjectClassDescription.InitializeObjectEntryAttribute", objectname:=_Type.Name)
+                                           procedure:="ObjectClassDescription.InitializeObjectEntryAttribute", objectname:=_Type.Name)
 
                         End If
                     End If
                 End If
 
-                '** store the Primary Key also with the Object as Object Primary
-                If anObjectEntryAttribute.HasValuePrimaryKeyOrdinal AndAlso _TableAttributes.Count = 1 Then
-                    If Not _ObjectAttribute.HasValuePrimaryKeys Then
-                        _ObjectAttribute.PrimaryKeys = {name.ToUpper}
-                    Else
-                        If _ObjectAttribute.PrimaryKeys.GetUpperBound(0) < anObjectEntryAttribute.PrimaryKeyOrdinal - 1 Then
-                            ReDim Preserve _ObjectAttribute.PrimaryKeys(anObjectEntryAttribute.PrimaryKeyOrdinal - 1)
+                ''' store the Primary Key also with the Object as Object Primary
+                ''' 
+                If anObjectEntryAttribute.HasValuePrimaryKeyOrdinal AndAlso _ContainerAttributes.Count > 0 Then
+
+                    '** set the primary table of the object
+                    If String.IsNullOrWhiteSpace(Me.PrimaryContainerID) Then Me.PrimaryContainerID = anObjectEntryAttribute.ContainerID
+
+                    '* extend the objects primary key if primarytableid is addressed
+                    If Me.PrimaryContainerID = anObjectEntryAttribute.ContainerID Then
+                        If Not _ObjectAttribute.HasValuePrimaryKeys Then
+                            _ObjectAttribute.PrimaryKeyEntryNames = {name.ToUpper}
+                        Else
+                            If _ObjectAttribute.PrimaryKeyEntryNames.GetUpperBound(0) < anObjectEntryAttribute.PrimaryEntryOrdinal - 1 Then
+                                ReDim Preserve _ObjectAttribute.PrimaryKeyEntryNames(anObjectEntryAttribute.PrimaryEntryOrdinal - 1)
+                            End If
+                            _ObjectAttribute.PrimaryKeyEntryNames(anObjectEntryAttribute.PrimaryEntryOrdinal - 1) = name.ToUpper
                         End If
-                        _ObjectAttribute.PrimaryKeys(anObjectEntryAttribute.PrimaryKeyOrdinal - 1) = name.ToUpper
                     End If
-                ElseIf anObjectEntryAttribute.HasValuePrimaryKeyOrdinal AndAlso _TableAttributes.Count > 1 Then
-                    If _ObjectAttribute.PrimaryKeys Is Nothing OrElse _ObjectAttribute.PrimaryKeys.Count = 0 Then
-                        CoreMessageHandler(message:="ATTENTION ! Primary keys for Object Attributes are not defined - multiple tables are used", _
-                                           objectname:=_ObjectAttribute.ID, tablename:=tablename, messagetype:=otCoreMessageType.InternalError, _
-                                           subname:="ObjectClassDescription.InitializeObjectEntryAttribute")
+
+                    '** extend the primary key column names of the table attribute. table primary key must be at least the object primary ke<y
+                    Dim aContainerAttribute = Me.GetContainerAttribute(anObjectEntryAttribute.ContainerID)
+                    ''' add the primarykey - extend if necessary - check if already in there
+                    If aContainerAttribute IsNot Nothing Then
+                        If aContainerAttribute.PrimaryEntryNames Is Nothing Then
+                            aContainerAttribute.PrimaryEntryNames = {anObjectEntryAttribute.ContainerEntryName}
+                        ElseIf Not aContainerAttribute.PrimaryEntryNames.Contains(anObjectEntryAttribute.ContainerEntryName) Then
+                            Dim pknames As String() = aContainerAttribute.PrimaryEntryNames
+                            '+ extend
+                            If aContainerAttribute.PrimaryEntryNames.GetUpperBound(0) < anObjectEntryAttribute.PrimaryEntryOrdinal - 1 Then
+                                ReDim Preserve pknames(anObjectEntryAttribute.PrimaryEntryOrdinal - 1)
+                            End If
+                            pknames(anObjectEntryAttribute.PrimaryEntryOrdinal - 1) = anObjectEntryAttribute.ContainerEntryName
+                            '* set
+                            aContainerAttribute.PrimaryEntryNames = pknames
+                        End If
+                    Else
+                        CoreMessageHandler(message:="ATTENTION ! Container attribute is not defined in Object Description.", _
+                                      objectname:=_ObjectAttribute.ID, containerID:=containerID, messagetype:=otCoreMessageType.InternalError, _
+                                      procedure:="ObjectClassDescription.InitializeObjectEntryAttribute")
                     End If
-                ElseIf anObjectEntryAttribute.HasValuePrimaryKeyOrdinal AndAlso _TableAttributes.Count = 0 Then
-                    CoreMessageHandler(message:="ATTENTION ! Primary keys for Object Attributes are not defined - no tables are used", _
-                                       objectname:=_ObjectAttribute.ID, tablename:=tablename, messagetype:=otCoreMessageType.InternalError, _
-                                       subname:="ObjectClassDescription.InitializeObjectEntryAttribute")
+
+                ElseIf anObjectEntryAttribute.HasValuePrimaryKeyOrdinal AndAlso _ContainerAttributes.Count = 0 Then
+                    CoreMessageHandler(message:="ATTENTION ! Primary keys for Object Attributes are not defined - no container are used", _
+                                       objectname:=_ObjectAttribute.ID, containerID:=containerID, messagetype:=otCoreMessageType.InternalError, _
+                                       procedure:="ObjectClassDescription.InitializeObjectEntryAttribute")
                 End If
 
                 Return True
             Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="ObjectClassDescription.InitializeObjectEntryAttribute")
+                CoreMessageHandler(exception:=ex, procedure:="ObjectClassDescription.InitializeObjectEntryAttribute")
                 Return False
             End Try
 
@@ -2015,22 +2230,22 @@ Namespace OnTrack
         Private Function InitializeEntryMapping(attribute As Attribute, tablename As String, value As String, fieldinfo As FieldInfo, ClassOverrides As Boolean) As Boolean
             Try
                 '* set the cloumn name
-                Dim aMappingAttribute As ormEntryMapping = DirectCast(attribute, ormEntryMapping)
+                Dim aMappingAttribute As ormObjectEntryMapping = DirectCast(attribute, ormObjectEntryMapping)
                 '** default -> Table/Column mapping
                 If Not aMappingAttribute.HasValueEntryName And Not aMappingAttribute.HasValueRelationName Then
                     CoreMessageHandler(message:="Entry Mapping Attribute was neither assigned to a data entry definition nor a relation definition", _
-                                       arg1:=_Type.Name, entryname:=value, messagetype:=otCoreMessageType.InternalWarning, _
-                                       subname:="ObjectClassDescription.InitializeEntryMapping", objectname:=_Type.Name)
+                                       argument:=_Type.Name, entryname:=value, messagetype:=otCoreMessageType.InternalWarning, _
+                                       procedure:="ObjectClassDescription.InitializeEntryMapping", objectname:=_Type.Name)
 
                 End If
-               
+
                 '** default -> Table/Column mapping
                 If Not aMappingAttribute.HasValueTablename Then
-                    tablename = _TableAttributes.First.Key
-                    If _TableAttributes.Count > 1 Then
+                    tablename = Me.PrimaryContainerID
+                    If _ContainerAttributes.Count > 1 Then
                         CoreMessageHandler(message:="Column Attribute was not assigned to a table although multiple tables are defined in class", _
-                                           arg1:=_Type.Name, entryname:=value, messagetype:=otCoreMessageType.InternalWarning, objectname:=_Type.Name, _
-                                           subname:="ObjectClassDescription.InitializeEntryMapping")
+                                           argument:=_Type.Name, entryname:=value, messagetype:=otCoreMessageType.InternalWarning, objectname:=_Type.Name, _
+                                           procedure:="ObjectClassDescription.InitializeEntryMapping")
                     End If
                 Else
                     tablename = aMappingAttribute.TableName
@@ -2041,11 +2256,11 @@ Namespace OnTrack
                 If aMappingAttribute.HasValueEntryName And Not aMappingAttribute.HasValueColumnName Then
                     If _ObjectEntryAttributes.ContainsKey(key:=aMappingAttribute.EntryName) Then
                         Dim anObjectEntry = _ObjectEntryAttributes.Item(key:=aMappingAttribute.EntryName)
-                        aMappingAttribute.ColumnName = anObjectEntry.ColumnName
+                        aMappingAttribute.ColumnName = anObjectEntry.ContainerEntryName
                     Else
                         CoreMessageHandler(message:="Object Entry  was not found", _
-                                           arg1:=_Type.Name, entryname:=aMappingAttribute.EntryName, messagetype:=otCoreMessageType.InternalError, _
-                                           subname:="ObjectClassDescription.InitializeEntryMapping", objectname:=_Type.Name)
+                                           argument:=_Type.Name, entryname:=aMappingAttribute.EntryName, messagetype:=otCoreMessageType.InternalError, _
+                                           procedure:="ObjectClassDescription.InitializeEntryMapping", objectname:=_Type.Name)
                     End If
 
                 End If
@@ -2059,53 +2274,53 @@ Namespace OnTrack
                 '***
                 '*** ENTRY SETTING
                 If aMappingAttribute.HasValueEntryName Then
-                    aTablewiseDictionary = _TableColumnsMappings.Item(key:=tablename)
-                    aGlobalDictionary = _ColumnEntryMapping
+                    aTablewiseDictionary = _ContainerMappings.Item(key:=tablename)
+                    aGlobalDictionary = _ContainerEntryMappings
                     anID = aMappingAttribute.EntryName
                     aTablewiseID = aMappingAttribute.ColumnName
 
                     If aTablewiseDictionary Is Nothing Then
-                        CoreMessageHandler(message:="_tablecolumnsMappings   does not exist", tablename:=tablename, arg1:=aMappingAttribute.ID, _
+                        CoreMessageHandler(message:="_tablecolumnsMappings   does not exist", containerID:=tablename, argument:=aMappingAttribute.ID, _
                                            messagetype:=otCoreMessageType.InternalError, _
-                                           subname:="ObjectClassDescription.InitializeEntryMapping", objectname:=_Type.Name)
+                                           procedure:="ObjectClassDescription.InitializeEntryMapping", objectname:=_Type.Name)
                         Return False
                     End If
 
                     If Not _ObjectEntryAttributes.ContainsKey(key:=anID) Then
-                        CoreMessageHandler(message:="the to be mapped entry attribute does not exist", tablename:=tablename, _
-                                           arg1:=aMappingAttribute.ID, _
+                        CoreMessageHandler(message:="the to be mapped entry attribute does not exist", containerID:=tablename, _
+                                           argument:=aMappingAttribute.ID, _
                                           messagetype:=otCoreMessageType.InternalError, _
-                                          subname:="ObjectClassDescription.InitializeEntryMapping", objectname:=_Type.Name)
+                                          procedure:="ObjectClassDescription.InitializeEntryMapping", objectname:=_Type.Name)
                     Else
                         aMappingAttribute.Enabled = _ObjectEntryAttributes.Item(key:=anID).Enabled
                     End If
                     '***
                     '*** RELATION SETTING
                 ElseIf aMappingAttribute.HasValueRelationName Then
-                    aTablewiseDictionary = _TableRelationMappings.Item(key:=tablename)
+                    aTablewiseDictionary = _ContainerRelationMappings.Item(key:=tablename)
                     aGlobalDictionary = _RelationEntryMapping
                     anID = aMappingAttribute.RelationName
                     aTablewiseID = anID
 
                     If aTablewiseDictionary Is Nothing Then
-                        CoreMessageHandler(message:="_tablerelationMappings or  does not exist", tablename:=tablename, arg1:=aMappingAttribute.ID, _
+                        CoreMessageHandler(message:="_tablerelationMappings or  does not exist", containerID:=tablename, argument:=aMappingAttribute.ID, _
                                            messagetype:=otCoreMessageType.InternalError, _
-                                           subname:="ObjectClassDescription.InitializeEntryMapping", objectname:=_Type.Name)
+                                           procedure:="ObjectClassDescription.InitializeEntryMapping", objectname:=_Type.Name)
                         Return False
                     End If
 
                     If Not _Relations.ContainsKey(key:=anID) Then
-                        CoreMessageHandler(message:="the to be mapped entry attribute does not exist", tablename:=tablename, _
-                                           arg1:=aMappingAttribute.ID, _
+                        CoreMessageHandler(message:="the to be mapped entry attribute does not exist", containerID:=tablename, _
+                                           argument:=aMappingAttribute.ID, _
                                           messagetype:=otCoreMessageType.InternalError, _
-                                          subname:="ObjectClassDescription.InitializeEntryMapping", objectname:=_Type.Name)
+                                          procedure:="ObjectClassDescription.InitializeEntryMapping", objectname:=_Type.Name)
                     Else
                         aMappingAttribute.Enabled = _Relations.Item(key:=anID).Enabled
                     End If
                 Else
-                    CoreMessageHandler(message:="EntryMapping Attribute has no link to object entries nor relation", arg1:=aMappingAttribute.ID, _
+                    CoreMessageHandler(message:="EntryMapping Attribute has no link to object entries nor relation", argument:=aMappingAttribute.ID, _
                                        messagetype:=otCoreMessageType.InternalError, _
-                                       subname:="ObjectClassDescription.InitializeEntryMapping", objectname:=_Type.Name)
+                                       procedure:="ObjectClassDescription.InitializeEntryMapping", objectname:=_Type.Name)
                     Return False
                 End If
 
@@ -2155,13 +2370,13 @@ Namespace OnTrack
                     _EntryMappings.Remove(key:=fieldinfo.Name)
                     _EntryMappings.Add(key:=fieldinfo.Name, value:=aMappingAttribute)
                 Else
-                    CoreMessageHandler(message:="Warning ! Field Member already associated with EntryMapping", arg1:=fieldinfo.Name, _
-                                       objectname:=_Type.Name, messagetype:=otCoreMessageType.InternalWarning, subname:="ObjectClassDescription.InitializeEntryMapping")
+                    CoreMessageHandler(message:="Warning ! Field Member already associated with EntryMapping", argument:=fieldinfo.Name, _
+                                       objectname:=_Type.Name, messagetype:=otCoreMessageType.InternalWarning, procedure:="ObjectClassDescription.InitializeEntryMapping")
                 End If
 
                 '*** create the setter
                 If Not _MappingSetterDelegates.ContainsKey(key:=fieldinfo.Name) Then
-                    Dim setter As Action(Of ormDataObject, Object) = CreateILGSetterDelegate(Of ormDataObject, Object)(_Type, fieldinfo)
+                    Dim setter As Action(Of ormBusinessObject, Object) = CreateILGSetterDelegate(Of ormBusinessObject, Object)(_Type, fieldinfo)
                     _MappingSetterDelegates.Add(key:=fieldinfo.Name, value:=setter)
                 End If
                 '*** create the getter
@@ -2172,7 +2387,7 @@ Namespace OnTrack
 
                 Return True
             Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="ObjectClassDescription.InitializeEntryMapping")
+                CoreMessageHandler(exception:=ex, procedure:="ObjectClassDescription.InitializeEntryMapping")
                 Return False
             End Try
         End Function
@@ -2185,29 +2400,29 @@ Namespace OnTrack
         ''' <param name="value"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Private Function InitializeRelationAttribute(attribute As Attribute, name As String, tablename As String, value As String, overridesExisting As Boolean) As Boolean
+        Private Function InitializeRelationAttribute(attribute As Attribute, name As String, containerID As String, value As String, overridesExisting As Boolean) As Boolean
             Try
 
                 '* set the cloumn name
                 Dim aRelationAttribute As ormRelationAttribute = DirectCast(attribute, ormRelationAttribute)
-                If name = "" Then
-                    name = value
+                If String.IsNullOrWhiteSpace(name) Then name = value
+                If String.IsNullOrWhiteSpace(containerID) Then
                     '** default
-                    If Not aRelationAttribute.HasValueTableName Then
-                        tablename = _TableAttributes.First.Key
-                        If _TableAttributes.Count > 1 Then
+                    If Not aRelationAttribute.HasValueTableID Then
+                        containerID = Me.PrimaryContainerID
+                        If _ContainerAttributes.Count > 1 Then
                             CoreMessageHandler(message:="Relation Attribute was not assigned to a table although multiple tables are defined in class", _
-                                               arg1:=_Type.Name, entryname:=value, messagetype:=otCoreMessageType.InternalWarning, subname:="ObjectClassDescription.initializeRelationAttribute")
+                                               argument:=_Type.Name, entryname:=value, messagetype:=otCoreMessageType.InternalWarning, procedure:="ObjectClassDescription.initializeRelationAttribute")
                         End If
                     Else
-                        tablename = aRelationAttribute.TableName
+                        containerID = aRelationAttribute.TableID
                     End If
                 End If
                 ' reset the attributes 
                 name = name.ToUpper
 
                 aRelationAttribute.Name = name
-                aRelationAttribute.TableName = tablename
+                aRelationAttribute.TableID = containerID
                 '* save to global
                 If Not _Relations.ContainsKey(key:=name) Then
                     _Relations.Add(key:=name, value:=aRelationAttribute)
@@ -2218,7 +2433,7 @@ Namespace OnTrack
                 End If
 
                 '** save to tablewise
-                Dim aDictionary = _TableRelations.Item(key:=tablename)
+                Dim aDictionary = _ContainerRelations.Item(key:=containerID)
                 If aDictionary IsNot Nothing Then
                     If Not aDictionary.ContainsKey(key:=name) Then
                         aDictionary.Add(key:=name, value:=aRelationAttribute)
@@ -2230,17 +2445,17 @@ Namespace OnTrack
                     End If
 
                 Else
-                    CoreMessageHandler(message:="_tablerelations does not exist", arg1:=tablename, messagetype:=otCoreMessageType.InternalError, subname:="ObjectClassDescription.initializeRelationAttribute")
+                    CoreMessageHandler(message:="_tablerelations does not exist", argument:=containerID, messagetype:=otCoreMessageType.InternalError, procedure:="ObjectClassDescription.initializeRelationAttribute")
                 End If
                 '** linkobject
                 If Not aRelationAttribute.HasValueLinkedObject Then
                     CoreMessageHandler(message:="Relation Attribute has not defined a linked object type", objectname:=_Type.Name, _
-                                       arg1:=name, messagetype:=otCoreMessageType.InternalError, subname:="ObjectClassDescription.initializeRelationAttribute")
+                                       argument:=name, messagetype:=otCoreMessageType.InternalError, procedure:="ObjectClassDescription.initializeRelationAttribute")
                 Else
                     Dim atype As System.Type = aRelationAttribute.LinkObject
                     If atype.IsAbstract Then
                         CoreMessageHandler(message:="Relation Attribute with a linked object type which is abstract (mustinherit) is not supported", objectname:=_Type.Name, _
-                                       arg1:=name, messagetype:=otCoreMessageType.InternalError, subname:="ObjectClassDescription.initializeRelationAttribute")
+                                       argument:=name, messagetype:=otCoreMessageType.InternalError, procedure:="ObjectClassDescription.initializeRelationAttribute")
                     End If
 
                 End If
@@ -2256,8 +2471,8 @@ Namespace OnTrack
                 If aRelationAttribute.HasValueFromEntries AndAlso aRelationAttribute.HasValueToEntries Then
                     If aRelationAttribute.ToEntries.Count > aRelationAttribute.FromEntries.Count Then
                         CoreMessageHandler(message:="relation attribute has nor mot ToEntries than FromEntries set", _
-                                           arg1:=name, objectname:=_Type.Name, _
-                                           subname:="ObjectClassDescription.initializeRelationAttribute", messagetype:=otCoreMessageType.InternalError)
+                                           argument:=name, objectname:=_Type.Name, _
+                                           procedure:="ObjectClassDescription.initializeRelationAttribute", messagetype:=otCoreMessageType.InternalError)
                     End If
                 End If
 
@@ -2270,7 +2485,7 @@ Namespace OnTrack
                 Return True
 
             Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="ObjectClassDescription.InitializeRelationAttribute")
+                CoreMessageHandler(exception:=ex, procedure:="ObjectClassDescription.InitializeRelationAttribute")
                 Return False
             End Try
         End Function
@@ -2283,38 +2498,39 @@ Namespace OnTrack
         ''' <param name="value"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Private Function InitializeForeignKeyAttribute(attribute As Attribute, name As String, tablename As String, value As String, overridesExisting As Boolean) As Boolean
+        Private Function InitializeForeignKeyAttribute(attribute As Attribute, name As String, containerID As String, value As String, overridesExisting As Boolean) As Boolean
             Try
 
                 '* set the cloumn name
-                Dim aForeignKeyAttribute As ormSchemaForeignKeyAttribute = DirectCast(attribute, ormSchemaForeignKeyAttribute)
-                If name = "" Then
-                    name = value
-                    '** default
-                    If Not aForeignKeyAttribute.HasValueTableName Then
-                        tablename = _TableAttributes.First.Key
-                        If _TableAttributes.Count > 1 Then
+                Dim aForeignKeyAttribute As ormForeignKeyAttribute = DirectCast(attribute, ormForeignKeyAttribute)
+                If String.IsNullOrWhiteSpace(name) Then name = value
+
+                '** default
+                If String.IsNullOrWhiteSpace(containerID) Then
+                    If Not aForeignKeyAttribute.HasValueTableID Then
+                        containerID = Me.PrimaryContainerID
+                        If _ContainerAttributes.Count > 1 Then
                             CoreMessageHandler(message:="Relation Attribute was not assigned to a table although multiple tables are defined in class", _
-                                               arg1:=_Type.Name, entryname:=value, messagetype:=otCoreMessageType.InternalWarning, _
-                                               subname:="ObjectClassDescription.InitializeForeignKeyAttribute")
+                                               argument:=_Type.Name, entryname:=value, messagetype:=otCoreMessageType.InternalWarning, _
+                                               procedure:="ObjectClassDescription.InitializeForeignKeyAttribute")
                         End If
                     Else
-                        tablename = aForeignKeyAttribute.Tablename
+                        containerID = aForeignKeyAttribute.TableID
                     End If
                 End If
 
                 ' reset the attributes 
-                name = name.ToUpper
+                name = containerID & "_" & name.ToUpper
                 aForeignKeyAttribute.ID = name
-                aForeignKeyAttribute.Tablename = tablename
+                If Not aForeignKeyAttribute.HasValueTableID Then aForeignKeyAttribute.TableID = containerID
                 If _ObjectAttribute.HasValueID Then aForeignKeyAttribute.ObjectID = _ObjectAttribute.ID
 
                 '** save to table wise dictionary
-                Dim aDictionary As New Dictionary(Of String, ormSchemaForeignKeyAttribute)
-                If _ForeignKeys.ContainsKey(tablename) Then
-                    aDictionary = _ForeignKeys.Item(key:=tablename)
+                Dim aDictionary As New Dictionary(Of String, ormForeignKeyAttribute)
+                If _ForeignKeys.ContainsKey(containerID) Then
+                    aDictionary = _ForeignKeys.Item(key:=containerID)
                 Else
-                    _ForeignKeys.Add(key:=tablename, value:=aDictionary)
+                    _ForeignKeys.Add(key:=containerID, value:=aDictionary)
                 End If
 
                 If Not aDictionary.ContainsKey(key:=name) Then
@@ -2327,28 +2543,28 @@ Namespace OnTrack
                 End If
 
                 '** save the table attribute
-                If _TableAttributes.ContainsKey(tablename) Then
-                    Dim aTableAttribute = _TableAttributes.Item(tablename)
-                    If Not aTableAttribute.HasForeignkey(name) Then
-                        aTableAttribute.AddForeignKey(aForeignKeyAttribute)
+                If _ContainerAttributes.ContainsKey(containerID) Then
+                    Dim aContainerAttribute = _ContainerAttributes.Item(containerID)
+                    If Not aContainerAttribute.HasForeignKey(name) Then
+                        aContainerAttribute.AddForeignKey(aForeignKeyAttribute)
                     End If
                 Else
-                    CoreMessageHandler(message:="table attribute was not defined in global table attribute store", arg1:=name, _
+                    CoreMessageHandler(message:="container attribute was not defined in global container attribute store", argument:=name, _
                                        messagetype:=otCoreMessageType.InternalError, _
-                                       subname:="ObjectClassDescription.InitializeForeignKeyAttribute", tablename:=tablename, objectname:=_Type.Name)
+                                       procedure:="ObjectClassDescription.InitializeForeignKeyAttribute", containerID:=containerID, objectname:=_Type.Name)
 
                 End If
 
                 '** save to global table attribute
-                Dim globaleTableAttributes = _repository.GetTableAttribute(tablename)
-                If globaleTableAttributes IsNot Nothing Then
-                    If Not globaleTableAttributes.HasForeignkey(name) Then
-                        globaleTableAttributes.AddForeignKey(aForeignKeyAttribute)
+                Dim globalContainerAttributes = _repository.GetContainerAttribute(containerID)
+                If globalContainerAttributes IsNot Nothing Then
+                    If Not globalContainerAttributes.HasForeignkey(name) Then
+                        globalContainerAttributes.AddForeignKey(aForeignKeyAttribute)
                     End If
                 Else
-                    CoreMessageHandler(message:="table attribute was not defined in global table attribute store", arg1:=name, _
+                    CoreMessageHandler(message:="table attribute was not defined in global table attribute store", argument:=name, _
                                        messagetype:=otCoreMessageType.InternalError, _
-                                       subname:="ObjectClassDescription.InitializeForeignKeyAttribute", tablename:=tablename, objectname:=_Type.Name)
+                                       procedure:="ObjectClassDescription.InitializeForeignKeyAttribute", containerID:=containerID, objectname:=_Type.Name)
 
                 End If
 
@@ -2357,7 +2573,7 @@ Namespace OnTrack
                 '***
                 If Not aForeignKeyAttribute.HasValueEntrynames Then
                     CoreMessageHandler(message:="entrynames must be defined in foreign key attribute", objectname:=_Type.Name, _
-                                       arg1:=name, messagetype:=otCoreMessageType.InternalError, subname:="ObjectClassDescription.InitializeForeignKeyAttribute")
+                                       argument:=name, messagetype:=otCoreMessageType.InternalError, procedure:="ObjectClassDescription.InitializeForeignKeyAttribute")
                 Else
                     For i = 0 To aForeignKeyAttribute.Entrynames.Count - 1
                         Dim areference As String = aForeignKeyAttribute.Entrynames(i)
@@ -2370,7 +2586,7 @@ Namespace OnTrack
                             entryname = names(1)
                             If objectname.ToUpper <> aForeignKeyAttribute.ObjectID Then
                                 CoreMessageHandler(message:="entrynames " & aForeignKeyAttribute.Entrynames.ToString & " in foreign key attribute must be defined for the object", objectname:=_Type.Name, _
-                                      arg1:=objectname, messagetype:=otCoreMessageType.InternalError, subname:="ObjectClassDescription.InitializeForeignKeyAttribute")
+                                      argument:=objectname, messagetype:=otCoreMessageType.InternalError, procedure:="ObjectClassDescription.InitializeForeignKeyAttribute")
                             End If
                         Else
                             '** add the objectname
@@ -2395,12 +2611,12 @@ Namespace OnTrack
                 '***
                 If Not aForeignKeyAttribute.HasValueForeignKeyReferences Then
                     CoreMessageHandler(message:="foreign key references must be defined in foreign key attribute", objectname:=_Type.Name, _
-                                       arg1:=name, messagetype:=otCoreMessageType.InternalError, subname:="ObjectClassDescription.InitializeForeignKeyAttribute")
+                                       argument:=name, messagetype:=otCoreMessageType.InternalError, procedure:="ObjectClassDescription.InitializeForeignKeyAttribute")
                 Else
                     For Each areference In aForeignKeyAttribute.ForeignKeyReferences
                         If Not areference.Contains("."c) AndAlso Not areference.Contains(ConstDelimiter) Then
                             CoreMessageHandler(message:="foreign key references must be [objectname].[entryname] in the foreign key attribute and not: '" & areference & "'", objectname:=_Type.Name, _
-                                      arg1:=name, messagetype:=otCoreMessageType.InternalError, subname:="ObjectClassDescription.InitializeForeignKeyAttribute")
+                                      argument:=name, messagetype:=otCoreMessageType.InternalError, procedure:="ObjectClassDescription.InitializeForeignKeyAttribute")
                         Else
                             Dim names = Shuffle.NameSplitter(areference)
                             Dim objectname = names(0)
@@ -2444,7 +2660,7 @@ Namespace OnTrack
                 If aForeignKeyAttribute.HasValueForeignKeyReferences AndAlso aForeignKeyAttribute.HasValueEntrynames Then
                     If aForeignKeyAttribute.ForeignKeyReferences.Count <> aForeignKeyAttribute.Entrynames.Count Then
                         CoreMessageHandler(message:="foreign key references must be the same number as entry names", objectname:=_Type.Name, _
-                                           arg1:=name, messagetype:=otCoreMessageType.InternalError, subname:="ObjectClassDescription.InitializeForeignKeyAttribute")
+                                           argument:=name, messagetype:=otCoreMessageType.InternalError, procedure:="ObjectClassDescription.InitializeForeignKeyAttribute")
                     End If
                 End If
 
@@ -2452,17 +2668,17 @@ Namespace OnTrack
                 If Not aForeignKeyAttribute.HasValueVersion Then aForeignKeyAttribute.Version = 1
                 If Not aForeignKeyAttribute.HasValueUseForeignKey Then
                     aForeignKeyAttribute.UseForeignKey = otForeignKeyImplementation.None
-                    CoreMessageHandler(message:="In foreign key attribute the use foreign key is not set - set to none", arg1:=name, _
+                    CoreMessageHandler(message:="In foreign key attribute the use foreign key is not set - set to none", argument:=name, _
                                                       messagetype:=otCoreMessageType.InternalWarning, _
-                                                      tablename:=tablename, objectname:=_Type.Name, _
-                                                      subname:="ObjectClassDescription.InitializeForeignKeyAttribute")
+                                                      containerID:=containerID, objectname:=_Type.Name, _
+                                                      procedure:="ObjectClassDescription.InitializeForeignKeyAttribute")
                 End If
 
                 If Not aForeignKeyAttribute.HasValueForeignKeyProperties Then
-                    CoreMessageHandler(message:="In foreign key attribute the properties are not set - set to default", arg1:=name, _
+                    CoreMessageHandler(message:="In foreign key attribute the properties are not set - set to default", argument:=name, _
                                                       messagetype:=otCoreMessageType.InternalWarning, _
-                                                      tablename:=tablename, objectname:=_Type.Name, _
-                                                      subname:="ObjectClassDescription.InitializeForeignKeyAttribute")
+                                                      containerID:=containerID, objectname:=_Type.Name, _
+                                                      procedure:="ObjectClassDescription.InitializeForeignKeyAttribute")
                     aForeignKeyAttribute.ForeignKeyProperties = {ForeignKeyProperty.OnUpdate & "(" & ForeignKeyActionProperty.Cascade & ")", _
                                                                  ForeignKeyProperty.OnDelete & "(" & ForeignKeyActionProperty.Cascade & ")"}
                 End If
@@ -2472,7 +2688,7 @@ Namespace OnTrack
 
             Catch ex As Exception
 
-                CoreMessageHandler(exception:=ex, subname:="ObjectClassDescription.InitializeForeignKeyAttribute")
+                CoreMessageHandler(exception:=ex, procedure:="ObjectClassDescription.InitializeForeignKeyAttribute")
                 Return False
             End Try
         End Function
@@ -2491,12 +2707,8 @@ Namespace OnTrack
 
                 '* set the  name
                 Dim aTransactionAttribute As ormObjectTransactionAttribute = DirectCast(attribute, ormObjectTransactionAttribute)
-                If name = "" Then
-                    name = value
-                End If
-                If objectname = "" Then
-                    objectname = _ObjectAttribute.ID
-                End If
+                If String.IsNullOrWhiteSpace(name) Then name = value
+                If String.IsNullOrWhiteSpace(objectname) Then objectname = _ObjectAttribute.ID
                 ' reset the attributes 
                 name = name.ToUpper
                 '** default
@@ -2518,15 +2730,15 @@ Namespace OnTrack
                     For Each Rule In aTransactionAttribute.PermissionRules
                         Dim aProp As ObjectPermissionRuleProperty = New ObjectPermissionRuleProperty(Rule)
                         If Not aProp.Validate Then
-                            CoreMessageHandler(message:="property rule did not validate", arg1:=name & "[" & Rule & "]", objectname:=_ObjectAttribute.ID, _
-                                               subname:="ObjectClassDescription.InitializeTransactionAttribute", messagetype:=otCoreMessageType.InternalError)
+                            CoreMessageHandler(message:="property rule did not validate", argument:=name & "[" & Rule & "]", objectname:=_ObjectAttribute.ID, _
+                                               procedure:="ObjectClassDescription.InitializeTransactionAttribute", messagetype:=otCoreMessageType.InternalError)
                         End If
                     Next
                 End If
                 Return True
 
             Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="ObjectClassDescription.InitializeTransactionAttribute")
+                CoreMessageHandler(exception:=ex, procedure:="ObjectClassDescription.InitializeTransactionAttribute")
                 Return False
             End Try
         End Function
@@ -2539,28 +2751,28 @@ Namespace OnTrack
         ''' <param name="value"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function InitializeIndexAttribute(attribute As Attribute, name As String, tablename As String, value As String, overridesExisting As Boolean) As Boolean
+        Public Function InitializeIndexAttribute(attribute As Attribute, name As String, containerID As String, value As String, overridesExisting As Boolean) As Boolean
             Try
 
                 '* set the cloumn name
-                Dim anIndexAttribute As ormSchemaIndexAttribute = DirectCast(attribute, ormSchemaIndexAttribute)
-                If name = "" Then
-                    name = value.ToUpper
-                    '** default
-                    If Not anIndexAttribute.HasValueTableName Then
-                        tablename = _TableAttributes.First.Key
-                        If _TableAttributes.Count > 1 Then
+                Dim anIndexAttribute As ormIndexAttribute = DirectCast(attribute, ormIndexAttribute)
+                If String.IsNullOrWhiteSpace(name) Then name = value.ToUpper
+                '** default
+                If String.IsNullOrWhiteSpace(containerID) Then
+                    If Not anIndexAttribute.HasValueTableID Then
+                        containerID = Me.PrimaryContainerID
+                        If _ContainerAttributes.Count > 1 Then
                             CoreMessageHandler(message:="Index Attribute was not assigned to a table although multiple tables are defined in class", _
-                                               arg1:=_Type.Name, entryname:=value, messagetype:=otCoreMessageType.InternalWarning, subname:="ObjectClassDescription.Refresh")
+                                               argument:=_Type.Name, entryname:=value, messagetype:=otCoreMessageType.InternalWarning, procedure:="ObjectClassDescription.Refresh")
                         End If
                     Else
-                        tablename = anIndexAttribute.TableName
+                        containerID = anIndexAttribute.TableID
                     End If
                 End If
-                ' reset the attributes 
 
+                ' reset the attributes 
                 anIndexAttribute.IndexName = name
-                anIndexAttribute.TableName = tablename
+                If Not anIndexAttribute.HasValueTableID Then anIndexAttribute.TableID = containerID
                 '* save to global
                 If Not _Indices.ContainsKey(key:=name) Then
                     _Indices.Add(key:=name, value:=anIndexAttribute)
@@ -2571,26 +2783,38 @@ Namespace OnTrack
                 End If
 
                 '** save
-                Dim aDictionary = _TableIndices.Item(key:=tablename)
+                Dim aDictionary = _ContainerIndices.Item(key:=containerID)
                 If aDictionary IsNot Nothing Then
                     If Not aDictionary.ContainsKey(key:=name) Then
                         aDictionary.Add(key:=name, value:=anIndexAttribute)
-                    ElseIf overridesExisting Then
-                        Return True '** do nothing with the ClassOverrides one
                     ElseIf Not overridesExisting Then
+                        Return True '** do nothing with the ClassOverrides one
+                    ElseIf overridesExisting Then
                         aDictionary.Remove(key:=name)
                         aDictionary.Add(key:=name, value:=anIndexAttribute) '** overwrite the non-ClassOverrides
                     End If
 
                 Else
-                    CoreMessageHandler(message:="_tableindex does not exist", arg1:=tablename, messagetype:=otCoreMessageType.InternalError, subname:="ObjectClassDescription.Refresh")
+                    CoreMessageHandler(message:="_tableindex does not exist", argument:=containerID, messagetype:=otCoreMessageType.InternalError, procedure:="ObjectClassDescription.Refresh")
                 End If
 
+                '** save to global table attribute
+                Dim globalContainerAttributes = _repository.GetContainerAttribute(containerID)
+                If globalContainerAttributes IsNot Nothing Then
+                    If Not globalContainerAttributes.HasIndex(name) Then
+                        globalContainerAttributes.AddIndex(anIndexAttribute)
+                    End If
+                Else
+                    CoreMessageHandler(message:="container attribute was not defined in global container attribute store", argument:=name, _
+                                       messagetype:=otCoreMessageType.InternalError, _
+                                       procedure:="ObjectClassDescription.InitializeIndexAttribute", containerID:=containerID, objectname:=_Type.Name)
+
+                End If
 
                 Return True
 
             Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="ObjectClassDescription.InitializeRelationAttribute")
+                CoreMessageHandler(exception:=ex, procedure:="ObjectClassDescription.InitializeIndexAttribute")
                 Return False
             End Try
         End Function
@@ -2616,7 +2840,7 @@ Namespace OnTrack
                         If .HasValueIsActive Then _ObjectAttribute.IsActive = .IsActive
                         If .HasValueModulename Then _ObjectAttribute.Modulename = .Modulename
                         If .HasValueSpareFieldsBehavior Then _ObjectAttribute.AddSpareFieldsBehavior = .AddSpareFieldsBehavior
-                        If .HasValuePrimaryKeys Then _ObjectAttribute.PrimaryKeys = .PrimaryKeys
+                        If .HasValuePrimaryKeys Then _ObjectAttribute.PrimaryKeyEntryNames = .PrimaryKeyEntryNames
                     End With
                 End If
 
@@ -2624,19 +2848,19 @@ Namespace OnTrack
                 If Not _ObjectAttribute.HasValueClassname Then
                     _ObjectAttribute.ClassName = _Type.FullName
                 End If
-                If _ObjectAttribute.ID Is Nothing OrElse _ObjectAttribute.ID = "" Then
+                If _ObjectAttribute.ID Is Nothing OrElse _ObjectAttribute.ID = String.Empty Then
                     _ObjectAttribute.ID = fieldinfo.GetValue(Nothing).ToString.ToUpper
                 End If
-                If _ObjectAttribute.Modulename Is Nothing OrElse _ObjectAttribute.Modulename = "" Then
+                If _ObjectAttribute.Modulename Is Nothing OrElse _ObjectAttribute.Modulename = String.Empty Then
                     _ObjectAttribute.Modulename = _Type.Namespace.ToUpper
                 End If
-                If _ObjectAttribute.Description Is Nothing OrElse _ObjectAttribute.Description = "" Then
-                    _ObjectAttribute.Description = ""
+                If _ObjectAttribute.Description Is Nothing OrElse _ObjectAttribute.Description = String.Empty Then
+                    _ObjectAttribute.Description = String.Empty
                 End If
 
                 Return True
             Catch ex As Exception
-                CoreMessageHandler(subname:="ObjectClassDescription.InitializeFieldObjectEntryAttribute", exception:=ex)
+                CoreMessageHandler(procedure:="ObjectClassDescription.InitializeFieldObjectEntryAttribute", exception:=ex)
                 Return False
             End Try
         End Function
@@ -2669,8 +2893,8 @@ Namespace OnTrack
                 ''' check parameters
                 If anOperationAttribute.HasValueParameterEntries Then
                     If anOperationAttribute.ParameterEntries.Count <> methodinfo.GetParameters.Count Then
-                        CoreMessageHandler(message:="operation parameter count differs from method's parameter count", subname:="ObjectClassDescription.InitializeOperationAttribute", _
-                                     messagetype:=otCoreMessageType.InternalWarning, arg1:=methodinfo.Name)
+                        CoreMessageHandler(message:="operation parameter count differs from method's parameter count", procedure:="ObjectClassDescription.InitializeOperationAttribute", _
+                                     messagetype:=otCoreMessageType.InternalWarning, argument:=methodinfo.Name)
                     End If
                 End If
 
@@ -2681,7 +2905,7 @@ Namespace OnTrack
                     Dim result As Boolean = False
                     Dim rtype As System.Type = methodinfo.ReturnType
 
-                    If rtype.Equals(GetType(iormPersistable)) OrElse rtype.GetInterfaces.Contains(GetType(iormPersistable)) Then
+                    If rtype.Equals(GetType(iormRelationalPersistable)) OrElse rtype.GetInterfaces.Contains(GetType(iormRelationalPersistable)) Then
                         result = True
                     ElseIf rtype.IsInterface AndAlso rtype.IsGenericType AndAlso _
                         (rtype.GetGenericTypeDefinition.Equals(GetType(IList(Of ))) OrElse rtype.GetGenericTypeDefinition.Equals(GetType(IEnumerable(Of ))) _
@@ -2690,15 +2914,15 @@ Namespace OnTrack
                         result = True
                     ElseIf rtype.GetInterfaces.Contains(GetType(IList(Of ))) OrElse rtype.GetInterfaces.Contains(GetType(IEnumerable(Of ))) _
                         OrElse rtype.GetInterfaces.Contains(GetType(iormRelationalCollection(Of ))) Then
-                        If rtype.GetGenericArguments(1).GetInterfaces.Equals(GetType(iormPersistable)) Then
+                        If rtype.GetGenericArguments(1).GetInterfaces.Equals(GetType(iormRelationalPersistable)) Then
                             result = True
                         Else
-                            CoreMessageHandler(message:="generic return type is not of iormpersistable", subname:="ObjectClassDescription.InitializeOperationAttribute", _
-                                          messagetype:=otCoreMessageType.InternalError, arg1:=methodinfo.Name)
+                            CoreMessageHandler(message:="generic return type is not of iormpersistable", procedure:="ObjectClassDescription.InitializeOperationAttribute", _
+                                          messagetype:=otCoreMessageType.InternalError, argument:=methodinfo.Name)
                         End If
                     Else
-                        CoreMessageHandler(message:="return type is not of iormpersistable or array, list, iormrelationalcollection nor dictionary", subname:="ObjectClassDescription.InitializeOperationAttribute", _
-                                                     messagetype:=otCoreMessageType.InternalError, arg1:=methodinfo.Name)
+                        CoreMessageHandler(message:="return type is not of iormpersistable or array, list, iormrelationalcollection nor dictionary", procedure:="ObjectClassDescription.InitializeOperationAttribute", _
+                                                     messagetype:=otCoreMessageType.InternalError, argument:=methodinfo.Name)
                     End If
                 End If
 
@@ -2733,7 +2957,7 @@ Namespace OnTrack
                 Return True
 
             Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="ObjectClassDescription.InitializeOperationAttribute")
+                CoreMessageHandler(exception:=ex, procedure:="ObjectClassDescription.InitializeOperationAttribute")
                 Return False
             End Try
         End Function
@@ -2746,7 +2970,7 @@ Namespace OnTrack
         Private Function InitializeMethodRetrieveHook(methodinfo As MethodInfo) As Boolean
             '*
             If Not methodinfo.IsGenericMethodDefinition Then
-                CoreMessageHandler(message:="retrieve is not a generic method in class", subname:="ObjectClassDescription.InitializeMethodRetrieveHook", _
+                CoreMessageHandler(message:="retrieve is not a generic method in class", procedure:="ObjectClassDescription.InitializeMethodRetrieveHook", _
                                    messagetype:=otCoreMessageType.InternalError, objectname:=methodinfo.GetBaseDefinition.Name)
                 Return False
             End If
@@ -2782,7 +3006,7 @@ Namespace OnTrack
         Private Function InitializeMethodCreateHook(methodinfo As MethodInfo) As Boolean
             '*
             If Not methodinfo.IsGenericMethodDefinition Then
-                CoreMessageHandler(message:="CreateDataObject is not a generic method in class", subname:="ObjectClassDescription.InitializeMethodCreateHook", _
+                CoreMessageHandler(message:="CreateDataObject is not a generic method in class", procedure:="ObjectClassDescription.InitializeMethodCreateHook", _
                                    messagetype:=otCoreMessageType.InternalError, objectname:=methodinfo.GetBaseDefinition.Name)
                 Return False
             End If
@@ -2831,14 +3055,14 @@ Namespace OnTrack
             If Me._isInitalized AndAlso Not force Then Return False
 
             '** reset
-            _ColumnEntryMapping.Clear()
-            _TableAttributes.Clear()
+            _ContainerEntryMappings.Clear()
+            _ContainerAttributes.Clear()
             _Indices.Clear()
             _RelationEntryMapping.Clear()
-            _TableColumnsMappings.Clear()
-            _TableIndices.Clear()
-            _ObjectEntriesPerTable.Clear()
-            _TableRelationMappings.Clear()
+            _ContainerMappings.Clear()
+            _ContainerIndices.Clear()
+            _ObjectEntriesPerContainer.Clear()
+            _ContainerRelationMappings.Clear()
             _Relations.Clear()
             _ObjectEntryAttributes.Clear()
             _ObjectAttribute = Nothing
@@ -2849,12 +3073,13 @@ Namespace OnTrack
             _QueryAttributes.Clear()
             _ObjectOperationAttributes.Clear()
             _ObjectOperationAttributesByTag.Clear()
+
             '***
             '*** collect all the attributes first
             '***
             Dim aFieldList As System.Reflection.FieldInfo()
             Dim aName As String
-            Dim aTablename As String
+            Dim aContainerID As String
             Dim aValue As String
 
             Try
@@ -2869,17 +3094,19 @@ Namespace OnTrack
                             If Not _ObjectAttribute.HasValueClassname Then _ObjectAttribute.ClassName = _Type.FullName
                             If Not _ObjectAttribute.HasValueID Then _ObjectAttribute.ID = _Type.Name
                             If Not _ObjectAttribute.HasValueModulename Then _ObjectAttribute.Modulename = _Type.Namespace
-                            If Not _ObjectAttribute.HasValueDescription Then _ObjectAttribute.Description = ""
+                            If Not _ObjectAttribute.HasValueDescription Then _ObjectAttribute.Description = String.Empty
                             If Not _ObjectAttribute.HasValueUseCache Then _ObjectAttribute.UseCache = False
                             If Not _ObjectAttribute.HasValueIsBootstap Then _ObjectAttribute.IsBootstrap = False
                             If Not _ObjectAttribute.HasValueIsActive Then _ObjectAttribute.IsActive = True
                             If Not _ObjectAttribute.HasValueTitle Then _ObjectAttribute.Title = _Type.Name
                             If Not _ObjectAttribute.HasValueVersion Then _ObjectAttribute.Version = 1
+
                         End If
                     Next
 
+
                     If _ObjectAttribute Is Nothing Then
-                        CoreMessageHandler(message:="Class has no attribute - not added to repository", arg1:=_Type.Name, subname:="ObjectClassDescription.initialize", _
+                        CoreMessageHandler(message:="Class has no attribute - not added to repository", argument:=_Type.Name, procedure:="ObjectClassDescription.initialize", _
                                            messagetype:=otCoreMessageType.InternalError, objectname:=_Type.Name)
                         Return False
                     End If
@@ -2889,11 +3116,12 @@ Namespace OnTrack
                     Reflection.BindingFlags.Static Or Reflection.BindingFlags.Instance Or _
                     Reflection.BindingFlags.FlattenHierarchy)
 
+
+
                     '** look into each Const Type (Fields) to check for tablenames first !
                     '**
-
-
                     Dim overridesFlag As Boolean = False
+
                     For Each aFieldInfo As System.Reflection.FieldInfo In aFieldList
                         If aFieldInfo.IsStatic AndAlso aFieldInfo.MemberType = Reflection.MemberTypes.Field Then
                             '** is this the declaring class ?! -> Do  override then
@@ -2908,8 +3136,8 @@ Namespace OnTrack
                                 If anAttribute.GetType().Equals(GetType(ormObjectAttribute)) Then
                                     InitializeObjectAttributeByField(attribute:=anAttribute, fieldinfo:=aFieldInfo)
 
-                                    '*** TABLE ATTRIBUTES
-                                ElseIf anAttribute.GetType().Equals(GetType(ormSchemaTableAttribute)) Then
+                                    '*** Container ATTRIBUTES
+                                ElseIf anAttribute.GetType().GetInterfaces.Contains(GetType(iormContainerAttribute)) Then
                                     ''' do we have the same const variable name herited from other classes ?
                                     ''' take then only the local / const variable with attributes from the herited class (overwriting)
 
@@ -2917,11 +3145,11 @@ Namespace OnTrack
                                                   Reflection.BindingFlags.Static)
                                     If localfield Is Nothing OrElse (localfield IsNot Nothing AndAlso aFieldInfo.DeclaringType.Equals(localfield.ReflectedType)) Then
 
-                                        If DirectCast(anAttribute, ormSchemaTableAttribute).TableName Is Nothing OrElse
-                                        DirectCast(anAttribute, ormSchemaTableAttribute).TableName = "" Then
-                                            aTablename = aFieldInfo.GetValue(Nothing).ToString.ToUpper
+                                        If CType(anAttribute, iormContainerAttribute).HasValueContainerID Then
+                                            aContainerID = aFieldInfo.GetValue(Nothing).ToString.ToUpper
                                         End If
-                                        If DirectCast(anAttribute, ormSchemaTableAttribute).Enabled Then InitializeTableAttribute(attribute:=anAttribute, tablename:=aTablename, overridesExisting:=overridesFlag)
+                                        If CType(anAttribute, iormContainerAttribute).Enabled Then InitializeContainerAttribute(attribute:=anAttribute, _
+                                            containerID:=aContainerID, overridesExisting:=overridesFlag)
                                     End If
                                 End If
 
@@ -2950,53 +3178,52 @@ Namespace OnTrack
 
                             '** Attributes
                             For Each anAttribute As System.Attribute In Attribute.GetCustomAttributes(aFieldInfo)
-                                '** split the tablename if static value
-                                aValue = ""
+                                '** split the container id if static value
+                                aValue = String.Empty
                                 If aFieldInfo.IsStatic Then
                                     If aFieldInfo.GetValue(Nothing) IsNot Nothing Then
                                         aValue = aFieldInfo.GetValue(Nothing).ToString.ToUpper
                                     End If
 
                                     '* split
-                                    '* beware a tableattribute would be lost
+                                    '* beware a container attribute would be lost
                                     Dim names As String() = Shuffle.NameSplitter(aValue)
                                     If names.Count > 1 Then
-                                        aTablename = names(0)
+                                        aContainerID = names(0)
                                         aName = names(1)
                                     Else
-                                        aTablename = ""
-                                        aName = ""
+                                        aContainerID = String.Empty
+                                        aName = String.Empty
                                     End If
                                 Else
-                                    aTablename = ""
-                                    aName = ""
+                                    aContainerID = String.Empty
+                                    aName = String.Empty
                                 End If
 
                                 '** Object Entry Column
                                 '**
-                                If aFieldInfo.IsStatic AndAlso anAttribute.GetType().Equals(GetType(ormObjectEntryAttribute)) Then
-                                    InitializeObjectEntryAttribute(attribute:=anAttribute, name:=aName, tablename:=aTablename, fieldvalue:=aValue, _
+                                If aFieldInfo.IsStatic AndAlso anAttribute.GetType().Equals(GetType(iormObjectEntry)) Then
+                                    InitializeObjectEntryAttribute(attribute:=anAttribute, name:=aName, containerID:=aContainerID, fieldvalue:=aValue, _
                                                               overridesExisting:=overridesFlag)
                                     '** Foreign Keys
-                                ElseIf aFieldInfo.IsStatic AndAlso anAttribute.GetType().Equals(GetType(ormSchemaForeignKeyAttribute)) Then
-                                    InitializeForeignKeyAttribute(attribute:=anAttribute, name:=aName, tablename:=aTablename, value:=aValue, overridesExisting:=overridesFlag)
+                                ElseIf aFieldInfo.IsStatic AndAlso anAttribute.GetType().Equals(GetType(ormForeignKeyAttribute)) Then
+                                    InitializeForeignKeyAttribute(attribute:=anAttribute, name:=aName, containerID:=aContainerID, value:=aValue, overridesExisting:=overridesFlag)
 
                                     '** INDEX
-                                ElseIf aFieldInfo.IsStatic AndAlso anAttribute.GetType().Equals(GetType(ormSchemaIndexAttribute)) Then
-                                    InitializeIndexAttribute(attribute:=anAttribute, name:=aName, tablename:=aTablename, value:=aValue, overridesExisting:=overridesFlag)
+                                ElseIf aFieldInfo.IsStatic AndAlso anAttribute.GetType().Equals(GetType(ormIndexAttribute)) Then
+                                    InitializeIndexAttribute(attribute:=anAttribute, name:=aName, containerID:=aContainerID, value:=aValue, overridesExisting:=overridesFlag)
 
                                     '** Relation
                                 ElseIf aFieldInfo.IsStatic AndAlso anAttribute.GetType().Equals(GetType(ormRelationAttribute)) Then
-                                    InitializeRelationAttribute(attribute:=anAttribute, name:=aName, tablename:=aTablename, value:=aValue, overridesExisting:=overridesFlag)
+                                    InitializeRelationAttribute(attribute:=anAttribute, name:=aName, containerID:=aContainerID, value:=aValue, overridesExisting:=overridesFlag)
 
                                     '** Transaction
                                 ElseIf aFieldInfo.IsStatic AndAlso anAttribute.GetType().Equals(GetType(ormObjectTransactionAttribute)) Then
-                                    InitializeTransactionAttribute(attribute:=anAttribute, objectname:=aTablename, name:=aName, value:=aValue, overridesExisting:=overridesFlag)
+                                    InitializeTransactionAttribute(attribute:=anAttribute, objectname:=aContainerID, name:=aName, value:=aValue, overridesExisting:=overridesFlag)
 
 
                                     '** Queries
                                 ElseIf aFieldInfo.IsStatic AndAlso anAttribute.GetType().Equals(GetType(ormObjectQueryAttribute)) Then
-
                                     InitializeQueryAttribute(attribute:=anAttribute, queryname:=aName, value:=aValue, overridesExisting:=overridesFlag)
 
                                 End If
@@ -3025,7 +3252,7 @@ Namespace OnTrack
                             '** Attributes
                             For Each anAttribute As System.Attribute In Attribute.GetCustomAttributes(aFieldInfo)
                                 '** split the tablename if static value
-                                aValue = ""
+                                aValue = String.Empty
                                 If aFieldInfo.IsStatic Then
                                     If aFieldInfo.GetValue(Nothing) IsNot Nothing Then
                                         aValue = aFieldInfo.GetValue(Nothing).ToString.ToUpper
@@ -3035,21 +3262,21 @@ Namespace OnTrack
                                     '* beware a tableattribute would be lost
                                     Dim names As String() = Shuffle.NameSplitter(aValue)
                                     If names.Count > 1 Then
-                                        aTablename = names(0)
+                                        aContainerID = names(0)
                                         aName = names(1)
                                     Else
-                                        aTablename = ""
-                                        aName = ""
+                                        aContainerID = String.Empty
+                                        aName = String.Empty
                                     End If
                                 Else
-                                    aTablename = ""
-                                    aName = ""
+                                    aContainerID = String.Empty
+                                    aName = String.Empty
                                 End If
 
                                 '** ENTRY MAPPING -> instance
                                 '**
-                                If anAttribute.GetType().Equals(GetType(ormEntryMapping)) Then
-                                    InitializeEntryMapping(attribute:=anAttribute, tablename:=aTablename, fieldinfo:=aFieldInfo, value:=aValue, ClassOverrides:=overridesFlag)
+                                If anAttribute.GetType().Equals(GetType(ormObjectEntryMapping)) Then
+                                    InitializeEntryMapping(attribute:=anAttribute, tablename:=aContainerID, fieldinfo:=aFieldInfo, value:=aValue, ClassOverrides:=overridesFlag)
                                 End If
 
                             Next
@@ -3091,7 +3318,7 @@ Namespace OnTrack
                 _isInitalized = True
                 Return True
             Catch ex As Exception
-                Call CoreMessageHandler(subname:="ObjectClassRepository.Initialize", exception:=ex)
+                Call CoreMessageHandler(procedure:="ObjectClassRepository.Initialize", exception:=ex)
                 _isInitalized = False
                 Return False
             End Try
@@ -3251,7 +3478,7 @@ Namespace OnTrack
                 End If
             Next
             ' Create the dynamic method
-            Dim method As New DynamicMethod(String.Format("{0}__{1}", constructor.DeclaringType.Name, Guid.NewGuid().ToString().Replace("-", "")), constructor.DeclaringType, Array.ConvertAll(Of ParameterInfo, Type)(constructorParam, Function(p) p.ParameterType), True)
+            Dim method As New DynamicMethod(String.Format("{0}__{1}", constructor.DeclaringType.Name, Guid.NewGuid().ToString().Replace("-", String.empty)), constructor.DeclaringType, Array.ConvertAll(Of ParameterInfo, Type)(constructorParam, Function(p) p.ParameterType), True)
 
             ' Create the il
             Dim gen As ILGenerator = method.GetILGenerator()
@@ -3282,8 +3509,8 @@ Namespace OnTrack
             Return DirectCast(method.CreateDelegate(delegateType), CreateInstanceDelegate)
 
         End Function
-      
-        
+
+
         ''' <summary>
         ''' Searches an instanceType constructor with delegateType-matching signature and constructs delegate of delegateType creating new instance of instanceType.
         ''' Instance is casted to delegateTypes's return type. 
@@ -3359,7 +3586,7 @@ Namespace OnTrack
 
                 Return DirectCast(m.CreateDelegate(GetType(MappingGetterDelegate)), MappingGetterDelegate)
             Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="ObjectClassDescription.CreateILGetterDelegate")
+                CoreMessageHandler(exception:=ex, procedure:="ObjectClassDescription.CreateILGetterDelegate")
                 Return Nothing
             End Try
 
@@ -3398,7 +3625,7 @@ Namespace OnTrack
 
                 Return DirectCast(m.CreateDelegate(GetType(Action(Of T, TValue))), Action(Of T, TValue))
             Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="ObjectClassDescription.CreateILGSetterDelegate")
+                CoreMessageHandler(exception:=ex, procedure:="ObjectClassDescription.CreateILGSetterDelegate")
                 Return Nothing
             End Try
 

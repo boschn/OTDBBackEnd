@@ -68,7 +68,7 @@ Namespace OnTrack.XChange
     ''' </summary>
     ''' <remarks></remarks>
     Public Interface IXChangeConfigEntry
-        Inherits iormPersistable
+        Inherits iormRelationalPersistable
         Inherits iormInfusable
 
         ''' <summary>
@@ -327,13 +327,13 @@ Namespace OnTrack.XChange
                 .SetValue(ConstFNXConfigID, configname.ToUpper)
                 .SetValue(constFNIDNo, indexno)
                 If Not String.IsNullOrWhiteSpace(objectname) Then .SetValue(ConstFNObjectID, objectname.ToUpper)
-                If Not String.IsNullOrWhiteSpace(domainid) Then .SetValue(ConstFNDomainID, domainid)
+                If Not string.IsnullorEmpty(domainID) Then .SetValue(ConstFNDomainID, domainid)
                 .SetValue(constFNXCMD, xcmd)
                 .SetValue(ConstFNTypeid, otXChangeConfigEntryType.Object)
                 .SetValue(constFNOrderNo, indexno)
                 .SetValue(constFNordinal, indexno)
             End With
-            Return ormDataObject.CreateDataObject(Of XChangeObject)(aRecord, domainID:=domainid, checkUnique:=True, runtimeOnly:=runtimeonly)
+            Return ormBusinessObject.CreateDataObject(Of XChangeObject)(aRecord, domainID:=domainid, checkUnique:=True, runtimeOnly:=runtimeonly)
         End Function
 
         ''' <summary>
@@ -344,8 +344,8 @@ Namespace OnTrack.XChange
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overloads Shared Function Retrieve(ByVal configname As String, indexno As Long, Optional domainid As String = Nothing, Optional runtimeonly As Boolean = False) As XChangeObject
-            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
-            Return ormDataObject.Retrieve(Of XChangeObject)({configname.ToUpper, indexno, domainid}, runtimeOnly:=runtimeonly)
+            If string.IsnullorEmpty(domainID) Then domainid = CurrentSession.CurrentDomainID
+            Return ormBusinessObject.RetrieveDataObject(Of XChangeObject)({configname.ToUpper, indexno, domainid}, runtimeOnly:=runtimeonly)
         End Function
     End Class
     ''' <summary>
@@ -426,7 +426,7 @@ Namespace OnTrack.XChange
                 .SetValue(ConstFNDomainID, domainid)
                 .SetValue(ConstFNTypeid, otXChangeConfigEntryType.ObjectEntry)
             End With
-            Return ormDataObject.CreateDataObject(Of XChangeObjectEntry)(aRecord, domainID:=domainid, checkUnique:=True, runtimeOnly:=runtimeonly)
+            Return ormBusinessObject.CreateDataObject(Of XChangeObjectEntry)(aRecord, domainID:=domainid, checkUnique:=True, runtimeOnly:=runtimeonly)
         End Function
 
         ''' <summary>
@@ -437,8 +437,8 @@ Namespace OnTrack.XChange
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overloads Shared Function Retrieve(ByVal configname As String, indexno As Long, Optional domainid As String = Nothing, Optional runtimeonly As Boolean = False) As XChangeObjectEntry
-            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
-            Return ormDataObject.Retrieve(Of XChangeObjectEntry)({configname.ToUpper, indexno, domainid}, domainID:=domainid, runtimeOnly:=runtimeonly)
+            If string.IsnullorEmpty(domainID) Then domainid = CurrentSession.CurrentDomainID
+            Return ormBusinessObject.RetrieveDataObject(Of XChangeObjectEntry)({configname.ToUpper, indexno, domainid}, domainID:=domainid, runtimeOnly:=runtimeonly)
         End Function
     End Class
 
@@ -450,34 +450,34 @@ Namespace OnTrack.XChange
     <ormObject(id:=XChangeConfigAbstractEntry.ConstObjectID, usecache:=True, adddeletefieldbehavior:=True, adddomainbehavior:=True, _
         Modulename:=ConstModuleXChange, Description:="abstract entry definition for X Change configuration")> _
     Public MustInherit Class XChangeConfigAbstractEntry
-        Inherits ormDataObject
-        Implements iormInfusable, iormPersistable, IXChangeConfigEntry
+        Inherits ormBusinessObject
+        Implements iormInfusable, iormRelationalPersistable, IXChangeConfigEntry
 
         Public Const ConstObjectID = "XChangeConfigAbstractEntry"
         ''' <summary>
         ''' Table
         ''' </summary>
         ''' <remarks></remarks>
-        <ormSchemaTableAttribute(version:=3, usecache:=True)> Public Const ConstTableID = "tblXChangeConfigEntries"
+        <ormTableAttribute(version:=3, usecache:=True)> Public Const ConstPrimaryTableID = "tblXChangeConfigEntries"
 
         ''' <summary>
         ''' keys
         ''' </summary>
         ''' <remarks></remarks>
-        <ormObjectEntry(referenceObjectEntry:=XChangeConfiguration.constObjectID & "." & XChangeConfiguration.constFNID, primaryKeyordinal:=1, _
+        <ormObjectEntry(referenceObjectEntry:=XChangeConfiguration.constObjectID & "." & XChangeConfiguration.constFNID, PrimaryEntryOrdinal:=1, _
                         title:="XChangeConfigID", description:="name of the eXchange Configuration")> Public Const ConstFNXConfigID = XChangeConfiguration.constFNID
 
-        <ormObjectEntry(Datatype:=otDataType.Long, primaryKeyordinal:=2,
+        <ormObjectEntry(Datatype:=otDataType.Long, PrimaryEntryOrdinal:=2,
                         title:="Identity Number", description:="unique id in the the eXchange Configuration")> Public Const constFNIDNo = "IDNO"
 
-        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=3, _
+        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, PrimaryEntryOrdinal:=3, _
            useforeignkey:=otForeignKeyImplementation.None)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
         ''' <summary>
         ''' foreign key
         ''' </summary>
         ''' <remarks></remarks>
-        <ormSchemaForeignKey(useforeignkey:=otForeignKeyImplementation.NativeDatabase, _
+        <ormForeignKey(useforeignkey:=otForeignKeyImplementation.NativeDatabase, _
             entrynames:={ConstFNXConfigID, ConstFNDomainID}, _
             foreignkeyreferences:={XChangeConfiguration.constObjectID & "." & XChangeConfiguration.constFNID, _
             XChangeConfiguration.constObjectID & "." & XChangeConfiguration.ConstFNDomainID})> Public Const constFKXConfig = "FK_XCONFIG"
@@ -489,7 +489,7 @@ Namespace OnTrack.XChange
         <ormObjectEntry(referenceObjectEntry:=ObjectDefinition.ConstObjectID & "." & ObjectDefinition.ConstFNID, _
                         useforeignkey:=otForeignKeyImplementation.NativeDatabase)> Public Const ConstFNObjectID = "objectID"
 
-        <ormObjectEntry(referenceObjectEntry:=ObjectColumnEntry.ConstObjectID & "." & ObjectColumnEntry.ConstFNEntryName, _
+        <ormObjectEntry(referenceObjectEntry:=ObjectContainerEntry.ConstObjectID & "." & ObjectContainerEntry.ConstFNEntryName, _
                        isnullable:=True)> Public Const ConstFNEntryname = "entryname" ' might be null since only object are also members
 
         <ormObjectEntry(Datatype:=otDataType.Text, isnullable:=True,
@@ -535,27 +535,27 @@ Namespace OnTrack.XChange
         ''' Mappings
         ''' </summary>
         ''' <remarks></remarks>
-        <ormEntryMapping(EntryName:=ConstFNXConfigID)> Protected _configname As String = ""
-        <ormEntryMapping(EntryName:=constFNIDNo)> Protected _idno As Long
+        <ormObjectEntryMapping(EntryName:=ConstFNXConfigID)> Protected _configname As String = String.empty
+        <ormObjectEntryMapping(EntryName:=constFNIDNo)> Protected _idno As Long
 
-        <ormEntryMapping(EntryName:=ConstFNXID)> Protected _xid As String
+        <ormObjectEntryMapping(EntryName:=ConstFNXID)> Protected _xid As String
 
-        <ormEntryMapping(EntryName:=ConstFNObjectID)> Protected _objectname As String
-        <ormEntryMapping(EntryName:=ConstFNEntryname)> Protected _entryname As String
+        <ormObjectEntryMapping(EntryName:=ConstFNObjectID)> Protected _objectname As String
+        <ormObjectEntryMapping(EntryName:=ConstFNEntryname)> Protected _entryname As String
 
         '<otColumnMapping(ColumnName:=ConstFNordinal)> do not since we cannot map it
         Private _ordinal As Ordinal = New Ordinal(0)
 
-        <ormEntryMapping(EntryName:=ConstFNDesc)> Protected _desc As String = ""
-        <ormEntryMapping(EntryName:=constFNIsNotXChanged)> Protected _isNotXChanged As Boolean
-        <ormEntryMapping(EntryName:=constFNIsReadonly)> Protected _isReadOnly As Boolean
+        <ormObjectEntryMapping(EntryName:=ConstFNDesc)> Protected _desc As String = String.empty
+        <ormObjectEntryMapping(EntryName:=constFNIsNotXChanged)> Protected _isNotXChanged As Boolean
+        <ormObjectEntryMapping(EntryName:=constFNIsReadonly)> Protected _isReadOnly As Boolean
 
-        <ormEntryMapping(EntryName:=ConstFNTypeid)> Protected _type As otXChangeConfigEntryType
+        <ormObjectEntryMapping(EntryName:=ConstFNTypeid)> Protected _type As otXChangeConfigEntryType
 
-        <ormEntryMapping(EntryName:=constFNXCMD)> Protected _xcmd As otXChangeCommandType = 0
-        <ormEntryMapping(EntryName:=constFNIsOrder)> Protected _isOrdered As Boolean
-        <ormEntryMapping(EntryName:=constFNOrderNo)> Protected _orderNo As Long
-        <ormEntryMapping(EntryName:=constFNIsDynamic)> Protected _isDynamicAttribute As Boolean
+        <ormObjectEntryMapping(EntryName:=constFNXCMD)> Protected _xcmd As otXChangeCommandType = 0
+        <ormObjectEntryMapping(EntryName:=constFNIsOrder)> Protected _isOrdered As Boolean
+        <ormObjectEntryMapping(EntryName:=constFNOrderNo)> Protected _orderNo As Long
+        <ormObjectEntryMapping(EntryName:=constFNIsDynamic)> Protected _isDynamicAttribute As Boolean
 
         'dynamic
         Protected _EntryDefinition As iormObjectEntry
@@ -565,7 +565,7 @@ Namespace OnTrack.XChange
 
         '** initialize
         Public Sub New()
-            Call MyBase.New(ConstTableID)
+            Call MyBase.New()
 
             _EntryDefinition = Nothing
         End Sub
@@ -742,15 +742,11 @@ Namespace OnTrack.XChange
         ''' <remarks></remarks>
         Public Overloads Property [XObjectDefinition] As ObjectDefinition Implements IXChangeConfigEntry.xobjectdefinition
             Get
-                Dim aDefinition As ObjectDefinition
 
                 If (Me.IsCreated Or Me.IsLoaded) And _ObjectDefinition Is Nothing Then
-                    If Me.Objectname <> "" Then
-                        aDefinition = CurrentSession.Objects(domainid:=Me.Domainid).GetObject(Me.Objectname)
-                        If Not aDefinition Is Nothing Then
-                            _ObjectDefinition = aDefinition
-                        End If
-                        Return _ObjectDefinition
+                    If Not String.IsNullOrWhiteSpace(Me.Objectname) Then
+                        Dim aDefinition As ObjectDefinition = CurrentSession.Objects(domainid:=Me.Domainid).GetObject(Me.Objectname)
+                        If aDefinition IsNot Nothing Then _ObjectDefinition = aDefinition
                     End If
                 End If
 
@@ -942,7 +938,7 @@ Namespace OnTrack.XChange
             ElseIf IsEmpty(_ordinal) Then
                 _ordinal = New Ordinal(1)
             Else
-                Call CoreMessageHandler(subname:="XConfigMember.incordinal", message:="ordinal is not numeric")
+                Call CoreMessageHandler(procedure:="XConfigMember.incordinal", message:="ordinal is not numeric")
                 Incordinal = Nothing
                 Exit Function
             End If
@@ -973,7 +969,7 @@ Namespace OnTrack.XChange
                 e.Proceed = True
                 Exit Sub
             Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="XChangeConfigAbstractEntry_OnInfused.OnInfused")
+                CoreMessageHandler(exception:=ex, procedure:="XChangeConfigAbstractEntry_OnInfused.OnInfused")
                 e.AbortOperation = True
             End Try
 
@@ -997,7 +993,7 @@ Namespace OnTrack.XChange
                 e.Proceed = True
                 Exit Sub
             Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="XchangeConfigAbstractEntry.XChangeConfigAbstractEntry_OnFed")
+                CoreMessageHandler(exception:=ex, procedure:="XchangeConfigAbstractEntry.XChangeConfigAbstractEntry_OnFed")
                 e.AbortOperation = True
             End Try
 
@@ -1012,14 +1008,14 @@ Namespace OnTrack.XChange
     ''' </summary>
     ''' <remarks></remarks>
     ''' 
-    <ormChangeLogEntry(application:=ot.ConstApplicationBackend, module:=ot.ConstModuleXChange, version:=1, release:=1, patch:=1, changeimplno:=2, _
+    <ormChangeLogEntry(application:=ot.ConstAssemblyName, module:=ot.ConstModuleXChange, version:=1, release:=1, patch:=1, changeimplno:=2, _
         description:="resetting the entries")> _
     <ormObject(ID:=XChangeConfiguration.constObjectID, version:=1, usecache:=True, adddomainbehavior:=True, adddeletefieldbehavior:=True, _
         modulename:=ConstModuleXChange, description:="defines how data can be exchanged with the XChange Manager")> _
     Public Class XChangeConfiguration
-        Inherits ormDataObject
+        Inherits ormBusinessObject
         Implements iormInfusable
-        Implements iormPersistable
+        Implements iormRelationalPersistable
 
         'Implements iOTDBXChange
         Public Const constObjectID = "XChangeConfig"
@@ -1028,18 +1024,18 @@ Namespace OnTrack.XChange
         ''' Table
         ''' </summary>
         ''' <remarks></remarks>
-        <ormSchemaTableAttribute(Version:=2, usecache:=True)> Public Const constTableID = "tblXChangeConfigs"
+        <ormTableAttribute(Version:=2, usecache:=True)> Public Const ConstPrimaryTableID = "tblXChangeConfigs"
 
         ''' <summary>
         ''' Keys
         ''' </summary>
         ''' <remarks></remarks>
         ''' 
-        <ormObjectEntry(Datatype:=otDataType.Text, size:=50, primaryKeyordinal:=1, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=50, PrimaryEntryOrdinal:=1, _
              properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty}, _
              Title:="Name", Description:="Name of XChange Configuration")> Public Const constFNID = "configname"
 
-        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=2, _
+        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, PrimaryEntryOrdinal:=2, _
            useforeignkey:=otForeignKeyImplementation.NativeDatabase)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
         ''' <summary>
@@ -1064,10 +1060,10 @@ Namespace OnTrack.XChange
         ''' Mappings
         ''' </summary>
         ''' <remarks></remarks>
-        <ormEntryMapping(EntryName:=constFNID)> Private _configname As String = ""
-        <ormEntryMapping(EntryName:=constFNDesc)> Private _description As String
-        <ormEntryMapping(EntryName:=constFNDynamic)> Private _DynamicAttributes As Boolean
-        <ormEntryMapping(EntryName:=constFNOutline)> Private _outlineid As String
+        <ormObjectEntryMapping(EntryName:=constFNID)> Private _configname As String = String.empty
+        <ormObjectEntryMapping(EntryName:=constFNDesc)> Private _description As String
+        <ormObjectEntryMapping(EntryName:=constFNDynamic)> Private _DynamicAttributes As Boolean
+        <ormObjectEntryMapping(EntryName:=constFNOutline)> Private _outlineid As String
 
         ''' <summary>
         ''' Relations ! BEWARE HARDCODED Typeids
@@ -1081,7 +1077,7 @@ Namespace OnTrack.XChange
             linkjoin:=" AND [" & XChangeObjectEntry.ConstFNTypeid & "] ='ObjectEntry'")> _
         Public Const ConstRObjectEntries = "XCHANGEENTRIES"
 
-        <ormEntryMapping(RelationName:=ConstRObjectEntries, infuseMode:=otInfuseMode.OnInject Or otInfuseMode.OnDemand, _
+        <ormObjectEntryMapping(RelationName:=ConstRObjectEntries, infuseMode:=otInfuseMode.OnInject Or otInfuseMode.OnDemand, _
             keyentries:={XChangeObjectEntry.constFNIDNo})> Private WithEvents _ObjectEntryCollection As New ormRelationCollection(Of XChangeObjectEntry)(Me, {XChangeConfigAbstractEntry.constFNIDNo})
 
         '*** relation xconfig objects
@@ -1089,7 +1085,7 @@ Namespace OnTrack.XChange
            fromEntries:={constFNID}, toEntries:={XChangeObject.ConstFNXConfigID}, _
            linkjoin:=" AND [" & XChangeObject.ConstFNTypeid & "] ='Object'")> Public Const ConstRObjects = "XCHANGEOBJECTS"
 
-        <ormEntryMapping(RelationName:=ConstRObjects, infuseMode:=otInfuseMode.OnInject Or otInfuseMode.OnDemand, _
+        <ormObjectEntryMapping(RelationName:=ConstRObjects, infuseMode:=otInfuseMode.OnInject Or otInfuseMode.OnDemand, _
             keyentries:={XChangeObject.constFNIDNo})> _
         Private WithEvents _ObjectCollection As New ormRelationCollection(Of XChangeObject)(Me, {XChangeObject.constFNIDNo})
 
@@ -1101,7 +1097,7 @@ Namespace OnTrack.XChange
                      cascadeonCreate:=False, cascadeOnDelete:=False, cascadeOnUpdate:=False)> _
         Public Const ConstROutline = "RELOutline"
 
-        <ormEntryMapping(relationName:=ConstROutline, infusemode:=otInfuseMode.OnDemand)> Private _outline As XOutline
+        <ormObjectEntryMapping(relationName:=ConstROutline, infusemode:=otInfuseMode.OnDemand)> Private _outline As XOutline
 
 
         ''' <summary>
@@ -1156,7 +1152,7 @@ Namespace OnTrack.XChange
         ReadOnly Property Outline As XOutline
             Get
                 If _outlineid Is Nothing Then Return Nothing
-                If Me.GetRelationStatus(ConstROutline) = DataObjectRelationMgr.RelationStatus.Unloaded Then InfuseRelation(ConstROutline)
+                If Me.GetRelationStatus(ConstROutline) = ormRelationManager.RelationStatus.Unloaded Then InfuseRelation(ConstROutline)
                 Return _outline
             End Get
         End Property
@@ -1460,7 +1456,7 @@ Namespace OnTrack.XChange
         Public Function RefreshObjects(Optional domainid As String = Nothing) As Boolean
             If Not Me.IsAlive("RefreshObects") Then Return False
 
-            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
+            If String.IsnullorEmpty(domainID) Then domainid = CurrentSession.CurrentDomainID
             For Each anXObject As XChangeObject In _ObjectCollection
                 CurrentSession.Objects(domainid:=domainid).GetObject(anXObject.Objectname, domainid:=domainid)
             Next
@@ -1483,7 +1479,7 @@ Namespace OnTrack.XChange
                                         Optional ByVal xcmd As otXChangeCommandType = 0) As Boolean
 
             Dim aXchangeObject As New XChangeObject
-            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
+            If String.IsnullorEmpty(domainID) Then domainid = CurrentSession.CurrentDomainID
             Dim anObjectDef As ObjectDefinition = CurrentSession.Objects(domainid:=domainid).GetObject(name)
             name = name.ToUpper
             If xcmd = 0 Then xcmd = otXChangeCommandType.Read
@@ -1505,8 +1501,8 @@ Namespace OnTrack.XChange
 
             ' load
             If anObjectDef Is Nothing Then
-                CoreMessageHandler(message:="Object couldnot be retrieved", subname:="XChangeConfiguration.AddObjectByname", messagetype:=otCoreMessageType.InternalError, _
-                                    arg1:=name, objectname:=Me.ObjectID)
+                CoreMessageHandler(message:="Object couldnot be retrieved", procedure:="XChangeConfiguration.AddObjectByname", messagetype:=otCoreMessageType.InternalError, _
+                                    argument:=name, objectname:=Me.ObjectID)
                 Return False
             End If
 
@@ -1551,8 +1547,8 @@ Namespace OnTrack.XChange
             If Not anObjectEntry Is Nothing Then
                 Return Me.AddEntryByObjectEntry(objectentry:=anObjectEntry, objectname:=objectname, domainid:=domainid, ordinal:=ordinal, isxchanged:=isXChanged, xcmd:=xcmd, [readonly]:=[readonly])
             Else
-                Call CoreMessageHandler(message:="field entry not found", arg1:=objectname & "." & entryname, messagetype:=otCoreMessageType.InternalError,
-                                         subname:="XChangeConfiguration.addAttributeByField")
+                Call CoreMessageHandler(message:="field entry not found", argument:=objectname & "." & entryname, messagetype:=otCoreMessageType.InternalError,
+                                         procedure:="XChangeConfiguration.addAttributeByField")
 
                 Return False
             End If
@@ -1580,7 +1576,7 @@ Namespace OnTrack.XChange
             Dim aVAlue As Object
             Dim aXchangeObject As XChangeObject
             If Not String.IsNullOrWhiteSpace(objectname) Then objectname = objectname.ToUpper
-            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
+            If String.IsnullorEmpty(domainID) Then domainid = CurrentSession.CurrentDomainID
 
             ' isalive
             If Not Me.IsAlive(subname:="AddEntryByObjectEntry") Then Return False
@@ -1648,7 +1644,7 @@ Namespace OnTrack.XChange
                 _ObjectEntryCollection.Add(anEntry)
                 Return True
             Else
-                CoreMessageHandler(message:="Warning! Entry couldnot be created in XChangeConfiguration", subname:="XChangeConfiguration.AddEntryByObjectEntry", arg1:=Me.Configname, _
+                CoreMessageHandler(message:="Warning! Entry couldnot be created in XChangeConfiguration", procedure:="XChangeConfiguration.AddEntryByObjectEntry", argument:=Me.Configname, _
                                    messagetype:=otCoreMessageType.ApplicationWarning)
             End If
 
@@ -1678,7 +1674,7 @@ Namespace OnTrack.XChange
 
             AddEntryByXID = False
             If objectname IsNot Nothing Then objectname = objectname.ToUpper
-            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
+            If String.IsnullorEmpty(domainID) Then domainid = CurrentSession.CurrentDomainID
             Xid = Xid.ToUpper
 
             ' isalive
@@ -1694,7 +1690,7 @@ Namespace OnTrack.XChange
                         Dim aList As List(Of XChangeObject) = Me.ObjectsByOrderNo
                         For Each anObjectEntry As XChangeObject In aList.ToArray 'make sure that the list is not changing (clone it) - maybe we are adding entries
                             If anEntry.Objectname = anObjectEntry.Objectname Then
-                                AddEntryByXID = AddEntryByObjectEntry(objectentry:=anEntry, ordinal:=ordinal,
+                                Return AddEntryByObjectEntry(objectentry:=anEntry, ordinal:=ordinal,
                                                                   isxchanged:=isXChanged,
                                                                   objectname:=anEntry.Objectname,
                                                                   domainid:=domainid, _
@@ -1704,7 +1700,7 @@ Namespace OnTrack.XChange
                         ' simply add
 
                     Else
-                        AddEntryByXID = AddEntryByObjectEntry(objectentry:=anEntry, ordinal:=ordinal,
+                        Return AddEntryByObjectEntry(objectentry:=anEntry, ordinal:=ordinal,
                                                           isxchanged:=isXChanged, domainid:=domainid, _
                                                           objectname:=anEntry.Objectname, xcmd:=xcmd, readonly:=[readonly])
                     End If
@@ -1715,7 +1711,7 @@ Namespace OnTrack.XChange
                 Dim aList As List(Of iormObjectEntry) = CurrentSession.Objects.GetEntriesByXID(xid:=Xid)
                 For Each entry In aList.ToArray 'make sure that the list is not changing (clone it) - maybe we are adding entries
                     If objectname = entry.Objectname Then
-                        AddEntryByXID = AddEntryByObjectEntry(objectentry:=entry, ordinal:=ordinal,
+                        Return AddEntryByObjectEntry(objectentry:=entry, ordinal:=ordinal,
                                                           isxchanged:=isXChanged,
                                                           objectname:=entry.Objectname,
                                                            domainid:=domainid, _
@@ -1727,8 +1723,7 @@ Namespace OnTrack.XChange
             End If
 
             ' return
-            AddEntryByXID = AddEntryByXID Or False
-            Exit Function
+            Return False
 
 
         End Function
@@ -1753,14 +1748,14 @@ Namespace OnTrack.XChange
 
             ' missing arguments
             If String.IsNullOrWhiteSpace(objectname) Then
-                Call CoreMessageHandler(subname:="XChangeConfiguration.exists", message:="objectname was not set", _
+                Call CoreMessageHandler(procedure:="XChangeConfiguration.exists", message:="objectname was not set", _
                                         messagetype:=otCoreMessageType.InternalError)
                 Exists = False
                 Exit Function
             End If
             ' missing arguments
             If String.IsNullOrWhiteSpace(objectname) AndAlso String.IsNullOrWhiteSpace(XID) Then
-                Call CoreMessageHandler(subname:="XChangeConfiguration.exists", message:="set either objectname or attributename - not both", _
+                Call CoreMessageHandler(procedure:="XChangeConfiguration.exists", message:="set either objectname or attributename - not both", _
                                         messagetype:=otCoreMessageType.InternalError)
                 Exists = False
                 Exit Function
@@ -1923,7 +1918,7 @@ Namespace OnTrack.XChange
             Dim anXchangeObject As XChangeObject = e.Dataobject
             If anXchangeObject Is Nothing Then
                 CoreMessageHandler(message:="anEntry is not an ObjectEntry", messagetype:=otCoreMessageType.InternalError,
-                                    subname:="XConfig.Addmember")
+                                    procedure:="XConfig.Addmember")
                 Return
             End If
 
@@ -2350,9 +2345,9 @@ Namespace OnTrack.XChange
                                                   Optional domainid As String = Nothing, _
                                                   Optional runtimeonly As Boolean = False) As XChangeConfiguration
 
-            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
+            If String.IsnullorEmpty(domainID) Then domainid = CurrentSession.CurrentDomainID
             Dim primarykey() As Object = {configname.ToUpper, domainid}
-            Return ormDataObject.Retrieve(Of XChangeConfiguration)(primarykey, runtimeOnly:=runtimeonly)
+            Return ormBusinessObject.RetrieveDataObject(Of XChangeConfiguration)(primarykey, runtimeOnly:=runtimeonly)
         End Function
 
 
@@ -2364,8 +2359,8 @@ Namespace OnTrack.XChange
         ''' <remarks></remarks>
         Public Overloads Shared Function Create(ByVal configname As String, Optional domainid As String = Nothing, Optional runtimeonly As Boolean = False) As XChangeConfiguration
             Dim primarykey() As Object = {configname.ToUpper, domainid}
-            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
-            Return ormDataObject.CreateDataObject(Of XChangeConfiguration)(primarykey, checkUnique:=True)
+            If String.IsnullorEmpty(domainID) Then domainid = CurrentSession.CurrentDomainID
+            Return ormBusinessObject.CreateDataObject(Of XChangeConfiguration)(primarykey, checkUnique:=True)
         End Function
 
 
@@ -2375,7 +2370,7 @@ Namespace OnTrack.XChange
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overloads Shared Function All() As List(Of XChangeConfiguration)
-            Return ormDataObject.AllDataObject(Of XChangeConfiguration)()
+            Return ormBusinessObject.AllDataObject(Of XChangeConfiguration)()
         End Function
     End Class
 
@@ -2383,29 +2378,29 @@ Namespace OnTrack.XChange
     ''' describes a XChange Outline data structure
     ''' </summary>
     ''' <remarks></remarks>
-    <ormChangeLogEntry(Application:=ConstApplicationBackend, Module:=ConstModuleXChange, Version:=1, Release:=1, patch:=3, changeimplno:=1, _
+    <ormChangeLogEntry(Application:=ConstAssemblyName, Module:=ConstModuleXChange, Version:=1, Release:=1, patch:=3, changeimplno:=1, _
          description:="Bug Fix in outline generation. Outline items will be created or retrieved on rundynamic.")> _
     <ormObject(ID:=XOutline.ConstObjectID, version:=1, usecache:=True, adddeletefieldbehavior:=True, adddomainbehavior:=True, _
         modulename:=ConstModuleXChange, description:="describes a XChange Outline data structure")> _
     Public Class XOutline
-        Inherits ormDataObject
+        Inherits ormBusinessObject
         Implements iormInfusable
-        Implements iormPersistable
+        Implements iormRelationalPersistable
         Implements IEnumerable(Of XOutlineItem)
 
         Public Const ConstObjectID = "XOUTLINE"
 
-        <ormSchemaTableAttribute(Version:=1)> Public Const constTableID = "tblXOutlines"
+        <ormTableAttribute(Version:=1)> Public Const ConstPrimaryTableID = "tblXOutlines"
 
         ''' <summary>
         ''' Keys
         ''' </summary>
         ''' <remarks></remarks>
-        <ormObjectEntry(XID:="otl1", primaryKeyordinal:=1, Datatype:=otDataType.Text, size:=50,
+        <ormObjectEntry(XID:="otl1", PrimaryEntryOrdinal:=1, Datatype:=otDataType.Text, size:=50,
                     properties:={ObjectEntryProperty.Keyword}, _
                 description:="identifier of the outline", Title:="ID")> Public Const ConstFNID = "ID"
 
-        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=2, _
+        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, PrimaryEntryOrdinal:=2, _
                         useforeignkey:=otForeignKeyImplementation.NativeDatabase)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
         ''' <summary>
         '''  Fields
@@ -2430,12 +2425,12 @@ Namespace OnTrack.XChange
         ''' Column Mappings
         ''' </summary>
         ''' <remarks></remarks>
-        <ormEntryMapping(EntryName:=ConstFNID)> Private _id As String = ""
-        <ormEntryMapping(EntryName:=constFNdesc)> Private _desc As String
-        <ormEntryMapping(EntryName:=ConstFNObjects)> Private _Objects As String()
-        <ormEntryMapping(EntryName:=constFNDynamicAddRevisions)> Private _DynamicAddRevisions As Boolean
-        <ormEntryMapping(EntryName:=constFNDynamic)> Private _DynamiBehaviour As Boolean
-        <ormEntryMapping(EntryName:=constFNOrderBy)> Private _OderByClause As String
+        <ormObjectEntryMapping(EntryName:=ConstFNID)> Private _id As String = String.empty
+        <ormObjectEntryMapping(EntryName:=constFNdesc)> Private _desc As String
+        <ormObjectEntryMapping(EntryName:=ConstFNObjects)> Private _Objects As String()
+        <ormObjectEntryMapping(EntryName:=constFNDynamicAddRevisions)> Private _DynamicAddRevisions As Boolean
+        <ormObjectEntryMapping(EntryName:=constFNDynamic)> Private _DynamiBehaviour As Boolean
+        <ormObjectEntryMapping(EntryName:=constFNOrderBy)> Private _OderByClause As String
 
         ''' <summary>
         ''' Relations
@@ -2444,7 +2439,7 @@ Namespace OnTrack.XChange
         <ormRelation(linkobject:=GetType(XOutlineItem), cascadeOnDelete:=True, cascadeOnUpdate:=True, _
             fromEntries:={ConstFNID}, toEntries:={XOutlineItem.constFNID})> Public Const ConstRItems = "RELITEMS"
 
-        <ormEntryMapping(RelationName:=ConstRItems, infuseMode:=otInfuseMode.OnInject Or otInfuseMode.OnDemand, _
+        <ormObjectEntryMapping(RelationName:=ConstRItems, infuseMode:=otInfuseMode.OnInject Or otInfuseMode.OnDemand, _
             keyentries:={XOutlineItem.ConstFNordinals})> Private WithEvents _itemCollection As New ormRelationCollection(Of XOutlineItem)(Me, {XOutlineItem.ConstFNordinals})
 
 
@@ -2592,7 +2587,7 @@ Namespace OnTrack.XChange
         ''' </summary>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function Ordinals() As IList(Of DataKeyTuple)
+        Public Function Ordinals() As IList(Of DataValueTuple)
             Return _itemCollection.Keys
         End Function
 
@@ -2604,8 +2599,8 @@ Namespace OnTrack.XChange
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function Retrieve(ByVal id As String, Optional domainID As String = Nothing) As XOutline
-            If String.IsNullOrWhiteSpace(domainID) Then domainID = CurrentSession.CurrentDomainID
-            Return ormDataObject.Retrieve(Of XOutline)(pkArray:={id.ToUpper, domainID})
+            If String.IsnullorEmpty(domainID) Then domainID = CurrentSession.CurrentDomainID
+            Return ormBusinessObject.RetrieveDataObject(Of XOutline)(pkArray:={id.ToUpper, domainID})
         End Function
 
         ''' <summary>
@@ -2615,8 +2610,8 @@ Namespace OnTrack.XChange
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function Create(ByVal id As String, Optional domainID As String = Nothing) As XOutline
-            If String.IsNullOrWhiteSpace(domainID) Then domainID = CurrentSession.CurrentDomainID
-            Return ormDataObject.CreateDataObject(Of XOutline)(pkArray:={id.ToUpper, domainID}, domainID:=domainID, checkUnique:=True)
+            If String.IsnullorEmpty(domainID) Then domainID = CurrentSession.CurrentDomainID
+            Return ormBusinessObject.CreateDataObject(Of XOutline)(pkArray:={id.ToUpper, domainID}, domainID:=domainID, checkUnique:=True)
         End Function
 
         '*****
@@ -2629,7 +2624,7 @@ Namespace OnTrack.XChange
 
 
             If Not CurrentSession.RequireAccessRight(accessRequest:=otAccessRight.ReadUpdateData) Then
-                Call CoreMessageHandler(subname:="clsOTDBXOutline.cleanupRevision", message:="Read Update not granted",
+                Call CoreMessageHandler(procedure:="clsOTDBXOutline.cleanupRevision", message:="Read Update not granted",
                                        messagetype:=otCoreMessageType.ApplicationError)
                 Return False
             End If
@@ -2664,8 +2659,8 @@ Namespace OnTrack.XChange
                 _itemCollection.Remove(item)
             Next
 
-            Call CoreMessageHandler(message:="outline cleaned from revisions", subname:="clsOTDBXoutline.cleanuprevision",
-                                         arg1:=Me.ID, messagetype:=otCoreMessageType.ApplicationInfo)
+            Call CoreMessageHandler(message:="outline cleaned from revisions", procedure:="clsOTDBXoutline.cleanuprevision",
+                                         argument:=Me.ID, messagetype:=otCoreMessageType.ApplicationInfo)
             Return True
 
         End Function
@@ -2678,23 +2673,23 @@ Namespace OnTrack.XChange
         ''' 
         Private Function RunDynamic(Optional domainid As String = Nothing) As Boolean
             If Not IsAlive("RunDynamic") Then Return False
-            If String.IsNullOrWhiteSpace(domainid) Then domainid = Me.DomainID
+            If String.IsnullorEmpty(domainID) Then domainid = Me.DomainID
 
             If Not Me.DynamicBehaviour Then Return False
             If Me.Objects Is Nothing OrElse Me.Objects.Count = 0 Then
                 CoreMessageHandler(message:="For dynamic behavior the objects must be set", messagetype:=otCoreMessageType.ApplicationError, _
-                                   subname:="XOutline.RunDynamic", arg1:=Me.ID)
+                                   procedure:="XOutline.RunDynamic", argument:=Me.ID)
                 Return False
             End If
             Dim anObjectname As String = Me.Objects.First
             If anObjectname.ToUpper <> Deliverable.ConstObjectID.ToUpper Then
                 CoreMessageHandler(message:="dynamic behavior only supported for deliverables", messagetype:=otCoreMessageType.ApplicationError, _
-                                   subname:="XOutline.RunDynamic", arg1:=Me.ID, objectname:=anObjectname)
+                                   procedure:="XOutline.RunDynamic", argument:=Me.ID, objectname:=anObjectname)
                 Return False
             End If
             If String.IsNullOrWhiteSpace(Me.OrderByClause) Then
                 CoreMessageHandler(message:="For dynamic behavior the order by clause must be set", messagetype:=otCoreMessageType.ApplicationError, _
-                                  subname:="XOutline.RunDynamic", arg1:=Me.ID)
+                                  procedure:="XOutline.RunDynamic", argument:=Me.ID)
                 Return False
             End If
 
@@ -2702,20 +2697,20 @@ Namespace OnTrack.XChange
                 Dim anobjectdefinition As ObjectDefinition = CurrentSession.Objects.GetObject(objectid:=anObjectname)
                 If anobjectdefinition Is Nothing Then
                     CoreMessageHandler(message:="For dynamic behavior the objects must be set with correct name", messagetype:=otCoreMessageType.ApplicationError, _
-                                 subname:="XOutline.RunDynamic", arg1:=Me.ID, objectname:=anObjectname)
+                                 procedure:="XOutline.RunDynamic", argument:=Me.ID, objectname:=anObjectname)
                     Return False
                 End If
-                Dim aStore As iormDataStore = GetTableStore(anobjectdefinition.Tablenames.First)
+                Dim aStore As iormRelationalTableStore = GetTableStore(anobjectdefinition.Tablenames.First)
                 Dim cached = aStore.GetProperty(ormTableStore.ConstTPNCacheProperty)
                 Dim aCommand As ormSqlSelectCommand = aStore.CreateSqlSelectCommand("_Outline_" & Me.ID & "_RunDynamic")
 
                 '** prepare the command if necessary
-                If Not aCommand.Prepared Then
+                If Not aCommand.IsPrepared Then
 
                     aCommand.AddTable(anobjectdefinition.Tablenames.First, addAllFields:=False)
 
                     '** select
-                    aCommand.select = Deliverable.constFNUid
+                    aCommand.select = Deliverable.ConstFNDLVUID
 
                     '** where condition
                     aCommand.Where = "[" & Deliverable.ConstFNIsDeleted & "] = @isdeleted"
@@ -2737,7 +2732,7 @@ Namespace OnTrack.XChange
                 Dim theRecords As List(Of ormRecord) = aCommand.RunSelect
                 Dim myordinal As Long = 10
                 _dynamicCollection.Clear()
-                Dim anUIDEntry As iormObjectEntry = CurrentSession.Objects.GetObject(objectid:=Deliverable.ConstObjectID).GetEntry(entryname:=Deliverable.constFNUid)
+                Dim anUIDEntry As iormObjectEntry = CurrentSession.Objects.GetObject(objectid:=Deliverable.ConstObjectID).GetEntry(entryname:=Deliverable.ConstFNDLVUID)
                 If theRecords.Count >= 0 Then
                     For Each aRecord As ormRecord In theRecords
                         Dim aLngValue As Long = CLng(aRecord.GetValue(1))
@@ -2752,7 +2747,7 @@ Namespace OnTrack.XChange
                 End If
                 Return True
             Catch ex As Exception
-                Call CoreMessageHandler(subname:="Xoutline.RunDynamic", exception:=ex, messagetype:=otCoreMessageType.InternalError)
+                Call CoreMessageHandler(procedure:="Xoutline.RunDynamic", exception:=ex, messagetype:=otCoreMessageType.InternalError)
                 Return False
             End Try
         End Function
@@ -2841,12 +2836,12 @@ Namespace OnTrack.XChange
     <ormObject(ID:=XOutlineItem.constObjectID, version:=1, usecache:=True, adddeletefieldbehavior:=True, adddomainbehavior:=True, _
         modulename:=ConstModuleXChange, description:="describes a XChange Outline Item")> _
     Public Class XOutlineItem
-        Inherits ormDataObject
+        Inherits ormBusinessObject
         Implements iormInfusable
-        Implements iormPersistable
+        Implements iormRelationalPersistable
 
 
-        
+
 
         ''' <summary>
         ''' OutlineKey Class as subclass of outline item to make it flexible
@@ -2895,28 +2890,38 @@ Namespace OnTrack.XChange
         End Class
 
         Public Const constObjectID = "XOutlineItem"
-        <ormSchemaTableAttribute(version:=1)> Public Const constTableID = "tblXOutlineItems"
-        <ormSchemaIndexAttribute(columnname1:=constFNID, columnname2:=ConstFNordinall)> Public Const constIndexLongOutline = "longOutline"
-        <ormSchemaIndexAttribute(columnname1:=ConstFNUid, columnname2:="id", columnname3:=ConstFNordinals)> Public Const constIndexUsedOutline = "UsedOutline"
+
+        ''' <summary>
+        ''' Table
+        ''' </summary>
+        ''' <remarks></remarks>
+        <ormTableAttribute(version:=1)> Public Const ConstPrimaryTableID = "tblXOutlineItems"
+
+        ''' <summary>
+        ''' indices
+        ''' </summary>
+        ''' <remarks></remarks>
+        <ormIndex(columnname1:=constFNID, columnname2:=ConstFNordinall)> Public Const constIndexLongOutline = "longOutline"
+        <ormIndex(columnname1:=ConstFNUid, columnname2:="id", columnname3:=ConstFNordinals)> Public Const constIndexUsedOutline = "UsedOutline"
 
         ''' <summary>
         ''' keys
         ''' </summary>
         ''' <remarks></remarks>
-        <ormObjectEntry(XID:="otl1", primaryKeyordinal:=1, referenceObjectEntry:=XOutline.constobjectid & "." & XOutline.constFNID, _
+        <ormObjectEntry(XID:="otl1", PrimaryEntryOrdinal:=1, referenceObjectEntry:=XOutline.constobjectid & "." & XOutline.constFNID, _
             title:="Outline ID", description:="identifier of the outline")> Public Const constFNID = XOutline.constFNID
 
-        <ormObjectEntry(XID:="otli3", primaryKeyordinal:=2, Datatype:=otDataType.Text, size:=255,
+        <ormObjectEntry(XID:="otli3", PrimaryEntryOrdinal:=2, Datatype:=otDataType.Text, size:=255,
          title:="ordinals", description:="ordinal as string of the outline item")> Public Const ConstFNordinals = "ordials"
 
-        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=3, _
+        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, PrimaryEntryOrdinal:=3, _
             useforeignkey:=otForeignKeyImplementation.None)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
         ''' <summary>
         ''' foreign key
         ''' </summary>
         ''' <remarks></remarks>
-        <ormSchemaForeignKey(useforeignkey:=otForeignKeyImplementation.NativeDatabase, _
+        <ormForeignKey(useforeignkey:=otForeignKeyImplementation.NativeDatabase, _
             entrynames:={constFNID, ConstFNDomainID}, _
             foreignkeyreferences:={XOutline.constobjectid & "." & XOutline.constFNID, _
             XOutline.constobjectid & "." & XOutline.ConstFNDomainID})> Public Const constFKXOUTLINE = "FK_XOUTLINE"
@@ -2928,9 +2933,9 @@ Namespace OnTrack.XChange
         <ormObjectEntry(XID:="otli2", Datatype:=otDataType.Long,
            title:="ordinal", description:="ordinal as long of the outline")> Public Const ConstFNordinall = "ordiall"
 
-        <ormObjectEntry(XID:="dlvuid", referenceobjectentry:=Deliverable.ConstObjectID & "." & Deliverable.constFNUid, _
+        <ormObjectEntry(XID:="dlvuid", referenceobjectentry:=Deliverable.ConstObjectID & "." & Deliverable.ConstFNDLVUID, _
         isnullable:=True, useforeignkey:=otForeignKeyImplementation.NativeDatabase,
-         title:="deliverable uid", description:="uid of the deliverable")> Public Const ConstFNUid = Deliverable.constFNUid
+         title:="deliverable uid", description:="uid of the deliverable")> Public Const ConstFNUid = Deliverable.ConstFNDLVUID
 
         <ormObjectEntry(XID:="otli4", Datatype:=otDataType.Long, defaultvalue:=1,
           title:="identlevel", description:="identlevel as string of the outline")> Public Const ConstFNIdent = "level"
@@ -2953,16 +2958,16 @@ Namespace OnTrack.XChange
         <ormObjectEntry(XID:="otli14", Datatype:=otDataType.Text, isnullable:=True,
        title:="Text", description:="Text if a text item")> Public Const ConstFNText = "text"
 
-        <ormEntryMapping(EntryName:=constFNID)> Private _id As String = ""   ' ID of the outline
+        <ormObjectEntryMapping(EntryName:=constFNID)> Private _id As String = String.empty   ' ID of the outline
 
         Private _keys As New List(Of OutlineKey)    'keys and values
         Private _ordinal As Ordinal ' extramapping
 
-        <ormEntryMapping(EntryName:=ConstFNIdent)> Private _level As Long = 0
-        <ormEntryMapping(EntryName:=ConstFNisgroup)> Private _isGroup As Boolean
-        <ormEntryMapping(EntryName:=ConstFNisText)> Private _isText As Boolean
-        <ormEntryMapping(EntryName:=ConstFNText)> Private _text As String
-        <ormEntryMapping(EntryName:=ConstFNUid)> Private _deliverableUID As Long?
+        <ormObjectEntryMapping(EntryName:=ConstFNIdent)> Private _level As Long = 0
+        <ormObjectEntryMapping(EntryName:=ConstFNisgroup)> Private _isGroup As Boolean
+        <ormObjectEntryMapping(EntryName:=ConstFNisText)> Private _isText As Boolean
+        <ormObjectEntryMapping(EntryName:=ConstFNText)> Private _text As String
+        <ormObjectEntryMapping(EntryName:=ConstFNUid)> Private _deliverableUID As Long?
 #Region "properties"
 
         ''' <summary>
@@ -3081,7 +3086,7 @@ Namespace OnTrack.XChange
                 ' get the keys and values
                 Dim ids As String() = e.Record.GetValue(ConstFNIDs)
                 'Dim ids As String()
-                'If idstr <> "" AndAlso Not IsNull(idstr) Then
+                'If idstr <> String.empty AndAlso Not IsNull(idstr) Then
                 '    ids = SplitMultbyChar(idstr, ConstDelimiter)
                 'Else
                 '    ids = {}
@@ -3118,14 +3123,14 @@ Namespace OnTrack.XChange
                                     aType = otDataType.[Long]
                                     aValue = CLng(values(i))
                                 Case Else
-                                    Call CoreMessageHandler(subname:="XOutlineItem.infuse", messagetype:=otCoreMessageType.InternalError,
-                                                            message:="Outline datatypes couldnot be determined ", arg1:=types(i))
+                                    Call CoreMessageHandler(procedure:="XOutlineItem.infuse", messagetype:=otCoreMessageType.InternalError,
+                                                            message:="Outline datatypes couldnot be determined ", argument:=types(i))
                                     e.AbortOperation = True
                                     Exit Sub
                             End Select
 
                         Catch ex As Exception
-                            Call CoreMessageHandler(exception:=ex, subname:="XOutlineItem.infuse",
+                            Call CoreMessageHandler(exception:=ex, procedure:="XOutlineItem.infuse",
                                                     messagetype:=otCoreMessageType.InternalError, message:="Outline keys couldnot be filled ")
                             e.AbortOperation = True
                             Exit Sub
@@ -3137,8 +3142,8 @@ Namespace OnTrack.XChange
                 Next
                 e.Proceed = True
             Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="XOutlineItem.Infuse")
-                Unload()
+                CoreMessageHandler(exception:=ex, procedure:="XOutlineItem.Infuse")
+                SetUnloaded()
                 e.AbortOperation = True
             End Try
 
@@ -3175,9 +3180,9 @@ Namespace OnTrack.XChange
                     valuestr &= CStr(key.Value) & ConstDelimiter
                 Next
 
-                If idstr = ConstDelimiter Then idstr = ""
-                If valuestr = ConstDelimiter Then valuestr = ""
-                If typestr = ConstDelimiter Then typestr = ""
+                If idstr = ConstDelimiter Then idstr = String.empty
+                If valuestr = ConstDelimiter Then valuestr = String.empty
+                If typestr = ConstDelimiter Then typestr = String.empty
 
                 Call Me.Record.SetValue(ConstFNIDs, UCase(idstr))
                 Call Me.Record.SetValue(ConstFNValues, valuestr)
@@ -3185,7 +3190,7 @@ Namespace OnTrack.XChange
                 e.Proceed = True
 
             Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="XOutlineItem.OnFed")
+                CoreMessageHandler(exception:=ex, procedure:="XOutlineItem.OnFed")
                 e.AbortOperation = True
             End Try
 
@@ -3199,18 +3204,18 @@ Namespace OnTrack.XChange
         Public Shared Function AllByID(ByVal id As String) As SortedList(Of Ordinal, XOutlineItem)
             Dim aCollection As New SortedList(Of Ordinal, XOutlineItem)
             Dim aRecordCollection As New List(Of ormRecord)
-            Dim aTable As iormDataStore
+            Dim aTable As iormRelationalTableStore
             Dim aRecord As ormRecord
             Dim anEntry As New XOutlineItem
 
 
             Try
-                aTable = ot.GetTableStore(constTableID)
+                aTable = ot.GetTableStore(ConstPrimaryTableID)
                 Dim aCommand As ormSqlSelectCommand = aTable.CreateSqlSelectCommand(id:="AllByID")
-                If Not aCommand.Prepared Then
-                    aCommand.OrderBy = "[" & constTableID & "." & ConstFNordinall & "] asc"
+                If Not aCommand.IsPrepared Then
+                    aCommand.OrderBy = "[" & ConstPrimaryTableID & "." & ConstFNordinall & "] asc"
                     aCommand.Where = "[" & constFNID & "] = @ID"
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@ID", ColumnName:=constFNID, tablename:=constTableID))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@ID", ColumnName:=constFNID, tableid:=ConstPrimaryTableID))
                     aCommand.Prepare()
                 End If
 
@@ -3230,8 +3235,8 @@ Namespace OnTrack.XChange
                 End If
                 Return aCollection
             Catch ex As Exception
-                Call CoreMessageHandler(subname:="XOutlineItem.allByID", arg1:=id,
-                                        exception:=ex, objectname:=constTableID)
+                Call CoreMessageHandler(procedure:="XOutlineItem.allByID", argument:=id,
+                                        exception:=ex, objectname:=ConstPrimaryTableID)
                 Return aCollection
             End Try
 
@@ -3253,9 +3258,9 @@ Namespace OnTrack.XChange
         End Function
         Public Shared Function Retrieve(ByVal id As String, ByVal ordinal As Ordinal) As XOutlineItem
             Dim pkarry() As Object = {id, ordinal.ToString}
-            Return ormDataObject.Retrieve(Of XOutlineItem)(pkarry)
+            Return ormBusinessObject.RetrieveDataObject(Of XOutlineItem)(pkarry)
         End Function
-       
+
         ''' <summary>
         ''' create a new outline item in the persistable data store
         ''' </summary>
@@ -3288,7 +3293,7 @@ Namespace OnTrack.XChange
                 If uid.HasValue Then .SetValue(ConstFNUid, uid)
                 If level.HasValue Then .SetValue(ConstFNIdent, level)
             End With
-            Return ormDataObject.CreateDataObject(Of XOutlineItem)(aRecord, checkUnique:=True, runtimeOnly:=runtimeonly)
+            Return ormBusinessObject.CreateDataObject(Of XOutlineItem)(aRecord, checkUnique:=True, runtimeOnly:=runtimeonly)
         End Function
     End Class
 End Namespace

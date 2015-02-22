@@ -164,10 +164,10 @@ Namespace OnTrack.Scheduling
             Next m
 
             ' create new Member
-            anEntry = New clsOTDBDependMember
+            anEntry = clsOTDBDependMember.Create(typeid:=typeid, partid:=s_pnid, posno:=posno, dependfromPartID:=partid)
             posno = Me.GetMaxPosNo(TYPEID) + 1
-            If Not anEntry.Create(typeid:=typeid, partid:=s_pnid, posno:=posno, dependfromPartID:=partid) Then
-                Call anEntry.Inject(typeid:=typeid, partid:=s_pnid, posno:=posno)
+            If anEntry Is Nothing Then
+                anEntry = clsOTDBDependMember.Retrieve(typeid:=typeid, partid:=s_pnid, posno:=posno)
             End If
             ' set it
             anEntry.dependfromPartID = PartID
@@ -204,9 +204,9 @@ Namespace OnTrack.Scheduling
 
             ' create new list with header
             dependFromList = New Dictionary(Of Long, clsOTDBDependMember)
-            If Not anEntry.Create(typeid:=TYPEID, partid:=Me.PartID, posno:=0, dependfromPartID:="") Then
-                Call anEntry.Inject(typeid:=TYPEID, partid:=Me.PartID, posno:=0)
-                anEntry.dependfromPartID = ""
+            If Not anEntry.Create(typeid:=TYPEID, partid:=Me.PartID, posno:=0, dependfromPartID:=String.empty) Then
+                Call anEntry.Retrieve(typeid:=TYPEID, partid:=Me.PartID, posno:=0)
+                anEntry.dependfromPartID = String.empty
             End If
 
             dependFromList.Add(key:=0, value:=anEntry)
@@ -354,9 +354,10 @@ Namespace OnTrack.Scheduling
 
             ' create new list with header
             dependFromList = New Dictionary(Of Long, clsOTDBDependCheck)
-            If Not anEntry.create(TYPEID:=TYPEID, PARTID:=Me.PartID, POSNO:=0, UID:=0, UPDC:=0, dependfromPartID:="") Then
-                Call anEntry.Inject(typeid:=TYPEID, partid:=Me.PartID, posno:=0, uid:=0, updc:=0)
-                anEntry.dependfromPartID = ""
+            anEntry = clsOTDBDependCheck.Create(TYPEID:=TYPEID, PARTID:=Me.PartID, POSNO:=0, UID:=0, UPDC:=0, dependfromPartID:=String.empty)
+            If anEntry Is Nothing Then
+                anEntry = clsOTDBDependCheck.Retrieve(typeid:=TYPEID, partid:=Me.PartID, posno:=0, uid:=0, updc:=0)
+                anEntry.dependfromPartID = String.empty
             End If
 
             dependFromList.Add(key:=0, value:=anEntry)
@@ -558,7 +559,7 @@ Namespace OnTrack.Scheduling
         '**** clusterid returns the clusterid for typeid-list
         '****
         Public Function DynClusterid(ByVal atypeid As String, _
-                                        Optional workspaceID As String = "") As String
+                                        Optional workspaceID As String = String.empty) As String
 
             Dim anEntry As New clsOTDBDependMember
             Dim anDependCheck As New clsOTDBDependCheck
@@ -570,7 +571,7 @@ Namespace OnTrack.Scheduling
             ' get or add
             dependFromList = getDependMemberTypeIdList(atypeid)
             If dependFromList Is Nothing Then
-                DynClusterid = ""
+                DynClusterid = String.empty
                 Exit Function
             End If
 
@@ -593,7 +594,7 @@ Namespace OnTrack.Scheduling
                 End If
             End If
 
-            DynClusterid = ""
+            DynClusterid = String.empty
         End Function
 
         '**** clusterid returns the clusterid for typeid-list
@@ -606,7 +607,7 @@ Namespace OnTrack.Scheduling
             ' get or add
             dependFromList = getDependMemberTypeIdList(atypeid)
             If dependFromList Is Nothing Then
-                clusterid = ""
+                clusterid = String.empty
                 Exit Function
             End If
 
@@ -619,7 +620,7 @@ Namespace OnTrack.Scheduling
                 End If
             End If
 
-            clusterid = ""
+            clusterid = String.empty
         End Function
         '**** DependChecks returns a Collection of Members for typeid-list
         '****
@@ -692,12 +693,12 @@ Namespace OnTrack.Scheduling
             Dim anEntry As New clsOTDBDependMember
 
             Try
-                aStore = GetTableStore(clsOTDBDependMember.constTableID)
+                aStore = GetTableStore(clsOTDBDependMember.ConstPrimaryTableID)
                 Dim aCommand As ormSqlSelectCommand = aStore.CreateSqlSelectCommand(id:="loadByDependant", addAllFields:=True)
                 If Not aCommand.Prepared Then
-                    aCommand.Where = clsOTDBDependMember.constTableID & ".[" & clsOTDBDependMember.constFNPartID & "] = @partid"
-                    aCommand.Where &= " AND " & clsOTDBDependMember.constTableID & ".[" & clsOTDBDependMember.constFNNoPos & "] = 0"
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@partid", columnname:=clsOTDBDependMember.constFNPartID, tablename:=clsOTDBDependMember.constTableID))
+                    aCommand.Where = clsOTDBDependMember.ConstPrimaryTableID & ".[" & clsOTDBDependMember.constFNPartID & "] = @partid"
+                    aCommand.Where &= " AND " & clsOTDBDependMember.ConstPrimaryTableID & ".[" & clsOTDBDependMember.constFNNoPos & "] = 0"
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@partid", columnname:=clsOTDBDependMember.constFNPartID, tablename:=clsOTDBDependMember.ConstPrimaryTableID))
                     aCommand.Prepare()
                 End If
 
@@ -741,11 +742,11 @@ Namespace OnTrack.Scheduling
             Dim anEntry As New clsOTDBDependMember
 
             Try
-                aStore = GetTableStore(clsOTDBDependMember.constTableID)
+                aStore = GetTableStore(clsOTDBDependMember.ConstPrimaryTableID)
                 Dim aCommand As ormSqlSelectCommand = aStore.CreateSqlSelectCommand(id:="LoadByDependingFrom", addAllFields:=True)
                 If Not aCommand.Prepared Then
-                    aCommand.Where = clsOTDBDependMember.constTableID & ".[" & clsOTDBDependMember.constfndepfromid & "] = @partid"
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@partid", columnname:=clsOTDBDependMember.constFNDepFromId, tablename:=clsOTDBDependMember.constTableID))
+                    aCommand.Where = clsOTDBDependMember.ConstPrimaryTableID & ".[" & clsOTDBDependMember.constfndepfromid & "] = @partid"
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@partid", columnname:=clsOTDBDependMember.constFNDepFromId, tablename:=clsOTDBDependMember.ConstPrimaryTableID))
                     aCommand.Prepare()
                 End If
 
@@ -806,7 +807,7 @@ Namespace OnTrack.Scheduling
             If TYPEID = ConstDepTypeIDIFC Then
                 maxcarused = 0
                 maxposno = 0
-                status = ""
+                status = String.empty
                 headentry = Nothing
                 For Each Key In dependFromList.Keys
                     anEntry = dependFromList.Item(Key)
@@ -902,32 +903,14 @@ errorhandle:
         ''' <param name="pnid"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function Create(ByVal pnid As String) As Boolean
-            Dim anEntry As New clsOTDBDependMember
-
-            If IsLoaded Then
-                create = False
-                Exit Function
-            End If
-
-            ' set the primaryKey
-            s_pnid = pnid
-            ' abort create if exists
-            If Not anEntry.Create(typeid:="", partid:=pnid, posno:=0) Then
-                Create = False
-                Exit Function
-            End If
-            ' header
-
-
-            'me.iscreated = True
-            create = Me.IsCreated
+        Public Shared Function Create(ByVal pnid As String) As clsOTDBDependCheck
+            Return Create(typeid:=String.empty, pnid:=pnid, Posno:=0)
         End Function
 
         '**** runCheck runs through the DependCheck run
         '****
         Public Function RunCheck(ByVal typeid As String, _
-                                 Optional ByVal workspaceID As String = "", _
+                                 Optional ByVal workspaceID As String = String.empty, _
                                  Optional ByVal autopersist As Boolean = False) As Boolean
             Dim anEntry As New clsOTDBDependMember
             Dim headentry As New clsOTDBDependMember
@@ -960,7 +943,7 @@ errorhandle:
             If typeid = ConstDepTypeIDIFC Then
                 maxcarused = 0
                 maxposno = 0
-                status = ""
+                status = String.empty
                 headentry = Nothing
                 For Each Key In dependFromList.Keys
                     anEntry = dependFromList.Item(Key)
@@ -1002,7 +985,7 @@ errorhandle:
             ' generate TopLevel Status
             aDependCheck = New clsOTDBDependCheck
             If autopersist Then
-                If Not aDependCheck.Inject(typeid:=headentry.TypeID, partid:=headentry.PartID, _
+                If Not aDependCheck.Retrieve(typeid:=headentry.TypeID, partid:=headentry.PartID, _
                                            posno:=headentry.PosNo, uid:=0, updc:=0) Then
                     Call aDependCheck.create(TYPEID:=headentry.TypeID, PARTID:=headentry.PartID, _
                                              POSNO:=headentry.PosNo, UID:=0, UPDC:=0)
@@ -1021,7 +1004,7 @@ errorhandle:
                         aDependCheck.status = status
                     End If
                 Else
-                    aDependCheck.status = ""
+                    aDependCheck.status = String.empty
                 End If
             End If
 
@@ -1046,7 +1029,7 @@ errorhandle:
                 Exit Function
             End If
 
-            Status = ""
+            Status = String.empty
         End Function
 
         '**** lastStatus
@@ -1056,14 +1039,14 @@ errorhandle:
             Dim aDependCheck As New clsOTDBDependCheck
 
             ' get TopLevel Status
-            If aDependCheck.Inject(typeid:=TYPEID, partid:=Me.PartID, _
+            If aDependCheck.Retrieve(typeid:=TYPEID, partid:=Me.PartID, _
                                    posno:=0, uid:=0, updc:=0) Then
 
                 GetlastStatus = aDependCheck.status
                 Exit Function
             End If
 
-            getlastStatus = ""
+            getlastStatus = String.empty
         End Function
 
         '**** unionClusters
@@ -1089,7 +1072,7 @@ errorhandle:
         '**** clearAllClusters
         '****
         Public Function ClearAllClusters(ByVal atypeid As String, _
-                                         Optional ByVal aClusterID As String = "", _
+                                         Optional ByVal aClusterID As String = String.empty, _
                                          Optional isDynamic As Boolean = False) As Boolean
             Dim aTable As iormDataStore
             Dim anEntry As New clsOTDBDependMember
@@ -1103,7 +1086,7 @@ errorhandle:
                 cmdstr = "update " & anEntry.primaryTableID & " set clusterid = '', clusterlevel=0 "
             End If
 
-            If aClusterID <> "" Then
+            If aClusterID <> String.empty Then
                 cmdstr = cmdstr & " where clusterid = '" & aClusterID & "'"
             End If
             clearAllClusters = aTable.RunSqlStatement(cmdstr)
@@ -1135,13 +1118,13 @@ errorhandle:
             ' go thorugh each
             For Each Key In keys
                 ' better reload
-                If anEntry.Inject(atypeid, Me.PartID, posno:=Key) Then
+                If anEntry.Retrieve(atypeid, Me.PartID, posno:=Key) Then
                     System.Diagnostics.Debug.WriteLine(aClusterID, aLevel, Me.PartID & " -> " & anEntry.dependfromPartID)
                     'Set anEntry = dependFromList.Item(key)
                     ' check the head -> we have been here already !
                     If (anEntry.PosNo = 0 And anEntry.nopos <> 0) Or anEntry.isNode Then
                         ' do nothing
-                        If anEntry.clusterid = "" Then
+                        If anEntry.clusterid = String.empty Then
                             anEntry.clusterid = aClusterID
                             anEntry.clusterlevel = aLevel
                             Call anEntry.Persist()    '-> persist
@@ -1167,7 +1150,7 @@ errorhandle:
                         '
                     Else
                         ' has the Entry a cluster ?!
-                        If anEntry.clusterid = "" Then
+                        If anEntry.clusterid = String.empty Then
                             anEntry.clusterid = aClusterID
                             anEntry.clusterlevel = aLevel
                             Call anEntry.Persist()    '-> persist
@@ -1179,8 +1162,8 @@ errorhandle:
                                     GenerateCluster = aDependency.GenerateCluster(atypeid:=atypeid, aClusterID:=aClusterID, aLevel:=aLevel + 1)
                                 Else
                                     ' a leaf
-                                    If anSubHead.Inject(atypeid, partid:=anEntry.dependfromPartID, posno:=0) Then
-                                        If anSubHead.clusterid = "" Then
+                                    If anSubHead.Retrieve(atypeid, partid:=anEntry.dependfromPartID, posno:=0) Then
+                                        If anSubHead.clusterid = String.empty Then
                                             anSubHead.clusterid = aClusterID
                                             anSubHead.clusterlevel = aLevel
                                             Call anSubHead.Persist()    '-> persist
@@ -1203,7 +1186,7 @@ errorhandle:
                         ElseIf anEntry.clusterid <> aClusterID Then
                             ' mark it as same cluster
                             Call MarkClusterID(atypeid, anEntry.clusterid, aClusterID)
-                            If anSubHead.Inject(atypeid, partid:=anEntry.dependfromPartID, posno:=0) Then
+                            If anSubHead.Retrieve(atypeid, partid:=anEntry.dependfromPartID, posno:=0) Then
                                 If anSubHead.clusterid <> aClusterID Then
                                     Call MarkClusterID(atypeid, anSubHead.clusterid, aClusterID)
                                 End If
@@ -1231,7 +1214,7 @@ errorhandle:
 
         '**** generateDynCluster runs through the DependCheck run
         '****
-        Public Function GenerateDynCluster(ByVal typeid As String, ByVal clusterid As String, ByVal level As Long, Optional workspaceID As String = "") As Boolean
+        Public Function GenerateDynCluster(ByVal typeid As String, ByVal clusterid As String, ByVal level As Long, Optional workspaceID As String = String.empty) As Boolean
             Dim anEntry As New clsOTDBDependMember
             Dim anSubHead As New clsOTDBDependMember
             Dim aTimestamp As Date
@@ -1262,7 +1245,7 @@ errorhandle:
             ' go thorugh each
             For Each Key In keys
                 ' better reload
-                If anEntry.Inject(typeid:=typeid, partid:=Me.PartID, posno:=Key) Then
+                If anEntry.Retrieve(typeid:=typeid, partid:=Me.PartID, posno:=Key) Then
                     ' Get the Dependency Check
                     aDCColl = anEntry.GetDependCheck(workspaceID)
                     ' run or check
@@ -1291,7 +1274,7 @@ errorhandle:
                     '**
                     If (anEntry.PosNo = 0 And anEntry.nopos <> 0) Or anEntry.isNode Then
                         ' do nothing
-                        If aDependCheck.clusterid = "" Then
+                        If aDependCheck.clusterid = String.empty Then
                             aDependCheck.clusterid = clusterid
                             aDependCheck.clusterlevel = level
                             Call aDependCheck.Persist()    '-> persist
@@ -1318,7 +1301,7 @@ errorhandle:
                     ElseIf Not aDependCheck.status Like "g*" Then
 
                         ' has the Entry a cluster ?!
-                        If aDependCheck.clusterid = "" Then
+                        If aDependCheck.clusterid = String.empty Then
                             aDependCheck.clusterid = clusterid
                             aDependCheck.clusterlevel = level
                             Call aDependCheck.Persist()    '-> persist
@@ -1331,7 +1314,7 @@ errorhandle:
                                 Else
                                     '*a leaf
                                     '*
-                                    If anSubHead.Inject(typeid, partid:=anEntry.dependfromPartID, posno:=0) Then
+                                    If anSubHead.Retrieve(typeid, partid:=anEntry.dependfromPartID, posno:=0) Then
                                         ' create or get
                                         aDCColl = anSubHead.GetDependCheck(workspaceID)
                                         If aDCColl Is Nothing Or aDCColl.Count = 0 Then
@@ -1341,7 +1324,7 @@ errorhandle:
                                             aSubDependCheck = aDCColl.Item(1)
                                         End If
                                         'check
-                                        If aSubDependCheck.clusterid = "" Then
+                                        If aSubDependCheck.clusterid = String.empty Then
                                             aSubDependCheck.clusterid = clusterid
                                             aSubDependCheck.clusterlevel = level
                                             Call aSubDependCheck.Persist()    '-> persist
@@ -1364,7 +1347,7 @@ errorhandle:
                         ElseIf aDependCheck.clusterid <> clusterid Then
                             ' mark it as same cluster
                             Call MarkClusterID(typeid, anEntry.clusterid, clusterid)
-                            If anSubHead.Inject(typeid, partid:=anEntry.dependfromPartID, posno:=0) Then
+                            If anSubHead.Retrieve(typeid, partid:=anEntry.dependfromPartID, posno:=0) Then
                                 aDCColl = anSubHead.GetDependCheck(workspaceID)
                                 If aDCColl Is Nothing Or aDCColl.Count = 0 Then
                                     aSubDependCheck = New clsOTDBDependCheck
@@ -1411,7 +1394,7 @@ errorhandle:
         Implements iormInfusable
         Implements iormPersistable
 
-        Public Const constTableID = "tblPartDepends"
+        Public Const ConstPrimaryTableID = "tblPartDepends"
 
         Public Const constFNPartID = "pnid"
         Public Const constFNPosno = "posno"
@@ -1704,7 +1687,7 @@ errorhandle:
         ''' </summary>
         ''' <remarks></remarks>
         Public Sub New()
-            Call MyBase.New(constTableID)
+            Call MyBase.New(ConstPrimaryTableID)
             s_nopos = 0
         End Sub
 
@@ -1727,7 +1710,7 @@ errorhandle:
         '        If Not IsNull(record.GetValue("clusterid")) Then
         '            s_clusterid = CStr(record.GetValue("clusterid"))
         '        Else
-        '            s_clusterid = ""
+        '            s_clusterid = String.empty
         '        End If
         '        If Not IsNull(record.GetValue("clusterlevel")) Then
         '            s_clusterlevel = CLng(record.GetValue("clusterlevel"))
@@ -1783,9 +1766,9 @@ errorhandle:
         ''' <param name="POSNO"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Function Inject(ByVal typeid As String, ByVal partid As String, ByVal posno As Long) As Boolean
-            Dim pkarry() As Object = {TYPEID, PARTID, POSNO}
-            Return MyBase.Inject(pkArray:=pkarry)
+        Public Overloads Shared Function Retrieve(ByVal typeid As String, ByVal partid As String, ByVal posno As Long) As clsOTDBDependMember
+            Dim pkarry() As Object = {typeid, partid, posno}
+            Return ormDataObject.Retrieve(Of clsOTDBDependMember)(pkArray:=pkarry)
         End Function
 
         '**** allHeadsByTypeID returns all Dependency Heads by TypeID
@@ -1814,12 +1797,12 @@ errorhandle:
             ' orderby
             orderby = " param_num1 desc, param_num2 desc "
             ' inner join
-            innerjoin = ""
+            innerjoin = String.empty
             'Debug.Print wherestr
 
             On Error GoTo error_handler
 
-            aTable = GetTableStore(constTableID)
+            aTable = GetTableStore(ConstPrimaryTableID)
             aRecordCollection = aTable.GetRecordsBySql(wherestr:=wherestr, orderby:=orderby, innerjoin:=innerjoin, silent:=True)
 
             If aRecordCollection Is Nothing Then
@@ -1863,11 +1846,11 @@ error_handler:
 
             '            aFieldDesc.Relation = New String() {}
             '            aFieldDesc.Size = 0
-            '            aFieldDesc.Parameter = ""
-            '            aFieldDesc.Tablename = constTableID
+            '            aFieldDesc.Parameter = String.empty
+            '            aFieldDesc.Tablename = ConstPrimaryTableID
 
             '            With aTable
-            '                .Create(constTableID)
+            '                .Create(ConstPrimaryTableID)
             '                .Delete()
 
 
@@ -2021,13 +2004,13 @@ error_handler:
             '                aFieldDesc.Datatype = otFieldDataType.Timestamp
             '                aFieldDesc.Title = "last Update"
             '                aFieldDesc.ColumnName = ConstFNUpdatedOn
-            '                aFieldDesc.ID = ""
+            '                aFieldDesc.ID = String.empty
             '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
             '                aFieldDesc.Datatype = otFieldDataType.Timestamp
             '                aFieldDesc.Title = "creation Date"
             '                aFieldDesc.ColumnName = ConstFNCreatedOn
-            '                aFieldDesc.ID = ""
+            '                aFieldDesc.ID = String.empty
             '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
             '                ' Index
             '                Call .AddIndex("PrimaryKey", PrimaryColumnNames, isprimarykey:=True)
@@ -2047,7 +2030,7 @@ error_handler:
 
             '            ' Handle the error
             'error_handle:
-            '            Call CoreMessageHandler(subname:="clsOTDBDependMember.createSchema", tablename:=constTableID)
+            '            Call CoreMessageHandler(subname:="clsOTDBDependMember.createSchema", tablename:=ConstPrimaryTableID)
             '            createSchema = False
         End Function
 
@@ -2106,20 +2089,9 @@ error_handler:
         ''' <param name="dependfromPartID"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Function Create(ByVal typeid As String, ByVal partid As String, ByVal posno As Long, Optional ByVal dependfromPartID As String = "") As Boolean
-
-            Dim pkarry() As Object = {typeid, partid, posno}
-
-            If MyBase.Create(pkArray:=pkarry, checkUnique:=True) Then
-                ' set the primaryKey
-                s_typeid = typeid
-                s_partID = partid
-                s_posno = posno
-                s_dependfrompartid = dependfromPartID
-                Return Me.IsCreated
-            End If
-
-            Return False
+        Public Overloads Shared Function Create(ByVal typeid As String, ByVal partid As String, ByVal posno As Long, Optional ByVal dependfromPartID As String = String.empty) As clsOTDBDependMember
+            Dim pkarray() As Object = {typeid, partid, posno}
+            Return ormDataObject.CreateDataObject(Of clsOTDBDependMember)(pkArray:=pkarray, checkUnique:=True)
         End Function
 
         '*********** getDependCheck get the latest DependCheck of Type
@@ -2130,7 +2102,7 @@ error_handler:
         ''' <param name="workspaceID"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetDependCheck(Optional workspaceID As String = "") As Collection
+        Public Function GetDependCheck(Optional workspaceID As String = String.empty) As Collection
             Dim aDependCheck As New clsOTDBDependCheck
             Dim aCollection
 
@@ -2160,7 +2132,7 @@ error_handler:
         Implements iormPersistable
         Implements iormInfusable
 
-        Public Const constTableID = "tblDependChecks"
+        Public Const ConstPrimaryTableID = "tblDependChecks"
 
         ' fields
         Public Const constFNPartid = "pnid"
@@ -2172,8 +2144,8 @@ error_handler:
         Public Const constFNClusterLevel = "clusterlevel"
 
         'fields
-        Private s_partID As String = ""  ' Assy ID
-        Private s_typeid As String = ""
+        Private s_partID As String = String.empty  ' Assy ID
+        Private s_typeid As String = String.empty
         Private s_posno As Long
         Private s_suid As Long    'deliverable UID
         Private s_supdc As Long    'deliverable UID
@@ -2181,16 +2153,16 @@ error_handler:
         Private s_depsupdc As Long    'deliverable UID
 
         'fields
-        Private s_status As String = ""
+        Private s_status As String = String.empty
 
-        Private s_dependfrompartid As String = ""  ' Component ID
-        Private s_condition As String = ""
-        Private s_comment As String = ""
-        Private s_msgno As String = ""
+        Private s_dependfrompartid As String = String.empty  ' Component ID
+        Private s_condition As String = String.empty
+        Private s_comment As String = String.empty
+        Private s_msgno As String = String.empty
 
-        Private s_parameter_txt1 As String = ""
-        Private s_parameter_txt2 As String = ""
-        Private s_parameter_txt3 As String = ""
+        Private s_parameter_txt1 As String = String.empty
+        Private s_parameter_txt2 As String = String.empty
+        Private s_parameter_txt3 As String = String.empty
         Private s_parameter_num1 As Double
         Private s_parameter_num2 As Double
         Private s_parameter_num3 As Double
@@ -2476,7 +2448,7 @@ error_handler:
         ''' <remarks></remarks>
         Public Sub New()
             'me.record.tablename = ourTableName
-            Call MyBase.New(constTableID)
+            Call MyBase.New(ConstPrimaryTableID)
 
         End Sub
         ''' <summary>
@@ -2486,7 +2458,7 @@ error_handler:
         ''' <remarks></remarks>
         Public Overloads Function Initialize() As Boolean
 
-            SerializeWithHostApplication = isDefaultSerializeAtHostApplication(constTableID)
+            SerializeWithHostApplication = isDefaultSerializeAtHostApplication(ConstPrimaryTableID)
             Return MyBase.Initialize()
         End Function
 
@@ -2530,7 +2502,7 @@ error_handler:
         '        If Not IsNull(record.GetValue("clusterid")) Then
         '            s_clusterid = CStr(record.GetValue("clusterid"))
         '        Else
-        '            s_clusterid = ""
+        '            s_clusterid = String.empty
         '        End If
         '        If Not IsNull(record.GetValue("clusterlevel")) Then
         '            s_clusterlevel = CLng(record.GetValue("clusterlevel"))
@@ -2571,9 +2543,9 @@ error_handler:
         ''' <param name="updc"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Overloads Function Inject(ByVal typeid As String, ByVal partid As String, ByVal posno As Long, ByVal uid As Long, ByVal updc As Long) As Boolean
+        Public Overloads Shared Function Retrieve(ByVal typeid As String, ByVal partid As String, ByVal posno As Long, ByVal uid As Long, ByVal updc As Long) As clsOTDBDependCheck
             Dim pkarry() As Object = {typeid, partid, posno, uid, updc}
-            Return MyBase.Inject(pkArray:=pkarry)
+            Return ormDataObject.Retrieve(Of clsOTDBDependCheck)(pkArray:=pkarry)
         End Function
 
         '********** all Head by ClusterID
@@ -2586,20 +2558,20 @@ error_handler:
         ''' <param name="workspaceID"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Shared Function AllHeadByClusterID(typeid As String, clusterid As String, Optional ByVal workspaceID As String = "") As List(Of clsOTDBDependCheck)
+        Public Shared Function AllHeadByClusterID(typeid As String, clusterid As String, Optional ByVal workspaceID As String = String.empty) As List(Of clsOTDBDependCheck)
             Dim aCollection As New List(Of clsOTDBDependCheck)
             Dim aRecordCollection As List(Of ormRecord)
             Dim aStore As iormDataStore
 
             Try
-                aStore = GetTableStore(constTableID)
+                aStore = GetTableStore(ConstPrimaryTableID)
                 Dim aCommand As ormSqlSelectCommand = aStore.CreateSqlSelectCommand(id:="AllHeadByClusterID", addAllFields:=True)
                 If Not aCommand.Prepared Then
-                    aCommand.Where = constTableID & ".[" & constFNdepfromid & "] = '' AND " & constTableID & ".[" & constFNtypeid & "] =@typeid"
-                    aCommand.Where &= " AND " & constTableID & ".[" & constFNClusterID & "] = @clusterid"
-                    aCommand.OrderBy = constTableID & ".[" & constFNClusterLevel & "] asc"
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@typeid", ColumnName:=ConstFNtypeid, tablename:=constTableID))
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@clusterid", ColumnName:=ConstFNClusterID, tablename:=constTableID))
+                    aCommand.Where = ConstPrimaryTableID & ".[" & constFNdepfromid & "] = '' AND " & ConstPrimaryTableID & ".[" & constFNtypeid & "] =@typeid"
+                    aCommand.Where &= " AND " & ConstPrimaryTableID & ".[" & constFNClusterID & "] = @clusterid"
+                    aCommand.OrderBy = ConstPrimaryTableID & ".[" & constFNClusterLevel & "] asc"
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@typeid", ColumnName:=ConstFNtypeid, tablename:=ConstPrimaryTableID))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@clusterid", ColumnName:=ConstFNClusterID, tablename:=ConstPrimaryTableID))
                     aCommand.Prepare()
                 End If
                 aCommand.SetParameterValue(ID:="@typeid", value:=typeid)
@@ -2635,7 +2607,7 @@ error_handler:
         ''' <param name="workspaceID"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Shared Function AllByDependMember(dependMember As clsOTDBDependMember, Optional ByVal workspaceID As String = "") As List(Of clsOTDBDependCheck)
+        Public Shared Function AllByDependMember(dependMember As clsOTDBDependMember, Optional ByVal workspaceID As String = String.empty) As List(Of clsOTDBDependCheck)
 
             Dim aCollection As New List(Of clsOTDBDependCheck)
             Dim aRecordCollection As List(Of ormRecord)
@@ -2643,15 +2615,15 @@ error_handler:
 
 
             Try
-                aStore = GetTableStore(constTableID)
+                aStore = GetTableStore(ConstPrimaryTableID)
                 Dim aCommand As ormSqlSelectCommand = aStore.CreateSqlSelectCommand(id:="AllByDependMember", addAllFields:=True)
                 If Not aCommand.Prepared Then
-                    aCommand.Where = constTableID & ".[" & constFNPartid & "] = @partid AND " & constTableID & ".[" & constFNtypeid & "] =@typeid"
-                    aCommand.Where &= " AND " & constTableID & ".[" & constFNPosno & "] = @posno"
-                    aCommand.OrderBy = constTableID & ".[" & constFNSUpdc & "] desc"
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@partid", ColumnName:=ConstFNPartid, tablename:=constTableID))
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@typeid", ColumnName:=ConstFNtypeid, tablename:=constTableID))
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@posno", ColumnName:=ConstFNPosno, tablename:=constTableID))
+                    aCommand.Where = ConstPrimaryTableID & ".[" & constFNPartid & "] = @partid AND " & ConstPrimaryTableID & ".[" & constFNtypeid & "] =@typeid"
+                    aCommand.Where &= " AND " & ConstPrimaryTableID & ".[" & constFNPosno & "] = @posno"
+                    aCommand.OrderBy = ConstPrimaryTableID & ".[" & constFNSUpdc & "] desc"
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@partid", ColumnName:=ConstFNPartid, tablename:=ConstPrimaryTableID))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@typeid", ColumnName:=ConstFNtypeid, tablename:=ConstPrimaryTableID))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@posno", ColumnName:=ConstFNPosno, tablename:=ConstPrimaryTableID))
                     aCommand.Prepare()
                 End If
                 aCommand.SetParameterValue(ID:="@partid", value:=dependMember.PartID)
@@ -2694,14 +2666,14 @@ error_handler:
             '            Dim aTable As New ObjectDefinition
 
 
-            '            aFieldDesc.ID = ""
-            '            aFieldDesc.Parameter = ""
+            '            aFieldDesc.ID = String.empty
+            '            aFieldDesc.Parameter = String.empty
             '            aFieldDesc.Relation = New String() {}
             '            aFieldDesc.Aliases = New String() {}
-            '            aFieldDesc.Tablename = constTableID
+            '            aFieldDesc.Tablename = ConstPrimaryTableID
 
             '            With aTable
-            '                .Create(constTableID)
+            '                .Create(ConstPrimaryTableID)
             '                .Delete()
             '                ' typeid
             '                aFieldDesc.Datatype = otFieldDataType.Text
@@ -2873,7 +2845,7 @@ error_handler:
             '                aFieldDesc.Datatype = otFieldDataType.Timestamp
             '                aFieldDesc.Title = "last Update"
             '                aFieldDesc.ColumnName = ConstFNUpdatedOn
-            '                aFieldDesc.ID = ""
+            '                aFieldDesc.ID = String.empty
             '                aFieldDesc.Aliases = New String() {}
             '                aFieldDesc.Relation = New String() {}
             '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
@@ -2881,7 +2853,7 @@ error_handler:
             '                aFieldDesc.Datatype = otFieldDataType.Timestamp
             '                aFieldDesc.Title = "creation Date"
             '                aFieldDesc.ColumnName = ConstFNCreatedOn
-            '                aFieldDesc.ID = ""
+            '                aFieldDesc.ID = String.empty
             '                aFieldDesc.Aliases = New String() {}
             '                aFieldDesc.Relation = New String() {}
             '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
@@ -2902,7 +2874,7 @@ error_handler:
 
             '            ' Handle the error
             'error_handle:
-            '            Call CoreMessageHandler(subname:="clsOTDBDependCheck.createSchema", tablename:=constTableID)
+            '            Call CoreMessageHandler(subname:="clsOTDBDependCheck.createSchema", tablename:=ConstPrimaryTableID)
             '            createSchema = False
         End Function
 
@@ -2973,55 +2945,14 @@ errorhandle:
 
         '**** create : create a new Object with primary keys
         '****
-        Public Function create(ByVal TYPEID As String, _
+        Public Shared Function Create(ByVal TYPEID As String, _
                                ByVal PARTID As String, _
                                ByVal POSNO As Long, _
                                ByVal UID As Long, _
                                ByVal UPDC As Long, _
-                               Optional ByVal dependfromPartID As String = "") As Boolean
-            Dim aTable As iormDataStore
-            Dim pkarry(5) As Object
-            Dim aRecord As ormRecord
-
-            If IsLoaded Then
-                create = False
-                Exit Function
-            End If
-            '* init
-            If Not Me.IsInitialized Then
-                If Not Me.initialize() Then
-                    create = False
-                    Exit Function
-                End If
-            End If
-
-            ' Check
-            ' set the primaryKey
-            pkarry(0) = TYPEID
-            pkarry(1) = PARTID
-            pkarry(2) = POSNO
-            pkarry(3) = UID
-            pkarry(4) = UPDC
-            'PKArry(3) = dependfrompartid
-            aTable = GetTableStore(constTableID)
-            aRecord = aTable.GetRecordByPrimaryKey(pkarry)
-
-            If Not aRecord Is Nothing Then
-                create = False
-                'Call OTDBErrorHandler(tablename:=ourTableName, entryname:="partid, posno", 
-                'subname:="clsOTDBBOMMember.create", message:=" double key as should be unique", arg1:=partid & posno)
-                Exit Function
-            End If
-
-            ' set the primaryKey
-            s_typeid = TYPEID
-            s_partID = PARTID
-            s_posno = POSNO
-            s_dependfrompartid = dependfromPartID
-
-            'me.iscreated = True
-            create = Me.IsCreated
-
+                               Optional ByVal dependfromPartID As String = String.empty) As clsOTDBDependCheck
+            Dim pkarray() As Object = {TYPEID, PARTID, POSNO, UID, UPDC}
+            Return ormDataObject.CreateDataObject(Of clsOTDBDependCheck)(pkArray:=pkarray, checkUnique:=True)
         End Function
 
 
@@ -3031,7 +2962,7 @@ errorhandle:
                              DELIVERABLE As Deliverable, _
                              PART As Part, _
                              SCHEDULE As ScheduleEdition, _
-                             Optional workspaceID As String = "") As Boolean
+                             Optional workspaceID As String = String.empty) As Boolean
             Dim aDependPart As New Part
             Dim aDependDeliv As New Deliverable
             Dim aDependDelivColl As New List(Of Deliverable)
@@ -3045,7 +2976,7 @@ errorhandle:
             Dim maxoverlapp As Long
 
             maxoverlapp = 0
-            Me.status = ""
+            Me.status = String.empty
 
             If IsMissing(workspaceID) Then
                 workspaceID = CurrentSession.CurrentWorkspaceID
@@ -3054,7 +2985,7 @@ errorhandle:
             End If
 
             'do we have a schedule open ??
-            If LCase(SCHEDULE.Typeid) = "none" Then
+            If String.isnullorempty(sCHEDULE.Typeid) Then
                 Me.status = OTDBConst_DependStatus_g1
                 Me.msgno = Me.msgno & ":0001"
                 Me.comment = "schedule (" & SCHEDULE.Updc & " for " & aDependPart.PartID & " with deliverable " & aDependDeliv.Uid & " is of type none -> fine"
@@ -3230,7 +3161,7 @@ errorhandle:
                 Next aDependDeliv
             End If
 
-            If Me.status = "" Then
+            If Me.status = String.empty Then
                 Me.status = OTDBConst_DependStatus_g1
                 Me.msgno = "0014"
                 Me.comment = Me.msgno & ":synchro check on ifc uid# " & anInterface.UID & " between " & aDependPart.PartID & _
@@ -3244,7 +3175,7 @@ errorhandle:
         '**************** run check
         '****************
         Public Function run(DEPENDMEMBER As clsOTDBDependMember, _
-                            Optional workspaceID As String = "", _
+                            Optional workspaceID As String = String.empty, _
                             Optional ByVal autopersist As Boolean = False) As Boolean
             'Dim aDependMember As New clsOTDBDependMember
             Dim aDelivColl As New List(Of Deliverable)
@@ -3583,8 +3514,8 @@ error_handler:
             '                .Delete()
 
             '                aFieldDesc.Tablename = ourTableName
-            '                aFieldDesc.ID = ""
-            '                aFieldDesc.Parameter = ""
+            '                aFieldDesc.ID = String.empty
+            '                aFieldDesc.Parameter = String.empty
 
             '                '***
             '                '*** Fields
@@ -3638,13 +3569,13 @@ error_handler:
             '                aFieldDesc.Datatype = otFieldDataType.Timestamp
             '                aFieldDesc.Title = "last Update"
             '                aFieldDesc.ColumnName = ConstFNUpdatedOn
-            '                aFieldDesc.ID = ""
+            '                aFieldDesc.ID = String.empty
             '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
             '                aFieldDesc.Datatype = otFieldDataType.Timestamp
             '                aFieldDesc.Title = "creation Date"
             '                aFieldDesc.ColumnName = ConstFNCreatedOn
-            '                aFieldDesc.ID = ""
+            '                aFieldDesc.ID = String.empty
             '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
             '                ' Index
             '                Call .AddIndex("PrimaryKey", PrimaryColumnNames, isprimarykey:=True)

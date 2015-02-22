@@ -29,7 +29,81 @@ Imports System.Reflection
 
 Namespace OnTrack.Database
 
+    ''' <summary>
+    ''' ChangeLogEntryAttribute implements a ChangeLogEntry for a Class
+    ''' </summary>
+    ''' <remarks></remarks>
 
+    <AttributeUsage(AttributeTargets.Class, AllowMultiple:=False, Inherited:=True)> _
+    Public Class ormDatabaseDriverAttribute
+        Inherits Attribute
+
+        Private _version As Long?
+        Private _description As String
+        Private _autoinstance As Boolean?
+        Private _id As String
+
+
+        ''' <summary>
+        ''' Gets or sets the id.
+        ''' </summary>
+        ''' <value>The id.</value>
+        Public Property Id() As String
+            Get
+                Return _id
+            End Get
+            Set(value As String)
+                _id = Value
+            End Set
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the Automatic Singelton Instancing flag.
+        ''' </summary>
+        ''' <value>The autoinstance.</value>
+        Public Property AutoInstance As Boolean
+            Get
+                Return _autoinstance
+            End Get
+            Set(value As Boolean)
+                _autoinstance = value
+            End Set
+        End Property
+        Public ReadOnly Property HasValueAutoInstance As Boolean
+            Get
+                Return _autoinstance.HasValue
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the description.
+        ''' </summary>
+        ''' <value>The description.</value>
+        Public Property Description() As String
+            Get
+                Return Me._description
+            End Get
+            Set(value As String)
+                Me._description = value
+            End Set
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the version.
+        ''' </summary>
+        ''' <value>The version.</value>
+        Public Property Version() As Long
+            Get
+                If Not _version.HasValue Then _version = 1
+                Return Me._version
+            End Get
+            Set(value As Long)
+                Me._version = value
+            End Set
+        End Property
+
+
+    End Class
     ''' <summary>
     ''' ChangeLogEntryAttribute implements a ChangeLogEntry for a Class
     ''' </summary>
@@ -184,7 +258,7 @@ Namespace OnTrack.Database
     ''' <remarks></remarks>
 
     <AttributeUsage(AttributeTargets.Field, AllowMultiple:=True, Inherited:=True)> _
-    Public Class ormEntryMapping
+    Public Class ormObjectEntryMapping
         Inherits Attribute
 
         Private _ID As String
@@ -240,7 +314,7 @@ Namespace OnTrack.Database
         End Property
         Public ReadOnly Property HasValueRelationName As Boolean
             Get
-                Return _relationName IsNot Nothing AndAlso _relationName <> ""
+                Return _relationName IsNot Nothing AndAlso _relationName <> String.empty
             End Get
         End Property
         ''' <summary>
@@ -257,7 +331,7 @@ Namespace OnTrack.Database
         End Property
         Public ReadOnly Property HasValueID As Boolean
             Get
-                Return _ID IsNot Nothing AndAlso _ID <> ""
+                Return _ID IsNot Nothing AndAlso _ID <> String.empty
             End Get
         End Property
         ''' <summary>
@@ -269,12 +343,12 @@ Namespace OnTrack.Database
                 Return Me._tableID
             End Get
             Set(value As String)
-                Me._tableID = value.ToUpper
+                Me._tableID = UCase(value)
             End Set
         End Property
         Public ReadOnly Property HasValueTablename As Boolean
             Get
-                Return _tableID IsNot Nothing AndAlso _tableID <> ""
+                Return _tableID IsNot Nothing AndAlso _tableID <> String.empty
             End Get
         End Property
         ''' <summary>
@@ -291,7 +365,7 @@ Namespace OnTrack.Database
         End Property
         Public ReadOnly Property HasValueEntryName As Boolean
             Get
-                Return _entryname IsNot Nothing AndAlso _entryname <> ""
+                Return _entryname IsNot Nothing AndAlso _entryname <> String.empty
             End Get
         End Property
         ''' <summary>
@@ -308,7 +382,7 @@ Namespace OnTrack.Database
         End Property
         Public ReadOnly Property HasValueColumnName As Boolean
             Get
-                Return _columnname IsNot Nothing AndAlso _columnname <> ""
+                Return _columnname IsNot Nothing AndAlso _columnname <> String.empty
             End Get
         End Property
         ''' <summary>
@@ -340,9 +414,9 @@ Namespace OnTrack.Database
     <AttributeUsage(AttributeTargets.Property, AllowMultiple:=False, Inherited:=True)> _
     Public Class ormPropertyMappingAttribute
         Inherits Attribute
-        Private _ID As String = ""
-        Private _fieldname As String = ""
-        Private _tableID As String = ""
+        Private _ID As String = String.empty
+        Private _fieldname As String = String.empty
+        Private _tableID As String = String.empty
 
         ''' <summary>
         ''' Gets or sets the ID.
@@ -386,32 +460,39 @@ Namespace OnTrack.Database
     End Class
 
     ''' <summary>
-    ''' Attribute Class for marking an constant field member in a class as Table name such as
-    ''' <otSchemaTable(Version:=1)>Const constTableName = "tblName"
-    ''' Version will be saved into clsOTDBDEfSchemaTable
+    ''' abstract Attribute Class for a data container
     ''' </summary>
     ''' <remarks></remarks>
     <AttributeUsage(AttributeTargets.Field, AllowMultiple:=False, Inherited:=True)> _
-    Public Class ormSchemaTableAttribute
+    Public MustInherit Class ormContainerAttribute
         Inherits Attribute
-        Private _ID As String
-        Private _Version As Nullable(Of UShort) = 1 'needed for checksum
-        Private _DeleteFieldFlag As Nullable(Of Boolean)
-        Private _SpareFieldsFlag As Nullable(Of Boolean)
-        Private _AddDomainBehaviorFlag As Nullable(Of Boolean)
-        Private _TableName As String
-        Private _ObjectID As String
-        Private _Description As String = ""
-        Private _PrimaryKeyName As String
-        Private _CacheProperties As String()
-        Private _useCache As Nullable(Of Boolean)
-        Private _enabled As Boolean = True
+        Implements iormContainerAttribute
 
+        Protected _ID As String
+        Protected _Version As Nullable(Of UShort) = 1 'needed for checksum
+        Protected _DeleteFieldFlag As Nullable(Of Boolean)
+        Protected _SpareFieldsFlag As Nullable(Of Boolean)
+        Protected _AddDomainBehaviorFlag As Nullable(Of Boolean)
+        Protected _ContainerID As String
+        Protected _ObjectID As String
+        Protected _Description As String = String.Empty
+        Protected _PrimaryKeyName As String
+        Protected _CacheProperties As String()
+        Protected _useCache As Nullable(Of Boolean)
+        Protected _enabled As Boolean = True
+        Protected _DataBaseDriverID As String
+        Protected _containertype As otContainerType?
 
         '** dynamic
-        Private _columns As New Dictionary(Of String, ormSchemaTableColumnAttribute)
-        Private _foreignkeys As New Dictionary(Of String, ormSchemaForeignKeyAttribute)
-        Private _pkcolumns As New SortedList(Of UShort, String)
+        Protected _entries As New Dictionary(Of String, ormContainerEntryAttribute)
+        Protected _primaryEntries As New SortedList(Of UShort, String)
+        Private _indices As New Dictionary(Of String, ormIndexAttribute)
+        Private _foreignkeys As New Dictionary(Of String, ormForeignKeyAttribute)
+
+        ''' <summary>
+        '''  construcotr
+        ''' </summary>
+        ''' <remarks></remarks>
         Public Sub New()
 
         End Sub
@@ -419,7 +500,7 @@ Namespace OnTrack.Database
         ''' Gets or sets the enabled.
         ''' </summary>
         ''' <value>The enabled.</value>
-        Public Property Enabled() As Boolean
+        Public Property Enabled() As Boolean Implements iormContainerAttribute.Enabled
             Get
                 Return Me._enabled
             End Get
@@ -429,10 +510,29 @@ Namespace OnTrack.Database
         End Property
 
         ''' <summary>
+        ''' Gets or sets the container type
+        ''' </summary>
+        ''' <value>The is active.</value>
+        Public Overridable Property Containertype As otContainerType Implements iormContainerAttribute.ContainerType
+            Get
+                Return Me._containertype
+            End Get
+            Set(value As otContainerType)
+                Me._containertype = value
+            End Set
+        End Property
+        Public ReadOnly Property HasValueContainerType As Boolean Implements iormContainerAttribute.HasValueContainerType
+            Get
+                Return _containertype.HasValue
+            End Get
+        End Property
+
+
+        ''' <summary>
         ''' Gets or sets the cache is active.
         ''' </summary>
         ''' <value>The is active.</value>
-        Public Property UseCache() As Boolean
+        Public Property UseCache() As Boolean Implements iormContainerAttribute.UseCache
             Get
                 Return Me._useCache
             End Get
@@ -440,7 +540,7 @@ Namespace OnTrack.Database
                 Me._useCache = value
             End Set
         End Property
-        Public ReadOnly Property HasValueUseCache As Boolean
+        Public ReadOnly Property HasValueUseCache As Boolean Implements iormContainerAttribute.HasValueUseCache
             Get
                 Return _useCache.HasValue
             End Get
@@ -449,7 +549,7 @@ Namespace OnTrack.Database
         ''' Gets or sets the cache select.
         ''' </summary>
         ''' <value>cache.</value>
-        Public Property CacheProperties() As String()
+        Public Property CacheProperties() As String() Implements iormContainerAttribute.CacheProperties
             Get
                 Return Me._CacheProperties
             End Get
@@ -457,25 +557,25 @@ Namespace OnTrack.Database
                 Me._CacheProperties = value
             End Set
         End Property
-        Public ReadOnly Property HasValueCacheProperties As Boolean
+        Public ReadOnly Property HasValueCacheProperties As Boolean Implements iormContainerAttribute.HasValueCacheProperties
             Get
                 Return _CacheProperties IsNot Nothing AndAlso _CacheProperties.Count > 0
             End Get
         End Property
         ''' <summary>
-        ''' Add an entry by TabeColumn
+        ''' Add a member
         ''' </summary>
         ''' <param name="entry"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function AddColumn(entry As ormSchemaTableColumnAttribute) As Boolean
-            If _columns.ContainsKey(entry.ColumnName.ToUpper) Then
-                _columns.Remove(entry.ColumnName.ToUpper)
+        Public Overridable Function AddEntry(member As iormContainerEntryAttribute) As Boolean Implements iormContainerAttribute.AddEntry
+            If _entries.ContainsKey(member.ContainerEntryName.ToUpper) Then
+                _entries.Remove(member.ContainerEntryName.ToUpper)
             End If
-            _columns.Add(key:=entry.ColumnName.ToUpper, value:=entry)
-            If entry.HasValuePrimaryKeyOrdinal Then
-                If _pkcolumns.ContainsKey(entry.PrimaryKeyOrdinal) Then _pkcolumns.Remove(entry.PrimaryKeyOrdinal)
-                _pkcolumns.Add(key:=entry.PrimaryKeyOrdinal, value:=entry.ColumnName)
+            _entries.Add(key:=member.ContainerEntryName.ToUpper, value:=member)
+            If member.HasValuePrimaryKeyOrdinal Then
+                If _primaryEntries.ContainsKey(member.PrimaryEntryOrdinal) Then _primaryEntries.Remove(member.PrimaryEntryOrdinal)
+                _primaryEntries.Add(key:=member.PrimaryEntryOrdinal, value:=member.ContainerEntryName)
             End If
             Return True
         End Function
@@ -485,30 +585,30 @@ Namespace OnTrack.Database
         ''' <param name="entry"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function UpdateColumn(entry As ormSchemaTableColumnAttribute) As Boolean
-            If _columns.ContainsKey(entry.ColumnName.ToUpper) Then
-                _columns.Remove(entry.ColumnName.ToUpper)
+        Public Overridable Function UpdateEntry(member As iormContainerEntryAttribute) As Boolean Implements iormContainerAttribute.UpdateEntry
+            If _entries.ContainsKey(member.ContainerEntryName.ToUpper) Then
+                _entries.Remove(member.ContainerEntryName.ToUpper)
             End If
-            _columns.Add(key:=entry.ColumnName.ToUpper, value:=entry)
-            If entry.HasValuePrimaryKeyOrdinal Then
-                If _pkcolumns.ContainsKey(entry.PrimaryKeyOrdinal) Then _pkcolumns.Remove(entry.PrimaryKeyOrdinal)
-                _pkcolumns.Add(key:=entry.PrimaryKeyOrdinal, value:=entry.ColumnName)
+            _entries.Add(key:=member.ContainerEntryName.ToUpper, value:=member)
+            If member.HasValuePrimaryKeyOrdinal Then
+                If _primaryEntries.ContainsKey(member.PrimaryEntryOrdinal) Then _primaryEntries.Remove(member.PrimaryEntryOrdinal)
+                _primaryEntries.Add(key:=member.PrimaryEntryOrdinal, value:=member.ContainerEntryName)
             Else
-                If _pkcolumns.Values.Contains(entry.ColumnName) Then
-                    _pkcolumns.Remove(_pkcolumns.First(Function(x) x.Key = entry.ColumnName).Key)
+                If _primaryEntries.Values.Contains(member.ContainerEntryName) Then
+                    _primaryEntries.Remove(_primaryEntries.First(Function(x) x.Key = member.ContainerEntryName).Key)
                 End If
             End If
             Return True
         End Function
         ''' <summary>
-        ''' returns an entry by columnname or nothing
+        ''' returns an entry by member name or nothing
         ''' </summary>
         ''' <param name="columnname"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetColumn(columnname As String, Optional onlyenabled As Boolean = True) As ormSchemaTableColumnAttribute
-            If _columns.ContainsKey(columnname.ToUpper) Then
-                Dim anAttribute As ormSchemaTableColumnAttribute = _columns.Item(key:=columnname.ToUpper)
+        Public Overridable Function GetEntry(name As String, Optional onlyenabled As Boolean = True) As iormContainerEntryAttribute Implements iormContainerAttribute.GetEntry
+            If _entries.ContainsKey(name.ToUpper) Then
+                Dim anAttribute As iormContainerEntryAttribute = _entries.Item(key:=name.ToUpper)
                 If onlyenabled AndAlso Not anAttribute.Enabled Then Return Nothing
                 Return anAttribute
             Else
@@ -516,29 +616,29 @@ Namespace OnTrack.Database
             End If
         End Function
         ''' <summary>
-        ''' returns an entry by columnname or nothing
+        ''' returns an member by member name or nothing
         ''' </summary>
         ''' <param name="columnname"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function HasColumn(columnname As String, Optional onlyenabled As Boolean = Nothing) As Boolean
-            Dim result As Boolean = _columns.ContainsKey(columnname.ToUpper)
+        Public Overridable Function HasEntry(name As String, Optional onlyenabled As Boolean = Nothing) As Boolean Implements iormContainerAttribute.HasEntry
+            Dim result As Boolean = _entries.ContainsKey(name.ToUpper)
             If onlyenabled AndAlso result Then
-                result = _columns.Item(columnname.ToUpper).Enabled
+                result = _entries.Item(name.ToUpper).Enabled
             End If
             Return result
         End Function
         ''' <summary>
-        ''' remove an entry by columnname 
+        ''' remove a member by name 
         ''' </summary>
         ''' <param name="columnname"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function RemoveColumn(columnname As String) As Boolean
-            If _columns.ContainsKey(columnname.ToUpper) Then
-                _columns.Remove(columnname.ToUpper)
-                If _pkcolumns.Values.Contains(columnname) Then
-                    _pkcolumns.Remove(_pkcolumns.First(Function(x) x.Key = columnname).Key)
+        Public Overridable Function RemoveEntry(membername As String) As Boolean Implements iormContainerAttribute.RemoveEntry
+            If _entries.ContainsKey(membername.ToUpper) Then
+                _entries.Remove(membername.ToUpper)
+                If _primaryEntries.Values.Contains(membername) Then
+                    _primaryEntries.Remove(_primaryEntries.First(Function(x) x.Key = membername).Key)
                 End If
                 Return True
             Else
@@ -551,18 +651,228 @@ Namespace OnTrack.Database
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public ReadOnly Property ColumnAttributes As IEnumerable(Of ormSchemaTableColumnAttribute)
+        Public ReadOnly Property EntryAttributes As IEnumerable(Of iormContainerEntryAttribute) Implements iormContainerAttribute.EntryAttributes
             Get
-                Return _columns.Values.Where(Function(x) x.Enabled = True).ToList
+                Return _entries.Values.Where(Function(x) x.Enabled = True).ToList
             End Get
         End Property
+
+        ''' <summary>
+        ''' sets or returns the Names of the PrimaryKey Columns
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Property PrimaryEntryNames As String() Implements iormContainerAttribute.PrimaryEntryNames
+            Get
+                Return _primaryEntries.Values.ToArray
+            End Get
+            Set(value As String())
+                _primaryEntries.Clear()
+
+                For i = value.GetLowerBound(0) To value.GetUpperBound(0)
+                    _primaryEntries.Add(key:=i, value:=value(i))
+                Next
+
+            End Set
+        End Property
+        ''' <summary>
+        ''' returns a List of all Entries
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public ReadOnly Property EntryNames As IEnumerable(Of String) Implements iormContainerAttribute.EntryNames
+            Get
+                Return _entries.Values.Where(Function(x) x.Enabled = True).SelectMany(Function(x) x.ContainerEntryName).ToList
+            End Get
+        End Property
+        ''' <summary>
+        ''' Gets or sets the description.
+        ''' </summary>
+        ''' <value>The description.</value>
+        Public Property Description() As String Implements iormContainerAttribute.Description
+            Get
+                Return Me._Description
+            End Get
+            Set(value As String)
+                Me._Description = value
+            End Set
+        End Property
+        Public ReadOnly Property HasValueDescription As Boolean Implements iormContainerAttribute.HasValueDescription
+            Get
+                Return _Description IsNot Nothing AndAlso _Description <> String.Empty
+            End Get
+        End Property
+        ''' <summary>
+        ''' Gets or sets the Primary key Name.
+        ''' </summary>
+        ''' <value>The description.</value>
+        Public Property PrimaryKey() As String Implements iormContainerAttribute.PrimaryKey
+            Get
+                Return Me._PrimaryKeyName
+            End Get
+            Set(value As String)
+                Me._PrimaryKeyName = value
+            End Set
+        End Property
+        Public ReadOnly Property HasValuePrimaryKey As Boolean Implements iormContainerAttribute.HasValuePrimaryKey
+            Get
+                Return Not String.IsNullOrWhiteSpace(_PrimaryKeyName)
+            End Get
+        End Property
+        ''' <summary>
+        ''' Gets or sets the object ID.
+        ''' </summary>
+        ''' <value>The object ID.</value>
+        Public Property ObjectID() As String Implements iormContainerAttribute.ObjectID
+            Get
+                Return Me._ObjectID
+            End Get
+            Set(value As String)
+                Me._ObjectID = value.ToUpper
+            End Set
+        End Property
+        Public ReadOnly Property HasValueObjectID As Boolean Implements iormContainerAttribute.HasValueObjectID
+            Get
+                Return Not String.IsNullOrWhiteSpace(_ObjectID)
+            End Get
+        End Property
+        ''' <summary>
+        ''' Gets or sets the object ID.
+        ''' </summary>
+        ''' <value>The object ID.</value>
+        Public Property DatabaseDriverID() As String Implements iormContainerAttribute.DatabaseDriverID
+            Get
+                Return Me._DataBaseDriverID
+            End Get
+            Set(value As String)
+                Me._DataBaseDriverID = value.ToUpper
+            End Set
+        End Property
+        Public ReadOnly Property HasValueDatabaseDriverID As Boolean Implements iormContainerAttribute.HasValueDatabaseDriverID
+            Get
+                Return Not String.IsNullOrWhiteSpace(_DataBaseDriverID)
+            End Get
+        End Property
+        ''' <summary>
+        ''' Gets or sets the unique name of the container (such as tables).
+        ''' </summary>
+        ''' <value>The name of the table.</value>
+        Public Property ContainerID() As String Implements iormContainerAttribute.ContainerID
+            Get
+                Return Me._ContainerID
+            End Get
+            Set(value As String)
+                Me._ContainerID = value.ToUpper
+            End Set
+        End Property
+        Public ReadOnly Property HasValueContainerID As Boolean Implements iormContainerAttribute.HasValueContainerID
+            Get
+                Return Not String.IsNullOrWhiteSpace(_ContainerID)
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the add domain ID flag.
+        ''' </summary>
+        ''' <value>The add domain ID flag.</value>
+        Public Property AddDomainBehavior() As Boolean Implements iormContainerAttribute.AddDomainBehavior
+            Get
+                Return Me._AddDomainBehaviorFlag
+            End Get
+            Set(value As Boolean)
+                Me._AddDomainBehaviorFlag = value
+            End Set
+        End Property
+        Public ReadOnly Property HasValueAddDomainBehavior As Boolean Implements iormContainerAttribute.HasValueAddDomainBehavior
+            Get
+                Return _AddDomainBehaviorFlag.HasValue
+            End Get
+        End Property
+        ''' <summary>
+        ''' Gets or sets the version.
+        ''' </summary>
+        ''' <value>The version.</value>
+        Public Property Version() As UShort Implements iormContainerAttribute.Version
+            Get
+                Return Me._Version
+            End Get
+            Set(value As UShort)
+                Me._Version = value
+            End Set
+        End Property
+        Public ReadOnly Property HasValueVersion As Boolean Implements iormContainerAttribute.HasValueVersion
+            Get
+                Return _Version.HasValue
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the ID of the Attribute
+        ''' </summary>
+        ''' <value>The ID.</value>
+        Public Property ID() As String Implements iormContainerAttribute.ID
+            Get
+                Return Me._ID
+            End Get
+            Set(value As String)
+                Me._ID = value.ToUpper
+            End Set
+        End Property
+        Public ReadOnly Property HasValueID As Boolean Implements iormContainerAttribute.HasValueID
+            Get
+                Return _ID IsNot Nothing AndAlso _ID <> String.Empty
+            End Get
+        End Property
+        ''' <summary>
+        ''' sets or gets the add deletefield flag. This will add a field for deletion the record to the schema.
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Property AddDeleteFieldBehavior As Boolean Implements iormContainerAttribute.AddDeleteFieldBehavior
+            Get
+                Return Me._DeleteFieldFlag
+            End Get
+            Set(value As Boolean)
+                _DeleteFieldFlag = value
+            End Set
+        End Property
+        Public ReadOnly Property HasValueDeleteFieldBehavior As Boolean Implements iormContainerAttribute.HasValueDeleteFieldBehavior
+            Get
+                Return _DeleteFieldFlag.HasValue
+            End Get
+        End Property
+        ''' <summary>
+        ''' sets or gets the add ParameterField flag. 
+        ''' This will add extra fields for additional parameters (reserve and spare) to the data object.
+        ''' 
+        ''' </summary>
+        ''' <value></value>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Property AddSpareFields As Boolean Implements iormContainerAttribute.AddSpareFields
+            Get
+                Return Me._SpareFieldsFlag
+            End Get
+            Set(value As Boolean)
+                _SpareFieldsFlag = value
+            End Set
+        End Property
+        Public ReadOnly Property HasValueSpareFields As Boolean Implements iormContainerAttribute.HasValueSpareFields
+            Get
+                Return _SpareFieldsFlag.HasValue
+            End Get
+        End Property
+
         ''' <summary>
         ''' Add an foreign key entry
         ''' </summary>
         ''' <param name="entry"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function AddForeignKey(entry As ormSchemaForeignKeyAttribute) As Boolean
+        Public Function AddForeignKey(entry As ormForeignKeyAttribute) As Boolean Implements iormContainerAttribute.AddForeignKey
             If _foreignkeys.ContainsKey(entry.ID.ToUpper) Then
                 _foreignkeys.Remove(entry.ID.ToUpper)
             End If
@@ -575,9 +885,9 @@ Namespace OnTrack.Database
         ''' <param name="columnname"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function GetForeignkey(id As String, Optional enabledonly As Boolean = True) As ormSchemaForeignKeyAttribute
+        Public Function GetForeignkey(id As String, Optional enabledonly As Boolean = True) As ormForeignKeyAttribute Implements iormContainerAttribute.GetForeignKey
             If _foreignkeys.ContainsKey(id.ToUpper) Then
-                Dim anAttribute As ormSchemaForeignKeyAttribute = _foreignkeys.Item(id.ToUpper)
+                Dim anAttribute As ormForeignKeyAttribute = _foreignkeys.Item(id.ToUpper)
                 If enabledonly AndAlso Not anAttribute.Enabled Then Return Nothing
                 Return anAttribute
             Else
@@ -590,10 +900,10 @@ Namespace OnTrack.Database
         ''' <param name="columnname"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function HasForeignkey(id As String, Optional enabledonly As Boolean = True) As Boolean
+        Public Function HasForeignkey(id As String, Optional enabledonly As Boolean = True) As Boolean Implements iormContainerAttribute.HasForeignKey
             Dim result As Boolean = _foreignkeys.ContainsKey(id.ToUpper)
             If enabledonly And result Then
-                Dim anAttribute As ormSchemaForeignKeyAttribute = _foreignkeys.Item(id.ToUpper)
+                Dim anAttribute As ormForeignKeyAttribute = _foreignkeys.Item(id.ToUpper)
                 If Not anAttribute.Enabled Then Return False
             End If
             Return result
@@ -604,7 +914,7 @@ Namespace OnTrack.Database
         ''' <param name="columnname"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function RemoveForeignKey(id As String) As Boolean
+        Public Function RemoveForeignKey(id As String) As Boolean Implements iormContainerAttribute.RemoveForeignKey
             If _foreignkeys.ContainsKey(id.ToUpper) Then
                 _foreignkeys.Remove(id.ToUpper)
                 Return True
@@ -618,194 +928,314 @@ Namespace OnTrack.Database
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public ReadOnly Property ForeignKeyAttributes As IEnumerable(Of ormSchemaForeignKeyAttribute)
+        Public ReadOnly Property ForeignKeyAttributes As IEnumerable(Of ormForeignKeyAttribute) Implements iormContainerAttribute.ForeignkeyAttributes
             Get
                 Return _foreignkeys.Values.Where(Function(x) x.Enabled = True).ToList
             End Get
         End Property
+
         ''' <summary>
-        ''' returns the Names of the PrimaryKey Columns
+        ''' Add an index
+        ''' </summary>
+        ''' <param name="entry"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function AddIndex(index As ormIndexAttribute) As Boolean Implements iormContainerAttribute.AddIndex
+            If _indices.ContainsKey(index.IndexName.ToUpper) Then
+                _indices.Remove(index.IndexName.ToUpper)
+            End If
+            _indices.Add(key:=index.IndexName.ToUpper, value:=index)
+            Return True
+        End Function
+        ''' <summary>
+        ''' update an index 
+        ''' </summary>
+        ''' <param name="entry"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function UpdateIndex(index As ormIndexAttribute) As Boolean Implements iormContainerAttribute.UpdateIndex
+            If _indices.ContainsKey(index.IndexName.ToUpper) Then
+                _indices.Remove(index.IndexName.ToUpper)
+            End If
+            _indices.Add(key:=index.IndexName.ToUpper, value:=index)
+            Return True
+        End Function
+        ''' <summary>
+        ''' returns an entry by columnname or nothing
+        ''' </summary>
+        ''' <param name="columnname"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function GetIndex(indexname As String, Optional onlyenabled As Boolean = True) As ormIndexAttribute Implements iormContainerAttribute.GetIndex
+            If _indices.ContainsKey(indexname.ToUpper) Then
+                Dim anAttribute As ormIndexAttribute = _indices.Item(key:=indexname.ToUpper)
+                If onlyenabled AndAlso Not anAttribute.Enabled Then Return Nothing
+                Return anAttribute
+            Else
+                Return Nothing
+            End If
+        End Function
+        ''' <summary>
+        ''' returns true if the indexname exists in the table attribute
+        ''' </summary>
+        ''' <param name="columnname"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function HasIndex(indexname As String, Optional onlyenabled As Boolean = Nothing) As Boolean Implements iormContainerAttribute.HasIndex
+            Dim result As Boolean = _indices.ContainsKey(indexname.ToUpper)
+            If onlyenabled AndAlso result Then
+                result = _indices.Item(indexname.ToUpper).Enabled
+            End If
+            Return result
+        End Function
+        ''' <summary>
+        ''' remove an index
+        ''' </summary>
+        ''' <param name="columnname"></param>
+        ''' <returns></returns>
+        ''' <remarks></remarks>
+        Public Function RemoveIndex(indexname As String) As Boolean Implements iormContainerAttribute.RemoveIndex
+            If _indices.ContainsKey(indexname.ToUpper) Then
+                _indices.Remove(indexname.ToUpper)
+                Return True
+            Else
+                Return False
+            End If
+        End Function
+        ''' <summary>
+        ''' returns a List of all index attributes
         ''' </summary>
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public ReadOnly Property PrimaryKeyColumnNames As String()
+        Public ReadOnly Property IndexAttributes As IEnumerable(Of ormIndexAttribute) Implements iormContainerAttribute.IndexAttributes
             Get
-                Return _pkcolumns.Values.ToArray
+                Return _indices.Values.Where(Function(x) x.Enabled = True).ToList
             End Get
         End Property
+
+    End Class
+    ''' <summary>
+    ''' Attribute Class for marking an constant field member in a class as Table name such as
+    ''' <otSchemaTable(Version:=1)>Const constTableName = "tblName"
+    ''' Version will be saved into clsOTDBDEfSchemaTable
+    ''' </summary>
+    ''' <remarks></remarks>
+    <AttributeUsage(AttributeTargets.Field, AllowMultiple:=False, Inherited:=True)> _
+    Public Class ormTableAttribute
+        Inherits ormContainerAttribute
+        Implements iormContainerAttribute
+
+
+        '** dynamic
+        'Private _columns As New Dictionary(Of String, ormColumnAttribute)
+
+
         ''' <summary>
-        ''' returns a List of all Entries
+        '''  construcotr
         ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
         ''' <remarks></remarks>
-        Public ReadOnly Property ColumnNames As IEnumerable(Of String)
-            Get
-                Return _columns.Values.Where(Function(x) x.Enabled = True).SelectMany(Function(x) x.ColumnName).ToList
-            End Get
-        End Property
+        Public Sub New()
+            MyBase.New()
+        End Sub
         ''' <summary>
-        ''' Gets or sets the description.
+        ''' Gets or sets the container type
         ''' </summary>
-        ''' <value>The description.</value>
-        Public Property Description() As String
+        ''' <value>The is active.</value>
+        Public Overrides Property Containertype As otContainerType Implements iormContainerAttribute.ContainerType
             Get
-                Return Me._Description
+                Return otContainerType.Table
             End Get
-            Set(value As String)
-                Me._Description = value
+            Set(value As otContainerType)
+                Throw New NotSupportedException(" do not set a container type here")
             End Set
         End Property
-        Public ReadOnly Property HasValueDescription As Boolean
-            Get
-                Return _Description IsNot Nothing AndAlso _Description <> ""
-            End Get
-        End Property
-        ''' <summary>
-        ''' Gets or sets the description.
-        ''' </summary>
-        ''' <value>The description.</value>
-        Public Property PrimaryKey() As String
-            Get
-                Return Me._PrimaryKeyName
-            End Get
-            Set(value As String)
-                Me._PrimaryKeyName = value
-            End Set
-        End Property
-        Public ReadOnly Property HasValuePrimaryKey As Boolean
-            Get
-                Return _PrimaryKeyName IsNot Nothing AndAlso _PrimaryKeyName <> ""
-            End Get
-        End Property
-        ''' <summary>
-        ''' Gets or sets the object ID.
-        ''' </summary>
-        ''' <value>The object ID.</value>
-        Public Property ObjectID() As String
-            Get
-                Return Me._ObjectID
-            End Get
-            Set(value As String)
-                Me._ObjectID = value.ToUpper
-            End Set
-        End Property
-        Public ReadOnly Property HasValueObjectID As Boolean
-            Get
-                Return _ObjectID IsNot Nothing AndAlso _ObjectID <> ""
-            End Get
-        End Property
+        '''' <summary>
+        '''' Add a member - which is a columnattribute
+        '''' </summary>
+        '''' <param name="member"></param>
+        '''' <remarks></remarks>
+        '''' <returns></returns>
+        'Public Overloads Function AddEntry(member As iormContainerEntryAttribute) As Boolean Implements iormContainerAttribute.AddEntry
+        '    Return AddColumn(member)
+        'End Function
+        '''' <summary>
+        '''' Add an entry by TabeColumn
+        '''' </summary>
+        '''' <param name="entry"></param>
+        '''' <returns></returns>
+        '''' <remarks></remarks>
+        'Public Function AddColumn(entry As ormContainerEntryAttribute) As Boolean
+        '    If _columns.ContainsKey(entry.ContainerEntryName.ToUpper) Then
+        '        _columns.Remove(entry.ContainerEntryName.ToUpper)
+        '    End If
+        '    _columns.Add(key:=entry.ContainerEntryName.ToUpper, value:=entry)
+        '    If entry.HasValuePrimaryKeyOrdinal Then
+        '        If _primaryEntries.ContainsKey(entry.PrimaryEntryOrdinal) Then _primaryEntries.Remove(entry.PrimaryEntryOrdinal)
+        '        _primaryEntries.Add(key:=entry.PrimaryEntryOrdinal, value:=entry.ContainerEntryName)
+        '    End If
+        '    Return True
+        'End Function
+        '''' <summary>
+        '''' Add an entry by TabeColumn
+        '''' </summary>
+        '''' <param name="entry"></param>
+        '''' <returns></returns>
+        '''' <remarks></remarks>
+        'Public Function UpdateColumn(entry As ormContainerEntryAttribute) As Boolean
+        '    If _columns.ContainsKey(entry.ContainerEntryName.ToUpper) Then
+        '        _columns.Remove(entry.ContainerEntryName.ToUpper)
+        '    End If
+        '    _columns.Add(key:=entry.ContainerEntryName.ToUpper, value:=entry)
+        '    If entry.HasValuePrimaryKeyOrdinal Then
+        '        If _primaryEntries.ContainsKey(entry.PrimaryEntryOrdinal) Then _primaryEntries.Remove(entry.PrimaryEntryOrdinal)
+        '        _primaryEntries.Add(key:=entry.PrimaryEntryOrdinal, value:=entry.ContainerEntryName)
+        '    Else
+        '        If _primaryEntries.Values.Contains(entry.ContainerEntryName) Then
+        '            _primaryEntries.Remove(_primaryEntries.First(Function(x) x.Key = entry.ContainerEntryName).Key)
+        '        End If
+        '    End If
+        '    Return True
+        'End Function
+        '''' <summary>
+        '''' Add an entry by iormContainerMember
+        '''' </summary>
+        '''' <param name="member"></param>
+        '''' <remarks></remarks>
+        '''' <returns></returns>
+        'Public Overloads Function UpdateEntry(member As iormContainerEntryAttribute) As Boolean Implements iormContainerAttribute.UpdateEntry
+        '    Return UpdateColumn(member)
+        'End Function
+        '''' <summary>
+        '''' returns an entry by member name or nothing
+        '''' </summary>
+        '''' <param name="membername"></param>
+        '''' <param name="onlyenabled"></param>
+        '''' <remarks></remarks>
+        '''' <returns></returns>
+        'Public Overloads Function GetEntry(membername As String, Optional onlyenabled As Boolean = True) As iormContainerEntryAttribute Implements iormContainerAttribute.GetEntry
+        '    Return GetColumn(membername, onlyenabled)
+        'End Function
+
+
+        '''' <summary>
+        '''' returns an entry by columnname or nothing
+        '''' </summary>
+        '''' <param name="columnname"></param>
+        '''' <returns></returns>
+        '''' <remarks></remarks>
+        'Public Function GetColumn(columnname As String, Optional onlyenabled As Boolean = True) As ormContainerEntryAttribute
+        '    If _columns.ContainsKey(columnname.ToUpper) Then
+        '        Dim anAttribute As ormContainerEntryAttribute = _columns.Item(key:=columnname.ToUpper)
+        '        If onlyenabled AndAlso Not anAttribute.Enabled Then Return Nothing
+        '        Return anAttribute
+        '    Else
+        '        Return Nothing
+        '    End If
+        'End Function
+        '''' <summary>
+        '''' returns an entry by columnname or nothing
+        '''' </summary>
+        '''' <param name="columnname"></param>
+        '''' <returns></returns>
+        '''' <remarks></remarks>
+        'Public Overloads Function HasColumn(columnname As String, Optional onlyenabled As Boolean = Nothing) As Boolean Implements iormContainerAttribute.HasEntry
+        '    Dim result As Boolean = _columns.ContainsKey(columnname.ToUpper)
+        '    If onlyenabled AndAlso result Then
+        '        result = _columns.Item(columnname.ToUpper).Enabled
+        '    End If
+        '    Return result
+        'End Function
+        '''' <summary>
+        '''' remove an entry by columnname 
+        '''' </summary>
+        '''' <param name="columnname"></param>
+        '''' <returns></returns>
+        '''' <remarks></remarks>
+        'Public Overloads Function RemoveColumn(columnname As String) As Boolean Implements iormContainerAttribute.RemoveEntry
+        '    If _columns.ContainsKey(columnname.ToUpper) Then
+        '        _columns.Remove(columnname.ToUpper)
+        '        If _primaryEntries.Values.Contains(columnname) Then
+        '            _primaryEntries.Remove(_primaryEntries.First(Function(x) x.Key = columnname).Key)
+        '        End If
+        '        Return True
+        '    Else
+        '        Return False
+        '    End If
+        'End Function
+        '''' <summary>
+        '''' returns a List of all Entries
+        '''' </summary>
+        '''' <returns></returns>
+        '''' <remarks></remarks>
+        '''' <value></value>
+        'Public Overloads ReadOnly Property MemberAttributes() As IEnumerable(Of iormContainerEntryAttribute) Implements iormContainerAttribute.EntryAttributes
+        '    Get
+        '        Return ColumnAttributes
+        '    End Get
+        'End Property
+        '''' <summary>
+        '''' returns a List of all Entries
+        '''' </summary>
+        '''' <value></value>
+        '''' <returns></returns>
+        '''' <remarks></remarks>
+        'Public ReadOnly Property ColumnAttributes As IEnumerable(Of ormContainerEntryAttribute)
+        '    Get
+        '        Return _columns.Values.Where(Function(x) x.Enabled = True).ToList
+        '    End Get
+        'End Property
+
+
+        '''' <summary>
+        '''' sets or returns the Names of the PrimaryKey Columns
+        '''' </summary>
+        '''' <value></value>
+        '''' <returns></returns>
+        '''' <remarks></remarks>
+        'Public Overloads Property PrimaryKeyColumnNames As String() Implements iormContainerAttribute.PrimaryEntryNames
+        '    Get
+        '        Return _primaryEntries.Values.ToArray
+        '    End Get
+        '    Set(value As String())
+        '        _primaryEntries.Clear()
+
+        '        For i = value.GetLowerBound(0) To value.GetUpperBound(0)
+        '            _primaryEntries.Add(key:=i, value:=value(i))
+        '        Next
+
+        '    End Set
+        'End Property
+        '''' <summary>
+        '''' returns a List of all Entries
+        '''' </summary>
+        '''' <value></value>
+        '''' <returns></returns>
+        '''' <remarks></remarks>
+        'Public Overloads ReadOnly Property ColumnNames As IEnumerable(Of String) Implements iormContainerAttribute.EntryNames
+        '    Get
+        '        Return _columns.Values.Where(Function(x) x.Enabled = True).SelectMany(Function(x) x.ContainerEntryName).ToList
+        '    End Get
+        'End Property
+
         ''' <summary>
         ''' Gets or sets the name of the table.
         ''' </summary>
         ''' <value>The name of the table.</value>
-        Public Property TableName() As String
+        Public Overloads Property TableID() As String Implements iormContainerAttribute.ContainerID
             Get
-                Return Me._TableName
+                Return _ContainerID
             End Get
             Set(value As String)
-                Me._TableName = value.ToUpper
+                _ContainerID = value.ToUpper
             End Set
         End Property
-        Public ReadOnly Property HasValueTableName As Boolean
+        Public ReadOnly Property HasValueTableID As Boolean Implements iormContainerAttribute.HasValueContainerID
             Get
-                Return _TableName IsNot Nothing AndAlso _TableName <> ""
+                Return Not String.IsNullOrWhiteSpace(_ContainerID)
             End Get
         End Property
 
-        ''' <summary>
-        ''' Gets or sets the add domain ID flag.
-        ''' </summary>
-        ''' <value>The add domain ID flag.</value>
-        Public Property AddDomainBehavior() As Boolean
-            Get
-                Return Me._AddDomainBehaviorFlag
-            End Get
-            Set(value As Boolean)
-                Me._AddDomainBehaviorFlag = value
-            End Set
-        End Property
-        Public ReadOnly Property HasValueAddDomainBehavior As Boolean
-            Get
-                Return _AddDomainBehaviorFlag.HasValue
-            End Get
-        End Property
-        ''' <summary>
-        ''' Gets or sets the version.
-        ''' </summary>
-        ''' <value>The version.</value>
-        Public Property Version() As UShort
-            Get
-                Return Me._Version
-            End Get
-            Set(value As UShort)
-                Me._Version = value
-            End Set
-        End Property
-        Public ReadOnly Property HasValueVersion As Boolean
-            Get
-                Return _Version.HasValue
-            End Get
-        End Property
-
-        ''' <summary>
-        ''' Gets or sets the ID.
-        ''' </summary>
-        ''' <value>The ID.</value>
-        Public Property ID() As String
-            Get
-                Return Me._ID
-            End Get
-            Set(value As String)
-                Me._ID = value.ToUpper
-            End Set
-        End Property
-        Public ReadOnly Property HasValueID As Boolean
-            Get
-                Return _ID IsNot Nothing AndAlso _ID <> ""
-            End Get
-        End Property
-        ''' <summary>
-        ''' sets or gets the add deletefield flag. This will add a field for deletion the record to the schema.
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Property AddDeleteFieldBehavior As Boolean
-            Get
-                Return Me._DeleteFieldFlag
-            End Get
-            Set(value As Boolean)
-                _DeleteFieldFlag = value
-            End Set
-        End Property
-        Public ReadOnly Property HasValueDeleteFieldBehavior As Boolean
-            Get
-                Return _DeleteFieldFlag.HasValue
-            End Get
-        End Property
-        ''' <summary>
-        ''' sets or gets the add ParameterField flag. 
-        ''' This will add extra fields for additional parameters (reserve and spare) to the data object.
-        ''' 
-        ''' </summary>
-        ''' <value></value>
-        ''' <returns></returns>
-        ''' <remarks></remarks>
-        Public Property AddSpareFields As Boolean
-            Get
-                Return Me._SpareFieldsFlag
-            End Get
-            Set(value As Boolean)
-                _SpareFieldsFlag = value
-            End Set
-        End Property
-        Public ReadOnly Property HasValueSpareFields As Boolean
-            Get
-                Return _SpareFieldsFlag.HasValue
-            End Get
-        End Property
     End Class
     ''' <summary>
     ''' Attribute Class for marking an constant field member in a class as Table name such as
@@ -1001,7 +1431,7 @@ Namespace OnTrack.Database
         End Property
         Public ReadOnly Property HasValueLinkJOin As Boolean
             Get
-                Return _LinkJoin IsNot Nothing AndAlso _LinkJoin <> ""
+                Return _LinkJoin IsNot Nothing AndAlso _LinkJoin <> String.empty
             End Get
         End Property
         ''' <summary>
@@ -1018,7 +1448,7 @@ Namespace OnTrack.Database
         End Property
         Public ReadOnly Property HasValueRetrieveOperationID As Boolean
             Get
-                Return _RetrieveOperationID IsNot Nothing AndAlso _RetrieveOperationID <> ""
+                Return _RetrieveOperationID IsNot Nothing AndAlso _RetrieveOperationID <> String.empty
             End Get
         End Property
 
@@ -1036,7 +1466,7 @@ Namespace OnTrack.Database
         End Property
         Public ReadOnly Property HasValueCreateOperationID As Boolean
             Get
-                Return _CreateOperationID IsNot Nothing AndAlso _CreateOperationID <> ""
+                Return _CreateOperationID IsNot Nothing AndAlso _CreateOperationID <> String.empty
             End Get
         End Property
         ''' <summary>
@@ -1053,7 +1483,7 @@ Namespace OnTrack.Database
         End Property
         Public ReadOnly Property HasValueName As Boolean
             Get
-                Return _Name IsNot Nothing AndAlso _Name <> ""
+                Return _Name IsNot Nothing AndAlso _Name <> String.empty
             End Get
         End Property
 
@@ -1061,17 +1491,17 @@ Namespace OnTrack.Database
         ''' Gets or sets the name of the table.
         ''' </summary>
         ''' <value>The name of the table.</value>
-        Public Property TableName() As String
+        Public Property TableID() As String
             Get
                 Return Me._TableName
             End Get
             Set(value As String)
-                Me._TableName = value.ToUpper
+                Me._TableName = UCase(value)
             End Set
         End Property
-        Public ReadOnly Property HasValueTableName As Boolean
+        Public ReadOnly Property HasValueTableID As Boolean
             Get
-                Return _TableName IsNot Nothing AndAlso _TableName <> ""
+                Return _TableName IsNot Nothing AndAlso _TableName <> String.empty
             End Get
         End Property
 
@@ -1101,7 +1531,7 @@ Namespace OnTrack.Database
     ''' </summary>
     ''' <remarks></remarks>
     <AttributeUsage(AttributeTargets.Field, AllowMultiple:=False, Inherited:=True)> _
-    Public Class ormSchemaIndexAttribute
+    Public Class ormIndexAttribute
         Inherits Attribute
 
         Private _indexName As String
@@ -1111,7 +1541,7 @@ Namespace OnTrack.Database
         Private _TableName As String = Nothing
         Private _description As String
         Private _isprimaryKey As Nullable(Of Boolean) = False
-        Private _isunique As Nullable(Of Boolean) = False
+        Private _isUnique As Nullable(Of Boolean) = False
         ''' <summary>
         ''' Gets or sets the enabled.
         ''' </summary>
@@ -1129,7 +1559,7 @@ Namespace OnTrack.Database
         ''' Gets or sets the name of the table.
         ''' </summary>
         ''' <value>The name of the table.</value>
-        Public Property TableName() As String
+        Public Property TableID() As String
             Get
                 Return Me._TableName
             End Get
@@ -1137,9 +1567,9 @@ Namespace OnTrack.Database
                 Me._TableName = value.ToUpper
             End Set
         End Property
-        Public ReadOnly Property HasValueTableName As Boolean
+        Public ReadOnly Property HasValueTableID As Boolean
             Get
-                Return _TableName IsNot Nothing AndAlso _TableName <> ""
+                Return _TableName IsNot Nothing AndAlso _TableName <> String.empty
             End Get
         End Property
         ''' <summary>
@@ -1156,7 +1586,7 @@ Namespace OnTrack.Database
         End Property
         Public ReadOnly Property HasValueDescription As Boolean
             Get
-                Return _description IsNot Nothing AndAlso _description <> ""
+                Return _description IsNot Nothing AndAlso _description <> String.empty
             End Get
         End Property
         ''' <summary>
@@ -1224,7 +1654,7 @@ Namespace OnTrack.Database
         End Property
         Public ReadOnly Property HasValueIndexName As Boolean
             Get
-                Return _indexName IsNot Nothing AndAlso _indexName <> ""
+                Return _indexName IsNot Nothing AndAlso _indexName <> String.empty
             End Get
         End Property
         ''' <summary>
@@ -1324,28 +1754,29 @@ Namespace OnTrack.Database
     ''' </summary>
     ''' <remarks></remarks>
     <AttributeUsage(AttributeTargets.Field, AllowMultiple:=False, Inherited:=True)> _
-    Public Class ormSchemaTableColumnAttribute
+    Public Class ormContainerEntryAttribute
         Inherits Attribute
-        Protected _ID As String = Nothing
+        Implements iormContainerEntryAttribute
 
-        Protected _TableID As String = Nothing
+        Protected _ID As String = Nothing
+        Protected _ContainerID As String = Nothing
         Protected _Datatype As Nullable(Of otDataType)
         Protected _InnerDataType As Nullable(Of otDataType)
         Protected _size As Nullable(Of Long)
         Protected _Parameter As String = Nothing
-        Protected _primaryKeyOrdinal As Nullable(Of Short)
+        Protected _PrimaryEntryOrdinal As Nullable(Of Short)
         Protected _relation() As String = Nothing
         Protected _IsNullable As Nullable(Of Boolean)
         Protected _IsUnique As Nullable(Of Boolean)
         Protected _DBDefaultValue As String = Nothing
         Protected _Version As Nullable(Of UShort)
         Protected _Posordinal As Nullable(Of UShort)
-        Protected _ReferenceTableEntry As String = Nothing
+        'Protected _ReferenceContainerEntry As String = Nothing
         Protected _ReferenceObjectEntry As String = Nothing ' needed for resolving 
         Protected _UseForeignKey As Nullable(Of otForeignKeyImplementation) = otForeignKeyImplementation.None
         Protected _ForeignKeyReference As String() = Nothing
         Protected _ForeignKeyProperties As ForeignKeyProperty()
-        Protected _ColumnName As String = Nothing
+        Protected _ContainerEntryName As String = Nothing
         Protected _Description As String = Nothing
         Protected _enabled As Boolean = True
 
@@ -1353,7 +1784,7 @@ Namespace OnTrack.Database
         ''' Gets or sets the enabled.
         ''' </summary>
         ''' <value>The enabled.</value>
-        Public Property Enabled() As Boolean
+        Public Property Enabled() As Boolean Implements iormContainerEntryAttribute.Enabled
             Get
                 Return Me._enabled
             End Get
@@ -1366,7 +1797,7 @@ Namespace OnTrack.Database
         ''' Gets or sets the ID.
         ''' </summary>
         ''' <value>The ID.</value>
-        Public Property ID() As String
+        Public Property ID() As String Implements iormContainerEntryAttribute.ID
             Get
                 Return Me._ID
             End Get
@@ -1374,7 +1805,7 @@ Namespace OnTrack.Database
                 Me._ID = value.ToUpper
             End Set
         End Property
-        Public ReadOnly Property HasValueID As Boolean
+        Public ReadOnly Property HasValueID As Boolean Implements iormContainerEntryAttribute.HasValueID
             Get
                 Return _ID IsNot Nothing
             End Get
@@ -1384,17 +1815,17 @@ Namespace OnTrack.Database
         ''' Gets or sets the name of the column.
         ''' </summary>
         ''' <value>The name of the column.</value>
-        Public Property ColumnName() As String
+        Public Property ContainerEntryName() As String Implements iormContainerEntryAttribute.ContainerEntryName
             Get
-                Return Me._ColumnName
+                Return Me._ContainerEntryName
             End Get
             Set(value As String)
-                Me._ColumnName = value.ToUpper
+                Me._ContainerEntryName = value.ToUpper
             End Set
         End Property
-        Public ReadOnly Property HasValueColumnName As Boolean
+        Public ReadOnly Property HasValueContainerEntryName As Boolean Implements iormContainerEntryAttribute.HasValueContainerEntryName
             Get
-                Return _ColumnName IsNot Nothing
+                Return _ContainerEntryName IsNot Nothing
             End Get
         End Property
         ''' <summary>
@@ -1402,7 +1833,7 @@ Namespace OnTrack.Database
         ''' such as Deliverable.constObjectID & "." & deliverable.constFNUID
         ''' </summary>
         ''' <value>The reference object entry.</value>
-        Public Property ReferenceObjectEntry() As String
+        Public Property ReferenceObjectEntry() As String Implements iormContainerEntryAttribute.ReferenceObjectEntry
             Get
                 Return Me._ReferenceObjectEntry
             End Get
@@ -1410,34 +1841,17 @@ Namespace OnTrack.Database
                 Me._ReferenceObjectEntry = value.ToUpper
             End Set
         End Property
-        Public ReadOnly Property HasValueReferenceObjectEntry As Boolean
+        Public ReadOnly Property HasValueReferenceObjectEntry As Boolean Implements iormContainerEntryAttribute.HasValueReferenceObjectEntry
             Get
-                Return _ReferenceObjectEntry IsNot Nothing AndAlso _ReferenceObjectEntry <> ""
+                Return Not String.IsNullOrWhiteSpace(_ReferenceObjectEntry)
             End Get
         End Property
-        ''' <summary>
-        ''' Gets or sets the reference table entry. Has the form [tablename].[columnname] 
-        ''' such as Deliverable.constTableID & "." & deliverable.constFNUID
-        ''' </summary>
-        ''' <value>The reference object entry.</value>
-        'Public Property ReferenceTableEntry() As String
-        '    Get
-        '        Return Me._ReferenceTableEntry
-        '    End Get
-        '    Set(value As String)
-        '        Me._ReferenceTableEntry = value.ToUpper
-        '    End Set
-        'End Property
-        'Public ReadOnly Property HasValueTableEntry As Boolean
-        '    Get
-        '        Return _ReferenceTableEntry IsNot Nothing AndAlso _ReferenceTableEntry = ""
-        '    End Get
-        'End Property
+
         ''' <summary>
         ''' Gets or sets the description.
         ''' </summary>
         ''' <value>The description.</value>
-        Public Property Description() As String
+        Public Property Description() As String Implements iormContainerEntryAttribute.Description
             Get
                 Return Me._Description
             End Get
@@ -1445,7 +1859,7 @@ Namespace OnTrack.Database
                 Me._Description = value
             End Set
         End Property
-        Public ReadOnly Property HasValueDescription As Boolean
+        Public ReadOnly Property HasValueDescription As Boolean Implements iormContainerEntryAttribute.HasValueDescription
             Get
                 Return _Description IsNot Nothing
             End Get
@@ -1454,7 +1868,7 @@ Namespace OnTrack.Database
         ''' Gets or sets the pos ordinal.
         ''' </summary>
         ''' <value>The pos ordinal.</value>
-        Public Property Posordinal() As UShort
+        Public Property Posordinal() As UShort Implements iormContainerEntryAttribute.Posordinal
             Get
                 Return Me._Posordinal
             End Get
@@ -1463,7 +1877,7 @@ Namespace OnTrack.Database
             End Set
         End Property
 
-        Public ReadOnly Property HasValuePosOrdinal As Boolean
+        Public ReadOnly Property HasValuePosOrdinal As Boolean Implements iormContainerEntryAttribute.HasValuePosOrdinal
             Get
                 Return _Posordinal.HasValue
             End Get
@@ -1473,7 +1887,7 @@ Namespace OnTrack.Database
         ''' Gets or sets the default value in DB presentation.
         ''' </summary>
         ''' <value>The default value.</value>
-        Public Property DBDefaultValue() As String
+        Public Property DBDefaultValue() As String Implements iormContainerEntryAttribute.DBDefaultValue
             Get
                 Return Me._DBDefaultValue
             End Get
@@ -1481,7 +1895,7 @@ Namespace OnTrack.Database
                 Me._DBDefaultValue = value
             End Set
         End Property
-        Public ReadOnly Property HasValueDBDefaultValue As Boolean
+        Public ReadOnly Property HasValueDBDefaultValue As Boolean Implements iormContainerEntryAttribute.HasValueDBDefaultValue
             Get
                 Return _DBDefaultValue IsNot Nothing
             End Get
@@ -1491,24 +1905,24 @@ Namespace OnTrack.Database
         ''' Gets or sets the table ID.
         ''' </summary>
         ''' <value>The table ID.</value>
-        Public Property Tablename() As String
+        Public Property ContainerID() As String Implements iormContainerEntryAttribute.ContainerID
             Get
-                Return Me._TableID
+                Return Me._ContainerID
             End Get
             Set(value As String)
-                Me._TableID = value.ToUpper
+                Me._ContainerID = value.ToUpper
             End Set
         End Property
-        Public ReadOnly Property HasValueTableName As Boolean
+        Public ReadOnly Property HasValueContainerID As Boolean Implements iormContainerEntryAttribute.HasValueContainerID
             Get
-                Return _TableID IsNot Nothing
+                Return _ContainerID IsNot Nothing
             End Get
         End Property
         ''' <summary>
         ''' Gets or sets the Datatype.
         ''' </summary>
         ''' <value>The typeid.</value>
-        Public Property DataType() As otDataType
+        Public Property DataType() As otDataType Implements iormContainerEntryAttribute.DataType
             Get
                 Return Me._Datatype
             End Get
@@ -1516,7 +1930,7 @@ Namespace OnTrack.Database
                 Me._Datatype = value
             End Set
         End Property
-        Public ReadOnly Property HasValueDataType As Boolean
+        Public ReadOnly Property HasValueDataType As Boolean Implements iormContainerEntryAttribute.HasValueDataType
             Get
                 Return _Datatype.HasValue
             End Get
@@ -1525,7 +1939,7 @@ Namespace OnTrack.Database
         ''' Gets or sets the nested inner Datatype of Datatype list.
         ''' </summary>
         ''' <value>The typeid.</value>
-        Public Property InnerDataType() As otDataType
+        Public Property InnerDataType() As otDataType Implements iormContainerEntryAttribute.InnerDataType
             Get
                 Return Me._InnerDataType
             End Get
@@ -1533,7 +1947,7 @@ Namespace OnTrack.Database
                 Me._InnerDataType = value
             End Set
         End Property
-        Public ReadOnly Property HasValueInnerDataType As Boolean
+        Public ReadOnly Property HasValueInnerDataType As Boolean Implements iormContainerEntryAttribute.HasValueInnerDataType
             Get
                 Return _InnerDataType.HasValue
             End Get
@@ -1542,7 +1956,7 @@ Namespace OnTrack.Database
         ''' Gets or sets the size.
         ''' </summary>
         ''' <value>The size.</value>
-        Public Property Size() As Long
+        Public Property Size() As Long Implements iormContainerEntryAttribute.Size
             Get
                 Return Me._size
             End Get
@@ -1550,7 +1964,7 @@ Namespace OnTrack.Database
                 Me._size = value
             End Set
         End Property
-        Public ReadOnly Property HasValueSize As Boolean
+        Public ReadOnly Property HasValueSize As Boolean Implements iormContainerEntryAttribute.HasValueSize
             Get
                 Return _size.HasValue
             End Get
@@ -1559,7 +1973,7 @@ Namespace OnTrack.Database
         ''' Gets or sets the parameter.
         ''' </summary>
         ''' <value>The parameter.</value>
-        Public Property Parameter() As String
+        Public Property Parameter() As String Implements iormContainerEntryAttribute.Parameter
             Get
                 Return Me._Parameter
             End Get
@@ -1567,7 +1981,7 @@ Namespace OnTrack.Database
                 Me._Parameter = value
             End Set
         End Property
-        Public ReadOnly Property HasValueParameter() As Boolean
+        Public ReadOnly Property HasValueParameter() As Boolean Implements iormContainerEntryAttribute.HasValueParameter
             Get
                 Return _Parameter IsNot Nothing
             End Get
@@ -1576,7 +1990,7 @@ Namespace OnTrack.Database
         ''' Gets or sets the is nullable.
         ''' </summary>
         ''' <value>The is nullable.</value>
-        Public Property IsNullable() As Boolean
+        Public Property IsNullable() As Boolean Implements iormContainerEntryAttribute.IsNullable
             Get
                 Return Me._IsNullable
             End Get
@@ -1584,7 +1998,7 @@ Namespace OnTrack.Database
                 Me._IsNullable = value
             End Set
         End Property
-        Public ReadOnly Property HasValueIsNullable()
+        Public ReadOnly Property HasValueIsNullable() Implements iormContainerEntryAttribute.HasValueIsNullable
             Get
                 Return _IsNullable.HasValue
             End Get
@@ -1593,7 +2007,7 @@ Namespace OnTrack.Database
         ''' Gets or sets the Unique Property.
         ''' </summary>
         ''' <value></value>
-        Public Property IsUnique() As Boolean
+        Public Property IsUnique() As Boolean Implements iormContainerEntryAttribute.IsUnique
             Get
                 Return Me._IsUnique
             End Get
@@ -1601,7 +2015,7 @@ Namespace OnTrack.Database
                 Me._IsUnique = value
             End Set
         End Property
-        Public ReadOnly Property HasValueIsUnique()
+        Public ReadOnly Property HasValueIsUnique() Implements iormContainerEntryAttribute.HasValueIsUnique
             Get
                 Return _IsUnique.HasValue
             End Get
@@ -1610,7 +2024,7 @@ Namespace OnTrack.Database
         ''' Gets or sets the is foreign Key flag. References must be set
         ''' </summary>
         ''' <value></value>
-        Public Property UseForeignKey() As otForeignKeyImplementation
+        Public Property UseForeignKey() As otForeignKeyImplementation Implements iormContainerEntryAttribute.UseForeignKey
             Get
                 Return Me._UseForeignKey
             End Get
@@ -1618,7 +2032,7 @@ Namespace OnTrack.Database
                 Me._UseForeignKey = value
             End Set
         End Property
-        Public ReadOnly Property HasValueUseForeignKey()
+        Public ReadOnly Property HasValueUseForeignKey() As Boolean Implements iormContainerEntryAttribute.hasValueUseForeignKey
             Get
                 Return _UseForeignKey.HasValue
             End Get
@@ -1627,7 +2041,7 @@ Namespace OnTrack.Database
         ''' Gets or sets the foreign key reference.
         ''' </summary>
         ''' <value>The description.</value>
-        Public Property ForeignKeyReferences() As String()
+        Public Property ForeignKeyReferences() As String() Implements iormContainerEntryAttribute.ForeignKeyReferences
             Get
                 Return Me._ForeignKeyReference
             End Get
@@ -1635,7 +2049,7 @@ Namespace OnTrack.Database
                 Me._ForeignKeyReference = value
             End Set
         End Property
-        Public ReadOnly Property HasValueForeignKeyReferences As Boolean
+        Public ReadOnly Property HasValueForeignKeyReferences As Boolean Implements iormContainerEntryAttribute.HasValueForeignKeyReferences
             Get
                 Return _ForeignKeyReference IsNot Nothing AndAlso _ForeignKeyReference.Count > 0
             End Get
@@ -1644,7 +2058,7 @@ Namespace OnTrack.Database
         ''' Gets or sets the foreign key properties as string
         ''' </summary>
         ''' <value>string</value>
-        Public Property ForeignKeyProperties() As String()
+        Public Property ForeignKeyProperties() As String() Implements iormContainerEntryAttribute.ForeignKeyProperties
             Get
                 Dim aList As New List(Of String)
                 For Each aP In _ForeignKeyProperties
@@ -1660,7 +2074,7 @@ Namespace OnTrack.Database
                     Next
                     Me._ForeignKeyProperties = aList.ToArray
                 Catch ex As Exception
-                    CoreMessageHandler(exception:=ex, subname:="ormSchemaTableColumnAttribute.ForeignKeyProperties")
+                    CoreMessageHandler(exception:=ex, procedure:="ormContainerEntryAttribute.ForeignKeyProperties")
                 End Try
             End Set
         End Property
@@ -1670,7 +2084,7 @@ Namespace OnTrack.Database
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property ForeignKeyProperty As ForeignKeyProperty()
+        Public Property ForeignKeyProperty As ForeignKeyProperty() Implements iormContainerEntryAttribute.foreignkeyproperty
             Get
                 Return _ForeignKeyProperties
             End Get
@@ -1678,7 +2092,7 @@ Namespace OnTrack.Database
                 _ForeignKeyProperties = value
             End Set
         End Property
-        Public ReadOnly Property HasValueForeignKeyProperties As Boolean
+        Public ReadOnly Property HasValueForeignKeyProperties As Boolean Implements iormContainerEntryAttribute.hasValueForeignKeyProperties
             Get
                 Return _ForeignKeyProperties IsNot Nothing AndAlso _ForeignKeyProperties.Count > 0
             End Get
@@ -1687,30 +2101,30 @@ Namespace OnTrack.Database
         ''' Gets or sets the primary key ordinal.
         ''' </summary>
         ''' <value>The primary key ordinal.</value>
-        Public Property PrimaryKeyOrdinal() As Short
+        Public Property PrimaryEntryOrdinal() As Short Implements iormContainerEntryAttribute.PrimaryEntryOrdinal
             Get
-                Return Me._primaryKeyOrdinal
+                Return Me._primaryEntryOrdinal
             End Get
             Set(value As Short)
                 If value > 0 Then
-                    Me._primaryKeyOrdinal = value
+                    Me._primaryEntryOrdinal = value
                 Else
-                    CoreMessageHandler(message:="position index is less or equal 0", arg1:=value, subname:="ormSchemaColumn.PrimaryKeyordinal", messagetype:=otCoreMessageType.InternalError)
+                    CoreMessageHandler(message:="position index is less or equal 0", argument:=value, procedure:="ormContainerEntryAttribute.PrimaryEntryordinal", messagetype:=otCoreMessageType.InternalError)
                     Debug.Assert(False)
                 End If
 
             End Set
         End Property
-        Public ReadOnly Property HasValuePrimaryKeyOrdinal As Boolean
+        Public ReadOnly Property HasValuePrimaryKeyOrdinal As Boolean Implements iormContainerEntryAttribute.HasValuePrimaryKeyOrdinal
             Get
-                Return _primaryKeyOrdinal.HasValue
+                Return _primaryEntryOrdinal.HasValue
             End Get
         End Property
         ''' <summary>
         ''' Gets or sets the relation.
         ''' </summary>
         ''' <value>The relation.</value>
-        Public Property Relation() As String()
+        Public Property Relation() As String() Implements iormContainerEntryAttribute.Relation
             Get
                 Return Me._relation
             End Get
@@ -1718,7 +2132,7 @@ Namespace OnTrack.Database
                 Me._relation = value
             End Set
         End Property
-        Public ReadOnly Property HasValueRelation As Boolean
+        Public ReadOnly Property HasValueRelation As Boolean Implements iormContainerEntryAttribute.hasValueRelation
             Get
                 Return _relation IsNot Nothing AndAlso _relation.Count > 0
             End Get
@@ -1730,7 +2144,7 @@ Namespace OnTrack.Database
         ''' <value></value>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Property Version As UShort
+        Public Property Version As UShort Implements iormContainerEntryAttribute.Version
             Get
                 Return Me._Version
             End Get
@@ -1738,7 +2152,7 @@ Namespace OnTrack.Database
                 Me._Version = value
             End Set
         End Property
-        Public ReadOnly Property HasValueVersion As Boolean
+        Public ReadOnly Property HasValueVersion As Boolean Implements iormContainerEntryAttribute.HasValueVersion
             Get
                 Return _Version.HasValue
             End Get
@@ -1750,7 +2164,7 @@ Namespace OnTrack.Database
     ''' </summary>
     ''' <remarks></remarks>
     <AttributeUsage(AttributeTargets.Field, AllowMultiple:=False, Inherited:=True)> _
-    Public Class ormSchemaForeignKeyAttribute
+    Public Class ormForeignKeyAttribute
         Inherits Attribute
         Private _ID As String
         Private _TableID As String = Nothing
@@ -1836,7 +2250,7 @@ Namespace OnTrack.Database
         ''' Gets or sets the table ID.
         ''' </summary>
         ''' <value>The table ID.</value>
-        Public Property Tablename() As String
+        Public Property TableID() As String
             Get
                 Return Me._TableID
             End Get
@@ -1844,7 +2258,7 @@ Namespace OnTrack.Database
                 Me._TableID = value.ToUpper
             End Set
         End Property
-        Public ReadOnly Property HasValueTableName As Boolean
+        Public ReadOnly Property HasValueTableID As Boolean
             Get
                 Return _TableID IsNot Nothing
             End Get
@@ -1923,7 +2337,7 @@ Namespace OnTrack.Database
                     Next
                     Me._ForeignKeyProperties = aList.ToArray
                 Catch ex As Exception
-                    CoreMessageHandler(exception:=ex, subname:="ormSchemaTableColumnAttribute.ForeignKeyProperties")
+                    CoreMessageHandler(exception:=ex, procedure:="ormSchemaForeignKeyAttribute.ForeignKeyProperties")
                 End Try
             End Set
         End Property
@@ -1974,12 +2388,12 @@ Namespace OnTrack.Database
     ''' <remarks></remarks>
     <AttributeUsage(AttributeTargets.Field, AllowMultiple:=False, Inherited:=True)> _
     Public Class ormObjectEntryAttribute
-        Inherits ormSchemaTableColumnAttribute
+        Inherits ormContainerEntryAttribute
         Implements iormObjectEntry
 
 
         Private _Title As String = Nothing
-        Private _EntryType As Nullable(Of otObjectEntryType) = otObjectEntryType.Column
+        Private _EntryType As Nullable(Of otObjectEntryType) = otObjectEntryType.ContainerEntry
 
         Private _isReadonly As Nullable(Of Boolean)
         Private _isActive As Nullable(Of Boolean)
@@ -1994,6 +2408,7 @@ Namespace OnTrack.Database
         Private _relation() As String = Nothing
 
         Private _objectEntryName As String = Nothing
+        Private _category As String = Nothing
         Private _objectName As String = Nothing
         Private _properties As ObjectEntryProperty()
 
@@ -2043,7 +2458,7 @@ Namespace OnTrack.Database
         End Property
         Public ReadOnly Property HasValueLookupCondition As Boolean Implements iormObjectEntry.HasLookupCondition
             Get
-                Return _lookupCondition IsNot Nothing 'AndAlso _validateRegExp <> "" empty string is possible
+                Return _lookupCondition IsNot Nothing 'AndAlso _validateRegExp <> String.empty empty string is possible
             End Get
         End Property
         ''' <summary>
@@ -2060,7 +2475,7 @@ Namespace OnTrack.Database
         End Property
         Public ReadOnly Property HasValueRenderRegExpPattern As Boolean Implements iormObjectEntry.HasRenderRegExpression
             Get
-                Return _RenderRegExpPattern IsNot Nothing 'AndAlso _validateRegExp <> "" empty string is possible
+                Return _RenderRegExpPattern IsNot Nothing 'AndAlso _validateRegExp <> String.empty empty string is possible
             End Get
         End Property
         ''' <summary>
@@ -2077,7 +2492,7 @@ Namespace OnTrack.Database
         End Property
         Public ReadOnly Property HasValueRenderRegExpMatch As Boolean 'Implements iormObjectEntry.HasRenderRegMatch
             Get
-                Return _RenderRegExpMatch IsNot Nothing 'AndAlso _validateRegExp <> "" empty string is possible
+                Return _RenderRegExpMatch IsNot Nothing 'AndAlso _validateRegExp <> String.empty empty string is possible
             End Get
         End Property
         ''' <summary>
@@ -2100,7 +2515,7 @@ Namespace OnTrack.Database
                     Next
                     Me._properties = aList.ToArray
                 Catch ex As Exception
-                    CoreMessageHandler(exception:=ex, subname:="ormObjectEntryAttribute.Properties")
+                    CoreMessageHandler(exception:=ex, procedure:="ormObjectEntryAttribute.Properties")
                 End Try
             End Set
         End Property
@@ -2141,7 +2556,7 @@ Namespace OnTrack.Database
                     Next
                     Me._RenderProperties = aList.ToArray
                 Catch ex As Exception
-                    CoreMessageHandler(exception:=ex, subname:="ormObjectEntryAttribute.RenderPropertyStrings")
+                    CoreMessageHandler(exception:=ex, procedure:="ormObjectEntryAttribute.RenderPropertyStrings")
                 End Try
             End Set
         End Property
@@ -2223,7 +2638,7 @@ Namespace OnTrack.Database
         End Property
         Public ReadOnly Property HasValueValidateRegExp As Boolean Implements iormObjectEntry.HasValidateRegExpression
             Get
-                Return _validateRegExp IsNot Nothing 'AndAlso _validateRegExp <> "" empty is possible
+                Return _validateRegExp IsNot Nothing 'AndAlso _validateRegExp <> String.empty empty is possible
             End Get
         End Property
         ''' <summary>
@@ -2247,7 +2662,7 @@ Namespace OnTrack.Database
                     Next
                     Me._LookupProperties = aList.ToArray
                 Catch ex As Exception
-                    CoreMessageHandler(exception:=ex, subname:="ormObjectEntryAttribute.LookupPropertyStrings")
+                    CoreMessageHandler(exception:=ex, procedure:="ormObjectEntryAttribute.LookupPropertyStrings")
                 End Try
             End Set
         End Property
@@ -2285,7 +2700,7 @@ Namespace OnTrack.Database
                     Next
                     Me._ValidationProperties = aList.ToArray
                 Catch ex As Exception
-                    CoreMessageHandler(exception:=ex, subname:="ormObjectEntryAttribute.ValidationPropertyStrings")
+                    CoreMessageHandler(exception:=ex, procedure:="ormObjectEntryAttribute.ValidationPropertyStrings")
                 End Try
             End Set
         End Property
@@ -2433,7 +2848,7 @@ Namespace OnTrack.Database
         End Property
         Public ReadOnly Property HasValueObjectName As Boolean
             Get
-                Return _objectName IsNot Nothing AndAlso _objectName <> ""
+                Return _objectName IsNot Nothing AndAlso _objectName <> String.Empty
             End Get
         End Property
         ''' <summary>
@@ -2467,7 +2882,7 @@ Namespace OnTrack.Database
         End Property
         Public ReadOnly Property HasValueEntryName As Boolean
             Get
-                Return _objectEntryName IsNot Nothing AndAlso _objectEntryName <> ""
+                Return _objectEntryName IsNot Nothing AndAlso _objectEntryName <> String.Empty
             End Get
         End Property
         ''' <summary>
@@ -2484,7 +2899,7 @@ Namespace OnTrack.Database
         End Property
         Public ReadOnly Property HasValueXID As Boolean
             Get
-                Return _XID IsNot Nothing AndAlso _XID <> ""
+                Return _XID IsNot Nothing AndAlso _XID <> String.Empty
             End Get
         End Property
         ''' <summary>
@@ -2499,7 +2914,7 @@ Namespace OnTrack.Database
                 If value > 0 Then
                     Me._KeyOrdinal = value
                 Else
-                    CoreMessageHandler(message:="position index is less or equal 0", arg1:=value, subname:="ormObjectEntry.Keyordinal", messagetype:=otCoreMessageType.InternalError)
+                    CoreMessageHandler(message:="position index is less or equal 0", argument:=value, procedure:="ormObjectEntry.Keyordinal", messagetype:=otCoreMessageType.InternalError)
                     Debug.Assert(False)
                 End If
 
@@ -2551,6 +2966,23 @@ Namespace OnTrack.Database
             End Get
         End Property
         ''' <summary>
+        ''' Gets or sets the category.
+        ''' </summary>
+        ''' <value>The category.</value>
+        Public Property Category() As String Implements iormObjectEntry.Category
+            Get
+                Return Me._category
+            End Get
+            Set(value As String)
+                Me._category = value
+            End Set
+        End Property
+        Public ReadOnly Property HasValueCategory As Boolean
+            Get
+                Return Not String.IsNullOrEmpty(_category)
+            End Get
+        End Property
+        ''' <summary>
         ''' Gets or sets the title.
         ''' </summary>
         ''' <value>The title.</value>
@@ -2564,7 +2996,7 @@ Namespace OnTrack.Database
         End Property
         Public ReadOnly Property HasValueTitle As Boolean
             Get
-                Return _Title IsNot Nothing
+                Return Not String.IsNullOrEmpty(_Title)
             End Get
         End Property
 
@@ -2797,7 +3229,7 @@ Namespace OnTrack.Database
         ''' </summary>
         ''' <param name="attribute">The attribute.</param>
         ''' <returns></returns>
-        Public Function AbstractEntryDefinition_SetByAttribute(attribute As ormObjectEntryAttribute) As Boolean Implements iormObjectEntry.AbstractEntryDefinition_SetByAttribute
+        Public Function SetByAttribute(attribute As ormObjectEntryAttribute) As Boolean Implements iormObjectEntry.SetByAttribute
             ' TODO: Implement this property setter
             Throw New InvalidOperationException()
         End Function
@@ -2822,7 +3254,7 @@ Namespace OnTrack.Database
         Inherits Attribute
         Private _ID As String = Nothing
         Private _ClassName As String = Nothing
-        Private _Tablenames As String()
+        Private _ContainerIDs As String()
         Private _Title As String = Nothing
         Private _Description As String = Nothing
         Private _Version As Nullable(Of UShort) = 1
@@ -2838,11 +3270,33 @@ Namespace OnTrack.Database
         Private _useCache As Nullable(Of Boolean)
         Private _defaultPermission As Nullable(Of Boolean) = True
         Private _CacheProperties As String()
+        Private _PrimaryContainerID As String
+        Private _retrieveFromViewID As String
+        Private _buildRetrieveView As Nullable(Of Boolean)
+
+        ''' <summary>
+        ''' Gets or sets the primary table ID.
+        ''' </summary>
+        ''' <value>The primary table ID.</value>
+        Public Property PrimaryContainerID() As String
+            Get
+                Return Me._PrimaryContainerID
+            End Get
+            Set(value As String)
+                Me._PrimaryContainerID = Value
+            End Set
+        End Property
+
+        Public ReadOnly Property HasValuePrimaryContainerID As Boolean
+            Get
+                Return Not String.IsNullOrWhiteSpace(_PrimaryContainerID)
+            End Get
+        End Property
         ''' <summary>
         ''' Gets or sets the primary keys.
         ''' </summary>
         ''' <value>The primary keys.</value>
-        Public Property PrimaryKeys() As String()
+        Public Property PrimaryKeyEntryNames() As String()
             Get
                 Return Me._PrimaryKeys
             End Get
@@ -3084,20 +3538,20 @@ Namespace OnTrack.Database
         ''' Gets or sets the tablenames.
         ''' </summary>
         ''' <value>The tablenames.</value>
-        Public Property Tablenames() As String()
+        Public Property ContainerIDs() As String()
             Get
-                Return Me._Tablenames
+                Return Me._ContainerIDs
             End Get
             Set(value As String())
                 For Each s In value
-                    s = s.ToUpper
+                    If Not String.IsNullOrEmpty(s) Then s = s.ToUpper
                 Next
-                Me._Tablenames = value
+                Me._ContainerIDs = value
             End Set
         End Property
-        Public ReadOnly Property HasValueTablenames As Boolean
+        Public ReadOnly Property HasValueContainerIDs As Boolean
             Get
-                Return _Tablenames IsNot Nothing AndAlso _Tablenames.Count > 0
+                Return _ContainerIDs IsNot Nothing AndAlso _ContainerIDs.Count > 0
             End Get
         End Property
         ''' <summary>
@@ -3114,7 +3568,7 @@ Namespace OnTrack.Database
         End Property
         Public ReadOnly Property HasValueClassname As Boolean
             Get
-                Return _ClassName IsNot Nothing AndAlso _ClassName <> """"
+                Return Not String.IsNullOrWhiteSpace(_ClassName)
             End Get
         End Property
         ''' <summary>
@@ -3131,7 +3585,43 @@ Namespace OnTrack.Database
         End Property
         Public ReadOnly Property HasValueID As Boolean
             Get
-                Return _ID IsNot Nothing AndAlso _ID <> ""
+                Return Not String.IsNullOrWhiteSpace(_ID)
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Gets or sets the viewID for retrieving objects - if nothing tables are used
+        ''' </summary>
+        ''' <value>The primary table ID.</value>
+        Public Property RetrieveObjectFromViewID As String
+            Get
+                Return Me._retrieveFromViewID
+            End Get
+            Set(value As String)
+                Me._retrieveFromViewID = value
+            End Set
+        End Property
+
+        Public ReadOnly Property HasValueRetrieveObjectFromViewID As Boolean
+            Get
+                Return Not String.IsNullOrWhiteSpace(_retrieveFromViewID)
+            End Get
+        End Property
+        ''' <summary>
+        ''' Gets or sets the build-view-for-retrievinging object
+        ''' </summary>
+        ''' <value>The is active.</value>
+        Public Property BuildRetrieveView As Boolean
+            Get
+                Return Me._buildRetrieveView
+            End Get
+            Set(value As Boolean)
+                Me._buildRetrieveView = value
+            End Set
+        End Property
+        Public ReadOnly Property HasValueBuildRetrieveView As Boolean
+            Get
+                Return _buildRetrieveView.HasValue
             End Get
         End Property
     End Class
@@ -3179,7 +3669,7 @@ Namespace OnTrack.Database
         End Property
         Public ReadOnly Property HasValueTransactionName As Boolean
             Get
-                Return _TransactionName IsNot Nothing AndAlso _TransactionName <> ""
+                Return _TransactionName IsNot Nothing AndAlso _TransactionName <> String.empty
             End Get
         End Property
         ''' <summary>
@@ -3284,7 +3774,7 @@ Namespace OnTrack.Database
         End Property
         Public ReadOnly Property HasValueID As Boolean
             Get
-                Return _ID IsNot Nothing AndAlso _ID <> ""
+                Return Not String.IsNullOrWhiteSpace(_ID)
             End Get
         End Property
     End Class
@@ -3374,7 +3864,7 @@ Namespace OnTrack.Database
         End Property
         Public ReadOnly Property HasValueTag As Boolean
             Get
-                Return _Tag IsNot Nothing AndAlso _Tag <> ""
+                Return Not String.IsNullOrWhiteSpace(_Tag)
             End Get
         End Property
         ''' <summary>
@@ -3391,7 +3881,7 @@ Namespace OnTrack.Database
         End Property
         Public ReadOnly Property HasValueTransactionID As Boolean
             Get
-                Return _TransactionID IsNot Nothing AndAlso _TransactionID <> ""
+                Return Not String.IsNullOrWhiteSpace(_TransactionID)
             End Get
         End Property
         ''' <summary>
@@ -3511,7 +4001,7 @@ Namespace OnTrack.Database
         End Property
         Public ReadOnly Property HasValueID As Boolean
             Get
-                Return _ID IsNot Nothing AndAlso _ID <> ""
+                Return Not String.IsNullOrWhiteSpace(_ID)
             End Get
         End Property
     End Class
@@ -3560,7 +4050,7 @@ Namespace OnTrack.Database
         End Property
         Public ReadOnly Property HasValueWhere As Boolean
             Get
-                Return _where IsNot Nothing AndAlso Not String.IsNullOrWhiteSpace(_where)
+                Return Not String.IsNullOrWhiteSpace(_where)
             End Get
         End Property
 
@@ -3647,7 +4137,7 @@ Namespace OnTrack.Database
         End Property
         Public ReadOnly Property HasValueOrderBy As Boolean
             Get
-                Return _orderBy IsNot Nothing AndAlso Not String.IsNullOrWhiteSpace(_orderBy)
+                Return Not String.IsNullOrWhiteSpace(_orderBy)
             End Get
         End Property
 
@@ -3665,7 +4155,7 @@ Namespace OnTrack.Database
         End Property
         Public ReadOnly Property HasValueID As Boolean
             Get
-                Return _ID IsNot Nothing AndAlso _ID <> ""
+                Return Not String.IsNullOrWhiteSpace(_ID)
             End Get
         End Property
     End Class

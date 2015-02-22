@@ -193,10 +193,10 @@ Namespace OnTrack.Database
                             Return otValidationResultType.Succeeded
                         End If
 
-                        Dim aLookupList As String = ""
+                        Dim aLookupList As String = String.empty
                         ''' check all lookup properties
                         For Each aProperty In objectentrydefinition.LookupProperties
-                            If aLookupList <> "" Then aLookupList &= ","
+                            If aLookupList <> String.empty Then aLookupList &= ","
                             aLookupList &= aProperty.ToString
                             If aProperty.Enum = otLookupProperty.UseAttributeValues Then
                                 aLookupList &= " of [" & Converter.Enumerable2otString(objectentrydefinition.PossibleValues) & "]"
@@ -215,18 +215,18 @@ Namespace OnTrack.Database
 
 
                     Case Else
-                        CoreMessageHandler(message:="Property function is not implemented", arg1:=_property.ToString, messagetype:=otCoreMessageType.InternalError, _
-                                           subname:="ObjectValidationProperty.Apply")
+                        CoreMessageHandler(message:="Property function is not implemented", argument:=_property.ToString, messagetype:=otCoreMessageType.InternalError, _
+                                           procedure:="ObjectValidationProperty.Apply")
                         ''' return success
                         Return otValidationResultType.Succeeded
                 End Select
 
                 Return otValidationResultType.Succeeded
             Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="ObjectValidationProperty.Apply")
+                CoreMessageHandler(exception:=ex, procedure:="ObjectValidationProperty.Apply")
                 Return otValidationResultType.Succeeded
             End Try
-           
+
         End Function
         ''' <summary>
         ''' returns the enumeration value
@@ -265,7 +265,7 @@ Namespace OnTrack.Database
     ''' </summary>
     ''' <remarks></remarks>
 
-    Partial Public MustInherit Class ormDataObject
+    Partial Public MustInherit Class ormBusinessObject
 
         ''' <summary>
         ''' Raise the Validating Event for this object
@@ -344,7 +344,7 @@ Namespace OnTrack.Database
             ''' 
             Dim aDescription As ObjectClassDescription = ot.GetObjectClassDescriptionByID(Me.ObjectID)
             For Each anEntryname In Me.ObjectDefinition.Entrynames
-                If aDescription.MappedColumnNames.Contains(anEntryname) Then
+                If aDescription.MappedContainerEntryNames.Contains(anEntryname) Then
                     result = Me.Validate(entryname:=anEntryname, value:=GetValue(entryname:=anEntryname), msglog:=msglog)
                     If result = otValidationResultType.FailedNoProceed Then Return result
                 End If
@@ -403,7 +403,7 @@ Namespace OnTrack.Database
 
                     ''' check on loaded only
                     ''' 
-                    If _relationMgr.Contains(aRelationname) AndAlso _relationMgr.Status(aRelationname) = DataObjectRelationMgr.RelationStatus.Loaded Then
+                    If _relationMgr.Contains(aRelationname) AndAlso _relationMgr.Status(aRelationname) = ormRelationManager.RelationStatus.Loaded Then
                         If Not aRelationlist.Contains(aRelationname) Then aRelationlist.Add(aRelationname)
                     End If
                 Next
@@ -416,7 +416,7 @@ Namespace OnTrack.Database
 
                     ''' get the entry which is holding the needed data object
                     ''' 
-                    Dim aFieldList As List(Of FieldInfo) = Me.ObjectClassDescription.GetMappedRelationFieldInfos(relationName:=aRelationname)
+                    Dim aFieldList As List(Of FieldInfo) = Me.ObjectClassDescription.GetMappedRelation2FieldInfos(relationName:=aRelationname)
                     Dim searchvalue As Object = Nothing ' by intension (all are selected if nothing)
 
 
@@ -433,19 +433,19 @@ Namespace OnTrack.Database
                         Else
                             Return otValidationResultType.Succeeded
                         End If
-                    ElseIf _relationMgr.Status(aRelationname) = DataObjectRelationMgr.RelationStatus.Loaded Then
+                    ElseIf _relationMgr.Status(aRelationname) = ormRelationManager.RelationStatus.Loaded Then
                         ''' if loaded and nothing ?! -> will be a new object -> succeeded we cannot validate basically 
                         ''' 
                         ''' relation parameter createifnotretrieved should be used in these cases
                         ''' 
-                        CoreMessageHandler(message:="compound object relation load return nothing - object will be created ", arg1:=aRelationname, objectname:=Me.ObjectID, _
-                                           messagetype:=otCoreMessageType.ApplicationWarning, subname:="ormDataObject.RaiseValidatingCompound")
+                        CoreMessageHandler(message:="compound object relation load return nothing - object will be created ", argument:=aRelationname, objectname:=Me.ObjectID, _
+                                           messagetype:=otCoreMessageType.ApplicationWarning, procedure:="ormDataObject.RaiseValidatingCompound")
                         Return otValidationResultType.Succeeded
                     Else
                         ''' not loaded - couldnot load
                         ''' 
-                        CoreMessageHandler(message:="compound object relation could not load", arg1:=aRelationname, objectname:=Me.ObjectID, _
-                                           messagetype:=otCoreMessageType.ApplicationError, subname:="ormDataObject.RaiseValidatingCompound")
+                        CoreMessageHandler(message:="compound object relation could not load", argument:=aRelationname, objectname:=Me.ObjectID, _
+                                           messagetype:=otCoreMessageType.ApplicationError, procedure:="ormDataObject.RaiseValidatingCompound")
                         Return otValidationResultType.FailedNoProceed
                     End If
 
@@ -455,7 +455,7 @@ Namespace OnTrack.Database
 
                 Return otValidationResultType.Succeeded
             Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="ormDataObject.RaiseValidatingCompound")
+                CoreMessageHandler(exception:=ex, procedure:="ormDataObject.RaiseValidatingCompound")
                 Return otValidationResultType.FailedNoProceed
             End Try
         End Function
@@ -489,7 +489,7 @@ Namespace OnTrack.Database
 
                     ''' check on loaded only
                     ''' 
-                    If _relationMgr.Contains(aRelationname) AndAlso _relationMgr.Status(aRelationname) = DataObjectRelationMgr.RelationStatus.Loaded Then
+                    If _relationMgr.Contains(aRelationname) AndAlso _relationMgr.Status(aRelationname) = ormRelationManager.RelationStatus.Loaded Then
                         If Not aRelationlist.Contains(aRelationname) Then aRelationlist.Add(aRelationname)
                     End If
                 Next
@@ -502,7 +502,7 @@ Namespace OnTrack.Database
 
                     ''' get the entry which is holding the needed data object
                     ''' 
-                    Dim aFieldList As List(Of FieldInfo) = Me.ObjectClassDescription.GetMappedRelationFieldInfos(relationName:=aRelationname)
+                    Dim aFieldList As List(Of FieldInfo) = Me.ObjectClassDescription.GetMappedRelation2FieldInfos(relationName:=aRelationname)
                     Dim searchvalue As Object = Nothing ' by intension (all are selected if nothing)
 
 
@@ -519,19 +519,19 @@ Namespace OnTrack.Database
                         Else
                             Return otValidationResultType.Succeeded
                         End If
-                    ElseIf _relationMgr.Status(aRelationname) = DataObjectRelationMgr.RelationStatus.Loaded Then
+                    ElseIf _relationMgr.Status(aRelationname) = ormRelationManager.RelationStatus.Loaded Then
                         ''' if loaded and nothing ?! -> will be a new object -> succeeded we cannot validate basically 
                         ''' 
                         ''' relation parameter createifnotretrieved should be used in these cases
                         ''' 
-                        CoreMessageHandler(message:="compound object relation load return nothing - object will be created ", arg1:=aRelationname, objectname:=Me.ObjectID, _
-                                           messagetype:=otCoreMessageType.ApplicationWarning, subname:="ormDataObject.RaiseValidatedCompound")
+                        CoreMessageHandler(message:="compound object relation load return nothing - object will be created ", argument:=aRelationname, objectname:=Me.ObjectID, _
+                                           messagetype:=otCoreMessageType.ApplicationWarning, procedure:="ormDataObject.RaiseValidatedCompound")
                         Return otValidationResultType.Succeeded
                     Else
                         ''' not loaded - couldnot load
                         ''' 
-                        CoreMessageHandler(message:="compound object relation could not load", arg1:=aRelationname, objectname:=Me.ObjectID, _
-                                           messagetype:=otCoreMessageType.ApplicationError, subname:="ormDataObject.RaiseValidatedCompound")
+                        CoreMessageHandler(message:="compound object relation could not load", argument:=aRelationname, objectname:=Me.ObjectID, _
+                                           messagetype:=otCoreMessageType.ApplicationError, procedure:="ormDataObject.RaiseValidatedCompound")
                         Return otValidationResultType.FailedNoProceed
                     End If
 
@@ -540,7 +540,7 @@ Namespace OnTrack.Database
 
 
             Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="ormDataObject.RaiseValidatedCompound")
+                CoreMessageHandler(exception:=ex, procedure:="ormDataObject.RaiseValidatedCompound")
                 Return Nothing
             End Try
         End Function
@@ -557,9 +557,9 @@ Namespace OnTrack.Database
 
                 Dim anObjectEntry = Me.ObjectDefinition.GetEntry(entryname)
                 If Not anObjectEntry.IsCompound Then
-                    CoreMessageHandler(message:="Object entry is a not a compound - use Validate", arg1:=entryname, _
+                    CoreMessageHandler(message:="Object entry is a not a compound - use Validate", argument:=entryname, _
                          objectname:=Me.ObjectID, entryname:=entryname, _
-                          messagetype:=otCoreMessageType.InternalError, subname:="ormDataObject.ValidateCompoundValue")
+                          messagetype:=otCoreMessageType.InternalError, procedure:="ormDataObject.ValidateCompoundValue")
                     Return Nothing
                 End If
 
@@ -573,9 +573,9 @@ Namespace OnTrack.Database
                     ''' 
                     Dim aOperationAttribute = Me.ObjectClassDescription.GetObjectOperationAttribute(name:=aValidatorName)
                     If aOperationAttribute Is Nothing Then
-                        CoreMessageHandler(message:="operation id not found in the class description repository", arg1:=aValidatorName, _
+                        CoreMessageHandler(message:="operation id not found in the class description repository", argument:=aValidatorName, _
                                            messagetype:=otCoreMessageType.InternalError, objectname:=Me.ObjectID, _
-                                           subname:="DataObjetRelationMGr.ValidateCompoundValue")
+                                           procedure:="DataObjetRelationMGr.ValidateCompoundValue")
                         Return Nothing
                     End If
 
@@ -585,9 +585,9 @@ Namespace OnTrack.Database
                     Dim aMethodInfo As MethodInfo = aOperationAttribute.MethodInfo
                     Dim aReturnType As System.Type = aMethodInfo.ReturnType
                     If Not aReturnType.Equals(GetType(otValidationResultType)) Then
-                        Call CoreMessageHandler(subname:="ormDataObject.ValidateCompoundValue", messagetype:=otCoreMessageType.InternalError, _
+                        Call CoreMessageHandler(procedure:="ormDataObject.ValidateCompoundValue", messagetype:=otCoreMessageType.InternalError, _
                                       message:="validator operation must return a otValidationResultType value", _
-                                      arg1:=aValidatorName, objectname:=Me.ObjectID, entryname:=entryname)
+                                      argument:=aValidatorName, objectname:=Me.ObjectID, entryname:=entryname)
                     End If
                     Dim aDelegate As ObjectClassDescription.OperationCallerDelegate = Me.ObjectClassDescription.GetOperartionCallerDelegate(aValidatorName)
                     Dim theParameterEntries As String() = aOperationAttribute.ParameterEntries
@@ -616,9 +616,9 @@ Namespace OnTrack.Database
                     If result IsNot Nothing Then
                         Return result
                     Else
-                        Call CoreMessageHandler(subname:="ormDataObject.ValidateCompoundValue", messagetype:=otCoreMessageType.InternalError, _
+                        Call CoreMessageHandler(procedure:="ormDataObject.ValidateCompoundValue", messagetype:=otCoreMessageType.InternalError, _
                                       message:="getter operation failed to return a  value", _
-                                      arg1:=aValidatorName, objectname:=Me.ObjectID, entryname:=entryname)
+                                      argument:=aValidatorName, objectname:=Me.ObjectID, entryname:=entryname)
                         Return Nothing
                     End If
 
@@ -652,13 +652,13 @@ Namespace OnTrack.Database
 
                     ''' request a relation load -> only if alive
                     ''' 
-                    If _relationMgr.Status(aRelationname) = DataObjectRelationMgr.RelationStatus.Unloaded Then
+                    If _relationMgr.Status(aRelationname) = ormRelationManager.RelationStatus.Unloaded Then
                         Me.InfuseRelation(aRelationname)
                     End If
 
                     ''' get the entry which is holding the needed data object
                     ''' 
-                    Dim aFieldList As List(Of FieldInfo) = Me.ObjectClassDescription.GetMappedRelationFieldInfos(relationName:=aRelationname)
+                    Dim aFieldList As List(Of FieldInfo) = Me.ObjectClassDescription.GetMappedRelation2FieldInfos(relationName:=aRelationname)
                     Dim searchvalue As Object = Nothing ' by intension (all are selected if nothing)
                     Dim searchvalueentryname As String
                     Dim searchentryname As String
@@ -679,7 +679,7 @@ Namespace OnTrack.Database
 
                     ''' get the reference data object selected by compoundID - and also load it
                     ''' 
-                    Dim theReferenceObjects As New List(Of iormPersistable)
+                    Dim theReferenceObjects As New List(Of iormRelationalPersistable)
 
 
                     theReferenceObjects = _relationMgr.GetObjectsFromContainer(relationname:=aRelationname, entryname:=searchentryname, value:=searchvalue, _
@@ -696,19 +696,19 @@ Namespace OnTrack.Database
                         Else
                             Return otValidationResultType.Succeeded
                         End If
-                    ElseIf _relationMgr.Status(aRelationname) = DataObjectRelationMgr.RelationStatus.Loaded Then
+                    ElseIf _relationMgr.Status(aRelationname) = ormRelationManager.RelationStatus.Loaded Then
                         ''' if loaded and nothing ?! -> will be a new object -> succeeded we cannot validate basically 
                         ''' 
                         ''' relation parameter createifnotretrieved should be used in these cases
                         ''' 
-                        CoreMessageHandler(message:="compound object relation load return nothing - object will be created ", entryname:=entryname, arg1:=aRelationname, objectname:=Me.ObjectID, _
-                                           messagetype:=otCoreMessageType.ApplicationWarning, subname:="ormDataObject.ValidateCompoundValue")
+                        CoreMessageHandler(message:="compound object relation load return nothing - object will be created ", entryname:=entryname, argument:=aRelationname, objectname:=Me.ObjectID, _
+                                           messagetype:=otCoreMessageType.ApplicationWarning, procedure:="ormDataObject.ValidateCompoundValue")
                         Return otValidationResultType.Succeeded
                     Else
                         ''' not loaded - couldnot load
                         ''' 
-                        CoreMessageHandler(message:="compound object relation could not load", entryname:=entryname, arg1:=aRelationname, objectname:=Me.ObjectID, _
-                                           messagetype:=otCoreMessageType.ApplicationError, subname:="ormDataObject.ValidateCompoundValue")
+                        CoreMessageHandler(message:="compound object relation could not load", entryname:=entryname, argument:=aRelationname, objectname:=Me.ObjectID, _
+                                           messagetype:=otCoreMessageType.ApplicationError, procedure:="ormDataObject.ValidateCompoundValue")
                         Return otValidationResultType.FailedNoProceed
                     End If
 
@@ -717,7 +717,7 @@ Namespace OnTrack.Database
 
 
             Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="ormDataObject.ValidateCompoundValue")
+                CoreMessageHandler(exception:=ex, procedure:="ormDataObject.ValidateCompoundValue")
                 Return Nothing
             End Try
         End Function
@@ -738,7 +738,7 @@ Namespace OnTrack.Database
             Else
                 If msglog Is Nothing Then msglog = Me.ObjectMessageLog
                 Dim anObjectEntry As iormObjectEntry = Me.ObjectDefinition.GetEntry(entryname:=entryname)
-               
+
                 ''' 3 Step Validation process
                 ''' 
 
@@ -754,7 +754,7 @@ Namespace OnTrack.Database
                 '''
                 '''  STEP 2 Validate the entry against INTERNAL RULES
                 ''' 
-               
+
                 result = ObjectValidator.Validate(Me.ObjectDefinition.GetEntry(entryname), newvalue:=value, msglog:=msglog)
                 If result = otValidationResultType.FailedNoProceed Then Return result
 
@@ -823,7 +823,7 @@ Namespace OnTrack.Database
 
             If objectentrydefinition Is Nothing Then
                 CoreMessageHandler(message:="object entry definition is nothing - validate aborted", messagetype:=otCoreMessageType.InternalError, _
-                                   subname:="ObjectValidator.ValidateEntry")
+                                   procedure:="ObjectValidator.ValidateEntry")
                 Return otValidationResultType.FailedNoProceed
             End If
             Try
@@ -877,7 +877,7 @@ Namespace OnTrack.Database
                 '''
                 ''' 3. Apply the Validation Property Function on the Value
                 ''' 
-               
+
                 For Each aProperty In objectentrydefinition.ValidationProperties
                     Dim r As otValidationResultType = aProperty.Apply(newvalue, objectentrydefinition, msglog)
                     If r = otValidationResultType.FailedNoProceed Then
@@ -904,12 +904,12 @@ Namespace OnTrack.Database
 
 
             Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="ObjectValidator.ValidateEntry")
+                CoreMessageHandler(exception:=ex, procedure:="ObjectValidator.ValidateEntry")
                 Return otValidationResultType.FailedNoProceed
             End Try
         End Function
 
-        
+
     End Class
     ''' <summary>
     ''' Class for Object Entry Properties
@@ -930,7 +930,7 @@ Namespace OnTrack.Database
 
             If objectentrydefinition Is Nothing Then
                 CoreMessageHandler(message:="entry of object definition is nothing", _
-                                    subname:="EntryProperties.Apply", messagetype:=otCoreMessageType.InternalError)
+                                    procedure:="EntryProperties.Apply", messagetype:=otCoreMessageType.InternalError)
                 Return False
             End If
 
@@ -947,7 +947,7 @@ Namespace OnTrack.Database
                 Return EntryProperties.Apply(properties:=theProperties, [in]:=[in], out:=out)
 
             Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="EntryProperties.Apply")
+                CoreMessageHandler(exception:=ex, procedure:="EntryProperties.Apply")
                 Return False
             End Try
         End Function
@@ -972,7 +972,7 @@ Namespace OnTrack.Database
 
                     If Not objectDefinition.HasEntry(entryname) Then
                         CoreMessageHandler(message:="entry of object definition could not be found", objectname:=objectid, entryname:=entryname, _
-                                            subname:="EntryProperties.Apply", messagetype:=otCoreMessageType.InternalError)
+                                            procedure:="EntryProperties.Apply", messagetype:=otCoreMessageType.InternalError)
                         Return False
                     Else
                         theProperties = objectDefinition.GetEntry(entryname).Properties
@@ -997,18 +997,18 @@ Namespace OnTrack.Database
 
                     Else
                         CoreMessageHandler(message:="entry of object class description could not be found", objectname:=objectid, entryname:=entryname, _
-                                            subname:="EntryProperties.Apply", messagetype:=otCoreMessageType.InternalError)
+                                            procedure:="EntryProperties.Apply", messagetype:=otCoreMessageType.InternalError)
                         Return False
                     End If
                 End If
 
-                    ''' apply
-                    ''' 
-                    '*** return result
-                    Return EntryProperties.Apply(properties:=theProperties, [in]:=[in], out:=out)
+                ''' apply
+                ''' 
+                '*** return result
+                Return EntryProperties.Apply(properties:=theProperties, [in]:=[in], out:=out)
 
             Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="EntryProperties.Apply")
+                CoreMessageHandler(exception:=ex, procedure:="EntryProperties.Apply")
                 Return False
             End Try
         End Function
@@ -1053,7 +1053,7 @@ Namespace OnTrack.Database
 
                     Else
                         CoreMessageHandler(message:="entry of object definition could not be found", objectname:=objectid, entryname:=entryname, _
-                                            subname:="EntryProperties.Apply", messagetype:=otCoreMessageType.InternalError)
+                                            procedure:="EntryProperties.Apply", messagetype:=otCoreMessageType.InternalError)
                         Return False
                     End If
                 End If
@@ -1064,7 +1064,7 @@ Namespace OnTrack.Database
                 Return EntryProperties.Apply(properties:=theProperties, [in]:=[in], out:=out)
 
             Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="EntryProperties.Apply")
+                CoreMessageHandler(exception:=ex, procedure:="EntryProperties.Apply")
                 Return False
             End Try
         End Function
@@ -1108,7 +1108,7 @@ Namespace OnTrack.Database
 
                     Next
                 Else
-                    CoreMessageHandler(message:="ObjectEntryProperty is nothing", subname:="EntryProperties.Apply", messagetype:=otCoreMessageType.InternalError)
+                    CoreMessageHandler(message:="ObjectEntryProperty is nothing", procedure:="EntryProperties.Apply", messagetype:=otCoreMessageType.InternalError)
 
                 End If
 
@@ -1139,7 +1139,7 @@ Namespace OnTrack.Database
                 '*** return result
                 Return result
             Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="EntryProperties.Apply")
+                CoreMessageHandler(exception:=ex, procedure:="EntryProperties.Apply")
                 Return False
             End Try
 

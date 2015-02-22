@@ -383,8 +383,8 @@ error_handler:
 '                .Create(ourTableName)
 
 '                aFieldDesc.Tablename = ourTableName
-'                aFieldDesc.ID = ""
-'                aFieldDesc.Parameter = ""
+'                aFieldDesc.ID = String.empty
+'                aFieldDesc.Parameter = String.empty
 
 
 '                ' typeid
@@ -587,13 +587,13 @@ error_handler:
 '                aFieldDesc.Datatype = otFieldDataType.Timestamp
 '                aFieldDesc.Title = "last Update"
 '                aFieldDesc.ColumnName = ot.ConstFNUpdatedOn
-'                aFieldDesc.ID = ""
+'                aFieldDesc.ID = String.empty
 '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 
 '                aFieldDesc.Datatype = otFieldDataType.Timestamp
 '                aFieldDesc.Title = "creation Date"
 '                aFieldDesc.ColumnName = ot.ConstFNCreatedOn
-'                aFieldDesc.ID = ""
+'                aFieldDesc.ID = String.empty
 '                Call .AddFieldDesc(fielddesc:=aFieldDesc)
 '                ' Index
 '                Call .AddIndex("PrimaryKey", PrimaryColumnNames, isprimarykey:=True)

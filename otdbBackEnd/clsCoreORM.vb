@@ -30,10 +30,7 @@ Imports OnTrack.Commons
 
 Namespace OnTrack
     Namespace Database
-        '************************************************************************************
-        '***** CLASS ormSqlCommand describes an SQL Command to be used for aTableStore
-        '***** or a DB Driver
-        '*****
+       
         ''' <summary>
         ''' an neutral SQL Command
         ''' </summary>
@@ -42,22 +39,22 @@ Namespace OnTrack
         Public Class ormSqlCommand
             Implements iormSqlCommand
 
-            Private _ID As String = ""  ' an Unique ID to store
+            Private _ID As String = String.empty  ' an Unique ID to store
             Protected _parameters As New Dictionary(Of String, ormSqlCommandParameter)
             Protected _parametervalues As New Dictionary(Of String, Object)
 
-            Protected _type As OTDBSQLCommandTypes
-            Protected _SqlStatement As String = ""
-            Protected _SqlText As String = "" ' the build SQL Text
+            Protected _type As otSQLCommandTypes
+            Protected _SqlStatement As String = String.empty
+            Protected _SqlText As String = String.empty ' the build SQL Text
 
-            Protected _databaseDriver As iormDatabaseDriver
-            Protected _tablestores As New Dictionary(Of String, iormDataStore)
+            Protected _databaseDriver As iormRelationalDatabaseDriver
+            Protected _tablestores As New Dictionary(Of String, iormRelationalTableStore)
             Protected _buildTextRequired As Boolean = True
             Protected _buildVersion As UShort = 0
             Protected _nativeCommand As System.Data.IDbCommand
             Protected _Prepared As Boolean = False
 
-            Public Sub New(ID As String, Optional databasedriver As iormDatabaseDriver = Nothing)
+            Public Sub New(ID As String, Optional databasedriver As iormRelationalDatabaseDriver = Nothing)
                 _ID = ID
                 _databaseDriver = databasedriver
             End Sub
@@ -75,11 +72,11 @@ Namespace OnTrack
             ''' Gets or sets the database driver.
             ''' </summary>
             ''' <value>The database driver.</value>
-            Public Property DatabaseDriver() As iormDatabaseDriver
+            Public Property DatabaseDriver() As iormRelationalDatabaseDriver
                 Get
                     Return Me._databaseDriver
                 End Get
-                Set(value As iormDatabaseDriver)
+                Set(value As iormRelationalDatabaseDriver)
                     Me._databaseDriver = value
                 End Set
             End Property
@@ -167,7 +164,7 @@ Namespace OnTrack
             ''' <value></value>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public ReadOnly Property [Type] As OTDBSQLCommandTypes Implements iormSqlCommand.Type
+            Public ReadOnly Property [Type] As otSQLCommandTypes Implements iormSqlCommand.Type
                 Get
                     Return _type
                 End Get
@@ -192,7 +189,7 @@ Namespace OnTrack
             ''' <value></value>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public ReadOnly Property Prepared As Boolean
+            Public ReadOnly Property IsPrepared As Boolean
                 Get
                     Return _Prepared
                 End Get
@@ -209,30 +206,30 @@ Namespace OnTrack
                 '** some checking
 
                 '** PARAMETER ID
-                If parameter.ID = "" And parameter.Fieldname = "" And Not parameter.NotColumn Then
-                    Call CoreMessageHandler(subname:="ormSqlCommand.AddParameter", arg1:=Me.ID, message:=" id not set in parameter for sql command", messagetype:=otCoreMessageType.InternalError)
+                If String.IsNullOrWhiteSpace(parameter.ID) AndAlso String.IsNullOrWhiteSpace(parameter.ColumnName) AndAlso Not parameter.NotColumn Then
+                    Call CoreMessageHandler(procedure:="ormSqlCommand.AddParameter", argument:=Me.ID, message:=" id not set in parameter for sql command", messagetype:=otCoreMessageType.InternalError)
                     Return False
-                ElseIf parameter.ID = "" And parameter.Fieldname <> "" And Not parameter.NotColumn Then
-                    parameter.ID = "@" & parameter.Fieldname
-                ElseIf parameter.ID <> "" Then
-                    parameter.ID = Regex.Replace(parameter.ID, "\s", "") ' no white chars allowed
+                ElseIf String.IsNullOrWhiteSpace(parameter.ID) AndAlso Not String.IsNullOrWhiteSpace(parameter.ColumnName) AndAlso Not parameter.NotColumn Then
+                    parameter.ID = "@" & parameter.ColumnName
+                ElseIf Not String.IsNullOrWhiteSpace(parameter.ID) Then
+                    parameter.ID = Regex.Replace(parameter.ID, "\s", String.Empty) ' no white chars allowed
                 End If
 
                 '** TABLENAME
                 If Not parameter.NotColumn Then
                     If Me.TableIDs.Count = 0 Then
-                        Call CoreMessageHandler(subname:="ormSqlCommand.AddParameter", arg1:=Me.ID, _
+                        Call CoreMessageHandler(procedure:="ormSqlCommand.AddParameter", argument:=Me.ID, _
                                               message:="no tablename  set in parameter for sql command", _
                                               messagetype:=otCoreMessageType.InternalError)
                         Return False
-                    ElseIf parameter.Tablename = "" And Me.TableIDs(0) <> "" Then
-                        parameter.Tablename = Me.TableIDs(0)
-                        Call CoreMessageHandler(subname:="ormSqlCommand.AddParameter", arg1:=Me.ID, _
+                    ElseIf String.IsNullOrWhiteSpace(parameter.TableID) AndAlso Not String.IsNullOrWhiteSpace(Me.TableIDs(0)) Then
+                        parameter.TableID = Me.TableIDs(0)
+                        Call CoreMessageHandler(procedure:="ormSqlCommand.AddParameter", argument:=Me.ID, _
                                               message:=" tablename not set in parameter for sql command - first table used", _
-                                              messagetype:=otCoreMessageType.InternalWarning, tablename:=Me.TableIDs(0))
+                                              messagetype:=otCoreMessageType.InternalWarning, containerID:=Me.TableIDs(0))
 
-                    ElseIf parameter.Tablename = "" And Me.TableIDs(0) = "" Then
-                        Call CoreMessageHandler(subname:="ormSqlCommand.AddParameter", arg1:=Me.ID, _
+                    ElseIf String.IsNullOrWhiteSpace(parameter.TableID) AndAlso String.IsNullOrWhiteSpace(Me.TableIDs(0)) Then
+                        Call CoreMessageHandler(procedure:="ormSqlCommand.AddParameter", argument:=Me.ID, _
                                               message:=" tablename not set in parameter for sql command - no default table", _
                                              messagetype:=otCoreMessageType.InternalError)
 
@@ -241,42 +238,43 @@ Namespace OnTrack
                 End If
 
                 '** fieldnames
-                If parameter.Fieldname = "" And parameter.ID = "" Then
-                    Call CoreMessageHandler(subname:="ormSqlCommand.AddParameter", arg1:=Me.ID, _
+                If String.IsNullOrWhiteSpace(parameter.ColumnName) AndAlso String.IsNullOrWhiteSpace(parameter.ID) Then
+                    Call CoreMessageHandler(procedure:="ormSqlCommand.AddParameter", argument:=Me.ID, _
                                           message:=" fieldname not set in parameter for sql command", _
                                           messagetype:=otCoreMessageType.InternalError)
                     Return False
-                ElseIf parameter.ID <> "" And parameter.Fieldname = "" And Not parameter.NotColumn Then
-                    Call CoreMessageHandler(subname:="ormSqlCommand.AddParameter", arg1:=Me.ID, _
+                ElseIf Not String.IsNullOrWhiteSpace(parameter.ColumnName) AndAlso String.IsNullOrWhiteSpace(parameter.ID) AndAlso Not parameter.NotColumn Then
+                    Call CoreMessageHandler(procedure:="ormSqlCommand.AddParameter", argument:=Me.ID, _
                                          message:=" fieldname not set in parameter for sql command - use ID without @", _
-                                         messagetype:=otCoreMessageType.InternalWarning, tablename:=parameter.Tablename, entryname:=parameter.ID)
+                                         messagetype:=otCoreMessageType.InternalWarning, containerID:=parameter.TableID, entryname:=parameter.ID)
                     If parameter.ID.First = "@" Then
-                        parameter.Fieldname = parameter.ID.Substring(2)
+                        parameter.ColumnName = parameter.ID.Substring(2)
                     Else
-                        parameter.Fieldname = parameter.ID
+                        parameter.ColumnName = parameter.ID
                     End If
                 End If
+
                 '** table name ?!
-                If parameter.Tablename = "" And Not parameter.NotColumn Then
-                    Call CoreMessageHandler(subname:="ormSqlCommand.AddParameter", tablename:=parameter.Tablename, _
-                                          message:="table name is blank", arg1:=parameter.ID)
+                If String.IsNullOrWhiteSpace(parameter.TableID) AndAlso Not parameter.NotColumn Then
+                    Call CoreMessageHandler(procedure:="ormSqlCommand.AddParameter", containerID:=parameter.TableID, _
+                                          message:="table name is blank", argument:=parameter.ID)
                     Return False
                 End If
-                If Not parameter.NotColumn And parameter.Tablename <> "" AndAlso Not GetTableStore(parameter.Tablename).TableSchema.IsInitialized Then
-                    Call CoreMessageHandler(subname:="ormSqlCommand.AddParameter", tablename:=parameter.Tablename, _
+                If Not parameter.NotColumn AndAlso Not String.IsNullOrWhiteSpace(parameter.TableID) AndAlso Not GetTableStore(parameter.TableID).ContainerSchema.IsInitialized Then
+                    Call CoreMessageHandler(procedure:="ormSqlCommand.AddParameter", containerID:=parameter.TableID, _
                                            message:="couldnot initialize table schema")
                     Return False
                 End If
 
-                If Not parameter.NotColumn AndAlso Not Me._tablestores.ContainsKey(parameter.Tablename) Then
-                    Call CoreMessageHandler(subname:="ormSqlCommand.AddParameter", arg1:=Me.ID, entryname:=parameter.ID, _
+                If Not parameter.NotColumn AndAlso Not Me._tablestores.ContainsKey(parameter.TableID) Then
+                    Call CoreMessageHandler(procedure:="ormSqlCommand.AddParameter", argument:=Me.ID, entryname:=parameter.ID, _
                                           message:=" tablename of parameter is not used in sql command", _
-                                      messagetype:=otCoreMessageType.InternalError, tablename:=parameter.Tablename)
+                                      messagetype:=otCoreMessageType.InternalError, containerID:=parameter.TableID)
                     Return False
-                ElseIf Not parameter.NotColumn AndAlso Not Me._tablestores.Item(key:=parameter.Tablename).TableSchema.Hasfieldname(parameter.Fieldname) Then
-                    Call CoreMessageHandler(subname:="ormSqlCommand.AddParameter", arg1:=Me.ID, entryname:=parameter.Fieldname, _
+                ElseIf Not parameter.NotColumn AndAlso Not Me._tablestores.Item(key:=parameter.TableID).ContainerSchema.HasEntryName(parameter.ColumnName) Then
+                    Call CoreMessageHandler(procedure:="ormSqlCommand.AddParameter", argument:=Me.ID, entryname:=parameter.ColumnName, _
                                          message:=" fieldname of parameter is not used in table schema", _
-                                     messagetype:=otCoreMessageType.InternalError, tablename:=parameter.Tablename)
+                                     messagetype:=otCoreMessageType.InternalError, containerID:=parameter.TableID)
                     Return False
 
                 End If
@@ -284,8 +282,8 @@ Namespace OnTrack
 
                 ''' datatype
                 If parameter.NotColumn And parameter.Datatype = 0 Then
-                    Call CoreMessageHandler(subname:="ormSqlCommand.AddParameter", _
-                                          arg1:=Me.ID, message:=" datatype not set in parameter for sql command", _
+                    Call CoreMessageHandler(procedure:="ormSqlCommand.AddParameter", _
+                                          argument:=Me.ID, message:=" datatype not set in parameter for sql command", _
                                           messagetype:=otCoreMessageType.InternalError)
                     Return False
                     ''' datatype lookup
@@ -293,13 +291,13 @@ Namespace OnTrack
 
                     ''' look up internally first
                     ''' 
-                    Dim anAttribute As ormObjectEntryAttribute = ot.GetSchemaTableColumnAttribute(tablename:=parameter.Tablename, columnname:=parameter.Fieldname)
+                    Dim anAttribute As ormContainerEntryAttribute = ot.GetSchemaTableColumnAttribute(tableid:=parameter.TableID, columnname:=parameter.ColumnName)
                     If anAttribute IsNot Nothing AndAlso anAttribute.HasValueDataType Then
-                        parameter.Datatype = anAttribute.DataType
+                        parameter.Datatype = anAttribute.Datatype
                     End If
                     ''' datatype still not resolved
                     If parameter.Datatype = 0 Then
-                        Dim aSchemaEntry As ColumnDefinition = CurrentSession.Objects.GetColumnEntry(columnname:=parameter.Fieldname, tablename:=parameter.Tablename)
+                        Dim aSchemaEntry As ContainerEntryDefinition = CurrentSession.Objects.GetColumnEntry(columnname:=parameter.ColumnName, tableid:=parameter.TableID)
                         If aSchemaEntry IsNot Nothing Then parameter.Datatype = aSchemaEntry.Datatype
 
                     End If
@@ -320,12 +318,12 @@ Namespace OnTrack
             ''' <returns></returns>
             ''' <remarks></remarks>
             Public Overridable Function AddTable(tableid As String) As Boolean
-                Dim aTablestore As iormDataStore
+                Dim aTablestore As iormRelationalTableStore
                 tableid = tableid.ToUpper
                 If Me._databaseDriver Is Nothing Then
                     aTablestore = GetTableStore(tableid:=tableid)
                     If aTablestore Is Nothing Then
-                        Call CoreMessageHandler(message:="Tablestore couldnot be retrieved", tablename:=tableid, subname:="clsOTDBSelectCommand.ADDTable", _
+                        Call CoreMessageHandler(message:="Tablestore couldnot be retrieved", containerID:=tableid, procedure:="clsOTDBSelectCommand.ADDTable", _
                                               messagetype:=otCoreMessageType.InternalError)
                         Return False
                     Else
@@ -337,7 +335,7 @@ Namespace OnTrack
 
 
                 If aTablestore Is Nothing Then
-                    Call CoreMessageHandler(message:="Tablestore couldnot be retrieved", tablename:=tableid, subname:="clsOTDBSelectCommand.ADDTable", _
+                    Call CoreMessageHandler(message:="Tablestore couldnot be retrieved", containerID:=tableid, procedure:="clsOTDBSelectCommand.ADDTable", _
                                           messagetype:=otCoreMessageType.InternalError)
                     Return False
                 End If
@@ -355,12 +353,12 @@ Namespace OnTrack
             ''' <returns></returns>
             Public Function SetParameterValue(ID As String, [value] As Object) As Boolean Implements iormSqlCommand.SetParameterValue
                 If Not _parameters.ContainsKey(key:=ID) Then
-                    Call CoreMessageHandler(message:="Parameter ID not in Command", arg1:=Me.ID, entryname:=ID, subname:="ormSqlCommand.SetParameterValue", _
+                    Call CoreMessageHandler(message:="Parameter ID not in Command", argument:=Me.ID, entryname:=ID, procedure:="ormSqlCommand.SetParameterValue", _
                                           messagetype:=otCoreMessageType.InternalError)
                     Return False
                 End If
 
-                ID = Regex.Replace(ID, "\s", "") ' no white chars allowed
+                ID = Regex.Replace(ID, "\s", String.empty) ' no white chars allowed
                 If _parametervalues.ContainsKey(key:=ID) Then
                     _parametervalues.Remove(key:=ID)
                 End If
@@ -376,7 +374,7 @@ Namespace OnTrack
             ''' <returns></returns>
             ''' <remarks></remarks>
             Public Function HasParameter(ID As String) As Boolean Implements iormSqlCommand.HasParameter
-                ID = Regex.Replace(ID, "\s", "") ' no white chars allowed
+                ID = Regex.Replace(ID, "\s", String.empty) ' no white chars allowed
                 If Not _parameters.ContainsKey(key:=ID) Then
                     Return False
                 Else
@@ -389,9 +387,9 @@ Namespace OnTrack
             ''' <param name="value">The value of the object</param>
             ''' <returns></returns>
             Public Function GetParameterValue(ID As String) As Object Implements iormSqlCommand.GetParameterValue
-                ID = Regex.Replace(ID, "\s", "") ' no white chars allowed
+                ID = Regex.Replace(ID, "\s", String.empty) ' no white chars allowed
                 If Not _parameters.ContainsKey(key:=ID) Then
-                    Call CoreMessageHandler(message:="Parameter ID not in Command", arg1:=Me.ID, entryname:=ID, subname:="ormSqlCommand.SetParameterValue", _
+                    Call CoreMessageHandler(message:="Parameter ID not in Command", argument:=Me.ID, entryname:=ID, procedure:="ormSqlCommand.SetParameterValue", _
                                           messagetype:=otCoreMessageType.InternalError)
                     Return Nothing
                 End If
@@ -415,7 +413,7 @@ Namespace OnTrack
                 Return _SqlText
             End Function
             ''' <summary>
-            ''' prepares the command
+            ''' prepares the command. returns true if successfull
             ''' </summary>
             ''' <returns>True if successfull</returns>
             ''' <remarks></remarks>
@@ -423,9 +421,17 @@ Namespace OnTrack
                 Dim aNativeConnection As System.Data.IDbConnection
                 Dim aNativeCommand As System.Data.IDbCommand
                 Dim cvtvalue As Object
-                Dim aTablestore As iormDataStore
-                If Me.DatabaseDriver Is Nothing Then
-                    Call CoreMessageHandler(subname:="ormSqlCommand.Prepare", arg1:=Me.ID, message:="database driver missing", _
+                Dim aTablestore As iormRelationalTableStore
+
+                If Me.DatabaseDriver Is Nothing And ot.IsConnected Then
+                    Me.DatabaseDriver = CurrentDBDriver
+                    aNativeConnection = CurrentDBDriver.CurrentConnection.NativeConnection
+                ElseIf Me.DatabaseDriver Is Nothing Then
+                    Call CoreMessageHandler(procedure:="ormSqlCommand.Prepare", argument:=Me.ID, message:="database driver missing", _
+                                                messagetype:=otCoreMessageType.InternalError)
+                    Return False
+                ElseIf Me.DatabaseDriver.CurrentConnection Is Nothing Then
+                    Call CoreMessageHandler(procedure:="ormSqlCommand.Prepare", argument:=Me.ID, message:="driver is not connected or connection is missing", _
                                                 messagetype:=otCoreMessageType.InternalError)
                     Return False
                 Else
@@ -441,9 +447,9 @@ Namespace OnTrack
                         aSqlText = Me.SqlText
                     End If
                     '**
-                    If aSqlText = "" Then
-                        Call CoreMessageHandler(message:="No SQL statement could'nt be build", arg1:=Me.ID, _
-                                               subname:="ormSqlCommand.Prepare", _
+                    If String.IsNullOrWhiteSpace(aSqlText) Then
+                        Call CoreMessageHandler(message:="No SQL statement could be build", argument:=Me.ID, _
+                                               procedure:="ormSqlCommand.Prepare", _
                                                messagetype:=otCoreMessageType.InternalError)
                         Return False
                     End If
@@ -461,23 +467,23 @@ Namespace OnTrack
                     For Each aParameter In Me.Parameters
                         '** add Column Parameter
 
-                        If Not aParameter.NotColumn And aParameter.Tablename <> "" And aParameter.Fieldname <> "" Then
-                            aTablestore = _databaseDriver.GetTableStore(aParameter.Tablename)
-                            If Not aTablestore.TableSchema.IsInitialized Then
-                                Call CoreMessageHandler(subname:="ormSqlCommand.Prepare", tablename:=aParameter.Tablename, _
+                        If Not aParameter.NotColumn And aParameter.TableID <> String.empty And aParameter.ColumnName <> String.empty Then
+                            aTablestore = _databaseDriver.GetTableStore(aParameter.TableID)
+                            If Not aTablestore.ContainerSchema.IsInitialized Then
+                                Call CoreMessageHandler(procedure:="ormSqlCommand.Prepare", containerID:=aParameter.TableID, _
                                                        message:="couldnot initialize table schema")
                                 Return False
                             End If
                             Dim aNativeParameter As System.Data.IDbDataParameter = _
-                                aTablestore.TableSchema.AssignNativeDBParameter(fieldname:=aParameter.Fieldname, parametername:=aParameter.ID)
+                                aTablestore.ContainerSchema.AssignNativeDBParameter(columnname:=aParameter.ColumnName, parametername:=aParameter.ID)
                             If Not aParameter Is Nothing Then aNativeCommand.Parameters.Add(aNativeParameter)
                         ElseIf aParameter.NotColumn Then
                             Dim aNativeParameter As System.Data.IDbDataParameter = _
                                _databaseDriver.AssignNativeDBParameter(parametername:=aParameter.ID, datatype:=aParameter.Datatype)
                             If Not aParameter Is Nothing Then aNativeCommand.Parameters.Add(aNativeParameter)
                         Else
-                            Call CoreMessageHandler(subname:="ormSqlCommand.Prepare", arg1:=aParameter.ID, message:="Tablename missing", _
-                                                  entryname:=aParameter.Fieldname, messagetype:=otCoreMessageType.InternalError)
+                            Call CoreMessageHandler(procedure:="ormSqlCommand.Prepare", argument:=aParameter.ID, message:="Tablename missing", _
+                                                  entryname:=aParameter.ColumnName, messagetype:=otCoreMessageType.InternalError)
                         End If
                     Next
                     '** prepare the native
@@ -486,14 +492,14 @@ Namespace OnTrack
                     '** initial values
                     aTablestore = Nothing ' reset
                     For Each aParameter In Me.Parameters
-                        If aParameter.Fieldname <> "" And aParameter.Tablename <> "" Then
-                            If aTablestore Is Nothing OrElse aTablestore.TableID <> aParameter.Tablename Then
-                                aTablestore = _databaseDriver.GetTableStore(aParameter.Tablename)
+                        If aParameter.ColumnName <> String.empty And aParameter.TableID <> String.empty Then
+                            If aTablestore Is Nothing OrElse aTablestore.ContainerID <> aParameter.TableID Then
+                                aTablestore = _databaseDriver.GetTableStore(aParameter.TableID)
                             End If
-                            If Not aTablestore.Convert2ColumnData(aParameter.Fieldname, invalue:=aParameter.Value, outvalue:=cvtvalue) Then
-                                Call CoreMessageHandler(message:="parameter value could not be converted", columnname:=aParameter.Fieldname, _
-                                                        entryname:=aParameter.ID, arg1:=aParameter.Value, messagetype:=otCoreMessageType.InternalError, _
-                                                        subname:="ormSqlCommand.Prepare")
+                            If Not aTablestore.Convert2ContainerData(aParameter.ColumnName, invalue:=aParameter.Value, outvalue:=cvtvalue) Then
+                                Call CoreMessageHandler(message:="parameter value could not be converted", containerEntryName:=aParameter.ColumnName, _
+                                                        entryname:=aParameter.ID, argument:=aParameter.Value, messagetype:=otCoreMessageType.InternalError, _
+                                                        procedure:="ormSqlCommand.Prepare")
                             End If
                         Else
                             cvtvalue = aParameter.Value
@@ -501,8 +507,8 @@ Namespace OnTrack
                         If aNativeCommand.Parameters.Contains(aParameter.ID) Then
                             aNativeCommand.Parameters(aParameter.ID).value = cvtvalue
                         Else
-                            Call CoreMessageHandler(message:="Parameter ID is not in native sql command", entryname:=aParameter.ID, arg1:=Me.ID, _
-                                                   messagetype:=otCoreMessageType.InternalError, subname:="ormSqlCommand.Prepare")
+                            Call CoreMessageHandler(message:="Parameter ID is not in native sql command", entryname:=aParameter.ID, argument:=Me.ID, _
+                                                   messagetype:=otCoreMessageType.InternalError, procedure:="ormSqlCommand.Prepare")
 
                         End If
 
@@ -512,12 +518,12 @@ Namespace OnTrack
 
                 Catch ex As OleDb.OleDbException
                     Me._Prepared = False
-                    Call CoreMessageHandler(subname:="ormSqlCommand.Prepare", message:="Exception", arg1:=Me.ID, _
+                    Call CoreMessageHandler(procedure:="ormSqlCommand.Prepare", message:="Exception", argument:=Me.ID, _
                                            exception:=ex, messagetype:=otCoreMessageType.InternalException)
                     Return False
                 Catch ex As Exception
                     Me._Prepared = False
-                    Call CoreMessageHandler(subname:="ormSqlCommand.Prepare", message:="Exception", arg1:=Me.ID, _
+                    Call CoreMessageHandler(procedure:="ormSqlCommand.Prepare", message:="Exception", argument:=Me.ID, _
                                            exception:=ex, messagetype:=otCoreMessageType.InternalException)
                     Return False
                 End Try
@@ -558,13 +564,13 @@ Namespace OnTrack
                 ''' else run against the database driver
                 ''' 
                 '*** run it 
-                If Me.Prepared Then
+                If Me.IsPrepared Then
                     Return Me.DatabaseDriver.RunSqlCommand(sqlcommand:=Me, parametervalues:=aParametervalues, nativeConnection:=nativeConnection)
                 Else
                     If Me.Prepare() Then
                         Return Me.DatabaseDriver.RunSqlCommand(sqlcommand:=Me, parametervalues:=aParametervalues, nativeConnection:=nativeConnection)
                     Else
-                        Call CoreMessageHandler(subname:="clsOTDBSqlSelectCommand.run", message:="Command is not prepared", arg1:=Me.ID, _
+                        Call CoreMessageHandler(procedure:="clsOTDBSqlSelectCommand.run", message:="Command is not prepared", argument:=Me.ID, _
                                                          messagetype:=otCoreMessageType.InternalError)
                         Return False
                     End If
@@ -584,10 +590,10 @@ Namespace OnTrack
         ''' <remarks></remarks>
         Public Class ormSqlCommandParameter
 
-            Private _ID As String = ""
+            Private _ID As String = String.empty
             Private _NotColumn As Boolean = False
-            Private _tablename As String = ""
-            Private _columname As String = ""
+            Private _tablename As String = Nothing
+            Private _columname As String = Nothing
             Private _datatype As otDataType = 0
             Private _value As Object
 
@@ -602,14 +608,14 @@ Namespace OnTrack
             ''' <remarks></remarks>
             Public Sub New(ByVal ID As String, _
                            Optional datatype As otDataType = 0, _
-                           Optional columnname As String = "", _
-                           Optional tablename As String = "", _
+                           Optional columnname As String = Nothing, _
+                           Optional tableid As String = Nothing, _
                            Optional value As Object = Nothing, _
                            Optional notColumn As Boolean = False)
-                _ID = Regex.Replace(ID, "\s", "") ' no white chars allowed
+                _ID = Regex.Replace(ID, "\s", String.Empty) ' no white chars allowed
                 _datatype = datatype
-                If columnname <> "" Then _columname = columnname.ToUpper
-                If tablename <> "" Then _tablename = tablename.ToUpper
+                If Not String.IsNullOrWhiteSpace(columnname) Then _columname = columnname.ToUpper
+                If Not String.IsNullOrWhiteSpace(TableID) Then _tablename = TableID.ToUpper
                 If Not value Is Nothing Then _value = value
                 _NotColumn = notColumn
             End Sub
@@ -656,7 +662,7 @@ Namespace OnTrack
             ''' Gets or sets the fieldname.
             ''' </summary>
             ''' <value>The fieldname.</value>
-            Public Property Fieldname() As String
+            Public Property ColumnName() As String
                 Get
                     Return Me._columname
                 End Get
@@ -668,7 +674,7 @@ Namespace OnTrack
             ''' Gets or sets the fieldname.
             ''' </summary>
             ''' <value>The fieldname.</value>
-            Public Property Tablename() As String
+            Public Property TableID() As String
                 Get
                     Return Me._tablename
                 End Get
@@ -685,7 +691,7 @@ Namespace OnTrack
                     Return Me._ID
                 End Get
                 Set(value As String)
-                    Me._ID = Regex.Replace(ID, "\s", "") ' no white chars allowed
+                    Me._ID = Regex.Replace(ID, "\s", String.empty) ' no white chars allowed
                 End Set
             End Property
 
@@ -710,10 +716,10 @@ Namespace OnTrack
             'Private _tablestores As New Dictionary(Of String, iOTDBTableStore) 'store the used Tablestores
             Private _fields As New Dictionary(Of String, ormResultField)
 
-            Private _select As String = ""
-            Private _innerjoin As String = ""
-            Private _orderby As String = ""
-            Private _where As String = ""
+            Private _select As String = String.empty
+            Private _innerjoin As String = String.empty
+            Private _orderby As String = String.empty
+            Private _where As String = String.empty
             Private _AllFieldsAdded As Boolean
 
 
@@ -727,7 +733,7 @@ Namespace OnTrack
 
                 Private _myCommand As ormSqlSelectCommand ' Backreference
                 Private _name As String
-                Private _tablestore As iormDataStore
+                Private _tablestore As iormRelationalTableStore
                 Private _type As ormSelectResultFieldType
 
 
@@ -779,11 +785,11 @@ Namespace OnTrack
                 ''' Gets or sets the Tablestore used
                 ''' </summary>
                 ''' <value>The name.</value>
-                Public Property [Tablestore]() As iormDataStore
+                Public Property [Tablestore]() As iormRelationalTableStore
                     Get
                         Return Me._tablestore
                     End Get
-                    Set(value As iormDataStore)
+                    Set(value As iormRelationalTableStore)
                         Me._tablestore = value
                         If _myCommand.DatabaseDriver Is Nothing Then
                             _myCommand.DatabaseDriver = value.Connection.DatabaseDriver
@@ -800,7 +806,7 @@ Namespace OnTrack
                 Public ReadOnly Property [NativeTablename] As String
                     Get
                         If _tablestore IsNot Nothing Then
-                            Return _tablestore.NativeTablename
+                            Return _tablestore.NativeDBObjectname
                         End If
                         Return String.Empty
                     End Get
@@ -814,12 +820,12 @@ Namespace OnTrack
                         If _tablestore Is Nothing Then
                             Return String.Empty
                         Else
-                            Return _tablestore.TableID
+                            Return _tablestore.ContainerID
                         End If
 
                     End Get
                     Set(value As String)
-                        Dim aTablestore As iormDataStore
+                        Dim aTablestore As iormRelationalTableStore
                         '** set it to current connection 
                         If Not _myCommand.DatabaseDriver Is Nothing Then
                             _myCommand.DatabaseDriver = ot.CurrentConnection.DatabaseDriver
@@ -829,7 +835,7 @@ Namespace OnTrack
                             ' add it
                             aTablestore = Me._myCommand.DatabaseDriver.GetTableStore(tableID:=value)
                             If aTablestore IsNot Nothing Then
-                                _myCommand._tablestores.Add(key:=aTablestore.TableID, value:=aTablestore)
+                                _myCommand._tablestores.Add(key:=aTablestore.ContainerID, value:=aTablestore)
                             End If
                         Else
                             aTablestore = _myCommand._tablestores.Item(value)
@@ -860,7 +866,7 @@ Namespace OnTrack
             ''' <remarks></remarks>
             Public Sub New(ID As String)
                 Call MyBase.New(ID:=ID)
-                _type = OTDBSQLCommandTypes.SELECT
+                _type = otSQLCommandTypes.SELECT
             End Sub
             ''' <summary>
             ''' Gets the completefor object.
@@ -933,7 +939,7 @@ Namespace OnTrack
                     Me.BuildTextRequired = True
                 End Set
             End Property
-            
+
             ''' <summary>
             ''' Add Table with fields to the Resultfields
             ''' </summary>
@@ -941,12 +947,12 @@ Namespace OnTrack
             ''' <returns></returns>
             ''' <remarks></remarks>
             Public Function AddTable(tableid As String, addAllFields As Boolean, Optional addFieldnames As List(Of String) = Nothing) As Boolean
-                Dim aTablestore As iormDataStore
+                Dim aTablestore As iormRelationalTableStore
                 tableid = tableid.ToUpper
                 If Me._databaseDriver Is Nothing Then
                     aTablestore = GetTableStore(tableid:=tableid)
                     If aTablestore Is Nothing Then
-                        Call CoreMessageHandler(message:="Tablestore couldnot be retrieved", tablename:=tableid, subname:="clsOTDBSelectCommand.ADDTable", _
+                        Call CoreMessageHandler(message:="Tablestore couldnot be retrieved", containerID:=tableid, procedure:="clsOTDBSelectCommand.ADDTable", _
                                               messagetype:=otCoreMessageType.InternalError)
                         Return False
                     Else
@@ -958,7 +964,7 @@ Namespace OnTrack
 
 
                 If aTablestore Is Nothing Then
-                    Call CoreMessageHandler(message:="Tablestore couldnot be retrieved", tablename:=tableid, subname:="clsOTDBSelectCommand.ADDTable", _
+                    Call CoreMessageHandler(message:="Tablestore couldnot be retrieved", containerID:=tableid, procedure:="clsOTDBSelectCommand.ADDTable", _
                                           messagetype:=otCoreMessageType.InternalError)
                     Return False
                 End If
@@ -969,7 +975,7 @@ Namespace OnTrack
 
                 '*** include all fields
                 If addAllFields Then
-                    For Each aFieldname As String In aTablestore.TableSchema.Fieldnames
+                    For Each aFieldname As String In aTablestore.ContainerSchema.EntryNames
                         If Not _fields.ContainsKey(key:=tableid & "." & aFieldname.ToUpper) Then
                             _fields.Add(key:=tableid & "." & aFieldname.ToUpper, value:=New ormResultField(Me, tableid:=tableid, fieldname:=aFieldname.ToUpper))
                         End If
@@ -1007,7 +1013,7 @@ Namespace OnTrack
                 Next
 
                 '*** build the result list
-                If _select = "" Then
+                If String.IsNullOrWhiteSpace(_select) Then
                     first = True
                     '*
                     For Each aResultField In _fields.Values
@@ -1025,10 +1031,10 @@ Namespace OnTrack
                     Next
 
                     If aTableList.Count = 0 Then
-                        Call CoreMessageHandler(message:="no table and no fields in sql statement", subname:="clsOTDBSqlSelectCommand.BuildSqlText", _
-                                               arg1:=Me.ID, messagetype:=otCoreMessageType.InternalError)
+                        Call CoreMessageHandler(message:="no table and no fields in sql statement", procedure:="clsOTDBSqlSelectCommand.BuildSqlText", _
+                                               argument:=Me.ID, messagetype:=otCoreMessageType.InternalError)
                         Me.BuildTextRequired = True
-                        Return ""
+                        Return String.Empty
                     End If
                 Else
                     ''' TODO: add the additional parameter sql text
@@ -1043,25 +1049,26 @@ Namespace OnTrack
                 For Each aTableID In aTableList
 
                     '** if innerjoin has the tablename
-                    If Not _innerjoin.ToUpper.Contains(aTableID) Then
+                    If String.IsNullOrWhiteSpace(_innerjoin) OrElse _
+                        (Not String.IsNullOrWhiteSpace(_innerjoin) AndAlso Not _innerjoin.ToUpper.Contains(aTableID)) Then
                         If Not first Then
                             Me._SqlText &= ","
                         End If
-                        Me._SqlText &= "[" & Me.DatabaseDriver.GetNativeTableName(aTableID) & "]"
+                        Me._SqlText &= "[" & Me.DatabaseDriver.GetNativeDBObjectName(aTableID) & "]"
                         first = False
                     End If
                 Next
 
                 '*** innerjoin
-                If _innerjoin <> "" Then
+                If Not String.IsNullOrWhiteSpace(_innerjoin) Then
                     If Not _innerjoin.ToLower.Contains("join") Then
-                        Me._SqlText &= " inner join "
+                        Me._SqlText &= " INNER JOIN "
                     End If
                     _SqlText &= _innerjoin
                 End If
 
                 '*** where 
-                If _where <> "" Then
+                If _where <> String.empty Then
                     If Not _where.ToLower.Contains("where") Then
                         Me._SqlText &= " WHERE "
                     End If
@@ -1069,7 +1076,7 @@ Namespace OnTrack
                 End If
 
                 '*** order by 
-                If _orderby <> "" Then
+                If _orderby <> String.empty Then
                     If Not _where.ToLower.Contains("order by") Then
                         Me._SqlText &= " ORDER BY "
                     End If
@@ -1103,15 +1110,15 @@ Namespace OnTrack
                 ''' if we are running on one table only with all fields
                 ''' then use the tablestore select with type checking
                 If _tablestores.Count = 1 And _AllFieldsAdded Then
-                    Dim aStore As iormDataStore = _tablestores.Values.First
+                    Dim aStore As iormRelationalTableStore = _tablestores.Values.First
                     '*** run it
-                    If Me.Prepared Then
+                    If Me.IsPrepared Then
                         Return aStore.GetRecordsBySqlCommand(sqlcommand:=Me, parametervalues:=aParametervalues)
                     Else
                         If Me.Prepare() Then
                             Return aStore.GetRecordsBySqlCommand(sqlcommand:=Me, parametervalues:=aParametervalues)
                         Else
-                            Call CoreMessageHandler(subname:="clsOTDBSqlSelectCommand.runSelect", message:="Command is not prepared", arg1:=Me.ID, _
+                            Call CoreMessageHandler(procedure:="clsOTDBSqlSelectCommand.runSelect", message:="Command is not prepared", argument:=Me.ID, _
                                                              messagetype:=otCoreMessageType.InternalError)
                             Return New List(Of ormRecord)
                         End If
@@ -1120,13 +1127,13 @@ Namespace OnTrack
                     ''' else run against the database driver
                     ''' 
                     '*** run it
-                    If Me.Prepared Then
+                    If Me.IsPrepared Then
                         Return Me.DatabaseDriver.RunSqlSelectCommand(sqlcommand:=Me, parametervalues:=aParametervalues, nativeConnection:=nativeConnection)
                     Else
                         If Me.Prepare() Then
                             Return Me.DatabaseDriver.RunSqlSelectCommand(sqlcommand:=Me, parametervalues:=aParametervalues, nativeConnection:=nativeConnection)
                         Else
-                            Call CoreMessageHandler(subname:="clsOTDBSqlSelectCommand.runSelect", message:="Command is not prepared", arg1:=Me.ID, _
+                            Call CoreMessageHandler(procedure:="clsOTDBSqlSelectCommand.runSelect", message:="Command is not prepared", argument:=Me.ID, _
                                                              messagetype:=otCoreMessageType.InternalError)
                             Return New List(Of ormRecord)
                         End If
@@ -1136,20 +1143,21 @@ Namespace OnTrack
             End Function
         End Class
 
-        '************************************************************************************
-        '***** neutral CLASS clsOTDBDriver describes the Environment of the Database Implementation
-        '***** on which OnTrack runs
-        '*****
+
         ''' <summary>
-        ''' abstract ORM Driver class for Database Drivers
+        ''' abstract ORM Driver class for Relational Database Drivers
         ''' </summary>
         ''' <remarks></remarks>
-        Public MustInherit Class ormDatabaseDriver
-            Implements iormDatabaseDriver
+        Public MustInherit Class ormRDBDriver
+            Implements iormRelationalDatabaseDriver
 
             Protected _ID As String
-            Protected _TableDirectory As New Dictionary(Of String, iormDataStore)    'Table Directory of iOTDBTableStore
-            Protected _TableSchemaDirectory As New Dictionary(Of String, iotDataSchema)    'Table Directory of iOTDBTableSchema
+            Protected _TableDirectory As New Dictionary(Of String, iormRelationalTableStore)    'Table Directory of TableStored
+            Protected _ViewDirectory As New Dictionary(Of String, iormRelationalTableStore)    'view Directory of TableStore
+            Protected _TableSchemaDirectory As New Dictionary(Of String, iormContainerSchema)    'Table Directory of container schema
+            Protected _ViewSchemaDirectory As New Dictionary(Of String, iormContainerSchema)    'view Directory of container schema
+
+
             Protected WithEvents _primaryConnection As iormConnection ' primary connection
             Protected WithEvents _session As Session
             Protected _CommandStore As New Dictionary(Of String, iormSqlCommand) ' store of the SqlCommands to handle
@@ -1162,11 +1170,39 @@ Namespace OnTrack
             ''' <remarks></remarks>
             Public Const ConstDBParameterTableName As String = "TBLOTDBPARAMETERS"
             Public Const ConstOLDParameterTableName As String = "TBLDBPARAMETERS" 'Legacy Parameter Table w/o Application ID
-
+            '** Field names of parameter table
+            Public Const ConstFNSetupID = "SETUP"
+            Public Const ConstFNID = "ID"
+            Public Const ConstFNValue = "VALUE"
+            Public Const ConstFNChangedOn = "CHANGEDON"
+            Public Const constFNDescription = "DESCRIPTION"
             '* the events
-            Public Event RequestBootstrapInstall(sender As Object, e As SessionBootstrapEventArgs) Implements iormDatabaseDriver.RequestBootstrapInstall
+            Public Event RequestBootstrapInstall(sender As Object, e As SessionBootstrapEventArgs) Implements iormPrimaryDriver.RequestBootstrapInstall
 #Region "Properties"
 
+            ''' <summary>
+            ''' return true if driver is supporting a relational database
+            ''' </summary>
+            ''' <value></value>
+            ''' <returns></returns>
+            ''' <remarks></remarks>
+            Public ReadOnly Property IsRelationalDriver As Boolean Implements iormDatabaseDriver.IsRelationalDriver
+                Get
+                    Return True
+                End Get
+            End Property
+
+            ''' <summary>
+            ''' return true if driver is supporting  hosting an OnTrack database
+            ''' </summary>
+            ''' <value></value>
+            ''' <returns></returns>
+            ''' <remarks></remarks>
+            Public ReadOnly Property IsPrimaryDriver As Boolean Implements iormDatabaseDriver.IsPrimaryDriver
+                Get
+                    Return True
+                End Get
+            End Property
             ''' <summary>
             ''' Gets the session.
             ''' </summary>
@@ -1178,13 +1214,21 @@ Namespace OnTrack
             End Property
 
             ''' <summary>
+            ''' Returns the Parameter Tablename
+            ''' </summary>
+            ''' <value></value>
+            ''' <returns></returns>
+            ''' <remarks></remarks>
+            Public MustOverride ReadOnly Property DBParameterTablename As String Implements iormRelationalDatabaseDriver.DBParameterContainerName
+
+            ''' <summary>
             ''' returns the OTDBServertype
             ''' </summary>
             ''' <value></value>
             ''' <returns></returns>
             ''' <remarks></remarks>
 
-            Public ReadOnly Property DatabaseType As otDBServerType Implements iormDatabaseDriver.DatabaseType
+            Public ReadOnly Property DatabaseType As otDBServerType Implements iormRelationalDatabaseDriver.DatabaseType
                 Get
                     If _primaryConnection Is Nothing Then
                         Return 0
@@ -1198,13 +1242,13 @@ Namespace OnTrack
             ''' Gets the type.
             ''' </summary>
             ''' <value>The type.</value>
-            Public MustOverride ReadOnly Property Type() As otDbDriverType Implements iormDatabaseDriver.Type
+            Public MustOverride ReadOnly Property Type() As otDbDriverType Implements iormRelationalDatabaseDriver.Type
 
             ''' <summary>
             ''' Gets the ID.
             ''' </summary>
             ''' <value>The ID.</value>
-            Public Overridable Property ID() As String Implements iormDatabaseDriver.ID
+            Public Overridable Property ID() As String Implements iormRelationalDatabaseDriver.ID
                 Set(value As String)
                     _ID = value
                 End Set
@@ -1217,11 +1261,11 @@ Namespace OnTrack
             ''' Gets or sets the table schema directory.
             ''' </summary>
             ''' <value>The table schema directory.</value>
-            Public Property TableSchemaDirectory() As Dictionary(Of String, iotDataSchema)
+            Public Property TableSchemaDirectory() As Dictionary(Of String, iormContainerSchema)
                 Get
                     Return Me._TableSchemaDirectory
                 End Get
-                Set(value As Dictionary(Of String, iotDataSchema))
+                Set(value As Dictionary(Of String, iormContainerSchema))
                     Me._TableSchemaDirectory = value
                 End Set
             End Property
@@ -1230,11 +1274,11 @@ Namespace OnTrack
             ''' Gets or sets the table directory.
             ''' </summary>
             ''' <value>The table directory.</value>
-            Public Property TableDirectory() As Dictionary(Of String, iormDataStore)
+            Public Property TableDirectory() As Dictionary(Of String, iormRelationalTableStore)
                 Get
                     Return Me._TableDirectory
                 End Get
-                Set(value As Dictionary(Of String, iormDataStore))
+                Set(value As Dictionary(Of String, iormRelationalTableStore))
                     Me._TableDirectory = value
                 End Set
             End Property
@@ -1242,7 +1286,7 @@ Namespace OnTrack
             ''' Gets or sets the connection.
             ''' </summary>
             ''' <value>The connection.</value>
-            Public Overridable ReadOnly Property CurrentConnection() As iormConnection Implements iormDatabaseDriver.CurrentConnection
+            Public Overridable ReadOnly Property CurrentConnection() As iormConnection Implements iormRelationalDatabaseDriver.CurrentConnection
                 Get
                     Return _primaryConnection
                 End Get
@@ -1266,7 +1310,7 @@ Namespace OnTrack
             ''' <param name="id">id of the command</param>
             ''' <remarks></remarks>
             ''' <returns>True if successful</returns>
-            Public Function HasSqlCommand(id As String) As Boolean Implements iormDatabaseDriver.HasSqlCommand
+            Public Function HasSqlCommand(id As String) As Boolean Implements iormRelationalDatabaseDriver.HasSqlCommand
                 Return _CommandStore.ContainsKey(key:=id)
             End Function
 
@@ -1276,7 +1320,7 @@ Namespace OnTrack
             ''' <param name="sqlCommand">a iOTDBSqlCommand</param>
             ''' <remarks></remarks>
             ''' <returns>true if successful</returns>
-            Public Function StoreSqlCommand(ByRef sqlCommand As iormSqlCommand) As Boolean Implements iormDatabaseDriver.StoreSqlCommand
+            Public Function StoreSqlCommand(ByRef sqlCommand As iormSqlCommand) As Boolean Implements iormRelationalDatabaseDriver.StoreSqlCommand
                 If _CommandStore.ContainsKey(key:=sqlCommand.ID) Then
                     _CommandStore.Remove(key:=sqlCommand.ID)
                 End If
@@ -1290,7 +1334,7 @@ Namespace OnTrack
             ''' <param name="id">id of the command</param>
             ''' <remarks></remarks>
             ''' <returns>a iOTDBSqlCommand</returns>
-            Public Function RetrieveSqlCommand(id As String) As iormSqlCommand Implements iormDatabaseDriver.RetrieveSqlCommand
+            Public Function RetrieveSqlCommand(id As String) As iormSqlCommand Implements iormRelationalDatabaseDriver.RetrieveSqlCommand
                 If _CommandStore.ContainsKey(key:=id) Then
                     Return _CommandStore.Item(key:=id)
                 End If
@@ -1303,7 +1347,7 @@ Namespace OnTrack
             ''' <param name="id">id of the command</param>
             ''' <returns>a iOTDBSqlCommand</returns>
             ''' <remarks></remarks>
-            Public Overridable Function CreateSqlCommand(id As String) As iormSqlCommand Implements iormDatabaseDriver.CreateSqlCommand
+            Public Overridable Function CreateSqlCommand(id As String) As iormSqlCommand Implements iormRelationalDatabaseDriver.CreateSqlCommand
                 '* get the ID
 
                 If Me.HasSqlCommand(id) Then
@@ -1320,7 +1364,7 @@ Namespace OnTrack
             ''' <param name="id">id of the command</param>
             ''' <returns>a iOTDBSqlCommand</returns>
             ''' <remarks></remarks>
-            Public Overridable Function CreateSqlSelectCommand(id As String) As iormSqlCommand Implements iormDatabaseDriver.CreateSqlSelectCommand
+            Public Overridable Function CreateSqlSelectCommand(id As String) As iormSqlCommand Implements iormRelationalDatabaseDriver.CreateSqlSelectCommand
                 '* get the ID
 
                 If Me.HasSqlCommand(id) Then
@@ -1363,7 +1407,7 @@ Namespace OnTrack
             ''' <param name="modules"></param>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public MustOverride Function InstallOnTrackDatabase(askBefore As Boolean, modules As String()) As Boolean Implements iormDatabaseDriver.InstallOnTrackDatabase
+            Public MustOverride Function InstallOnTrackDatabase(askBefore As Boolean, modules As String()) As Boolean Implements iormPrimaryDriver.InstallOnTrackDatabase
 
             ''' <summary>
             ''' returns true if an OnTrack Admin User is available in the database
@@ -1371,7 +1415,7 @@ Namespace OnTrack
             ''' <param name="nativeConnection"></param>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public MustOverride Function HasAdminUserValidation(Optional ByRef nativeConnection As Object = Nothing) As Boolean Implements iormDatabaseDriver.HasAdminUserValidation
+            Public MustOverride Function HasAdminUserValidation(Optional ByRef nativeConnection As Object = Nothing) As Boolean Implements iormPrimaryDriver.HasAdminUserValidation
 
             ''' <summary>
             ''' Gets or creates the foreign key for a columndefinition
@@ -1388,7 +1432,7 @@ Namespace OnTrack
             ''' </summary>
             ''' <param name="nativeConnection">The native connection.</param>
             ''' <returns></returns>
-            Public MustOverride Function CreateGlobalDomain(Optional ByRef nativeConnection As Object = Nothing) As Boolean Implements iormDatabaseDriver.CreateGlobalDomain
+            Public MustOverride Function CreateGlobalDomain(Optional ByRef nativeConnection As Object = Nothing) As Boolean Implements iormPrimaryDriver.CreateGlobalDomain
 
 
 
@@ -1397,7 +1441,7 @@ Namespace OnTrack
             ''' </summary>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public MustOverride Function VerifyOnTrackDatabase(Optional modules As String() = Nothing, Optional install As Boolean = False, Optional verifySchema As Boolean = False) As Boolean Implements iormDatabaseDriver.VerifyOnTrackDatabase
+            Public MustOverride Function VerifyOnTrackDatabase(Optional modules As String() = Nothing, Optional install As Boolean = False, Optional verifySchema As Boolean = False) As Boolean Implements iormPrimaryDriver.VerifyOnTrackDatabase
 
 
             ''' <summary>
@@ -1409,7 +1453,7 @@ Namespace OnTrack
             ''' <remarks></remarks>
             Public MustOverride Function AssignNativeDBParameter(parametername As String, datatype As otDataType, _
                                                                   Optional maxsize As Long = 0, _
-                                                                 Optional value As Object = Nothing) As System.Data.IDbDataParameter Implements iormDatabaseDriver.AssignNativeDBParameter
+                                                                 Optional value As Object = Nothing) As System.Data.IDbDataParameter Implements iormRelationalDatabaseDriver.AssignNativeDBParameter
 
             ''' <summary>
             ''' returns the target type for a OTDB FieldType - MAPPING
@@ -1433,7 +1477,7 @@ Namespace OnTrack
                                                         targetType As Long, _
                                                         Optional ByVal maxsize As Long = 0, _
                                                        Optional ByRef abostrophNecessary As Boolean = False, _
-                                                       Optional ByVal fieldname As String = "", _
+                                                       Optional ByVal fieldname As String = Nothing, _
                                                        Optional isnullable As Boolean = False,
                                                         Optional defaultvalue As Object = Nothing) As Boolean Implements iormDatabaseDriver.Convert2DBData
 
@@ -1446,7 +1490,7 @@ Namespace OnTrack
             ''' <returns></returns>
             Public MustOverride Function RunSqlCommand(ByRef sqlcommand As ormSqlCommand, _
                                                        Optional ByRef parametervalues As Dictionary(Of String, Object) = Nothing, _
-                                                       Optional nativeConnection As Object = Nothing) As Boolean Implements iormDatabaseDriver.RunSqlCommand
+                                                       Optional nativeConnection As Object = Nothing) As Boolean Implements iormRelationalDatabaseDriver.RunSqlCommand
 
 
             ''' <summary>
@@ -1466,13 +1510,6 @@ Namespace OnTrack
                                                             Optional defaultvalue As Object = Nothing, _
                                                             Optional ByRef abostrophNecessary As Boolean = False) As Boolean Implements iormDatabaseDriver.Convert2ObjectData
 
-            ''' Gets the catalog.
-            ''' </summary>
-            ''' <param name="FORCE">The FORCE.</param>
-            ''' <param name="connection">The native connection.</param>
-            ''' <returns></returns>
-            Public MustOverride Function GetCatalog(Optional force As Boolean = False, Optional ByRef connection As iormConnection = Nothing) As Object Implements iormDatabaseDriver.GetCatalog
-            ' TODO: Implement this method
 
             ''' <summary>
             ''' returns True if data store has the table
@@ -1481,7 +1518,9 @@ Namespace OnTrack
             ''' <param name="connection"></param>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public MustOverride Function HasTable(tableid As String, Optional ByRef connection As iormConnection = Nothing, Optional nativeConnection As Object = Nothing) As Boolean Implements iormDatabaseDriver.HasTable
+            Public MustOverride Function HasTable(tableid As String, _
+                                                  Optional ByRef connection As iormConnection = Nothing, _
+                                                  Optional nativeConnection As Object = Nothing) As Boolean Implements iormRelationalDatabaseDriver.HasTable, iormDatabaseDriver.HasContainerID
 
             ''' <summary>
             ''' returns True if data store has the table by definition
@@ -1490,7 +1529,7 @@ Namespace OnTrack
             ''' <param name="connection"></param>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public MustOverride Function VerifyTableSchema(tabledefinition As TableDefinition, Optional ByRef connection As iormConnection = Nothing, Optional nativeConnection As Object = Nothing) As Boolean Implements iormDatabaseDriver.VerifyTableSchema
+            Public MustOverride Function VerifyTableSchema(tabledefinition As ContainerDefinition, Optional ByRef connection As iormConnection = Nothing, Optional nativeConnection As Object = Nothing) As Boolean Implements iormRelationalDatabaseDriver.VerifyTableSchema
 
             ''' <summary>
             ''' returns True if data store has the table attribute
@@ -1499,10 +1538,20 @@ Namespace OnTrack
             ''' <param name="connection"></param>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public MustOverride Function VerifyTableSchema(tableattribute As ormSchemaTableAttribute, Optional ByRef connection As iormConnection = Nothing, Optional nativeConnection As Object = Nothing) As Boolean Implements iormDatabaseDriver.VerifyTableSchema
+            Public MustOverride Function VerifyTableSchema(tableattribute As ormTableAttribute, Optional ByRef connection As iormConnection = Nothing, Optional nativeConnection As Object = Nothing) As Boolean Implements iormRelationalDatabaseDriver.VerifyContainerSchema
 
             ''' <summary>
-            ''' Gets the table.
+            ''' returns True if data store has the table attribute
+            ''' </summary>
+            ''' <param name="tablename"></param>
+            ''' <param name="connection"></param>
+            ''' <returns></returns>
+            ''' <remarks></remarks>
+            Public MustOverride Function VerifyContainerSchema(containerAttribute As iormContainerAttribute, Optional ByRef connection As iormConnection = Nothing, Optional nativeConnection As Object = Nothing) As Boolean Implements iormDatabaseDriver.VerifyContainerSchema
+
+
+            ''' <summary>
+            ''' Gets, creates or alters the table.
             ''' </summary>
             ''' <param name="tableid">The ot tableid.</param>
             ''' <param name="createOrAlter">The create on missing.</param>
@@ -1512,7 +1561,17 @@ Namespace OnTrack
             Public MustOverride Function GetTable(tableid As String, _
                             Optional createOrAlter As Boolean = False, _
                             Optional ByRef connection As iormConnection = Nothing, _
-                             Optional ByRef nativeTableObject As Object = Nothing) As Object Implements iormDatabaseDriver.GetTable
+                             Optional ByRef nativeTableObject As Object = Nothing) As Object Implements iormRelationalDatabaseDriver.GetTable, iormDatabaseDriver.GetContainerObject
+
+            ''' <summary>
+            ''' drops a table in the database by id
+            ''' </summary>
+            ''' <param name="id"></param>
+            ''' <param name="connection"></param>
+            ''' <remarks></remarks>
+            ''' <returns></returns>
+            Public MustOverride Function DropTable(id As String, _
+                                                   Optional ByRef connection As iormConnection = Nothing) As Boolean Implements iormDatabaseDriver.DropContainerObject, iormRelationalDatabaseDriver.DropTable
 
             ''' <summary>
             ''' returns true if the datastore has the view by viewname
@@ -1522,8 +1581,8 @@ Namespace OnTrack
             ''' <param name="nativeConnection"></param>
             ''' <remarks></remarks>
             ''' <returns></returns>
-            Public MustOverride Function HasView(viewid As String, Optional ByRef connection As iormConnection = Nothing, Optional nativeConnection As Object = Nothing) As Boolean Implements iormDatabaseDriver.HasView
-            
+            Public MustOverride Function HasView(viewid As String, Optional ByRef connection As iormConnection = Nothing, Optional nativeConnection As Object = Nothing) As Boolean Implements iormRelationalDatabaseDriver.HasView
+
 
             ''' <summary>
             ''' returns or creates a View in the data store
@@ -1534,7 +1593,17 @@ Namespace OnTrack
             ''' <param name="connection"></param>
             ''' <remarks></remarks>
             ''' <returns></returns>
-            Public MustOverride Function GetView(viewid As String, sqlselect As String, Optional createOrAlter As Boolean = False, Optional ByRef connection As iormConnection = Nothing) As Object Implements iormDatabaseDriver.GetView
+            Public MustOverride Function GetView(viewid As String, Optional sqlselect As String = Nothing, Optional createOrAlter As Boolean = False, Optional ByRef connection As iormConnection = Nothing) As Object Implements iormRelationalDatabaseDriver.GetView
+
+
+            ''' <summary>
+            ''' drops a view by id
+            ''' </summary>
+            ''' <param name="id"></param>
+            ''' <param name="connection"></param>
+            ''' <remarks></remarks>
+            ''' <returns></returns>
+            Public MustOverride Function DropView(id As String, Optional ByRef connection As iormConnection = Nothing) As Boolean Implements iormRelationalDatabaseDriver.DropView
 
 
             ''' <summary>
@@ -1550,9 +1619,9 @@ Namespace OnTrack
             ''' <returns></returns>
 
             Public MustOverride Function GetIndex(ByRef nativeTable As Object, ByRef indexdefinition As IndexDefinition, _
-           Optional ByVal forceCreation As Boolean = False, _
-           Optional ByVal createOrAlter As Boolean = False, _
-            Optional ByRef connection As iormConnection = Nothing) As Object Implements iormDatabaseDriver.GetIndex
+                                                   Optional ByVal forceCreation As Boolean = False, _
+                                                   Optional ByVal createOrAlter As Boolean = False, _
+                                                   Optional ByRef connection As iormConnection = Nothing) As Object Implements iormRelationalDatabaseDriver.GetIndex
 
             ''' <summary>
             ''' returns True if the column exists in the table 
@@ -1562,7 +1631,9 @@ Namespace OnTrack
             ''' <param name="connection"></param>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public MustOverride Function HasColumn(tablename As String, columnname As String, Optional ByRef connection As iormConnection = Nothing) As Boolean Implements iormDatabaseDriver.HasColumn
+            Public MustOverride Function HasColumn(tablename As String, _
+                                                   columnname As String, _
+                                                   Optional ByRef connection As iormConnection = Nothing) As Boolean Implements iormRelationalDatabaseDriver.HasColumn, iormDatabaseDriver.HasContainerEntryID
             ''' <summary>
             ''' returns True if the column exists in the table 
             ''' </summary>
@@ -1571,7 +1642,9 @@ Namespace OnTrack
             ''' <param name="connection"></param>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public MustOverride Function VerifyColumnSchema(columndefinition As ColumnDefinition, Optional ByRef connection As iormConnection = Nothing, Optional silent As Boolean = False) As Boolean Implements iormDatabaseDriver.VerifyColumnSchema
+            Public MustOverride Function VerifyColumnSchema(containerEntryDefinition As ContainerEntryDefinition, _
+                                                            Optional ByRef connection As iormConnection = Nothing, _
+                                                            Optional silent As Boolean = False) As Boolean Implements iormRelationalDatabaseDriver.VerifyColumnSchema, iormDatabaseDriver.VerifyContainerEntrySchema
 
             ''' <summary>
             ''' returns True if the column exists in the table 
@@ -1581,7 +1654,9 @@ Namespace OnTrack
             ''' <param name="connection"></param>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public MustOverride Function VerifyColumnSchema(columnattribute As ormSchemaTableColumnAttribute, Optional ByRef connection As iormConnection = Nothing, Optional silent As Boolean = False) As Boolean Implements iormDatabaseDriver.VerifyColumnSchema
+            Public MustOverride Function VerifyColumnSchema(attribute As iormContainerEntryAttribute, _
+                                                            Optional ByRef connection As iormConnection = Nothing, _
+                                                            Optional silent As Boolean = False) As Boolean Implements iormRelationalDatabaseDriver.VerifyColumnSchema, iormDatabaseDriver.VerifyContainerEntrySchema
 
             ''' <summary>
             ''' Gets the column.
@@ -1591,8 +1666,10 @@ Namespace OnTrack
             ''' <param name="createOrAlter">The create on missing.</param>
             ''' <param name="addToSchemaDir">The add to schema dir.</param>
             ''' <returns></returns>
-            Public MustOverride Function GetColumn(nativeTable As Object, columndefinition As ColumnDefinition, Optional createOrAlter As Boolean = False, _
-                                                   Optional ByRef connection As iormConnection = Nothing) As Object Implements iormDatabaseDriver.GetColumn
+            Public MustOverride Function GetColumn(nativeTable As Object, _
+                                                   columndefinition As ContainerEntryDefinition, _
+                                                   Optional createOrAlter As Boolean = False, _
+                                                   Optional ByRef connection As iormConnection = Nothing) As Object Implements iormRelationalDatabaseDriver.GetColumn, iormDatabaseDriver.GetContainerEntryObject
 
 
             ''' <summary>
@@ -1601,7 +1678,7 @@ Namespace OnTrack
             ''' <param name="connection"></param>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public MustOverride Function CreateDBUserDefTable(Optional ByRef nativeConnection As Object = Nothing) As Boolean Implements iormDatabaseDriver.CreateDBUserDefTable
+            Public MustOverride Function CreateDBUserDefTable(Optional ByRef nativeConnection As Object = Nothing) As Boolean Implements iormPrimaryDriver.CreateDBUserDefTable
 
             ''' <summary>
             ''' create the DB Parameter Table
@@ -1609,7 +1686,33 @@ Namespace OnTrack
             ''' <param name="connection"></param>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public MustOverride Function CreateDBParameterTable(Optional ByRef nativeConnection As Object = Nothing) As Boolean Implements iormDatabaseDriver.CreateDBParameterTable
+            Public MustOverride Function CreateDBParameterTable(Optional ByRef nativeConnection As Object = Nothing) As Boolean Implements iormPrimaryDriver.CreateDBParameterContainer
+
+
+            ''' <summary>
+            ''' drops the DB parameter table - given with setup then just the setup related entries
+            ''' if then there is no setup related entries at all -> drop the full table
+            ''' </summary>
+            ''' <param name="nativeConnection"></param>
+            ''' <returns></returns>
+            ''' <remarks></remarks>
+            Public MustOverride Function DropDBParameterTable(Optional setup As String = Nothing, _
+                                                              Optional ByRef nativeConnection As Object = Nothing) As Boolean Implements iormPrimaryDriver.DropDBParameterContainer
+
+            ''' <summary>
+            ''' deletes a DB Parameter
+            ''' </summary>
+            ''' <param name="parametername"></param>
+            ''' <param name="nativeConnection"></param>
+            ''' <param name="silent"></param>
+            ''' <param name="setupID"></param>
+            ''' <remarks></remarks>
+            ''' <returns></returns>
+            Public MustOverride Function DeleteDBParameter(parametername As String, _
+                                                           Optional ByRef nativeConnection As Object = Nothing, _
+                                                           Optional silent As Boolean = False, _
+                                                           Optional setupID As String = Nothing) As Boolean Implements iormPrimaryDriver.DeleteDBParameter
+
 
             ''' <summary>
             ''' Sets the DB parameter.
@@ -1620,12 +1723,13 @@ Namespace OnTrack
             ''' <param name="UpdateOnly">The update only.</param>
             ''' <param name="silent">The silent.</param>
             ''' <returns></returns>
-            Public MustOverride Function SetDBParameter(parametername As String, Value As Object, _
+            Public MustOverride Function SetDBParameter(parametername As String, _
+                                                        value As Object, _
                                                         Optional ByRef nativeConnection As Object = Nothing, _
-                                                        Optional UpdateOnly As Boolean = False, _
+                                                        Optional updateOnly As Boolean = False, _
                                                         Optional silent As Boolean = False, _
                                                         Optional setupID As String = Nothing, _
-                                                        Optional description As String = "") As Boolean Implements iormDatabaseDriver.SetDBParameter
+                                                        Optional description As String = Nothing) As Boolean Implements iormPrimaryDriver.SetDBParameter
 
             ''' <summary>
             ''' Gets the DB parameter.
@@ -1637,7 +1741,7 @@ Namespace OnTrack
             Public MustOverride Function GetDBParameter(parametername As String, _
                                                         Optional ByRef nativeConnection As Object = Nothing, _
                                                         Optional silent As Boolean = False, _
-                                                        Optional setupID As String = Nothing) As Object Implements iormDatabaseDriver.GetDBParameter
+                                                        Optional setupID As String = Nothing) As Object Implements iormPrimaryDriver.GetDBParameter
 
 
 
@@ -1650,7 +1754,11 @@ Namespace OnTrack
             ''' <param name="domainID"></param>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public Function ValidateUser(ByVal username As String, ByVal password As String, ByVal accessRequest As otAccessRight, Optional domainid As String = Nothing) As Boolean Implements iormDatabaseDriver.ValidateUser
+            Public Function ValidateUser(ByVal username As String, _
+                                         ByVal password As String, _
+                                         ByVal accessRequest As otAccessRight, _
+                                         Optional domainid As String = Nothing) As Boolean Implements iormPrimaryDriver.ValidateUser
+
                 Dim aValidation As UserValidation
                 aValidation.ValidEntry = False
                 aValidation = GetUserValidation(username:=username)
@@ -1691,8 +1799,9 @@ Namespace OnTrack
             ''' <param name="Username">The username.</param>
             ''' <param name="connection">The native connection.</param>
             ''' <returns></returns>
-            Protected Friend MustOverride Function GetUserValidation(username As String, Optional ByVal selectAnonymous As Boolean = False, _
-                                                                     Optional ByRef nativeConnection As Object = Nothing) As UserValidation Implements iormDatabaseDriver.GetUserValidation
+            Protected Friend MustOverride Function GetUserValidation(username As String, _
+                                                                     Optional ByVal selectAnonymous As Boolean = False, _
+                                                                     Optional ByRef nativeConnection As Object = Nothing) As UserValidation Implements iormPrimaryDriver.GetUserValidation
 
             ''' <summary>
             ''' create a tablestore 
@@ -1700,14 +1809,29 @@ Namespace OnTrack
             ''' <param name="TableID"></param>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Protected Friend MustOverride Function CreateNativeTableStore(ByVal tableID As String, ByVal forceSchemaReload As Boolean) As iormDataStore
+            Protected Friend MustOverride Function CreateNativeTableStore(ByVal tableID As String, ByVal forceSchemaReload As Boolean) As iormRelationalTableStore
             ''' <summary>
             ''' create a tableschema
             ''' </summary>
             ''' <param name="TableID"></param>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Protected Friend MustOverride Function CreateNativeTableSchema(ByVal tableID As String) As iotDataSchema
+            Protected Friend MustOverride Function CreateNativeTableSchema(ByVal tableID As String) As iormContainerSchema
+
+            ''' <summary>
+            ''' create a native view reader 
+            ''' </summary>
+            ''' <param name="TableID"></param>
+            ''' <returns></returns>
+            ''' <remarks></remarks>
+            Protected Friend MustOverride Function CreateNativeViewReader(ByVal viewID As String, ByVal forceSchemaReload As Boolean) As iormRelationalTableStore
+            ''' <summary>
+            ''' create native view schema object
+            ''' </summary>
+            ''' <param name="TableID"></param>
+            ''' <returns></returns>
+            ''' <remarks></remarks>
+            Protected Friend MustOverride Function CreateNativeViewSchema(ByVal viewID As String) As iormContainerSchema
 
             ''' <summary>
             ''' persists the errorlog
@@ -1715,19 +1839,28 @@ Namespace OnTrack
             ''' <param name="TableID"></param>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Protected Friend MustOverride Function PersistLog(ByRef log As SessionMessageLog) As Boolean Implements iormDatabaseDriver.PersistLog
+            Protected Friend MustOverride Function PersistLog(ByRef log As SessionMessageLog) As Boolean Implements iormPrimaryDriver.PersistLog
+            ''' <summary>
+            ''' Gets the data store which is the tablestore
+            ''' </summary>
+            ''' <param name="tableID">The tablename.</param>
+            ''' <param name="Force">The force.</param>
+            ''' <returns></returns>
+            Public Function RetrieveContainerStore(ByVal containerid As String, Optional ByVal force As Boolean = False) As iormContainerStore Implements iormDatabaseDriver.RetrieveContainerStore
+                Return Me.GetTableStore(containerid, force)
+            End Function
             ''' <summary>
             ''' Gets the table store.
             ''' </summary>
             ''' <param name="tableID">The tablename.</param>
             ''' <param name="Force">The force.</param>
             ''' <returns></returns>
-            Public Function GetTableStore(ByVal tableID As String, Optional ByVal force As Boolean = False) As iormDataStore Implements iormDatabaseDriver.GetTableStore
+            Public Function GetTableStore(ByVal tableID As String, Optional ByVal force As Boolean = False) As iormRelationalTableStore Implements iormRelationalDatabaseDriver.GetTableStore
                 'take existing or make new one
                 If _TableDirectory.ContainsKey(tableID.ToUpper) And Not force Then
                     Return _TableDirectory.Item(tableID.ToUpper)
                 Else
-                    Dim aNewStore As iormDataStore
+                    Dim aNewStore As iormRelationalTableStore
 
                     ' reload the existing object on force
                     If _TableDirectory.ContainsKey(tableID.ToUpper) Then
@@ -1751,19 +1884,18 @@ Namespace OnTrack
             End Function
 
             ''' <summary>
-            ''' Gets the table store.
+            ''' Gets the table schema.
             ''' </summary>
             ''' <param name="Tablename">The tablename.</param>
             ''' <param name="Force">The force.</param>
             ''' <returns></returns>
-            Public Function GetTableSchema(ByVal tableID As String, Optional ByVal force As Boolean = False) As iotDataSchema _
-            Implements iormDatabaseDriver.GetTableSchema
+            Public Function GetTableSchema(ByVal tableID As String, Optional ByVal force As Boolean = False) As iormContainerSchema Implements iormDatabaseDriver.RetrieveContainerSchema, iormRelationalDatabaseDriver.RetrieveTableSchema
 
                 'take existing or make new one
                 If _TableSchemaDirectory.ContainsKey(tableID.ToUpper) And Not force Then
                     Return _TableSchemaDirectory.Item(tableID.ToUpper)
                 Else
-                    Dim aNewSchema As iotDataSchema
+                    Dim aNewSchema As iormContainerSchema
 
                     ' delete the existing object
                     If _TableSchemaDirectory.ContainsKey(tableID.ToUpper) Then
@@ -1793,7 +1925,82 @@ Namespace OnTrack
                 End If
 
             End Function
+            ''' <summary>
+            ''' Gets the view reader
+            ''' </summary>
+            ''' <param name="tableID">The tablename.</param>
+            ''' <param name="Force">The force.</param>
+            ''' <returns></returns>
+            Public Function GetViewReader(ByVal viewID As String, Optional ByVal force As Boolean = False) As iormRelationalTableStore Implements iormRelationalDatabaseDriver.GetViewReader
+                'take existing or make new one
+                If _ViewDirectory.ContainsKey(viewID.ToUpper) And Not force Then
+                    Return _ViewDirectory.Item(viewID.ToUpper)
+                Else
+                    Dim aNewStore As iormRelationalTableStore
 
+                    ' reload the existing object on force
+                    If _ViewDirectory.ContainsKey(viewID.ToUpper) Then
+                        aNewStore = _ViewDirectory.Item(viewID.ToUpper)
+                        aNewStore.Refresh(force)
+                        Return aNewStore
+                    End If
+                    ' assign the Table
+
+                    aNewStore = CreateNativeViewReader(viewID.ToUpper, forceSchemaReload:=force)
+                    If Not aNewStore Is Nothing Then
+                        If Not _ViewDirectory.ContainsKey(viewID.ToUpper) Then
+                            _ViewDirectory.Add(key:=viewID.ToUpper, value:=aNewStore)
+                        End If
+                    End If
+                    ' return
+                    Return aNewStore
+
+                End If
+
+            End Function
+            ''' <summary>
+            ''' Gets the view schema
+            ''' </summary>
+            ''' <param name="Tablename">The tablename.</param>
+            ''' <param name="Force">The force.</param>
+            ''' <returns></returns>
+            Public Function GetViewSchema(ByVal viewID As String, Optional ByVal force As Boolean = False) As iormContainerSchema _
+            Implements iormRelationalDatabaseDriver.GetViewSchema
+
+                'take existing or make new one
+                If _ViewSchemaDirectory.ContainsKey(viewID.ToUpper) And Not force Then
+                    Return _ViewSchemaDirectory.Item(viewID.ToUpper)
+                Else
+                    Dim aNewSchema As iormContainerSchema
+
+                    ' delete the existing object
+                    If _ViewSchemaDirectory.ContainsKey(viewID.ToUpper) Then
+                        aNewSchema = _ViewSchemaDirectory.Item(viewID.ToUpper)
+                        SyncLock aNewSchema
+                            If force Or Not aNewSchema.IsInitialized Then aNewSchema.Refresh(force)
+                        End SyncLock
+                        Return aNewSchema
+                    End If
+                    ' assign the Table
+                    aNewSchema = CreateNativeViewSchema(viewID.ToUpper)
+
+                    If Not aNewSchema Is Nothing Then
+                        SyncLock _lockObject
+                            _ViewSchemaDirectory.Add(key:=viewID.ToUpper, value:=aNewSchema)
+                        End SyncLock
+
+                        If Not aNewSchema.IsInitialized Then
+                            SyncLock aNewSchema
+                                aNewSchema.Refresh(reloadForce:=force)
+                            End SyncLock
+                        End If
+                    End If
+
+                    ' return
+                    Return aNewSchema
+                End If
+
+            End Function
             ''' <summary>
             ''' Runs the SQL Command
             ''' </summary>
@@ -1804,7 +2011,7 @@ Namespace OnTrack
             ''' <remarks></remarks>
             Public MustOverride Function RunSqlStatement(ByVal sqlcmdstr As String, Optional ByRef parameters As List(Of ormSqlCommandParameter) = Nothing, _
                                                       Optional silent As Boolean = True, Optional nativeConnection As Object = Nothing) As Boolean _
-                                                  Implements iormDatabaseDriver.RunSqlStatement
+                                                  Implements iormRelationalDatabaseDriver.RunSqlStatement
 
 
             ''' <summary>
@@ -1817,12 +2024,12 @@ Namespace OnTrack
             Public MustOverride Function RunSqlSelectCommand(ByRef sqlcommand As ormSqlSelectCommand, _
                                                 Optional ByRef parametervalues As Dictionary(Of String, Object) = Nothing, _
                                                 Optional nativeConnection As Object = Nothing) As List(Of ormRecord) _
-                                            Implements iormDatabaseDriver.RunSqlSelectCommand
+                                            Implements iormRelationalDatabaseDriver.RunSqlSelectCommand
 
             Public MustOverride Function RunSqlSelectCommand(id As String, _
                                                          Optional ByRef parametervalues As Dictionary(Of String, Object) = Nothing, _
                                                          Optional nativeConnection As Object = Nothing) As List(Of ormRecord) _
-                                                       Implements iormDatabaseDriver.RunSqlSelectCommand
+                                                       Implements iormRelationalDatabaseDriver.RunSqlSelectCommand
             ''' <summary>
             ''' Create a Native IDBCommand (Sql Command)
             ''' </summary>
@@ -1830,7 +2037,7 @@ Namespace OnTrack
             ''' <param name="aNativeConnection"></param>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public MustOverride Function CreateNativeDBCommand(cmd As String, aNativeConnection As System.Data.IDbConnection) As System.Data.IDbCommand Implements iormDatabaseDriver.CreateNativeDBCommand
+            Public MustOverride Function CreateNativeDBCommand(cmd As String, aNativeConnection As System.Data.IDbConnection) As System.Data.IDbCommand Implements iormRelationalDatabaseDriver.CreateNativeDBCommand
 
             ''' <summary>
             ''' returns the native tablename in the native database
@@ -1838,8 +2045,8 @@ Namespace OnTrack
             ''' <param name="tableid"></param>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public Overridable Function GetNativeTablename(tableid As String) As String Implements iormDatabaseDriver.GetNativeTableName
-                If String.IsNullOrWhiteSpace(Me.Session.CurrentSetupID) OrElse tableid = ConstDBParameterTablename Then
+            Public Overridable Function GetNativeDBObjectName(tableid As String) As String Implements iormRelationalDatabaseDriver.GetNativeDBObjectName
+                If String.IsNullOrWhiteSpace(Me.Session.CurrentSetupID) OrElse tableid = ConstDBParameterTableName Then
                     ' create the native name as simple copy of the tableid
                     Return tableid
                 Else
@@ -1854,7 +2061,7 @@ Namespace OnTrack
             ''' <param name="tableid"></param>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public Overridable Function GetNativeIndexname(indexid As String) As String Implements iormDatabaseDriver.GetNativeIndexName
+            Public Overridable Function GetNativeIndexname(indexid As String) As String Implements iormRelationalDatabaseDriver.GetNativeIndexName
                 If String.IsNullOrWhiteSpace(Me.Session.CurrentSetupID) Then
                     ' create the native name as simple copy of the indexid
                     Return indexid
@@ -1870,7 +2077,7 @@ Namespace OnTrack
             ''' <param name="tableid"></param>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public Overridable Function GetNativeViewname(viewid As String) As String Implements iormDatabaseDriver.GetNativeViewName
+            Public Overridable Function GetNativeViewname(viewid As String) As String Implements iormRelationalDatabaseDriver.GetNativeViewName
                 If String.IsNullOrWhiteSpace(Me.Session.CurrentSetupID) Then
                     ' create the native name as simple copy of the viewid
                     Return viewid
@@ -1886,7 +2093,7 @@ Namespace OnTrack
             ''' <param name="tableid"></param>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public Overridable Function GetNativeForeignkeyName(foreignkeyid As String) As String Implements iormDatabaseDriver.GetNativeForeignKeyName
+            Public Overridable Function GetNativeForeignkeyName(foreignkeyid As String) As String Implements iormRelationalDatabaseDriver.GetNativeForeignKeyName
                 If String.IsNullOrWhiteSpace(Me.Session.CurrentSetupID) Then
                     ' create the native name as simple copy of the viewid
                     Return foreignkeyid
@@ -1909,18 +2116,18 @@ Namespace OnTrack
             Private _ID As String
             Protected _Session As Session
             Protected _Databasetype As otDBServerType
-            Protected _Connectionstring As String = ""  'the  Connection String
-            Protected _Path As String = ""  'where the database is if access
-            Protected _Name As String = ""  'name of the database or file
-            Protected _Dbuser As String = ""  'User name to use to access the database
-            Protected _Dbpassword As String = ""   'password to use to access the database
+            Protected _Connectionstring As String = String.empty  'the  Connection String
+            Protected _Path As String = String.empty  'where the database is if access
+            Protected _Name As String = String.empty  'name of the database or file
+            Protected _Dbuser As String = String.empty  'User name to use to access the database
+            Protected _Dbpassword As String = String.empty   'password to use to access the database
             Protected _Sequence As ComplexPropertyStore.Sequence = ComplexPropertyStore.Sequence.Primary ' configuration sequence of the connection
             'Protected _OTDBUser As New User    ' OTDB User -> moved to session 
             Protected _AccessLevel As otAccessRight    ' access
 
             Protected _UILogin As CoreLoginForm
             Protected _cacheUserValidateon As UserValidation
-            Protected _OTDBDatabaseDriver As iormDatabaseDriver
+            Protected _OTDBDatabaseDriver As iormRelationalDatabaseDriver
             Protected _useseek As Boolean 'use seek instead of SQL
             Protected _lockObject As New Object ' use lock object for sync locking
 
@@ -1937,7 +2144,7 @@ Namespace OnTrack
             ''' <param name="databasedriver"></param>
             ''' <param name="session"></param>
             ''' <remarks></remarks>
-            Public Sub New(id As String, databasedriver As iormDatabaseDriver, ByRef session As Session, sequence As ComplexPropertyStore.Sequence)
+            Public Sub New(id As String, databasedriver As iormRelationalDatabaseDriver, ByRef session As Session, sequence As ComplexPropertyStore.Sequence)
                 _OTDBDatabaseDriver = databasedriver
                 _OTDBDatabaseDriver.RegisterConnection(Me)
                 _Session = session
@@ -1994,11 +2201,11 @@ Namespace OnTrack
             ''' Gets or sets the DatabaseEnvirorment.
             ''' </summary>
             ''' <value>iOTDBDatabaseEnvirorment</value>
-            Public Property DatabaseDriver() As iormDatabaseDriver Implements iormConnection.DatabaseDriver
+            Public Property DatabaseDriver() As iormRelationalDatabaseDriver Implements iormConnection.DatabaseDriver
                 Get
                     Return _OTDBDatabaseDriver
                 End Get
-                Friend Set(value As iormDatabaseDriver)
+                Friend Set(value As iormRelationalDatabaseDriver)
                     _OTDBDatabaseDriver = value
                 End Set
             End Property
@@ -2146,10 +2353,10 @@ Namespace OnTrack
             '*****
             '***** reset : reset all the private members for a connection
             Protected Friend Overridable Sub ResetFromConnection()
-                '_Connectionstring = ""
+                '_Connectionstring = String.empty
 
-                '_Path = ""
-                '_Name = ""
+                '_Path = String.empty
+                '_Name = String.empty
                 _Dbuser = Nothing
                 _Dbpassword = Nothing
                 '_OTDBUser = Nothing
@@ -2178,7 +2385,7 @@ Namespace OnTrack
                 '** do only something if we have run through
                 If Me.IsConnected Then
                     '** do nothing if we are running
-                    CoreMessageHandler(message:="current config set name was changed after connection is connected -ignored", subname:="ormConnection.OnCurrentConfigSetChanged", arg1:=e.Setname, messagetype:=otCoreMessageType.InternalError)
+                    CoreMessageHandler(message:="current config set name was changed after connection is connected -ignored", procedure:="ormConnection.OnCurrentConfigSetChanged", argument:=e.Setname, messagetype:=otCoreMessageType.InternalError)
                 Else
                     SetConnectionConfigParameters()
 
@@ -2238,7 +2445,7 @@ Namespace OnTrack
                                             " DBUser : " & Me.Dbuser & vbLf & _
                                             " DBPassword : " & Me.Dbpassword & vbLf & _
                                             " connectionsstring :" & connectionstring, _
-                                            messagetype:=otCoreMessageType.InternalInfo, subname:="ormConnection.SetconnectionConfigParameters")
+                                            messagetype:=otCoreMessageType.InternalInfo, procedure:="ormConnection.SetconnectionConfigParameters")
                 '** default
                 '** we have no connection string than build one
                 If String.IsNullOrWhiteSpace(connectionstring) Then
@@ -2250,10 +2457,10 @@ Namespace OnTrack
                             "Data Source=" & _Path & _Name & ";"
                             Call CoreMessageHandler(message:="Config connection parameters :" & Me.ID & vbLf & _
                                           " created connectionsstring :" & Me.Connectionstring, _
-                                          messagetype:=otCoreMessageType.InternalInfo, subname:="ormConnection.SetconnectionConfigParameters")
+                                          messagetype:=otCoreMessageType.InternalInfo, procedure:="ormConnection.SetconnectionConfigParameters")
                             Return True
                         Else
-                            Call CoreMessageHandler(showmsgbox:=True, arg1:=_Path & _Name, subname:="ormConnection.retrieveConfigParameters", _
+                            Call CoreMessageHandler(showmsgbox:=True, argument:=_Path & _Name, procedure:="ormConnection.retrieveConfigParameters", _
                                                   message:=" OnTrack database " & _Name & " doesnot exist at given location " & _Path, _
                                                   break:=False, noOtdbAvailable:=True)
                             '*** reset
@@ -2271,10 +2478,10 @@ Namespace OnTrack
                         End If
                         Call CoreMessageHandler(message:="Config connection parameters :" & Me.ID & vbLf & _
                                           " created connectionsstring :" & Me.Connectionstring, _
-                                          messagetype:=otCoreMessageType.InternalInfo, subname:="ormConnection.SetconnectionConfigParameters")
+                                          messagetype:=otCoreMessageType.InternalInfo, procedure:="ormConnection.SetconnectionConfigParameters")
                         Return True
                     Else
-                        Call CoreMessageHandler(showmsgbox:=True, arg1:=_Connectionstring, subname:="ormConnection.retrieveConfigParameters", _
+                        Call CoreMessageHandler(showmsgbox:=True, argument:=_Connectionstring, procedure:="ormConnection.retrieveConfigParameters", _
                                               message:=" OnTrack database " & _Name & " has not a valid database type.", _
                                               break:=False, noOtdbAvailable:=True)
                         '*** reset
@@ -2296,8 +2503,8 @@ Namespace OnTrack
             Public MustOverride Function Connect(Optional ByVal force As Boolean = False, _
             Optional ByVal accessRequest As otAccessRight = otAccessRight.[ReadOnly], _
             Optional ByVal domainid As String = Nothing, _
-            Optional ByVal OTDBUsername As String = "", _
-            Optional ByVal OTDBPassword As String = "", _
+            Optional ByVal OTDBUsername As String = Nothing, _
+            Optional ByVal OTDBPassword As String = Nothing, _
             Optional ByVal exclusive As Boolean = False, _
             Optional ByVal notInitialize As Boolean = False, _
             Optional ByVal doLogin As Boolean = True) As Boolean Implements iormConnection.Connect
@@ -2374,8 +2581,8 @@ Namespace OnTrack
             ''' <returns></returns>
             ''' <remarks></remarks>
             Public Function VerifyUserAccess(accessRequest As otAccessRight, _
-                                                Optional ByRef username As String = "", _
-                                                Optional ByRef password As String = "", _
+                                                Optional ByRef username As String = Nothing, _
+                                                Optional ByRef password As String = Nothing, _
                                                 Optional ByRef domainid As String = Nothing, _
                                                 Optional ByRef [Objectnames] As List(Of String) = Nothing, _
                                                 Optional useLoginWindow As Boolean = True, Optional messagetext As String = Nothing) As Boolean Implements iormConnection.VerifyUserAccess
@@ -2386,14 +2593,14 @@ Namespace OnTrack
                 '**** no connection -> login
                 If Not Me.IsConnected Then
 
-                    If String.IsNullOrWhiteSpace(domainID) Then domainID = ConstGlobalDomain
+                    If String.IsnullorEmpty(domainID) Then domainid = ConstGlobalDomain
                     '*** OTDBUsername supplied
 
                     If useLoginWindow And accessRequest <> ConstDefaultAccessRight Then
 
                         Me.UILogin.EnableUsername = True
-                        Me.UILogin.Username = ""
-                        Me.UILogin.Password = ""
+                        Me.UILogin.Username = Nothing
+                        Me.UILogin.Password = Nothing
 
                         'LoginWindow
                         Me.UILogin.Configset = ot.CurrentConfigSetName
@@ -2402,7 +2609,7 @@ Namespace OnTrack
                         Me.UILogin.EnableChangeConfigSet = True
                         If messagetext IsNot Nothing Then Me.UILogin.Messagetext = messagetext
 
-                        Me.UILogin.Domain = domainID
+                        Me.UILogin.Domain = domainid
                         Me.UILogin.EnableDomain = False
 
                         '* reset user validation we have
@@ -2420,11 +2627,11 @@ Namespace OnTrack
 
                         userValidation = Me.DatabaseDriver.GetUserValidation(username)
                         ' just check the provided username
-                    ElseIf username <> "" And password <> "" And accessRequest <> ConstDefaultAccessRight Then
+                    ElseIf username <> String.Empty And password <> String.Empty And accessRequest <> ConstDefaultAccessRight Then
                         userValidation = Me.DatabaseDriver.GetUserValidation(username)
                         '* no username but default accessrequest then look for the anonymous user
                     ElseIf accessRequest = ConstDefaultAccessRight Then
-                        userValidation = Me.DatabaseDriver.GetUserValidation(username:="", selectAnonymous:=True)
+                        userValidation = Me.DatabaseDriver.GetUserValidation(username:=String.Empty, selectAnonymous:=True)
                         If userValidation.ValidEntry Then
                             username = userValidation.Username
                             password = userValidation.Password
@@ -2435,7 +2642,7 @@ Namespace OnTrack
                     If Not userValidation.ValidEntry Then
                         Call CoreMessageHandler(showmsgbox:=True, _
                                               message:=" Access to OnTrack Database is prohibited - User not found", _
-                                              arg1:=userValidation.Username, noOtdbAvailable:=True, break:=False)
+                                              argument:=userValidation.Username, noOtdbAvailable:=True, break:=False)
 
                         _cacheUserValidateon.ValidEntry = False
                         '*** reset
@@ -2451,11 +2658,11 @@ Namespace OnTrack
                             '****
                         ElseIf userValidation.Password = password Then
                             _cacheUserValidateon = userValidation
-                            Call CoreMessageHandler(subname:="ormConnection.verifyUserAccess", break:=False, message:="User verified successfully *", _
-                                                  arg1:=username, noOtdbAvailable:=True, messagetype:=otCoreMessageType.ApplicationInfo)
+                            Call CoreMessageHandler(procedure:="ormConnection.verifyUserAccess", break:=False, message:="User verified successfully *", _
+                                                  argument:=username, noOtdbAvailable:=True, messagetype:=otCoreMessageType.ApplicationInfo)
                         Else
-                            Call CoreMessageHandler(subname:="ormConnection.verifyUserAccess", break:=False, message:="User not verified successfully", _
-                                                  arg1:=username, noOtdbAvailable:=True, messagetype:=otCoreMessageType.ApplicationError)
+                            Call CoreMessageHandler(procedure:="ormConnection.verifyUserAccess", break:=False, message:="User not verified successfully", _
+                                                  argument:=username, noOtdbAvailable:=True, messagetype:=otCoreMessageType.ApplicationError)
                             _cacheUserValidateon.ValidEntry = False
                             Return False
                         End If
@@ -2466,7 +2673,7 @@ Namespace OnTrack
                     '**** CONNECTION !
                 Else
                     '** stay in the current domain 
-                    If String.IsNullOrWhiteSpace(domainID) Then domainID = ot.CurrentSession.CurrentDomainID
+                    If String.IsnullorEmpty(domainID) Then domainid = ot.CurrentSession.CurrentDomainID
                     '** validate the current user with the request
                     If Me.ValidateAccessRequest(accessrequest:=accessRequest, domainid:=domainid) Then
                         Return True
@@ -2484,17 +2691,17 @@ Namespace OnTrack
                         Me.UILogin.Accessright = accessRequest
                         Me.UILogin.Messagetext = "<html><strong>Welcome !</strong><br />Please change to a valid user and password for authorization of the needed access right.</html>"
                         Me.UILogin.EnableUsername = True
-                        Me.UILogin.Username = ""
-                        Me.UILogin.Password = ""
+                        Me.UILogin.Username = Nothing
+                        Me.UILogin.Password = Nothing
                         Me.UILogin.Show()
                         username = LoginWindow.Username
                         password = LoginWindow.Password
                         userValidation = Me.DatabaseDriver.GetUserValidation(username)
                         '* check password -> relogin on connected -> EventHandler ?!
                         If userValidation.Password = password Then
-                            Call CoreMessageHandler(subname:="ormConnection.verifyUserAccess", break:=False, _
+                            Call CoreMessageHandler(procedure:="ormConnection.verifyUserAccess", break:=False, _
                                                     message:="User change verified successfully on domain '" & domainid & "'", _
-                               arg1:=username, noOtdbAvailable:=True, messagetype:=otCoreMessageType.ApplicationInfo)
+                               argument:=username, noOtdbAvailable:=True, messagetype:=otCoreMessageType.ApplicationInfo)
                             '* set the new access level
                             _AccessLevel = accessRequest
 
@@ -2514,8 +2721,8 @@ Namespace OnTrack
                             '** fallback
                             username = CurrentSession.OTdbUser.Username
                             password = CurrentSession.OTdbUser.Password
-                            Call CoreMessageHandler(subname:="ormConnection.verifyUserAccess", break:=False, message:="User couldnot be verified - fallback to user " & username, _
-                               arg1:=username, noOtdbAvailable:=True, messagetype:=otCoreMessageType.ApplicationError, showmsgbox:=True)
+                            Call CoreMessageHandler(procedure:="ormConnection.verifyUserAccess", break:=False, message:="User couldnot be verified - fallback to user " & username, _
+                               argument:=username, noOtdbAvailable:=True, messagetype:=otCoreMessageType.ApplicationError, showmsgbox:=True)
                             Return False
                         End If
                         '* the current access level is not for this request
@@ -2542,21 +2749,21 @@ Namespace OnTrack
                         userValidation = Me.DatabaseDriver.GetUserValidation(username)
                         '* check password
                         If userValidation.Password = password Then
-                            Call CoreMessageHandler(subname:="ormConnection.verifyUserAccess", break:=False, message:="User change verified successfully (1)", _
-                               arg1:=username, noOtdbAvailable:=True, messagetype:=otCoreMessageType.ApplicationInfo)
+                            Call CoreMessageHandler(procedure:="ormConnection.verifyUserAccess", break:=False, message:="User change verified successfully (1)", _
+                               argument:=username, noOtdbAvailable:=True, messagetype:=otCoreMessageType.ApplicationInfo)
                             '* set the new access level
                             _AccessLevel = accessRequest
                         Else
                             '** fallback
                             username = CurrentSession.OTdbUser.Username
                             password = CurrentSession.OTdbUser.Password
-                            Call CoreMessageHandler(subname:="ormConnection.verifyUserAccess", break:=False, message:="User couldnot be verified - fallback to user " & username, _
-                               arg1:=username, noOtdbAvailable:=True, messagetype:=otCoreMessageType.ApplicationError, showmsgbox:=True)
+                            Call CoreMessageHandler(procedure:="ormConnection.verifyUserAccess", break:=False, message:="User couldnot be verified - fallback to user " & username, _
+                               argument:=username, noOtdbAvailable:=True, messagetype:=otCoreMessageType.ApplicationError, showmsgbox:=True)
                             Return False
                         End If
 
                         '*** just check the provided username
-                    ElseIf username <> "" And password <> "" Then
+                    ElseIf username <> String.Empty And password <> String.Empty Then
                         userValidation = Me.DatabaseDriver.GetUserValidation(username)
                     End If
                 End If
@@ -2635,7 +2842,7 @@ Namespace OnTrack
             Private _Connection As iormConnection
             Private _domain As String
 
-            Public Sub New(newConnection As iormConnection, Optional domain As String = "")
+            Public Sub New(newConnection As iormConnection, Optional domain As String = Nothing)
                 _Connection = newConnection
                 _domain = domain
             End Sub
@@ -2664,141 +2871,17 @@ Namespace OnTrack
 
         End Class
 
-        '************************************************************************************
-        '***** CLASS clsOTDBFieldDesc is a helper for the FieldDesc Attributes
-        '*****
-        '*****
-
-        'Public Class ormFieldDescription
-        '    ''' <summary>
-        '    ''' Name in the table (data store)
-        '    ''' </summary>
-        '    ''' <remarks></remarks>
-        '    Public ColumnName As String = ""
-        '    ''' <summary>
-        '    ''' ID for XChange Manager
-        '    ''' </summary>
-        '    ''' <remarks></remarks>
-        '    Public ID As String = ""
-        '    ''' <summary>
-        '    ''' Default Title to be used on column heads
-        '    ''' </summary>
-        '    ''' <remarks></remarks>
-        '    Public Title As String = ""
-        '    ''' <summary>
-        '    ''' Description about the Field
-        '    ''' </summary>
-        '    ''' <remarks></remarks>
-        '    Public Description As String = ""
-        '    ''' <summary>
-        '    ''' Aliases to be used for XChange Manager (Array)
-        '    ''' </summary>
-        '    ''' <remarks></remarks>
-        '    Public Aliases As String() = {}
-        '    ''' <summary>
-        '    ''' OTDB Datatype of the Field
-        '    ''' </summary>
-        '    ''' <remarks></remarks>
-        '    Public Datatype As otDataType
-        '    ''' <summary>
-        '    ''' Parameters to be used
-        '    ''' </summary>
-        '    ''' <remarks></remarks>
-        '    Public Parameter As String = ""
-        '    ''' <summary>
-        '    ''' Tablename of the Datastore
-        '    ''' </summary>
-        '    ''' <remarks></remarks>
-        '    Public Tablename As String = ""
-        '    ''' <summary>
-        '    ''' Relation Description as String Array
-        '    ''' </summary>
-        '    ''' <remarks></remarks>
-        '    Public Relation As String() = {}
-        '    ''' <summary>
-        '    ''' Size
-        '    ''' </summary>
-        '    ''' <remarks></remarks>
-        '    Public Size As Long = 255
-        '    ''' <summary>
-        '    ''' Is Nullable
-        '    ''' </summary>
-        '    ''' <remarks></remarks>
-        '    Public IsNullable As Boolean = False
-        '    ''' <summary>
-        '    ''' Is Transformed to an Array
-        '    ''' </summary>
-        '    ''' <remarks></remarks>
-        '    Public IsArray As Boolean = False
-        '    ''' <summary>
-        '    ''' DefaultValue of the Field
-        '    ''' </summary>
-        '    ''' <remarks></remarks>
-        '    Public DefaultValue As Object
-        '    ''' <summary>
-        '    ''' Version count
-        '    ''' </summary>
-        '    ''' <remarks></remarks>
-        '    Public Version As UShort
-        '    ''' <summary>
-        '    ''' Position in the Record
-        '    ''' </summary>
-        '    ''' <remarks></remarks>
-        '    Public ordinalPosition As UShort
-        '    ''' <summary>
-        '    ''' if set true this Field is a spare field
-        '    ''' </summary>
-        '    ''' <remarks></remarks>
-        '    Public SpareFieldTag As Boolean
-
-        'End Class
-
-
-        ''************************************************************************************
-        ''***** CLASS clsOTDBCompoundDecs is a helper for the CompoundsDesc Attributes
-        ''***** a compound are data tupples which apear to be for the XChange Manager in the 
-        ''***** base class but are as relation with a parameter id in a sub class and another table
-        ''***** such as milestones which are parameters from the schedule definition
-        ''*****
-
-        'Public Class ormCompoundDesc
-        '    Inherits ormFieldDescription
-
-        '    '*** Additional Compound Information
-        '    ''' <summary>
-        '    ''' the tablename in the datastore of the compound
-        '    ''' </summary>
-        '    ''' <remarks></remarks>
-        '    Public compound_Tablename As String
-        '    ''' <summary>
-        '    ''' relation condition fields
-        '    ''' </summary>
-        '    ''' <remarks></remarks>
-        '    Public compound_Relation As Object
-        '    ''' <summary>
-        '    ''' 
-        '    ''' </summary>
-        '    ''' <remarks></remarks>
-        '    Public compound_IDFieldname As String
-        '    ''' <summary>
-        '    ''' fieldname which has the ID of the compound field as value
-        '    ''' </summary>
-        '    ''' <remarks></remarks>
-        '    Public compound_ValueFieldname As String
-
-        'End Class
-
 
         ''' <summary>
-        ''' TopLevel OTDB Tablestore implementation base class
+        ''' defines a abstract relational table store for sql tables and views
         ''' </summary>
         ''' <remarks></remarks>
-        Public MustInherit Class ormTableStore
-            Implements iormDataStore
+        Public MustInherit Class ormDataReader
+            Implements iormRelationalTableStore
 
-            Private _TableID As String 'Name of the Table or Datastore in the Database
-            Private _TableSchema As iotDataSchema  'Schema (Description) of the Table or DataStore
-            Private _Connection As iormConnection  ' Connection to use to access the Table or Datastore
+            Protected _DBObjectID As String ' Id of the database object
+            Protected _DataSchema As iormContainerSchema  'Schema (Description) of the Table or DataStore
+            Protected _Connection As iormConnection  ' Connection to use to access the Table or Datastore
 
             Private _PropertyBag As New Dictionary(Of String, Object)
 
@@ -2808,16 +2891,12 @@ Namespace OnTrack
             ''' </summary>
             ''' <remarks></remarks>
             Public Const ConstTPNCacheProperty = "CacheDataTable"
-            ''' <summary>
-            ''' Table Property Name "Cache Update Instant"
-            ''' </summary>
-            ''' <remarks></remarks>
-            Public Const ConstTPNCacheUpdateInstant = "CacheDataTableUpdateImmediatly"
+
             ''' <summary>
             ''' Table Property Name for FULL CACHING
             ''' </summary>
             ''' <remarks></remarks>
-            Private Const ConstTPNFullCaching = "FULL"
+            Protected Const ConstTPNFullCaching = "FULL"
             ''' <summary>
             ''' constuctor
             ''' </summary>
@@ -2825,10 +2904,10 @@ Namespace OnTrack
             ''' <param name="tableID"></param>
             ''' <param name="force"></param>
             ''' <remarks></remarks>
-            Protected Sub New(connection As iormConnection, tableID As String, ByVal force As Boolean)
+            Protected Sub New(connection As iormConnection, dbobjectid As String, ByVal force As Boolean)
                 Call MyBase.New()
                 Me.Connection = connection
-                Me.TableID = tableID
+                Me.ContainerID = dbobjectid
                 Me.Refresh(force:=force)
             End Sub
             ''' <summary>
@@ -2837,31 +2916,577 @@ Namespace OnTrack
             ''' <param name="pkArray"></param>
             ''' <remarks></remarks>
             ''' <returns>True if successfull new value</returns>
-            Public Overridable Function CreateUniquePkValue(ByRef pkArray() As Object, Optional tag As String = "") As Boolean Implements iormDataStore.CreateUniquePkValue
+            Public MustOverride Function CreateUniquePkValue(ByRef pkArray() As Object, Optional tag As String = Nothing) As Boolean Implements iormRelationalTableStore.CreateUniquePkValue
+
+
+            ''' <summary>
+            ''' Refresh
+            ''' </summary>
+            ''' <param name="force"></param>
+            ''' <returns></returns>
+            ''' <remarks></remarks>
+            Public MustOverride Function Refresh(Optional ByVal force As Boolean = False) As Boolean Implements iormRelationalTableStore.Refresh
+
+            ''' <summary>
+            ''' returns the native Database Object Name
+            ''' </summary>
+            ''' <value></value>
+            ''' <returns></returns>
+            ''' <remarks></remarks>
+            Public ReadOnly Property NativeDBObjectname As String Implements iormRelationalTableStore.NativeDBObjectname
+                Get
+                    '**
+                    If Not Me.ContainerSchema.IsInitialized Then
+                        Return Nothing
+                    End If
+                    Return _DataSchema.NativeDBContainerName
+                End Get
+            End Property
+
+            ''' <summary>
+            ''' Gets or sets the database object ID.
+            ''' </summary>
+            ''' <value>The table ID.</value>
+            Public Property ContainerID As String Implements iormRelationalTableStore.ContainerID
+                Get
+                    Return Me._DBObjectID
+                End Get
+                Protected Set(value As String)
+                    Me._DBObjectID = value.ToUpper
+                End Set
+            End Property
+
+            ''' <summary>
+            ''' Gets the records by SQL command.
+            ''' </summary>
+            ''' <param name="sqlcommand">The sqlcommand.</param>
+            ''' <param name="parameters">The parameters.</param>
+            ''' <returns></returns>
+            Public MustOverride Function GetRecordsBySqlCommand(ByRef sqlcommand As ormSqlSelectCommand, Optional ByRef parametervalues As Dictionary(Of String, Object) = Nothing) As List(Of ormRecord) Implements iormRelationalTableStore.GetRecordsBySqlCommand
+
+
+            ''' <summary>
+            ''' Gets or sets the connection.
+            ''' </summary>
+            ''' <value>The connection.</value>
+            Public Overridable Property Connection() As iormConnection Implements iormRelationalTableStore.Connection
+                Get
+                    Return _Connection
+                End Get
+                Friend Set(value As iormConnection)
+                    _Connection = value
+                End Set
+            End Property
+
+            ''' <summary>
+            ''' Gets or sets the DB table schema.
+            ''' </summary>
+            ''' <value>The DB table schema.</value>
+            Public Overridable Property ContainerSchema() As iormContainerSchema Implements iormRelationalTableStore.ContainerSchema
+                Get
+                    Return _DataSchema
+                End Get
+                Friend Set(value As iormContainerSchema)
+                    _DataSchema = value
+                End Set
+            End Property
+            ''' <summary>
+            ''' sets a Property to the TableStore
+            ''' </summary>
+            ''' <param name="Name">Name of the Property</param>
+            ''' <param name="Object">ObjectValue</param>
+            ''' <returns>returns True if succesfull</returns>
+            ''' <remarks></remarks>
+            Public Function SetProperty(ByVal name As String, ByVal value As Object) As Boolean Implements iormRelationalTableStore.SetProperty
+                If _PropertyBag.ContainsKey(name) Then
+                    _PropertyBag.Remove(name)
+                End If
+                _PropertyBag.Add(name, value)
+                Return True
+            End Function
+            ''' <summary>
+            ''' Gets the Property of a Tablestore
+            ''' </summary>
+            ''' <param name="name">name of property</param>
+            ''' <returns>object of the property</returns>
+            ''' <remarks></remarks>
+            Public Function GetProperty(ByVal name As String) As Object Implements iormRelationalTableStore.GetProperty
+                If _PropertyBag.ContainsKey(name) Then
+                    Return _PropertyBag.Item(name)
+                End If
+                Return Nothing
+            End Function
+            ''' <summary>
+            ''' has Tablestore the named property
+            ''' </summary>
+            ''' <param name="name">name of property</param>
+            ''' <returns>return true</returns>
+            ''' <remarks></remarks>
+            Public Function HasProperty(ByVal name As String) As Boolean Implements iormRelationalTableStore.HasProperty
+                Return _PropertyBag.ContainsKey(name)
+            End Function
+            ''' <summary>
+            ''' Dels the record by primary key.
+            ''' </summary>
+            ''' <param name="aKeyArr">A key arr.</param>
+            ''' <param name="silent">The silent.</param>
+            ''' <returns></returns>
+            Public Overridable Function DeleteRecordByPrimaryKey(ByRef pkArray() As Object, Optional silent As Boolean = False) As Boolean Implements iormRelationalTableStore.DeleteRecordByPrimaryKey
+                ' TODO: Implement this method
+                Throw New NotImplementedException()
+            End Function
+            ''' <summary>
+            ''' Runs the SQL command.
+            ''' </summary>
+            ''' <param name="command">The command.</param>
+            ''' <param name="parameters">The parameters.</param>
+            ''' <returns></returns>
+            '''   
+            Public Overridable Function RunSqlCommand(ByRef command As ormSqlCommand, _
+                                                      Optional ByRef parametervalues As Dictionary(Of String, Object) = Nothing) As Boolean _
+                Implements iormRelationalTableStore.RunSqlCommand
+                ' TODO: Implement this method
+                Throw New NotImplementedException()
+            End Function
+            ''' <summary>
+            ''' Gets the record by primary key.
+            ''' </summary>
+            ''' <param name="aKeyArr">A key arr.</param>
+            ''' <param name="silent">The silent.</param>
+            ''' <returns></returns>
+            Public Overridable Function GetRecordByPrimaryKey(ByRef pkArray() As Object, Optional silent As Boolean = False) As ormRecord Implements iormRelationalTableStore.GetRecordByPrimaryKey
+                ' TODO: Implement this method
+                Throw New NotImplementedException()
+            End Function
+
+            ''' <summary>
+            ''' Gets the records by SQL.
+            ''' </summary>
+            ''' <param name="wherestr">The wherestr.</param>
+            ''' <param name="fullsqlstr">The fullsqlstr.</param>
+            ''' <param name="innerjoin">The innerjoin.</param>
+            ''' <param name="orderby">The orderby.</param>
+            ''' <param name="silent">The silent.</param>
+            ''' <returns></returns>
+            Public Overridable Function GetRecordsBySql(wherestr As String, Optional fullsqlstr As String = Nothing, _
+                                                         Optional innerjoin As String = Nothing, Optional orderby As String = Nothing, _
+                                                         Optional silent As Boolean = False, Optional ByRef parameters As List(Of ormSqlCommandParameter) = Nothing) As List(Of ormRecord) Implements iormRelationalTableStore.GetRecordsBySql
+                Throw New NotImplementedException
+            End Function
+            ''' <summary>
+            ''' Is Linq in this TableStore available
+            ''' </summary>
+            ''' <value>True if available</value>
+            ''' <returns></returns>
+            ''' <remarks></remarks>
+            Public Overridable ReadOnly Property IsLinqAvailable As Boolean Implements iormRelationalTableStore.IsLinqAvailable
+                Get
+                    Return False
+                End Get
+            End Property
+            ''' <summary>
+            ''' gets a List of ormRecords by SQLCommand
+            ''' </summary>
+            ''' <param name="id">ID of the Command to store</param>
+            ''' <param name="wherestr"></param>
+            ''' <param name="fullsqlstr"></param>
+            ''' <param name="innerjoin"></param>
+            ''' <param name="orderby"></param>
+            ''' <param name="silent"></param>
+            ''' <param name="parameters"></param>
+            ''' <returns></returns>
+            ''' <remarks></remarks>
+            Public Overridable Function GetRecordsbySQlCommand(id As String, Optional wherestr As String = Nothing, Optional fullsqlstr As String = Nothing, _
+                                                   Optional innerjoin As String = Nothing, Optional orderby As String = Nothing, Optional silent As Boolean = False, _
+                                                   Optional ByRef parameters As List(Of ormSqlCommandParameter) = Nothing) As List(Of ormRecord) _
+                                               Implements iormRelationalTableStore.GetRecordsBySqlCommand
+                ' TODO: Implement this method
+                Throw New NotImplementedException()
+            End Function
+            ''' <summary>
+            ''' Gets the index of the records by.
+            ''' </summary>
+            ''' <param name="indexname">The indexname.</param>
+            ''' <param name="aKeyArr">A key arr.</param>
+            ''' <param name="silent">The silent.</param>
+            ''' <returns></returns>
+            Public Overridable Function GetRecordsByIndex(indexname As String, ByRef keysArray As Object(), Optional silent As Boolean = False) As List(Of ormRecord) Implements iormRelationalTableStore.GetRecordsByIndex
+                ' TODO: Implement this method
+                Throw New NotImplementedException()
+            End Function
+
+            ''' <summary>
+            ''' Infuses the record.
+            ''' </summary>
+            ''' <param name="aNewEnt">A new ent.</param>
+            ''' <param name="aRecordSet">A record set.</param>
+            ''' <param name="silent">The silent.</param>
+            ''' <returns></returns>
+            Public Overridable Function InfuseRecord(ByRef newRecord As ormRecord, ByRef RowObject As Object, Optional ByVal silent As Boolean = False, Optional CreateNewRecord As Boolean = False) As Boolean Implements iormRelationalTableStore.InfuseRecord
+                ' TODO: Implement this method
+                Throw New NotImplementedException()
+            End Function
+
+            ''' <summary>
+            ''' Persists the record.
+            ''' </summary>
+            ''' <param name="aRecord">A record.</param>
+            ''' <param name="aTimestamp">A timestamp.</param>
+            ''' <param name="silent">The silent.</param>
+            ''' <returns></returns>
+            Public Overridable Function PersistRecord(ByRef record As ormRecord, Optional timestamp As DateTime = ot.constNullDate, Optional ByVal silent As Boolean = False) As Boolean Implements iormRelationalTableStore.PersistRecord
+                ' TODO: Implement this method
+                Throw New NotImplementedException()
+            End Function
+
+            ''' <summary>
+            ''' Runs the SQL command.
+            ''' </summary>
+            ''' <param name="sqlcmdstr">The SQLCMDSTR.</param>
+            ''' <param name="silent">The silent.</param>
+            ''' <returns></returns>
+            Public Overridable Function RunSQLStatement(sqlcmdstr As String, _
+                                                        Optional ByRef parameters As List(Of ormSqlCommandParameter) = Nothing, _
+                                                        Optional silent As Boolean = True) As Boolean _
+                Implements iormRelationalTableStore.RunSqlStatement
+                Throw New NotImplementedException()
+            End Function
+
+            ''' <summary>
+            ''' converts an object value to column data
+            ''' </summary>
+            ''' <param name="invalue"></param>
+            ''' <param name="outvalue"></param>
+            ''' <param name="targetType"></param>
+            ''' <param name="maxsize"></param>
+            ''' <param name="abostrophNecessary"></param>
+            ''' <param name="fieldname"></param>
+            ''' <returns></returns>
+            ''' <remarks></remarks>
+            Public MustOverride Function Convert2ContainerData(ByVal invalue As Object, ByRef outvalue As Object, _
+                                                        targetType As Long, _
+                                                        Optional ByVal maxsize As Long = 0, _
+                                                       Optional ByRef abostrophNecessary As Boolean = False, _
+                                                       Optional ByVal fieldname As String = Nothing, _
+                                                        Optional isnullable As Boolean? = Nothing, _
+                                                        Optional defaultvalue As Object = Nothing _
+                                                    ) As Boolean Implements iormRelationalTableStore.Convert2ContainerData
+
+
+            ''' <summary>
+            ''' Convert2s the column data.
+            ''' </summary>
+            ''' <param name="anIndex">An index.</param>
+            ''' <param name="aVAlue">A V alue.</param>
+            ''' <param name="abostrophNecessary">The abostroph necessary.</param>
+            ''' <returns></returns>
+            Public Overridable Function Convert2ContainerData(index As Object, ByVal invalue As Object, ByRef outvalue As Object, _
+                                                           Optional ByRef abostrophNecessary As Boolean = False, _
+                                                           Optional isnullable As Boolean? = Nothing, _
+                                                        Optional defaultvalue As Object = Nothing _
+                                                    ) As Boolean Implements iormRelationalTableStore.Convert2ContainerData
+                ' TODO: Implement this method
+                Throw New NotImplementedException()
+            End Function
+
+            ''' <summary>
+            ''' Convert2s the object data.
+            ''' </summary>
+            ''' <param name="anIndex">An index.</param>
+            ''' <param name="aVAlue">A V alue.</param>
+            ''' <param name="abostrophNecessary">The abostroph necessary.</param>
+            ''' <returns></returns>
+            Public Overridable Function Convert2ObjectData(index As Object, _
+                                                           ByVal invalue As Object, _
+                                                           ByRef outvalue As Object, _
+                                                           Optional isnullable As Boolean? = Nothing, _
+                                                            Optional defaultvalue As Object = Nothing, _
+                                                           Optional ByRef abostrophNecessary As Boolean = False) As Boolean Implements iormRelationalTableStore.Convert2ObjectData
+                ' TODO: Implement this method
+                Throw New NotImplementedException()
+            End Function
+            ''' <summary>
+            ''' checks if SqlCommand is in Store of the driver
+            ''' </summary>
+            ''' <param name="id">id of the command</param>
+            ''' <returns>True if successful</returns>
+            ''' <remarks></remarks>
+            Public Overridable Function HasSqlCommand(id As String) As Boolean Implements iormRelationalTableStore.HasSqlCommand
+                Throw New NotImplementedException()
+            End Function
+            ''' <summary>
+            ''' Store the Command by its ID - replace if existing
+            ''' </summary>
+            ''' <param name="sqlCommand">a iOTDBSqlCommand</param>
+            ''' <returns>true if successfull</returns>
+            ''' <remarks></remarks>
+            Public Overridable Function StoreSqlCommand(ByRef sqlCommand As iormSqlCommand) As Boolean Implements iormRelationalTableStore.StoreSqlCommand
+                sqlCommand.ID = Me.GetSqlCommandID(sqlCommand.ID)
+
+                Dim anExistingSqlCommand As iormSqlCommand
+                If Me.Connection.DatabaseDriver.HasSqlCommand(sqlCommand.ID) Then
+                    anExistingSqlCommand = Me.Connection.DatabaseDriver.RetrieveSqlCommand(sqlCommand.ID)
+                    If anExistingSqlCommand.BuildVersion > sqlCommand.BuildVersion Then
+                        Call CoreMessageHandler(messagetype:=otCoreMessageType.InternalWarning, procedure:="ormDataStore.StoreSQLCommand", argument:=sqlCommand.ID, _
+                                               message:=" SqlCommand in Store has higher buildversion as the one to save ?! - not saved")
+                        Return False
+                    End If
+                End If
+
+                Me.Connection.DatabaseDriver.StoreSqlCommand(sqlCommand)
+                Return True
+            End Function
+            ''' <summary>
+            ''' Retrieve the Command from Store
+            ''' </summary>
+            ''' <param name="id">id of the command</param>
+            ''' <returns>a iOTDBSqlCommand</returns>
+            ''' <remarks></remarks>
+            Public Overridable Function RetrieveSqlCommand(id As String) As iormSqlCommand Implements iormRelationalTableStore.RetrieveSqlCommand
+                '* get the ID
+                id = Me.GetSqlCommandID(id)
+                If Me.Connection.DatabaseDriver.HasSqlCommand(id) Then
+                    Return Me.Connection.DatabaseDriver.RetrieveSqlCommand(id)
+                Else
+                    Return Nothing
+                End If
+            End Function
+            ''' <summary>
+            ''' Creates a Command and store it or gets the current Command
+            ''' </summary>
+            ''' <param name="id">id of the command</param>
+            ''' <returns>a iOTDBSqlCommand</returns>
+            ''' <remarks></remarks>
+            Public Overridable Function CreateSqlCommand(id As String) As iormSqlCommand Implements iormRelationalTableStore.CreateSqlCommand
+                '* get the ID
+                id = Me.GetSqlCommandID(id)
+                If Me.Connection.DatabaseDriver.HasSqlCommand(id) Then
+                    Return Me.Connection.DatabaseDriver.RetrieveSqlCommand(id)
+                Else
+                    Dim aSqlCommand As iormSqlCommand = New ormSqlCommand(id)
+                    Me.Connection.DatabaseDriver.StoreSqlCommand(aSqlCommand)
+                    Return aSqlCommand
+                End If
+            End Function
+            ''' <summary>
+            ''' Creates a Command and store it or gets the current Command
+            ''' </summary>
+            ''' <param name="id">id of the command</param>
+            ''' <returns>a iOTDBSqlCommand</returns>
+            ''' <remarks></remarks>
+            Public Overridable Function CreateSqlSelectCommand(id As String, Optional addMe As Boolean = True, Optional addAllFields As Boolean = True) As iormSqlCommand Implements iormRelationalTableStore.CreateSqlSelectCommand
+                '* get the ID
+                id = Me.GetSqlCommandID(id)
+                If Me.Connection.DatabaseDriver.HasSqlCommand(id) Then
+                    Return Me.Connection.DatabaseDriver.RetrieveSqlCommand(id)
+                Else
+                    Dim aSqlCommand As iormSqlCommand = New ormSqlSelectCommand(id)
+                    Me.Connection.DatabaseDriver.StoreSqlCommand(aSqlCommand)
+                    If addMe Then
+                        DirectCast(aSqlCommand, ormSqlSelectCommand).AddTable(tableid:=Me.ContainerID, addAllFields:=addAllFields)
+                    End If
+                    Return aSqlCommand
+                End If
+            End Function
+            ''' <summary>
+            ''' returns a ID for this Tablestore. Add the name of the table in front of the ID
+            ''' </summary>
+            ''' <param name="id">SqlcommandID</param>
+            ''' <returns>the id</returns>
+            ''' <remarks></remarks>
+            Public Function GetSqlCommandID(id As String) As String
+                If Not id.ToLower.Contains((LCase(Me.ContainerID & "."))) Then
+                    Return Me.ContainerID & "." & id
+                Else
+                    Return id
+                End If
+            End Function
+        End Class
+
+        ''' <summary>
+        ''' TopLevel abstract ViewReader Class
+        ''' </summary>
+        ''' <remarks></remarks>
+        Public MustInherit Class ormViewReader
+            Inherits ormDataReader
+            Implements iormRelationalTableStore
+
+
+            ''' <summary>
+            ''' constuctor
+            ''' </summary>
+            ''' <param name="connection"></param>
+            ''' <param name="tableID"></param>
+            ''' <param name="force"></param>
+            ''' <remarks></remarks>
+            Protected Sub New(connection As iormConnection, viewid As String, ByVal force As Boolean)
+                Call MyBase.New(connection:=connection, dbobjectid:=viewid, force:=force)
+            End Sub
+
+
+            ''' <summary>
+            ''' Refresh
+            ''' </summary>
+            ''' <param name="force"></param>
+            ''' <returns></returns>
+            ''' <remarks></remarks>
+            Public Overrides Function Refresh(Optional ByVal force As Boolean = False) As Boolean Implements iormRelationalTableStore.Refresh
+                ''' TODO: on Connection Refresh
+                '** 
+                If Not Connection Is Nothing AndAlso (Connection.IsConnected OrElse Connection.Session.IsBootstrappingInstallationRequested) Then
+
+                    ''** all cache properties for tables used in starting up will be determined
+                    ''** by schema
+                    'If CurrentSession.IsStartingUp Then
+                    '    Dim aTable = ot.GetSchemaTableAttribute(Me.ViewID)
+                    '    If aTable IsNot Nothing Then
+                    '        If aTable.HasValueUseCache AndAlso aTable.UseCache Then
+                    '            If Not aTable.HasValueCacheProperties Then
+                    '                Me.SetProperty(ConstTPNCacheProperty, ConstTPNFullCaching)
+                    '            Else
+                    '                '** set properties
+                    '                Dim ext As String = String.empty
+                    '                Dim i As Integer = 0
+                    '                For Each aproperty In aTable.CacheProperties
+                    '                    Me.SetProperty(ConstTPNCacheProperty & ext, aproperty)
+                    '                    ext = i.ToString
+                    '                    i += 1
+                    '                Next
+
+                    '            End If
+                    '        End If
+
+                    '    End If
+                    '    '** set the cache property if running from the object definitions
+                    'ElseIf CurrentSession.IsRunning Then
+                    '    Dim aTable = CurrentSession.Objects.GetTable(tablename:=Me.ViewID)
+                    '    If aTable IsNot Nothing Then
+                    '        If aTable.UseCache And aTable.CacheProperties.Count = 0 Then
+                    '            Me.SetProperty(ConstTPNCacheProperty, ConstTPNFullCaching)
+                    '        Else
+                    '            '** set properties
+                    '            Dim ext As String = String.empty
+                    '            Dim i As Integer = 0
+                    '            For Each aproperty In aTable.CacheProperties
+                    '                Me.SetProperty(ConstTPNCacheProperty & ext, aproperty)
+                    '                ext = i.ToString
+                    '                i += 1
+                    '            Next
+
+                    '        End If
+                    '    End If
+                    'End If
+
+                    '** create and assign the table schema
+                    If Me.ViewSchema Is Nothing OrElse force Then Me._DataSchema = Connection.DatabaseDriver.GetViewSchema(Me.ViewID, force:=force)
+                    If ViewSchema Is Nothing OrElse Not ViewSchema.IsInitialized Then
+                        Call CoreMessageHandler(break:=True, message:=" Schema for TableID '" & Me.ViewID & "' couldnot be loaded", containerID:=Me.ViewID, _
+                                              messagetype:=otCoreMessageType.InternalError, procedure:="ormViewReader.Refresh")
+                        Return False
+                    End If
+                End If
+            End Function
+
+            ''' <summary>
+            ''' returns the native Tablename of this store from the schema
+            ''' </summary>
+            ''' <value></value>
+            ''' <returns></returns>
+            ''' <remarks></remarks>
+            Public ReadOnly Property NativeViewName As String Implements iormRelationalTableStore.NativeDBObjectname
+                Get
+                    '**
+                    If Not Me.ContainerSchema.IsInitialized Then
+                        Return Nothing
+                    End If
+                    Return Me.ContainerSchema.NativeDBContainerName
+                End Get
+            End Property
+
+            ''' <summary>
+            ''' return the associated Tableschema
+            ''' </summary>
+            ''' <value></value>
+            ''' <returns></returns>
+            ''' <remarks></remarks>
+            Public ReadOnly Property ViewSchema As iormContainerSchema
+                Get
+                    Return Me.ContainerSchema
+                End Get
+            End Property
+            ''' <summary>
+            ''' Gets or sets the view ID.
+            ''' </summary>
+            ''' 
+            ''' <value>The view ID.</value>
+            Public Property ViewID As String Implements iormRelationalTableStore.ContainerID
+                Get
+                    Return MyBase.ContainerID
+                End Get
+                Protected Set(value As String)
+                    MyBase.ContainerID = value.ToUpper
+                End Set
+            End Property
+
+
+        End Class
+
+
+        ''' <summary>
+        ''' TopLevel OTDB Tablestore implementation base class
+        ''' </summary>
+        ''' <remarks></remarks>
+        Public MustInherit Class ormTableStore
+            Inherits ormDataReader
+            Implements iormRelationalTableStore
+
+            ''' <summary>
+            ''' Table Property Name "Cache Update Instant"
+            ''' </summary>
+            ''' <remarks></remarks>
+            Public Const ConstTPNCacheUpdateInstant = "CacheDataTableUpdateImmediatly"
+
+            ''' <summary>
+            ''' constuctor
+            ''' </summary>
+            ''' <param name="connection"></param>
+            ''' <param name="tableID"></param>
+            ''' <param name="force"></param>
+            ''' <remarks></remarks>
+            Protected Sub New(connection As iormConnection, tableID As String, ByVal force As Boolean)
+                Call MyBase.New(connection:=connection, dbobjectid:=tableID, force:=force)
+            End Sub
+            ''' <summary>
+            ''' creates an unique key value. provide primary key array in the form {field1, field2, nothing}. "Nothing" will be increased.
+            ''' </summary>
+            ''' <param name="pkArray"></param>
+            ''' <remarks></remarks>
+            ''' <returns>True if successfull new value</returns>
+            Public Overrides Function CreateUniquePkValue(ByRef pkArray() As Object, Optional tag As String = Nothing) As Boolean Implements iormRelationalTableStore.CreateUniquePkValue
 
                 '**
-                If Not Me.TableSchema.IsInitialized Then
+                If Not Me.ContainerSchema.IsInitialized Then
                     Return False
                 End If
 
                 '** redim 
-                ReDim Preserve pkArray(Me.TableSchema.NoPrimaryKeyFields() - 1)
+                ReDim Preserve pkArray(Me.ContainerSchema.NoPrimaryEntries() - 1)
                 Dim anIndex As UShort = 0
                 Dim keyfieldname As String
 
                 Try
                     ' get
-                    Dim aStore As iormDataStore = GetTableStore(_TableID)
+                    Dim aStore As iormRelationalTableStore = GetTableStore(Me.TableID)
                     Dim aCommand As ormSqlSelectCommand = aStore.CreateSqlSelectCommand(id:="CreateUniquePkValue" & tag, addMe:=True, addAllFields:=False)
 
                     '** prepare the command if necessary
 
                     ''' this command lives from the first call !! -> all elements in pkArray not fixed will be regarded as elements to be fixed
-                    If Not aCommand.Prepared Then
+                    If Not aCommand.IsPrepared Then
                         '* retrieve the maximum field
                         For Each pkvalue In pkArray
                             If pkvalue Is Nothing Then
-                                keyfieldname = TableSchema.GetPrimaryKeyfieldname(anIndex + 1)
+                                keyfieldname = ContainerSchema.GetPrimaryEntryNames(anIndex + 1)
                                 Exit For
                             End If
                             anIndex += 1
@@ -2871,9 +3496,9 @@ Namespace OnTrack
                         If anIndex > 0 Then
                             For j = 0 To anIndex - 1 ' an index points to the keyfieldname, parameter is the rest
                                 If j > 0 Then aCommand.Where &= " AND "
-                                aCommand.Where &= "[" & TableSchema.GetPrimaryKeyfieldname(j + 1) & "] = @" & TableSchema.GetPrimaryKeyfieldname(j + 1)
-                                aCommand.AddParameter(New ormSqlCommandParameter(ID:="@" & TableSchema.GetPrimaryKeyfieldname(j + 1), _
-                                                                                     columnname:=TableSchema.GetPrimaryKeyfieldname(j + 1), tablename:=Me.TableID))
+                                aCommand.Where &= "[" & ContainerSchema.GetPrimaryEntryNames(j + 1) & "] = @" & ContainerSchema.GetPrimaryEntryNames(j + 1)
+                                aCommand.AddParameter(New ormSqlCommandParameter(ID:="@" & ContainerSchema.GetPrimaryEntryNames(j + 1), _
+                                                                                     columnname:=ContainerSchema.GetPrimaryEntryNames(j + 1), tableid:=Me.TableID))
                             Next
                         End If
                         aCommand.Prepare()
@@ -2883,7 +3508,7 @@ Namespace OnTrack
                     anIndex = 0
                     For Each pkvalue In pkArray
                         If Not pkvalue Is Nothing Then
-                            aCommand.SetParameterValue(ID:="@" & TableSchema.GetPrimaryKeyfieldname(anIndex + 1), value:=pkvalue)
+                            aCommand.SetParameterValue(ID:="@" & ContainerSchema.GetPrimaryEntryNames(anIndex + 1), value:=pkvalue)
                         Else
                             Exit For
                         End If
@@ -2909,7 +3534,7 @@ Namespace OnTrack
                     End If
 
                 Catch ex As Exception
-                    Call CoreMessageHandler(showmsgbox:=False, exception:=ex, subname:="clsOTDBTableStore.CreateUniquePkValue")
+                    Call CoreMessageHandler(showmsgbox:=False, exception:=ex, procedure:="ormTableStore.CreateUniquePkValue")
                     Return False
                 End Try
 
@@ -2922,22 +3547,22 @@ Namespace OnTrack
             ''' <param name="force"></param>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public Function Refresh(Optional ByVal force As Boolean = False) As Boolean Implements iormDataStore.Refresh
+            Public Overrides Function Refresh(Optional ByVal force As Boolean = False) As Boolean Implements iormRelationalTableStore.Refresh
                 ''' TODO: on Connection Refresh
                 '** 
-                If Not Connection Is Nothing AndAlso (Connection.IsConnected OrElse Connection.Session.IsBootstrappingInstallationRequested) Then
+                If Connection IsNot Nothing AndAlso (Connection.IsConnected OrElse Connection.Session.IsBootstrappingInstallationRequested) Then
 
                     '** all cache properties for tables used in starting up will be determined
                     '** by schema
                     If CurrentSession.IsStartingUp Then
-                        Dim aTable = ot.GetSchemaTableAttribute(TableID)
+                        Dim aTable = ot.GetSchemaTableAttribute(Me.TableID)
                         If aTable IsNot Nothing Then
                             If aTable.HasValueUseCache AndAlso aTable.UseCache Then
                                 If Not aTable.HasValueCacheProperties Then
                                     Me.SetProperty(ConstTPNCacheProperty, ConstTPNFullCaching)
                                 Else
                                     '** set properties
-                                    Dim ext As String = ""
+                                    Dim ext As String = String.Empty
                                     Dim i As Integer = 0
                                     For Each aproperty In aTable.CacheProperties
                                         Me.SetProperty(ConstTPNCacheProperty & ext, aproperty)
@@ -2951,13 +3576,13 @@ Namespace OnTrack
                         End If
                         '** set the cache property if running from the object definitions
                     ElseIf CurrentSession.IsRunning Then
-                        Dim aTable = CurrentSession.Objects.GetTable(tablename:=TableID)
+                        Dim aTable = CurrentSession.Objects.GetTable(tablename:=Me.TableID)
                         If aTable IsNot Nothing Then
                             If aTable.UseCache And aTable.CacheProperties.Count = 0 Then
                                 Me.SetProperty(ConstTPNCacheProperty, ConstTPNFullCaching)
                             Else
                                 '** set properties
-                                Dim ext As String = ""
+                                Dim ext As String = String.Empty
                                 Dim i As Integer = 0
                                 For Each aproperty In aTable.CacheProperties
                                     Me.SetProperty(ConstTPNCacheProperty & ext, aproperty)
@@ -2970,10 +3595,10 @@ Namespace OnTrack
                     End If
 
                     '** create and assign the table schema
-                    If _TableSchema Is Nothing OrElse force Then _TableSchema = Connection.DatabaseDriver.GetTableSchema(TableID, force:=force)
-                    If _TableSchema Is Nothing OrElse Not _TableSchema.IsInitialized Then
-                        Call CoreMessageHandler(break:=True, message:=" Schema for TableID '" & TableID & "' couldnot be loaded", tablename:=TableID, _
-                                              messagetype:=otCoreMessageType.InternalError, subname:="clsOTDBTablestore.Refresh")
+                    If Me.TableSchema Is Nothing OrElse force Then Me._DataSchema = Connection.DatabaseDriver.RetrieveContainerSchema(Me.TableID, force:=force)
+                    If TableSchema Is Nothing OrElse Not TableSchema.IsInitialized Then
+                        Call CoreMessageHandler(break:=True, message:=" Schema for TableID '" & Me.TableID & "' couldnot be loaded", containerID:=Me.TableID, _
+                                              messagetype:=otCoreMessageType.InternalError, procedure:="ormTableStore.Refresh")
                         Return False
                     End If
                 End If
@@ -2985,416 +3610,84 @@ Namespace OnTrack
             ''' <value></value>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public ReadOnly Property NativeTablename As String Implements iormDataStore.NativeTablename
+            Public ReadOnly Property NativeViewName As String Implements iormRelationalTableStore.NativeDBObjectname
                 Get
                     '**
-                    If Not Me.TableSchema.IsInitialized Then
+                    If Not Me.ContainerSchema.IsInitialized Then
                         Return Nothing
                     End If
-                    Return _TableSchema.nativeTablename
+                    Return Me.ContainerSchema.NativeDBContainerName
                 End Get
             End Property
 
+            ''' <summary>
+            ''' return the associated Tableschema
+            ''' </summary>
+            ''' <value></value>
+            ''' <returns></returns>
+            ''' <remarks></remarks>
+            Public ReadOnly Property TableSchema As iormContainerSchema
+                Get
+                    Return Me.ContainerSchema
+                End Get
+            End Property
             ''' <summary>
             ''' Gets or sets the table ID.
             ''' </summary>
+            ''' 
             ''' <value>The table ID.</value>
-            Public Property TableID As String Implements iormDataStore.TableID
+            Public Property TableID As String Implements iormRelationalTableStore.ContainerID
                 Get
-                    Return Me._TableID
+                    Return MyBase.ContainerID
                 End Get
                 Protected Set(value As String)
-                    Me._TableID = value.ToUpper
+                    MyBase.ContainerID = value.ToUpper
                 End Set
             End Property
 
-            ''' <summary>
-            ''' Gets the records by SQL command.
-            ''' </summary>
-            ''' <param name="sqlcommand">The sqlcommand.</param>
-            ''' <param name="parameters">The parameters.</param>
-            ''' <returns></returns>
-            Public MustOverride Function GetRecordsBySqlCommand(ByRef sqlcommand As ormSqlSelectCommand, Optional ByRef parametervalues As Dictionary(Of String, Object) = Nothing) As List(Of ormRecord) Implements iormDataStore.GetRecordsBySqlCommand
 
-
-            ''' <summary>
-            ''' Gets or sets the connection.
-            ''' </summary>
-            ''' <value>The connection.</value>
-            Public Overridable Property Connection() As iormConnection Implements iormDataStore.Connection
-                Get
-                    Return _Connection
-                End Get
-                Friend Set(value As iormConnection)
-                    _Connection = value
-                End Set
-            End Property
-
-            ''' <summary>
-            ''' Gets or sets the DB table schema.
-            ''' </summary>
-            ''' <value>The DB table schema.</value>
-            Public Overridable Property TableSchema() As iotDataSchema Implements iormDataStore.TableSchema
-                Get
-                    Return _TableSchema
-                End Get
-                Friend Set(value As iotDataSchema)
-                    _TableSchema = value
-                End Set
-            End Property
-            ''' <summary>
-            ''' sets a Property to the TableStore
-            ''' </summary>
-            ''' <param name="Name">Name of the Property</param>
-            ''' <param name="Object">ObjectValue</param>
-            ''' <returns>returns True if succesfull</returns>
-            ''' <remarks></remarks>
-            Public Function SetProperty(ByVal name As String, ByVal value As Object) As Boolean Implements iormDataStore.SetProperty
-                If _PropertyBag.ContainsKey(name) Then
-                    _PropertyBag.Remove(name)
-                End If
-                _PropertyBag.Add(name, value)
-                Return True
-            End Function
-            ''' <summary>
-            ''' Gets the Property of a Tablestore
-            ''' </summary>
-            ''' <param name="name">name of property</param>
-            ''' <returns>object of the property</returns>
-            ''' <remarks></remarks>
-            Public Function GetProperty(ByVal name As String) As Object Implements iormDataStore.GetProperty
-                If _PropertyBag.ContainsKey(name) Then
-                    Return _PropertyBag.Item(name)
-                End If
-                Return Nothing
-            End Function
-            ''' <summary>
-            ''' has Tablestore the named property
-            ''' </summary>
-            ''' <param name="name">name of property</param>
-            ''' <returns>return true</returns>
-            ''' <remarks></remarks>
-            Public Function HasProperty(ByVal name As String) As Boolean Implements iormDataStore.HasProperty
-                Return _PropertyBag.ContainsKey(name)
-            End Function
-            ''' <summary>
-            ''' Dels the record by primary key.
-            ''' </summary>
-            ''' <param name="aKeyArr">A key arr.</param>
-            ''' <param name="silent">The silent.</param>
-            ''' <returns></returns>
-            Public Overridable Function DelRecordByPrimaryKey(ByRef pkArray() As Object, Optional silent As Boolean = False) As Boolean Implements iormDataStore.DelRecordByPrimaryKey
-                ' TODO: Implement this method
-                Throw New NotImplementedException()
-            End Function
-            ''' <summary>
-            ''' Runs the SQL command.
-            ''' </summary>
-            ''' <param name="command">The command.</param>
-            ''' <param name="parameters">The parameters.</param>
-            ''' <returns></returns>
-            '''   
-            Public Overridable Function RunSqlCommand(ByRef command As ormSqlCommand, _
-                                                      Optional ByRef parametervalues As Dictionary(Of String, Object) = Nothing) As Boolean _
-                Implements iormDataStore.RunSqlCommand
-                ' TODO: Implement this method
-                Throw New NotImplementedException()
-            End Function
-            ''' <summary>
-            ''' Gets the record by primary key.
-            ''' </summary>
-            ''' <param name="aKeyArr">A key arr.</param>
-            ''' <param name="silent">The silent.</param>
-            ''' <returns></returns>
-            Public Overridable Function GetRecordByPrimaryKey(ByRef pkArray() As Object, Optional silent As Boolean = False) As ormRecord Implements iormDataStore.GetRecordByPrimaryKey
-                ' TODO: Implement this method
-                Throw New NotImplementedException()
-            End Function
-
-            ''' <summary>
-            ''' Gets the records by SQL.
-            ''' </summary>
-            ''' <param name="wherestr">The wherestr.</param>
-            ''' <param name="fullsqlstr">The fullsqlstr.</param>
-            ''' <param name="innerjoin">The innerjoin.</param>
-            ''' <param name="orderby">The orderby.</param>
-            ''' <param name="silent">The silent.</param>
-            ''' <returns></returns>
-            Public Overridable Function GetRecordsBySql(wherestr As String, Optional fullsqlstr As String = "", _
-                                                         Optional innerjoin As String = "", Optional orderby As String = "", _
-                                                         Optional silent As Boolean = False, Optional ByRef parameters As List(Of ormSqlCommandParameter) = Nothing) As List(Of ormRecord) Implements iormDataStore.GetRecordsBySql
-                Throw New NotImplementedException
-            End Function
-            ''' <summary>
-            ''' Is Linq in this TableStore available
-            ''' </summary>
-            ''' <value>True if available</value>
-            ''' <returns></returns>
-            ''' <remarks></remarks>
-            Public Overridable ReadOnly Property IsLinqAvailable As Boolean Implements iormDataStore.IsLinqAvailable
-                Get
-                    Return False
-                End Get
-            End Property
-            ''' <summary>
-            ''' gets a List of ormRecords by SQLCommand
-            ''' </summary>
-            ''' <param name="id">ID of the Command to store</param>
-            ''' <param name="wherestr"></param>
-            ''' <param name="fullsqlstr"></param>
-            ''' <param name="innerjoin"></param>
-            ''' <param name="orderby"></param>
-            ''' <param name="silent"></param>
-            ''' <param name="parameters"></param>
-            ''' <returns></returns>
-            ''' <remarks></remarks>
-            Public Overridable Function GetRecordsbySQlCommand(id As String, Optional wherestr As String = "", Optional fullsqlstr As String = "", _
-                                                   Optional innerjoin As String = "", Optional orderby As String = "", Optional silent As Boolean = False, _
-                                                   Optional ByRef parameters As List(Of ormSqlCommandParameter) = Nothing) As List(Of ormRecord) _
-                                               Implements iormDataStore.GetRecordsBySqlCommand
-                ' TODO: Implement this method
-                Throw New NotImplementedException()
-            End Function
-            ''' <summary>
-            ''' Gets the index of the records by.
-            ''' </summary>
-            ''' <param name="indexname">The indexname.</param>
-            ''' <param name="aKeyArr">A key arr.</param>
-            ''' <param name="silent">The silent.</param>
-            ''' <returns></returns>
-            Public Overridable Function GetRecordsByIndex(indexname As String, ByRef keysArray As Object(), Optional silent As Boolean = False) As List(Of ormRecord) Implements iormDataStore.GetRecordsByIndex
-                ' TODO: Implement this method
-                Throw New NotImplementedException()
-            End Function
-
-            ''' <summary>
-            ''' Infuses the record.
-            ''' </summary>
-            ''' <param name="aNewEnt">A new ent.</param>
-            ''' <param name="aRecordSet">A record set.</param>
-            ''' <param name="silent">The silent.</param>
-            ''' <returns></returns>
-            Public Overridable Function InfuseRecord(ByRef newRecord As ormRecord, ByRef RowObject As Object, Optional ByVal silent As Boolean = False, Optional CreateNewRecord As Boolean = False) As Boolean Implements iormDataStore.InfuseRecord
-                ' TODO: Implement this method
-                Throw New NotImplementedException()
-            End Function
-
-            ''' <summary>
-            ''' Persists the record.
-            ''' </summary>
-            ''' <param name="aRecord">A record.</param>
-            ''' <param name="aTimestamp">A timestamp.</param>
-            ''' <param name="silent">The silent.</param>
-            ''' <returns></returns>
-            Public Overridable Function PersistRecord(ByRef record As ormRecord, Optional timestamp As DateTime = ot.constNullDate, Optional ByVal silent As Boolean = False) As Boolean Implements iormDataStore.PersistRecord
-                ' TODO: Implement this method
-                Throw New NotImplementedException()
-            End Function
-
-            ''' <summary>
-            ''' Runs the SQL command.
-            ''' </summary>
-            ''' <param name="sqlcmdstr">The SQLCMDSTR.</param>
-            ''' <param name="silent">The silent.</param>
-            ''' <returns></returns>
-            Public Overridable Function RunSQLStatement(sqlcmdstr As String, _
-                                                        Optional ByRef parameters As List(Of ormSqlCommandParameter) = Nothing, _
-                                                        Optional silent As Boolean = True) As Boolean _
-                Implements iormDataStore.RunSqlStatement
-                Throw New NotImplementedException()
-            End Function
-
-            ''' <summary>
-            ''' converts an object value to column data
-            ''' </summary>
-            ''' <param name="invalue"></param>
-            ''' <param name="outvalue"></param>
-            ''' <param name="targetType"></param>
-            ''' <param name="maxsize"></param>
-            ''' <param name="abostrophNecessary"></param>
-            ''' <param name="fieldname"></param>
-            ''' <returns></returns>
-            ''' <remarks></remarks>
-            Public MustOverride Function Convert2ColumnData(ByVal invalue As Object, ByRef outvalue As Object, _
-                                                        targetType As Long, _
-                                                        Optional ByVal maxsize As Long = 0, _
-                                                       Optional ByRef abostrophNecessary As Boolean = False, _
-                                                       Optional ByVal fieldname As String = "", _
-                                                        Optional isnullable As Boolean? = Nothing, _
-                                                        Optional defaultvalue As Object = Nothing _
-                                                    ) As Boolean Implements iormDataStore.Convert2ColumnData
-
-
-            ''' <summary>
-            ''' Convert2s the column data.
-            ''' </summary>
-            ''' <param name="anIndex">An index.</param>
-            ''' <param name="aVAlue">A V alue.</param>
-            ''' <param name="abostrophNecessary">The abostroph necessary.</param>
-            ''' <returns></returns>
-            Public Overridable Function Convert2ColumnData(index As Object, ByVal invalue As Object, ByRef outvalue As Object, _
-                                                           Optional ByRef abostrophNecessary As Boolean = False, _
-                                                           Optional isnullable As Boolean? = Nothing, _
-                                                        Optional defaultvalue As Object = Nothing _
-                                                    ) As Boolean Implements iormDataStore.Convert2ColumnData
-                ' TODO: Implement this method
-                Throw New NotImplementedException()
-            End Function
-
-            ''' <summary>
-            ''' Convert2s the object data.
-            ''' </summary>
-            ''' <param name="anIndex">An index.</param>
-            ''' <param name="aVAlue">A V alue.</param>
-            ''' <param name="abostrophNecessary">The abostroph necessary.</param>
-            ''' <returns></returns>
-            Public Overridable Function Convert2ObjectData(index As Object, _
-                                                           ByVal invalue As Object, _
-                                                           ByRef outvalue As Object, _
-                                                           Optional isnullable As Boolean? = Nothing, _
-                                                            Optional defaultvalue As Object = Nothing, _
-                                                           Optional ByRef abostrophNecessary As Boolean = False) As Boolean Implements iormDataStore.Convert2ObjectData
-                ' TODO: Implement this method
-                Throw New NotImplementedException()
-            End Function
-            ''' <summary>
-            ''' checks if SqlCommand is in Store of the driver
-            ''' </summary>
-            ''' <param name="id">id of the command</param>
-            ''' <returns>True if successful</returns>
-            ''' <remarks></remarks>
-            Public Overridable Function HasSqlCommand(id As String) As Boolean Implements iormDataStore.HasSqlCommand
-
-            End Function
-            ''' <summary>
-            ''' Store the Command by its ID - replace if existing
-            ''' </summary>
-            ''' <param name="sqlCommand">a iOTDBSqlCommand</param>
-            ''' <returns>true if successfull</returns>
-            ''' <remarks></remarks>
-            Public Overridable Function StoreSqlCommand(ByRef sqlCommand As iormSqlCommand) As Boolean Implements iormDataStore.StoreSqlCommand
-                sqlCommand.ID = Me.GetSqlCommandID(sqlCommand.ID)
-
-                Dim anExistingSqlCommand As iormSqlCommand
-                If Me.Connection.DatabaseDriver.HasSqlCommand(sqlCommand.ID) Then
-                    anExistingSqlCommand = Me.Connection.DatabaseDriver.RetrieveSqlCommand(sqlCommand.ID)
-                    If anExistingSqlCommand.BuildVersion > sqlCommand.BuildVersion Then
-                        Call CoreMessageHandler(messagetype:=otCoreMessageType.InternalWarning, subname:="clsOTBTableStore.StoreSQLCommand", arg1:=sqlCommand.ID, _
-                                               message:=" SqlCommand in Store has higher buildversion as the one to save ?! - not saved")
-                        Return False
-                    End If
-                End If
-
-                Me.Connection.DatabaseDriver.StoreSqlCommand(sqlCommand)
-                Return True
-            End Function
-            ''' <summary>
-            ''' Retrieve the Command from Store
-            ''' </summary>
-            ''' <param name="id">id of the command</param>
-            ''' <returns>a iOTDBSqlCommand</returns>
-            ''' <remarks></remarks>
-            Public Overridable Function RetrieveSqlCommand(id As String) As iormSqlCommand Implements iormDataStore.RetrieveSqlCommand
-                '* get the ID
-                id = Me.GetSqlCommandID(id)
-                If Me.Connection.DatabaseDriver.HasSqlCommand(id) Then
-                    Return Me.Connection.DatabaseDriver.RetrieveSqlCommand(id)
-                Else
-                    Return Nothing
-                End If
-            End Function
-            ''' <summary>
-            ''' Creates a Command and store it or gets the current Command
-            ''' </summary>
-            ''' <param name="id">id of the command</param>
-            ''' <returns>a iOTDBSqlCommand</returns>
-            ''' <remarks></remarks>
-            Public Overridable Function CreateSqlCommand(id As String) As iormSqlCommand Implements iormDataStore.CreateSqlCommand
-                '* get the ID
-                id = Me.GetSqlCommandID(id)
-                If Me.Connection.DatabaseDriver.HasSqlCommand(id) Then
-                    Return Me.Connection.DatabaseDriver.RetrieveSqlCommand(id)
-                Else
-                    Dim aSqlCommand As iormSqlCommand = New ormSqlCommand(id)
-                    Me.Connection.DatabaseDriver.StoreSqlCommand(aSqlCommand)
-                    Return aSqlCommand
-                End If
-            End Function
-            ''' <summary>
-            ''' Creates a Command and store it or gets the current Command
-            ''' </summary>
-            ''' <param name="id">id of the command</param>
-            ''' <returns>a iOTDBSqlCommand</returns>
-            ''' <remarks></remarks>
-            Public Overridable Function CreateSqlSelectCommand(id As String, Optional addMe As Boolean = True, Optional addAllFields As Boolean = True) As iormSqlCommand Implements iormDataStore.CreateSqlSelectCommand
-                '* get the ID
-                id = Me.GetSqlCommandID(id)
-                If Me.Connection.DatabaseDriver.HasSqlCommand(id) Then
-                    Return Me.Connection.DatabaseDriver.RetrieveSqlCommand(id)
-                Else
-                    Dim aSqlCommand As iormSqlCommand = New ormSqlSelectCommand(id)
-                    Me.Connection.DatabaseDriver.StoreSqlCommand(aSqlCommand)
-                    If addMe Then
-                        DirectCast(aSqlCommand, ormSqlSelectCommand).AddTable(tableid:=Me.TableID, addAllFields:=addAllFields)
-                    End If
-                    Return aSqlCommand
-                End If
-            End Function
-            ''' <summary>
-            ''' returns a ID for this Tablestore. Add the name of the table in front of the ID
-            ''' </summary>
-            ''' <param name="id">SqlcommandID</param>
-            ''' <returns>the id</returns>
-            ''' <remarks></remarks>
-            Public Function GetSqlCommandID(id As String) As String
-                If Not id.ToLower.Contains((LCase(Me.TableID & "."))) Then
-                    Return Me.TableID & "." & id
-                Else
-                    Return id
-                End If
-            End Function
         End Class
 
-
-
-        '*******************************************************************************************
-        '***** CLASS ormTableSchema describes the per Table the schema from the database itself
-        '*****
-
-        Public MustInherit Class ormTableSchema
-            Implements iotDataSchema
+        ''' <summary>
+        ''' describes the current schema in the data base (meta data from the native Database)
+        ''' </summary>
+        ''' <remarks></remarks>
+        Public MustInherit Class ormContainerSchema
+            Implements iormContainerSchema
 
             Protected _Connection As iormConnection
-            Protected _TableID As String
-            Protected _nativeTablename As String ' the tablename of the table in the database
+            Protected _ContainerID As String
+            Protected _nativeDBObjectname As String ' the tablename of the table in the database
 
             Protected _fieldsDictionary As Dictionary(Of String, Long)    ' crossreference to the Arrays
             Protected _indexDictionary As Dictionary(Of String, ArrayList)    ' crossreference of the Index
 
-            Protected _Fieldnames() As String    ' Fieldnames in OTDB
+
+            Protected _entrynames() As String    ' Fieldnames in OTDB
             Protected _Primarykeys() As UShort    ' indices for primary keys
             Protected _NoPrimaryKeys As UShort
             Protected _PrimaryKeyIndexName As String
+            Protected _DomainIDPrimaryKeyOrdinal As Short = -1 ' cache the Primary Key Ordinal of domainID for domainbehavior
+
 
             Protected _IsInitialized As Boolean = False
-            Protected _DomainIDPrimaryKeyOrdinal As Short = -1 ' cache the Primary Key Ordinal of domainID for domainbehavior
             Protected _lockObject As New Object ' Lock Object
 
             ''' <summary>
             ''' constuctor
             ''' </summary>
             ''' <param name="connection"></param>
-            ''' <param name="tableID"></param>
+            ''' <param name="containerId"></param>
             ''' <remarks></remarks>
-            Public Sub New(ByRef connection As iormConnection, ByVal tableID As String)
-                _NoPrimaryKeys = 0
-                ReDim Preserve _Fieldnames(0)
-                ReDim Preserve _Primarykeys(0 To 0)
+            Public Sub New(ByRef connection As iormConnection, ByVal dbobjectid As String)
+                ReDim Preserve _entrynames(0)
 
                 _fieldsDictionary = New Dictionary(Of String, Long)
                 _indexDictionary = New Dictionary(Of String, ArrayList)
                 _Connection = connection
-                _TableID = tableID
+                _ContainerID = dbobjectid
+                _NoPrimaryKeys = 0
+                ReDim Preserve _Primarykeys(0 To 0)
             End Sub
             ''' <summary>
             ''' Assigns the native DB parameter.
@@ -3402,14 +3695,14 @@ Namespace OnTrack
             ''' <param name="p1">The p1.</param>
             ''' <returns></returns>
             Public MustOverride Function AssignNativeDBParameter(fieldname As String, _
-                                                                 Optional parametername As String = "") As System.Data.IDbDataParameter Implements iotDataSchema.AssignNativeDBParameter
+                                                                 Optional parametername As String = Nothing) As System.Data.IDbDataParameter Implements iormContainerSchema.AssignNativeDBParameter
 
 
             ''' <summary>
-            ''' Gets or sets the is initialized. Should be True if the tableschema has a tableid 
+            ''' Gets or sets the is initialized. Should be True if the tableschema has a containerId 
             ''' </summary>
             ''' <value>The is initialized.</value>
-            Public ReadOnly Property IsInitialized() As Boolean Implements iotDataSchema.IsInitialized
+            Public ReadOnly Property IsInitialized() As Boolean Implements iormContainerSchema.IsInitialized
                 Get
                     Return Me._IsInitialized
                 End Get
@@ -3417,36 +3710,33 @@ Namespace OnTrack
             End Property
 
             ''' <summary>
-            ''' resets the TableSchema to hold nothing
+            ''' resets the  to hold nothing
             ''' </summary>
             ''' <remarks></remarks>
             Protected Overridable Sub Reset()
                 Dim nullArray As Object = {}
-                _Fieldnames = nullArray
+                _entrynames = nullArray
                 _fieldsDictionary.Clear()
                 _indexDictionary.Clear()
-                _PrimaryKeyIndexName = String.Empty
+                _ContainerID = Nothing
+                _nativeDBObjectname = Nothing
+                _PrimaryKeyIndexName = Nothing
                 _Primarykeys = nullArray
                 _NoPrimaryKeys = 0
-                _TableID = String.Empty
-                _nativeTablename = String.Empty
                 _DomainIDPrimaryKeyOrdinal = -1
             End Sub
 
             ''' <summary>
-            ''' returns the tableid of the table
+            ''' returns the containerId of the table
             ''' </summary>
             ''' <value></value>
             ''' <returns></returns>
             ''' <remarks></remarks>
 
-            Public Property TableID() As String Implements iotDataSchema.TableID
+            Public ReadOnly Property ContainerID() As String Implements iormContainerSchema.ContainerID
                 Get
-                    Return _TableID
+                    Return _ContainerID
                 End Get
-                Protected Set(ByVal newTableID As String)
-                    _TableID = newTableID
-                End Set
             End Property
             ''' <summary>
             ''' returns the native tablename of this table in the database
@@ -3454,12 +3744,12 @@ Namespace OnTrack
             ''' <value></value>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public ReadOnly Property NativeTablename As String Implements iotDataSchema.nativeTablename
+            Public ReadOnly Property NativeDBObjectname As String Implements iormContainerSchema.NativeDBContainerName
                 Get
-                    If _nativeTablename Is Nothing Then
-                        _nativeTablename = _Connection.DatabaseDriver.GetNativeTableName(_TableID)
+                    If _nativeDBObjectname Is Nothing Then
+                        _nativeDBObjectname = _Connection.DatabaseDriver.GetNativeDBObjectName(_ContainerID)
                     End If
-                    Return _nativeTablename
+                    Return _nativeDBObjectname
                 End Get
             End Property
 
@@ -3469,7 +3759,7 @@ Namespace OnTrack
             ''' <value>List(of String)</value>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public ReadOnly Property Indices As List(Of String) Implements iotDataSchema.Indices
+            Public ReadOnly Property Indices As List(Of String) Implements iormContainerSchema.Indices
                 Get
                     Return _indexDictionary.Keys.ToList
                 End Get
@@ -3481,23 +3771,28 @@ Namespace OnTrack
             ''' <param name="reloadForce"></param>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public MustOverride Function Refresh(Optional reloadForce As Boolean = False) As Boolean Implements iotDataSchema.Refresh
+            Public MustOverride Function Refresh(Optional reloadForce As Boolean = False) As Boolean Implements iormContainerSchema.Refresh
             ''' <summary>
             ''' returns the primary Key ordinal (1..n) for the domain ID or less zero if not in primary key
             ''' </summary>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public Function GetDomainIDPKOrdinal() As Integer Implements iotDataSchema.GetDomainIDPKOrdinal
+            ''' <summary>
+            ''' returns the primary Key ordinal (1..n) for the domain ID or less zero if not in primary key
+            ''' </summary>
+            ''' <returns></returns>
+            ''' <remarks></remarks>
+            Public Function GetDomainIDPKOrdinal() As Integer Implements iormContainerSchema.GetDomainIDPKOrdinal
                 If _DomainIDPrimaryKeyOrdinal < 0 Then
-                    Dim i As Integer = Me.GetFieldordinal(index:=Domain.ConstFNDomainID)
+                    Dim i As Integer = Me.GetEntryOrdinal(index:=Domain.ConstFNDomainID)
                     If i < 0 Then
                         Return -1
                     Else
-                        If Not Me.HasPrimaryKeyFieldname(name:=Domain.ConstFNDomainID.ToUpper) Then
+                        If Not Me.HasPrimaryEntryName(name:=Domain.ConstFNDomainID.ToUpper) Then
                             Return -1
                         Else
-                            For i = 1 To Me.NoPrimaryKeyFields
-                                If Me.GetPrimaryKeyFieldname(i).ToUpper = Domain.ConstFNDomainID.ToUpper Then
+                            For i = 1 To Me.NoPrimaryEntries
+                                If Me.GetPrimaryEntrynames(i).ToUpper = Domain.ConstFNDomainID.ToUpper Then
                                     _DomainIDPrimaryKeyOrdinal = i
                                     Return i
                                 End If
@@ -3511,12 +3806,13 @@ Namespace OnTrack
 
             End Function
 
+
             ''' <summary>
             ''' Gets the nullable property.
             ''' </summary>
             ''' <param name="index">The index.</param>
             ''' <returns></returns>
-            Public MustOverride Function GetNullable(index As Object) As Boolean Implements iotDataSchema.GetNullable
+            Public MustOverride Function GetNullable(index As Object) As Boolean Implements iormContainerSchema.GetNullable
 
             ''' <summary>
             ''' returns the default Value
@@ -3524,7 +3820,7 @@ Namespace OnTrack
             ''' <param name="index"></param>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public MustOverride Function GetDefaultValue(ByVal index As Object) As Object Implements iotDataSchema.GetDefaultValue
+            Public MustOverride Function GetDefaultValue(ByVal index As Object) As Object Implements iormContainerSchema.GetDefaultValue
 
             ''' <summary>
             ''' returns if there is a default Value
@@ -3532,7 +3828,7 @@ Namespace OnTrack
             ''' <param name="index"></param>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public MustOverride Function HasDefaultValue(ByVal index As Object) As Boolean Implements iotDataSchema.HasDefaultValue
+            Public MustOverride Function HasDefaultValue(ByVal index As Object) As Boolean Implements iormContainerSchema.HasDefaultValue
 
 
             '**** getIndex returns the ArrayList of Fieldnames for the Index or Nothing
@@ -3542,7 +3838,7 @@ Namespace OnTrack
             ''' <param name="indexname"></param>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public Function GetIndex(indexname As String) As ArrayList Implements iotDataSchema.GetIndex
+            Public Function GetIndex(indexname As String) As ArrayList Implements iormContainerSchema.GetIndex
 
 
                 If Not _indexDictionary.ContainsKey(indexname) Then
@@ -3559,7 +3855,7 @@ Namespace OnTrack
             ''' <param name="indexname"></param>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public Function HasIndex(indexname As String) As Boolean Implements iotDataSchema.HasIndex
+            Public Function HasIndex(indexname As String) As Boolean Implements iormContainerSchema.HasIndex
                 If Not _indexDictionary.ContainsKey(indexname) Then
                     Return False
                 Else
@@ -3574,9 +3870,9 @@ Namespace OnTrack
             ''' <value></value>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            ReadOnly Property PrimaryKeyIndexName As String Implements iotDataSchema.PrimaryKeyIndexName
+            Public Overridable ReadOnly Property PrimaryKeyIndexName As String Implements iormContainerSchema.PrimaryKeyIndexName
                 Get
-                    PrimaryKeyIndexName = _PrimaryKeyIndexName
+                    Throw New NotImplementedException
                 End Get
             End Property
             '******* return the no. fields
@@ -3586,9 +3882,9 @@ Namespace OnTrack
             ''' </summary>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public ReadOnly Property NoFields() As Integer Implements iotDataSchema.NoFields
+            Public ReadOnly Property NoEntries() As Integer Implements iormContainerSchema.NoEntries
                 Get
-                    Return UBound(_Fieldnames) + 1 'zero bound
+                    Return UBound(_entrynames) + 1 'zero bound
                 End Get
             End Property
             ''' <summary>
@@ -3596,42 +3892,29 @@ Namespace OnTrack
             ''' </summary>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public ReadOnly Property Fieldnames() As List(Of String) Implements iotDataSchema.Fieldnames
+            Public ReadOnly Property EntryNames As List(Of String) Implements iormContainerSchema.EntryNames
                 Get
-                    Return _Fieldnames.ToList
+                    Return _entrynames.ToList
                 End Get
             End Property
-            ''' <summary>
-            ''' List of primary key field names
-            ''' </summary>
-            ''' <returns></returns>
-            ''' <remarks></remarks>
-            Public ReadOnly Property Primarykeys() As List(Of String) Implements iotDataSchema.PrimaryKeys
-                Get
-                    Dim aList As New List(Of String)
-                    For i = 1 To Me.NoPrimaryKeyFields
-                        aList.Add(Me.GetPrimaryKeyFieldname(i))
-                    Next
-                    Return aList
-                End Get
-            End Property
-            '***** gets the FieldIndex of index as numeric (than must be in range) or name
+
+
             ''' <summary>
             ''' Get the Fieldordinal (position in record) by Index - can be numeric or the columnname
             ''' </summary>
             ''' <param name="anIndex"></param>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public Function GetFieldordinal(index As Object) As Integer Implements iotDataSchema.GetFieldordinal
+            Public Function GetEntryOrdinal(index As Object) As Integer Implements iormContainerSchema.GetEntryOrdinal
                 Dim i As ULong
 
                 Try
                     If IsNumeric(index) Then
-                        If CLng(index) > 0 And CLng(index) <= (_Fieldnames.GetUpperBound(0) + 1) Then
+                        If CLng(index) > 0 And CLng(index) <= (_entrynames.GetUpperBound(0) + 1) Then
                             Return CLng(index)
                         Else
                             Call CoreMessageHandler(message:="index of column out of range", _
-                                             arg1:=index, subname:="ormTableSchema.getFieldIndex", messagetype:=otCoreMessageType.InternalError)
+                                             argument:=index, procedure:="ormContainerSchema.getFieldIndex", messagetype:=otCoreMessageType.InternalError)
                             Return i
                         End If
                     ElseIf _fieldsDictionary.ContainsKey(index) Then
@@ -3641,12 +3924,12 @@ Namespace OnTrack
 
                     Else
                         Call CoreMessageHandler(message:="index of column out of range", _
-                                              arg1:=index, subname:="ormTableSchema.getFieldIndex", messagetype:=otCoreMessageType.InternalError)
+                                              argument:=index, procedure:="ormContainerSchema.getFieldIndex", messagetype:=otCoreMessageType.InternalError)
                         Return -1
                     End If
 
                 Catch ex As Exception
-                    Call CoreMessageHandler(arg1:=index, subname:="ormTableSchema.getFieldIndex", exception:=ex)
+                    Call CoreMessageHandler(argument:=index, procedure:="ormContainerSchema.getFieldIndex", exception:=ex)
                     Return -1
                 End Try
 
@@ -3659,34 +3942,49 @@ Namespace OnTrack
             ''' <param name="i"></param>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public Function GetFieldname(ByVal i As Integer) As String Implements iotDataSchema.Getfieldname
+            Public Function GetEntryName(ByVal i As Integer) As String Implements iormContainerSchema.GetEntryName
 
-                If i > 0 And i <= UBound(_Fieldnames) + 1 Then
-                    Return _Fieldnames(i - 1)
+                If i > 0 And i <= UBound(_entrynames) + 1 Then
+                    Return _entrynames(i - 1)
                 Else
-                    Call CoreMessageHandler(message:="index of column out of range", arg1:=i, tablename:=Me.TableID, _
-                                          messagetype:=otCoreMessageType.InternalError, subname:="ormTableSchema.getFieldName")
+                    Call CoreMessageHandler(message:="index of column out of range", argument:=i, containerID:=Me.ContainerID, _
+                                          messagetype:=otCoreMessageType.InternalError, procedure:="ormContainerSchema.getFieldName")
                     Return Nothing
                 End If
             End Function
 
             '*** check if fieldname by Name exists
             ''' <summary>
-            ''' check if fieldname exists
+            ''' check if entryname exists
             ''' </summary>
             ''' <param name="name"></param>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public Function HasFieldname(ByVal name As String) As Boolean Implements iotDataSchema.Hasfieldname
+            Public Function HasEntryName(ByVal name As String) As Boolean Implements iormContainerSchema.HasEntryName
 
-                For i = LBound(_Fieldnames) To UBound(_Fieldnames)
-                    If _Fieldnames(i).ToUpper = name.ToUpper Then
+                For i = LBound(_entrynames) To UBound(_entrynames)
+                    If _entrynames(i).ToUpper = name.ToUpper Then
                         Return True
                     End If
                 Next i
 
-                HasFieldname = False
+                Return False
             End Function
+
+            ''' <summary>
+            ''' List of primary key field names
+            ''' </summary>
+            ''' <returns></returns>
+            ''' <remarks></remarks>
+            Public Overridable ReadOnly Property PrimaryEntryNames() As List(Of String) Implements iormContainerSchema.PrimaryEntryNames
+                Get
+                    Dim aList As New List(Of String)
+                    For i = 1 To Me.NoPrimaryEntries
+                        aList.Add(Me.GetPrimaryEntrynames(i))
+                    Next
+                    Return aList
+                End Get
+            End Property
 
             ''' <summary>
             ''' gets the fieldname of the primary key field by number (1..)
@@ -3694,14 +3992,14 @@ Namespace OnTrack
             ''' <param name="i">1..n</param>
             ''' <returnsString></returns>
             ''' <remarks></remarks>
-            Public Function GetPrimaryKeyFieldname(i As UShort) As String Implements iotDataSchema.GetPrimaryKeyfieldname
+            Public Overridable Function GetPrimaryEntrynames(i As UShort) As String Implements iormContainerSchema.GetPrimaryEntryNames
                 Dim aCollection As ArrayList
 
                 If i < 1 Then
-                    Call CoreMessageHandler(subname:="ormTableSchema.getPrimaryKeyFieldName", _
+                    Call CoreMessageHandler(procedure:="ormContainerSchema.getPrimaryKeyFieldName", _
                                           message:="primary Key no : " & i.ToString & " is less then 1", _
-                                          arg1:=i)
-                    Return ""
+                                          argument:=i)
+                    Return String.Empty
                 End If
 
                 Try
@@ -3710,27 +4008,27 @@ Namespace OnTrack
                     If _indexDictionary.ContainsKey(_PrimaryKeyIndexName) Then
                         aCollection = _indexDictionary.Item(_PrimaryKeyIndexName)
                         If i > aCollection.Count Then
-                            Call CoreMessageHandler(subname:="ormTableSchema.getPrimaryKeyFieldIndex", _
+                            Call CoreMessageHandler(procedure:="ormContainerSchema.getPrimaryKeyFieldIndex", _
                                                   message:="primary Key no : " & i.ToString & " is out of range ", _
-                                                  arg1:=i)
-                            Return ""
+                                                  argument:=i)
+                            Return String.Empty
 
                         End If
 
                         '*** return the item (Name)
                         Return aCollection.Item(i - 1)
                     Else
-                        Call CoreMessageHandler(subname:="ormTableSchema.getPrimaryKeyName", _
+                        Call CoreMessageHandler(procedure:="ormContainerSchema.getPrimaryKeyName", _
                                               message:="Primary Key : " & _PrimaryKeyIndexName & " does not exist !", _
-                                              arg1:=i)
-                        Return ""
+                                              argument:=i)
+                        Return String.Empty
                     End If
 
 
                 Catch ex As Exception
-                    Call CoreMessageHandler(showmsgbox:=False, subname:="ormTableSchema.getPrimaryKeyFieldName", _
-                                          tablename:=_TableID, exception:=ex)
-                    Return ""
+                    Call CoreMessageHandler(showmsgbox:=False, procedure:="ormContainerSchema.getPrimaryKeyFieldName", _
+                                          containerID:=_ContainerID, exception:=ex)
+                    Return String.Empty
                 End Try
 
             End Function
@@ -3740,12 +4038,10 @@ Namespace OnTrack
             ''' <param name="i">1..n</param>
             ''' <returnsString></returns>
             ''' <remarks></remarks>
-            Public Function HasPrimaryKeyFieldname(ByRef name As String) As Boolean Implements iotDataSchema.HasprimaryKeyfieldname
+            Public Overridable Function HasPrimaryEntryName(ByRef name As String) As Boolean Implements iormContainerSchema.HasPrimaryEntryName
                 Dim aCollection As ArrayList
 
-
                 Try
-
 
                     If _indexDictionary.ContainsKey(_PrimaryKeyIndexName) Then
                         aCollection = _indexDictionary.Item(_PrimaryKeyIndexName)
@@ -3753,15 +4049,15 @@ Namespace OnTrack
                         '*** return the item (Name)
                         Return aCollection.Contains(name.ToUpper)
                     Else
-                        Call CoreMessageHandler(subname:="ormTableSchema.hasPrimaryKeyName", _
+                        Call CoreMessageHandler(procedure:="ormContainerSchema.hasPrimaryKeyName", _
                                               message:="Primary Key : " & _PrimaryKeyIndexName & " does not exist !")
                         Return Nothing
                     End If
 
 
                 Catch ex As Exception
-                    Call CoreMessageHandler(showmsgbox:=False, subname:="ormTableSchema.hasPrimaryKeyName", _
-                                          tablename:=_TableID, exception:=ex)
+                    Call CoreMessageHandler(showmsgbox:=False, procedure:="ormContainerSchema.hasPrimaryKeyName", _
+                                          containerID:=_ContainerID, exception:=ex)
                     Return Nothing
                 End Try
 
@@ -3773,47 +4069,45 @@ Namespace OnTrack
             ''' <param name="i">number of primary key field 1..n </param>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public Function GetordinalOfPrimaryKeyField(i As UShort) As Integer Implements iotDataSchema.GetordinalOfPrimaryKeyField
+            Public Overridable Function GetOrdinalOfPrimaryEntry(i As UShort) As Integer Implements iormContainerSchema.GetOrdinalOfPrimaryEntry
                 Dim aCollection As ArrayList
                 Dim aFieldName As String
 
 
                 If i < 1 Then
-                    Call CoreMessageHandler(subname:="ormTableSchema.getPrimaryKeyFieldIndex", _
+                    Call CoreMessageHandler(procedure:="ormContainerSchema.getPrimaryKeyFieldIndex", _
                                           message:="primary Key no : " & i.ToString & " is less then 1", _
-                                          arg1:=i)
-                    GetordinalOfPrimaryKeyField = -1
+                                          argument:=i)
+                    GetOrdinalOfPrimaryEntry = -1
                     Exit Function
                 End If
 
                 Try
-
-
                     If _indexDictionary.ContainsKey((_PrimaryKeyIndexName)) Then
                         aCollection = _indexDictionary.Item((_PrimaryKeyIndexName))
 
                         If i > aCollection.Count Then
-                            Call CoreMessageHandler(subname:="ormTableSchema.getPrimaryKeyFieldIndex", _
+                            Call CoreMessageHandler(procedure:="ormContainerSchema.getPrimaryKeyFieldIndex", _
                                                   message:="primary Key no : " & i.ToString & " is out of range ", _
-                                                  arg1:=i)
-                            GetordinalOfPrimaryKeyField = -1
+                                                  argument:=i)
+                            GetOrdinalOfPrimaryEntry = -1
                             Exit Function
                         End If
 
                         aFieldName = aCollection.Item(i - 1)
-                        GetordinalOfPrimaryKeyField = _fieldsDictionary.Item((aFieldName))
+                        GetOrdinalOfPrimaryEntry = _fieldsDictionary.Item((aFieldName))
                         Exit Function
                     Else
-                        Call CoreMessageHandler(subname:="ormTableSchema.getPrimaryKeyFieldIndex", _
+                        Call CoreMessageHandler(procedure:="ormContainerSchema.getPrimaryKeyFieldIndex", _
                                               message:="primary Key : " & _PrimaryKeyIndexName & " does not exist !", _
-                                              arg1:=i)
-                        System.Diagnostics.Debug.WriteLine("ormTableSchema: primary Key : " & _PrimaryKeyIndexName & " does not exist !")
-                        GetordinalOfPrimaryKeyField = -1
+                                              argument:=i)
+                        System.Diagnostics.Debug.WriteLine("ormContainerSchema: primary Key : " & _PrimaryKeyIndexName & " does not exist !")
+                        GetOrdinalOfPrimaryEntry = -1
                         Exit Function
                     End If
 
                 Catch ex As Exception
-                    Call CoreMessageHandler(showmsgbox:=False, subname:="ormTableSchema.getPrimaryKeyFieldIndex", tablename:=_TableID, exception:=ex)
+                    Call CoreMessageHandler(showmsgbox:=False, procedure:="ormContainerSchema.getPrimaryKeyFieldIndex", containerID:=Me.containerId, exception:=ex)
                     Return -1
                 End Try
             End Function
@@ -3823,7 +4117,7 @@ Namespace OnTrack
             ''' </summary>
             ''' <returns></returns>
             ''' <remarks></remarks>
-            Public Function NoPrimaryKeyFields() As Integer Implements iotDataSchema.NoPrimaryKeyFields
+            Public Overridable Function NoPrimaryEntries() As Integer Implements iormContainerSchema.NoPrimaryEntries
                 Dim aCollection As ArrayList
 
                 Try
@@ -3834,19 +4128,138 @@ Namespace OnTrack
                         Return aCollection.Count
 
                     Else
-                        Call CoreMessageHandler(subname:="ormTableSchema.noPrimaryKeysFields", message:="primary Key : " & _PrimaryKeyIndexName & " does not exist !", _
-                                              arg1:=_PrimaryKeyIndexName, tablename:=_TableID)
+                        Call CoreMessageHandler(procedure:="ormContainerSchema.noPrimaryKeysFields", message:="primary Key : " & _PrimaryKeyIndexName & " does not exist !", _
+                                              argument:=_PrimaryKeyIndexName, containerID:=_ContainerID)
                         Return -1
 
                     End If
 
                 Catch ex As Exception
-                    Call CoreMessageHandler(showmsgbox:=False, subname:="ormTableSchema.noPrimaryKeys", tablename:=TableID, exception:=ex)
+                    Call CoreMessageHandler(showmsgbox:=False, procedure:="ormContainerSchema.noPrimaryKeys", containerID:=_ContainerID, exception:=ex)
                     Return -1
                 End Try
 
 
             End Function
+
+        End Class
+
+        ''' <summary>
+        ''' describes the schema independent of the base database
+        ''' </summary>
+        ''' <remarks></remarks>
+        Public MustInherit Class ormViewSchema
+            Inherits ormContainerSchema
+            Implements iormContainerSchema
+
+            ''' <summary>
+            ''' List of Tables a View relies on
+            ''' </summary>
+            ''' <remarks></remarks>
+            Protected _tableschemas As List(Of iormContainerSchema)
+
+            ''' <summary>
+            ''' constuctor
+            ''' </summary>
+            ''' <param name="connection"></param>
+            ''' <param name="tableID"></param>
+            ''' <remarks></remarks>
+            Public Sub New(ByRef connection As iormConnection, ByVal viewid As String)
+                MyBase.New(connection:=connection, dbobjectid:=viewid)
+            End Sub
+
+
+            ''' <summary>
+            ''' returns the tableid of the table
+            ''' </summary>
+            ''' <value></value>
+            ''' <returns></returns>
+            ''' <remarks></remarks>
+
+            Public ReadOnly Property ViewID() As String Implements iormContainerSchema.ContainerID
+                Get
+                    Return MyBase.ContainerID
+                End Get
+            End Property
+            ''' <summary>
+            ''' returns the native tablename of this table in the database
+            ''' </summary>
+            ''' <value></value>
+            ''' <returns></returns>
+            ''' <remarks></remarks>
+            Public ReadOnly Property NativeViewname As String Implements iormContainerSchema.NativeDBContainerName
+                Get
+                    Return MyBase.NativeDBObjectname
+                End Get
+            End Property
+
+        End Class
+        ''' <summary>
+        ''' describes the schema independent of the base database
+        ''' </summary>
+        ''' <remarks></remarks>
+        Public MustInherit Class ormTableSchema
+            Inherits ormContainerSchema
+            Implements iormContainerSchema
+
+
+            ''' <summary>
+            ''' constuctor
+            ''' </summary>
+            ''' <param name="connection"></param>
+            ''' <param name="tableID"></param>
+            ''' <remarks></remarks>
+            Public Sub New(ByRef connection As iormConnection, ByVal tableID As String)
+                MyBase.New(connection:=connection, dbobjectid:=tableID)
+            End Sub
+
+
+            ''' <summary>
+            ''' resets the TableSchema to hold nothing
+            ''' </summary>
+            ''' <remarks></remarks>
+            Protected Overridable Sub Reset()
+                MyBase.Reset()
+            End Sub
+
+            ''' <summary>
+            ''' returns the tableid of the table
+            ''' </summary>
+            ''' <value></value>
+            ''' <returns></returns>
+            ''' <remarks></remarks>
+
+            Public ReadOnly Property TableID() As String Implements iormContainerSchema.ContainerID
+                Get
+                    Return MyBase.ContainerID
+                End Get
+            End Property
+            ''' <summary>
+            ''' returns the native tablename of this table in the database
+            ''' </summary>
+            ''' <value></value>
+            ''' <returns></returns>
+            ''' <remarks></remarks>
+            Public ReadOnly Property NativeTablename As String Implements iormContainerSchema.NativeDBContainerName
+                Get
+                    Return MyBase.NativeDBObjectname
+                End Get
+            End Property
+
+
+
+            '**** primaryKeyIndexName
+            ''' <summary>
+            ''' gets the primarykey name
+            ''' </summary>
+            ''' <value></value>
+            ''' <returns></returns>
+            ''' <remarks></remarks>
+            Public Overrides ReadOnly Property PrimaryKeyIndexName As String Implements iormContainerSchema.PrimaryKeyIndexName
+                Get
+                    PrimaryKeyIndexName = _PrimaryKeyIndexName
+                End Get
+            End Property
 
 
         End Class

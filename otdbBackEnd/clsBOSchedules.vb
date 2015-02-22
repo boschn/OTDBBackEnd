@@ -47,7 +47,7 @@ Namespace OnTrack.Scheduling
     <ormObject(version:=1, ID:=MileStoneDefinition.ConstObjectID, Modulename:=ConstModuleScheduling, _
         Description:="definition of milestones for all schedule types", useCache:=True, addDomainBehavior:=True, adddeletefieldbehavior:=True)> _
     Public Class MileStoneDefinition
-        Inherits ormDataObject
+        Inherits ormBusinessObject
 
 
         Public Const ConstObjectID = "MilestoneDefinition"
@@ -56,17 +56,17 @@ Namespace OnTrack.Scheduling
         ''' Table Definition
         ''' </summary>
         ''' <remarks></remarks>
-        <ormSchemaTable(version:=2, usecache:=True)> Public Const ConstTableID As String = "tblDefMilestones"
+        <ormTableAttribute(version:=2, usecache:=True)> Public Const ConstPrimaryTableID As String = "tblDefMilestones"
 
         ''' <summary>
         ''' primary keys
         ''' </summary>
         ''' <remarks></remarks>
-        <ormObjectEntry(Datatype:=otDataType.Text, size:=20, defaultValue:="", primarykeyordinal:=1, _
+        <ormObjectEntry(Datatype:=otDataType.Text, size:=20, defaultValue:="", PrimaryEntryOrdinal:=1, _
             properties:={ObjectEntryProperty.Keyword}, validationPropertyStrings:={ObjectValidationProperty.NotEmpty}, _
             XID:="bpd1", title:="ID", description:="id of the milestone")> Public Const ConstFNID = "id"
 
-        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=2, _
+        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, PrimaryEntryOrdinal:=2, _
             useforeignkey:=otForeignKeyImplementation.NativeDatabase)> _
         Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
@@ -105,16 +105,16 @@ Namespace OnTrack.Scheduling
                         XID:="bpd10", title:="Attachable ObjectIDs", description:="Object ids to be attached to")> Public Const ConstFNObjectIDs = "objectids"
 
         '** MAPPING
-        <ormEntryMapping(EntryName:=ConstFNID)> Private _id As String = ""  ' id
-        <ormEntryMapping(EntryName:=ConstFNTitle)> Private _title As String
-        <ormEntryMapping(EntryName:=ConstFNDescription)> Private _description As String
-        <ormEntryMapping(EntryName:=ConstFNType)> Private _typeid As otMilestoneType
-        <ormEntryMapping(EntryName:=ConstFNDatatype)> Private _datatype As otDataType
-        <ormEntryMapping(EntryName:=ConstFNRefMS)> Private _refid As String
-        <ormEntryMapping(EntryName:=ConstFNIsForecast)> Private _isForecast As Boolean
-        <ormEntryMapping(EntryName:=ConstFNStatusType)> Private _statustypeid As String
-        <ormEntryMapping(EntryName:=ConstFNordinal)> Private _ordinal As Long
-        <ormEntryMapping(EntryName:=ConstFNObjectIDs)> Private _objectids As List(Of String)
+        <ormObjectEntryMapping(EntryName:=ConstFNID)> Private _id As String = String.empty  ' id
+        <ormObjectEntryMapping(EntryName:=ConstFNTitle)> Private _title As String
+        <ormObjectEntryMapping(EntryName:=ConstFNDescription)> Private _description As String
+        <ormObjectEntryMapping(EntryName:=ConstFNType)> Private _typeid As otMilestoneType
+        <ormObjectEntryMapping(EntryName:=ConstFNDatatype)> Private _datatype As otDataType
+        <ormObjectEntryMapping(EntryName:=ConstFNRefMS)> Private _refid As String
+        <ormObjectEntryMapping(EntryName:=ConstFNIsForecast)> Private _isForecast As Boolean
+        <ormObjectEntryMapping(EntryName:=ConstFNStatusType)> Private _statustypeid As String
+        <ormObjectEntryMapping(EntryName:=ConstFNordinal)> Private _ordinal As Long
+        <ormObjectEntryMapping(EntryName:=ConstFNObjectIDs)> Private _objectids As List(Of String)
 
         ''' <summary>
         ''' dynamic members
@@ -421,9 +421,9 @@ Namespace OnTrack.Scheduling
                     ''' 
                     If anObjectDefinition.ID = Deliverable.ConstObjectID Then
                         apath(0) = anObjectID & "." & Deliverable.ConstRScheduleLink
-                    ElseIf ObjectDefinition.ID <> "" Then
-                        CoreMessageHandler(message:="other objects for properties to be linked to not implemented", subname:="MileStoneDefinition.OnPersisted", _
-                                            arg1:=anObjectDefinition.ID, objectname:=Me.ObjectID)
+                    ElseIf ObjectDefinition.ID <> String.empty Then
+                        CoreMessageHandler(message:="other objects for properties to be linked to not implemented", procedure:="MileStoneDefinition.OnPersisted", _
+                                            argument:=anObjectDefinition.ID, objectname:=Me.ObjectID)
                     End If
 
                     Array.ConstrainedCopy(_relationpath, 0, apath, 1, apath.Length - 1)
@@ -490,9 +490,9 @@ Namespace OnTrack.Scheduling
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overloads Shared Function Retrieve(ByVal id As String, Optional domainid As String = Nothing, Optional forcereload As Boolean = False) As MileStoneDefinition
-            If String.IsNullOrWhiteSpace(domainID) Then domainID = CurrentSession.CurrentDomainID
+            If String.IsnullorEmpty(domainID) Then domainID = CurrentSession.CurrentDomainID
             Dim primarykey() As Object = {id.ToUpper, domainID}
-            Return Retrieve(Of MileStoneDefinition)(pkArray:=primarykey, domainID:=domainID, forceReload:=forcereload)
+            Return RetrieveDataObject(Of MileStoneDefinition)(pkArray:=primarykey, domainID:=domainID, forceReload:=forcereload)
         End Function
 
         ''' <summary>
@@ -501,7 +501,7 @@ Namespace OnTrack.Scheduling
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function All(Optional domainid As String = Nothing) As List(Of MileStoneDefinition)
-            Return ormDataObject.AllDataObject(Of MileStoneDefinition)(domainID:=domainID)
+            Return ormBusinessObject.AllDataObject(Of MileStoneDefinition)(domainID:=domainID)
         End Function
 
         ''' <summary>
@@ -511,9 +511,9 @@ Namespace OnTrack.Scheduling
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overloads Shared Function Create(ByVal ID As String, Optional domainid As String = Nothing) As MileStoneDefinition
-            If String.IsNullOrWhiteSpace(domainID) Then domainID = CurrentSession.CurrentDomainID
+            If String.IsnullorEmpty(domainID) Then domainID = CurrentSession.CurrentDomainID
             Dim pkarray() As Object = {ID.ToUpper, domainID}
-            Return ormDataObject.CreateDataObject(Of MileStoneDefinition)(pkarray, checkUnique:=True, domainID:=domainID)
+            Return ormBusinessObject.CreateDataObject(Of MileStoneDefinition)(pkarray, checkUnique:=True, domainID:=domainID)
         End Function
 
     End Class
@@ -527,7 +527,7 @@ Namespace OnTrack.Scheduling
         Version:=1, description:="declaration of milestones specific in a schedule type", _
         addDomainBehavior:=True, adddeletefieldbehavior:=True, useCache:=True)> _
     Public Class ScheduleMilestoneDefinition
-        Inherits ormDataObject
+        Inherits ormBusinessObject
 
         Public Const ConstObjectID = "ScheduleMilestoneDefinition"
 
@@ -535,22 +535,22 @@ Namespace OnTrack.Scheduling
         ''' table definition
         ''' </summary>
         ''' <remarks></remarks>
-        <ormSchemaTable(version:=2, usecache:=True)> Public Const ConstTableID As String = "tblDefScheduleMilestones"
+        <ormTableAttribute(version:=2, usecache:=True)> Public Const ConstPrimaryTableID As String = "tblDefScheduleMilestones"
         '*** Index
-        <ormSchemaIndex(columnname1:=ConstFNType, columnname2:=ConstFNOrdinal)> Public Const ConstIndOrder = "orderby"
+        <ormIndex(columnname1:=ConstFNType, columnname2:=ConstFNOrdinal)> Public Const ConstIndOrder = "orderby"
 
         ''' <summary>
         ''' primary keys
         ''' </summary>
         ''' <remarks></remarks>
         <ormObjectEntry(XID:="BSD1", referenceobjectentry:=ScheduleDefinition.ConstObjectID & "." & ScheduleDefinition.ConstFNType, _
-            primaryKeyordinal:=1, aliases:={"SCT1"}, title:="schedule type", defaultvalue:="", dbdefaultvalue:="", _
+            PrimaryEntryOrdinal:=1, aliases:={"SCT1"}, title:="schedule type", defaultvalue:="", dbdefaultvalue:="", _
             description:=" type of schedule definition")> Public Const ConstFNType = "scheduletype"
 
         <ormObjectEntry(XID:="BSD2", referenceobjectentry:=MileStoneDefinition.ConstObjectID & "." & MileStoneDefinition.ConstFNID, _
-            primaryKeyordinal:=2, title:="milestone id", description:=" id of milestone in schedule")> Public Const ConstFNID = "id"
+            PrimaryEntryOrdinal:=2, title:="milestone id", description:=" id of milestone in schedule")> Public Const ConstFNID = "id"
 
-        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=3, _
+        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, PrimaryEntryOrdinal:=3, _
             useforeignkey:=otForeignKeyImplementation.NativeDatabase)> _
         Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
@@ -596,20 +596,20 @@ Namespace OnTrack.Scheduling
         ''' Mapping
         ''' </summary>
         ''' <remarks></remarks>
-        <ormEntryMapping(EntryName:=ConstFNType)> Private _scheduletype As String
-        <ormEntryMapping(EntryName:=ConstFNID)> Private _id As String = ""
-        <ormEntryMapping(EntryName:=ConstFNDesc)> Private _description As String
-        <ormEntryMapping(EntryName:=ConstFNOrdinal)> Private _Ordinal As Long
-        <ormEntryMapping(EntryName:=ConstFNIsFC)> Private _isForecast As Boolean
-        <ormEntryMapping(EntryName:=ConstFNActualID)> Private _actualid As String
+        <ormObjectEntryMapping(EntryName:=ConstFNType)> Private _scheduletype As String
+        <ormObjectEntryMapping(EntryName:=ConstFNID)> Private _id As String = String.empty
+        <ormObjectEntryMapping(EntryName:=ConstFNDesc)> Private _description As String
+        <ormObjectEntryMapping(EntryName:=ConstFNOrdinal)> Private _Ordinal As Long
+        <ormObjectEntryMapping(EntryName:=ConstFNIsFC)> Private _isForecast As Boolean
+        <ormObjectEntryMapping(EntryName:=ConstFNActualID)> Private _actualid As String
 
-        <ormEntryMapping(EntryName:=ConstFNIsMandatory)> Private _isMandatory As Boolean
-        <ormEntryMapping(EntryName:=ConstFNIsProhibited)> Private _isProhibited As Boolean
-        <ormEntryMapping(EntryName:=ConstFNIsFacultative)> Private _isFacultative As Boolean
-        <ormEntryMapping(EntryName:=ConstFNIsFinish)> Private _isFinish As Boolean
-        <ormEntryMapping(EntryName:=ConstFNIsINPUT)> Private _isInputDeliverable As Boolean
-        <ormEntryMapping(EntryName:=ConstFNIsOutPut)> Private _isOutputDeliverable As Boolean
-        <ormEntryMapping(EntryName:=ConstFNDefaultValue)> Private _defaultValue As String
+        <ormObjectEntryMapping(EntryName:=ConstFNIsMandatory)> Private _isMandatory As Boolean
+        <ormObjectEntryMapping(EntryName:=ConstFNIsProhibited)> Private _isProhibited As Boolean
+        <ormObjectEntryMapping(EntryName:=ConstFNIsFacultative)> Private _isFacultative As Boolean
+        <ormObjectEntryMapping(EntryName:=ConstFNIsFinish)> Private _isFinish As Boolean
+        <ormObjectEntryMapping(EntryName:=ConstFNIsINPUT)> Private _isInputDeliverable As Boolean
+        <ormObjectEntryMapping(EntryName:=ConstFNIsOutPut)> Private _isOutputDeliverable As Boolean
+        <ormObjectEntryMapping(EntryName:=ConstFNDefaultValue)> Private _defaultValue As String
         ''' <summary>
         ''' dynamic data
         ''' </summary>
@@ -839,9 +839,9 @@ Namespace OnTrack.Scheduling
             If my IsNot Nothing Then
                 Dim aScheduletypeID As String = e.Record.GetValue(ConstFNType)
                 If aScheduletypeID Is Nothing Then
-                    CoreMessageHandler(message:="schedule definition does not exist", subname:="ScheduleMilestoneDefinition.OnCreating", _
+                    CoreMessageHandler(message:="schedule definition does not exist", procedure:="ScheduleMilestoneDefinition.OnCreating", _
                                        messagetype:=otCoreMessageType.ApplicationError, _
-                                       arg1:=my.ScheduleTypeID)
+                                       argument:=my.ScheduleTypeID)
                     e.AbortOperation = True
                     Return
                 End If
@@ -849,9 +849,9 @@ Namespace OnTrack.Scheduling
                 ''' we need to check on the object here
                 _scheduledefinition = ScheduleDefinition.Retrieve(id:=aScheduletypeID, domainid:=Me.DomainID)
                 If _scheduledefinition Is Nothing Then
-                    CoreMessageHandler(message:="schedule definition does  does not exist", subname:="ScheduleMilestoneDefinition.OnCreated", _
+                    CoreMessageHandler(message:="schedule definition does  does not exist", procedure:="ScheduleMilestoneDefinition.OnCreated", _
                                        messagetype:=otCoreMessageType.ApplicationError, _
-                                       arg1:=aScheduletypeID)
+                                       argument:=aScheduletypeID)
                     e.AbortOperation = True
                     Return
                 End If
@@ -871,9 +871,9 @@ Namespace OnTrack.Scheduling
                 If _scheduledefinition Is Nothing Then
                     _scheduledefinition = ScheduleDefinition.Retrieve(id:=Me.ScheduleTypeID, domainid:=Me.DomainID)
                     If _scheduledefinition Is Nothing Then
-                        CoreMessageHandler(message:="object propert set doesnot exist", subname:="ScheduleMilestoneDefinition.OnCreated", _
+                        CoreMessageHandler(message:="object propert set doesnot exist", procedure:="ScheduleMilestoneDefinition.OnCreated", _
                                           messagetype:=otCoreMessageType.ApplicationError, _
-                                           arg1:=Me.ScheduleTypeID)
+                                           argument:=Me.ScheduleTypeID)
                         e.AbortOperation = True
                         Return
                     End If
@@ -906,8 +906,8 @@ Namespace OnTrack.Scheduling
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overloads Shared Function Retrieve(ByVal scheduletype As String, ByVal ID As String, Optional domainID As String = Nothing, Optional forcereload As Boolean = False) As ScheduleMilestoneDefinition
-            If String.IsNullOrWhiteSpace(domainID) Then domainID = CurrentSession.CurrentDomainID
-            Return Retrieve(Of ScheduleMilestoneDefinition)(pkArray:={scheduletype.ToUpper, ID.ToUpper, domainID}, domainID:=domainID, forceReload:=forcereload)
+            If String.IsnullorEmpty(domainID) Then domainID = CurrentSession.CurrentDomainID
+            Return RetrieveDataObject(Of ScheduleMilestoneDefinition)(pkArray:={scheduletype.ToUpper, ID.ToUpper, domainID}, domainID:=domainID, forceReload:=forcereload)
         End Function
 
         '**** getDefMilestone
@@ -929,7 +929,7 @@ Namespace OnTrack.Scheduling
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function All() As List(Of ScheduleMilestoneDefinition)
-            Return ormDataObject.AllDataObject(Of ScheduleMilestoneDefinition)()
+            Return ormBusinessObject.AllDataObject(Of ScheduleMilestoneDefinition)()
         End Function
 
         ''' <summary>
@@ -940,9 +940,9 @@ Namespace OnTrack.Scheduling
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overloads Shared Function Create(ByVal scheduletype As String, ByVal ID As String, Optional domainID As String = Nothing) As ScheduleMilestoneDefinition
-            If String.IsNullOrWhiteSpace(domainID) Then domainID = CurrentSession.CurrentDomainID
+            If String.IsnullorEmpty(domainID) Then domainID = CurrentSession.CurrentDomainID
             Dim pkarray() As Object = {scheduletype.ToUpper, ID.ToUpper, domainID}
-            Return ormDataObject.CreateDataObject(Of ScheduleMilestoneDefinition)(pkarray, domainID:=domainID, checkUnique:=True)
+            Return ormBusinessObject.CreateDataObject(Of ScheduleMilestoneDefinition)(pkarray, domainID:=domainID, checkUnique:=True)
         End Function
 
     End Class
@@ -953,7 +953,7 @@ Namespace OnTrack.Scheduling
     ''' <remarks></remarks>
     <ormObject(id:=ScheduleDefinition.ConstObjectID, modulename:=ConstModuleScheduling, Version:=1, _
         description:="definition of schedules (types)", useCache:=True, adddeletefieldbehavior:=True, addDomainBehavior:=True)> Public Class ScheduleDefinition
-        Inherits ormDataObject
+        Inherits ormBusinessObject
 
 
         Public Const ConstObjectID = "ScheduleDefinition"
@@ -962,7 +962,7 @@ Namespace OnTrack.Scheduling
         ''' TableDefinition
         ''' </summary>
         ''' <remarks></remarks>
-        <ormSchemaTable(version:=2, usecache:=True)> Public Const ConstTableID = "tblDefSchedules"
+        <ormTableAttribute(version:=3, usecache:=True)> Public Const ConstPrimaryTableID = "tblDefSchedules"
 
         ''' <summary>
         ''' keys
@@ -971,9 +971,9 @@ Namespace OnTrack.Scheduling
         <ormObjectEntry(Datatype:=otDataType.Text, title:="ID", size:=50, _
             properties:={ObjectEntryProperty.Keyword}, validationPropertystrings:={ObjectValidationProperty.NotEmpty}, _
             Description:="Unique ID of the schedule type definition", _
-            primaryKeyordinal:=1, xid:="SCT1", aliases:={"bs4"})> Public Const ConstFNType = "scheduletype"
+            PrimaryEntryOrdinal:=1, xid:="SCT1", aliases:={"bs4"})> Public Const ConstFNType = "scheduletype"
 
-        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, primarykeyordinal:=2, _
+        <ormObjectEntry(referenceObjectEntry:=Domain.ConstObjectID & "." & Domain.ConstFNDomainID, PrimaryEntryOrdinal:=2, _
            useforeignkey:=otForeignKeyImplementation.NativeDatabase)> Public Const ConstFNDomainID = Domain.ConstFNDomainID
 
         ''' <summary>
@@ -987,13 +987,21 @@ Namespace OnTrack.Scheduling
         <ormObjectEntry(Datatype:=otDataType.Bool, defaultvalue:=True, dbdefaultvalue:="1", _
            title:="Auto Publish", Description:="publish automatically after each persist of edition", _
            xid:="SCT3")> Public Const ConstFNAutoPublish = "autopublish"
+
+        <ormObjectEntry(Datatype:=otDataType.Text, isnullable:=True, _
+        title:="OPRule", description:="internal Operation / Method to call on Status Rules", XID:="SCT10")> _
+        Public Const constFNRuleOperation = "RuleOperation"
+
+        <ormObjectEntry(Datatype:=otDataType.Text, isnullable:=True, _
+       title:="RulezSet", description:="Rulez Ruleset to call on status rules", XID:="SCT11")> Public Const constFNRulezSet = "RuleSet"
+
         ''' <summary>
         ''' Mappings
         ''' </summary>
         ''' <remarks></remarks>
-        <ormEntryMapping(EntryName:=ConstFNType)> Private _scheduletype As String = ""
-        <ormEntryMapping(EntryName:=ConstFNDescription)> Private _description As String
-        <ormEntryMapping(EntryName:=ConstFNAutoPublish)> Private _autopublish As Boolean
+        <ormObjectEntryMapping(EntryName:=ConstFNType)> Private _scheduletype As String = String.empty
+        <ormObjectEntryMapping(EntryName:=ConstFNDescription)> Private _description As String
+        <ormObjectEntryMapping(EntryName:=ConstFNAutoPublish)> Private _autopublish As Boolean
         ''' <summary>
         ''' Relations
         ''' </summary>
@@ -1001,7 +1009,7 @@ Namespace OnTrack.Scheduling
         <ormRelation(linkobject:=GetType(ScheduleMilestoneDefinition), cascadeOnDelete:=True, cascadeOnUpdate:=True, _
             fromEntries:={ConstFNType}, toEntries:={ScheduleMilestoneDefinition.ConstFNType})> Public Const ConstRMilestones = "Milestones"
 
-        <ormEntryMapping(RelationName:=ConstRMilestones, infuseMode:=otInfuseMode.OnInject Or otInfuseMode.OnDemand, _
+        <ormObjectEntryMapping(RelationName:=ConstRMilestones, infuseMode:=otInfuseMode.OnInject Or otInfuseMode.OnDemand, _
             keyentries:={ScheduleMilestoneDefinition.ConstFNID})> _
         Private WithEvents _milestoneCollection As New ormRelationCollection(Of ScheduleMilestoneDefinition)(Me, {ScheduleMilestoneDefinition.ConstFNID})
 
@@ -1164,7 +1172,7 @@ Namespace OnTrack.Scheduling
                 Next
             End If
 
-            Return ""
+            Return String.empty
         End Function
         ''' <summary>
         ''' Retrieve
@@ -1173,8 +1181,8 @@ Namespace OnTrack.Scheduling
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overloads Shared Function Retrieve(ByVal id As String, Optional domainid As String = Nothing, Optional forcereload As Boolean = False) As ScheduleDefinition
-            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
-            Return Retrieve(Of ScheduleDefinition)(pkArray:={id.ToUpper, domainid}, domainID:=domainid, forceReload:=forcereload)
+            If String.IsnullorEmpty(domainID) Then domainid = CurrentSession.CurrentDomainID
+            Return RetrieveDataObject(Of ScheduleDefinition)(pkArray:={id.ToUpper, domainid}, domainID:=domainid, forceReload:=forcereload)
         End Function
 
         ''' <summary>
@@ -1184,9 +1192,9 @@ Namespace OnTrack.Scheduling
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function Create(ByVal id As String, Optional domainid As String = Nothing) As ScheduleDefinition
-            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
+            If String.IsnullorEmpty(domainID) Then domainid = CurrentSession.CurrentDomainID
             Dim pkarray() As Object = {id.ToUpper, domainid}
-            Return ormDataObject.CreateDataObject(Of ScheduleDefinition)(pkarray, domainID:=domainid, checkUnique:=True)
+            Return ormBusinessObject.CreateDataObject(Of ScheduleDefinition)(pkarray, domainID:=domainid, checkUnique:=True)
         End Function
 
     End Class
@@ -1199,9 +1207,9 @@ Namespace OnTrack.Scheduling
         addDomainBehavior:=False, usecache:=True, AddDeleteFieldBehavior:=True, _
         Title:="Schedule", Description:="schedules for business objects")> _
     Public Class ScheduleEdition
-        Inherits ormDataObject
+        Inherits ormBusinessObject
         Implements iormInfusable
-        Implements iormPersistable
+        Implements iormRelationalPersistable
         Implements iormCloneable(Of ScheduleEdition)
 
         Public Const ConstObjectID = "ScheduleEdition"
@@ -1210,10 +1218,10 @@ Namespace OnTrack.Scheduling
         ''' TableDefinition
         ''' </summary>
         ''' <remarks></remarks>
-        <ormSchemaTableAttribute(Version:=2)> Public Const ConstTableID = "TBLSCHEDULEEDITIONS"
+        <ormTableAttribute(Version:=2)> Public Const ConstPrimaryTableID = "TBLSCHEDULEEDITIONS"
         '** Indexes
-        <ormSchemaIndexAttribute(columnname1:=ConstFNWorkspaceID, columnname2:=ConstFNUid, columnname3:=ConstFNUpdc)> Public Const ConstIndexWS = "WORKSPACEID"
-        <ormSchemaIndexAttribute(columnname1:=ConstFNUid, columnname2:=ConstFNUpdc, columnname3:=ConstFNIsDeleted)> Public Const ConstIndexUID = "UIDINDEX"
+        <ormIndex(columnname1:=ConstFNWorkspaceID, columnname2:=ConstFNUid, columnname3:=ConstFNUpdc)> Public Const ConstIndexWS = "WORKSPACEID"
+        <ormIndex(columnname1:=ConstFNUid, columnname2:=ConstFNUpdc, columnname3:=ConstFNIsDeleted)> Public Const ConstIndexUID = "UIDINDEX"
 
         ''' <summary>
         ''' Keys
@@ -1221,10 +1229,10 @@ Namespace OnTrack.Scheduling
         ''' <remarks></remarks>
         <ormObjectEntry(Datatype:=otDataType.Long, title:="unique ID", Description:="Unique ID of the schedule", _
             lowerrange:=0, _
-            primaryKeyordinal:=1, XID:="SC2", aliases:={"SUID"})> Public Const ConstFNUid = "uid"
+            PrimaryEntryOrdinal:=1, XID:="SC2", aliases:={"SUID"})> Public Const ConstFNUid = "uid"
         <ormObjectEntry(Datatype:=otDataType.Long, title:="update count", Description:="Update count of the schedule", _
             lowerrange:=0, _
-           primaryKeyordinal:=2, XID:="SC3", aliases:={"BS3"})> Public Const ConstFNUpdc = "updc"
+           PrimaryEntryOrdinal:=2, XID:="SC3", aliases:={"BS3"})> Public Const ConstFNUpdc = "updc"
 
 
         ''' <summary>
@@ -1252,11 +1260,13 @@ Namespace OnTrack.Scheduling
             title:="is frozen", Description:="schedule is frozen flag", _
             XID:="SC6")> Public Const ConstFNisfrozen = "isfrozen"
 
-        <ormObjectEntry(Datatype:=otDataType.Text, size:=50, isnullable:=True, _
+        <ormObjectEntry(referenceObjectEntry:=StatusItem.ConstObjectID & "." & StatusItem.constFNCode, _
+            isnullable:=True, _
             title:="lifecycle status", Description:="lifecycle status of the schedule", _
             XID:="SC7")> Public Const ConstFNlcstatus = "lcstatus"
 
-        <ormObjectEntry(Datatype:=otDataType.Text, size:=50, isnullable:=True, _
+        <ormObjectEntry(referenceObjectEntry:=StatusItem.ConstObjectID & "." & StatusItem.constFNCode, _
+            isnullable:=True, _
             title:="process status", Description:="process status of the schedule", _
             XID:="SC8")> Public Const ConstFNpstatus = "pstatus"
 
@@ -1310,26 +1320,26 @@ Namespace OnTrack.Scheduling
         ''' Mappings
         ''' </summary>
         ''' <remarks></remarks>
-        <ormEntryMapping(EntryName:=ConstFNUid)> Private _uid As Long = 0
-        <ormEntryMapping(EntryName:=ConstFNUpdc)> Private _updc As Long = 0
-        <ormEntryMapping(EntryName:=ConstFNfcupdc)> Private _fcupdc As Long    ' update count of just fc
-        <ormEntryMapping(EntryName:=ConstFNPlanRev)> Private _plrev As String
-        <ormEntryMapping(EntryName:=ConstFNPlanner)> Private _planner As String
-        <ormEntryMapping(EntryName:=ConstFNisfrozen)> Private _isFrozen As Boolean = False
-        <ormEntryMapping(EntryName:=ConstFNpstatus)> Private _ProcessStatusCode As String
-        <ormEntryMapping(EntryName:=ConstFNlcstatus)> Private _lfcstatuscode As String
-        <ormEntryMapping(EntryName:=ConstFNCheckedOn)> Private _checkedOn As Date?
-        <ormEntryMapping(EntryName:=ConstFNFCupdatedOn)> Private _fcUpdatedOn As Date?
-        <ormEntryMapping(EntryName:=ConstFNIsBaseline)> Private _isBaseline As Boolean = False
-        <ormEntryMapping(EntryName:=ConstFNBlDate)> Private _baselineDate As Date?
-        <ormEntryMapping(EntryName:=ConstFNBlUpdc)> Private _baselineUPDC As Long?
+        <ormObjectEntryMapping(EntryName:=ConstFNUid)> Private _uid As Long = 0
+        <ormObjectEntryMapping(EntryName:=ConstFNUpdc)> Private _updc As Long = 0
+        <ormObjectEntryMapping(EntryName:=ConstFNfcupdc)> Private _fcupdc As Long    ' update count of just fc
+        <ormObjectEntryMapping(EntryName:=ConstFNPlanRev)> Private _plrev As String
+        <ormObjectEntryMapping(EntryName:=ConstFNPlanner)> Private _planner As String
+        <ormObjectEntryMapping(EntryName:=ConstFNisfrozen)> Private _isFrozen As Boolean = False
+        <ormObjectEntryMapping(EntryName:=ConstFNpstatus)> Private _ProcessStatusCode As String
+        <ormObjectEntryMapping(EntryName:=ConstFNlcstatus)> Private _lfcstatuscode As String
+        <ormObjectEntryMapping(EntryName:=ConstFNCheckedOn)> Private _checkedOn As Date?
+        <ormObjectEntryMapping(EntryName:=ConstFNFCupdatedOn)> Private _fcUpdatedOn As Date?
+        <ormObjectEntryMapping(EntryName:=ConstFNIsBaseline)> Private _isBaseline As Boolean = False
+        <ormObjectEntryMapping(EntryName:=ConstFNBlDate)> Private _baselineDate As Date?
+        <ormObjectEntryMapping(EntryName:=ConstFNBlUpdc)> Private _baselineUPDC As Long?
 
-        <ormEntryMapping(EntryName:=ConstFNWorkspaceID)> Private _workspace As String = ""
-        <ormEntryMapping(EntryName:=ConstFNTypeid)> Private _typeid As String = ""
-        <ormEntryMapping(EntryName:=ConstFNRequCap)> Private _requ As Double?
-        <ormEntryMapping(EntryName:=ConstFNUsedCap)> Private _used As Double?
-        <ormEntryMapping(EntryName:=ConstFNUsedCapRef)> Private _ufdt As Date?
-        <ormEntryMapping(EntryName:=ConstFNComment)> Private _comment As String
+        <ormObjectEntryMapping(EntryName:=ConstFNWorkspaceID)> Private _workspace As String = String.empty
+        <ormObjectEntryMapping(EntryName:=ConstFNTypeid)> Private _typeid As String = String.empty
+        <ormObjectEntryMapping(EntryName:=ConstFNRequCap)> Private _requ As Double?
+        <ormObjectEntryMapping(EntryName:=ConstFNUsedCap)> Private _used As Double?
+        <ormObjectEntryMapping(EntryName:=ConstFNUsedCapRef)> Private _ufdt As Date?
+        <ormObjectEntryMapping(EntryName:=ConstFNComment)> Private _comment As String
 
         ''' <summary>
         ''' Relation to schedule milestones
@@ -1338,7 +1348,7 @@ Namespace OnTrack.Scheduling
         <ormRelation(linkobject:=GetType(ScheduleMilestone), cascadeOnCreate:=True, cascadeOnDelete:=True, cascadeOnUpdate:=True, _
             fromEntries:={ConstFNUid}, toEntries:={ScheduleMilestone.ConstFNUid})> Public Const ConstRMilestones = "RELMILESTONES"
 
-        <ormEntryMapping(RelationName:=ConstRMilestones, infuseMode:=otInfuseMode.OnInject Or otInfuseMode.OnDemand, _
+        <ormObjectEntryMapping(RelationName:=ConstRMilestones, infuseMode:=otInfuseMode.OnInject Or otInfuseMode.OnDemand, _
             keyentries:={ScheduleMilestone.ConstFNID})> Private WithEvents _milestoneCollection As New ormRelationCollection(Of ScheduleMilestone)(Me, {ScheduleMilestone.ConstFNID})
 
 
@@ -1349,7 +1359,7 @@ Namespace OnTrack.Scheduling
         <ormRelation(linkobject:=GetType(ScheduleDefinition), toprimarykeys:={ConstFNTypeid}, _
             cascadeOnCreate:=True, cascadeOnDelete:=False, cascadeOnUpdate:=False)> Public Const ConstRScheduleDefinition = "RELSCHEDULEDEFINITION"
 
-        <ormEntryMapping(RelationName:=ConstRScheduleDefinition, infuseMode:=otInfuseMode.OnInject Or otInfuseMode.OnDemand)> Private WithEvents _scheduleDefinition As ScheduleDefinition
+        <ormObjectEntryMapping(RelationName:=ConstRScheduleDefinition, infuseMode:=otInfuseMode.OnInject Or otInfuseMode.OnDemand)> Private WithEvents _scheduleDefinition As ScheduleDefinition
 
         ''' <summary>
         ''' Relation to LifeCycle StatusItem
@@ -1359,7 +1369,7 @@ Namespace OnTrack.Scheduling
             toentries:={StatusItem.constFNCode}, linkjoin:=" AND [" & StatusItem.constFNType & "] = '" & ConstStatusType_ScheduleLifecycle & "'", _
             cascadeOnCreate:=False, cascadeOnDelete:=False, cascadeOnUpdate:=False)> Public Const ConstRLifeCycleSatus = "RELLFCLSTATUS"
 
-        <ormEntryMapping(RelationName:=ConstRLifeCycleSatus, infuseMode:=otInfuseMode.OnDemand)> Private WithEvents _lifecylcestatus As StatusItem
+        <ormObjectEntryMapping(RelationName:=ConstRLifeCycleSatus, infuseMode:=otInfuseMode.OnDemand)> Private WithEvents _lifecylcestatus As StatusItem
 
         ''' <summary>
         ''' Relation to Process StatusItem
@@ -1369,7 +1379,7 @@ Namespace OnTrack.Scheduling
             toentries:={StatusItem.constFNCode}, linkjoin:=" AND [" & StatusItem.constFNType & "] = '" & ConstStatusType_ScheduleProcess & "'", _
             cascadeOnCreate:=False, cascadeOnDelete:=False, cascadeOnUpdate:=False)> Public Const ConstRProcessSatus = "RELPROCSTATUS"
 
-        <ormEntryMapping(RelationName:=ConstRProcessSatus, infuseMode:=otInfuseMode.OnDemand)> Private WithEvents _processstatus As StatusItem
+        <ormObjectEntryMapping(RelationName:=ConstRProcessSatus, infuseMode:=otInfuseMode.OnDemand)> Private WithEvents _processstatus As StatusItem
 
 
 
@@ -1486,15 +1496,15 @@ Namespace OnTrack.Scheduling
 
                     defschedule = ScheduleDefinition.Retrieve(id:=value, domainid:=Me.DomainID)
                     If defschedule Is Nothing Then
-                        Call CoreMessageHandler(message:="TypeID has not schedule defined", subname:="Schedule.typeID", _
-                                              arg1:=value)
+                        Call CoreMessageHandler(message:="TypeID has not schedule defined", procedure:="Schedule.typeID", _
+                                              argument:=value)
                     Else
                         SetValue(ConstFNTypeid, defschedule.ID)
                         ' load the milestones
                         If Not LoadMilestones(scheduletypeid:=defschedule.ID) Then
                             Call CoreMessageHandler(message:="Milestones of TypeID couldnot loaded", _
-                                                  subname:="Schedule.typeID let", _
-                                                  arg1:=value)
+                                                  procedure:="Schedule.typeID let", _
+                                                  argument:=value)
                         End If
                     End If
 
@@ -1838,8 +1848,8 @@ Namespace OnTrack.Scheduling
             Dim aDefScheduleMS As ScheduleMilestoneDefinition = ScheduleMilestoneDefinition.Retrieve(scheduletype:=_typeid, ID:=ID)
             If aDefScheduleMS Is Nothing Then
                 Call CoreMessageHandler(message:="schedule milestone definition doesn't exist", _
-                                      subname:="Schedule.getDefScheduleMilestone", _
-                                      arg1:=_typeid & "-" & ID)
+                                      procedure:="Schedule.getDefScheduleMilestone", _
+                                      argument:=_typeid & "-" & ID)
                 aDefScheduleMS = Nothing
             End If
 
@@ -1855,7 +1865,7 @@ Namespace OnTrack.Scheduling
         End Function
         '****** getUniqueTag
         Public Function getUniqueTag()
-            getUniqueTag = ConstDelimiter & ConstTableID & ConstDelimiter & _uid & ConstDelimiter & _updc & ConstDelimiter
+            getUniqueTag = ConstDelimiter & ConstPrimaryTableID & ConstDelimiter & _uid & ConstDelimiter & _updc & ConstDelimiter
         End Function
 
         ''' <summary>
@@ -1884,12 +1894,12 @@ Namespace OnTrack.Scheduling
 
             ' check aliases
             If aDefSchedule Is Nothing Then
-                Call CoreMessageHandler(message:="DefSchedule is not valid", arg1:=Me.Typeid, subname:="Schedule.getMilestone")
+                Call CoreMessageHandler(message:="DefSchedule is not valid", argument:=Me.Typeid, procedure:="Schedule.getMilestone")
                 Return Nothing
             End If
 
             aRealID = aDefSchedule.GetMilestoneIDByAlias(AliasID:=ID)
-            If aRealID = "" Then aRealID = ID
+            If aRealID = String.empty Then aRealID = ID
             '
 
             ' return not original
@@ -1932,12 +1942,12 @@ Namespace OnTrack.Scheduling
             If Not IsAlive(subname:="getMilestone") Then Return Nothing
 
             If aDefSchedule Is Nothing Then
-                Call CoreMessageHandler(message:="DefSchedule is not valid", arg1:=Me.Typeid, subname:="Schedule.getMilestone")
+                Call CoreMessageHandler(message:="DefSchedule is not valid", argument:=Me.Typeid, procedure:="Schedule.getMilestone")
                 Return Nothing
             End If
 
             aRealID = aDefSchedule.GetMilestoneIDByAlias(AliasID:=ID)
-            If aRealID = "" Then aRealID = ID
+            If aRealID = String.empty Then aRealID = ID
 
 
             ' return not original
@@ -1977,7 +1987,7 @@ Namespace OnTrack.Scheduling
 
             ' check aliases
             If aDefSchedule Is Nothing Then
-                CoreMessageHandler(message:="schedule definition was not found", arg1:=Me.Typeid, subname:="Schedule.SetMilestoneVlue")
+                CoreMessageHandler(message:="schedule definition was not found", argument:=Me.Typeid, procedure:="Schedule.SetMilestoneVlue")
                 Return False
             End If
 
@@ -1986,7 +1996,7 @@ Namespace OnTrack.Scheduling
             LoadMilestones(scheduletypeid:=Me.Typeid)
 
             aRealID = aDefSchedule.GetMilestoneIDByAlias(AliasID:=ID)
-            If aRealID = "" Then aRealID = ID
+            If aRealID = String.empty Then aRealID = ID
 
 
             If _milestoneCollection.ContainsKey({aRealID}) Then
@@ -1995,7 +2005,7 @@ Namespace OnTrack.Scheduling
                 aMember = ScheduleMilestone.Create(UID:=Me.Uid, updc:=Me.Updc, ID:=aRealID, domainid:=Me.DomainID, workspaceid:=Me.WorkspaceID)
                 If aMember Is Nothing Then aMember = ScheduleMilestone.Retrieve(UID:=Me.Uid, updc:=Me.Updc, ID:=aRealID)
                 If aMember Is Nothing Then
-                    Call CoreMessageHandler(arg1:=id, subname:="Schedule.setMilestone", tablename:=ConstTableID, _
+                    Call CoreMessageHandler(argument:=id, procedure:="Schedule.setMilestone", containerID:=ConstPrimaryTableID, _
                                           message:="ID doesnot exist in Milestone Entries")
                     Return False
                 End If
@@ -2007,8 +2017,8 @@ Namespace OnTrack.Scheduling
 
             ' if the Member is only a Cache ?!
             If aMember.IsCacheNoSave Then
-                Call CoreMessageHandler(message:="setMilestone to cached Item", subname:="Schedule.setMilestone", messagetype:=otCoreMessageType.ApplicationError, _
-                                      arg1:=LCase(id) & ":" & CStr(value))
+                Call CoreMessageHandler(message:="setMilestone to cached Item", procedure:="Schedule.setMilestone", messagetype:=otCoreMessageType.ApplicationError, _
+                                      argument:=LCase(id) & ":" & CStr(value))
                 Return False
             End If
 
@@ -2030,8 +2040,8 @@ Namespace OnTrack.Scheduling
                         isMemberchanged = True
                     End If
                 Else
-                    Call CoreMessageHandler(message:="milestone of date cannot set to", subname:="Schedule.setMilestone", _
-                                                         arg1:=LCase(id) & ":" & CStr(value), messagetype:=otCoreMessageType.ApplicationError)
+                    Call CoreMessageHandler(message:="milestone of date cannot set to", procedure:="Schedule.setMilestone", _
+                                                         argument:=LCase(id) & ":" & CStr(value), messagetype:=otCoreMessageType.ApplicationError)
                     Return False
                 End If
 
@@ -2052,8 +2062,8 @@ Namespace OnTrack.Scheduling
                         isMemberchanged = True
                     End If
                 Else
-                    Call CoreMessageHandler(message:="milestone of numeric cannot set to", subname:="Schedule.setMilestone", _
-                                                        arg1:=LCase(id) & ":" & CStr(value), messagetype:=otCoreMessageType.ApplicationError)
+                    Call CoreMessageHandler(message:="milestone of numeric cannot set to", procedure:="Schedule.setMilestone", _
+                                                        argument:=LCase(id) & ":" & CStr(value), messagetype:=otCoreMessageType.ApplicationError)
                     Return False
                 End If
 
@@ -2074,8 +2084,8 @@ Namespace OnTrack.Scheduling
                         isMemberchanged = True
                     End If
                 Else
-                    Call CoreMessageHandler(message:="milestone of long cannot set to", subname:="Schedule.setMilestone", _
-                                                        arg1:=LCase(id) & ":" & CStr(value), messagetype:=otCoreMessageType.ApplicationError)
+                    Call CoreMessageHandler(message:="milestone of long cannot set to", procedure:="Schedule.setMilestone", _
+                                                        argument:=LCase(id) & ":" & CStr(value), messagetype:=otCoreMessageType.ApplicationError)
                     Return False
                 End If
 
@@ -2096,8 +2106,8 @@ Namespace OnTrack.Scheduling
                         isMemberchanged = True
                     End If
                 Else
-                    Call CoreMessageHandler(message:="milestone of bool cannot set to", subname:="Schedule.setMilestone", _
-                                                        arg1:=LCase(id) & ":" & CStr(value), messagetype:=otCoreMessageType.ApplicationError)
+                    Call CoreMessageHandler(message:="milestone of bool cannot set to", procedure:="Schedule.setMilestone", _
+                                                        argument:=LCase(id) & ":" & CStr(value), messagetype:=otCoreMessageType.ApplicationError)
                     Return False
                 End If
 
@@ -2118,8 +2128,8 @@ Namespace OnTrack.Scheduling
                         isMemberchanged = True
                     End If
                 Else
-                    Call CoreMessageHandler(message:="milestone of string cannot set to", subname:="Schedule.setMilestone", _
-                                                        arg1:=LCase(id) & ":" & CStr(value), messagetype:=otCoreMessageType.ApplicationError)
+                    Call CoreMessageHandler(message:="milestone of string cannot set to", procedure:="Schedule.setMilestone", _
+                                                        argument:=LCase(id) & ":" & CStr(value), messagetype:=otCoreMessageType.ApplicationError)
                     Return False
                 End If
 
@@ -2155,7 +2165,7 @@ Namespace OnTrack.Scheduling
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function MoveMilestone(ByVal noDays As Long, _
-                        Optional ByVal MSID As String = "", _
+                        ByVal MSID As String, _
                         Optional considerWorkingDays As Boolean = True) As Boolean
             Dim aScheduleMSDef As New ScheduleMilestoneDefinition
             Dim aScheduleMSDefColl As New List(Of ScheduleMilestoneDefinition)
@@ -2164,44 +2174,30 @@ Namespace OnTrack.Scheduling
             Dim aDate As Object
             Dim actDate As Object
 
-            If Not Me.IsLoaded And Not Me.IsCreated Then
-                MoveMilestone = False
-                Exit Function
-            End If
-
-            If Me.IsFinished Then
-                MoveMilestone = False
-                Exit Function
-            End If
-
+            If Not Me.IsAlive(subname:="MoveMilestone") Then Return False
+            If Me.IsFinished Then Return False
             aScheduleMSDef = ScheduleMilestoneDefinition.Retrieve(scheduletype:=Me.Typeid, ID:=MSID, domainID:=Me.DomainID)
-            If aScheduleMSDef Is Nothing Then
-                MoveMilestone = False
-                Exit Function
-            End If
+            If aScheduleMSDef Is Nothing Then Return False
+
             ' if we have a forecast -> need to look for the actual
             If aScheduleMSDef.IsForecast Then
                 aScheduleMSDefColl = GetDefScheduleMSbyOrder(justDates:=True)
-                If aScheduleMSDefColl Is Nothing Or aScheduleMSDefColl.Count = 0 Then
-                    MoveMilestone = False
-                    Exit Function
-                End If
+                If aScheduleMSDefColl Is Nothing Or aScheduleMSDefColl.Count = 0 Then Return False
                 flag = False
                 For Each aScheduleMSDef In aScheduleMSDefColl
-                    If (aScheduleMSDef.ActualOfFC = LCase(MSID) And aScheduleMSDef.ActualOfFC <> "") Then
+                    If (Not String.IsNullOrWhiteSpace(MSID) AndAlso aScheduleMSDef.ActualOfFC = LCase(MSID)) AndAlso Not String.IsNullOrEmpty(aScheduleMSDef.ActualOfFC) Then
                         flag = True
                         Exit For
                     End If
                 Next aScheduleMSDef
-                If Not flag Then
-                    MoveMilestone = False
-                    Exit Function
-                End If
+                If Not flag Then Return False
             End If
             'actual found -> checkit
             actDate = Me.GetMilestoneValue(aScheduleMSDef.ID)
             aDate = Me.GetMilestoneValue(aScheduleMSDef.ActualOfFC)
-            If aDate <> constNullDate And IsDate(aDate) And actDate = constNullDate And IsDate(actDate) And aScheduleMSDef.ActualOfFC <> "" And aScheduleMSDef.ID <> "" Then
+            If IsDate(aDate) AndAlso aDate <> constNullDate AndAlso _
+                ((IsDate(actDate) AndAlso actDate = constNullDate) OrElse actDate Is Nothing) AndAlso _
+                Not String.IsNullOrEmpty(aScheduleMSDef.ActualOfFC) AndAlso Not String.IsNullOrEmpty(aScheduleMSDef.ID) Then
                 ' only if there is this milestone
                 aCE.Timestamp = aDate
                 aDate = aCE.AddDay(noDays, considerAvailibilty:=considerWorkingDays, calendarname:=CurrentSession.DefaultCalendarName)
@@ -2209,13 +2205,10 @@ Namespace OnTrack.Scheduling
                 '*******
                 '******* we need to check ascending condition !!
 
-                MoveMilestone = True
-                Exit Function
+                Return True
             End If
 
-            MoveMilestone = False
-            Exit Function
-
+            Return False
         End Function
 
         '******** moveSchedule
@@ -2229,7 +2222,7 @@ Namespace OnTrack.Scheduling
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Function MoveSchedule(ByVal noDays As Long, _
-        Optional ByVal startMS As String = "", _
+         ByVal startMS As String, _
         Optional considerWorkingDays As Boolean = True) As Boolean
             Dim aScheduleMSDefColl As New List(Of ScheduleMilestoneDefinition)
             Dim aScheduleMSDef As New ScheduleMilestoneDefinition
@@ -2257,7 +2250,7 @@ Namespace OnTrack.Scheduling
             started = False
             ' go through the milestones in order and move them if they are not actual
             For Each aScheduleMSDef In aScheduleMSDefColl
-                If aScheduleMSDef.ID = LCase(startMS) Or (aScheduleMSDef.ActualOfFC = LCase(startMS) And aScheduleMSDef.ActualOfFC <> "") Or startMS = "" Then
+                If aScheduleMSDef.ID = LCase(startMS) Or (aScheduleMSDef.ActualOfFC = LCase(startMS) And aScheduleMSDef.ActualOfFC <> String.Empty) Or startMS = String.Empty Then
                     started = True
                 End If
                 If Not aScheduleMSDef.IsForecast And started Then
@@ -2265,7 +2258,7 @@ Namespace OnTrack.Scheduling
                     actDate = Me.GetMilestoneValue(aScheduleMSDef.ID)
                     aDate = Me.GetMilestoneValue(aScheduleMSDef.ActualOfFC)
                     If aDate <> constNullDate And IsDate(aDate) And _
-                    actDate = constNullDate And IsDate(actDate) And aScheduleMSDef.ActualOfFC <> "" And aScheduleMSDef.ID <> "" Then
+                    actDate = constNullDate And IsDate(actDate) And aScheduleMSDef.ActualOfFC <> String.Empty And aScheduleMSDef.ID <> String.Empty Then
                         ' only if there is this milestone
                         aCE.Timestamp = aDate
                         aDate = aCE.AddDay(noDays, considerAvailibilty:=considerWorkingDays, calendarname:=CurrentSession.DefaultCalendarName)
@@ -2298,7 +2291,7 @@ Namespace OnTrack.Scheduling
                 Exit Function
             End If
 
-            If Me.Typeid = "" Then
+            If Me.Typeid = String.empty Then
                 atypeid = CurrentSession.DefaultScheduleTypeID
             Else
                 atypeid = Me.Typeid
@@ -2306,7 +2299,7 @@ Namespace OnTrack.Scheduling
 
             aScheduleDef = ScheduleDefinition.Retrieve(id:=atypeid, domainid:=Me.DomainID)
             If aScheduleDef Is Nothing Then
-                Call CoreMessageHandler(subname:="Schedule.getDefScheduleMSbyOrder", message:=" scheduletype of '" & atypeid & "' not found", arg1:=atypeid)
+                Call CoreMessageHandler(procedure:="Schedule.getDefScheduleMSbyOrder", message:=" scheduletype of '" & atypeid & "' not found", argument:=atypeid)
                 Return Nothing
             Else
                 aMSDefCollection = aScheduleDef.Milestones     ' should be in the order
@@ -2322,7 +2315,7 @@ Namespace OnTrack.Scheduling
                             Call aCollection.Add(item:=aScheduleMSDef)
                         End If
                     Else
-                        Call CoreMessageHandler(subname:="Schedule.getDefScheduleMSbyOrder", message:=" milestone with id '" & aScheduleMSDef.ID & "' not found", arg1:=atypeid)
+                        Call CoreMessageHandler(procedure:="Schedule.getDefScheduleMSbyOrder", message:=" milestone with id '" & aScheduleMSDef.ID & "' not found", argument:=atypeid)
                     End If
 
                 Next aScheduleMSDef
@@ -2340,11 +2333,11 @@ Namespace OnTrack.Scheduling
         Public Shared Function AllByUID(UID As Long) As ormRelationCollection(Of ScheduleEdition)
             Dim aCollection As ormRelationCollection(Of ScheduleEdition) = New ormRelationCollection(Of ScheduleEdition)(Nothing, keyentrynames:={ConstFNUpdc})
             Dim aRecordCollection As List(Of ormRecord)
-            Dim aStore As iormDataStore
+            Dim aStore As iormRelationalTableStore
             Dim aRecord As ormRecord
 
             Try
-                aStore = GetTableStore(ConstTableID)
+                aStore = GetTableStore(ConstPrimaryTableID)
                 Dim pkarray() As Object = {UID}
                 aRecordCollection = aStore.GetRecordsByIndex(ConstIndexUID, pkarray, True)
 
@@ -2358,7 +2351,7 @@ Namespace OnTrack.Scheduling
                 End If
                 Return aCollection
             Catch ex As Exception
-                Call CoreMessageHandler(exception:=ex, subname:="Schedule.AllByUID")
+                Call CoreMessageHandler(exception:=ex, procedure:="Schedule.AllByUID")
                 Return aCollection
             End Try
 
@@ -2376,7 +2369,7 @@ Namespace OnTrack.Scheduling
             ''' load the milestones
             If Not InfuseRelation(id:=ConstRMilestones) Then
                 CoreMessageHandler(message:="could not load and infuse the milestones for this schedule #" & _uid & "." & _updc, _
-                                    messagetype:=otCoreMessageType.InternalError, arg1:=Me.Typeid)
+                                    messagetype:=otCoreMessageType.InternalError, argument:=Me.Typeid)
             End If
             Return True
         End Function
@@ -2413,13 +2406,13 @@ Namespace OnTrack.Scheduling
                 Dim meme = TryCast(e.DataObject, ScheduleEdition)
 
                 If meme Is Nothing Then
-                    CoreMessageHandler(message:="data object could not be cast to Schedule", subname:="Schedule_OnRelationload", messagetype:=otCoreMessageType.InternalError)
+                    CoreMessageHandler(message:="data object could not be cast to Schedule", procedure:="Schedule_OnRelationload", messagetype:=otCoreMessageType.InternalError)
                     Exit Sub
                 End If
                 Dim aScheduleDefinition As ScheduleDefinition = ScheduleDefinition.Retrieve(id:=meme.Typeid, domainid:=meme.DomainID)
                 If aScheduleDefinition Is Nothing Then
-                    CoreMessageHandler(message:="schedule definition could not be retrieved", arg1:=meme.Typeid, _
-                                       subname:="Schedule_OnRelationload", messagetype:=otCoreMessageType.InternalError)
+                    CoreMessageHandler(message:="schedule definition could not be retrieved", argument:=meme.Typeid, _
+                                       procedure:="Schedule_OnRelationload", messagetype:=otCoreMessageType.InternalError)
                     Exit Sub
                 End If
 
@@ -2490,7 +2483,7 @@ Namespace OnTrack.Scheduling
 
                 _haveMilestonesChanged = False
             Catch ex As Exception
-                Call CoreMessageHandler(exception:=ex, subname:="Schedule.Infuse")
+                Call CoreMessageHandler(exception:=ex, procedure:="Schedule.Infuse")
             End Try
 
         End Sub
@@ -2522,7 +2515,7 @@ Namespace OnTrack.Scheduling
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Overloads Shared Function Retrieve(ByVal UID As Long, ByVal updc As Long) As ScheduleEdition
-            Return Retrieve(Of ScheduleEdition)(pkArray:={UID, updc})
+            Return RetrieveDataObject(Of ScheduleEdition)(pkArray:={UID, updc})
         End Function
 
         ''' <summary>
@@ -2537,16 +2530,16 @@ Namespace OnTrack.Scheduling
             Dim isCache As Boolean
             Dim aWSID As String
 
-            If _typeid Is Nothing OrElse _typeid = "" Then
+            If _typeid Is Nothing OrElse _typeid = String.empty Then
                 CoreMessageHandler(message:="schedule type of this schedule is not set - can not create default milestones", _
-                                    arg1:=_uid, messagetype:=otCoreMessageType.ApplicationError, subname:="Schedule.CreateDefaultMilestones")
+                                    argument:=_uid, messagetype:=otCoreMessageType.ApplicationError, procedure:="Schedule.CreateDefaultMilestones")
                 Return False
             End If
 
             Dim aSchedule As ScheduleDefinition = ScheduleDefinition.Retrieve(id:=Me.Typeid, domainid:=Me.DomainID)
             If aSchedule Is Nothing Then
                 CoreMessageHandler(message:="schedule type of this schedule could not be retrieved - can not create default milestones", _
-                                   arg1:=_typeid, messagetype:=otCoreMessageType.ApplicationError, subname:="Schedule.CreateDefaultMilestones")
+                                   argument:=_typeid, messagetype:=otCoreMessageType.ApplicationError, procedure:="Schedule.CreateDefaultMilestones")
                 Return False
             End If
 
@@ -2596,7 +2589,10 @@ Namespace OnTrack.Scheduling
                         '' create
                         aMilestone = ScheduleMilestone.Create(UID:=_uid, updc:=anUpdc, ID:=aScheduleMSDef.ID, domainid:=Me.DomainID, workspaceid:=Me.WorkspaceID)
                         '' retrieve
-                        If aMilestone Is Nothing Then aMilestone = ScheduleMilestone.Retrieve(UID:=_uid, updc:=anUpdc, ID:=aScheduleMSDef.ID)
+                        If aMilestone Is Nothing Then
+                            aMilestone = ScheduleMilestone.Retrieve(UID:=_uid, updc:=anUpdc, ID:=aScheduleMSDef.ID)
+                        End If
+
                     Else
                         '' retrieve
                         aMilestone = ScheduleMilestone.Retrieve(UID:=_uid, updc:=anUpdc, ID:=aScheduleMSDef.ID)
@@ -2609,7 +2605,7 @@ Namespace OnTrack.Scheduling
                         _milestoneCollection.Add(aMilestone)
                     Else
                         CoreMessageHandler(message:="Milestone for uid #" & _uid & " from definition '" & aScheduleMSDef.ScheduleTypeID & "' could not be created or retrieved", _
-                                           arg1:=aScheduleMSDef.ID, tablename:=ConstTableID, subname:="Schedule.CreateDEfaultMilestones", _
+                                           argument:=aScheduleMSDef.ID, containerID:=ConstPrimaryTableID, procedure:="Schedule.CreateDEfaultMilestones", _
                                             messagetype:=otCoreMessageType.ApplicationError)
                     End If
 
@@ -2655,7 +2651,7 @@ Namespace OnTrack.Scheduling
             If Not anUpdc.HasValue OrElse anUpdc = 0 Then
                 If Not Me.GetMaxUpdc(Uid:=anuid, max:=anUpdc.Value, workspaceID:=aWorkspaceID) Then
                     Call CoreMessageHandler(message:=" primary key values could not be created - cannot create object", _
-                                            subname:="Schedule.create", tablename:=PrimaryTableID, messagetype:=otCoreMessageType.InternalError)
+                                            procedure:="Schedule.create", containerID:=ObjectPrimaryTableID, messagetype:=otCoreMessageType.InternalError)
                     e.AbortOperation = True
                     Exit Sub
                 End If
@@ -2680,19 +2676,19 @@ Namespace OnTrack.Scheduling
                                 Optional ByVal domainid As String = Nothing) As ScheduleEdition
 
 
-            If String.IsNullOrWhiteSpace(workspaceID) Then workspaceID = CurrentSession.CurrentWorkspaceID
+            If String.IsnullorEmpty(workspaceID) Then workspaceID = CurrentSession.CurrentWorkspaceID
             If String.IsNullOrWhiteSpace(scheduletypeid) Then scheduletypeid = CurrentSession.DefaultScheduleTypeID
-            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
+            If String.IsnullorEmpty(domainID) Then domainid = CurrentSession.CurrentDomainID
             Dim aRecord As New ormRecord
             With aRecord
                 .SetValue(ConstFNUid, uid)
                 .SetValue(ConstFNUpdc, updc)
-                If Not String.IsNullOrWhiteSpace(workspaceID) Then .SetValue(ConstFNWorkspaceID, workspaceID)
+                If Not String.IsnullorEmpty(workspaceID) Then .SetValue(ConstFNWorkspaceID, workspaceID)
                 If Not String.IsNullOrWhiteSpace(scheduletypeid) Then .SetValue(ConstFNTypeid, scheduletypeid)
-                If Not String.IsNullOrWhiteSpace(domainid) Then .SetValue(ConstFNDomainID, domainid)
+                If Not String.IsnullorEmpty(domainID) Then .SetValue(ConstFNDomainID, domainid)
             End With
 
-            Return ormDataObject.CreateDataObject(Of ScheduleEdition)(aRecord, checkUnique:=True, domainID:=domainid)
+            Return ormBusinessObject.CreateDataObject(Of ScheduleEdition)(aRecord, checkUnique:=True, domainID:=domainid)
 
         End Function
 
@@ -2716,17 +2712,17 @@ Namespace OnTrack.Scheduling
 
             Dim aVAlue As Object
             Dim aDefSchedule As ScheduleDefinition = Me.ScheduleDefinition
-            Dim aRealID As String = ""
+            Dim aRealID As String = String.empty
             Dim aScheduleMilestone As ScheduleMilestone
 
             ID = ID.ToUpper
             aRealID = aDefSchedule.GetMilestoneIDByAlias(AliasID:=ID)
-            If aRealID = "" Then aRealID = ID
+            If aRealID = String.empty Then aRealID = ID
             Dim aDefMilestone As MileStoneDefinition = MileStoneDefinition.Retrieve(id:=aRealID, domainID:=Me.DomainID)
 
             ' check aliases
             If aDefSchedule Is Nothing Then
-                Call CoreMessageHandler(message:="DefSchedule is not valid", arg1:=Me.Typeid, subname:="Schedule.getMilestone")
+                Call CoreMessageHandler(message:="DefSchedule is not valid", argument:=Me.Typeid, procedure:="Schedule.getMilestone")
                 Return False
             End If
 
@@ -2765,10 +2761,10 @@ Namespace OnTrack.Scheduling
                         '
                         ' check status
                     Case otMilestoneType.Status
-                        If Trim(CStr(aVAlue)) <> "" And hasData Then
+                        If Trim(CStr(aVAlue)) <> String.empty And hasData Then
                             HasMilestone = True
 
-                        ElseIf Trim(CStr(aVAlue)) = "" And hasData Then
+                        ElseIf Trim(CStr(aVAlue)) = String.empty And hasData Then
                             HasMilestone = False
                         ElseIf Not hasData Then
                             HasMilestone = True
@@ -2833,11 +2829,11 @@ Namespace OnTrack.Scheduling
                             Throw New NotImplementedException("Finishing on Status is not implemented")
                         End If
                     ElseIf aMilestone Is Nothing Then
-                        CoreMessageHandler(message:="milestone schedule definition could not be retrieved", arg1:=anID, messagetype:=otCoreMessageType.ApplicationError, _
-                                            subname:="ScheduleEdition.FinishOn", objectname:=Me.ObjectID)
+                        CoreMessageHandler(message:="milestone schedule definition could not be retrieved", argument:=anID, messagetype:=otCoreMessageType.ApplicationError, _
+                                            procedure:="ScheduleEdition.FinishOn", objectname:=Me.ObjectID)
                     ElseIf aMDef Is Nothing Then
-                        CoreMessageHandler(message:="milestone definition could not be retrieved", arg1:=aMilestone.ActualOfFC, messagetype:=otCoreMessageType.ApplicationError, _
-                                            subname:="ScheduleEdition.FinishOn", objectname:=Me.ObjectID)
+                        CoreMessageHandler(message:="milestone definition could not be retrieved", argument:=aMilestone.ActualOfFC, messagetype:=otCoreMessageType.ApplicationError, _
+                                            procedure:="ScheduleEdition.FinishOn", objectname:=Me.ObjectID)
                     End If
                 End If
             Next
@@ -2869,11 +2865,11 @@ Namespace OnTrack.Scheduling
                             Throw New NotImplementedException("Finishing on Status is not implemented")
                         End If
                     ElseIf aMilestone Is Nothing Then
-                        CoreMessageHandler(message:="milestone schedule definition could not be retrieved", arg1:=anID, messagetype:=otCoreMessageType.ApplicationError, _
-                                            subname:="ScheduleEdition.FinishedOn", objectname:=Me.ObjectID)
+                        CoreMessageHandler(message:="milestone schedule definition could not be retrieved", argument:=anID, messagetype:=otCoreMessageType.ApplicationError, _
+                                            procedure:="ScheduleEdition.FinishedOn", objectname:=Me.ObjectID)
                     ElseIf aMDef Is Nothing Then
-                        CoreMessageHandler(message:="milestone definition could not be retrieved", arg1:=aMilestone.ActualOfFC, messagetype:=otCoreMessageType.ApplicationError, _
-                                            subname:="ScheduleEdition.FinishedOn", objectname:=Me.ObjectID)
+                        CoreMessageHandler(message:="milestone definition could not be retrieved", argument:=aMilestone.ActualOfFC, messagetype:=otCoreMessageType.ApplicationError, _
+                                            procedure:="ScheduleEdition.FinishedOn", objectname:=Me.ObjectID)
                     End If
                 End If
             Next
@@ -2905,11 +2901,11 @@ Namespace OnTrack.Scheduling
                             Throw New NotImplementedException("Finishing on Status is not implemented")
                         End If
                     ElseIf aMilestone Is Nothing Then
-                        CoreMessageHandler(message:="milestone schedule definition could not be retrieved", arg1:=anID, messagetype:=otCoreMessageType.ApplicationError, _
-                                            subname:="ScheduleEdition.IsFinished", objectname:=Me.ObjectID)
+                        CoreMessageHandler(message:="milestone schedule definition could not be retrieved", argument:=anID, messagetype:=otCoreMessageType.ApplicationError, _
+                                            procedure:="ScheduleEdition.IsFinished", objectname:=Me.ObjectID)
                     ElseIf aMDef Is Nothing Then
-                        CoreMessageHandler(message:="milestone definition could not be retrieved", arg1:=aMilestone.ActualOfFC, messagetype:=otCoreMessageType.ApplicationError, _
-                                            subname:="ScheduleEdition.IsFinished", objectname:=Me.ObjectID)
+                        CoreMessageHandler(message:="milestone definition could not be retrieved", argument:=aMilestone.ActualOfFC, messagetype:=otCoreMessageType.ApplicationError, _
+                                            procedure:="ScheduleEdition.IsFinished", objectname:=Me.ObjectID)
                     End If
                 End If
             Next
@@ -2969,7 +2965,7 @@ Namespace OnTrack.Scheduling
                             aTimeInterval.endcmt = "bp10"
                             aTimeInterval.isActEnd = True
                         Else
-                            aTimeInterval.endcmt = ""
+                            aTimeInterval.endcmt = String.empty
                         End If
 
                         ' CASE 4 we have no end atall
@@ -3074,7 +3070,7 @@ Namespace OnTrack.Scheduling
             'if we have a baseline
             If Me.IsBaseline Then
                 Call CoreMessageHandler(message:=" Schedule for uid #" & Me.Uid & " is already baselined with this updc #" & Me.Updc, _
-                                      subname:="Schedule.drawBaseline", arg1:=Me.Uid & "." & Me.Updc, break:=False)
+                                      procedure:="Schedule.drawBaseline", argument:=Me.Uid & "." & Me.Updc, break:=False)
                 DrawBaseline = True
                 Exit Function
             End If
@@ -3088,7 +3084,7 @@ Namespace OnTrack.Scheduling
             ' add plan version
             If Me.IsFrozen Then
                 ' set the revision
-                If Me.Revision = "" Then
+                If Me.Revision = String.empty Then
                     Me.Revision = ConstFirstPlanRevision
                 Else
                     Me.Revision = Me.IncreaseRevison(MajorFlag:=True, MinorFlag:=False)
@@ -3111,7 +3107,7 @@ Namespace OnTrack.Scheduling
                     ' freeze again ?!
                     If anEdition.IsFrozen = True Then
                         Call CoreMessageHandler(message:=" Schedule was baselined again at a later point of time", _
-                                              subname:="Schedule.drawBaseline", arg1:=Me.Uid & "." & Me.Updc, break:=False)
+                                              procedure:="Schedule.drawBaseline", argument:=Me.Uid & "." & Me.Updc, break:=False)
 
                     End If
                     If anEdition.Updc <> Me.Updc Then
@@ -3152,12 +3148,12 @@ Namespace OnTrack.Scheduling
             Dim aValue As Object
 
             If Not IsLoaded And Not IsCreated Then
-                IncreaseRevison = ""
+                IncreaseRevison = String.empty
                 Exit Function
             End If
 
 
-            If Me.Revision <> "" And UCase(Me.Revision) Like "V*.*" Then
+            If Me.Revision <> String.empty And UCase(Me.Revision) Like "V*.*" Then
                 aValue = Mid(Me.Revision, _
                              InStr(UCase(Me.Revision), "V") + 1, _
                              InStr(Me.Revision, ".") - InStr(UCase(Me.Revision), "V"))
@@ -3180,7 +3176,7 @@ Namespace OnTrack.Scheduling
 
                     Me.Revision = "V" & major & "." & minor
                 End If
-            ElseIf Me.Revision <> "" And UCase(Me.Revision) Like "V*" Then
+            ElseIf Me.Revision <> String.empty And UCase(Me.Revision) Like "V*" Then
                 aValue = Mid(Me.Revision, _
                              InStr(UCase(Me.Revision), "V") + 1, _
                              Len(Me.Revision) - InStr(UCase(Me.Revision), "V"))
@@ -3197,11 +3193,11 @@ Namespace OnTrack.Scheduling
                     Me.Revision = "V" & major & "." & minor
                 End If
 
-            ElseIf Me.Revision = "" Then
+            ElseIf Me.Revision = String.empty Then
                 Me.Revision = ConstFirstPlanRevision
             Else
-                Call CoreMessageHandler(message:=("me.revision " & Me.Revision & " not increasable since not in VXX.YY"), arg1:=Me.Revision, _
-                                      subname:="Schedule.increaserevision", break:=False)
+                Call CoreMessageHandler(message:=("me.revision " & Me.Revision & " not increasable since not in VXX.YY"), argument:=Me.Revision, _
+                                      procedure:="Schedule.increaserevision", break:=False)
                 Return Me.Revision
             End If
             ' exit
@@ -3538,7 +3534,7 @@ Namespace OnTrack.Scheduling
                 ''' for sure load
                 LoadMilestones(scheduletypeid:=Me.Typeid)
                 If Not Feed() Then
-                    CoreMessageHandler(message:="object could not feed while cloning", subname:="ScheduleEdition.Clone", arg1:=Converter.Array2StringList(pkarray), _
+                    CoreMessageHandler(message:="object could not feed while cloning", procedure:="ScheduleEdition.Clone", argument:=Converter.Array2StringList(pkarray), _
                                         messagetype:=otCoreMessageType.InternalError, objectname:=Me.ObjectID)
                     Return Nothing
                 End If
@@ -3546,8 +3542,8 @@ Namespace OnTrack.Scheduling
                 '*** key ?
                 If Not aNewUPDC.HasValue OrElse aNewUPDC = 0 Then
                     If Not Me.GetMaxUpdc(uid:=aNewUID, max:=aNewUPDC, workspaceID:=Me.WorkspaceID) Then
-                        Call CoreMessageHandler(message:="cannot create unique primary key values - abort clone", subname:="ScheduleEdition.clone", arg1:=pkarray, _
-                                                     tablename:=PrimaryTableID, messagetype:=otCoreMessageType.InternalError)
+                        Call CoreMessageHandler(message:="cannot create unique primary key values - abort clone", procedure:="ScheduleEdition.clone", argument:=pkarray, _
+                                                     containerID:=ObjectPrimaryTableID, messagetype:=otCoreMessageType.InternalError)
                         Return Nothing
                     End If
                     aNewUPDC += 1
@@ -3565,7 +3561,7 @@ Namespace OnTrack.Scheduling
                 Return Nothing
 
             Catch ex As Exception
-                Call CoreMessageHandler(subname:="ScheduleEdition.Clone", exception:=ex)
+                Call CoreMessageHandler(procedure:="ScheduleEdition.Clone", exception:=ex)
                 Return Nothing
             End Try
         End Function
@@ -3606,7 +3602,7 @@ Namespace OnTrack.Scheduling
             '**
             aWorkspace = Workspace.Retrieve(id:=workspaceID)
             If aWorkspace Is Nothing Then
-                Call CoreMessageHandler(arg1:=workspaceID, subname:="Schedule.cloneToWorkspace", message:="couldn't load workspace")
+                Call CoreMessageHandler(argument:=workspaceID, procedure:="Schedule.cloneToWorkspace", message:="couldn't load workspace")
                 Return False
             End If
 
@@ -3622,7 +3618,7 @@ Namespace OnTrack.Scheduling
             '** clone
             aNewObject = Me.Clone(updc:=newUPDC)
             If aNewObject Is Nothing Then
-                Call CoreMessageHandler(arg1:=workspaceID, subname:="Schedule.cloneToWorkspace", _
+                Call CoreMessageHandler(argument:=workspaceID, procedure:="Schedule.cloneToWorkspace", _
                                       message:="couldn't clone schedule (" & Me.Uid & "," & Me.Updc & ") to new updc(" & newUPDC)
                 CloneToWorkspace = False
                 Exit Function
@@ -3650,24 +3646,23 @@ Namespace OnTrack.Scheduling
         ''' <param name="workspaceID">optional workspaceID</param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Private Function GetMaxUpdc(ByVal uid As Long, ByRef max As Long, Optional ByVal workspaceID As String = "") As Boolean
+        Private Function GetMaxUpdc(ByVal uid As Long, ByRef max As Long, Optional ByVal workspaceID As String = Nothing) As Boolean
             Dim aWorkspaceDef As New Workspace
             Dim mymax As Long
+            If String.IsNullOrEmpty(workspaceID) Then workspaceID = CurrentSession.CurrentWorkspaceID
             Dim pkarray() As Object = {workspaceID}
-
-            If workspaceID = "" Then workspaceID = CurrentSession.CurrentWorkspaceID
 
             Try
                 ' get
-                Dim aStore As iormDataStore = GetTableStore(ConstTableID)
+                Dim aStore As iormRelationalTableStore = GetTableStore(ConstPrimaryTableID)
                 Dim aCommand As ormSqlSelectCommand = aStore.CreateSqlSelectCommand(id:="getmaxupdc", addMe:=True, addAllFields:=False)
 
                 '** prepare the command if necessary
-                If Not aCommand.Prepared Then
+                If Not aCommand.IsPrepared Then
                     aCommand.select = "max(" & ConstFNUpdc & ")"
                     aCommand.Where = ConstFNUid & "=@uid and " & ConstFNWorkspaceID & "=@wspace"
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@uid", ColumnName:=ConstFNUid, tablename:=ConstTableID))
-                    aCommand.AddParameter(New ormSqlCommandParameter(id:="@wspace", ColumnName:=ConstFNWorkspaceID, tablename:=ConstTableID))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@uid", ColumnName:=ConstFNUid, tableid:=ConstPrimaryTableID))
+                    aCommand.AddParameter(New ormSqlCommandParameter(id:="@wspace", ColumnName:=ConstFNWorkspaceID, tableid:=ConstPrimaryTableID))
                     aCommand.Prepare()
                 End If
                 aCommand.SetParameterValue(ID:="@uid", value:=uid)
@@ -3683,7 +3678,7 @@ Namespace OnTrack.Scheduling
                         If Not aWorkspaceDef Is Nothing Then
                             If mymax >= (aWorkspaceDef.MaxScheduleUPDC - 10) Then
                                 Call CoreMessageHandler(showmsgbox:=True, message:="Number range for workspaceID ends", _
-                                                      arg1:=workspaceID, messagetype:=otCoreMessageType.ApplicationWarning)
+                                                      argument:=workspaceID, messagetype:=otCoreMessageType.ApplicationWarning)
                             End If
                         End If
                     Else
@@ -3708,7 +3703,7 @@ Namespace OnTrack.Scheduling
                 End If
                 Return GetMaxUpdc
             Catch ex As Exception
-                Call CoreMessageHandler(showmsgbox:=False, exception:=ex, subname:="Schedule.getMaxUPDC")
+                Call CoreMessageHandler(showmsgbox:=False, exception:=ex, procedure:="Schedule.getMaxUPDC")
                 Return False
             End Try
         End Function
@@ -3722,8 +3717,8 @@ Namespace OnTrack.Scheduling
     ''' <remarks></remarks>
     <ormObject(id:=ScheduleMilestone.ConstObjectID, modulename:=ConstModuleScheduling, Version:=1, adddeletefieldbehavior:=True, usecache:=True, _
         description:="milestone data for schedules")> Public Class ScheduleMilestone
-        Inherits ormDataObject
-        Implements iormPersistable
+        Inherits ormBusinessObject
+        Implements iormRelationalPersistable
         Implements iormCloneable(Of ScheduleMilestone)
         Implements iormInfusable
 
@@ -3733,28 +3728,28 @@ Namespace OnTrack.Scheduling
         ''' Table
         ''' </summary>
         ''' <remarks></remarks>
-        <ormSchemaTable(version:=2)> Public Const constTableID = "tblScheduleMilestones"
+        <ormTableAttribute(version:=2)> Public Const ConstPrimaryTableID = "tblScheduleMilestones"
 
         '** Index
-        <ormSchemaIndex(columnname1:=ConstFNUid, columnname2:=ConstFNUpdc)> Public constIndexCompound = ConstDefaultCompoundIndexName
+        <ormIndex(columnname1:=ConstFNUid, columnname2:=ConstFNUpdc)> Public constIndexCompound = ConstDefaultCompoundIndexName
 
         ''' <summary>
         ''' Primary KEys
         ''' </summary>
         ''' <remarks></remarks>
         <ormObjectEntry(referenceObjectEntry:=ScheduleEdition.ConstObjectID & "." & ScheduleEdition.ConstFNUid, _
-             primaryKeyordinal:=1, XID:="MST1", aliases:={"SUID"})> Public Const ConstFNUid = ScheduleEdition.ConstFNUid
+             PrimaryEntryOrdinal:=1, XID:="MST1", aliases:={"SUID"})> Public Const ConstFNUid = ScheduleEdition.ConstFNUid
 
         <ormObjectEntry(referenceObjectEntry:=ScheduleEdition.ConstObjectID & "." & ScheduleEdition.ConstFNUpdc, _
-           primaryKeyordinal:=2, XID:="MST2")> _
+           PrimaryEntryOrdinal:=2, XID:="MST2")> _
         Public Const ConstFNUpdc = ScheduleEdition.ConstFNUpdc
         '** link together
-        <ormSchemaForeignKey(entrynames:={ConstFNUid, ConstFNUpdc}, foreignkeyreferences:={ScheduleEdition.ConstObjectID & "." & ScheduleEdition.ConstFNUid, _
+        <ormForeignKey(entrynames:={ConstFNUid, ConstFNUpdc}, foreignkeyreferences:={ScheduleEdition.ConstObjectID & "." & ScheduleEdition.ConstFNUid, _
                 ScheduleEdition.ConstObjectID & "." & ScheduleEdition.ConstFNUpdc}, useforeignkey:=otForeignKeyImplementation.NativeDatabase)> Public Const constFKSchedule = "fkschedules"
 
         <ormObjectEntry(Datatype:=otDataType.Text, size:=50, defaultvalue:="", _
             title:="milestone id", Description:="id of the milestone", _
-          primaryKeyordinal:=3, XID:="MST3")> Public Const ConstFNID = "id"
+          PrimaryEntryOrdinal:=3, XID:="MST3")> Public Const ConstFNID = "id"
 
         ''' <summary>
         ''' Fields
@@ -3806,21 +3801,21 @@ Namespace OnTrack.Scheduling
 
         ' fields
 
-        <ormEntryMapping(EntryName:=ConstFNUid)> Private _uid As Long
-        <ormEntryMapping(EntryName:=ConstFNUpdc)> Private _updc As Long
-        <ormEntryMapping(EntryName:=ConstFNID)> Private _id As String = ""
+        <ormObjectEntryMapping(EntryName:=ConstFNUid)> Private _uid As Long
+        <ormObjectEntryMapping(EntryName:=ConstFNUpdc)> Private _updc As Long
+        <ormObjectEntryMapping(EntryName:=ConstFNID)> Private _id As String = String.empty
 
-        <ormEntryMapping(entryname:=ConstFNvalue)> Private _valuestring As String
-        <ormEntryMapping(EntryName:=ConstFNDatatype)> Private _datatype As otDataType
-        <ormEntryMapping(EntryName:=ConstFNcmt)> Private _cmt As String = ""
-        <ormEntryMapping(EntryName:=ConstFNWorkspace)> Private _workspaceID As String = ""
-        <ormEntryMapping(EntryName:=ConstFNIsStatus)> Private _isStatus As Boolean
-        <ormEntryMapping(EntryName:=ConstFNIsEnabled)> Private _isEnabled As Boolean = True
-        <ormEntryMapping(EntryName:=ConstFNIsValid)> Private _isvalid As Boolean
-        <ormEntryMapping(EntryName:=constfntype)> Private _typeid As otMilestoneType
+        <ormObjectEntryMapping(entryname:=ConstFNvalue)> Private _valuestring As String
+        <ormObjectEntryMapping(EntryName:=ConstFNDatatype)> Private _datatype As otDataType
+        <ormObjectEntryMapping(EntryName:=ConstFNcmt)> Private _cmt As String = String.empty
+        <ormObjectEntryMapping(EntryName:=ConstFNWorkspace)> Private _workspaceID As String = String.empty
+        <ormObjectEntryMapping(EntryName:=ConstFNIsStatus)> Private _isStatus As Boolean
+        <ormObjectEntryMapping(EntryName:=ConstFNIsEnabled)> Private _isEnabled As Boolean = True
+        <ormObjectEntryMapping(EntryName:=ConstFNIsValid)> Private _isvalid As Boolean
+        <ormObjectEntryMapping(EntryName:=constfntype)> Private _typeid As otMilestoneType
 
         'Private s_isActual As Boolean
-        <ormEntryMapping(EntryName:=ConstFNIsForecast)> Private _isForecast As Boolean
+        <ormObjectEntryMapping(EntryName:=ConstFNIsForecast)> Private _isForecast As Boolean
 
         'dynamic
         Private _loadedFromHost As Boolean
@@ -4166,9 +4161,9 @@ Namespace OnTrack.Scheduling
                         aVAlue = Record.GetValue(ConstFNvalue)
                         If aVAlue IsNot Nothing Then _value = CStr(aVAlue)
                     Case otDataType.Runtime, otDataType.Formula, otDataType.Binary
-                        _value = ""
-                        Call CoreMessageHandler(subname:="ScheduleMilestone.infuse", messagetype:=otCoreMessageType.ApplicationError, _
-                                              message:="runtime, formular, binary can't infuse", msglog:=_msglog, arg1:=aVAlue)
+                        _value = String.empty
+                        Call CoreMessageHandler(procedure:="ScheduleMilestone.infuse", messagetype:=otCoreMessageType.ApplicationError, _
+                                              message:="runtime, formular, binary can't infuse", msglog:=_msglog, argument:=aVAlue)
                     Case otDataType.[Date], otDataType.Timestamp
                         aVAlue = Record.GetValue(ConstFNvaluedate)
                         If Microsoft.VisualBasic.IsDate(aVAlue) Then
@@ -4185,13 +4180,13 @@ Namespace OnTrack.Scheduling
                     Case otDataType.Memo
                         If aVAlue IsNot Nothing Then _value = CStr(aVAlue)
                     Case Else
-                        Call CoreMessageHandler(subname:="ScheduleMilestone.infuse", _
-                                              message:="unknown datatype to be infused", msglog:=_msglog, arg1:=aVAlue)
+                        Call CoreMessageHandler(procedure:="ScheduleMilestone.infuse", _
+                                              message:="unknown datatype to be infused", msglog:=_msglog, argument:=aVAlue)
                 End Select
 
 
             Catch ex As Exception
-                Call CoreMessageHandler(exception:=ex, subname:="ScheduleMilestone.Infuse")
+                Call CoreMessageHandler(exception:=ex, procedure:="ScheduleMilestone.Infuse")
             End Try
 
 
@@ -4207,7 +4202,7 @@ Namespace OnTrack.Scheduling
         ''' <remarks></remarks>
         Public Overloads Shared Function Retrieve(ByVal UID As Long, ByVal updc As Long, ByVal ID As String) As ScheduleMilestone
             Dim pkarray() As Object = {UID, updc, ID}
-            Return ormDataObject.Retrieve(Of ScheduleMilestone)(pkArray:=pkarray)
+            Return ormBusinessObject.RetrieveDataObject(Of ScheduleMilestone)(pkArray:=pkarray)
         End Function
 
         ''' <summary>
@@ -4235,8 +4230,8 @@ Namespace OnTrack.Scheduling
                     Case otDataType.Text, otDataType.Memo
                         Call Me.Record.SetValue(ConstFNvalue, CStr(avalue))
                     Case otDataType.Runtime, otDataType.Formula, otDataType.Binary
-                        Call CoreMessageHandler(subname:="ScheduleMilestone.persist", _
-                                              message:="datatype (runtime, formular, binary) not specified how to be persisted", msglog:=_msglog, arg1:=_datatype)
+                        Call CoreMessageHandler(procedure:="ScheduleMilestone.persist", _
+                                              message:="datatype (runtime, formular, binary) not specified how to be persisted", msglog:=_msglog, argument:=_datatype)
                     Case otDataType.[Date]
                         If Microsoft.VisualBasic.IsDate(avalue) Then
                             Call Me.Record.SetValue(ConstFNvaluedate, CDate(avalue))
@@ -4255,7 +4250,7 @@ Namespace OnTrack.Scheduling
                             Call Me.Record.SetValue(ConstFNvalue, CStr(avalue))
                         End If
                     Case otDataType.Bool
-                        If avalue = "" Or IsEmpty(avalue) Or IsNull(avalue) Or avalue Is Nothing Then
+                        If avalue = String.empty Or IsEmpty(avalue) Or IsNull(avalue) Or avalue Is Nothing Then
                             Call Me.Record.SetValue(ConstFNvaluebool, False)
                         ElseIf avalue = True Or avalue = False Then
                             Call Me.Record.SetValue(ConstFNvaluedate, CBool(avalue))
@@ -4265,14 +4260,14 @@ Namespace OnTrack.Scheduling
                         Call Me.Record.SetValue(ConstFNvalue, CStr(avalue))
                     Case Else
                         Call Me.Record.SetValue(ConstFNvalue, CStr(avalue))
-                        Call CoreMessageHandler(subname:="ScheduleMilestone.persist", _
-                                              message:="datatype not specified how to be persisted", msglog:=_msglog, arg1:=_datatype)
+                        Call CoreMessageHandler(procedure:="ScheduleMilestone.persist", _
+                                              message:="datatype not specified how to be persisted", msglog:=_msglog, argument:=_datatype)
                 End Select
 
 
 
             Catch ex As Exception
-                Call CoreMessageHandler(subname:="ScheduleMilestone.UpdateRecord", exception:=ex)
+                Call CoreMessageHandler(procedure:="ScheduleMilestone.UpdateRecord", exception:=ex)
             End Try
         End Sub
 
@@ -4400,8 +4395,8 @@ Namespace OnTrack.Scheduling
                                                 Optional domainid As String = Nothing, _
                                                 Optional workspaceid As String = Nothing) As ScheduleMilestone
             Dim pkarray() As Object = {UID, updc, ID}
-            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
-            If String.IsNullOrWhiteSpace(workspaceid) Then workspaceid = CurrentSession.CurrentWorkspaceID
+            If String.IsnullorEmpty(domainID) Then domainid = CurrentSession.CurrentDomainID
+            If String.IsnullorEmpty(workspaceID) Then workspaceid = CurrentSession.CurrentWorkspaceID
             Dim aRecord As New ormRecord
             With aRecord
                 .SetValue(ConstFNUid, UID)
@@ -4410,7 +4405,7 @@ Namespace OnTrack.Scheduling
                 .SetValue(ConstFNDomainID, domainid) ' add this for the milestone definition and we are not under domainbehavior
                 .SetValue(ConstFNWorkspace, workspaceid)
             End With
-            Return ormDataObject.CreateDataObject(Of ScheduleMilestone)(aRecord, checkUnique:=True, domainID:=domainid)
+            Return ormBusinessObject.CreateDataObject(Of ScheduleMilestone)(aRecord, checkUnique:=True, domainID:=domainid)
         End Function
 
         ''' <summary>
@@ -4488,21 +4483,21 @@ Namespace OnTrack.Scheduling
     <ormObject(id:=ScheduleLink.ConstObjectID, modulename:=ConstModuleScheduling, Version:=1, adddeletefieldbehavior:=True, usecache:=True, _
         description:="link definitions between schedules and other business objects")> _
     Public Class ScheduleLink
-        Inherits ormDataObject
+        Inherits ormBusinessObject
         Implements iormInfusable
-        Implements iormPersistable
+        Implements iormRelationalPersistable
 
         Public Const ConstObjectID = "ScheduleLink"
 
         '** Schema Table
-        <ormSchemaTable(version:=1)> Public Const ConstTableID = "tblScheduleLinks"
+        <ormTableAttribute(version:=1)> Public Const ConstPrimaryTableID = "tblScheduleLinks"
 
         '** index
-        <ormSchemaIndex(columnnames:={ConstFNToObjectID, ConstFNToUID, CONSTFNToMilestoneID, ConstFNFromObjectID, ConstFNFromUID, ConstFNFromMilestoneID})> Public Const ConstIndTo = "USED"
+        <ormIndex(columnnames:={ConstFNToObjectID, ConstFNToUID, CONSTFNToMilestoneID, ConstFNFromObjectID, ConstFNFromUID, ConstFNFromMilestoneID})> Public Const ConstIndTo = "USED"
 
         ''' <summary>
         ''' Primary key of the schedule link object
-        ''' FROM an ObjectID, UID, MS ("" if null)
+        ''' FROM an ObjectID, UID, MS (String.empty if null)
         ''' TO   an ScheduleUID, MS
         ''' 
         ''' links a deliverable or other business objects with a schedule
@@ -4520,7 +4515,7 @@ Namespace OnTrack.Scheduling
 
         ''' from Section
         ''' 
-        <ormObjectEntry(referenceobjectentry:=ObjectDefinition.ConstObjectID & "." & ObjectDefinition.ConstFNID, primarykeyordinal:=1, _
+        <ormObjectEntry(referenceobjectentry:=ObjectDefinition.ConstObjectID & "." & ObjectDefinition.ConstFNID, PrimaryEntryOrdinal:=1, _
             properties:={ObjectEntryProperty.Keyword}, _
             validationPropertyStrings:={ObjectValidationProperty.NotEmpty, ObjectValidationProperty.UseLookup}, _
             LookupPropertyStrings:={LookupProperty.UseAttributeValues}, _
@@ -4528,10 +4523,10 @@ Namespace OnTrack.Scheduling
             XID:="SL1", title:="Linked From Object", description:="object link from the scheduled object")> _
         Public Const ConstFNFromObjectID = "FROMOBJECTID"
 
-        <ormObjectEntry(Datatype:=otDataType.Long, primarykeyordinal:=2, dbdefaultvalue:="0", lowerrange:=0, _
+        <ormObjectEntry(Datatype:=otDataType.Long, PrimaryEntryOrdinal:=2, dbdefaultvalue:="0", lowerrange:=0, _
             XID:="SL2", title:="Linked from UID", description:="uid link from the scheduled object")> Public Const ConstFNFromUID = "FROMUID"
 
-        <ormObjectEntry(referenceobjectentry:=MileStoneDefinition.ConstObjectID & "." & MileStoneDefinition.ConstFNID, primarykeyordinal:=3, _
+        <ormObjectEntry(referenceobjectentry:=MileStoneDefinition.ConstObjectID & "." & MileStoneDefinition.ConstFNID, PrimaryEntryOrdinal:=3, _
             dbdefaultValue:="", properties:={ObjectEntryProperty.Keyword}, _
             XID:="SL3", title:="Linked from Milestone", description:="uid link from the scheduled object milestone")> Public Const ConstFNFromMilestoneID = "FROMMS"
 
@@ -4548,11 +4543,11 @@ Namespace OnTrack.Scheduling
             XID:="SL4", title:="Linked to Object", description:="object link to the scheduled object")> _
         Public Const ConstFNToObjectID = "ToObjectID"
 
-        <ormObjectEntry(Datatype:=otDataType.Long, primarykeyordinal:=4, lowerrange:=0, _
+        <ormObjectEntry(Datatype:=otDataType.Long, PrimaryEntryOrdinal:=4, lowerrange:=0, _
             XID:="SL5", title:="Linked to UID", description:="uid link to the scheduled object")> Public Const ConstFNToUID = "TOUID"
 
         <ormObjectEntry(referenceobjectentry:=MileStoneDefinition.ConstObjectID & "." & MileStoneDefinition.ConstFNID, _
-            primarykeyordinal:=5, _
+            PrimaryEntryOrdinal:=5, _
              properties:={ObjectEntryProperty.Keyword}, _
             XID:="SL6", title:="Linked to Milestone", description:="uid link to the scheduled object milestone")> Public Const CONSTFNToMilestoneID = "TOMS"
 
@@ -4567,13 +4562,13 @@ Namespace OnTrack.Scheduling
         ''' Mapping
         ''' </summary>
         ''' <remarks></remarks>
-        <ormEntryMapping(EntryName:=ConstFNFromObjectID)> Private _fromObjectID As String
-        <ormEntryMapping(EntryName:=ConstFNFromUID)> Private _fromUID As Long
-        <ormEntryMapping(EntryName:=ConstFNFromMilestoneID)> Private _FromMilestone As String
-        <ormEntryMapping(EntryName:=ConstFNToObjectID)> Private _ToObjectID As String
-        <ormEntryMapping(EntryName:=ConstFNToUID)> Private _ToUID As Long
-        <ormEntryMapping(EntryName:=CONSTFNToMilestoneID)> Private _ToMilestone As String
-        <ormEntryMapping(EntryName:=ConstFNTypeID)> Private _type As otScheduleLinkType
+        <ormObjectEntryMapping(EntryName:=ConstFNFromObjectID)> Private _fromObjectID As String
+        <ormObjectEntryMapping(EntryName:=ConstFNFromUID)> Private _fromUID As Long
+        <ormObjectEntryMapping(EntryName:=ConstFNFromMilestoneID)> Private _FromMilestone As String
+        <ormObjectEntryMapping(EntryName:=ConstFNToObjectID)> Private _ToObjectID As String
+        <ormObjectEntryMapping(EntryName:=ConstFNToUID)> Private _ToUID As Long
+        <ormObjectEntryMapping(EntryName:=CONSTFNToMilestoneID)> Private _ToMilestone As String
+        <ormObjectEntryMapping(EntryName:=ConstFNTypeID)> Private _type As otScheduleLinkType
 
         ''' <summary>
         ''' Relation to WorkspaceSchedules per Workspace (this is not complete since workspaces are resolved by retrieved)
@@ -4583,7 +4578,7 @@ Namespace OnTrack.Scheduling
                      cascadeonCreate:=True, cascadeOnDelete:=True, cascadeOnUpdate:=False)> _
         Public Const ConstRWorkspaceSchedules = "RELWorkspaceScheduleS"
 
-        <ormEntryMapping(relationName:=ConstRWorkspaceSchedules, infusemode:=otInfuseMode.OnInject Or otInfuseMode.OnCreate Or otInfuseMode.OnDemand)> _
+        <ormObjectEntryMapping(relationName:=ConstRWorkspaceSchedules, infusemode:=otInfuseMode.OnInject Or otInfuseMode.OnCreate Or otInfuseMode.OnDemand)> _
         Private _cscheduleCollection As ormRelationCollection(Of WorkspaceSchedule) = New ormRelationCollection(Of WorkspaceSchedule)(Me, keyentrynames:={WorkspaceSchedule.ConstFNWorkspaceID})
 
         ''' <summary>
@@ -4594,7 +4589,7 @@ Namespace OnTrack.Scheduling
                      cascadeonCreate:=True, cascadeOnDelete:=True, cascadeOnUpdate:=True)> _
         Public Const ConstRWorkspaceSchedule = "RELWorkspaceSchedule"
 
-        <ormEntryMapping(relationName:=ConstRWorkspaceSchedule, infusemode:=otInfuseMode.OnCreate Or otInfuseMode.OnInject Or otInfuseMode.OnDemand)> Private _WorkspaceSchedule As WorkspaceSchedule
+        <ormObjectEntryMapping(relationName:=ConstRWorkspaceSchedule, infusemode:=otInfuseMode.OnCreate Or otInfuseMode.OnInject Or otInfuseMode.OnDemand)> Private _WorkspaceSchedule As WorkspaceSchedule
 
 
 
@@ -4639,7 +4634,7 @@ Namespace OnTrack.Scheduling
 
         End Property
         ''' <summary>
-        ''' gets the linking Milestone or "" if none
+        ''' gets the linking Milestone or String.empty if none
         ''' </summary>
         ''' <value></value>
         ''' <returns></returns>
@@ -4679,7 +4674,7 @@ Namespace OnTrack.Scheduling
 
         End Property
         ''' <summary>
-        ''' gets or sets the linking Milestone or "" if not applicable
+        ''' gets or sets the linking Milestone or String.empty if not applicable
         ''' </summary>
         ''' <value></value>
         ''' <returns></returns>
@@ -4797,9 +4792,10 @@ Namespace OnTrack.Scheduling
         ''' <returns></returns>
         ''' <remarks></remarks>
         Public Shared Function Create(fromObjectID As String, fromuid As Long, toScheduleUid As Long, _
-                                      Optional fromMilestone As String = "", Optional toMilestone As String = "") As ScheduleLink
-            Dim primarykey As Object() = {fromObjectID, fromuid, fromMilestone.ToUpper, toScheduleUid, toMilestone.ToUpper}
-            Return ormDataObject.CreateDataObject(Of ScheduleLink)(primarykey, checkUnique:=True)
+                                      Optional fromMilestone As String = "", _
+                                      Optional toMilestone As String = "") As ScheduleLink
+            Dim primarykey As Object() = {fromObjectID, fromuid, fromMilestone, toScheduleUid, toMilestone}
+            Return ormBusinessObject.CreateDataObject(Of ScheduleLink)(primarykey, checkUnique:=True)
         End Function
 
         ''' <summary>
@@ -4816,7 +4812,7 @@ Namespace OnTrack.Scheduling
         Public Shared Function Retrieve(fromObjectID As String, fromuid As Long, toScheduleUid As Long, _
                                         Optional fromMilestone As String = "", Optional toMilestone As String = "") As ScheduleLink
             Dim primarykey As Object() = {fromObjectID, fromuid, fromMilestone.ToUpper, toScheduleUid, toMilestone.ToUpper}
-            Return ormDataObject.Retrieve(Of ScheduleLink)(primarykey)
+            Return ormBusinessObject.RetrieveDataObject(Of ScheduleLink)(primarykey)
         End Function
 
         ''' <summary>
@@ -4834,28 +4830,28 @@ Namespace OnTrack.Scheduling
             Dim aResult As ScheduleLink
 
             Try
-                Dim aStore As iormDataStore = GetTableStore(ConstTableID)
+                Dim aStore As iormRelationalTableStore = GetTableStore(ConstPrimaryTableID)
                 Dim aCommand As ormSqlSelectCommand = aStore.CreateSqlSelectCommand(id:="deliverable", addAllFields:=True)
-                If Not aCommand.Prepared Then
+                If Not aCommand.IsPrepared Then
                     aCommand.Where = "[" & ConstFNFromObjectID & "] = @fromobjectid AND [" & ConstFNFromUID & "] = @fromuid AND [" & ConstFNFromMilestoneID & "] = @fromms"
                     aCommand.Where &= " AND [" & ConstFNToObjectID & "] = @toobjectid "
                     aCommand.Where &= " AND [" & ConstFNIsDeleted & "] = @deleted "
                     'aCommand.Where &= " AND ([" & ConstFNDomainID & "] = @domainID OR [" & ConstFNDomainID & "] = @globalID)"
                     aCommand.OrderBy = "[" & ConstFNToUID & "] asc"
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@fromobjectid", ColumnName:=ConstFNFromObjectID, tablename:=ConstTableID))
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@fromuid", ColumnName:=ConstFNFromUID, tablename:=ConstTableID))
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@fromms", ColumnName:=ConstFNFromMilestoneID, tablename:=ConstTableID))
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@toobjectid", ColumnName:=ConstFNToObjectID, tablename:=ConstTableID))
-                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@deleted", ColumnName:=ConstFNIsDeleted, tablename:=ConstTableID))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@fromobjectid", ColumnName:=ConstFNFromObjectID, tableid:=ConstPrimaryTableID))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@fromuid", ColumnName:=ConstFNFromUID, tableid:=ConstPrimaryTableID))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@fromms", ColumnName:=ConstFNFromMilestoneID, tableid:=ConstPrimaryTableID))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@toobjectid", ColumnName:=ConstFNToObjectID, tableid:=ConstPrimaryTableID))
+                    aCommand.AddParameter(New ormSqlCommandParameter(ID:="@deleted", ColumnName:=ConstFNIsDeleted, tableid:=ConstPrimaryTableID))
 
-                    'aCommand.AddParameter(New ormSqlCommandParameter(ID:="@domainID", ColumnName:=ConstFNDomainID, tablename:=ConstTableID))
-                    'aCommand.AddParameter(New ormSqlCommandParameter(ID:="@globalID", ColumnName:=ConstFNDomainID, tablename:=ConstTableID))
+                    'aCommand.AddParameter(New ormSqlCommandParameter(ID:="@domainID", ColumnName:=ConstFNDomainID, tableid:=ConstPrimaryTableID))
+                    'aCommand.AddParameter(New ormSqlCommandParameter(ID:="@globalID", ColumnName:=ConstFNDomainID, tableid:=ConstPrimaryTableID))
                     aCommand.Prepare()
                 End If
 
                 aCommand.SetParameterValue(ID:="@fromobjectid", value:=Deliverable.ConstObjectID)
                 aCommand.SetParameterValue(ID:="@fromuid", value:=deliverableUID)
-                aCommand.SetParameterValue(ID:="@fromms", value:="")
+                aCommand.SetParameterValue(ID:="@fromms", value:=String.empty)
                 aCommand.SetParameterValue(ID:="@toobjectid", value:=ScheduleEdition.ConstObjectID)
                 aCommand.SetParameterValue(ID:="@deleted", value:=False)
 
@@ -4873,7 +4869,7 @@ Namespace OnTrack.Scheduling
 
             Catch ex As Exception
 
-                Call CoreMessageHandler(exception:=ex, subname:="ScheduleLink.RetrieveDeliverableLink")
+                Call CoreMessageHandler(exception:=ex, procedure:="ScheduleLink.RetrieveDeliverableLink")
                 Return Nothing
 
             End Try
@@ -4893,8 +4889,8 @@ Namespace OnTrack.Scheduling
         Public Shared Function RetrieveDeliverableLinkTo(scheduleUID As Long) As ScheduleLink
 
             Try
-                Dim aStore As iormDataStore = GetTableStore(ConstTableID)
-                Dim pkarray As Object() = {ScheduleEdition.ConstObjectID, scheduleUID, ""}
+                Dim aStore As iormRelationalTableStore = GetTableStore(ConstPrimaryTableID)
+                Dim pkarray As Object() = {ScheduleEdition.ConstObjectID, scheduleUID, String.empty}
                 Dim aRecordCollection As List(Of ormRecord) = aStore.GetRecordsByIndex(indexname:=ConstIndTo, keyArray:=pkarray)
 
                 For Each aRecord As ormRecord In aRecordCollection
@@ -4909,7 +4905,7 @@ Namespace OnTrack.Scheduling
 
             Catch ex As Exception
 
-                Call CoreMessageHandler(exception:=ex, subname:="ScheduleLink.RetrieveDeliverableLinkTo")
+                Call CoreMessageHandler(exception:=ex, procedure:="ScheduleLink.RetrieveDeliverableLinkTo")
                 Return Nothing
 
             End Try
@@ -4935,9 +4931,9 @@ Namespace OnTrack.Scheduling
         adddeletefieldbehavior:=True, adddomainbehavior:=False, usecache:=True, _
         description:="linking object to the schedule edition per workspace")> _
     Public Class WorkspaceSchedule
-        Inherits ormDataObject
+        Inherits ormBusinessObject
         Implements iormInfusable
-        Implements iormPersistable
+        Implements iormRelationalPersistable
 
         ''' <summary>
         ''' Object ID
@@ -4949,24 +4945,24 @@ Namespace OnTrack.Scheduling
         ''' Table Definition
         ''' </summary>
         ''' <remarks></remarks>
-        <ormSchemaTable(version:=2)> Public Const ConstTableID = "TBLWORKSPACESCHEDULES"
+        <ormTableAttribute(version:=2)> Public Const ConstPrimaryTableID = "TBLWORKSPACESCHEDULES"
 
         ''' <summary>
         ''' Index
         ''' </summary>
         ''' <remarks></remarks>
-        <ormSchemaIndex(columnname1:=ConstFNUID, columnname2:=ConstFNWorkspaceID)> Public Const ConstIndTag = "UIDs"
+        <ormIndex(columnname1:=ConstFNUID, columnname2:=ConstFNWorkspaceID)> Public Const ConstIndTag = "UIDs"
 
         ''' <summary>
         ''' Primary Key Columns
         ''' </summary>
         ''' <remarks></remarks>
-        <ormObjectEntry(referenceObjectEntry:=Workspace.ConstObjectID & "." & Workspace.ConstFNID, primarykeyordinal:=1, _
+        <ormObjectEntry(referenceObjectEntry:=Workspace.ConstObjectID & "." & Workspace.ConstFNID, PrimaryEntryOrdinal:=1, _
             useforeignkey:=otForeignKeyImplementation.NativeDatabase, _
             validationPropertyStrings:={ObjectValidationProperty.UseLookup}, lookupPropertyStrings:={LookupProperty.UseAttributeReference})> _
         Public Const ConstFNWorkspaceID = Workspace.ConstFNID
 
-        <ormObjectEntry(referenceobjectentry:=ScheduleEdition.ConstObjectID & "." & ScheduleEdition.ConstFNUid, primarykeyordinal:=2)> _
+        <ormObjectEntry(referenceobjectentry:=ScheduleEdition.ConstObjectID & "." & ScheduleEdition.ConstFNUid, PrimaryEntryOrdinal:=2)> _
         Public Const ConstFNUID = ScheduleEdition.ConstFNUid
 
 
@@ -4998,12 +4994,12 @@ Namespace OnTrack.Scheduling
         ''' Column Mappings
         ''' </summary>
         ''' <remarks></remarks>
-        <ormEntryMapping(EntryName:=ConstFNWorkspaceID)> Private _workspaceID As String
-        <ormEntryMapping(EntryName:=ConstFNUID)> Private _uid As Long
-        <ormEntryMapping(EntryName:=ConstFNTypeid)> Private _typeid As String
-        <ormEntryMapping(EntryName:=ConstFNAliveUPDC)> Private _AliveUpdc As Long?
-        <ormEntryMapping(EntryName:=ConstFNWorkUPDC)> Private _WorkUpdc As Long?
-        <ormEntryMapping(EntryName:=ConstFNIsActive)> Private _isActive As Boolean = True
+        <ormObjectEntryMapping(EntryName:=ConstFNWorkspaceID)> Private _workspaceID As String
+        <ormObjectEntryMapping(EntryName:=ConstFNUID)> Private _uid As Long
+        <ormObjectEntryMapping(EntryName:=ConstFNTypeid)> Private _typeid As String
+        <ormObjectEntryMapping(EntryName:=ConstFNAliveUPDC)> Private _AliveUpdc As Long?
+        <ormObjectEntryMapping(EntryName:=ConstFNWorkUPDC)> Private _WorkUpdc As Long?
+        <ormObjectEntryMapping(EntryName:=ConstFNIsActive)> Private _isActive As Boolean = True
 
         ''' <summary>
         ''' Relation to schedule definition
@@ -5012,7 +5008,7 @@ Namespace OnTrack.Scheduling
         <ormRelation(linkobject:=GetType(ScheduleDefinition), toprimarykeys:={ConstFNTypeid}, _
             cascadeOnCreate:=False, cascadeOnDelete:=False, cascadeOnUpdate:=False)> Public Const ConstRScheduleDefinition = "RELSCHEDULEDEFINITION"
 
-        <ormEntryMapping(RelationName:=ConstRScheduleDefinition, infuseMode:=otInfuseMode.OnDemand)> Private WithEvents _scheduleDefinition As ScheduleDefinition
+        <ormObjectEntryMapping(RelationName:=ConstRScheduleDefinition, infuseMode:=otInfuseMode.OnDemand)> Private WithEvents _scheduleDefinition As ScheduleDefinition
 
         ''' <summary>
         ''' Relation to alive Schedule edition - will be resolved by events
@@ -5022,7 +5018,7 @@ Namespace OnTrack.Scheduling
                      cascadeonCreate:=False, cascadeOnDelete:=False, cascadeOnUpdate:=False)> _
         Public Const ConstRWorkspace = "REL_Workspace"
 
-        <ormEntryMapping(relationName:=ConstRWorkspace, infusemode:=otInfuseMode.OnCreate Or otInfuseMode.OnDemand Or otInfuseMode.OnInject)> _
+        <ormObjectEntryMapping(relationName:=ConstRWorkspace, infusemode:=otInfuseMode.OnCreate Or otInfuseMode.OnDemand Or otInfuseMode.OnInject)> _
         Private _workspace As Workspace
 
         ''' <summary>
@@ -5033,7 +5029,7 @@ Namespace OnTrack.Scheduling
                      cascadeonCreate:=True, cascadeOnDelete:=True, cascadeOnUpdate:=True)> _
         Public Const ConstRAliveEdition = "REL_ALIVEEDITION"
 
-        <ormEntryMapping(relationName:=ConstRAliveEdition, infusemode:=otInfuseMode.OnCreate Or otInfuseMode.OnDemand Or otInfuseMode.OnInject)> _
+        <ormObjectEntryMapping(relationName:=ConstRAliveEdition, infusemode:=otInfuseMode.OnCreate Or otInfuseMode.OnDemand Or otInfuseMode.OnInject)> _
         Private _aliveedition As ScheduleEdition
 
         ''' <summary>
@@ -5045,7 +5041,7 @@ Namespace OnTrack.Scheduling
                      cascadeonCreate:=True, cascadeOnDelete:=True, cascadeOnUpdate:=True)> _
         Public Const ConstRWorkEdition = "REL_WorkEDITION"
 
-        <ormEntryMapping(relationName:=ConstRWorkEdition, infusemode:=otInfuseMode.OnCreate Or otInfuseMode.OnDemand Or otInfuseMode.OnInject)> _
+        <ormObjectEntryMapping(relationName:=ConstRWorkEdition, infusemode:=otInfuseMode.OnCreate Or otInfuseMode.OnDemand Or otInfuseMode.OnInject)> _
         Private _workingedition As ScheduleEdition
 
         ''' <summary>
@@ -5116,7 +5112,7 @@ Namespace OnTrack.Scheduling
         ''' <remarks></remarks>
         ReadOnly Property Workspace As Workspace
             Get
-                If Me.GetRelationStatus(ConstRWorkspace) = DataObjectRelationMgr.RelationStatus.Unloaded Then InfuseRelation(ConstRWorkspace)
+                If Me.GetRelationStatus(ConstRWorkspace) = ormRelationManager.RelationStatus.Unloaded Then InfuseRelation(ConstRWorkspace)
                 Return _workspace
             End Get
         End Property
@@ -5183,7 +5179,7 @@ Namespace OnTrack.Scheduling
         ''' <remarks></remarks>
         Public ReadOnly Property WorkingEdition As ScheduleEdition
             Get
-                If Me.GetRelationStatus(ConstRWorkEdition) = DataObjectRelationMgr.RelationStatus.Unloaded Then InfuseRelation(ConstRWorkEdition)
+                If Me.GetRelationStatus(ConstRWorkEdition) = ormRelationManager.RelationStatus.Unloaded Then InfuseRelation(ConstRWorkEdition)
                 Return _workingedition
             End Get
         End Property
@@ -5195,7 +5191,7 @@ Namespace OnTrack.Scheduling
         ''' <remarks></remarks>C
         Public ReadOnly Property AliveEdition As ScheduleEdition
             Get
-                If Me.GetRelationStatus(ConstRAliveEdition) = DataObjectRelationMgr.RelationStatus.Unloaded Then InfuseRelation(ConstRAliveEdition)
+                If Me.GetRelationStatus(ConstRAliveEdition) = ormRelationManager.RelationStatus.Unloaded Then InfuseRelation(ConstRAliveEdition)
                 Return _aliveedition
             End Get
         End Property
@@ -5364,7 +5360,7 @@ Namespace OnTrack.Scheduling
         ''' <param name="doFeedRecord"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Function Persist(Optional timestamp As DateTime? = Nothing, Optional doFeedRecord As Boolean = True) As Boolean Implements iormPersistable.Persist
+        Public Function Persist(Optional timestamp As DateTime? = Nothing, Optional doFeedRecord As Boolean = True) As Boolean Implements iormRelationalPersistable.Persist
             If Me.ScheduleDefinition.Autopublish Then
                 Return Publish(timestamp:=timestamp)
             Else
@@ -5455,7 +5451,7 @@ Namespace OnTrack.Scheduling
 
         End Sub
 
-      
+
         ''' <summary>
         ''' returns a list of workspaceschedule of a given uid
         ''' </summary>
@@ -5465,7 +5461,7 @@ Namespace OnTrack.Scheduling
         Public Shared Function AllByUID(UID As Long) As List(Of WorkspaceSchedule)
             Dim aCollection As New List(Of WorkspaceSchedule)
             Dim aRECORDCollection As List(Of ormRecord)
-            Dim aTable As iormDataStore
+            Dim aTable As iormRelationalTableStore
             Dim Key(0) As Object
             Dim aRECORD As ormRecord
             ' set the primaryKey
@@ -5473,19 +5469,19 @@ Namespace OnTrack.Scheduling
             Key(0) = UID
 
             Try
-                aTable = GetTableStore(ConstTableID)
+                aTable = GetTableStore(ConstPrimaryTableID)
                 aRECORDCollection = aTable.GetRecordsBySql(wherestr:="[" & ConstFNUID & "] = " & CStr(UID))
 
-                    For Each aRECORD In aRECORDCollection
-                        Dim aNewcurSchedule As New WorkspaceSchedule
-                        If InfuseDataObject(record:=aRECORD, dataobject:=aNewcurSchedule) Then
-                            aCollection.Add(Item:=aNewcurSchedule)
-                        End If
-                    Next
-                    Return aCollection
+                For Each aRECORD In aRECORDCollection
+                    Dim aNewcurSchedule As New WorkspaceSchedule
+                    If InfuseDataObject(record:=aRECORD, dataobject:=aNewcurSchedule) Then
+                        aCollection.Add(Item:=aNewcurSchedule)
+                    End If
+                Next
+                Return aCollection
 
             Catch ex As Exception
-                CoreMessageHandler(exception:=ex, subname:="WorkspaceSchedule.AllbyUID")
+                CoreMessageHandler(exception:=ex, procedure:="WorkspaceSchedule.AllbyUID")
             End Try
 
 
@@ -5501,17 +5497,14 @@ Namespace OnTrack.Scheduling
         ''' <returns></returns>
         ''' <remarks></remarks>
         <ormObjectOperationMethod(id:=ConstOPRetrieve, parameterEntries:={ConstFNUID, ConstFNWorkspaceID})> _
-        Public Shared Function Retrieve(ByVal UID As Long, Optional ByVal workspaceID As String = "") As WorkspaceSchedule
+        Public Shared Function Retrieve(ByVal UID As Long, Optional ByVal workspaceID As String = Nothing) As WorkspaceSchedule
             ' if no workspaceID -> Default workspaceID
-            If workspaceID = "" Then
-                workspaceID = CurrentSession.CurrentWorkspaceID
-            End If
-
+            If String.IsNullOrEmpty(workspaceID) Then workspaceID = CurrentSession.CurrentWorkspaceID
             Dim aWSObj As Workspace = Workspace.Retrieve(id:=workspaceID)
             '*
             If aWSObj Is Nothing Then
-                Call CoreMessageHandler(message:="Can't load workspaceID definition", subname:="WorkspaceSchedule.Retrieve", _
-                                      arg1:=workspaceID, messagetype:=otCoreMessageType.ApplicationError)
+                Call CoreMessageHandler(message:="Can't load workspaceID definition", procedure:="WorkspaceSchedule.Retrieve", _
+                                      argument:=workspaceID, messagetype:=otCoreMessageType.ApplicationError)
                 Return Nothing
             End If
 
@@ -5519,7 +5512,7 @@ Namespace OnTrack.Scheduling
             For Each aWorkspaceID In aWSObj.FCRelyingOn
                 ' check if in workspaceID any data -> fall back to default (should be base)
                 Dim primarykey As Object() = {aWorkspaceID, UID}
-                Dim aCurrSchedule As WorkspaceSchedule = ormDataObject.Retrieve(Of WorkspaceSchedule)(pkArray:=primarykey)
+                Dim aCurrSchedule As WorkspaceSchedule = ormBusinessObject.RetrieveDataObject(Of WorkspaceSchedule)(pkArray:=primarykey)
                 If aCurrSchedule IsNot Nothing AndAlso aCurrSchedule.IsActive Then
                     Return aCurrSchedule
                 End If
@@ -5536,10 +5529,10 @@ Namespace OnTrack.Scheduling
         ''' <param name="workspaceID"></param>
         ''' <returns></returns>
         ''' <remarks></remarks>
-        Public Shared Function RetrieveUnique(ByVal UID As Long, Optional ByVal workspaceID As String = "") As WorkspaceSchedule
-            If workspaceID = "" Then workspaceID = CurrentSession.CurrentWorkspaceID
+        Public Shared Function RetrieveUnique(ByVal UID As Long, Optional ByVal workspaceID As String = Nothing) As WorkspaceSchedule
+            If String.IsNullOrEmpty(workspaceID) Then workspaceID = CurrentSession.CurrentWorkspaceID
             Dim pkarry() As Object = {workspaceID, UID}
-            Return ormDataObject.Retrieve(Of WorkspaceSchedule)(pkArray:=pkarry)
+            Return ormBusinessObject.RetrieveDataObject(Of WorkspaceSchedule)(pkArray:=pkarry)
         End Function
 
         '**** getthe TrackDef
@@ -5576,17 +5569,17 @@ Namespace OnTrack.Scheduling
                                       Optional ByVal workspaceID As String = Nothing, _
                                       Optional domainid As String = Nothing, _
                                       Optional scheduletypeid As String = Nothing) As WorkspaceSchedule
-            If String.IsNullOrWhiteSpace(workspaceID) Then workspaceID = CurrentSession.CurrentWorkspaceID
+            If String.IsnullorEmpty(workspaceID) Then workspaceID = CurrentSession.CurrentWorkspaceID
             If String.IsNullOrWhiteSpace(scheduletypeid) Then scheduletypeid = CurrentSession.DefaultScheduleTypeID
-            If String.IsNullOrWhiteSpace(domainid) Then domainid = CurrentSession.CurrentDomainID
+            If String.IsnullorEmpty(domainID) Then domainid = CurrentSession.CurrentDomainID
             Dim aRecord As New ormRecord
             With aRecord
                 .SetValue(ConstFNUID, UID)
-                If Not String.IsNullOrWhiteSpace(workspaceID) Then .SetValue(ConstFNWorkspaceID, workspaceID)
+                If Not String.IsnullorEmpty(workspaceID) Then .SetValue(ConstFNWorkspaceID, workspaceID)
                 .SetValue(ConstFNTypeid, scheduletypeid)
                 .SetValue(ConstFNDomainID, domainid)
             End With
-            Return ormDataObject.CreateDataObject(Of WorkspaceSchedule)(aRecord, checkUnique:=True)
+            Return ormBusinessObject.CreateDataObject(Of WorkspaceSchedule)(aRecord, checkUnique:=True)
         End Function
 
         ''' <summary>
@@ -5609,7 +5602,7 @@ Namespace OnTrack.Scheduling
                     e.Result = True
                     e.Proceed = True
                 Else
-                    CoreMessageHandler(message:="primary keys couldnot be created ?!", subname:="WorkspaceSchedule.WorkspaceSchedule_OnCreating", _
+                    CoreMessageHandler(message:="primary keys couldnot be created ?!", procedure:="WorkspaceSchedule.WorkspaceSchedule_OnCreating", _
                                        messagetype:=otCoreMessageType.InternalError)
                 End If
 

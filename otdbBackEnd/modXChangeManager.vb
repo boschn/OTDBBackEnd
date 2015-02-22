@@ -46,13 +46,13 @@ Namespace OnTrack.XChange
                                   Optional commentChar As Char = "#"c) As Boolean
 
             CoreMessageHandler(message:="looking next to csv file '" & IO.Path.GetFileName(path) & "' ", _
-                                              arg1:=path, username:=CurrentSession.CurrentUsername, _
-                                              subname:="CreateDatabase.FeedInitialData", messagetype:=otCoreMessageType.InternalInfo)
+                                              argument:=path, username:=CurrentSession.CurrentUsername, _
+                                              procedure:="CreateDatabase.FeedInitialData", messagetype:=otCoreMessageType.InternalInfo)
 
             ''' request rights and start session if necessary
             ''' 
             If Not ot.CurrentSession.RequestUserAccess(accessRequest:=otAccessRight.ReadUpdateData) Then
-                ot.CoreMessageHandler(message:="operation aborted due to missing ReadUpdate Rights", subname:="XChangeCSV.FeedinCSV", messagetype:=otCoreMessageType.ApplicationError)
+                ot.CoreMessageHandler(message:="operation aborted due to missing ReadUpdate Rights", procedure:="XChangeCSV.FeedinCSV", messagetype:=otCoreMessageType.ApplicationError)
                 Return False
             End If
             Dim aCSVReader As CsvReader
@@ -60,7 +60,7 @@ Namespace OnTrack.XChange
                 ''' get the path
                 ''' 
                 If Not System.IO.File.Exists(path) Then
-                    ot.CoreMessageHandler(message:="csv file to feed from is not available", arg1:=path, subname:="XChangeCSV.FeedinCSV", messagetype:=otCoreMessageType.ApplicationError)
+                    ot.CoreMessageHandler(message:="csv file to feed from is not available", argument:=path, procedure:="XChangeCSV.FeedinCSV", messagetype:=otCoreMessageType.ApplicationError)
                     Return False
                 End If
                 Dim aStreamReader As System.IO.StreamReader = New StreamReader(path)
@@ -93,7 +93,7 @@ Namespace OnTrack.XChange
                 ReDim headerids(aCSVReader.FieldCount)
                 headerids = aCSVReader.GetFieldHeaders
                 Dim headerstring As String = Converter.Array2otString(headerids)
-                
+
 
                 ''' read the object id of the first object -> must be the key
                 ''' 
@@ -123,8 +123,8 @@ Namespace OnTrack.XChange
                 End If
                 If theObjectEntries Is Nothing OrElse theObjectEntries.Count = 0 Then
                     ot.CoreMessageHandler(message:="object entry with xid'" & headerids(0) & "' could not be retrieved - aborted", _
-                                         arg1:=Converter.Array2otString(headerids), _
-                                         subname:="XChangeCSV.FeedInCSV", messagetype:=otCoreMessageType.ApplicationError)
+                                         argument:=Converter.Array2otString(headerids), _
+                                         procedure:="XChangeCSV.FeedInCSV", messagetype:=otCoreMessageType.ApplicationError)
                     Return False
                 End If
 
@@ -139,8 +139,8 @@ Namespace OnTrack.XChange
                     Return False
                 Else
                     ot.CoreMessageHandler(message:="read-only xconfiguration '" & aConfigName & "' created with header '" & headerstring & "'", _
-                                          arg1:=path, _
-                                          subname:="XChangeCSV.FeedInCSV", messagetype:=otCoreMessageType.ApplicationInfo)
+                                          argument:=path, _
+                                          procedure:="XChangeCSV.FeedInCSV", messagetype:=otCoreMessageType.ApplicationInfo)
                 End If
                 Dim result As Boolean = True
                 Dim aXBag As New XBag(aXConfig)
@@ -160,7 +160,7 @@ Namespace OnTrack.XChange
 
                             If result = False Then
                                 CoreMessageHandler(message:="xchange envelope could not be fully set in row #" & aCSVReader.CurrentRecordIndex & "  for header id (xid) " & headerids(j), messagetype:=otCoreMessageType.ApplicationError, _
-                                               subname:="CSVXChangeManager.FeedInCSV")
+                                               procedure:="CSVXChangeManager.FeedInCSV")
                             End If
                         End If
 
@@ -183,7 +183,7 @@ Namespace OnTrack.XChange
 
 
             Catch ex As Exception
-                ot.CoreMessageHandler(exception:=ex, subname:="CSVXChangeManager.FeedInCSV", arg1:=path)
+                ot.CoreMessageHandler(exception:=ex, procedure:="CSVXChangeManager.FeedInCSV", argument:=path)
                 aCSVReader.Dispose()
                 Return False
             End Try
@@ -201,16 +201,16 @@ Namespace OnTrack.XChange
             ''' request rights and start session if necessary
             ''' 
             If Not ot.CurrentSession.RequestUserAccess(accessRequest:=otAccessRight.ReadOnly) Then
-                ot.CoreMessageHandler(message:="operation aborted due to missing ReadUpdate Rights", subname:="XChangeCSV.DumpOutToCSV", messagetype:=otCoreMessageType.ApplicationError)
+                ot.CoreMessageHandler(message:="operation aborted due to missing ReadUpdate Rights", procedure:="XChangeCSV.DumpOutToCSV", messagetype:=otCoreMessageType.ApplicationError)
                 Return False
             End If
 
             Try
                 ''' get the path
                 ''' 
-                If System.IO.Path.GetFileName(path) <> "" AndAlso System.IO.Path.GetExtension(path) = "" Then
-                    ot.CoreMessageHandler(message:="file to dump to exists has no .csv extension - added", arg1:=path, _
-                                            subname:="XChangeCSV.DumpOutToCSV", messagetype:=otCoreMessageType.ApplicationWarning)
+                If System.IO.Path.GetFileName(path) <> String.empty AndAlso System.IO.Path.GetExtension(path) = String.empty Then
+                    ot.CoreMessageHandler(message:="file to dump to exists has no .csv extension - added", argument:=path, _
+                                            procedure:="XChangeCSV.DumpOutToCSV", messagetype:=otCoreMessageType.ApplicationWarning)
                     path &= ".csv"
                 End If
 
@@ -224,29 +224,29 @@ Namespace OnTrack.XChange
                 If System.IO.File.Exists(path) Then
                     If System.IO.Path.GetExtension(path).ToUpper <> ".CSV" Then
                         ot.CoreMessageHandler(message:="file to dump to has different ending and exists - operation aborted", _
-                                              arg1:=path, subname:="XChangeCSV.DumpOutToCSV", messagetype:=otCoreMessageType.ApplicationError)
+                                              argument:=path, procedure:="XChangeCSV.DumpOutToCSV", messagetype:=otCoreMessageType.ApplicationError)
                         Return False
                     Else
                         ''' delete the existing file
                         System.IO.File.Delete(path)
-                        ot.CoreMessageHandler(message:="csv file to dump to exists - deleted", arg1:=path, _
-                                              subname:="XChangeCSV.DumpOutToCSV", messagetype:=otCoreMessageType.ApplicationWarning)
+                        ot.CoreMessageHandler(message:="csv file to dump to exists - deleted", argument:=path, _
+                                              procedure:="XChangeCSV.DumpOutToCSV", messagetype:=otCoreMessageType.ApplicationWarning)
                     End If
                 End If
                 ''' set the filename and the path
                 aFilename = System.IO.Path.GetFileName(path)
-                If aFilename = "" Then
+                If aFilename = String.empty Then
                     aFilename = xconfig.Configname & ".csv"
-                ElseIf System.IO.Path.GetExtension(aFilename) = "" Then
+                ElseIf System.IO.Path.GetExtension(aFilename) = String.empty Then
                     aFilename &= ".csv"
                 End If
 
                 aPath = System.IO.Path.GetDirectoryName(path)
-                If aPath = "" Then aPath = System.IO.Directory.GetCurrentDirectory()
+                If aPath = String.empty Then aPath = System.IO.Directory.GetCurrentDirectory()
                 ''' directory must exists
                 If Not System.IO.Directory.Exists(aPath) Then
                     ot.CoreMessageHandler(message:="path must contain an existing path - operation aborted", _
-                                               arg1:=path, subname:="XChangeCSV.DumpOutToCSV", messagetype:=otCoreMessageType.ApplicationError)
+                                               argument:=path, procedure:="XChangeCSV.DumpOutToCSV", messagetype:=otCoreMessageType.ApplicationError)
                     Return False
                 Else
                     Dim writepermission As System.Security.Permissions.FileIOPermission = _
@@ -261,8 +261,8 @@ Namespace OnTrack.XChange
                 Dim aXBag As New XBag(xconfig)
                 Dim aMsgLog As New ObjectMessageLog
 
-                ot.CoreMessageHandler(message:="running xchange configuration for csv dump file '" & aPath & aFilename & "' ... ", arg1:=xconfig.Configname, _
-                                         subname:="XChangeCSV.DumpOutToCSV", messagetype:=otCoreMessageType.ApplicationInfo)
+                ot.CoreMessageHandler(message:="running xchange configuration for csv dump file '" & aPath & aFilename & "' ... ", argument:=xconfig.Configname, _
+                                         procedure:="XChangeCSV.DumpOutToCSV", messagetype:=otCoreMessageType.ApplicationInfo)
 
                 '''
                 ''' running
@@ -274,15 +274,15 @@ Namespace OnTrack.XChange
                 If result Then
                     Dim aStreamWrite As IO.StreamWriter = New StreamWriter(aPath & aFilename)
 
-                    ot.CoreMessageHandler(message:="writing csv dump file '" & aPath & aFilename & "' ... ", arg1:=aPath & aFilename, _
-                                          subname:="XChangeCSV.DumpOutToCSV", messagetype:=otCoreMessageType.ApplicationInfo)
+                    ot.CoreMessageHandler(message:="writing csv dump file '" & aPath & aFilename & "' ... ", argument:=aPath & aFilename, _
+                                          procedure:="XChangeCSV.DumpOutToCSV", messagetype:=otCoreMessageType.ApplicationInfo)
 
                     ''' write the header line
                     ''' 
-                    Dim header As String = ""
+                    Dim header As String = String.empty
                     For Each anEntry In xconfig.OrderedXChangeObjectEntries
-                        If header <> "" Then header &= ","
-                        If anEntry.XID IsNot Nothing AndAlso anEntry.XID <> "" Then
+                        If header <> String.empty Then header &= ","
+                        If anEntry.XID IsNot Nothing AndAlso anEntry.XID <> String.empty Then
                             header &= anEntry.XID
                         Else
                             header &= anEntry.Objectname & "." & anEntry.ObjectEntryname
@@ -293,9 +293,9 @@ Namespace OnTrack.XChange
                     ''' write alle the envelopes
                     ''' 
                     For Each anEnvelope In aXBag
-                        Dim aLine As String = ""
+                        Dim aLine As String = String.empty
                         For Each aSlot In anEnvelope
-                            If aLine <> "" Then aLine &= ","
+                            If aLine <> String.empty Then aLine &= ","
                             aLine &= aSlot.HostValue
                         Next
                         aStreamWrite.WriteLine(aLine)
@@ -304,20 +304,20 @@ Namespace OnTrack.XChange
                     ''' close the file
                     aStreamWrite.Close()
 
-                    ot.CoreMessageHandler(message:="csv dump file written", arg1:=aPath & aFilename, _
-                                           subname:="XChangeCSV.DumpOutToCSV", messagetype:=otCoreMessageType.ApplicationInfo)
+                    ot.CoreMessageHandler(message:="csv dump file written", argument:=aPath & aFilename, _
+                                           procedure:="XChangeCSV.DumpOutToCSV", messagetype:=otCoreMessageType.ApplicationInfo)
                     Return True
                 Else
-                    ot.CoreMessageHandler(message:="xchange was not sucessfull - no dump file '" & aPath & aFilename & "' written ", arg1:=xconfig.Configname, _
-                                        subname:="XChangeCSV.DumpOutToCSV", messagetype:=otCoreMessageType.ApplicationError)
+                    ot.CoreMessageHandler(message:="xchange was not sucessfull - no dump file '" & aPath & aFilename & "' written ", argument:=xconfig.Configname, _
+                                        procedure:="XChangeCSV.DumpOutToCSV", messagetype:=otCoreMessageType.ApplicationError)
                     Return False
                 End If
 
-                
+
 
             Catch ex As Exception
 
-                ot.CoreMessageHandler(exception:=ex, subname:="CSVXChangeManager.DumpOutToCSV")
+                ot.CoreMessageHandler(exception:=ex, procedure:="CSVXChangeManager.DumpOutToCSV")
                 Return False
             End Try
 
@@ -333,7 +333,7 @@ Namespace OnTrack.XChange
         Public Sub CSVParseErrorHandler(sender As Csv.CsvReader, e As Csv.ParseErrorEventArgs)
             e.Action = ParseErrorAction.AdvanceToNextLine
 
-            ot.CoreMessageHandler(message:="error while reading csv file - skipping line. error: " & e.Error.Message & vbLf & " in line " & sender.CurrentRecordIndex, arg1:=sender.GetCurrentRawData, subname:="XCHangeCSV.VSCParseErrorHanlder", _
+            ot.CoreMessageHandler(message:="error while reading csv file - skipping line. error: " & e.Error.Message & vbLf & " in line " & sender.CurrentRecordIndex, argument:=sender.GetCurrentRawData, procedure:="XCHangeCSV.VSCParseErrorHanlder", _
                                    messagetype:=otCoreMessageType.ApplicationError)
         End Sub
     End Module
@@ -380,7 +380,7 @@ Namespace OnTrack.XChange
             Dim aNewConfig As XChangeConfiguration = XChangeConfiguration.Create(configname:=configname)
             If aNewConfig Is Nothing Then aNewConfig = XChangeConfiguration.Retrieve(configname:=configname)
             If aNewConfig Is Nothing Then
-                ot.CoreMessageHandler(message:="xchange configuration couldnot be created nor retrieved", arg1:=configname, subname:="XChangeManager.CreateXChangeConfigFromIDs")
+                ot.CoreMessageHandler(message:="xchange configuration couldnot be created nor retrieved", argument:=configname, procedure:="XChangeManager.CreateXChangeConfigFromIDs")
                 Return Nothing
             End If
             Dim anObjectDefinition As ObjectDefinition = CurrentSession.Objects.GetObject(objectid:=objectname)
@@ -388,7 +388,7 @@ Namespace OnTrack.XChange
 
             '*** load the table definition
             If anObjectDefinition Is Nothing Then
-                Call ot.CoreMessageHandler(arg1:=objectname, tablename:=objectname, message:=" Could not load ObjectDEFINITION")
+                Call ot.CoreMessageHandler(argument:=objectname, containerID:=objectname, message:=" Could not load ObjectDEFINITION")
                 CreateXChangeConfigFromObjectDefinition = Nothing
                 Exit Function
             End If
@@ -406,7 +406,7 @@ Namespace OnTrack.XChange
             i = 1
             '
             For Each aFieldDef As AbstractEntryDefinition In anObjectDefinition.GetEntries
-                If aFieldDef.XID <> "" Then
+                If aFieldDef.XID <> String.empty Then
                     Call aNewConfig.AddEntryByObjectEntry(objectentry:=aFieldDef, ordinal:=New OnTrack.Database.Ordinal(i), xcmd:=xcmd)
                     i = i + 1
                 End If
@@ -436,7 +436,7 @@ Namespace OnTrack.XChange
             If aNewConfig Is Nothing Then aNewConfig = XChangeConfiguration.Retrieve(configname:=configname, runtimeonly:=runtimeOnly)
             If aNewConfig Is Nothing Then
                 ot.CoreMessageHandler(message:="xchange configuration couldnot be created nor retrieved", _
-                                      arg1:=configname, messagetype:=otCoreMessageType.ApplicationError, subname:="XChangeManager.CreateXChangeConfigFromIDs")
+                                      argument:=configname, messagetype:=otCoreMessageType.ApplicationError, procedure:="XChangeManager.CreateXChangeConfigFromIDs")
                 Return Nothing
             End If
 
@@ -456,43 +456,43 @@ Namespace OnTrack.XChange
                 ' load ID
                 If Not IsEmpty(xids(i)) Then
                     Dim names As String() = Shuffle.NameSplitter(xids(i).ToUpper)
-                    Dim anobjectname As String = ""
+                    Dim anobjectname As String
                     Dim anxid As String = names.Last
                     If names.Count > 1 Then anobjectname = names.First
 
                     If Not aNewConfig.AddEntryByXID(Xid:=anxid, objectname:=anobjectname, ordinal:=i, isXChanged:=True, xcmd:=xcmd) Then
                         ''' maybe id is not an id
                         ''' 
-                        If anobjectname IsNot Nothing AndAlso anobjectname <> "" Then
+                        If anobjectname IsNot Nothing AndAlso anobjectname <> String.empty Then
                             Dim anObjectDefinition As ObjectDefinition = CurrentSession.Objects.GetObject(objectid:=anobjectname)
                             If anObjectDefinition IsNot Nothing Then
                                 Dim anEntry As iormObjectEntry = CurrentSession.Objects.GetEntry(entryname:=names.Last, objectname:=anobjectname)
                                 If anEntry IsNot Nothing Then
                                     If Not aNewConfig.AddEntryByObjectEntry(objectentry:=anEntry, ordinal:=i, isxchanged:=True, xcmd:=xcmd) Then
                                         ot.CoreMessageHandler(message:="entry couldnot be added to xconfiguration '" & configname & "'", _
-                                                              arg1:=anEntry.Objectname & "." & anEntry.Entryname, _
+                                                              argument:=anEntry.Objectname & "." & anEntry.Entryname, _
                                                               messagetype:=otCoreMessageType.ApplicationError, _
-                                                              subname:="XChangeManager.CreateXChangeConfigFromIDs")
+                                                              procedure:="XChangeManager.CreateXChangeConfigFromIDs")
                                     End If
                                 Else
                                     ot.CoreMessageHandler(message:="xchange id is not an ontrack object entry name - skipped in xchange configuration '" & configname & "'", _
-                                                                  arg1:=anEntry.Objectname & "." & names.Last, _
+                                                                  argument:=anEntry.Objectname & "." & names.Last, _
                                                                   messagetype:=otCoreMessageType.ApplicationWarning, _
-                                                                  subname:="XChangeManager.CreateXChangeConfigFromIDs")
+                                                                  procedure:="XChangeManager.CreateXChangeConfigFromIDs")
                                 End If
                             Else
                                 ot.CoreMessageHandler(message:="xchange id doesnot contain an ontrack object name - skipped in xchange configuration '" & configname & "'", _
-                                                              arg1:=xids(i), _
+                                                              argument:=xids(i), _
                                                               messagetype:=otCoreMessageType.ApplicationWarning, _
-                                                              subname:="XChangeManager.CreateXChangeConfigFromIDs")
+                                                              procedure:="XChangeManager.CreateXChangeConfigFromIDs")
                             End If
 
                         Else
 
                             ot.CoreMessageHandler(message:="header id is not an xchange id nor a valid objectname entry in canonical form - skipped in xchange configuration '" & configname & "'", _
-                                                              arg1:=xids(i), _
+                                                              argument:=xids(i), _
                                                               messagetype:=otCoreMessageType.ApplicationWarning, _
-                                                              subname:="XChangeManager.CreateXChangeConfigFromIDs")
+                                                              procedure:="XChangeManager.CreateXChangeConfigFromIDs")
                         End If
 
                     End If
@@ -501,7 +501,7 @@ Namespace OnTrack.XChange
                 End If
             Next i
 
-            CreateXChangeConfigFromIDs = aNewConfig
+            Return aNewConfig
         End Function
 
         '******* XChangeWithArray : eXchanges Data according the Config with an 2dimensional array
